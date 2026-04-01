@@ -1,0 +1,17 @@
+{
+  "name": "circlesfera",
+  "version": "1.0.0",
+  "description": "A full-stack social media platform inspired by Instagram, built with modern technologies and best practices.",
+  "main": "index.js",
+  "scripts": {
+    "test:e2e": "npx playwright test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^25.2.3"
+  }
+}
