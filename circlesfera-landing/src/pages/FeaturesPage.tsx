@@ -54,7 +54,7 @@ const FeaturesPage = () => {
       <SharedNav />
 
       {/* Hero */}
-      <header className="max-w-4xl mx-auto px-6 pt-20 pb-10 md:pt-28 md:pb-12 text-center relative z-10">
+      <header className="max-w-4xl mx-auto px-6 pt-28 pb-10 md:pt-32 md:pb-12 text-center relative z-10">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass-panel border border-white/10 mb-6 animate-float shadow-lg">
           <span className="text-[10px] font-black tracking-[0.3em] uppercase text-brand-primary">{t.featuresPage.label}</span>
         </div>
