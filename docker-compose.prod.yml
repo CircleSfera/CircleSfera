@@ -1,0 +1,91 @@
+services:
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: CircleSfera-Proxy
+    ports:
+      - "8082:80"
+    volumes:
+      - ./nginx/master.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - landing
+      - backend
+      - frontend
+    restart: unless-stopped
+    networks:
+      - circlesfera-network
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: CircleSfera-Postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - circlesfera-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: CircleSfera-Redis
+    restart: unless-stopped
+    networks:
+      - circlesfera-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: ./circlesfera-backend/Dockerfile
+    container_name: CircleSfera-Backend
+    env_file: ./.env.production
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres
+      - REDIS_HOST=redis
+    volumes:
+      - ./circlesfera-backend/uploads:/app/circlesfera-backend/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - circlesfera-network
+
+  landing:
+    build:
+      context: .
+      dockerfile: ./circlesfera-landing/Dockerfile
+      args:
+        - VITE_API_URL=/api/v1
+    container_name: CircleSfera-Landing
+    restart: unless-stopped
+    networks:
+      - circlesfera-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./circlesfera-frontend/Dockerfile
+      args:
+        - VITE_API_URL=/api/v1
+    container_name: CircleSfera-Frontend
+    restart: unless-stopped
+    networks:
+      - circlesfera-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  circlesfera-network:
+    driver: bridge

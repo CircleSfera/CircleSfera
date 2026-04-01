@@ -1,0 +1,118 @@
+
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: CircleSfera-Postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - circlesfera-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: CircleSfera-Redis
+    command: redis-server --appendonly yes
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - circlesfera-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: ./circlesfera-backend/Dockerfile
+      target: build
+    container_name: CircleSfera-Backend
+    command: npm run dev
+    ports:
+      - '${PORT:-3000}:3000'
+    env_file: .env
+    environment:
+      - DB_HOST=postgres
+      - REDIS_HOST=redis
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+    volumes:
+      - ./circlesfera-backend:/app/circlesfera-backend
+      - ./circlesfera-shared:/app/circlesfera-shared
+      - /app/circlesfera-backend/node_modules
+      - /app/circlesfera-shared/node_modules
+      - ./circlesfera-backend/uploads:/app/circlesfera-backend/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - circlesfera-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./circlesfera-frontend/Dockerfile
+      target: build
+      args:
+        - VITE_API_URL=http://localhost:3000/api/v1
+    container_name: CircleSfera-Frontend
+    command: npm run dev -- --host
+    ports:
+      - '8080:5173'
+    volumes:
+      - ./circlesfera-frontend:/app/circlesfera-frontend
+      - ./circlesfera-shared:/app/circlesfera-shared
+      - /app/circlesfera-frontend/node_modules
+      - /app/circlesfera-shared/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - circlesfera-network
+
+  landing:
+    build:
+      context: .
+      dockerfile: ./circlesfera-landing/Dockerfile
+      target: build
+      args:
+        - VITE_API_URL=http://localhost:3000/api/v1
+    container_name: CircleSfera-Landing
+    command: npm run dev -- --host
+    ports:
+      - '8081:5173'
+    volumes:
+      - ./circlesfera-landing:/app/circlesfera-landing
+      - ./circlesfera-shared:/app/circlesfera-shared
+      - /app/circlesfera-landing/node_modules
+      - /app/circlesfera-shared/node_modules
+    restart: unless-stopped
+    networks:
+      - circlesfera-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  circlesfera-network:
+    driver: bridge

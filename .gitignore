@@ -1,0 +1,45 @@
+# Environments
+.env
+.env.*
+!.env.example
+
+# Node modules
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build output
+dist/
+build/
+out/
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Specific Project folders (already have their own gitignores sometimes, but good to double down)
+circlesfera-backend/node_modules/
+circlesfera-backend/dist/
+circlesfera-frontend/node_modules/
+circlesfera-frontend/dist/
+circlesfera-landing/node_modules/
+circlesfera-landing/dist/
+circlesfera-shared/node_modules/
+circlesfera-shared/dist/
+
+# Persistent data
+circlesfera-backend/uploads/
+postgres_data/
+redis_data/
+coverage/
+playwright-report/
+test-results/

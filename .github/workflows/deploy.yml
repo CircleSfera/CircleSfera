@@ -1,0 +1,42 @@
+name: Deploy to OVH VPS
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    
+    # Optional: If you want to strictly wait for the 'ci.yml' workflow to pass,
+    # you can use GitHub Environments or workflow_run. 
+    # For simplicity, we deploy on passing pushes to main.
+
+    steps:
+    - name: Execute Remote SSH Deployment
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        script: |
+          echo "Starting deployment on OVH VPS..."
+          
+          # Navigate to project directory
+          cd /srv/circlesfera
+          
+          # Pull latest code from the repository
+          git reset --hard origin/main
+          git pull origin main
+          
+          # Rebuild images specifically for production
+          docker compose -f docker-compose.prod.yml build
+          
+          # Restart containers (only recreates those whose images or config changed)
+          docker compose -f docker-compose.prod.yml up -d
+          
+          # Clean up dangling images to save disk space
+          docker system prune -af
+          
+          echo "Deployment completed successfully!"
