@@ -55,7 +55,7 @@ const LandingPage = () => {
       <SharedNav />
 
       {/* Hero Section */}
-      <main className="max-w-4xl mx-auto px-6 pt-16 pb-10 md:pt-28 md:pb-20 flex flex-col items-center text-center relative z-10">
+      <main className="max-w-4xl mx-auto px-6 pt-28 pb-10 md:pt-32 md:pb-20 flex flex-col items-center text-center relative z-10">
         <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full glass-panel border border-white/20 mb-6 animate-float shadow-[0_0_20px_rgba(255,255,255,0.05)]">
           <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-secondary opacity-75"></span>
