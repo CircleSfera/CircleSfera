@@ -45,8 +45,9 @@ services:
       target: build
     container_name: CircleSfera-Backend
     command: npm run dev
+    # Backend port 3005 remains reachable for direct API work but unified via proxy
     ports:
-      - '${PORT:-3000}:3000'
+      - '3005:3000'
     env_file: .env
     environment:
       - DB_HOST=postgres
@@ -73,11 +74,10 @@ services:
       dockerfile: ./circlesfera-frontend/Dockerfile
       target: build
       args:
-        - VITE_API_URL=http://localhost:3000/api/v1
+        - VITE_API_URL=/api/v1
     container_name: CircleSfera-Frontend
     command: npm run dev -- --host
-    ports:
-      - '8080:5173'
+    # Port 8080 will be served by the proxy now
     volumes:
       - ./circlesfera-frontend:/app/circlesfera-frontend
       - ./circlesfera-shared:/app/circlesfera-shared
@@ -95,16 +95,36 @@ services:
       dockerfile: ./circlesfera-landing/Dockerfile
       target: build
       args:
-        - VITE_API_URL=http://localhost:3000/api/v1
+        - VITE_API_URL=/api/v1
     container_name: CircleSfera-Landing
     command: npm run dev -- --host
-    ports:
-      - '8081:5173'
+    # Port 8081 will be served by the proxy now
     volumes:
       - ./circlesfera-landing:/app/circlesfera-landing
       - ./circlesfera-shared:/app/circlesfera-shared
       - /app/circlesfera-landing/node_modules
       - /app/circlesfera-shared/node_modules
+    restart: unless-stopped
+    networks:
+      - circlesfera-network
+
+  proxy:
+    image: nginx:alpine
+    container_name: CircleSfera-Proxy
+    ports:
+      - '8080:80'
+      - '8081:81'
+    environment:
+      - FRONTEND_PORT=5173
+      - BACKEND_PORT=3000
+      - LANDING_PORT=5173
+    volumes:
+      - ./nginx/master.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
+    depends_on:
+      - frontend
+      - backend
+      - landing
     restart: unless-stopped
     networks:
       - circlesfera-network

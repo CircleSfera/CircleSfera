@@ -21,6 +21,12 @@ Technical specifications of the underlying systems.
 - **[Environment Configuration](./infrastructure/environment_configuration.md)**: Master map of all `.env` requirements.
 - **[Deployment Protocol](./deployment.md)**: Operations, troubleshooting, and rollback.
 
+## 🛠️ Engineering Intelligence
+Technical process logs, strategic audits, and architectural roadmaps.
+- **[Engineering Session: Story Replies](./engineering/sessions/2026-04-02-story-replies.md)**: Logic for the latest social core enhancements.
+- **[Security Audit & Remediation](./engineering/audits/2026-02-security-audit.md)**: Vulnerability analysis and hardening path.
+- **[Architectural Roadmap](./engineering/audits/2026-02-architecture-roadmap.md)**: Current system health and strategic technical priorities.
+
 ## 📝 Project History & Archive
 - **[Latest Changes](./changelog.md)**: Recent updates and session successes.
 - **[Historical Archive](./archive/)**: Over 110 documents across all project phases.
