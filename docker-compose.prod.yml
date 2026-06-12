@@ -70,7 +70,7 @@ services:
       postgres:
         condition: service_healthy
     command: >
-      sh -c "npx prisma migrate deploy && node dist/src/main"
+      sh -c "npx prisma migrate deploy && node dist/main"
     restart: unless-stopped
     networks:
       - circlesfera-network
