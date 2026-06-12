@@ -15,7 +15,7 @@ import SEO from '../components/common/SEO';
 
 const LandingPage = () => {
   return (
-    <div className="min-h-[100dvh] relative overflow-hidden text-white font-sans selection:bg-brand-primary/30 flex flex-col justify-between">
+    <div className="min-h-dvh relative overflow-hidden text-white font-sans selection:bg-brand-primary/30 flex flex-col justify-between">
       <SEO
         title="CircleSfera - Social Reimagined"
         description="Experience the next generation of social media. An immersive visual storytelling platform for authentic connections and distinct creativity."

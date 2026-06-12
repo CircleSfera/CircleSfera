@@ -35,7 +35,7 @@ export default function ExploreLanding() {
   ];
 
   return (
-    <div className={`min-h-[100dvh] flex flex-col relative overflow-hidden bg-[#030303] text-white font-sans selection:bg-brand-primary/30 ${!isAuthenticated ? 'pt-24' : ''}`}>
+    <div className={`min-h-dvh flex flex-col relative overflow-hidden bg-[#030303] text-white font-sans selection:bg-brand-primary/30 ${!isAuthenticated ? 'pt-24' : ''}`}>
       <SEO 
         title="Explore CircleSfera - The Next Generation Social Network"
         description="Discover the features, philosophy, and tools behind CircleSfera. Built for authentic connection and visual excellence."
@@ -126,7 +126,7 @@ export default function ExploreLanding() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
-            className="glass-panel rounded-[2rem] p-8 md:p-10 border border-white/10 relative overflow-hidden"
+            className="glass-panel rounded-4xl p-8 md:p-10 border border-white/10 relative overflow-hidden"
           >
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] from-brand-primary/10 via-transparent to-transparent opacity-50"></div>
             
