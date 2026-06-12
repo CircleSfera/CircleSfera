@@ -40,6 +40,7 @@ export default function ChatWindow() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [conversation, setConversation] = useState<Conversation | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -112,7 +113,8 @@ export default function ChatWindow() {
       .then((res) => {
         setMessages(res.data);
       })
-      .catch((err) => logger.error('Failed to load messages', err));
+      .catch((err) => logger.error('Failed to load messages', err))
+      .finally(() => setIsLoading(false));
 
     apiClient.get<Conversation[]>('/chat/conversations').then((res) => {
       const conv = res.data.find((c: Conversation) => c.id === id);
@@ -469,9 +471,6 @@ export default function ChatWindow() {
   };
 
   const getStatusText = () => {
-    const typing = getTypingText();
-    if (typing) return typing;
-
     if (chatInfo.isGroup) {
       return `${conversation?.participants.length || 0} members`;
     }
@@ -688,7 +687,16 @@ export default function ChatWindow() {
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4 space-y-4 custom-scrollbar relative z-0"
       >
-        {messages.length === 0 && !isUploading && (
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center h-full gap-3">
+            <div className="w-8 h-8 rounded-full border-2 border-brand-primary/30 border-t-brand-primary animate-spin" />
+            <span className="text-sm font-medium text-white/50">
+              Cargando historial...
+            </span>
+          </div>
+        )}
+
+        {!isLoading && messages.length === 0 && !isUploading && (
           <div className="flex flex-col items-center justify-center h-full text-gray-500 opacity-50">
             <p>No messages yet</p>
             <p className="text-xs">Say hello!</p>
@@ -731,6 +739,18 @@ export default function ChatWindow() {
               );
             })}
           </AnimatePresence>
+          {getTypingText() && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              className="flex justify-start my-2 ml-2"
+            >
+              <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 rounded-bl-sm">
+                {getTypingText()}
+              </div>
+            </motion.div>
+          )}
           <div className="h-2 shrink-0" />
         </div>
 
