@@ -9,7 +9,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import logoSrc from '../assets/logo.png';
+import logoSrc from '../assets/logo.svg';
 import SEO from '../components/common/SEO';
 import { useAuthStore } from '../stores/authStore';
 

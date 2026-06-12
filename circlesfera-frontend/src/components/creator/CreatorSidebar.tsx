@@ -10,7 +10,7 @@ import {
   Megaphone,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import logoSrc from '../../assets/logo.png';
+import logoSrc from '../../assets/logo.svg';
 
 export type CreatorTab =
   | 'overview'
