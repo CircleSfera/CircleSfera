@@ -321,12 +321,12 @@ const LandingPage = () => {
                 </Link>
               </li>
               <li>
-                <button
-                  type="button"
-                  className="hover:text-white transition-colors text-left"
+                <Link
+                  to="/guidelines"
+                  className="hover:text-white transition-colors"
                 >
                   Guidelines
-                </button>
+                </Link>
               </li>
             </ul>
           </div>

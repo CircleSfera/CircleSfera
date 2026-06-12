@@ -207,9 +207,9 @@ export default function ExploreLanding() {
                 </Link>
               </li>
               <li>
-                <span className="hover:text-white transition-colors text-left cursor-not-allowed opacity-50">
+                <Link to="/guidelines" className="hover:text-white transition-colors text-left">
                   Guidelines
-                </span>
+                </Link>
               </li>
             </ul>
           </div>
