@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import LayoutWrapper from '../layouts/LayoutWrapper';
 import { authApi, profileApi } from '../services';
@@ -26,6 +27,10 @@ export default function Register() {
       } catch (error) {
         logger.error('Failed to fetch profile:', error);
       }
+      toast.success(
+        'Account created successfully! Please check your email to verify your account.',
+        { duration: 5000 },
+      );
       navigate('/');
     },
   });

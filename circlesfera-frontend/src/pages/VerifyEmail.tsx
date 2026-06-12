@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle, Loader2, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import LayoutWrapper from '../layouts/LayoutWrapper';
 import { authApi } from '../services';
 import type { ApiError } from '../types';
 
@@ -12,7 +13,7 @@ export default function VerifyEmail() {
     token ? 'loading' : 'error',
   );
   const [message, setMessage] = useState(
-    token ? '' : 'Token de verificación no encontrado.',
+    token ? '' : 'Verification token not found.',
   );
   const navigate = useNavigate();
 
@@ -23,13 +24,13 @@ export default function VerifyEmail() {
       try {
         await authApi.verifyEmail(token);
         setStatus('success');
-        setMessage('Tu email ha sido verificado correctamente.');
+        setMessage('Your email has been successfully verified.');
         setTimeout(() => navigate('/accounts/login'), 3000);
       } catch (err: unknown) {
         setStatus('error');
         const errorMessage =
           (err as ApiError).response?.data?.message ||
-          'Error al verificar el email.';
+          'Failed to verify email.';
         setMessage(errorMessage);
       }
     };
@@ -38,53 +39,116 @@ export default function VerifyEmail() {
   }, [token, navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="glass-panel p-8 rounded-2xl max-w-md w-full text-center"
-      >
-        {status === 'loading' && (
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="w-12 h-12 text-brand-primary animate-spin" />
-            <h1 className="text-2xl font-bold">Verificando tu email...</h1>
-            <p className="text-gray-400">
-              Espera un momento mientras validamos tu cuenta.
-            </p>
-          </div>
-        )}
+    <LayoutWrapper showNavigation={false}>
+      <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+          className="modal-glass p-10 rounded-[32px] w-full max-w-md relative overflow-hidden group shadow-2xl"
+        >
+          {/* Brand Accent Line */}
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-linear-to-r from-brand-primary via-brand-secondary to-brand-accent opacity-90" />
 
-        {status === 'success' && (
-          <div className="flex flex-col items-center gap-4">
-            <CheckCircle className="w-16 h-16 text-green-500" />
-            <h1 className="text-2xl font-bold">¡Email Verificado!</h1>
-            <p className="text-gray-400">{message}</p>
-            <p className="text-xs text-gray-500 mt-4">
-              Serás redirigido al login en unos segundos...
-            </p>
-            <Link
-              to="/accounts/login"
-              className="mt-4 text-brand-primary hover:underline font-medium"
-            >
-              Ir al Login ahora
-            </Link>
-          </div>
-        )}
+          {/* Decorative glow */}
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-primary/20 rounded-full blur-3xl group-hover:bg-brand-primary/30 transition-colors duration-700 pointer-events-none"></div>
+          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-brand-secondary/20 rounded-full blur-3xl group-hover:bg-brand-secondary/30 transition-colors duration-700 pointer-events-none"></div>
 
-        {status === 'error' && (
-          <div className="flex flex-col items-center gap-4">
-            <XCircle className="w-16 h-16 text-red-500" />
-            <h1 className="text-2xl font-bold">Error de Verificación</h1>
-            <p className="text-red-400/80">{message}</p>
-            <Link
-              to="/accounts/emailsignup"
-              className="mt-6 bg-brand-primary px-6 py-2 rounded-lg font-bold hover:opacity-90 transition-opacity"
-            >
-              Reintentar Registro
-            </Link>
+          <div className="relative z-10 flex flex-col items-center">
+            {status === 'loading' && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex flex-col items-center gap-6"
+              >
+                <div className="relative">
+                  <div className="absolute inset-0 bg-brand-primary/20 blur-xl rounded-full" />
+                  <Loader2
+                    className="w-16 h-16 text-brand-primary animate-spin relative z-10"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <div className="text-center">
+                  <h1 className="text-2xl font-black mb-2 tracking-tighter text-white">
+                    Verifying Identity
+                  </h1>
+                  <p className="text-gray-400 text-sm font-medium">
+                    Please wait while we validate your secure token...
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {status === 'success' && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center gap-6 w-full"
+              >
+                <div className="relative">
+                  <div className="absolute inset-0 bg-green-500/20 blur-xl rounded-full" />
+                  <CheckCircle
+                    className="w-16 h-16 text-green-400 relative z-10"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <div className="text-center w-full">
+                  <h1 className="text-2xl font-black mb-2 tracking-tighter text-white">
+                    Access Granted
+                  </h1>
+                  <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl mb-6">
+                    <p className="text-green-400 text-sm font-medium">
+                      {message}
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-6 animate-pulse">
+                    Redirecting to portal...
+                  </p>
+                  <Link
+                    to="/accounts/login"
+                    className="w-full block bg-white text-black py-4 rounded-2xl font-black text-[15px] tracking-wide uppercase hover:bg-zinc-200 active:scale-[0.98] transition-all shadow-[0_8px_30px_rgb(255,255,255,0.1)]"
+                  >
+                    Enter CircleSfera
+                  </Link>
+                </div>
+              </motion.div>
+            )}
+
+            {status === 'error' && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center gap-6 w-full"
+              >
+                <div className="relative">
+                  <div className="absolute inset-0 bg-red-500/20 blur-xl rounded-full" />
+                  <XCircle
+                    className="w-16 h-16 text-red-400 relative z-10"
+                    strokeWidth={1.5}
+                  />
+                </div>
+                <div className="text-center w-full">
+                  <h1 className="text-2xl font-black mb-2 tracking-tighter text-white">
+                    Verification Failed
+                  </h1>
+                  <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl mb-8">
+                    <p className="text-red-400 text-sm font-medium">
+                      {message}
+                    </p>
+                  </div>
+
+                  <Link
+                    to="/accounts/emailsignup"
+                    className="w-full block bg-white text-black py-4 rounded-2xl font-black text-[15px] tracking-wide uppercase hover:bg-zinc-200 active:scale-[0.98] transition-all shadow-[0_8px_30px_rgb(255,255,255,0.1)]"
+                  >
+                    Return to Registration
+                  </Link>
+                </div>
+              </motion.div>
+            )}
           </div>
-        )}
-      </motion.div>
-    </div>
+        </motion.div>
+      </div>
+    </LayoutWrapper>
   );
 }
