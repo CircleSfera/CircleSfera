@@ -97,7 +97,7 @@ describe('EmailService', () => {
         mBrevoInstance.transactionalEmails.sendTransacEmail,
       ).toHaveBeenCalledWith(
         expect.objectContaining({
-          subject: '¡Bienvenido a la Whitelist de CircleSfera!',
+          subject: '¡Bienvenido a CircleSfera!',
           to: [{ email: 'test@example.com' }],
           sender: { email: 'no-reply@circlesfera.com', name: 'SferaBot' },
         }),

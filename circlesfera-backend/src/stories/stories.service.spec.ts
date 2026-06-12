@@ -35,6 +35,7 @@ describe('StoriesService', () => {
       providers: [
         StoriesService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: 'BullQueue_ai-processing', useValue: { add: vi.fn() } },
       ],
     }).compile();
 

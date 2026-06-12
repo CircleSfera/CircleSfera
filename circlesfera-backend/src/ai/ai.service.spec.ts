@@ -191,7 +191,8 @@ describe('AIService', () => {
 
       const result = await service.moderateContent('some bad text');
       expect(openAiInstance.moderations.create).toHaveBeenCalledWith({
-        input: 'some bad text',
+        input: [{ text: 'some bad text', type: 'text' }],
+        model: 'omni-moderation-latest',
       });
       expect(result.flagged).toBe(true);
       expect(result.categories.hate).toBe(true);
