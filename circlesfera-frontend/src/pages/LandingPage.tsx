@@ -20,15 +20,7 @@ const LandingPage = () => {
         title="CircleSfera - Social Reimagined"
         description="Experience the next generation of social media. An immersive visual storytelling platform for authentic connections and distinct creativity."
       />
-      {/* Background with higher quality mesh and noise */}
-      <div className="fixed inset-0 z-[-1] bg-[#030303]">
-        <div className="mesh-gradient-bg opacity-100" />
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E')] opacity-10 brightness-100 contrast-150 pointer-events-none mix-blend-overlay"></div>
-        {/* Animated Orbs */}
-        <div className="absolute top-[-10%] left-[-10%] w-[400px] h-[400px] bg-brand-primary/20 rounded-full blur-[120px] animate-blob filter mix-blend-screen"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-brand-blue/20 rounded-full blur-[120px] animate-blob animation-delay-2000 filter mix-blend-screen"></div>
-        <div className="absolute top-[40%] left-[40%] w-[300px] h-[300px] bg-brand-secondary/15 rounded-full blur-[100px] animate-blob animation-delay-4000 filter mix-blend-screen"></div>
-      </div>
+      {/* Background is now handled globally by LayoutWrapper */}
 
       <div className="w-full flex-1 block relative z-10 pb-16">
       {/* Navigation */}

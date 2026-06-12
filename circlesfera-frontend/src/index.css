@@ -216,20 +216,7 @@ body {
 
 /* ─── Background Effects ─── */
 
-.mesh-gradient-bg {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: -1;
-  background:
-    radial-gradient(at 0% 0%, hsla(253, 100%, 7%, 1) 0, transparent 50%),
-    radial-gradient(at 50% 0%, hsla(280, 50%, 20%, 1) 0, transparent 50%),
-    radial-gradient(at 100% 0%, hsla(210, 80%, 15%, 1) 0, transparent 50%),
-    radial-gradient(at 50% 50%, hsla(260, 40%, 10%, 1) 0, transparent 100%);
-  opacity: 1;
-}
+
 
 /* ─── Scrollbar ─── */
 

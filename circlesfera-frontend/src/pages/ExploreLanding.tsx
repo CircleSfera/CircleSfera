@@ -9,25 +9,25 @@ export default function ExploreLanding() {
 
   const features = [
     {
-      icon: <ImageIcon size={24} />,
+      icon: <ImageIcon size={20} />,
       title: 'Visual Depth & Clarity',
       description: 'Experience content without compressions that ruin your art. CircleSfera is built to honor the cinematic quality of your vision.',
       color: 'from-brand-blue to-blue-600',
     },
     {
-      icon: <Sparkles size={24} />,
+      icon: <Sparkles size={20} />,
       title: 'AI-Powered Discovery',
       description: 'Our proprietary Semantic AI Engine understands the context and emotion behind your content, matching it with audiences who truly care.',
       color: 'from-brand-primary to-purple-600',
     },
     {
-      icon: <Eye size={24} />,
+      icon: <Eye size={20} />,
       title: 'Privacy by Design',
       description: 'You control the narrative. Use Private Circles to share intimate moments, or broadcast to the entire network when you are ready.',
       color: 'from-brand-secondary to-pink-600',
     },
     {
-      icon: <Zap size={24} />,
+      icon: <Zap size={20} />,
       title: 'Built for Creators',
       description: 'Integrated monetization, elite analytics, and verified tiers. We provide the tools you need to build a sustainable digital career.',
       color: 'from-brand-accent to-orange-500',
@@ -41,17 +41,9 @@ export default function ExploreLanding() {
         description="Discover the features, philosophy, and tools behind CircleSfera. Built for authentic connection and visual excellence."
       />
 
-      {/* Immersive Background */}
-      <div className="fixed inset-0 z-[-1] bg-[#030303]">
-        <div className="mesh-gradient-bg opacity-100" />
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E')] opacity-10 brightness-100 contrast-150 pointer-events-none mix-blend-overlay"></div>
-        {/* Animated Orbs */}
-        <div className="absolute top-[-10%] left-[-10%] w-[400px] h-[400px] bg-brand-primary/20 rounded-full blur-[120px] animate-blob filter mix-blend-screen"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-brand-blue/20 rounded-full blur-[120px] animate-blob animation-delay-2000 filter mix-blend-screen"></div>
-        <div className="absolute top-[40%] left-[40%] w-[300px] h-[300px] bg-brand-secondary/15 rounded-full blur-[100px] animate-blob animation-delay-4000 filter mix-blend-screen"></div>
-      </div>
+      {/* Background is now handled globally by LayoutWrapper */}
 
-      <main className="flex-1 max-w-5xl mx-auto px-6 w-full flex flex-col items-center pb-24">
+      <main className="flex-1 max-w-4xl mx-auto px-6 w-full flex flex-col items-center pb-24">
         
         {/* Hero Section */}
         <section className="w-full pt-12 md:pt-20 pb-16 text-center relative z-10">
@@ -70,7 +62,7 @@ export default function ExploreLanding() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tighter mb-6 leading-tight"
+            className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter mb-5 leading-tight"
           >
             Discover a New <br className="hidden md:block" />
             <span className="bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue">
@@ -82,7 +74,7 @@ export default function ExploreLanding() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-lg md:text-xl text-white/50 max-w-2xl mx-auto font-light leading-relaxed mb-10"
+            className="text-sm md:text-base text-white/50 max-w-lg mx-auto font-light leading-relaxed mb-10"
           >
             CircleSfera is more than an app. It's a sanctuary for visual storytelling, authentic connections, and digital sovereignty. Step away from the noise and explore depth.
           </motion.p>
@@ -98,20 +90,20 @@ export default function ExploreLanding() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ delay: index * 0.1, duration: 0.5 }}
-                className="glass-panel p-6 md:p-8 rounded-3xl border border-white/5 hover:border-white/10 transition-all duration-500 group relative overflow-hidden"
+                className="glass-panel p-5 md:p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-all duration-500 group relative overflow-hidden"
               >
                 {/* Subtle gradient hover effect */}
                 <div className={`absolute inset-0 bg-linear-to-br ${feature.color} opacity-0 group-hover:opacity-5 transition-opacity duration-500`}></div>
                 
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 bg-linear-to-br ${feature.color} text-white shadow-lg shadow-black/20 group-hover:scale-110 transition-transform duration-500`}>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 bg-linear-to-br ${feature.color} text-white shadow-lg shadow-black/20 group-hover:scale-110 transition-transform duration-500`}>
                   {feature.icon}
                 </div>
                 
-                <h3 className="text-2xl font-black tracking-tight mb-4 text-white">
+                <h3 className="text-lg font-black tracking-tight mb-2 text-white">
                   {feature.title}
                 </h3>
                 
-                <p className="text-white/50 font-light leading-relaxed">
+                <p className="text-white/40 text-sm font-light leading-relaxed">
                   {feature.description}
                 </p>
               </motion.div>
@@ -126,33 +118,33 @@ export default function ExploreLanding() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
-            className="glass-panel rounded-4xl p-8 md:p-10 border border-white/10 relative overflow-hidden"
+            className="glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden"
           >
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] from-brand-primary/10 via-transparent to-transparent opacity-50"></div>
             
             <div className="relative z-10 max-w-2xl mx-auto">
-              <div className="w-20 h-20 mx-auto bg-white/5 rounded-full flex items-center justify-center mb-8 border border-white/10 shadow-2xl">
-                <Users size={32} className="text-brand-secondary" />
+              <div className="w-14 h-14 mx-auto bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10 shadow-2xl">
+                <Users size={24} className="text-brand-secondary" />
               </div>
               
-              <h2 className="text-2xl md:text-4xl font-black tracking-tighter mb-6">
+              <h2 className="text-2xl md:text-3xl font-black tracking-tighter mb-4">
                 Join thousands of creators shaping the future.
               </h2>
               
-              <p className="text-white/40 mb-10 text-lg">
+              <p className="text-white/40 mb-8 text-sm max-w-md mx-auto">
                 The next generation of the internet belongs to those who create. Claim your username and start building your legacy today.
               </p>
               
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <Link
                   to="/accounts/emailsignup"
-                  className="px-8 py-4 bg-white text-black font-black text-sm uppercase tracking-widest rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)]"
+                  className="px-6 py-3 bg-white text-black font-black text-xs uppercase tracking-widest rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)]"
                 >
                   Create Your Account
                 </Link>
                 <Link
                   to="/pricing"
-                  className="px-8 py-4 glass-panel text-white font-bold text-sm uppercase tracking-widest rounded-full hover:bg-white/10 transition-all border border-white/10"
+                  className="px-6 py-3 glass-panel text-white font-bold text-xs uppercase tracking-widest rounded-full hover:bg-white/10 transition-all border border-white/10"
                 >
                   View Monetization
                 </Link>
