@@ -437,7 +437,7 @@ const InteractiveFeatures = () => {
   ];
 
   return (
-    <section className="py-16 max-w-5xl mx-auto px-6">
+    <section className="py-16 w-full max-w-5xl mx-auto px-6">
       <div className="text-center mb-10">
         <span className="text-brand-primary font-bold text-[10px] tracking-[0.3em] uppercase mb-2 block opacity-60">
           The Platform
@@ -446,7 +446,7 @@ const InteractiveFeatures = () => {
           Engineered for depth
         </h2>
       </div>
-      <div className="glass-panel rounded-2xl p-1.5 border border-white/5 max-w-4xl mx-auto flex flex-col lg:flex-row overflow-hidden min-h-[380px] shadow-2xl">
+      <div className="w-full glass-panel rounded-2xl p-1.5 border border-white/5 max-w-4xl mx-auto flex flex-col lg:flex-row overflow-hidden min-h-[380px] shadow-2xl">
         {/* Sidebar / Tabs */}
         <div className="w-full lg:w-1/3 p-4 flex flex-col gap-3 border-b lg:border-b-0 lg:border-r border-white/5 relative z-20">
           <h3 className="font-bold mb-2 text-white/30 uppercase tracking-[0.3em] text-[10px]">
