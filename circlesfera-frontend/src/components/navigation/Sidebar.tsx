@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import logoSrc from '../../assets/logo.svg';
+import logoSrc from '../../assets/logo.png';
 import { chatApi, notificationsApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
 import { useNotificationsStore } from '../../stores/notificationsStore';

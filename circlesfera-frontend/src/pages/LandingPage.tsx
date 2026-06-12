@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import logoSrc from '../assets/logo.svg';
+import logoSrc from '../assets/logo.png';
 import SEO from '../components/common/SEO';
 
 const LandingPage = () => {
