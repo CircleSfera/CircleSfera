@@ -4,7 +4,7 @@ export interface User {
   createdAt: Date | string;
   isOnline?: boolean;
   lastSeenAt?: Date | string | null;
-  stripeAccountId?: string | null;
+  providerAccountId?: string | null;
   isMonetizationEnabled?: boolean;
   verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
   accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
@@ -17,6 +17,8 @@ export interface Profile {
   fullName: string | null;
   bio: string | null;
   avatar: string | null;
+  standardUrl: string | null;
+  thumbnailUrl: string | null;
   website: string | null;
   location?: string | null;
   isPrivate: boolean;
@@ -50,6 +52,8 @@ export interface Audio {
 export interface PostMedia {
   id: string;
   url: string;
+  standardUrl?: string;
+  thumbnailUrl?: string;
   type: string;
   filter?: string;
   order: number;
@@ -69,7 +73,7 @@ export interface Post {
 
   audioId?: string;
   audio?: Audio;
-  
+
   createdAt: Date | string;
   updatedAt: Date | string;
   user: {
@@ -92,7 +96,9 @@ export interface Comment {
   postId: string;
   userId: string;
   content: string;
-  mediaUrl?: string;
+  url?: string;
+  standardUrl?: string;
+  thumbnailUrl?: string;
   mediaType?: string;
   createdAt: Date | string;
   updatedAt: Date | string;
@@ -120,7 +126,9 @@ export interface CommentLike {
 export interface Story {
   id: string;
   userId: string;
-  mediaUrl: string;
+  url: string;
+  standardUrl?: string;
+  thumbnailUrl?: string;
   mediaType: string;
   filter?: string;
   expiresAt: Date | string;
@@ -140,6 +148,11 @@ export interface Story {
   isCloseFriendsOnly?: boolean;
   audioId?: string;
   audio?: Audio;
+  isViewed?: boolean;
+  _count?: {
+    views: number;
+    reactions?: number;
+  };
 }
 
 export interface Collection {
@@ -147,6 +160,8 @@ export interface Collection {
   userId: string;
   name: string;
   coverUrl?: string;
+  standardUrl?: string;
+  thumbnailUrl?: string;
   createdAt: Date | string;
   updatedAt: Date | string;
   _count?: {
@@ -159,7 +174,9 @@ export interface Message {
   conversationId: string;
   senderId: string;
   content: string;
-  mediaUrl?: string;
+  url?: string;
+  standardUrl?: string;
+  thumbnailUrl?: string;
   mediaType?: string;
   postId?: string;
   replyToId?: string | null;
@@ -218,13 +235,13 @@ export interface SearchResult {
     tag: string;
     postCount: number;
   }>;
-  semanticResults?: Post[];
+  semanticPosts?: Post[];
 }
 
 export interface Report {
   id: string;
   reporterId: string;
-  targetType: 'user' | 'post';
+  targetType: 'USER' | 'POST' | 'STORY' | 'COMMENT' | 'MESSAGE';
   targetId: string;
   reason: string;
   details?: string | null;
@@ -236,4 +253,76 @@ export interface Report {
     email: string;
     profile: Profile;
   };
+}
+
+export interface Purchase {
+  id: string;
+  buyerId: string;
+  sellerId: string;
+  targetType: string;
+  targetId: string;
+  amount: number;
+  currency: string;
+  taxAmount: number;
+  netAmount: number;
+  status: 'PENDING' | 'COMPLETED' | 'CANCELLED';
+  provider: string;
+  externalSessionId?: string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  seller?: {
+    profile: Profile;
+  };
+  buyer?: {
+    profile: Profile;
+  };
+}
+
+export interface WebhookEvent {
+  id: string;
+  provider: string;
+  externalId: string;
+  payload: any;
+  status: 'PENDING' | 'PROCESSED' | 'FAILED';
+  processedAt?: Date | string | null;
+  createdAt: Date | string;
+}
+
+export interface StoryElement {
+  id: string;
+  type: 'text' | 'sticker';
+  content: string;
+  x: number;
+  y: number;
+  scale: number;
+  rotation: number;
+  color?: string;
+  bg?: string;
+  textStyle?:
+    | 'classic'
+    | 'box'
+    | 'box-shadow'
+    | 'neon'
+    | 'outline'
+    | 'shadow'
+    | 'retro';
+  width?: number;
+  align?: 'left' | 'center' | 'right';
+  fontFamily?: string;
+  fontSize?: number;
+  letterSpacing?: number;
+  opacity?: number;
+  gradientColors?: [string, string];
+  zIndex?: number;
+}
+
+export interface SuggestedUser {
+  id: string;
+  username: string;
+  fullName: string | null;
+  avatar: string | null;
+  bio: string | null;
+  followersCount: number;
+  reason: string;
+  verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
 }

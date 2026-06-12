@@ -1,0 +1,16 @@
+node_modules
+# Keep environment variables out of version control
+.env*
+
+/generated/prisma
+/uploads
+socket-debug.log
+backend.log
+dist
+node_modules
+.DS_Store
+
+# Temporary output and debug files
+*_output.txt
+*_debug.txt
+*.log

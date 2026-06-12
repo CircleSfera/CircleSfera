@@ -121,6 +121,7 @@ services:
     volumes:
       - ./nginx/master.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
+      - ./circlesfera-backend/uploads:/usr/share/nginx/html/uploads:ro
     depends_on:
       - frontend
       - backend

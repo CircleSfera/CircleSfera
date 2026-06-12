@@ -17,18 +17,22 @@ export interface UpdateProfileDto {
   avatar?: string;
   website?: string | null;
   isPrivate?: boolean;
+  accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
 }
 
 export interface CreatePostDto {
-  type?: string;
   caption?: string;
-  audioId?: string;
+  type?: 'POST' | 'FRAME';
+  location?: string;
+  hideLikes?: boolean;
+  turnOffComments?: boolean;
   media?: Array<{
     url: string;
     type: string;
     filter?: string;
     altText?: string;
   }>;
+  audioId?: string;
   isPremium?: boolean;
   price?: number;
 }
@@ -36,15 +40,26 @@ export interface CreatePostDto {
 export interface CreateCommentDto {
   content: string;
   parentId?: string;
-  mediaUrl?: string;
+  url?: string;
   mediaType?: string;
 }
 
 export interface CreateStoryDto {
-  mediaUrl: string;
+  url: string;
   mediaType?: string;
   isCloseFriendsOnly?: boolean;
   audioId?: string;
   isPremium?: boolean;
   price?: number;
+}
+
+export interface PlatformPlanDto {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  currency: string;
+  interval: string;
+  features: string[];
+  stripePriceId: string;
 }
