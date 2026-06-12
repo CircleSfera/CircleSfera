@@ -1,7 +1,8 @@
-import { Routes, Route } from 'react-router-dom'
-import LandingPage from './pages/LandingPage'
-import FeaturesPage from './pages/FeaturesPage'
+import { Route, Routes } from 'react-router-dom';
 import { LanguageProvider } from './contexts/LanguageProvider';
+import FeaturesPage from './pages/FeaturesPage';
+import LandingPage from './pages/LandingPage';
+import PricingPage from './pages/PricingPage';
 
 function App() {
   return (
@@ -9,9 +10,10 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/features" element={<FeaturesPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
       </Routes>
     </LanguageProvider>
-  )
+  );
 }
 
-export default App
+export default App;
