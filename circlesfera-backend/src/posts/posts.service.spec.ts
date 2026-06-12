@@ -3,6 +3,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
+import { AnalyticsService } from '../analytics/analytics.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreatePostDto } from './dto/create-post.dto.js';
@@ -38,6 +39,18 @@ describe('PostsService', () => {
     postHashtag: {
       create: vi.fn(),
     },
+    promotion: {
+      findMany: vi.fn(),
+    },
+    creatorSubscription: {
+      findMany: vi.fn(),
+    },
+    unlockedPost: {
+      findMany: vi.fn(),
+    },
+    transaction: {
+      findMany: vi.fn(),
+    },
   };
 
   const mockNotificationsService = {
@@ -60,6 +73,7 @@ describe('PostsService', () => {
         { provide: NotificationsService, useValue: mockNotificationsService },
         { provide: AIService, useValue: mockAIService },
         { provide: 'BullQueue_ai-processing', useValue: mockQueue },
+        { provide: AnalyticsService, useValue: { trackEvent: vi.fn() } },
       ],
     }).compile();
 
@@ -79,7 +93,10 @@ describe('PostsService', () => {
       };
 
       const mockTx = {
-        post: { create: vi.fn().mockResolvedValue({ id: 'post-1' }) },
+        post: { 
+          create: vi.fn().mockResolvedValue({ id: 'post-1' }),
+          findUniqueOrThrow: vi.fn().mockResolvedValue({ id: 'post-1', media: [] }),
+        },
         postMedia: { createMany: vi.fn(), create: vi.fn() },
         postEmbedding: { create: vi.fn() },
         hashtag: { upsert: vi.fn().mockResolvedValue({ id: 'tag-1' }) },
@@ -125,7 +142,10 @@ describe('PostsService', () => {
       };
 
       const mockTx = {
-        post: { create: vi.fn().mockResolvedValue({ id: 'post-1' }) },
+        post: { 
+          create: vi.fn().mockResolvedValue({ id: 'post-1' }),
+          findUniqueOrThrow: vi.fn().mockResolvedValue({ id: 'post-1', media: [] }),
+        },
         postMedia: { createMany: vi.fn(), create: vi.fn() },
         hashtag: { upsert: vi.fn() },
         postHashtag: { create: vi.fn() },
@@ -212,6 +232,10 @@ describe('PostsService', () => {
 
   describe('getFeed', () => {
     it('should return posts from following users', async () => {
+      mockPrismaService.promotion.findMany.mockResolvedValue([]);
+      mockPrismaService.creatorSubscription.findMany.mockResolvedValue([]);
+      mockPrismaService.unlockedPost.findMany.mockResolvedValue([]);
+      mockPrismaService.transaction.findMany.mockResolvedValue([]);
       mockPrismaService.follow.findMany.mockResolvedValue([
         { followingId: 'user-2' },
       ]);

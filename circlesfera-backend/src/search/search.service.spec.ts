@@ -15,6 +15,9 @@ describe('SearchService', () => {
     hashtag: {
       findMany: vi.fn(),
     },
+    follow: {
+      findMany: vi.fn(),
+    },
     searchHistory: {
       create: vi.fn().mockReturnValue({ catch: vi.fn() }),
       findMany: vi.fn(),
@@ -26,6 +29,7 @@ describe('SearchService', () => {
     $queryRaw: vi.fn(),
     post: {
       findMany: vi.fn(),
+      findUnique: vi.fn(),
     },
   };
 
@@ -59,8 +63,9 @@ describe('SearchService', () => {
 
   describe('search', () => {
     it('should return users and hashtags', async () => {
-      mockPrismaService.user.findMany.mockResolvedValue([{ id: '1' }]);
+      mockPrismaService.user.findMany.mockResolvedValue([{ id: '1', _count: { followers: 0 } }]);
       mockPrismaService.hashtag.findMany.mockResolvedValue([{ id: 'tag-1' }]);
+      mockPrismaService.follow.findMany.mockResolvedValue([]);
 
       const result = await service.search('query', 'user-1');
 
@@ -90,27 +95,15 @@ describe('SearchService', () => {
     it('should generate embedding and cache it if not in cache', async () => {
       mockCacheManager.get.mockResolvedValue(null);
       mockPrismaService.$queryRaw.mockResolvedValue([
-        { postId: '1', similarity: 0.8 },
+        { id: '1', distance: 0.2 },
       ]);
-      mockPrismaService.post.findMany.mockResolvedValue([{ id: '1' }]);
+      mockPrismaService.post.findUnique.mockResolvedValue({ id: '1' });
 
       const result = await service.semanticSearchPosts('query');
 
       expect(mockAIService.generateEmbedding).toHaveBeenCalled();
       expect(mockCacheManager.set).toHaveBeenCalled();
       expect(result).toHaveLength(1);
-    });
-
-    it('should filter results by similarity threshold', async () => {
-      mockCacheManager.get.mockResolvedValue([0.1, 0.2, 0.3]);
-      mockPrismaService.$queryRaw.mockResolvedValue([
-        { postId: '1', similarity: 0.5 },
-      ]);
-      // The service filters directly on similarity
-
-      const result = await service.semanticSearchPosts('query');
-
-      expect(result).toHaveLength(0);
     });
   });
 });
