@@ -411,3 +411,9 @@ input[type="range"]::-moz-range-progress {
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
 }
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
