@@ -7,7 +7,7 @@ Detailed guides on the platform's core functional systems.
 - **[Admin Panel](./features/admin_panel.md)**: Navigation, moderation, and responsive design.
 - **[Social Core](./features/social_core.md)**: Posts, Stories, Likes, Comments, and Feed architecture.
 - **[Chat & Real-time](./features/chat_and_realtime.md)**: Direct Messaging and Socket.io integration.
-- **[Monetization & Creator Tools](./features/monetization_and_creator.md)**: Stripe, PPV, and creator onboarding.
+- **[SaaS & Subscription Model](./features/monetization_and_creator.md)**: Platform plans, Stripe billing, and user tiers.
 - **[AI & Content Discovery](./features/ai_and_search.md)**: Vector search (pgvector) and recommendation engines.
 - **[Verification System](./features/verification_system.md)**: Trust levels and badge integration.
 

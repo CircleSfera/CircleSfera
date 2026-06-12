@@ -1,0 +1,70 @@
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Inject,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import type { Request } from 'express';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { PaymentsService } from './payments.service.js';
+
+interface RequestWithUser extends Request {
+  user: { userId: string; email: string; role: string };
+}
+
+@Controller('payments')
+export class PaymentsController {
+  constructor(
+    @Inject(PaymentsService)
+    private readonly paymentsService: PaymentsService,
+  ) {}
+
+  @Get('plans')
+  async getPlans() {
+    return this.paymentsService.findAllPlans();
+  }
+
+  @Post('checkout')
+  @UseGuards(JwtAuthGuard)
+  async createCheckout(
+    @Req() req: RequestWithUser,
+    @Body() body: { planId: string; billingCycle?: 'MONTHLY' | 'YEARLY' },
+  ) {
+    return this.paymentsService.createCheckout(
+      req.user.userId,
+      body.planId,
+      body.billingCycle,
+    );
+  }
+
+  @Get('portal')
+  @UseGuards(JwtAuthGuard)
+  async getPortal(@Req() req: RequestWithUser) {
+    return this.paymentsService.getPortalUrl(req.user.userId);
+  }
+
+  @Post('webhook')
+  @HttpCode(HttpStatus.OK)
+  async handleWebhook(@Req() req: Request, @Body() body: Buffer) {
+    const sig = req.headers['stripe-signature'] as string | undefined;
+
+    if (!sig) {
+      return { received: false, error: 'Missing stripe-signature header' };
+    }
+
+    try {
+      const event = this.paymentsService.constructEvent(body, sig);
+      await this.paymentsService.processWebhookEvent(event);
+      return { received: true };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error(`Webhook Error: ${message}`);
+      return { received: false, error: message };
+    }
+  }
+}

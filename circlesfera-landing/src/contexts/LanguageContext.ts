@@ -1,6 +1,6 @@
 import { createContext } from 'react';
-import { en } from '../i18n/en';
 import type { Translations } from '../i18n/en';
+import { en } from '../i18n/en';
 import { es } from '../i18n/es';
 
 export type Language = 'en' | 'es';
@@ -13,4 +13,6 @@ export interface LanguageContextType {
 
 export const translations = { en, es };
 
-export const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+export const LanguageContext = createContext<LanguageContextType | undefined>(
+  undefined,
+);

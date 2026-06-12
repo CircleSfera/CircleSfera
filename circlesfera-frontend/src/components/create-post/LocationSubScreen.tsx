@@ -1,0 +1,135 @@
+import { motion } from 'framer-motion';
+import { MapPin, Navigation, Search, X } from 'lucide-react';
+import React from 'react';
+
+interface LocationSubScreenProps {
+  onClose: () => void;
+  onSelect: (location: string) => void;
+  currentLocation?: string;
+}
+
+export default function LocationSubScreen({
+  onClose,
+  onSelect,
+  currentLocation = '',
+}: LocationSubScreenProps) {
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  const locations = [
+    'New York, USA',
+    'London, UK',
+    'Paris, France',
+    'Tokyo, Japan',
+    'Dubai, UAE',
+    'Los Angeles, CA',
+    'Miami, FL',
+    'Bali, Indonesia',
+  ];
+
+  const filteredLocations = locations.filter((loc) =>
+    loc.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  return (
+    <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+        className="bg-neutral-900/90 backdrop-blur-xl border border-white/10 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[70vh] max-h-[600px] relative"
+      >
+        {/* Ambient glow */}
+        <div className="absolute inset-0 bg-radial-[at_50%_0%] from-blue-500/10 via-transparent to-transparent pointer-events-none" />
+
+        <div className="p-5 border-b border-white/5 flex items-center justify-between relative z-10">
+          <h2 className="font-bold text-lg text-white">Add Location</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+          >
+            <X size={18} className="text-white/70" />
+          </button>
+        </div>
+
+        <div className="p-4 relative z-10">
+          <div className="relative">
+            <Search
+              size={18}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
+            />
+            <input
+              type="text"
+              placeholder="Find a location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/10 transition-all duration-300"
+            />
+          </div>
+
+          <button
+            type="button"
+            className="w-full mt-4 flex items-center gap-3 px-4 py-3 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 transition-all"
+          >
+            <Navigation size={18} />
+            <span className="text-sm font-semibold">Use Current Location</span>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-2 pb-4 space-y-1 relative z-10">
+          {filteredLocations.length > 0 ? (
+            filteredLocations.map((loc, idx) => {
+              const isSelected = currentLocation === loc;
+              return (
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  type="button"
+                  key={loc}
+                  onClick={() => onSelect(loc)}
+                  className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-200 group ${
+                    isSelected ? 'bg-white/10' : 'hover:bg-white/5'
+                  }`}
+                >
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                      isSelected
+                        ? 'bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+                        : 'bg-white/5 text-white/50 group-hover:bg-white/10 group-hover:text-white/80'
+                    }`}
+                  >
+                    <MapPin size={18} />
+                  </div>
+                  <div className="text-left flex-1 border-b border-white/5 group-hover:border-transparent pb-3 pt-3 -my-3">
+                    <div
+                      className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-white/80 group-hover:text-white'}`}
+                    >
+                      {loc}
+                    </div>
+                    <div className="text-xs text-white/40 mt-0.5">
+                      Suggested Location
+                    </div>
+                  </div>
+                </motion.button>
+              );
+            })
+          ) : (
+            <div className="p-12 text-center flex flex-col items-center">
+              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                <MapPin size={24} className="text-white/20" />
+              </div>
+              <p className="text-sm font-medium text-white/60">
+                No locations found
+              </p>
+              <p className="text-xs text-white/30 mt-1">
+                Try searching for a different city or region.
+              </p>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+}

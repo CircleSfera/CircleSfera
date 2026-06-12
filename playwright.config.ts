@@ -18,19 +18,21 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  // Optional: automatically start servers
-  // webServer: [
-  //   {
-  //     command: 'npm run dev',
-  //     cwd: './circlesfera-frontend',
-  //     port: 5173,
-  //     reuseExistingServer: !process.env.CI,
-  //   },
-  //   {
-  //     command: 'npm run dev',
-  //     cwd: './circlesfera-backend',
-  //     port: 3000,
-  //     reuseExistingServer: !process.env.CI,
-  //   }
-  // ],
+  // Automatically start servers
+  webServer: [
+    {
+      command: 'npm run dev',
+      cwd: './circlesfera-backend',
+      url: 'http://localhost:3000/api/v1/health',
+      reuseExistingServer: !process.env.CI,
+      timeout: 60000,
+    },
+    {
+      command: 'npm run dev',
+      cwd: './circlesfera-frontend',
+      url: 'http://localhost:5173',
+      reuseExistingServer: !process.env.CI,
+      timeout: 60000,
+    },
+  ],
 });

@@ -24,4 +24,4 @@ Admins have elevated permissions across the stack:
 - **Public**: Visible to everyone.
 - **Private**: Visible to followers only (Requires user setting).
 - **Hidden**: Removed from feeds by moderators, but potentially preserved for legal review.
-- **Paid (PPV)**: Content that requires a successful `Order` transaction to be viewed.
+

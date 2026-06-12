@@ -10,11 +10,7 @@ This document specifies the business rules and technical logic governing content
 | `FOLLOWERS`| Private content. | Accessible only if a `Follow` record exists where `followingId` = Author. |
 | `PRIVATE` | Personal archive. | Accessible **only** by the author. |
 
-### Pay-Per-View (PPV) Logic
-If a post has `isPaid: true`:
-1.  **Check Order**: Verification service checks if the requesting user has a `SUCCEEDED` order for this specific `postId`.
-2.  **Bypass**: The author of the post always has full access.
-3.  **Delivery**: The frontend receives a `mediaBlurred` flag if the order is not present, preventing asset leakage.
+
 
 ## 2. Story Lifecycle Mechanics
 - **Exclusion**: Stories are automatically excluded from API responses once `expiresAt < now()`.

@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "AdminAction" ADD VALUE 'CONTENT_RESTORED';
