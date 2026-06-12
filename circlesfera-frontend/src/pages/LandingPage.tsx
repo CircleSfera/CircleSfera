@@ -13,10 +13,10 @@ import {
 import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
+import logoSrc from '../assets/logo.png';
 import SEO from '../components/common/SEO';
 import { paymentsApi } from '../services/payments.service';
 import { useAuthStore } from '../stores/authStore';
-import logoSrc from '../assets/logo.png';
 
 const LandingPage = () => {
   return (
