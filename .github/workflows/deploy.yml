@@ -125,6 +125,7 @@ jobs:
           REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml pull
           
           # Restart containers
+          REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml down
           REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml up -d
           
           # Run database migrations
