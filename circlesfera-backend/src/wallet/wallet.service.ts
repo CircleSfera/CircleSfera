@@ -3,12 +3,16 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import type { NotificationsService } from '../notifications/notifications.service.js';
 // biome-ignore lint/style/useImportType: NestJS DI needs the value for metadata reflection
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class WalletService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async getWallet(userId: string) {
     let wallet = await this.prisma.wallet.findUnique({
@@ -109,7 +113,7 @@ export class WalletService {
       throw new BadRequestException('Insufficient balance');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // Deduct from sender
       await tx.wallet.update({
         where: { userId: senderId },
@@ -135,19 +139,19 @@ export class WalletService {
         },
       });
 
-      // Optional: send notification
-      await tx.notification.create({
-        data: {
-          recipientId: receiverId,
-          senderId,
-          type: 'SUBSCRIPTION', // Repurposing or use a generic notification, ideally create a 'TIP' type in schema later
-          content: `You received a ${amount} token tip!`,
-          postId,
-        },
-      });
-
       return transaction;
     });
+
+    // Send realtime notification outside the transaction
+    await this.notificationsService.create({
+      recipientId: receiverId,
+      senderId,
+      type: 'LIKE', // Ideally create a TIP type in NotificationType enum later
+      content: `sent you a ${amount} token tip!`,
+      postId,
+    });
+
+    return result;
   }
 
   async unlockPost(userId: string, postId: string) {
