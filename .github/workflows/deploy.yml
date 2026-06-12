@@ -118,14 +118,14 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           
           # Pull latest code (for docker-compose.prod.yml and migrations)
+          git fetch origin
           git reset --hard origin/main
-          git pull origin main
           
           # Pull latest images
-          REGISTRY=ghcr.io/${{ github.repository }} docker compose -f docker-compose.prod.yml pull
+          REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml pull
           
           # Restart containers
-          REGISTRY=ghcr.io/${{ github.repository }} docker compose -f docker-compose.prod.yml up -d
+          REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml up -d
           
           # Run database migrations
           echo "Running database migrations..."
