@@ -1,194 +1,192 @@
-import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Check, Loader2, Sparkles, Star, Zap } from 'lucide-react';
+import { Check, Loader2, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { paymentsApi } from '../../services/payments.service';
 import { useAuthStore } from '../../stores/authStore';
 
-const formatFeature = (feature: string) => {
-  if (!feature) return '';
-  const text = feature.replace(/_/g, ' ');
-  return text.charAt(0).toUpperCase() + text.slice(1);
-};
-
 export default function Pricing() {
-  const [isProcessing, setIsProcessing] = useState<string | null>(null);
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const navigate = useNavigate();
+  const [loadingTier, setLoadingTier] = useState<string | null>(null);
 
-  // Load plans from backend
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['platformPlans'],
-    queryFn: () => paymentsApi.getPlans(),
-  });
-
-  // React Query data is directly the array of plans because paymentsApi returns response.data
-  const plans = Array.isArray(data) ? data : data?.data || [];
-
-  const handleSubscribe = async (planId: string) => {
+  const handleTierClick = async (tierName: string) => {
     if (!isAuthenticated) {
-      toast.error('Inicia sesión para poder suscribirte.');
-      navigate('/login');
+      navigate('/accounts/emailsignup');
       return;
     }
 
     try {
-      setIsProcessing(planId);
-      const response = await paymentsApi.createSubscriptionCheckout(planId);
-      if (response?.url) {
+      setLoadingTier(tierName);
+      // Map tier names to plan IDs (from seed)
+      const planMap: Record<string, string> = {
+        Premium: 'prod_premium',
+        'Elite Creator': 'prod_elite',
+        Business: 'prod_business',
+      };
+
+      const response = await paymentsApi.createSubscriptionCheckout(
+        planMap[tierName] || 'prod_premium',
+      );
+      if (response.url) {
         window.location.href = response.url;
       }
-    } catch (error) {
-      console.error(error);
-      toast.error(
-        'Ocurrió un error al procesar tu solicitud. Inténtalo de nuevo.',
-      );
+    } catch {
+      toast.error('Failed to start checkout. Please try again.');
     } finally {
-      setIsProcessing(null);
+      setLoadingTier(null);
     }
   };
 
-  const getPlanIcon = (name: string) => {
-    const lower = name.toLowerCase();
-    if (lower.includes('business'))
-      return <Zap className="text-blue-400" size={20} />;
-    if (lower.includes('elite'))
-      return <Star className="text-purple-400" size={20} />;
-    return <Sparkles className="text-amber-400" size={20} />;
-  };
-
-  const getPlanGlow = (name: string) => {
-    const lower = name.toLowerCase();
-    if (lower.includes('business'))
-      return 'hover:shadow-[0_0_40px_rgba(59,130,246,0.2)] border-blue-500/20 hover:border-blue-500/50';
-    if (lower.includes('elite'))
-      return 'hover:shadow-[0_0_40px_rgba(168,85,247,0.2)] border-purple-500/20 hover:border-purple-500/50 scale-105 z-10 bg-gradient-to-b from-white/5 to-purple-500/5';
-    return 'hover:shadow-[0_0_40px_rgba(251,191,36,0.2)] border-amber-500/20 hover:border-amber-500/50';
-  };
-
-  const getButtonColor = (name: string) => {
-    const lower = name.toLowerCase();
-    if (lower.includes('business'))
-      return 'bg-blue-500 hover:bg-blue-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]';
-    if (lower.includes('elite'))
-      return 'bg-purple-500 hover:bg-purple-600 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]';
-    return 'bg-amber-500 hover:bg-amber-600 text-black shadow-[0_0_15px_rgba(251,191,36,0.5)]';
-  };
+  const tiers = [
+    {
+      name: 'Verified',
+      price: '9.99',
+      description: 'Elevate your identity and presence.',
+      features: [
+        'Verified Badge',
+        'Basic Analytics',
+        'Priority Support',
+        'Ad-free experience',
+        'Custom themes',
+      ],
+      buttonText: 'Upgrade Experience',
+      popular: false,
+      color: 'from-brand-blue to-brand-secondary',
+    },
+    {
+      name: 'Elite Creator',
+      price: '19.99',
+      description: 'Professional tools for growing creators.',
+      features: [
+        'Everything in Verified',
+        'Pro Growth Tools',
+        'Advanced Audience Insights',
+        'Early Access to features',
+        'Profile Spotlight',
+      ],
+      buttonText: 'Become Elite',
+      popular: true,
+      color: 'from-brand-primary via-brand-secondary to-brand-accent',
+    },
+    {
+      name: 'Business',
+      price: '49.99',
+      description: 'Maximum impact for brands and teams.',
+      features: [
+        'Everything in Elite',
+        'Business Verification',
+        'Multi-account management',
+        'Dedicated 24/7 Support',
+        'API Access (Beta)',
+      ],
+      buttonText: 'Start Business',
+      popular: false,
+      color: 'from-brand-accent to-white/10',
+    },
+  ];
 
   return (
     <div className="pt-16 md:pt-24 pb-24 relative overflow-hidden flex flex-col items-center">
-      {/* Background gradients removed to match project style */}
-
-      <div className="w-full max-w-5xl px-4 md:px-8 relative z-10">
-        <div className="text-center space-y-4 mb-16 md:mb-20">
+      <div className="w-full max-w-6xl px-4 md:px-6 relative z-10">
+        <div className="text-center mb-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest text-blue-400 mb-4"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest text-brand-primary mb-4"
           >
             <Sparkles size={14} />
-            Desbloquea tu potencial
+            Pricing Plans
           </motion.div>
-          <motion.h1
+          <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-2xl md:text-3xl font-black text-white tracking-tighter"
+            className="text-3xl md:text-5xl font-black tracking-tighter mb-6 text-white"
           >
-            Suscripciones CircleSfera
-          </motion.h1>
+            Choose your{' '}
+            <span className="bg-clip-text text-transparent bg-linear-to-r from-brand-secondary to-brand-primary">
+              Experience
+            </span>
+          </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-gray-400 text-sm md:text-base max-w-xl mx-auto leading-relaxed"
+            className="text-white/40 max-w-lg mx-auto font-light"
           >
-            Mejora tu visibilidad, accede a herramientas profesionales y
-            construye tu audiencia con los planes exclusivos para creadores y
-            marcas.
+            Select the plan that fits your creative needs. From individual creators to global brands.
           </motion.p>
         </div>
 
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="animate-spin text-purple-500" size={48} />
-          </div>
-        ) : isError || !plans.length ? (
-          <div className="text-center p-12 bg-white/5 border border-white/10 rounded-3xl max-w-2xl mx-auto">
-            <p className="text-gray-400 text-lg">
-              No se pudieron cargar los planes de suscripción en este momento.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10 items-start w-full mx-auto">
-            {plans.map((plan: any, index: number) => (
-              <motion.div
-                key={plan.id}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + index * 0.1 }}
-                className={`relative flex flex-col p-6 lg:p-8 rounded-3xl bg-zinc-950/80 backdrop-blur-xl border transition-all duration-500 ${getPlanGlow(plan.name)}`}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {tiers.map((tier, index) => (
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 + index * 0.1 }}
+              key={tier.name}
+              className={`glass-panel rounded-3xl p-8 border transition-all duration-500 flex flex-col relative group hover:-translate-y-2 ${
+                tier.popular
+                  ? 'border-brand-primary/40 bg-white/5 ring-1 ring-brand-primary/20 scale-105 z-20'
+                  : 'border-white/5 hover:border-white/10'
+              }`}
+            >
+              {tier.popular && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-brand-primary rounded-full text-[10px] font-black tracking-widest uppercase shadow-xl shadow-brand-primary/20 text-white">
+                  Most Popular
+                </div>
+              )}
+
+              <div className="mb-8">
+                <h3 className="text-xl font-black tracking-tight mb-2 text-white">
+                  {tier.name}
+                </h3>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-black text-white">€{tier.price}</span>
+                  <span className="text-white/30 text-sm">/month</span>
+                </div>
+                <p className="text-white/40 text-sm mt-4 font-light italic leading-relaxed">
+                  "{tier.description}"
+                </p>
+              </div>
+
+              <div className="space-y-4 mb-10 grow">
+                {tier.features.map((feature) => (
+                  <div key={feature} className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-brand-primary/20 transition-colors">
+                      <Check className="w-3 h-3 text-brand-primary" />
+                    </div>
+                    <span className="text-sm text-white/60 font-medium tracking-tight">
+                      {feature}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleTierClick(tier.name)}
+                disabled={loadingTier !== null}
+                className={`w-full py-4 rounded-2xl font-black text-sm tracking-tighter transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2 ${
+                  tier.popular
+                    ? 'bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue text-white shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40'
+                    : 'bg-white/5 text-white hover:bg-white/10 border border-white/10 hover:border-white/20'
+                }`}
               >
-                {plan.name.toLowerCase().includes('elite') && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-linear-to-r from-purple-500 to-blue-500 text-white px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg">
-                    Más Popular
-                  </div>
+                {loadingTier === tier.name ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                ) : (
+                  tier.buttonText
                 )}
-
-                <div className="mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
-                    {getPlanIcon(plan.name)}
-                  </div>
-                  <h3 className="text-lg font-bold text-white mb-1">
-                    {plan.name}
-                  </h3>
-                  <div className="flex items-end gap-1 mb-3">
-                    <span className="text-2xl font-black text-white">
-                      {plan.price}€
-                    </span>
-                    <span className="text-gray-400 text-sm font-medium pb-0.5">
-                      / mes
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-400 leading-relaxed min-h-[32px]">
-                    {plan.description || 'Eleva tu presencia en la plataforma.'}
-                  </p>
-                </div>
-
-                <div className="space-y-3 flex-1 mb-6">
-                  {plan.features?.map((feature: string) => (
-                    <div key={feature} className="flex items-start gap-2">
-                      <div className="mt-0.5 shrink-0 w-4 h-4 rounded-full bg-white/10 flex items-center justify-center">
-                        <Check size={10} className="text-white" />
-                      </div>
-                      <span className="text-xs text-gray-300 leading-relaxed">
-                        {formatFeature(feature)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleSubscribe(plan.id)}
-                  disabled={isProcessing === plan.id}
-                  className={`w-full py-3 rounded-xl text-sm font-semibold tracking-wide transition-all ${getButtonColor(plan.name)} disabled:opacity-50 disabled:grayscale`}
-                >
-                  {isProcessing === plan.id ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <Loader2 size={18} className="animate-spin" />
-                      <span>Procesando...</span>
-                    </div>
-                  ) : (
-                    'Comenzar Ahora'
-                  )}
-                </button>
-              </motion.div>
-            ))}
-          </div>
-        )}
+              </button>
+            </motion.div>
+          ))}
+        </div>
       </div>
+      
+      {/* Background Accent */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-brand-primary/5 rounded-full blur-[150px] pointer-events-none"></div>
     </div>
   );
 }
