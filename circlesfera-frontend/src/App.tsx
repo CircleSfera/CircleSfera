@@ -13,6 +13,7 @@ import LayoutWrapper from './layouts/LayoutWrapper';
 const Admin = lazy(() => import('./pages/Admin'));
 const Creator = lazy(() => import('./pages/Creator'));
 
+import CommunityGuidelines from './pages/CommunityGuidelines';
 import Explore from './pages/Explore';
 import ExploreLanding from './pages/ExploreLanding';
 import ForgotPassword from './pages/ForgotPassword';
@@ -27,7 +28,6 @@ import Notifications from './pages/Notifications';
 import PostDetail from './pages/PostDetail';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Profile from './pages/Profile';
-import CommunityGuidelines from './pages/CommunityGuidelines';
 
 const Pricing = lazy(() => import('./pages/payments/Pricing'));
 
