@@ -11,6 +11,7 @@ import {
 import { Link } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 import { useAuthStore } from '../stores/authStore';
+import logoSrc from '../assets/logo.png';
 
 const sections = [
   {
@@ -78,19 +79,7 @@ export default function TermsOfService() {
         <nav className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5 px-6 py-3 flex justify-between items-center backdrop-blur-xl bg-black/20">
           <Link to="/" className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-linear-to-tr from-brand-primary via-brand-secondary to-brand-accent flex items-center justify-center shadow-lg shadow-brand-primary/20 rotate-3 hover:rotate-0 transition-transform duration-300">
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-4 h-4 text-white"
-              >
-                <circle cx="12" cy="12" r="10"></circle>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
+              <img src={logoSrc} alt="CircleSfera" className="w-full h-full object-contain" />
             </div>
             <span className="text-lg font-black tracking-tight bg-clip-text text-transparent bg-linear-to-r from-white via-white to-white/40">
               CircleSfera
