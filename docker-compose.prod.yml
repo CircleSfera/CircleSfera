@@ -1,11 +1,12 @@
+# Global logging configuration to prevent disk exhaustion
+x-logging: &default-logging
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+
 services:
-  # Global logging configuration to prevent disk exhaustion
-  x-logging: &default-logging
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
   nginx-proxy:
     <<: *default-logging
