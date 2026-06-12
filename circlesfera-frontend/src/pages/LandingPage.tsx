@@ -1,4 +1,13 @@
-import { Globe, Shield, Sparkles, Users, Zap, Camera, MessageCircle, ChevronDown } from 'lucide-react';
+import {
+  Camera,
+  ChevronDown,
+  Globe,
+  MessageCircle,
+  Shield,
+  Sparkles,
+  Users,
+  Zap,
+} from 'lucide-react';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import logoSrc from '../assets/logo.png';
