@@ -5,11 +5,19 @@ server {
     listen 80;
     server_name circlesfera.com www.circlesfera.com;
     client_max_body_size 500m;
+    client_body_buffer_size 100M;
+    client_body_timeout 300s;
+    send_timeout 300s;
+    proxy_read_timeout 300s;
+    proxy_connect_timeout 300s;
+    proxy_send_timeout 300s;
+    proxy_request_buffering off;
+    proxy_buffering off;
 
     # Dynamic resolution to prevent startup crashes
     resolver 127.0.0.11 valid=30s;
     set $backend_upstream http://backend:${BACKEND_PORT};
-    set $landing_upstream http://landing:${LANDING_PORT};
+    set $frontend_upstream http://frontend:${FRONTEND_PORT};
 
     # Socket.io Proxy (Prefixed)
     location /api/v1/socket.io/ {
@@ -50,18 +58,21 @@ server {
 
     # Internal Uploads Proxy
     location /uploads/ {
-        proxy_pass http://backend:${BACKEND_PORT};
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        alias /usr/share/nginx/html/uploads/;
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
     }
 
-    # Landing Page
+    # Frontend App (Previously Landing)
     location / {
-        proxy_pass $landing_upstream;
+        if ($http_upgrade = "websocket") {
+            proxy_pass $frontend_upstream;
+        }
+        proxy_pass $frontend_upstream;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -72,15 +83,23 @@ server {
 server {
     listen 80;
     server_name dev.circlesfera.com;
-    client_max_body_size 500m;
+    client_max_body_size 500M;
+    client_body_buffer_size 100M;
+    client_body_timeout 300s;
+    send_timeout 300s;
+    proxy_read_timeout 300s;
+    proxy_connect_timeout 300s;
+    proxy_send_timeout 300s;
+    proxy_request_buffering off;
+    proxy_buffering off;
 
     resolver 127.0.0.11 valid=30s;
     set $frontend_upstream http://frontend:${FRONTEND_PORT};
     set $backend_upstream http://backend:${BACKEND_PORT};
 
-    # Basic Authentication Protection (Production-Dev only)
-    auth_basic "CircleSfera Development - Restricted Access";
-    auth_basic_user_file /etc/nginx/.htpasswd;
+    # Basic Authentication Protection (Production-Dev only) - DISABLED
+    # auth_basic "CircleSfera Development - Restricted Access";
+    # auth_basic_user_file /etc/nginx/.htpasswd;
 
     # Backend API Proxy
     location /api/v1/ {
@@ -102,11 +121,10 @@ server {
 
     # Internal Uploads Proxy
     location /uploads/ {
-        proxy_pass $backend_upstream;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        auth_basic off;
+        alias /usr/share/nginx/html/uploads/;
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
     }
 
     # Standard Socket.io Proxy
@@ -141,7 +159,15 @@ server {
 server {
     listen 80 default_server;
     server_name localhost 127.0.0.1;
-    client_max_body_size 500m;
+    client_max_body_size 500M;
+    client_body_buffer_size 100M;
+    client_body_timeout 300s;
+    send_timeout 300s;
+    proxy_read_timeout 300s;
+    proxy_connect_timeout 300s;
+    proxy_send_timeout 300s;
+    proxy_request_buffering off;
+    proxy_buffering off;
 
     resolver 127.0.0.11 valid=30s;
     set $frontend_upstream http://frontend:${FRONTEND_PORT};
@@ -166,11 +192,9 @@ server {
 
     # Internal Uploads Proxy
     location /uploads/ {
-        proxy_pass $backend_upstream;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        alias /usr/share/nginx/html/uploads/;
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
     }
 
     # Standard Socket.io Proxy
