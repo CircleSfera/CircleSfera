@@ -14,6 +14,7 @@ const Admin = lazy(() => import('./pages/Admin'));
 const Creator = lazy(() => import('./pages/Creator'));
 
 import Explore from './pages/Explore';
+import ExploreLanding from './pages/ExploreLanding';
 import ForgotPassword from './pages/ForgotPassword';
 import Frames from './pages/Frames';
 // Page routes
@@ -115,9 +116,13 @@ function App() {
           <Route
             path="/explore"
             element={
-              <AuthGuard>
-                <Explore />
-              </AuthGuard>
+              isAuthenticated ? (
+                <AuthGuard>
+                  <Explore />
+                </AuthGuard>
+              ) : (
+                <ExploreLanding />
+              )
             }
           />
 
