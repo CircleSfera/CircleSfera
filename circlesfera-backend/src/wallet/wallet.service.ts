@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+// biome-ignore lint/style/useImportType: NestJS DI needs the value for metadata reflection
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
@@ -154,7 +155,7 @@ export class WalletService {
       where: { id: postId },
     });
 
-    if (!post || !post.isPremium) {
+    if (!post?.isPremium) {
       throw new NotFoundException('Premium post not found');
     }
 
