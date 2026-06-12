@@ -128,7 +128,7 @@ export default function ExploreLanding() {
             transition={{ duration: 0.7 }}
             className="glass-panel rounded-[3rem] p-12 border border-white/10 relative overflow-hidden"
           >
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-primary/10 via-transparent to-transparent opacity-50"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] from-brand-primary/10 via-transparent to-transparent opacity-50"></div>
             
             <div className="relative z-10 max-w-3xl mx-auto">
               <div className="w-20 h-20 mx-auto bg-white/5 rounded-full flex items-center justify-center mb-8 border border-white/10 shadow-2xl">
