@@ -15,7 +15,7 @@ import SEO from '../components/common/SEO';
 
 const LandingPage = () => {
   return (
-    <div className="min-h-screen relative overflow-hidden text-white font-sans selection:bg-brand-primary/30">
+    <div className="min-h-screen relative overflow-hidden text-white font-sans selection:bg-brand-primary/30 flex flex-col">
       <SEO
         title="CircleSfera - Social Reimagined"
         description="Experience the next generation of social media. An immersive visual storytelling platform for authentic connections and distinct creativity."
@@ -256,7 +256,7 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-14 border-t border-white/5 bg-black text-sm relative">
+      <footer className="py-14 border-t border-white/5 bg-black text-sm relative mt-auto">
         <div className="max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 text-white/40 mb-12">
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2.5 mb-5">
