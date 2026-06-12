@@ -72,44 +72,14 @@ export default function LayoutWrapper({
         {latestNotification &&
           `New notification: ${latestNotification.content || 'You have a new update'}`}
       </div>
-      {/* Animated Mesh Gradient Background - Only for authenticated pages */}
-      {shouldShowNav && (
-        <div className="fixed inset-0 z-[-1]">
-          <div className="absolute inset-0 bg-black" />
-          <motion.div
-            animate={{
-              opacity: [0.4, 0.6, 0.4],
-              scale: [1, 1.1, 1],
-            }}
-            transition={{
-              duration: 10,
-              repeat: Number.POSITIVE_INFINITY,
-              repeatType: 'reverse',
-            }}
-            className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] bg-brand-primary/30 rounded-full blur-[120px]"
-          />
-          <motion.div
-            animate={{
-              opacity: [0.3, 0.5, 0.3],
-              x: [0, 50, 0],
-            }}
-            transition={{
-              duration: 15,
-              repeat: Number.POSITIVE_INFINITY,
-              repeatType: 'reverse',
-            }}
-            className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] bg-brand-secondary/20 rounded-full blur-[100px]"
-          />
-
-          {/* Noise overlay for texture */}
-          <div
-            className="absolute inset-0 opacity-[0.03] pointer-events-none"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-            }}
-          />
-        </div>
-      )}
+      {/* Global Immersive Background */}
+      <div className="fixed inset-0 z-[-1] bg-[#030303]">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E')] opacity-10 brightness-100 contrast-150 pointer-events-none mix-blend-overlay"></div>
+        {/* Animated Orbs */}
+        <div className="absolute top-[-10%] left-[-10%] w-[400px] h-[400px] md:w-[600px] md:h-[600px] bg-brand-primary/20 rounded-full blur-[120px] animate-blob filter mix-blend-screen"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] md:w-[600px] md:h-[600px] bg-brand-blue/20 rounded-full blur-[120px] animate-blob animation-delay-2000 filter mix-blend-screen"></div>
+        <div className="absolute top-[40%] left-[40%] w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-brand-secondary/15 rounded-full blur-[100px] animate-blob animation-delay-4000 filter mix-blend-screen"></div>
+      </div>
 
       {/* Navigation - Each handles its own visibility via media queries */}
       {shouldShowNav && (
