@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { WebrtcService } from './webrtc.service';
-import { WebrtcController } from './webrtc.controller';
+import { WebrtcController } from './webrtc.controller.js';
+import { WebrtcService } from './webrtc.service.js';
 
 @Module({
   providers: [WebrtcService],
