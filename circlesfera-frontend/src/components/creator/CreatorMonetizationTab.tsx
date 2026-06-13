@@ -10,6 +10,7 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { paymentsApi } from '../../services/payments.service';
 import { useAuthStore } from '../../stores/authStore';
 import type { PlatformPlanDto } from '../../types';
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export default function CreatorMonetizationTab({ onToast }: Props) {
+  const { t } = useTranslation();
   const { profile } = useAuthStore();
   const user = profile?.user;
 
@@ -36,7 +38,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
       if (data?.url) window.location.href = data.url;
     },
     onError: (err: Error) => {
-      onToast(err.message || 'Error al iniciar el pago', 'error');
+      onToast(err.message || t('creator.monetization.error_checkout'), 'error');
     },
   });
 
@@ -46,7 +48,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
       if (data?.url) window.location.href = data.url;
     },
     onError: (err: Error) => {
-      onToast(err.message || 'Error al acceder al portal', 'error');
+      onToast(err.message || t('creator.monetization.error_portal'), 'error');
     },
   });
 
@@ -73,7 +75,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="animate-spin text-brand-primary" size={40} />
         <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px]">
-          Cargando planes...
+          {t('creator.monetization.loading_plans')}
         </p>
       </div>
     );
@@ -92,14 +94,14 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
               <Zap size={20} className="text-brand-primary" />
             </div>
             <h3 className="text-sm font-black text-white uppercase tracking-[0.3em] italic">
-              Estatus de Suscripción
+              {t('creator.monetization.subscription_status')}
             </h3>
           </div>
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div>
               <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-2">
-                Plan Actual
+                {t('creator.monetization.current_plan')}
               </p>
               <h2 className="text-3xl font-bold text-white tracking-tight uppercase">
                 {currentLevel === 'BASIC' ? 'Free Experience' : currentLevel}
@@ -110,7 +112,10 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
               disabled={portalMutation.isPending}
               onClick={() => {
                 if (currentLevel === 'BASIC') {
-                  onToast('Selecciona un plan abajo para comenzar.', 'success');
+                  onToast(
+                    t('creator.monetization.select_plan_start'),
+                    'success',
+                  );
                 } else {
                   portalMutation.mutate();
                 }
@@ -120,7 +125,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
               {portalMutation.isPending ? (
                 <Loader2 className="animate-spin" size={16} />
               ) : (
-                'Gestionar Suscripción'
+                t('creator.monetization.manage_subscription')
               )}
             </button>
           </div>
@@ -152,7 +157,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                 </div>
                 {active && (
                   <span className="px-3 py-1 rounded-full bg-brand-primary text-[8px] font-black uppercase tracking-widest text-white shadow-lg shadow-brand-primary/20">
-                    Activo
+                    {t('creator.monetization.active')}
                   </span>
                 )}
               </div>
@@ -167,7 +172,9 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                     {plan.currency === 'EUR' ? '€' : plan.currency}
                   </span>
                   <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                    / {plan.interval === 'month' ? 'mes' : 'año'}
+                    {plan.interval === 'month'
+                      ? t('creator.monetization.per_month')
+                      : t('creator.monetization.per_year')}
                   </span>
                 </div>
               </div>
@@ -194,7 +201,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                   {checkoutMutation.isPending ? (
                     <Loader2 className="animate-spin mx-auto" size={14} />
                   ) : (
-                    'Upgrade Now'
+                    t('creator.monetization.upgrade_now')
                   )}
                 </button>
               )}
@@ -210,12 +217,11 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
               <TrendingUp size={20} className="text-indigo-400" />
             </div>
             <h3 className="text-white font-black uppercase text-xs tracking-widest">
-              Analíticas de Crecimiento
+              {t('creator.monetization.growth_analytics')}
             </h3>
           </div>
           <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest leading-relaxed italic">
-            Descubre patrones de interacción y optimiza tu alcance con nuestras
-            herramientas de IA propietarias.
+            {t('creator.monetization.growth_desc')}
           </p>
         </div>
 
@@ -225,12 +231,11 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
               <Users size={20} className="text-emerald-400" />
             </div>
             <h3 className="text-white font-black uppercase text-xs tracking-widest">
-              Comunidad VIP
+              {t('creator.monetization.vip_community')}
             </h3>
           </div>
           <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest leading-relaxed italic">
-            Acceso exclusivo a círculos de otros creadores certificados y
-            prioridad en el descubrimiento global.
+            {t('creator.monetization.vip_desc')}
           </p>
         </div>
       </div>

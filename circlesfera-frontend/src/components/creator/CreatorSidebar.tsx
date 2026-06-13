@@ -2,6 +2,7 @@ import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
+  BarChart3,
   ChevronRight,
   Clock,
   DollarSign,
@@ -18,7 +19,8 @@ export type CreatorTab =
   | 'stories'
   | 'finance'
   | 'ads'
-  | 'wallet';
+  | 'wallet'
+  | 'analytics';
 
 interface NavGroup {
   label: string;
@@ -32,6 +34,7 @@ const GROUPS: NavGroup[] = [
     icon: LayoutDashboard,
     items: [
       { id: 'overview', label: 'Resumen', icon: LayoutDashboard },
+      { id: 'analytics', label: 'Analíticas', icon: BarChart3 },
       { id: 'finance', label: 'Ingresos', icon: DollarSign },
       { id: 'wallet', label: 'Billetera', icon: DollarSign },
       { id: 'ads', label: 'Publicidad', icon: Megaphone },

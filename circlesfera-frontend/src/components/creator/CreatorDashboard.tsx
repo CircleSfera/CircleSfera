@@ -11,6 +11,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type {
   CreatorChartDay,
   CreatorPost,
@@ -34,6 +35,7 @@ function SectionHeader({
   onSeeAll?: () => void;
   seeAllLabel?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-between mb-5">
       <div className="flex items-center gap-2.5">
@@ -50,7 +52,7 @@ function SectionHeader({
           onClick={onSeeAll}
           className="text-zinc-500 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest flex items-center gap-1 group"
         >
-          {seeAllLabel}
+          {seeAllLabel || t('creator.dashboard.see_all')}
           <ChevronRight
             size={12}
             className="group-hover:translate-x-0.5 transition-transform"
@@ -74,6 +76,7 @@ export default function CreatorDashboard({
   stats?: CreatorStats;
   chartData?: CreatorChartDay[];
 }) {
+  const { t } = useTranslation();
   const [insightsPostId, setInsightsPostId] = useState<string | null>(null);
 
   // Queries
@@ -100,10 +103,10 @@ export default function CreatorDashboard({
       {/* 1. Content Insights Section */}
       <section>
         <SectionHeader
-          title="Rendimiento del Contenido"
+          title={t('creator.dashboard.content_performance')}
           icon={Zap}
           onSeeAll={() => onNavigate('content')}
-          seeAllLabel="Ver todo el contenido"
+          seeAllLabel={t('creator.dashboard.see_all_content')}
         />
 
         {postsLoading ? (
@@ -143,7 +146,7 @@ export default function CreatorDashboard({
                       onPromote(post);
                     }}
                     className="absolute inset-0 bg-brand-primary/20 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center justify-center hover:bg-brand-primary/40"
-                    title="Promocionar post"
+                    title={t('creator.dashboard.promote_post')}
                   >
                     <Megaphone size={20} className="text-white" />
                   </button>
@@ -152,7 +155,7 @@ export default function CreatorDashboard({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-white font-bold text-sm truncate">
-                      {post.caption || 'Publicación sin título'}
+                      {post.caption || t('creator.dashboard.untitled_post')}
                     </p>
                     <span className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">
                       {post.type}
@@ -162,9 +165,11 @@ export default function CreatorDashboard({
                   {/* Premium Performance Bar */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-zinc-500 italic">
-                      <span>Performance</span>
+                      <span>{t('creator.dashboard.performance')}</span>
                       <span className="text-brand-primary">
-                        +{post.performanceScore || 0}% vs Avg.
+                        {t('creator.dashboard.vs_avg', {
+                          score: post.performanceScore || 0,
+                        })}
                       </span>
                     </div>
                     <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
@@ -189,7 +194,10 @@ export default function CreatorDashboard({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Tool Cards */}
         <section className="lg:col-span-2 space-y-6">
-          <SectionHeader title="Gestión del Estudio" icon={BarChart3} />
+          <SectionHeader
+            title={t('creator.dashboard.studio_management')}
+            icon={BarChart3}
+          />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
               type="button"
@@ -201,10 +209,10 @@ export default function CreatorDashboard({
               </div>
               <div>
                 <h4 className="text-white font-bold text-lg mb-1 tracking-tight">
-                  Finanzas & Ganancias
+                  {t('creator.dashboard.finance_earnings')}
                 </h4>
                 <p className="text-zinc-500 text-sm leading-relaxed">
-                  Configura tus métodos de pago y revisa tus ingresos totales.
+                  {t('creator.dashboard.finance_desc')}
                 </p>
               </div>
             </button>
@@ -219,10 +227,10 @@ export default function CreatorDashboard({
               </div>
               <div>
                 <h4 className="text-white font-bold text-lg mb-1 tracking-tight">
-                  Publicidad & Ads
+                  {t('creator.dashboard.ads_promotions')}
                 </h4>
                 <p className="text-zinc-500 text-sm leading-relaxed">
-                  Crea campañas para promocionar tu perfil y llegar a más gente.
+                  {t('creator.dashboard.ads_desc')}
                 </p>
               </div>
             </button>
@@ -231,12 +239,14 @@ export default function CreatorDashboard({
 
         {/* Mini Audiencia Insights */}
         <section className="space-y-6">
-          <SectionHeader title="Audiencia" icon={Users} />
+          <SectionHeader title={t('creator.dashboard.audience')} icon={Users} />
           <div className="glass-panel p-6 rounded-2xl border border-white/5 flex flex-col items-center text-center">
             <div
               className="relative w-32 h-32 mb-6"
               role="img"
-              aria-label={`Gráfico circular de retención de audiencia: ${stats?.insights.retentionRate || 0}%`}
+              aria-label={t('creator.dashboard.retention_chart_aria', {
+                rate: stats?.insights.retentionRate || 0,
+              })}
             >
               <svg
                 aria-hidden="true"
@@ -273,15 +283,19 @@ export default function CreatorDashboard({
                   {stats?.insights.retentionRate || 0}%
                 </span>
                 <span className="text-zinc-500 text-[8px] font-black uppercase tracking-tighter">
-                  Retención
+                  {t('creator.dashboard.retention')}
                 </span>
               </div>
             </div>
             <p className="text-white font-medium text-sm mb-1">
-              "Tu audiencia es más activa los {stats?.insights.bestDayToPost}"
+              {t('creator.dashboard.most_active_day', {
+                day: stats?.insights.bestDayToPost,
+              })}
             </p>
             <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">
-              A las {stats?.insights.bestHourToPost}:00 (Local)
+              {t('creator.dashboard.most_active_hour', {
+                hour: stats?.insights.bestHourToPost,
+              })}
             </p>
           </div>
         </section>
