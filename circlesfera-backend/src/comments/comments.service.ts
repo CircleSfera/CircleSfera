@@ -30,6 +30,7 @@ export class CommentsService {
     @Inject(NotificationsService)
     private readonly notificationsService: NotificationsService,
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
+    @InjectQueue('analytics-processing') private readonly analyticsQueue: Queue,
   ) {}
 
   /**
@@ -142,6 +143,9 @@ export class CommentsService {
       }
     }
 
+    // Trigger score recalculation
+    await this.analyticsQueue.add('update-performance-score', { postId });
+
     return comment;
   }
 
@@ -219,6 +223,9 @@ export class CommentsService {
     }
 
     await this.prisma.comment.delete({ where: { id } });
+
+    // Trigger score recalculation
+    await this.analyticsQueue.add('update-performance-score', { postId: comment.postId });
   }
 
   /** Like a comment */

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Music as MusicIcon, Star } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { Audio as AudioTrack } from '../../types';
 
 interface StoryControlsBarProps {
@@ -15,6 +16,7 @@ export default function StoryControlsBar({
   isCloseFriendsOnly,
   setIsCloseFriendsOnly,
 }: StoryControlsBarProps) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ height: 0, opacity: 0 }}
@@ -34,7 +36,9 @@ export default function StoryControlsBar({
           }`}
         >
           <MusicIcon size={12} className={selectedAudio ? 'fill-white' : ''} />
-          {selectedAudio ? selectedAudio.title : 'Add Music'}
+          {selectedAudio
+            ? selectedAudio.title
+            : t('createPost.story.add_music')}
         </button>
         <button
           type="button"
@@ -46,7 +50,9 @@ export default function StoryControlsBar({
           }`}
         >
           <Star size={12} className={isCloseFriendsOnly ? 'fill-white' : ''} />
-          {isCloseFriendsOnly ? 'Close Friends' : 'Your Story'}
+          {isCloseFriendsOnly
+            ? t('createPost.story.close_friends')
+            : t('createPost.story.your_story')}
         </button>
       </div>
     </motion.div>

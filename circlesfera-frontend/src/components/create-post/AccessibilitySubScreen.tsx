@@ -1,5 +1,6 @@
 import { Loader2, Sparkles, Trash2 } from 'lucide-react';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { parseFilter } from '../../utils/styleUtils';
 
 interface AccessibilitySubScreenProps {
@@ -19,6 +20,7 @@ export default function AccessibilitySubScreen({
   onClose,
   onGenerateAltText,
 }: AccessibilitySubScreenProps) {
+  const { t } = useTranslation();
   const [generatingIdx, setGeneratingIdx] = React.useState<number | null>(null);
 
   const handleAiGenerate = async (idx: number) => {
@@ -58,10 +60,10 @@ export default function AccessibilitySubScreen({
             </button>
             <div>
               <h2 className="font-black text-xl tracking-tighter text-white italic uppercase">
-                Accesibilidad
+                {t('createPost.accessibility.title')}
               </h2>
               <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">
-                Optimiza para lectores de pantalla
+                {t('createPost.accessibility.subtitle')}
               </p>
             </div>
           </div>
@@ -70,16 +72,14 @@ export default function AccessibilitySubScreen({
             onClick={onClose}
             className="px-6 py-2 rounded-full bg-white text-black font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-transform"
           >
-            Listo
+            {t('createPost.accessibility.done')}
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-8 space-y-10">
           <div className="p-4 rounded-2xl bg-brand-primary/5 border border-brand-primary/10">
             <p className="text-zinc-400 text-xs font-medium leading-relaxed italic">
-              "El texto alternativo describe tus fotos para personas con
-              discapacidad visual. CircleSfera puede ayudarte a generarlos
-              usando nuestra IA propietaria."
+              {t('createPost.accessibility.info')}
             </p>
           </div>
 
@@ -133,7 +133,7 @@ export default function AccessibilitySubScreen({
                             [idx]: e.target.value,
                           }))
                         }
-                        placeholder="Escribe el texto alternativo..."
+                        placeholder={t('createPost.accessibility.placeholder')}
                         className="w-full bg-neutral-950/50 border border-white/5 rounded-2xl p-4 text-xs font-medium text-white placeholder-zinc-600 focus:outline-none focus:border-brand-primary/50 transition-all resize-none"
                       />
 
@@ -154,7 +154,9 @@ export default function AccessibilitySubScreen({
                             <Sparkles size={12} />
                           )}
                           <span className="text-[9px] font-black uppercase tracking-widest">
-                            {isGenerating ? 'Generando...' : 'IA Mágica'}
+                            {isGenerating
+                              ? t('createPost.accessibility.generating')
+                              : t('createPost.accessibility.magic_ai')}
                           </span>
                         </button>
                       )}

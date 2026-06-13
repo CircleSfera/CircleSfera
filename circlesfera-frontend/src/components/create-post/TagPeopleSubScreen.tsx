@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Search, X } from 'lucide-react';
 import React, { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { MediaFile, PostTagData } from '../../hooks/useCreatePost';
 import { apiClient } from '../../services/api';
 
@@ -19,6 +20,7 @@ export default function TagPeopleSubScreen({
   setTagsMap,
   onClose,
 }: TagPeopleSubScreenProps) {
+  const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [activeTap, setActiveTap] = useState<{ x: number; y: number } | null>(
     null,
@@ -111,7 +113,7 @@ export default function TagPeopleSubScreen({
 
           <div className="p-4 text-center absolute top-4 z-10 w-full pointer-events-none">
             <span className="bg-black/50 backdrop-blur-md px-4 py-1.5 rounded-full text-white/90 text-sm font-medium">
-              Tap photo to tag people
+              {t('createPost.tags.tap_photo')}
             </span>
           </div>
 
@@ -176,7 +178,7 @@ export default function TagPeopleSubScreen({
                       />
                       <input
                         type="text"
-                        placeholder="Search user..."
+                        placeholder={t('createPost.tags.search_user')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full bg-white/5 border border-white/10 rounded-lg py-2 pl-9 pr-3 text-xs text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -185,7 +187,7 @@ export default function TagPeopleSubScreen({
                     <div className="max-h-40 overflow-y-auto p-2">
                       {isSearching ? (
                         <div className="text-center text-xs text-white/40 py-4">
-                          Searching...
+                          {t('createPost.tags.searching')}
                         </div>
                       ) : searchResults.length > 0 ? (
                         searchResults.map((user) => (
@@ -210,11 +212,11 @@ export default function TagPeopleSubScreen({
                         ))
                       ) : searchQuery ? (
                         <div className="text-center text-xs text-white/40 py-4">
-                          No users found
+                          {t('createPost.tags.no_users')}
                         </div>
                       ) : (
                         <div className="text-center text-xs text-white/40 py-4">
-                          Type to search
+                          {t('createPost.tags.type_to_search')}
                         </div>
                       )}
                     </div>
@@ -224,7 +226,7 @@ export default function TagPeopleSubScreen({
             </div>
           ) : (
             <div className="text-white/50 text-sm">
-              Tagging is only supported on images.
+              {t('createPost.tags.unsupported')}
             </div>
           )}
         </div>
@@ -232,13 +234,15 @@ export default function TagPeopleSubScreen({
         {/* Right Side: Navigation & List */}
         <div className="w-full md:w-80 flex flex-col bg-neutral-900 shrink-0">
           <div className="p-5 border-b border-white/10 flex items-center justify-between">
-            <h2 className="font-bold text-lg text-white">Tag People</h2>
+            <h2 className="font-bold text-lg text-white">
+              {t('createPost.tags.title')}
+            </h2>
             <button
               type="button"
               onClick={onClose}
               className="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm rounded-xl transition-colors"
             >
-              Done
+              {t('createPost.tags.done')}
             </button>
           </div>
 
@@ -272,11 +276,11 @@ export default function TagPeopleSubScreen({
 
           <div className="flex-1 overflow-y-auto p-4 space-y-2">
             <h3 className="text-xs font-bold text-white/40 uppercase tracking-wider mb-4">
-              Tags on this photo
+              {t('createPost.tags.tags_on_photo')}
             </h3>
             {currentTags.length === 0 && (
               <div className="text-sm text-white/30 text-center mt-8">
-                No tags yet. Tap the photo to add tags.
+                {t('createPost.tags.no_tags_yet')}
               </div>
             )}
             {currentTags.map((tag, idx) => (

@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Clock, Film, Image, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { MutableRefObject } from 'react';
 import { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { CreateMode, MediaFile } from '../../hooks/useCreatePost';
 import { parseFilter } from '../../utils/styleUtils';
 import Carousel from '../Carousel';
@@ -44,6 +45,7 @@ export default function EditStep({
   handleRemoveFile,
   fileInputRef,
 }: EditStepProps) {
+  const { t } = useTranslation();
   const config = MODE_CONFIG[mode];
   const thumbnailContainerRef = useRef<HTMLDivElement>(null);
 
@@ -91,9 +93,11 @@ export default function EditStep({
                 <Pencil size={16} className="text-white" strokeWidth={2} />
               </div>
               <div className="text-left">
-                <p className="text-sm font-bold text-white">Edit Media</p>
+                <p className="text-sm font-bold text-white">
+                  {t('createPost.edit.edit_media')}
+                </p>
                 <p className="text-[10px] text-white/50 font-medium">
-                  Filters & Adjustments
+                  {t('createPost.edit.filters_adjustments')}
                 </p>
               </div>
             </motion.div>
@@ -107,7 +111,7 @@ export default function EditStep({
           {/* File count badge */}
           {mediaFiles.length > 1 && (
             <div className="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 text-[10px] font-bold text-white/60 pointer-events-none">
-              {mediaFiles.length} files
+              {t('createPost.edit.n_files', { count: mediaFiles.length })}
             </div>
           )}
         </motion.div>
@@ -144,7 +148,7 @@ export default function EditStep({
                     isActive ? 'text-white' : 'text-white/25'
                   }`}
                 >
-                  {cfg.label}
+                  {t(`createPost.edit.${cfg.label.toLowerCase()}`)}
                 </span>
               </button>
             );

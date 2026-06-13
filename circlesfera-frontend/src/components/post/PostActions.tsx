@@ -1,4 +1,5 @@
 import { Bookmark, Gift, Send } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { Post } from '../../types';
 import LikeButton from '../LikeButton';
@@ -22,6 +23,7 @@ export default function PostActions({
   onShare,
   onTip,
 }: PostActionsProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-between mb-2">
       <div className="flex items-center gap-4">
@@ -29,7 +31,7 @@ export default function PostActions({
         <Link
           to={`/p/${post.id}`}
           className="hover:scale-110 active:scale-95 transition-all text-white/60 hover:text-white"
-          aria-label="Comentarios"
+          aria-label={t('post.actions.comments')}
         >
           <svg
             aria-hidden="true"
@@ -50,7 +52,7 @@ export default function PostActions({
           type="button"
           onClick={onShare}
           className="hover:scale-110 active:scale-95 transition-all text-white/60 hover:text-white"
-          aria-label="Compartir publicación"
+          aria-label={t('post.actions.share')}
         >
           <Send className="w-6 h-6" />
         </button>
@@ -58,7 +60,7 @@ export default function PostActions({
           type="button"
           onClick={onTip}
           className="hover:scale-110 active:scale-95 transition-all text-yellow-500 hover:text-yellow-400 drop-shadow-[0_0_5px_rgba(234,179,8,0.5)]"
-          aria-label="Dar propina"
+          aria-label={t('post.actions.tip')}
         >
           <Gift className="w-6 h-6" />
         </button>
@@ -69,7 +71,9 @@ export default function PostActions({
         className="hover:scale-110 active:scale-95 transition-all"
         disabled={isBookmarkPending}
         aria-label={
-          isBookmarked ? 'Quitar de guardados' : 'Guardar publicación'
+          isBookmarked
+            ? t('post.actions.remove_bookmark')
+            : t('post.actions.add_bookmark')
         }
       >
         <Bookmark

@@ -1,4 +1,5 @@
 import { MoreHorizontal } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { Post } from '../../types';
 import UserAvatar from '../UserAvatar';
@@ -16,6 +17,7 @@ export default function PostHeader({
   menuButtonRef,
   onMenuToggle,
 }: PostHeaderProps) {
+  const { t } = useTranslation();
   return (
     <div className="p-3 flex items-center gap-3 border-b border-white/5">
       <Link to={`/${post.user.profile.username}`} className="relative">
@@ -47,7 +49,7 @@ export default function PostHeader({
             <>
               <span className="text-gray-600">·</span>
               <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">
-                Publicidad
+                {t('post.header.promoted')}
               </span>
             </>
           )}
