@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Coins, Gift, Heart, X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../services';
 
 interface TipModalProps {
@@ -21,6 +22,7 @@ export default function TipModal({
   postId,
   receiverName,
 }: TipModalProps) {
+  const { t } = useTranslation();
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -33,10 +35,12 @@ export default function TipModal({
         postId,
         amount: selectedAmount,
       });
-      toast.success(`Enviado ${selectedAmount} tokens a ${receiverName}!`);
+      toast.success(
+        t('wallet.sent_tip', { amount: selectedAmount, name: receiverName }),
+      );
       onClose();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Error al enviar propina');
+      toast.error(error.response?.data?.message || t('wallet.error_send_tip'));
     } finally {
       setIsSubmitting(false);
     }
@@ -71,10 +75,10 @@ export default function TipModal({
                 <Gift className="w-8 h-8 text-yellow-500" />
               </div>
               <h3 className="font-bold text-white text-xl tracking-tight mb-1">
-                Enviar Regalo
+                {t('wallet.send_gift')}
               </h3>
               <p className="text-gray-400 text-sm">
-                Apoya a {receiverName} con tokens
+                {t('wallet.support_with_tokens', { name: receiverName })}
               </p>
             </div>
 
@@ -110,10 +114,11 @@ export default function TipModal({
                 className="w-full py-4 bg-linear-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white font-bold rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
-                  'Procesando...'
+                  t('wallet.processing')
                 ) : (
                   <>
-                    <Heart size={18} fill="currentColor" /> Enviar Propina
+                    <Heart size={18} fill="currentColor" />{' '}
+                    {t('wallet.send_tip')}
                   </>
                 )}
               </button>

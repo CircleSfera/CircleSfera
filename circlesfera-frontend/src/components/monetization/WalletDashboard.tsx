@@ -8,9 +8,11 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../services';
 
 export default function WalletDashboard() {
+  const { t } = useTranslation();
   const [amountToBuy, setAmountToBuy] = useState('');
   const [isBuying, setIsBuying] = useState(false);
 
@@ -32,11 +34,13 @@ export default function WalletDashboard() {
     setIsBuying(true);
     try {
       await api.post('/wallet/purchase', { amount });
-      toast.success(`Compraste ${amount} tokens!`);
+      toast.success(t('wallet.bought_tokens', { amount }));
       setAmountToBuy('');
       refetch();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Error al comprar tokens');
+      toast.error(
+        error.response?.data?.message || t('wallet.error_buy_tokens'),
+      );
     } finally {
       setIsBuying(false);
     }
@@ -52,20 +56,22 @@ export default function WalletDashboard() {
           </div>
           <div className="relative z-10">
             <h3 className="text-white/80 font-bold uppercase tracking-widest text-xs mb-2">
-              Saldo Disponible
+              {t('wallet.available_balance')}
             </h3>
             <div className="flex items-end gap-2">
               <span className="text-5xl font-black tracking-tighter">
                 {wallet?.balance || 0}
               </span>
-              <span className="text-xl pb-1 font-bold">Tokens</span>
+              <span className="text-xl pb-1 font-bold">
+                {t('wallet.tokens')}
+              </span>
             </div>
 
             <div className="mt-8">
               <div className="flex bg-white/10 p-1 rounded-xl backdrop-blur-md">
                 <input
                   type="number"
-                  placeholder="Cantidad..."
+                  placeholder={t('wallet.amount_placeholder')}
                   value={amountToBuy}
                   onChange={(e) => setAmountToBuy(e.target.value)}
                   className="bg-transparent border-none text-white placeholder-white/50 focus:ring-0 w-full px-4"
@@ -81,7 +87,7 @@ export default function WalletDashboard() {
                   }
                   className="bg-white text-brand-primary px-4 py-2 rounded-lg font-bold disabled:opacity-50 flex items-center gap-2 transition-transform active:scale-95"
                 >
-                  <Plus size={16} /> Comprar
+                  <Plus size={16} /> {t('wallet.buy')}
                 </button>
               </div>
             </div>
@@ -91,13 +97,15 @@ export default function WalletDashboard() {
         {/* Earned Card */}
         <div className="p-6 rounded-3xl modal-glass border border-white/5 relative overflow-hidden">
           <h3 className="text-gray-400 font-bold uppercase tracking-widest text-xs mb-2">
-            Ganancias (Retirables)
+            {t('wallet.earnings_withdrawable')}
           </h3>
           <div className="flex items-end gap-2">
             <span className="text-5xl font-black text-yellow-500 tracking-tighter">
               {wallet?.earnedTokens || 0}
             </span>
-            <span className="text-xl pb-1 text-gray-500 font-bold">Tokens</span>
+            <span className="text-xl pb-1 text-gray-500 font-bold">
+              {t('wallet.tokens')}
+            </span>
           </div>
           <p className="text-sm text-gray-400 mt-2">
             ≈ ${(wallet?.earnedTokens || 0) * 0.01} USD
@@ -107,7 +115,7 @@ export default function WalletDashboard() {
             type="button"
             className="mt-8 w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold transition-colors"
           >
-            Solicitar Retiro
+            {t('wallet.request_withdrawal')}
           </button>
         </div>
       </div>
@@ -115,7 +123,7 @@ export default function WalletDashboard() {
       {/* Transactions */}
       <div className="modal-glass rounded-3xl p-6">
         <h3 className="text-lg font-bold text-white mb-4">
-          Historial de Transacciones
+          {t('wallet.transaction_history')}
         </h3>
         <div className="space-y-4">
           {transactions?.map((tx: any) => {
@@ -165,7 +173,7 @@ export default function WalletDashboard() {
           })}
           {transactions?.length === 0 && (
             <p className="text-center text-gray-500 py-8">
-              No hay transacciones recientes
+              {t('wallet.no_transactions')}
             </p>
           )}
         </div>

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Lock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface PaywallOverlayProps {
   price: number;
@@ -12,6 +13,7 @@ export default function PaywallOverlay({
   onUnlock,
   isLoading,
 }: PaywallOverlayProps) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
@@ -33,10 +35,10 @@ export default function PaywallOverlay({
           <Lock className="w-7 h-7 text-white drop-shadow-md" />
         </div>
         <h3 className="text-xl font-black text-white mb-2 text-center tracking-tight drop-shadow-lg">
-          Contenido Exclusivo
+          {t('wallet.exclusive_content')}
         </h3>
         <p className="text-zinc-400 text-[13px] text-center mb-8 max-w-[240px] leading-relaxed">
-          Este post es premium. Desbloquéalo con tokens o suscríbete al creador para ver su contenido.
+          {t('wallet.premium_description')}
         </p>
 
         <button
@@ -50,10 +52,10 @@ export default function PaywallOverlay({
             {isLoading ? (
               <>
                 <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                Desbloqueando...
+                {t('wallet.unlocking')}
               </>
             ) : (
-              `Desbloquear por ${price} Tokens`
+              t('wallet.unlock_for', { price })
             )}
           </span>
         </button>

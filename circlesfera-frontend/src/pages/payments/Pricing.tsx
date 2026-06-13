@@ -41,7 +41,7 @@ export default function Pricing() {
 
   const tiers = [
     {
-      name: 'Verified',
+      name: 'Premium',
       price: '9.99',
       description: 'Elevate your identity and presence.',
       features: [
@@ -60,7 +60,7 @@ export default function Pricing() {
       price: '19.99',
       description: 'Professional tools for growing creators.',
       features: [
-        'Everything in Verified',
+        'Everything in Premium',
         'Pro Growth Tools',
         'Advanced Audience Insights',
         'Early Access to features',
@@ -115,7 +115,8 @@ export default function Pricing() {
             transition={{ delay: 0.2 }}
             className="text-white/40 max-w-lg mx-auto font-light"
           >
-            Select the plan that fits your creative needs. From individual creators to global brands.
+            Select the plan that fits your creative needs. From individual
+            creators to global brands.
           </motion.p>
         </div>
 
@@ -143,7 +144,9 @@ export default function Pricing() {
                   {tier.name}
                 </h3>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-black text-white">€{tier.price}</span>
+                  <span className="text-4xl font-black text-white">
+                    €{tier.price}
+                  </span>
                   <span className="text-white/30 text-sm">/month</span>
                 </div>
                 <p className="text-white/40 text-sm mt-4 font-light italic leading-relaxed">
@@ -184,7 +187,7 @@ export default function Pricing() {
           ))}
         </div>
       </div>
-      
+
       {/* Background Accent */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-brand-primary/5 rounded-full blur-[150px] pointer-events-none"></div>
     </div>
