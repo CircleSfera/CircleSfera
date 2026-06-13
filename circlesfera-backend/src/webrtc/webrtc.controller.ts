@@ -1,6 +1,6 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import type { WebrtcService } from './webrtc.service.js';
+import { WebrtcService } from './webrtc.service.js';
 
 @Controller('webrtc')
 @UseGuards(JwtAuthGuard)
