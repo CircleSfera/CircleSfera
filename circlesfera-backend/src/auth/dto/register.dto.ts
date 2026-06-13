@@ -16,4 +16,8 @@ export class RegisterDto implements IRegisterDto {
   @IsString()
   @IsOptional()
   fullName?: string;
+
+  @IsString()
+  @IsOptional()
+  inviteCode?: string;
 }

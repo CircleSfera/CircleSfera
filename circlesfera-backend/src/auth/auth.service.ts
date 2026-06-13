@@ -64,6 +64,16 @@ export class AuthService {
       throw new ConflictException('Username already taken');
     }
 
+    let referredById: string | undefined;
+    if (dto.inviteCode) {
+      const referringUser = await this.prisma.user.findUnique({
+        where: { inviteCode: dto.inviteCode },
+      });
+      if (referringUser) {
+        referredById = referringUser.id;
+      }
+    }
+
     // Hash password
     const hashedPassword = await argon2.hash(dto.password);
 
@@ -75,6 +85,10 @@ export class AuthService {
         email: dto.email,
         password: hashedPassword,
         verificationToken,
+        inviteCode:
+          randomUUID().split('-')[0].toUpperCase() +
+          Math.random().toString(36).substring(2, 6).toUpperCase(),
+        referredById,
         profile: {
           create: {
             username: dto.username,
