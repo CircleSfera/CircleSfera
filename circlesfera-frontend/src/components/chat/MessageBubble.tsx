@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Reply, Smile, Trash2 } from 'lucide-react';
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStoryStore } from '../../stores/storyStore';
 import type { Message } from '../../types';
 import UserAvatar from '../UserAvatar';
@@ -32,6 +33,7 @@ export default memo(function MessageBubble({
   isRead,
   currentUserId,
 }: MessageBubbleProps) {
+  const { t } = useTranslation();
   const openStories = useStoryStore((state) => state.openStories);
   const timeString = msg.createdAt
     ? new Date(msg.createdAt).toLocaleTimeString([], {
@@ -55,7 +57,7 @@ export default memo(function MessageBubble({
               src={msg.sender?.profile.avatar || undefined}
               thumbnailUrl={msg.sender?.profile.thumbnailUrl}
               standardUrl={msg.sender?.profile.standardUrl}
-              alt={msg.sender?.profile.username || 'User'}
+              alt={msg.sender?.profile.username || t('chat.user')}
               className="w-8 h-8 rounded-full shadow-sm"
             />
           ) : (
@@ -73,11 +75,16 @@ export default memo(function MessageBubble({
             className={`mb-1 text-xs text-gray-300/80 bg-white/5 border-l-2 border-purple-500 pl-3 py-1.5 pr-2 rounded-r-lg cursor-pointer hover:bg-white/10 transition-colors truncate backdrop-blur-sm self-stretch max-w-xs`}
           >
             <div className="font-semibold text-purple-400 text-[10px] mb-0.5">
-              Replying to {msg.replyTo?.sender?.profile?.username || 'user'}
+              {t('chat.replying_to_user', {
+                username:
+                  msg.replyTo?.sender?.profile?.username || t('chat.user'),
+              })}
             </div>
             <div className="truncate opacity-90 italic">
               {msg.replyTo?.content ||
-                (msg.replyTo?.url ? 'Media Attachment' : 'Post')}
+                (msg.replyTo?.url
+                  ? t('chat.media_attachment')
+                  : t('chat.post'))}
             </div>
           </div>
         )}
@@ -127,13 +134,13 @@ export default memo(function MessageBubble({
                 <div className="flex flex-col gap-1 py-1">
                   {!isMe && (
                     <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded-full w-fit">
-                      Respondió a tu historia
+                      {t('chat.replied_to_story')}
                     </span>
                   )}
                   <p className="text-[11px] text-white/60 line-clamp-2 italic pr-4">
                     {msg.story?.mediaType === 'video'
-                      ? 'Mira el video de nuevo'
-                      : 'Ver historia original'}
+                      ? t('chat.watch_video_again')
+                      : t('chat.view_original_story')}
                   </p>
                 </div>
               </button>

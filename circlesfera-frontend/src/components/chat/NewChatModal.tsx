@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Search, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { apiClient, chatApi, followsApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
@@ -22,6 +23,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
   const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
   const { profile: currentUser } = useAuthStore();
+  const { t } = useTranslation();
 
   // Debounce search input
   useEffect(() => {
@@ -120,14 +122,16 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
           >
             <X size={20} />
           </button>
-          <h2 className="font-bold text-lg text-white">New Message</h2>
+          <h2 className="font-bold text-lg text-white">
+            {t('chat.new_message')}
+          </h2>
           <button
             type="button"
             onClick={handleCreateChat}
             disabled={selectedUsers.length === 0 || isCreating}
             className="text-[#3797f0] font-semibold hover:text-blue-400 disabled:opacity-50 text-sm transition-colors px-2 py-1"
           >
-            {isCreating ? 'Creating...' : 'Chat'}
+            {isCreating ? t('chat.creating') : t('chat.chat')}
           </button>
         </div>
 
@@ -135,7 +139,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
         <div className="px-6 py-3 border-b border-white/5 shrink-0">
           <div className="flex flex-wrap gap-2 items-center min-h-[44px] bg-[#262626] px-4 py-2 rounded-xl border border-white/5 focus-within:border-white/20 transition-colors">
             <span className="text-white/60 font-medium text-[15px] mr-1">
-              To:
+              {t('chat.to')}
             </span>
 
             <AnimatePresence mode="popLayout">
@@ -160,7 +164,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
               <input
                 type="text"
                 className="w-full bg-transparent border-none text-white placeholder-gray-500 focus:ring-0 text-[14px] p-0 leading-relaxed"
-                placeholder="Search..."
+                placeholder={t('chat.search_dots')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -183,7 +187,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
                 </div>
                 <input
                   type="text"
-                  placeholder="Name your group (optional)"
+                  placeholder={t('chat.name_group_optional')}
                   className="w-full bg-transparent border-none p-0 text-white placeholder-gray-500 focus:ring-0 text-sm"
                   value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
@@ -205,12 +209,12 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
                 <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
                   <Search className="w-8 h-8 opacity-20" />
                 </div>
-                <p className="text-sm">No account found.</p>
+                <p className="text-sm">{t('chat.no_account_found')}</p>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-gray-500/50 space-y-2">
                 <p className="text-xs uppercase tracking-widest font-bold">
-                  No Following
+                  {t('chat.no_following')}
                 </p>
               </div>
             )
@@ -218,7 +222,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
             <>
               {!debouncedSearch && (
                 <div className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider sticky top-0 bg-[#1c1c1c]/95 backdrop-blur-sm z-10">
-                  Suggested
+                  {t('chat.suggested')}
                 </div>
               )}
 

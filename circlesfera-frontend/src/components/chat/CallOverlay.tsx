@@ -1,16 +1,19 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Mic, MicOff, PhoneOff, Video, VideoOff } from 'lucide-react';
+import { Mic, MicOff, MonitorUp, PhoneOff, Video, VideoOff } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useCallStore } from '../../stores/useCallStore';
+import { webrtcService } from '../../services/webrtc.service';
 
 export const CallOverlay: React.FC = () => {
-  const { status, remoteUser, callType, localStream, remoteStream, endCall } =
+  const { status, remoteUser, callType, localStream, remoteStream, isScreenSharing, endCall } =
     useCallStore();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -42,6 +45,14 @@ export const CallOverlay: React.FC = () => {
     }
   };
 
+  const toggleScreenShare = async () => {
+    if (isScreenSharing) {
+      await webrtcService.stopScreenShare();
+    } else {
+      await webrtcService.startScreenShare();
+    }
+  };
+
   if (status !== 'active' && status !== 'ringing') return null;
 
   return (
@@ -68,7 +79,7 @@ export const CallOverlay: React.FC = () => {
               <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-white/10 p-2 shadow-2xl">
                 <img
                   src={remoteUser?.profile.avatar || '/default-avatar.png'}
-                  alt={remoteUser?.profile.username || 'Remote user'}
+                  alt={remoteUser?.profile.username || t('chat.remote_user')}
                   className="w-full h-full object-cover rounded-full"
                 />
               </div>
@@ -77,7 +88,7 @@ export const CallOverlay: React.FC = () => {
                   {remoteUser?.profile.fullName || remoteUser?.profile.username}
                 </h2>
                 <p className="text-brand-primary animate-pulse font-medium">
-                  In Call...
+                  {t('chat.in_call')}
                 </p>
               </div>
             </div>
@@ -123,13 +134,23 @@ export const CallOverlay: React.FC = () => {
 
             {/* Video Toggle (Conditional) */}
             {callType === 'video' && (
-              <button
-                type="button"
-                onClick={toggleVideo}
-                className={`p-4 rounded-full transition-all duration-300 ${isVideoOff ? 'bg-red-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
-              >
-                {isVideoOff ? <VideoOff size={24} /> : <Video size={24} />}
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={toggleVideo}
+                  className={`p-4 rounded-full transition-all duration-300 ${isVideoOff ? 'bg-red-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                >
+                  {isVideoOff ? <VideoOff size={24} /> : <Video size={24} />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={toggleScreenShare}
+                  className={`p-4 rounded-full transition-all duration-300 ${isScreenSharing ? 'bg-brand-primary text-black' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                >
+                  <MonitorUp size={24} />
+                </button>
+              </>
             )}
 
             {/* End Call Button */}
