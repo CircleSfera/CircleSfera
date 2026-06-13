@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import CollectionCard from '../components/collections/CollectionCard';
 import CreateCollectionModal from '../components/collections/CreateCollectionModal';
@@ -91,6 +92,7 @@ function AnimatedCounter({ value, label }: { value: number; label: string }) {
 }
 
 export default function Profile() {
+  const { t } = useTranslation();
   const { username } = useParams<{ username: string }>();
   const [activeTab, setActiveTab] = useState<TabType>('posts');
   const [showFollowsModal, setShowFollowsModal] = useState<
@@ -106,18 +108,20 @@ export default function Profile() {
   const subscribeMutation = useMutation({
     mutationFn: () =>
       import('../services').then((m) =>
-        m.api.post('/creator/subscribe', {
+        m.api.post('/wallet/subscribe', {
           creatorId: profile?.data.userId,
           monthlyTokens: 500,
         }),
       ),
     onSuccess: () => {
-      toast.success('¡Suscrito con éxito!');
+      toast.success(t('profile.messages.subscribed_success'));
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
       queryClient.invalidateQueries({ queryKey: ['userProfile', username] });
     },
     onError: (e: any) => {
-      toast.error(e.response?.data?.message || 'Error al suscribirse');
+      toast.error(
+        e.response?.data?.message || t('profile.messages.subscribe_error'),
+      );
     },
   });
 
@@ -159,7 +163,7 @@ export default function Profile() {
       navigate(`/direct/inbox/t/${res.data.id}`);
     } catch (err) {
       console.error(err);
-      toast.error('Could not open chat');
+      toast.error(t('profile.messages.chat_error'));
     } finally {
       setIsCreatingChat(false);
     }
@@ -282,11 +286,9 @@ export default function Profile() {
       <div className="min-h-screen pt-20 text-center">
         <div className="glass-panel inline-block p-8 rounded-2xl">
           <h2 className="text-2xl font-bold text-white">
-            You have blocked this user.
+            {t('profile.blocked.title')}
           </h2>
-          <p className="text-gray-400 mt-2">
-            Unblock them in Settings to see their profile.
-          </p>
+          <p className="text-gray-400 mt-2">{t('profile.blocked.subtitle')}</p>
         </div>
       </div>
     );
@@ -438,8 +440,8 @@ export default function Profile() {
           </div>
           {renderPostGrid(
             savedPosts?.data.data || [],
-            'No posts yet',
-            'Save posts to this collection to see them here.',
+            t('profile.saved.no_posts_yet'),
+            t('profile.saved.save_to_see'),
             <Bookmark size={32} className="text-white/40" />,
           )}
         </div>
@@ -454,22 +456,22 @@ export default function Profile() {
             onClick={() => setSavedTab('all')}
             className={`px-6 py-2 rounded-full font-medium transition-colors ${savedTab === 'all' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'}`}
           >
-            All Posts
+            {t('profile.saved.all_posts')}
           </button>
           <button
             type="button"
             onClick={() => setSavedTab('collections')}
             className={`px-6 py-2 rounded-full font-medium transition-colors ${savedTab === 'collections' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'}`}
           >
-            Collections
+            {t('profile.saved.collections')}
           </button>
         </div>
 
         {savedTab === 'all' ? (
           renderPostGrid(
             savedPosts?.data.data || [],
-            'Save',
-            'Save photos and videos that you want to see again.',
+            t('profile.saved.save'),
+            t('profile.saved.save_desc'),
             <Bookmark size={32} className="text-white/40" />,
           )
         ) : (
@@ -482,7 +484,9 @@ export default function Profile() {
               <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
                 <Plus size={24} className="text-white" />
               </div>
-              <span className="font-semibold text-white">New Collection</span>
+              <span className="font-semibold text-white">
+                {t('profile.actions.new_collection')}
+              </span>
             </button>
 
             {collections?.data.map((collection: Collection) => (
@@ -577,7 +581,7 @@ export default function Profile() {
                   <div className="flex items-center justify-center md:justify-start gap-6 md:gap-10">
                     <AnimatedCounter
                       value={profile.data.user?._count?.posts || 0}
-                      label="Posts"
+                      label={t('profile.stats.posts')}
                     />
                     <button
                       type="button"
@@ -585,7 +589,7 @@ export default function Profile() {
                     >
                       <AnimatedCounter
                         value={profile.data.user?._count?.followers || 0}
-                        label="Followers"
+                        label={t('profile.stats.followers')}
                       />
                     </button>
                     <button
@@ -594,7 +598,7 @@ export default function Profile() {
                     >
                       <AnimatedCounter
                         value={profile.data.user?._count?.following || 0}
-                        label="Following"
+                        label={t('profile.stats.following')}
                       />
                     </button>
                   </div>
@@ -608,7 +612,7 @@ export default function Profile() {
                         to="/accounts/edit"
                         className="px-6 py-2 bg-white text-black hover:bg-zinc-200 rounded-lg font-black transition-all duration-300 flex items-center justify-center text-[10px] uppercase tracking-widest shadow-lg hover:shadow-white/20 hover:scale-105 active:scale-95"
                       >
-                        Edit Profile
+                        {t('profile.actions.edit_profile')}
                       </Link>
                       <button
                         type="button"
@@ -629,7 +633,7 @@ export default function Profile() {
                           className="px-4 py-2 bg-linear-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white rounded-lg font-black text-[10px] uppercase tracking-widest transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1 disabled:opacity-50"
                         >
                           <Star size={14} fill="currentColor" />
-                          Suscribirse
+                          {t('profile.actions.subscribe')}
                         </button>
                       )}
 
@@ -637,7 +641,7 @@ export default function Profile() {
                         type="button"
                         onClick={() => setShowTipModal(true)}
                         className="p-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-lg border border-yellow-500/20 transition-all duration-300 hover:scale-105 active:scale-95"
-                        title="Enviar Propina"
+                        title={t('profile.actions.send_tip')}
                       >
                         <Gift size={18} />
                       </button>
@@ -648,7 +652,9 @@ export default function Profile() {
                         disabled={isCreatingChat}
                         className="px-6 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 font-black text-[10px] uppercase tracking-widest transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] disabled:opacity-50"
                       >
-                        {isCreatingChat ? 'Opening...' : 'Message'}
+                        {isCreatingChat
+                          ? t('profile.actions.opening')
+                          : t('profile.actions.message')}
                       </button>
                       <div className="relative">
                         <button
@@ -669,7 +675,7 @@ export default function Profile() {
                               }}
                               className="w-full text-left px-4 py-3 text-red-400 hover:bg-white/5 flex items-center justify-between font-bold text-[10px] uppercase tracking-wider"
                             >
-                              Report Profile
+                              {t('profile.actions.report_profile')}
                               <Flag size={14} />
                             </button>
                             <button
@@ -680,7 +686,7 @@ export default function Profile() {
                                 setShowBlockModal(true);
                               }}
                             >
-                              Block User
+                              {t('profile.actions.block_user')}
                               <Ban size={14} />
                             </button>
                           </div>
@@ -732,6 +738,33 @@ export default function Profile() {
                     )}
                   </div>
                 )}
+
+                {isMe &&
+                  profile.data.accountType === 'CREATOR' &&
+                  profile.data.inviteCode && (
+                    <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-xl max-w-sm mx-auto md:mx-0 flex items-center justify-between gap-3 backdrop-blur-md">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                          {t('profile.invite.title')}
+                        </span>
+                        <span className="font-mono text-brand-primary font-bold tracking-wider text-sm">
+                          {profile.data.inviteCode}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            `${window.location.origin}/register?inviteCode=${profile.data.inviteCode}`,
+                          );
+                          toast.success(t('profile.invite.copied'));
+                        }}
+                        className="px-4 py-2 bg-white text-black hover:bg-zinc-200 rounded-lg text-xs font-black uppercase tracking-wider transition-all"
+                      >
+                        {t('profile.actions.copy_link')}
+                      </button>
+                    </div>
+                  )}
               </div>
 
               {/* Mobile Only Action Buttons */}
@@ -742,7 +775,7 @@ export default function Profile() {
                       to="/accounts/edit"
                       className="flex-1 px-6 py-3 bg-white text-black hover:bg-zinc-200 rounded-xl font-black transition-all flex items-center justify-center text-[10px] uppercase tracking-widest shadow-lg shadow-white/5"
                     >
-                      Edit Profile
+                      {t('profile.actions.edit_profile')}
                     </Link>
                     <button
                       type="button"
@@ -758,7 +791,7 @@ export default function Profile() {
                       type="button"
                       className="flex-1 px-5 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 font-black text-[10px] uppercase tracking-widest transition-all"
                     >
-                      Message
+                      {t('profile.actions.message')}
                     </button>
                   </div>
                 )}
@@ -842,7 +875,9 @@ export default function Profile() {
                   />
                 )}
                 <Grid size={14} />
-                <span className="hidden sm:inline">POSTS</span>
+                <span className="hidden sm:inline">
+                  {t('profile.tabs.posts')}
+                </span>
               </button>
               <button
                 type="button"
@@ -861,7 +896,9 @@ export default function Profile() {
                   />
                 )}
                 <Clapperboard size={14} />
-                <span className="hidden sm:inline">FRAMES</span>
+                <span className="hidden sm:inline">
+                  {t('profile.tabs.frames')}
+                </span>
               </button>
               {isMe && (
                 <button
@@ -885,7 +922,9 @@ export default function Profile() {
                     />
                   )}
                   <Bookmark size={14} />
-                  <span className="hidden sm:inline">SAVED</span>
+                  <span className="hidden sm:inline">
+                    {t('profile.tabs.saved')}
+                  </span>
                 </button>
               )}
               <button
@@ -905,7 +944,9 @@ export default function Profile() {
                   />
                 )}
                 <UserSquare2 size={14} />
-                <span className="hidden sm:inline">TAGGED</span>
+                <span className="hidden sm:inline">
+                  {t('profile.tabs.tagged')}
+                </span>
               </button>
             </div>
           )}
@@ -918,10 +959,10 @@ export default function Profile() {
               {activeTab === 'posts' &&
                 renderPostGrid(
                   posts?.data.data || [],
-                  isMe ? 'Share Photos' : 'No Posts Yet',
                   isMe
-                    ? 'When you share photos, they will appear on your profile.'
-                    : '',
+                    ? t('profile.empty.share_photos')
+                    : t('profile.empty.no_posts_yet'),
+                  isMe ? t('profile.empty.share_desc') : '',
                   <svg
                     aria-hidden="true"
                     className="w-10 h-10 text-white/40"
@@ -947,8 +988,8 @@ export default function Profile() {
               {activeTab === 'frames' &&
                 renderPostGrid(
                   frames?.data.data || [],
-                  'Frames',
-                  'Share short looping videos.',
+                  t('profile.empty.frames'),
+                  t('profile.empty.frames_desc'),
                   <Clapperboard size={32} className="text-white/40" />,
                 )}
 
@@ -957,8 +998,14 @@ export default function Profile() {
               {activeTab === 'tagged' &&
                 renderPostGrid(
                   taggedPosts?.data.data || [],
-                  `Photos of ${isMe ? 'you' : profile.data.username}`,
-                  `When people tag ${isMe ? 'you' : 'them'} in photos, they'll appear here.`,
+                  isMe
+                    ? t('profile.empty.tagged_you')
+                    : t('profile.empty.tagged_them', {
+                        username: profile.data.username,
+                      }),
+                  isMe
+                    ? t('profile.empty.tagged_desc_you')
+                    : t('profile.empty.tagged_desc_them'),
                   <UserSquare2 size={32} className="text-white/40" />,
                 )}
             </>
@@ -969,10 +1016,10 @@ export default function Profile() {
                 <Shield size={40} className="text-zinc-600" />
               </div>
               <h3 className="text-3xl font-black text-white mb-4 tracking-tight">
-                This Account is Private
+                {t('profile.private.title')}
               </h3>
               <p className="text-zinc-500 max-w-xs mx-auto leading-relaxed font-medium">
-                Follow this account to see their photos and videos.
+                {t('profile.private.subtitle')}
               </p>
             </div>
           )}
