@@ -284,6 +284,14 @@ const LandingPage = () => {
               </li>
               <li>
                 <Link
+                  to="/pricing"
+                  className="hover:text-white transition-colors"
+                >
+                  {t('common.footer.pricing')}
+                </Link>
+              </li>
+              <li>
+                <Link
                   to="/accounts/login"
                   className="hover:text-white transition-colors"
                 >
