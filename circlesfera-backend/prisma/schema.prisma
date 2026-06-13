@@ -88,6 +88,12 @@ model User {
   postViews             PostView[]
   metrics               UserMetric[]
 
+  // Growth & Referrals
+  inviteCode   String? @unique
+  referredById String?
+  referredBy   User?   @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals    User[]  @relation("UserReferrals")
+
   role Role @default(USER)
 
   // Verification and Reset Tokens
@@ -106,7 +112,7 @@ model User {
   // Push Notifications
   pushSubscriptions PushSubscription[]
 
-  // Phase 8: Virtual Economy & Monetization
+  // Virtual Economy & Monetization
   wallet               Wallet?
   sentTransactions     Transaction[]         @relation("SentTransactions")
   receivedTransactions Transaction[]         @relation("ReceivedTransactions")
