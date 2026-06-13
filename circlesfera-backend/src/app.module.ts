@@ -47,8 +47,8 @@ import { StoriesModule } from './stories/stories.module.js';
 import { UploadsModule } from './uploads/uploads.module.js';
 import { UsersModule } from './users/users.module.js';
 import { WalletModule } from './wallet/wallet.module.js';
-import { WhitelistModule } from './whitelist/whitelist.module.js';
 import { WebrtcModule } from './webrtc/webrtc.module.js';
+import { WhitelistModule } from './whitelist/whitelist.module.js';
 
 @Module({
   imports: [
