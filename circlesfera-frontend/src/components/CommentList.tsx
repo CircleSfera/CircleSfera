@@ -8,6 +8,7 @@ import {
   X,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { commentsApi, uploadApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { Comment, CreateCommentDto } from '../types';
@@ -40,6 +41,7 @@ const CommentItem = ({
   onLike,
   depth = 0,
 }: CommentItemProps) => {
+  const { t } = useTranslation();
   const isOwner =
     currentUserId === comment.userId || currentUserId === comment.user?.id;
   const isDeleting = deletingId === comment.id;
@@ -101,7 +103,7 @@ const CommentItem = ({
                 type="button"
                 onClick={() => onLike(comment.id, isLiked)}
                 className={`p-1 transition-colors ${isLiked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}
-                title={isLiked ? 'Unlike' : 'Like'}
+                title={isLiked ? t('comments.unlike') : t('comments.like')}
               >
                 <Heart size={14} fill={isLiked ? 'currentColor' : 'none'} />
               </button>
@@ -110,7 +112,7 @@ const CommentItem = ({
                 type="button"
                 onClick={() => onReply(comment)}
                 className="p-1 text-gray-400 hover:text-purple-400 transition-colors"
-                title="Reply"
+                title={t('comments.reply')}
               >
                 <MessageCircle size={14} />
               </button>
@@ -121,7 +123,7 @@ const CommentItem = ({
                   onClick={() => onDelete(comment.id)}
                   disabled={isDeleting}
                   className="p-1 text-gray-400 hover:text-red-400 transition-colors"
-                  title="Delete"
+                  title={t('comments.delete')}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -135,7 +137,12 @@ const CommentItem = ({
             </span>
             {likesCount > 0 && (
               <span className="text-xs font-semibold text-gray-500">
-                {likesCount} {likesCount === 1 ? 'like' : 'likes'}
+                {t(
+                  likesCount === 1
+                    ? 'comments.likes_count'
+                    : 'comments.likes_count_plural',
+                  { count: likesCount },
+                )}
               </span>
             )}
             <button
@@ -143,7 +150,7 @@ const CommentItem = ({
               onClick={() => onReply(comment)}
               className="text-xs font-semibold text-gray-500 hover:text-white transition-colors"
             >
-              Reply
+              {t('comments.reply')}
             </button>
           </div>
         </div>
@@ -175,6 +182,7 @@ import { logger } from '../utils/logger';
 import ConfirmModal from './modals/ConfirmModal';
 
 export default function CommentList({ postId, comments }: CommentListProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { profile } = useAuthStore();
   const [newComment, setNewComment] = useState('');
@@ -307,7 +315,7 @@ export default function CommentList({ postId, comments }: CommentListProps) {
 
         {comments.length === 0 && (
           <div className="text-center py-8 text-gray-500 text-sm">
-            No comments yet. Be the first to verify!
+            {t('comments.no_comments')}
           </div>
         )}
       </div>
@@ -319,7 +327,7 @@ export default function CommentList({ postId, comments }: CommentListProps) {
         {replyingTo && (
           <div className="flex items-center justify-between bg-white/5 px-3 py-2 rounded-lg mb-2 text-sm border border-white/10">
             <span className="text-gray-300">
-              Replying to{' '}
+              {t('comments.replying_to')}{' '}
               <span className="font-bold text-purple-400">
                 @{replyingTo.user.profile.username}
               </span>
@@ -378,8 +386,10 @@ export default function CommentList({ postId, comments }: CommentListProps) {
             onChange={(e) => setNewComment(e.target.value)}
             placeholder={
               replyingTo
-                ? `Reply to @${replyingTo.user.profile.username}...`
-                : 'Add a comment...'
+                ? t('comments.reply_to_user', {
+                    username: replyingTo.user.profile.username,
+                  })
+                : t('comments.add_comment')
             }
             className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-500 outline-none transition-all"
           />
@@ -388,7 +398,7 @@ export default function CommentList({ postId, comments }: CommentListProps) {
             disabled={!newComment.trim() || commentMutation.isPending}
             className="px-6 py-2 bg-linear-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-500/20"
           >
-            Post
+            {t('comments.post')}
           </button>
         </div>
       </form>
@@ -397,9 +407,9 @@ export default function CommentList({ postId, comments }: CommentListProps) {
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}
         onConfirm={handleConfirmDelete}
-        title="Delete Comment"
-        message="Are you sure you want to delete this comment? This action cannot be undone."
-        confirmText="Delete"
+        title={t('comments.delete_title')}
+        message={t('comments.delete_warning')}
+        confirmText={t('comments.delete')}
         isLoading={deleteMutation.isPending}
       />
     </div>

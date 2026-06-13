@@ -9,246 +9,244 @@ import {
   Zap,
 } from 'lucide-react';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import logoSrc from '../assets/logo.png';
 import SEO from '../components/common/SEO';
 
 const LandingPage = () => {
+  const { t } = useTranslation();
   return (
     <div className="min-h-dvh relative overflow-hidden text-white font-sans selection:bg-brand-primary/30 flex flex-col justify-between">
       <SEO
-        title="CircleSfera - Social Reimagined"
-        description="Experience the next generation of social media. An immersive visual storytelling platform for authentic connections and distinct creativity."
+        title={t('landing.seo.title')}
+        description={t('landing.seo.description')}
       />
       {/* Background is now handled globally by LayoutWrapper */}
 
       <div className="w-full flex-1 block relative z-10 pb-16">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5 px-6 py-3 flex justify-between items-center backdrop-blur-xl bg-black/20">
-        <div className="flex items-center gap-2.5">
-          <img src={logoSrc} alt="CircleSfera" className="h-8 w-auto object-contain" />
-          <span className="text-lg font-black tracking-tight bg-clip-text text-transparent bg-linear-to-r from-white via-white to-white/40">
-            CircleSfera
-          </span>
-        </div>
-        <div className="flex items-center gap-5">
-          <Link
-            to="/accounts/login"
-            className="text-xs font-semibold text-white/70 hover:text-white transition-colors tracking-wide uppercase"
-          >
-            Log In
-          </Link>
-          <Link
-            to="/accounts/emailsignup"
-            className="px-5 py-2 text-xs font-bold bg-white text-black rounded-full hover:bg-white/90 transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
-          >
-            Sign Up
-          </Link>
-        </div>
-      </nav>
-
-      {/* Hero Section */}
-      <main className="max-w-6xl mx-auto px-6 pt-28 pb-16 md:pt-36 md:pb-20 flex flex-col items-center text-center relative z-10">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass-panel border border-white/10 mb-8 animate-float shadow-lg">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-secondary opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-secondary"></span>
-          </span>
-          <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/80">
-            Social Reimagined
-          </span>
-        </div>
-
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter mb-6 leading-[0.9] drop-shadow-2xl">
-          Share Your <br className="hidden md:block" />
-          <span className="bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
-            Universe
-          </span>
-        </h1>
-
-        <p className="max-w-md text-base md:text-lg text-white/50 mb-10 leading-relaxed font-light tracking-wide italic">
-          Connect with friends, share your moments, and explore a world of
-          creativity. Experience a social platform designed for distinct visual
-          storytelling.
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <Link
-            to="/accounts/emailsignup"
-            className="group relative px-6 py-3 bg-white text-black font-bold text-sm rounded-full transition-all hover:shadow-[0_0_30px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95"
-          >
-            <span className="flex items-center justify-center gap-2">
-              Get Started
-              <Zap className="w-4 h-4 fill-black group-hover:rotate-12 transition-transform" />
+        {/* Navigation */}
+        <nav className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5 px-6 py-3 flex justify-between items-center backdrop-blur-xl bg-black/20">
+          <div className="flex items-center gap-2.5">
+            <img
+              src={logoSrc}
+              alt="CircleSfera"
+              className="h-8 w-auto object-contain"
+            />
+            <span className="text-lg font-black tracking-tight bg-clip-text text-transparent bg-linear-to-r from-white via-white to-white/40">
+              CircleSfera
             </span>
-          </Link>
-          <Link
-            to="/explore"
-            className="px-6 py-3 glass-panel rounded-full text-white text-sm font-bold hover:bg-white/10 transition-all hover:scale-105 active:scale-95 border border-white/5"
-          >
-            Explore Demo
-          </Link>
-        </div>
+          </div>
+          <div className="flex items-center gap-5">
+            <Link
+              to="/accounts/login"
+              className="text-xs font-semibold text-white/70 hover:text-white transition-colors tracking-wide uppercase"
+            >
+              {t('landing.nav.log_in')}
+            </Link>
+            <Link
+              to="/accounts/emailsignup"
+              className="px-5 py-2 text-xs font-bold bg-white text-black rounded-full hover:bg-white/90 transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+            >
+              {t('landing.nav.sign_up')}
+            </Link>
+          </div>
+        </nav>
 
-        {/* Dynamic Mockup Section */}
-        <div className="mt-14 relative w-full max-w-3xl aspect-video glass-panel rounded-2xl border border-white/5 shadow-2xl overflow-hidden group">
-          <div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-black z-10"></div>
+        {/* Hero Section */}
+        <main className="max-w-6xl mx-auto px-6 pt-28 pb-16 md:pt-36 md:pb-20 flex flex-col items-center text-center relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass-panel border border-white/10 mb-8 animate-float shadow-lg">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-secondary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-secondary"></span>
+            </span>
+            <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/80">
+              {t('landing.hero.badge')}
+            </span>
+          </div>
 
-          {/* Animated Grid simulating feed */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-30 group-hover:opacity-100 transition-opacity duration-1000">
-            <div className="grid grid-cols-4 gap-4 p-6 w-full h-full transform group-hover:scale-105 transition-transform duration-1000 ease-out">
-              <div className="col-span-1 space-y-4 pt-8">
-                <div className="glass-panel h-44 rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
-                <div className="glass-panel h-56 rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
-              </div>
-              <div className="col-span-1 space-y-6">
-                <div className="glass-panel h-full rounded-2xl w-full border border-brand-primary/30 shadow-[0_0_40px_rgba(131,58,180,0.15)] bg-linear-to-b from-brand-primary/10 to-transparent">
-                  <div className="p-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white/10 animate-pulse"></div>
-                    <div className="h-3 w-24 bg-white/10 rounded-full"></div>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter mb-6 leading-[0.9] drop-shadow-2xl">
+            {t('landing.hero.title_part1')} <br className="hidden md:block" />
+            <span className="bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
+              {t('landing.hero.title_part2')}
+            </span>
+          </h1>
+
+          <p className="max-w-md text-base md:text-lg text-white/50 mb-10 leading-relaxed font-light tracking-wide italic">
+            {t('landing.hero.subtitle')}
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <Link
+              to="/accounts/emailsignup"
+              className="group relative px-6 py-3 bg-white text-black font-bold text-sm rounded-full transition-all hover:shadow-[0_0_30px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95"
+            >
+              <span className="flex items-center justify-center gap-2">
+                {t('landing.hero.get_started')}
+                <Zap className="w-4 h-4 fill-black group-hover:rotate-12 transition-transform" />
+              </span>
+            </Link>
+            <Link
+              to="/explore"
+              className="px-6 py-3 glass-panel rounded-full text-white text-sm font-bold hover:bg-white/10 transition-all hover:scale-105 active:scale-95 border border-white/5"
+            >
+              {t('landing.hero.explore_demo')}
+            </Link>
+          </div>
+
+          {/* Dynamic Mockup Section */}
+          <div className="mt-14 relative w-full max-w-3xl aspect-video glass-panel rounded-2xl border border-white/5 shadow-2xl overflow-hidden group">
+            <div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-black z-10"></div>
+
+            {/* Animated Grid simulating feed */}
+            <div className="absolute inset-0 flex items-center justify-center opacity-30 group-hover:opacity-100 transition-opacity duration-1000">
+              <div className="grid grid-cols-4 gap-4 p-6 w-full h-full transform group-hover:scale-105 transition-transform duration-1000 ease-out">
+                <div className="col-span-1 space-y-4 pt-8">
+                  <div className="glass-panel h-44 rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
+                  <div className="glass-panel h-56 rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
+                </div>
+                <div className="col-span-1 space-y-6">
+                  <div className="glass-panel h-full rounded-2xl w-full border border-brand-primary/30 shadow-[0_0_40px_rgba(131,58,180,0.15)] bg-linear-to-b from-brand-primary/10 to-transparent">
+                    <div className="p-4 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-white/10 animate-pulse"></div>
+                      <div className="h-3 w-24 bg-white/10 rounded-full"></div>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="col-span-1 space-y-6 pt-20">
-                <div className="glass-panel h-64 rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
-                <div className="glass-panel h-32 rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
-              </div>
-              <div className="col-span-1 space-y-6 pt-6">
-                <div className="glass-panel h-52 rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
-                <div className="glass-panel h-full rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
+                <div className="col-span-1 space-y-6 pt-20">
+                  <div className="glass-panel h-64 rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
+                  <div className="glass-panel h-32 rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
+                </div>
+                <div className="col-span-1 space-y-6 pt-6">
+                  <div className="glass-panel h-52 rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
+                  <div className="glass-panel h-full rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
+                </div>
               </div>
             </div>
+
+            <div className="absolute bottom-0 left-0 right-0 p-8 z-20 text-left bg-linear-to-t from-black to-transparent">
+              <h3 className="text-2xl font-black mb-1 tracking-tighter">
+                {t('landing.hero.mockup.title')}
+              </h3>
+              <p className="text-white/50 max-w-md text-sm leading-relaxed">
+                {t('landing.hero.mockup.desc')}
+              </p>
+            </div>
           </div>
+        </main>
 
-          <div className="absolute bottom-0 left-0 right-0 p-8 z-20 text-left bg-linear-to-t from-black to-transparent">
-            <h3 className="text-2xl font-black mb-1 tracking-tighter">
-              Immersive Visuals
-            </h3>
-            <p className="text-white/50 max-w-md text-sm leading-relaxed">
-              Experience a social interaction layer that prioritizes content
-              depth.
-            </p>
+        {/* Marquee Section */}
+        <section className="py-12 border-y border-white/5 bg-black/60 backdrop-blur-xl overflow-hidden relative">
+          <div className="absolute inset-y-0 left-0 w-32 bg-linear-to-r from-black to-transparent z-10"></div>
+          <div className="absolute inset-y-0 right-0 w-32 bg-linear-to-l from-black to-transparent z-10"></div>
+          <div className="flex gap-16 animate-marquee whitespace-nowrap items-center">
+            {['m1', 'm2', 'm3', 'm4', 'm5', 'm6'].map((m) => (
+              <React.Fragment key={m}>
+                <span className="text-xl font-black text-white/15 tracking-[0.25em] uppercase transition-colors hover:text-brand-primary duration-500 cursor-default">
+                  {t('landing.marquee.community')}
+                </span>
+                <span className="text-lg font-bold text-white/5">•</span>
+                <span className="text-xl font-black text-white/15 tracking-[0.25em] uppercase transition-colors hover:text-brand-secondary duration-500 cursor-default">
+                  {t('landing.marquee.creativity')}
+                </span>
+                <span className="text-lg font-bold text-white/5">•</span>
+                <span className="text-xl font-black text-white/15 tracking-[0.25em] uppercase transition-colors hover:text-brand-blue duration-500 cursor-default">
+                  {t('landing.marquee.connection')}
+                </span>
+                <span className="text-lg font-bold text-white/5">•</span>
+                <span className="text-xl font-black text-white/15 tracking-[0.25em] uppercase transition-colors hover:text-brand-accent duration-500 cursor-default">
+                  {t('landing.marquee.innovation')}
+                </span>
+                <span className="text-lg font-bold text-white/5">•</span>
+              </React.Fragment>
+            ))}
           </div>
-        </div>
-      </main>
+        </section>
 
-      {/* Marquee Section */}
-      <section className="py-12 border-y border-white/5 bg-black/60 backdrop-blur-xl overflow-hidden relative">
-        <div className="absolute inset-y-0 left-0 w-32 bg-linear-to-r from-black to-transparent z-10"></div>
-        <div className="absolute inset-y-0 right-0 w-32 bg-linear-to-l from-black to-transparent z-10"></div>
-        <div className="flex gap-16 animate-marquee whitespace-nowrap items-center">
-          {['m1', 'm2', 'm3', 'm4', 'm5', 'm6'].map((m) => (
-            <React.Fragment key={m}>
-              <span className="text-xl font-black text-white/15 tracking-[0.25em] uppercase transition-colors hover:text-brand-primary duration-500 cursor-default">
-                Community
-              </span>
-              <span className="text-lg font-bold text-white/5">•</span>
-              <span className="text-xl font-black text-white/15 tracking-[0.25em] uppercase transition-colors hover:text-brand-secondary duration-500 cursor-default">
-                Creativity
-              </span>
-              <span className="text-lg font-bold text-white/5">•</span>
-              <span className="text-xl font-black text-white/15 tracking-[0.25em] uppercase transition-colors hover:text-brand-blue duration-500 cursor-default">
-                Connection
-              </span>
-              <span className="text-lg font-bold text-white/5">•</span>
-              <span className="text-xl font-black text-white/15 tracking-[0.25em] uppercase transition-colors hover:text-brand-accent duration-500 cursor-default">
-                Innovation
-              </span>
-              <span className="text-lg font-bold text-white/5">•</span>
-            </React.Fragment>
-          ))}
-        </div>
-      </section>
+        <InteractiveFeatures />
 
-      <InteractiveFeatures />
+        {/* Features Grid */}
+        <section className="py-16 relative">
+          <div className="max-w-5xl mx-auto px-6">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl md:text-3xl font-bold mb-3 tracking-tight">
+                {t('landing.features.title')}
+              </h2>
+              <p className="text-sm text-white/30 max-w-md mx-auto font-light italic">
+                {t('landing.features.subtitle')}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <FeatureCard
+                icon={<Camera className="w-6 h-6 text-brand-secondary" />}
+                title={t('landing.features.items.capture.title')}
+                description={t('landing.features.items.capture.desc')}
+              />
+              <FeatureCard
+                icon={<Users className="w-6 h-6 text-brand-primary" />}
+                title={t('landing.features.items.community.title')}
+                description={t('landing.features.items.community.desc')}
+              />
+              <FeatureCard
+                icon={<MessageCircle className="w-6 h-6 text-brand-blue" />}
+                title={t('landing.features.items.realtime.title')}
+                description={t('landing.features.items.realtime.desc')}
+              />
+            </div>
+          </div>
+        </section>
 
-      {/* Features Grid */}
-      <section className="py-16 relative">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-3xl font-bold mb-3 tracking-tight">
-              Everything you need
+        {/* FAQ Section */}
+        <section className="py-16 relative bg-white/1">
+          <div className="max-w-2xl mx-auto px-6">
+            <div className="text-center mb-10">
+              <span className="text-brand-accent font-bold text-[10px] tracking-[0.3em] uppercase mb-2 block opacity-60">
+                {t('landing.faq.badge')}
+              </span>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                {t('landing.faq.title')}
+              </h2>
+            </div>
+            <div className="space-y-4">
+              <FAQItem
+                question={t('landing.faq.items.free.q')}
+                answer={t('landing.faq.items.free.a')}
+              />
+              <FAQItem
+                question={t('landing.faq.items.verify.q')}
+                answer={t('landing.faq.items.verify.a')}
+              />
+              <FAQItem
+                question={t('landing.faq.items.security.q')}
+                answer={t('landing.faq.items.security.a')}
+              />
+              <FAQItem
+                question={t('landing.faq.items.app.q')}
+                answer={t('landing.faq.items.app.a')}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-16 relative overflow-hidden">
+          <div className="absolute inset-0 bg-linear-to-b from-transparent to-brand-primary/10 pointer-events-none"></div>
+          <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
+            <h2 className="text-2xl md:text-4xl font-bold mb-4 tracking-tight">
+              {t('landing.cta.title')}
             </h2>
-            <p className="text-sm text-white/30 max-w-md mx-auto font-light italic">
-              Built for the next generation of visual storytellers.
+            <p className="text-base text-white/40 mb-8 max-w-md mx-auto font-light">
+              {t('landing.cta.subtitle')}
             </p>
+            <Link
+              to="/accounts/emailsignup"
+              className="inline-flex items-center justify-center px-7 py-3.5 bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue text-white font-bold text-base rounded-full shadow-[0_0_30px_rgba(131,58,180,0.35)] hover:scale-105 transition-all border border-white/10 backdrop-blur-lg"
+            >
+              {t('landing.cta.button')}
+              <Zap className="w-4 h-4 ml-2 fill-white" />
+            </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <FeatureCard
-              icon={<Camera className="w-6 h-6 text-brand-secondary" />}
-              title="Capture"
-              description="High definition sharing. Advanced filters and storytelling tools designed for visual depth."
-            />
-            <FeatureCard
-              icon={<Users className="w-6 h-6 text-brand-primary" />}
-              title="Community"
-              description="Create your own Circles, join immersive groups, and connect with minds that inspire you."
-            />
-            <FeatureCard
-              icon={<MessageCircle className="w-6 h-6 text-brand-blue" />}
-              title="Real-time"
-              description="Stay in touch with secure, encrypted instant messaging that feels as smooth as the feed."
-            />
-          </div>
-        </div>
-      </section>
-
-
-
-      {/* FAQ Section */}
-      <section className="py-16 relative bg-white/1">
-        <div className="max-w-2xl mx-auto px-6">
-          <div className="text-center mb-10">
-            <span className="text-brand-accent font-bold text-[10px] tracking-[0.3em] uppercase mb-2 block opacity-60">
-              General Knowledge
-            </span>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-              Questions
-            </h2>
-          </div>
-          <div className="space-y-4">
-            <FAQItem
-              question="Is CircleSfera free to use?"
-              answer="CircleSfera offers a comprehensive free tier for all users. For creators and businesses looking for advanced tools, verification badges, and deeper analytics, we offer specialized subscription tiers."
-            />
-            <FAQItem
-              question="How do I verify my account?"
-              answer="Verification is currently rolled out selectively to active creators and public figures to maintain authenticity across the platform."
-            />
-            <FAQItem
-              question="Is my data secure?"
-              answer="Security is our foundation. We use state-of-the-art encryption and never sell your personal data. You have full ownership and control."
-            />
-            <FAQItem
-              question="Will there be a mobile app?"
-              answer="We are building native iOS and Android experiences that will mirror the desktop's signature glassmorphic feel, launching later this year."
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 relative overflow-hidden">
-        <div className="absolute inset-0 bg-linear-to-b from-transparent to-brand-primary/10 pointer-events-none"></div>
-        <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
-          <h2 className="text-2xl md:text-4xl font-bold mb-4 tracking-tight">
-            Ready to join?
-          </h2>
-          <p className="text-base text-white/40 mb-8 max-w-md mx-auto font-light">
-            Thousands of creators are already shaping the next generation. Claim
-            your space today.
-          </p>
-          <Link
-            to="/accounts/emailsignup"
-            className="inline-flex items-center justify-center px-7 py-3.5 bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue text-white font-bold text-base rounded-full shadow-[0_0_30px_rgba(131,58,180,0.35)] hover:scale-105 transition-all border border-white/10 backdrop-blur-lg"
-          >
-            Create Account
-            <Zap className="w-4 h-4 ml-2 fill-white" />
-          </Link>
-        </div>
-      </section>
-
-
+        </section>
       </div>
 
       {/* Footer */}
@@ -257,20 +255,23 @@ const LandingPage = () => {
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2.5 mb-5">
               <div className="w-7 h-7 flex items-center justify-center">
-                <img src={logoSrc} alt="CircleSfera" className="w-full h-full object-contain" />
+                <img
+                  src={logoSrc}
+                  alt="CircleSfera"
+                  className="w-full h-full object-contain"
+                />
               </div>
               <span className="font-black text-lg text-white/80 tracking-tight">
                 CircleSfera
               </span>
             </div>
             <p className="max-w-xs leading-relaxed text-sm">
-              A refined social layer built for those who value visual depth and
-              authentic connection.
+              {t('landing.footer.desc')}
             </p>
           </div>
           <div>
             <h4 className="text-white/80 font-bold uppercase tracking-widest text-[10px] mb-5">
-              Platform
+              {t('landing.footer.platform')}
             </h4>
             <ul className="space-y-3">
               <li>
@@ -278,7 +279,7 @@ const LandingPage = () => {
                   to="/explore"
                   className="hover:text-white transition-colors"
                 >
-                  Explore
+                  {t('landing.footer.explore')}
                 </Link>
               </li>
               <li>
@@ -286,7 +287,7 @@ const LandingPage = () => {
                   to="/accounts/login"
                   className="hover:text-white transition-colors"
                 >
-                  Log In
+                  {t('landing.nav.log_in')}
                 </Link>
               </li>
               <li>
@@ -294,14 +295,14 @@ const LandingPage = () => {
                   to="/accounts/emailsignup"
                   className="hover:text-white transition-colors"
                 >
-                  Sign Up
+                  {t('landing.nav.sign_up')}
                 </Link>
               </li>
             </ul>
           </div>
           <div>
             <h4 className="text-white/80 font-bold uppercase tracking-widest text-[10px] mb-5">
-              Legal
+              {t('landing.footer.legal')}
             </h4>
             <ul className="space-y-3">
               <li>
@@ -309,7 +310,7 @@ const LandingPage = () => {
                   to="/privacy"
                   className="hover:text-white transition-colors"
                 >
-                  Privacy
+                  {t('landing.footer.privacy')}
                 </Link>
               </li>
               <li>
@@ -317,7 +318,7 @@ const LandingPage = () => {
                   to="/terms"
                   className="hover:text-white transition-colors"
                 >
-                  Terms
+                  {t('landing.footer.terms')}
                 </Link>
               </li>
               <li>
@@ -325,17 +326,15 @@ const LandingPage = () => {
                   to="/guidelines"
                   className="hover:text-white transition-colors"
                 >
-                  Guidelines
+                  {t('landing.footer.guidelines')}
                 </Link>
               </li>
             </ul>
           </div>
         </div>
         <div className="max-w-5xl mx-auto px-6 pt-6 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-xs opacity-50">
-          <p>&copy; 2026 CircleSfera Social. All rights reserved.</p>
-          <p className="mt-3 md:mt-0">
-            Designed for the next generation of creators.
-          </p>
+          <p>{t('landing.footer.rights')}</p>
+          <p className="mt-3 md:mt-0">{t('landing.footer.tagline')}</p>
         </div>
       </footer>
     </div>
@@ -406,29 +405,30 @@ const FAQItem = ({
 };
 
 const InteractiveFeatures = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('connect');
 
   const tabs = [
     {
       id: 'connect',
-      label: 'Connect',
+      label: t('landing.interactive.tabs.connect.label'),
       icon: <Globe className="w-4 h-4" />,
-      title: 'Global Network',
-      desc: 'Instantly connect with creators from around the world without geographical borders or content silos.',
+      title: t('landing.interactive.tabs.connect.title'),
+      desc: t('landing.interactive.tabs.connect.desc'),
     },
     {
       id: 'create',
-      label: 'Create',
+      label: t('landing.interactive.tabs.create.label'),
       icon: <Sparkles className="w-4 h-4" />,
-      title: 'Artistic Expression',
-      desc: 'Our built-in engine favors depth and texture, giving your stories a unique cinematic quality.',
+      title: t('landing.interactive.tabs.create.title'),
+      desc: t('landing.interactive.tabs.create.desc'),
     },
     {
       id: 'share',
-      label: 'Share',
+      label: t('landing.interactive.tabs.share.label'),
       icon: <Shield className="w-4 h-4" />,
-      title: 'Private Spheres',
-      desc: 'Granular control over who sees your content, from specific Circles to the entire Universe.',
+      title: t('landing.interactive.tabs.share.title'),
+      desc: t('landing.interactive.tabs.share.desc'),
     },
   ];
 
@@ -436,17 +436,17 @@ const InteractiveFeatures = () => {
     <section className="py-16 w-full max-w-5xl mx-auto px-6">
       <div className="text-center mb-10">
         <span className="text-brand-primary font-bold text-[10px] tracking-[0.3em] uppercase mb-2 block opacity-60">
-          The Platform
+          {t('landing.interactive.badge')}
         </span>
         <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-          Engineered for depth
+          {t('landing.interactive.title')}
         </h2>
       </div>
       <div className="w-full glass-panel rounded-2xl p-1.5 border border-white/5 max-w-4xl mx-auto flex flex-col lg:flex-row overflow-hidden min-h-[380px] shadow-2xl">
         {/* Sidebar / Tabs */}
         <div className="w-full lg:w-1/3 p-4 flex flex-col gap-3 border-b lg:border-b-0 lg:border-r border-white/5 relative z-20">
           <h3 className="font-bold mb-2 text-white/30 uppercase tracking-[0.3em] text-[10px]">
-            Navigation System
+            {t('landing.interactive.tabs_header')}
           </h3>
           {tabs.map((tab) => (
             <button
@@ -513,7 +513,5 @@ const InteractiveFeatures = () => {
     </section>
   );
 };
-
-
 
 export default LandingPage;

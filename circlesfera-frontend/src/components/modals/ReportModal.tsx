@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { reportsApi } from '../../services';
 import { logger } from '../../utils/logger';
 
@@ -24,6 +25,7 @@ export default function ReportModal({
   targetType,
   targetId,
 }: ReportModalProps) {
+  const { t } = useTranslation();
   const [reason, setReason] = useState('');
   const [details, setDetails] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,7 +82,7 @@ export default function ReportModal({
                 <div className="flex items-center gap-2">
                   <AlertCircle size={20} className="text-red-500" />
                   <h3 className="font-bold text-white tracking-tight">
-                    Report
+                    {t('report.title')}
                   </h3>
                 </div>
                 <button
@@ -102,14 +104,14 @@ export default function ReportModal({
                     className="text-green-500 animate-bounce"
                   />
                 </div>
-                <p className="text-white font-medium">
-                  Thanks for reporting. We'll review your report shortly.
-                </p>
+                <p className="text-white font-medium">{t('report.success')}</p>
               </div>
             ) : (
               <div className="p-4 space-y-4">
                 <p className="text-gray-400 text-sm">
-                  Why are you reporting this {targetType}?
+                  {t('report.why_report', {
+                    targetType: targetType.toLowerCase(),
+                  })}
                 </p>
 
                 <div className="space-y-2">
@@ -124,7 +126,7 @@ export default function ReportModal({
                           : 'bg-white/5 border-transparent text-gray-300 hover:bg-white/10'
                       }`}
                     >
-                      {r.label}
+                      {t(`report.reasons.${r.id.toLowerCase()}`)}
                     </button>
                   ))}
                 </div>
@@ -135,13 +137,13 @@ export default function ReportModal({
                       htmlFor="report-details"
                       className="text-xs text-gray-500 uppercase font-bold px-1"
                     >
-                      Additional Details (Optional)
+                      {t('report.additional_details')}
                     </label>
                     <textarea
                       id="report-details"
                       value={details}
                       onChange={(e) => setDetails(e.target.value)}
-                      placeholder="Tell us more..."
+                      placeholder={t('report.placeholder')}
                       className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-red-500 min-h-[100px] resize-none"
                     />
                   </div>
@@ -153,7 +155,7 @@ export default function ReportModal({
                   disabled={!reason || isSubmitting}
                   className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-[0.98]"
                 >
-                  {isSubmitting ? 'Submitting...' : 'Submit Report'}
+                  {isSubmitting ? t('report.submitting') : t('report.submit')}
                 </button>
               </div>
             )}

@@ -1,11 +1,13 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import FrameItem from '../components/FrameItem';
 import { LoadingSpinner } from '../components/LoadingStates';
 import { postsApi } from '../services';
 import type { PaginatedResponse, Post } from '../types';
 
 export default function Frames() {
+  const { t } = useTranslation();
   const [activeFrameIndex, setActiveFrameIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -69,8 +71,8 @@ export default function Frames() {
     return (
       <div className="h-screen w-full flex items-center justify-center text-white">
         <div className="text-center">
-          <h2 className="text-xl font-bold mb-2">No Frames Yet</h2>
-          <p className="text-gray-400">Be the first to post a Frame!</p>
+          <h2 className="text-xl font-bold mb-2">{t('frames.no_frames')}</h2>
+          <p className="text-gray-400">{t('frames.be_first')}</p>
         </div>
       </div>
     );

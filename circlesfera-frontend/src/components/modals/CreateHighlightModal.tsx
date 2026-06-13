@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronLeft, Image as ImageIcon, X } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { highlightsApi, storiesApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
 import type { Story } from '../../types';
@@ -14,6 +15,7 @@ export default function CreateHighlightModal({
   isOpen,
   onClose,
 }: CreateHighlightModalProps) {
+  const { t } = useTranslation();
   const { profile } = useAuthStore();
   const queryClient = useQueryClient();
   const [step, setStep] = useState<1 | 2>(1);
@@ -95,7 +97,9 @@ export default function CreateHighlightModal({
               </button>
             )}
             <h2 className="text-lg font-bold text-white">
-              {step === 1 ? 'New Highlight' : 'Title & Cover'}
+              {step === 1
+                ? t('modals.highlight.new_highlight')
+                : t('modals.highlight.title_and_cover')}
             </h2>
           </div>
           <button
@@ -112,7 +116,7 @@ export default function CreateHighlightModal({
           {step === 1 ? (
             <div className="space-y-4">
               <p className="text-gray-400 text-sm">
-                Select stories to add to this highlight.
+                {t('modals.highlight.select_stories_desc')}
               </p>
 
               {isLoading ? (
@@ -149,9 +153,9 @@ export default function CreateHighlightModal({
                 </div>
               ) : (
                 <div className="text-center py-10 text-gray-500">
-                  <p>No stories found.</p>
+                  <p>{t('modals.highlight.no_stories')}</p>
                   <p className="text-xs mt-1">
-                    Post some stories to create a highlight!
+                    {t('modals.highlight.post_some_stories')}
                   </p>
                 </div>
               )}
@@ -201,7 +205,7 @@ export default function CreateHighlightModal({
               <div className="w-full">
                 <input
                   type="text"
-                  placeholder="Highlight Name"
+                  placeholder={t('modals.highlight.highlight_name')}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full bg-transparent text-center text-white text-xl placeholder:text-gray-600 border-b border-gray-700 py-2 focus:outline-none focus:border-white transition-colors"
@@ -220,7 +224,7 @@ export default function CreateHighlightModal({
               disabled={selectedStoryIds.length === 0}
               className="bg-white text-black font-semibold px-6 py-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
             >
-              Next
+              {t('modals.highlight.next')}
             </button>
           ) : (
             <button
@@ -229,7 +233,9 @@ export default function CreateHighlightModal({
               disabled={!title.trim() || createHighlightMutation.isPending}
               className="bg-white text-black font-semibold px-6 py-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors flex items-center gap-2"
             >
-              {createHighlightMutation.isPending ? 'Creating...' : 'Done'}
+              {createHighlightMutation.isPending
+                ? t('modals.highlight.creating')
+                : t('modals.highlight.done')}
             </button>
           )}
         </div>

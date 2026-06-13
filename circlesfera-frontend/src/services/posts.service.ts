@@ -9,18 +9,8 @@ export const postsApi = {
       params: { page, limit, sort },
     }),
 
-  getFeed: (page = 1, limit = 10) =>
-    apiClient.get<PaginatedResponse<Post>>('posts/feed', {
-      params: { page, limit },
-    }),
-
   getFrames: (page = 1, limit = 10) =>
     apiClient.get<PaginatedResponse<Post>>('posts/frames', {
-      params: { page, limit },
-    }),
-
-  getExplore: (page = 1, limit = 10) =>
-    apiClient.get<PaginatedResponse<Post>>('posts/explore', {
       params: { page, limit },
     }),
 

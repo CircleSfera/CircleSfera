@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import type { Profile } from '../types';
 import UserAvatar from './UserAvatar';
@@ -14,6 +15,7 @@ export default function FollowersModal({
   users,
   onClose,
 }: FollowersModalProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const handleUserClick = (username: string) => {
@@ -27,7 +29,9 @@ export default function FollowersModal({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <div className="w-8"></div>
-          <h2 className="font-bold text-lg text-white capitalize">{title}</h2>
+          <h2 className="font-bold text-lg text-white capitalize">
+            {t(`profile.stats.${title}`)}
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -40,7 +44,9 @@ export default function FollowersModal({
         {/* List */}
         <div className="flex-1 overflow-y-auto p-2">
           {users.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">No users found.</div>
+            <div className="p-8 text-center text-gray-500">
+              {t('profile.empty.no_users_found')}
+            </div>
           ) : (
             <div className="space-y-1">
               {users.map((profile) => (

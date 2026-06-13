@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { collectionsApi } from '../../services';
 import { LoadingSpinner } from '../LoadingStates';
 
@@ -13,6 +14,7 @@ export default function CreateCollectionModal({
   isOpen,
   onClose,
 }: CreateCollectionModalProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const queryClient = useQueryClient();
 
@@ -37,7 +39,9 @@ export default function CreateCollectionModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
       <div className="bg-[#1c1c1c] w-full max-w-sm rounded-2xl border border-white/10 overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">New Collection</h2>
+          <h2 className="text-lg font-bold text-white">
+            {t('collections.new_collection')}
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -53,14 +57,14 @@ export default function CreateCollectionModal({
               htmlFor="collectionName"
               className="block text-sm font-medium text-gray-400 mb-2"
             >
-              Collection Name
+              {t('collections.collection_name')}
             </label>
             <input
               id="collectionName"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Travel, Recipes"
+              placeholder={t('collections.placeholder_name')}
               className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition-colors"
             />
           </div>
@@ -70,7 +74,7 @@ export default function CreateCollectionModal({
             disabled={!name.trim() || mutation.isPending}
             className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
-            {mutation.isPending ? <LoadingSpinner /> : 'Create Collection'}
+            {mutation.isPending ? <LoadingSpinner /> : t('collections.create')}
           </button>
         </form>
       </div>

@@ -1,11 +1,13 @@
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usersApi } from '../../services';
 import type { SuggestedUser } from '../../types';
 import { logger } from '../../utils/logger';
 import { SuggestedUserCard } from './SuggestedUserCard';
 
 export const SuggestionsList: React.FC = () => {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<SuggestedUser[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,13 +37,13 @@ export const SuggestionsList: React.FC = () => {
     <div className="py-6 my-2">
       <div className="flex justify-between items-center px-4 mb-4">
         <span className="font-black text-zinc-500 text-[10px] uppercase tracking-[0.2em]">
-          Suggested for you
+          {t('suggestions.title')}
         </span>
         <button
           type="button"
           className="text-[10px] font-black uppercase tracking-wider text-brand-primary hover:text-brand-secondary transition-colors"
         >
-          See All
+          {t('suggestions.see_all')}
         </button>
       </div>
       <div className="flex space-x-4 overflow-x-auto px-4 pb-4 no-scrollbar scroll-smooth">

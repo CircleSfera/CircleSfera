@@ -8,51 +8,53 @@ import {
   Star,
   Trash2,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import logoSrc from '../assets/logo.png';
 import SEO from '../components/common/SEO';
 import { useAuthStore } from '../stores/authStore';
 
-const sections = [
-  {
-    id: 'acceptable-use',
-    title: '1. Acceptable Use',
-    icon: Scale,
-    content: `CircleSfera is a social network designed for authentic and creative expression. By using our service, you agree to engage respectfully with the community. Any attempt to use the platform for unauthorized financial transactions or peer-to-peer money transmission is strictly prohibited.`,
-    color: 'brand-blue',
-  },
-  {
-    id: 'subscriptions',
-    title: '2. Platform Subscriptions',
-    icon: Star,
-    content: `Subscription tiers (Verified, Elite Creator, Business) provide access to specialized social features, growth tools, and profile enhancements. All payments are processed exclusively by CircleSfera as the provider of the service. We do not support third-party payouts, marketplace settlements, or creator-to-user direct monetization.`,
-    color: 'brand-primary',
-  },
-  {
-    id: 'content-ownership',
-    title: '3. Content Ownership',
-    icon: CloudUpload,
-    content: `You retain ownership of the content you share in your universe. However, you grant CircleSfera a worldwide, non-exclusive license to host and display this content as part of the service.`,
-    color: 'brand-accent',
-  },
-  {
-    id: 'termination',
-    title: '4. Termination',
-    icon: Trash2,
-    content: `We reserve the right to suspend or terminate accounts that violate these terms or engage in activities that compromise platform security or compliance.`,
-    color: 'red-500',
-  },
-  {
-    id: 'liability',
-    title: '5. Limitation of Liability',
-    icon: AlertCircle,
-    content: `CircleSfera is provided "as is" without warranties of any kind. We are not liable for indirect, incidental, or consequential damages arising from your use of the platform.`,
-    color: 'zinc-500',
-  },
-];
-
 export default function TermsOfService() {
+  const { t } = useTranslation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  const sections = [
+    {
+      id: 'acceptable-use',
+      title: t('legal.terms.sections.s1_title'),
+      icon: Scale,
+      content: t('legal.terms.sections.s1_content'),
+      color: 'brand-blue',
+    },
+    {
+      id: 'subscriptions',
+      title: t('legal.terms.sections.s2_title'),
+      icon: Star,
+      content: t('legal.terms.sections.s2_content'),
+      color: 'brand-primary',
+    },
+    {
+      id: 'content-ownership',
+      title: t('legal.terms.sections.s3_title'),
+      icon: CloudUpload,
+      content: t('legal.terms.sections.s3_content'),
+      color: 'brand-accent',
+    },
+    {
+      id: 'termination',
+      title: t('legal.terms.sections.s4_title'),
+      icon: Trash2,
+      content: t('legal.terms.sections.s4_content'),
+      color: 'red-500',
+    },
+    {
+      id: 'liability',
+      title: t('legal.terms.sections.s5_title'),
+      icon: AlertCircle,
+      content: t('legal.terms.sections.s5_content'),
+      color: 'zinc-500',
+    },
+  ];
 
   const scrollTo = (id: string) => {
     document
@@ -62,7 +64,7 @@ export default function TermsOfService() {
 
   return (
     <div className="min-h-screen bg-[#030303] text-white pt-24 pb-24 px-6 font-sans relative overflow-hidden selection:bg-brand-primary/30">
-      <SEO title="Terms of Service - CircleSfera" />
+      <SEO title={t('legal.terms.title')} />
 
       {/* Background is now handled globally by LayoutWrapper */}
 
@@ -70,7 +72,11 @@ export default function TermsOfService() {
       {!isAuthenticated && (
         <nav className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5 px-6 py-3 flex justify-between items-center backdrop-blur-xl bg-black/20">
           <Link to="/" className="flex items-center gap-2.5">
-            <img src={logoSrc} alt="CircleSfera" className="h-8 w-auto object-contain" />
+            <img
+              src={logoSrc}
+              alt="CircleSfera"
+              className="h-8 w-auto object-contain"
+            />
             <span className="text-lg font-black tracking-tight bg-clip-text text-transparent bg-linear-to-r from-white via-white to-white/40">
               CircleSfera
             </span>
@@ -80,13 +86,13 @@ export default function TermsOfService() {
               to="/accounts/login"
               className="text-xs font-semibold text-white/70 hover:text-white transition-colors tracking-wide uppercase"
             >
-              Log In
+              {t('legal.nav.log_in')}
             </Link>
             <Link
               to="/accounts/emailsignup"
               className="px-5 py-2 text-xs font-bold bg-white text-black rounded-full hover:bg-white/90 transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
             >
-              Sign Up
+              {t('legal.nav.sign_up')}
             </Link>
           </div>
         </nav>
@@ -102,9 +108,7 @@ export default function TermsOfService() {
                   Legal Repository
                 </span>
                 <h1 className="text-3xl font-black tracking-tighter italic uppercase leading-tight">
-                  Platform
-                  <br />
-                  Agreement
+                  {t('legal.terms.header_title')}
                 </h1>
               </div>
 
@@ -157,10 +161,8 @@ export default function TermsOfService() {
                 <span className="text-brand-accent font-black text-[9px] tracking-[0.3em] uppercase mb-3 block">
                   Platform Terms
                 </span>
-                <h1 className="text-4xl font-black tracking-tighter italic uppercase leading-tight">
-                  Terms of
-                  <br />
-                  Service
+                <h1 className="text-3xl font-black tracking-tighter italic uppercase leading-tight">
+                  {t('legal.terms.header_title')}
                 </h1>
               </div>
 

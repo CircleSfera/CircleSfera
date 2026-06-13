@@ -9,51 +9,53 @@ import {
   ShieldCheck,
   Star,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import logoSrc from '../assets/logo.png';
 import SEO from '../components/common/SEO';
 import { useAuthStore } from '../stores/authStore';
 
-const sections = [
-  {
-    id: 'overview',
-    title: '1. Premium Ecosystem',
-    icon: Star,
-    content: `CircleSfera is a premium, tier-based social network designed for authentic connections, high-quality visual storytelling, and professional creator monetization. We prioritize quality over noise. All members are expected to contribute to an environment of respect, creativity, and value.`,
-    color: 'brand-primary',
-  },
-  {
-    id: 'respect',
-    title: '2. Absolute Respect',
-    icon: Heart,
-    content: `Harassment, hate speech, bullying, or discrimination of any kind is strictly prohibited. We have a zero-tolerance policy for abuse. Engage in constructive discussions and treat fellow members of the CircleSfera universe with dignity.`,
-    color: 'brand-secondary',
-  },
-  {
-    id: 'content',
-    title: '3. Authentic Content',
-    icon: Eye,
-    content: `Share content that you own or have the right to distribute. Do not post illegal, explicit, or copyright-infringing material. As a platform that empowers creators, we fiercely protect intellectual property rights.`,
-    color: 'brand-blue',
-  },
-  {
-    id: 'spam',
-    title: '4. No Spam or Manipulation',
-    icon: AlertTriangle,
-    content: `Artificial engagement, botting, spamming, and deceptive practices degrade the premium experience. Do not use automated tools to inflate metrics. Authentic engagement is the core metric of influence on CircleSfera.`,
-    color: 'brand-accent',
-  },
-  {
-    id: 'monetization',
-    title: '5. Creator Integrity',
-    icon: MessageCircle,
-    content: `Creators utilizing our monetization tools (subscriptions, tips, highlights) must deliver promised value to their subscribers. Fraudulent subscription offerings or misleading promotional campaigns will result in immediate account termination.`,
-    color: 'emerald-500',
-  },
-];
-
 export default function CommunityGuidelines() {
+  const { t } = useTranslation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  const sections = [
+    {
+      id: 'overview',
+      title: t('legal.community.sections.s1_title'),
+      icon: Star,
+      content: t('legal.community.sections.s1_content'),
+      color: 'brand-primary',
+    },
+    {
+      id: 'respect',
+      title: t('legal.community.sections.s2_title'),
+      icon: Heart,
+      content: t('legal.community.sections.s2_content'),
+      color: 'brand-secondary',
+    },
+    {
+      id: 'content',
+      title: t('legal.community.sections.s3_title'),
+      icon: Eye,
+      content: t('legal.community.sections.s3_content'),
+      color: 'brand-blue',
+    },
+    {
+      id: 'spam',
+      title: t('legal.community.sections.s4_title'),
+      icon: AlertTriangle,
+      content: t('legal.community.sections.s4_content'),
+      color: 'brand-accent',
+    },
+    {
+      id: 'monetization',
+      title: t('legal.community.sections.s5_title'),
+      icon: MessageCircle,
+      content: t('legal.community.sections.s5_content'),
+      color: 'emerald-500',
+    },
+  ];
 
   const scrollTo = (id: string) => {
     document
@@ -63,7 +65,7 @@ export default function CommunityGuidelines() {
 
   return (
     <div className="min-h-screen bg-[#030303] text-white pt-24 pb-24 px-6 font-sans relative overflow-hidden selection:bg-brand-primary/30">
-      <SEO title="Community Guidelines - CircleSfera" />
+      <SEO title={t('legal.community.title')} />
 
       {/* Background is now handled globally by LayoutWrapper */}
 
@@ -71,7 +73,11 @@ export default function CommunityGuidelines() {
       {!isAuthenticated && (
         <nav className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5 px-6 py-3 flex justify-between items-center backdrop-blur-xl bg-black/20">
           <Link to="/" className="flex items-center gap-2.5">
-            <img src={logoSrc} alt="CircleSfera" className="h-8 w-auto object-contain" />
+            <img
+              src={logoSrc}
+              alt="CircleSfera"
+              className="h-8 w-auto object-contain"
+            />
             <span className="text-lg font-black tracking-tight bg-clip-text text-transparent bg-linear-to-r from-white via-white to-white/40">
               CircleSfera
             </span>
@@ -81,13 +87,13 @@ export default function CommunityGuidelines() {
               to="/accounts/login"
               className="text-xs font-semibold text-white/70 hover:text-white transition-colors tracking-wide uppercase"
             >
-              Log In
+              {t('legal.nav.log_in')}
             </Link>
             <Link
               to="/accounts/emailsignup"
               className="px-5 py-2 text-xs font-bold bg-white text-black rounded-full hover:bg-white/90 transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
             >
-              Sign Up
+              {t('legal.nav.sign_up')}
             </Link>
           </div>
         </nav>
@@ -100,12 +106,10 @@ export default function CommunityGuidelines() {
             <div className="sticky top-28 space-y-6">
               <div>
                 <span className="text-brand-primary font-black text-[9px] tracking-[0.3em] uppercase mb-3 block">
-                  Community Hub
+                  {t('legal.badges.community_hub')}
                 </span>
                 <h1 className="text-3xl font-black tracking-tighter italic uppercase leading-tight">
-                  Rules &
-                  <br />
-                  Guidelines
+                  {t('legal.community.header_title')}
                 </h1>
               </div>
 
@@ -137,9 +141,9 @@ export default function CommunityGuidelines() {
               <div className="p-5 glass-panel rounded-2xl border border-white/5 bg-white/1">
                 <Gavel className="text-brand-primary mb-2" size={20} />
                 <p className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest leading-relaxed italic">
-                  Mantener CircleSfera como un espacio seguro y premium es 
-                  responsabilidad de todos. No toleramos comportamientos 
-                  que degraden la experiencia de nuestra comunidad.
+                  Mantener CircleSfera como un espacio seguro y premium es
+                  responsabilidad de todos. No toleramos comportamientos que
+                  degraden la experiencia de nuestra comunidad.
                 </p>
               </div>
             </div>
@@ -156,12 +160,10 @@ export default function CommunityGuidelines() {
               {/* Mobile Header (Hidden on LG) */}
               <div className="lg:hidden mb-8 text-center pt-8">
                 <span className="text-brand-primary font-black text-[9px] tracking-[0.3em] uppercase mb-3 block">
-                  Community Hub
+                  {t('legal.badges.community_hub')}
                 </span>
                 <h1 className="text-4xl font-black tracking-tighter italic uppercase leading-tight">
-                  Rules &
-                  <br />
-                  Guidelines
+                  {t('legal.community.header_title')}
                 </h1>
               </div>
 
@@ -211,8 +213,8 @@ export default function CommunityGuidelines() {
                   />
                 </div>
                 <p className="text-zinc-500 text-[8px] uppercase font-black tracking-[0.2em] text-center italic">
-                  Last Updated: April 2026 • Premium Environment •
-                  CircleSfera Trust & Safety
+                  Last Updated: April 2026 • Premium Environment • CircleSfera
+                  Trust & Safety
                 </p>
               </div>
             </motion.div>

@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export default function ConfirmModal({
   isDestructive = true,
   isLoading = false,
 }: ConfirmModalProps) {
+  const { t } = useTranslation();
   return (
     <AnimatePresence>
       {isOpen && (
@@ -94,7 +96,7 @@ export default function ConfirmModal({
                   {isLoading && (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   )}
-                  {isLoading ? 'Processing...' : confirmText}
+                  {isLoading ? t('modals.confirm.processing') : confirmText}
                 </span>
               </button>
 

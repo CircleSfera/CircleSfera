@@ -1,4 +1,5 @@
 import { FolderHeart } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { Collection } from '../../types';
 
 interface CollectionCardProps {
@@ -10,6 +11,7 @@ export default function CollectionCard({
   collection,
   onClick,
 }: CollectionCardProps) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
@@ -36,7 +38,9 @@ export default function CollectionCard({
           <h3 className="text-white font-bold truncate">{collection.name}</h3>
           {collection._count && (
             <p className="text-white/60 text-xs font-medium">
-              {collection._count.bookmarks} posts
+              {t('collections.posts_count', {
+                count: collection._count.bookmarks,
+              })}
             </p>
           )}
         </div>

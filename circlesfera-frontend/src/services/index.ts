@@ -11,6 +11,7 @@ export * from './chat.service';
 export * from './closeFriends.service';
 export * from './collections.service';
 export * from './comments.service';
+export * from './feed.service';
 export * from './follows.service';
 export * from './highlights.service';
 export * from './likes.service';

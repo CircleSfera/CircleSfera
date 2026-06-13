@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import StoryViewer from '../components/StoryViewer';
 import { highlightsApi } from '../services';
 
 export default function HighlightViewerPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -25,13 +27,15 @@ export default function HighlightViewerPage() {
     return (
       <div className="fixed inset-0 bg-black flex items-center justify-center text-white">
         <div className="text-center">
-          <h2 className="text-xl font-bold mb-4">Highlight not found</h2>
+          <h2 className="text-xl font-bold mb-4">
+            {t('story.highlight_not_found')}
+          </h2>
           <button
             type="button"
             onClick={() => navigate(-1)}
             className="px-6 py-2 bg-white text-black rounded-full font-bold"
           >
-            Go Back
+            {t('story.go_back')}
           </button>
         </div>
       </div>
