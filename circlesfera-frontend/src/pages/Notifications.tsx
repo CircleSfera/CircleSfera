@@ -10,6 +10,7 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 import { LoadingSpinner } from '../components/LoadingStates';
@@ -19,6 +20,7 @@ import { useNotificationsStore } from '../stores/notificationsStore';
 import type { Notification } from '../types';
 
 export default function Notifications() {
+  const { t } = useTranslation();
   const {
     data: notifications,
     isLoading,
@@ -134,9 +136,11 @@ export default function Notifications() {
 
   return (
     <div className="pt-24 pb-20 px-4 min-h-screen max-w-2xl mx-auto">
-      <SEO title="Notificaciones" />
+      <SEO title={t('notifications.seo_title')} />
       <div className="flex items-center justify-between mb-8 px-2">
-        <h1 className="text-3xl font-extrabold tracking-tight">Activity</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight">
+          {t('notifications.title')}
+        </h1>
       </div>
 
       <div className="space-y-3">
@@ -145,7 +149,9 @@ export default function Notifications() {
             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
               <Bell size={32} className="text-white/20" />
             </div>
-            <p className="text-lg font-medium">No activity yet</p>
+            <p className="text-lg font-medium">
+              {t('notifications.no_activity')}
+            </p>
           </div>
         ) : (
           notifs.map((notif) => (
@@ -168,7 +174,10 @@ export default function Notifications() {
                     src={notif.sender?.profile.avatar}
                     thumbnailUrl={notif.sender?.profile.thumbnailUrl}
                     standardUrl={notif.sender?.profile.standardUrl}
-                    alt={notif.sender?.profile.username || 'User'}
+                    alt={
+                      notif.sender?.profile.username ||
+                      t('notifications.unknown_user')
+                    }
                     size="md"
                   />
                   <div
@@ -185,24 +194,34 @@ export default function Notifications() {
                     to={`/${notif.sender?.profile.username}`}
                     className="font-bold text-white hover:text-brand-primary/90 transition-colors"
                   >
-                    {notif.sender?.profile.username || 'Unknown'}
+                    {notif.sender?.profile.username ||
+                      t('notifications.unknown_user')}
                   </Link>
                   <span className="text-white/80 ml-1.5">
-                    {notif.type === 'LIKE' && 'liked your post.'}
-                    {notif.type === 'COMMENT_LIKE' && 'liked your comment.'}
-                    {notif.type === 'FOLLOW' && 'started following you.'}
-                    {notif.type === 'COMMENT' && 'commented on your post.'}
-                    {notif.type === 'MENTION' && 'mentioned you in a comment.'}
+                    {notif.type === 'LIKE' && t('notifications.types.like')}
+                    {notif.type === 'COMMENT_LIKE' &&
+                      t('notifications.types.comment_like')}
+                    {notif.type === 'FOLLOW' && t('notifications.types.follow')}
+                    {notif.type === 'COMMENT' &&
+                      t('notifications.types.comment')}
+                    {notif.type === 'MENTION' &&
+                      t('notifications.types.mention')}
                     {notif.type === 'FOLLOW_REQUEST' &&
-                      'requested to follow you.'}
+                      t('notifications.types.follow_request')}
                     {notif.type === 'FOLLOW_ACCEPTED' &&
-                      'accepted your follow request.'}
+                      t('notifications.types.follow_accepted')}
                     {notif.type === 'MODERATION' &&
-                      `Moderation update: ${notif.content}`}
+                      t('notifications.types.moderation', {
+                        content: notif.content,
+                      })}
                     {notif.type === 'PROMOTION_SUCCESS' &&
-                      `Promotion Approved! ${notif.content}`}
+                      t('notifications.types.promotion_success', {
+                        content: notif.content,
+                      })}
                     {notif.type === 'PROMOTION_REJECTED' &&
-                      `Promotion Rejected. ${notif.content}`}
+                      t('notifications.types.promotion_rejected', {
+                        content: notif.content,
+                      })}
                   </span>
                 </p>
                 <p className="text-xs text-white/40 mt-1.5 font-medium flex items-center gap-2">
