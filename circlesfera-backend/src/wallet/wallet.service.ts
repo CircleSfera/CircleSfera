@@ -3,7 +3,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { NotificationsService } from '../notifications/notifications.service.js';
+// biome-ignore lint/style/useImportType: NestJS DI needs the value for metadata reflection
+import { NotificationsService } from '../notifications/notifications.service.js';
 // biome-ignore lint/style/useImportType: NestJS DI needs the value for metadata reflection
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -114,28 +115,32 @@ export class WalletService {
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
-      // Deduct from sender
+      // Platform takes 20% commission
+      const platformCommission = Math.floor(amount * 0.20);
+      const creatorEarnings = amount - platformCommission;
+
+      // Deduct full amount from sender
       await tx.wallet.update({
         where: { userId: senderId },
         data: { balance: { decrement: amount } },
       });
 
-      // Add to receiver's earned tokens
+      // Add 80% to receiver's earned tokens
       await tx.wallet.update({
         where: { userId: receiverId },
-        data: { earnedTokens: { increment: amount } },
+        data: { earnedTokens: { increment: creatorEarnings } },
       });
 
       // Record transaction
       const transaction = await tx.transaction.create({
         data: {
           type: 'TIP',
-          amount: amount, // Log the positive amount for receiver, negative for sender in UI logic
+          amount: amount, 
           senderId,
           receiverId,
           postId,
           status: 'COMPLETED',
-          description: `Tip sent`,
+          description: `Tip sent. Creator received ${creatorEarnings} tokens.`,
         },
       });
 
@@ -189,16 +194,20 @@ export class WalletService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      // Deduct buyer
+      // Platform takes 20% commission
+      const platformCommission = Math.floor(price * 0.20);
+      const creatorEarnings = price - platformCommission;
+
+      // Deduct full price from buyer
       await tx.wallet.update({
         where: { userId },
         data: { balance: { decrement: price } },
       });
 
-      // Pay creator
+      // Pay creator 80%
       await tx.wallet.update({
         where: { userId: post.userId },
-        data: { earnedTokens: { increment: price } },
+        data: { earnedTokens: { increment: creatorEarnings } },
       });
 
       // Log transaction
@@ -210,11 +219,94 @@ export class WalletService {
           receiverId: post.userId,
           postId: postId,
           status: 'COMPLETED',
-          description: `Unlocked premium post`,
+          description: `Unlocked premium post. Creator received ${creatorEarnings} tokens.`,
         },
       });
 
       return transaction;
+    });
+  }
+
+  async subscribeToCreator(
+    subscriberId: string,
+    creatorId: string,
+    monthlyTokens: number,
+  ) {
+    if (subscriberId === creatorId) {
+      throw new BadRequestException('Cannot subscribe to yourself');
+    }
+    if (monthlyTokens <= 0) {
+      throw new BadRequestException('Invalid subscription amount');
+    }
+
+    const wallet = await this.getWallet(subscriberId);
+    if (wallet.balance < monthlyTokens) {
+      throw new BadRequestException('Insufficient tokens to subscribe');
+    }
+
+    // Check if already actively subscribed
+    const existingSub = await this.prisma.creatorSubscription.findUnique({
+      where: {
+        subscriberId_creatorId: { subscriberId, creatorId },
+      },
+    });
+
+    if (existingSub && existingSub.expiresAt > new Date()) {
+      throw new BadRequestException('Already subscribed to this creator');
+    }
+
+    const expiresAt = new Date();
+    expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+    return this.prisma.$transaction(async (tx) => {
+      // Platform takes 20% commission
+      const platformCommission = Math.floor(monthlyTokens * 0.20);
+      const creatorEarnings = monthlyTokens - platformCommission;
+
+      // Deduct from subscriber
+      await tx.wallet.update({
+        where: { userId: subscriberId },
+        data: { balance: { decrement: monthlyTokens } },
+      });
+
+      // Pay creator 80%
+      await tx.wallet.update({
+        where: { userId: creatorId },
+        data: { earnedTokens: { increment: creatorEarnings } },
+      });
+
+      // Create or update subscription
+      const subscription = await tx.creatorSubscription.upsert({
+        where: {
+          subscriberId_creatorId: { subscriberId, creatorId },
+        },
+        update: {
+          status: 'ACTIVE',
+          expiresAt,
+          monthlyTokens,
+        },
+        create: {
+          subscriberId,
+          creatorId,
+          monthlyTokens,
+          expiresAt,
+          status: 'ACTIVE',
+        },
+      });
+
+      // Log transaction
+      await tx.transaction.create({
+        data: {
+          type: 'SUBSCRIPTION',
+          amount: monthlyTokens,
+          senderId: subscriberId,
+          receiverId: creatorId,
+          status: 'COMPLETED',
+          description: `Subscribed to creator. Creator received ${creatorEarnings} tokens.`,
+        },
+      });
+
+      return subscription;
     });
   }
 
