@@ -1,0 +1,36 @@
+name: Pull Request CI
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Run Lint and Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Monorepo Dependencies
+        run: npm install
+
+      - name: "Backend: Install, Lint and Test"
+        run: |
+          cd circlesfera-backend
+          npm install
+          npx prisma generate
+          npm run lint
+          npm run test
+
+      - name: "Frontend: Install and Lint"
+        run: |
+          cd circlesfera-frontend
+          npm install
+          npm run lint
