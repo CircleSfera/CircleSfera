@@ -1,0 +1,1005 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "search": "Buscar",
+    "frames": "Frames",
+    "create": "Crear",
+    "messages": "Mensajes",
+    "notifications": "Notificaciones",
+    "saved": "Guardados",
+    "creator_studio": "Panel de Creador",
+    "profile": "Perfil",
+    "premium": "Premium",
+    "settings": "Configuración",
+    "log_out": "Cerrar sesión",
+    "explore": "Explorar"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "subtitle": "Configura tu experiencia en CircleSfera",
+    "logout": "CERRAR SESIÓN",
+    "tabs": {
+      "profile": {
+        "label": "Perfil",
+        "desc": "Detalles públicos"
+      },
+      "privacy": {
+        "label": "Privacidad",
+        "desc": "Visibilidad"
+      },
+      "security": {
+        "label": "Seguridad",
+        "desc": "Claves de acceso"
+      },
+      "billing": {
+        "label": "Suscripción",
+        "desc": "Planes"
+      },
+      "requests": {
+        "label": "Solicitudes",
+        "desc": "Seguidores"
+      },
+      "mutes": {
+        "label": "Bloqueados",
+        "desc": "Cuentas"
+      },
+      "account": {
+        "label": "Cuenta",
+        "desc": "Datos y peligro"
+      },
+      "close_friends": {
+        "label": "Mejores Amigos",
+        "desc": "Círculo íntimo"
+      },
+      "notifications": {
+        "label": "Notificaciones",
+        "desc": "Alertas"
+      }
+    },
+    "profile": {
+      "change_avatar": "Cambiar",
+      "uploading": "Subiendo...",
+      "upload_new": "Subir Nueva",
+      "avatar_desc": "Actualiza tu foto de perfil para personalizar tu experiencia en CircleSfera.",
+      "public_identity": "Identidad Pública",
+      "username": "Nombre de usuario",
+      "display_name": "Nombre visible",
+      "presence_links": "Presencia y Enlaces",
+      "bio": "Biografía",
+      "website": "Sitio web",
+      "account_type": "Tipo de Cuenta",
+      "types": {
+        "personal": {
+          "label": "Personal",
+          "desc": "Uso privado"
+        },
+        "creator": {
+          "label": "Creador",
+          "desc": "Para artistas"
+        },
+        "business": {
+          "label": "Negocio",
+          "desc": "Herramientas de marca"
+        }
+      },
+      "success": "Perfil actualizado con éxito",
+      "saving": "Guardando cambios...",
+      "save": "Guardar Cambios del Perfil",
+      "placeholders": {
+        "username": "usuario",
+        "name": "Tu nombre",
+        "bio": "Cuéntale al mundo tu historia...",
+        "website": "https://tusitioweb.com"
+      }
+    },
+    "privacy": {
+      "title": "Privacidad",
+      "subtitle": "Visibilidad y Control",
+      "private_account": "Cuenta Privada",
+      "private_desc": "Cuando tu cuenta es privada, solo las personas que apruebes pueden ver tus posts e historias."
+    },
+    "requests": {
+      "title": "Solicitudes de Seguimiento",
+      "subtitle": "Gestionar Conexiones",
+      "empty": "No hay solicitudes pendientes en este momento",
+      "confirm": "Confirmar",
+      "delete": "Eliminar"
+    },
+    "mutes": {
+      "title": "Cuentas bloqueadas",
+      "empty": "No has bloqueado a nadie.",
+      "unknown": "Desconocido",
+      "unblock": "Desbloquear"
+    },
+    "account": {
+      "title": "Gestión de Cuenta",
+      "subtitle": "Controla el estado de tu cuenta",
+      "language": "Language / Idioma",
+      "disable": {
+        "title": "Desactivación Temporal",
+        "desc": "Tu perfil y tus posts se ocultarán hasta que vuelvas a iniciar sesión.",
+        "btn": "DESACTIVAR CUENTA",
+        "btn_loading": "DESACTIVANDO..."
+      },
+      "delete": {
+        "title": "Borrado Permanente",
+        "desc": "Elimina tu cuenta y todos tus datos permanentemente. Esto es IRREVERSIBLE.",
+        "btn": "ELIMINAR CUENTA",
+        "btn_loading": "ELIMINANDO..."
+      }
+    },
+    "billing": {
+      "title": "Suscripción y Facturación",
+      "subtitle": "Gestiona tu nivel en la plataforma",
+      "current_plan": "Plan Actual",
+      "free": "Experiencia Gratuita",
+      "free_desc": "Nivel básico sin funciones avanzadas",
+      "active_desc": "Suscripción activa con todos los beneficios",
+      "loading": "Cargando...",
+      "view_plans": "Ver Planes",
+      "manage": "Gestionar Suscripción",
+      "verified_badge": "Insignia de Verificado",
+      "verified_desc": "Incluido en Verificado",
+      "pro_insights": "Estadísticas Pro",
+      "pro_desc": "Mejora para Creadores Élite"
+    },
+    "security": {
+      "title": "Seguridad",
+      "subtitle": "Protección de Última Generación"
+    },
+    "back_to_profile": "← Volver al perfil",
+    "notifications_tab": {
+      "title": "Notificaciones Push",
+      "subtitle": "Mantente conectado",
+      "native_alerts": "Alertas Nativas",
+      "native_alerts_desc": "Recibe actualizaciones en tiempo real de likes, comentarios y mensajes incluso cuando no estás en la web.",
+      "blocked": "Las notificaciones están bloqueadas en tu navegador.",
+      "browser_capability": "Capacidad del Navegador",
+      "status": "Estado",
+      "pwa_support": "Soporte PWA",
+      "enabled": "ACTIVADO",
+      "not_supported": "NO SOPORTADO"
+    },
+    "close_friends_modal": {
+      "title": "Mejores Amigos",
+      "search": "Buscar...",
+      "loading": "Cargando...",
+      "searching": "Buscando...",
+      "no_users": "No se encontraron usuarios",
+      "list_title": "Lista de Mejores Amigos",
+      "list_desc": "No enviamos notificaciones cuando editas tu lista de mejores amigos.",
+      "done": "Hecho"
+    },
+    "passkey_settings": {
+      "title": "Llaves de Seguridad (Passkeys)",
+      "subtitle": "Inicio de sesión sin contraseñas y ultra-seguro",
+      "desc": "Las Passkeys te permiten iniciar sesión de forma segura utilizando los sensores biométricos de tu dispositivo (como Touch ID o Face ID) o llaves de seguridad físicas.",
+      "registered": "Llaves Registradas",
+      "passkey": "Passkey",
+      "added": "Añadido",
+      "remove": "Eliminar passkey",
+      "success": "¡Passkey registrada con éxito!",
+      "initializing": "Inicializando conexión segura...",
+      "add_new": "Añadir Nueva Llave de Seguridad",
+      "fido": "Protección Certificada FIDO2 / WebAuthn"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "CircleSfera",
+      "welcome": "Bienvenido de nuevo, creador.",
+      "identifier_label": "Email o nombre de usuario",
+      "identifier_placeholder": "tu@ejemplo.com",
+      "password_label": "Contraseña",
+      "password_placeholder": "••••••••",
+      "forgot_password": "¿Olvidaste tu contraseña?",
+      "default_error": "Email, usuario o contraseña no válidos",
+      "no_identifier": "Por favor, introduce tu email o usuario primero.",
+      "passkey_error": "Fallo en la autenticación",
+      "sign_in_loading": "Iniciando sesión...",
+      "sign_in": "Iniciar Sesión",
+      "or": "o",
+      "passkey_loading": "Verificando Identidad...",
+      "passkey_btn": "Iniciar sesión con Passkey",
+      "no_account": "¿No tienes una cuenta?",
+      "sign_up_link": "Regístrate"
+    },
+    "register": {
+      "title": "CircleSfera",
+      "subtitle": "Únete al círculo íntimo.",
+      "email_label": "Email",
+      "email_placeholder": "tu@ejemplo.com",
+      "username_label": "Nombre de usuario",
+      "username_placeholder": "johndoe",
+      "fullname_label": "Nombre Completo",
+      "fullname_placeholder": "John Doe",
+      "password_label": "Contraseña",
+      "password_placeholder": "••••••••",
+      "invite_label": "Código de Invitación",
+      "optional": "(opcional)",
+      "invite_placeholder": "XXXX-XXXX",
+      "default_error": "El registro falló. Por favor, inténtalo de nuevo.",
+      "sign_up_loading": "Creando cuenta...",
+      "sign_up": "Regístrate",
+      "has_account": "¿Ya tienes una cuenta?",
+      "sign_in_link": "Iniciar sesión",
+      "success": "¡Cuenta creada exitosamente! Por favor, revisa tu email para verificar tu cuenta."
+    },
+    "verify": {
+      "no_token": "Token de verificación no encontrado.",
+      "success": "Tu email ha sido verificado con éxito.",
+      "error": "Fallo al verificar el email.",
+      "loading_title": "Verificando Identidad",
+      "loading_desc": "Por favor, espera mientras validamos tu token seguro...",
+      "success_title": "Acceso Concedido",
+      "success_desc": "Serás redirigido a la página de inicio de sesión en un momento...",
+      "error_title": "Verificación Fallida",
+      "error_desc": "Por favor, solicita un nuevo enlace de verificación."
+    },
+    "forgot_password": {
+      "default_error": "Algo salió mal. Inténtalo de nuevo.",
+      "success_title": "Email Enviado",
+      "success_desc1": "Si existe una cuenta asociada a",
+      "success_desc2": ", recibirás un enlace para restablecer tu contraseña en unos minutos.",
+      "back_to_login": "Volver al Login",
+      "back": "Volver",
+      "title": "¿Olvidaste tu contraseña?",
+      "subtitle": "Introduce tu correo electrónico y te enviaremos un enlace para que vuelvas a entrar en tu cuenta.",
+      "email_label": "Email",
+      "email_placeholder": "tu@email.com",
+      "submit_loading": "Enviando...",
+      "submit": "Enviar enlace de acceso"
+    },
+    "reset_password": {
+      "error_mismatch": "Las contraseñas no coinciden",
+      "error_token": "Token inválido o expirado",
+      "default_error": "Error al restablecer la contraseña.",
+      "success_title": "Contraseña Actualizada",
+      "success_desc": "Tu contraseña ha sido cambiada con éxito. Ya puedes iniciar sesión con tus nuevas credenciales.",
+      "redirecting": "Redirigiendo...",
+      "title": "Nueva Contraseña",
+      "subtitle": "Crea una nueva contraseña para tu cuenta de CircleSfera.",
+      "new_password": "Nueva Contraseña",
+      "confirm_password": "Confirmar Contraseña",
+      "submit_loading": "Actualizando...",
+      "submit": "Cambiar Contraseña",
+      "cancel": "Cancelar y volver al login"
+    }
+  },
+  "legal": {
+    "nav": {
+      "log_in": "Iniciar Sesión",
+      "sign_up": "Regístrate"
+    },
+    "community": {
+      "title": "Directrices de la Comunidad - CircleSfera",
+      "header_title": "Directrices de la Comunidad",
+      "header_subtitle": "Las reglas de convivencia en el universo de CircleSfera.",
+      "last_updated": "Última actualización: Octubre 2023",
+      "quick_nav": "Navegación Rápida",
+      "sections": {
+        "s1_title": "1. Ecosistema Premium",
+        "s1_content": "CircleSfera es una red social premium basada en niveles, diseñada para conexiones auténticas, narrativa visual de alta calidad y monetización profesional de creadores. Priorizamos la calidad sobre el ruido. Se espera que todos los miembros contribuyan a un entorno de respeto, creatividad y valor.",
+        "s2_title": "2. Respeto Absoluto",
+        "s2_content": "El acoso, el discurso de odio, el bullying o la discriminación de cualquier tipo están estrictamente prohibidos. Tenemos una política de tolerancia cero frente al abuso. Participa en debates constructivos y trata a los demás miembros del universo CircleSfera con dignidad.",
+        "s3_title": "3. Contenido Auténtico",
+        "s3_content": "Comparte contenido del cual seas propietario o tengas el derecho a distribuir. No publiques material ilegal, explícito o que infrinja derechos de autor. Como plataforma que empodera a los creadores, protegemos ferozmente los derechos de propiedad intelectual.",
+        "s4_title": "4. No Spam ni Manipulación",
+        "s4_content": "La interacción artificial, el uso de bots, el spam y las prácticas engañosas degradan la experiencia premium. No utilices herramientas automatizadas para inflar métricas. La interacción auténtica es la métrica principal de influencia en CircleSfera.",
+        "s5_title": "5. Integridad del Creador",
+        "s5_content": "Los creadores que utilicen nuestras herramientas de monetización (suscripciones, propinas, destacados) deben ofrecer el valor prometido a sus suscriptores. Las ofertas de suscripción fraudulentas o las campañas promocionales engañosas resultarán en la cancelación inmediata de la cuenta."
+      }
+    },
+    "privacy": {
+      "title": "Política de Privacidad - CircleSfera",
+      "header_title": "Política de Privacidad",
+      "header_subtitle": "Cómo protegemos tus datos en el universo de CircleSfera.",
+      "last_updated": "Última actualización: Octubre 2023",
+      "quick_nav": "Navegación Rápida",
+      "sections": {
+        "s1_title": "1. Visión General",
+        "s1_content": "En CircleSfera, valoramos tu privacidad por encima de todo. Esta política describe cómo recopilamos, usamos y protegemos tus datos como proveedor de una experiencia de red social refinada y herramientas para creadores. Estamos comprometidos con la transparencia y la seguridad en cada interacción.",
+        "s2_title": "2. Datos que Recopilamos",
+        "s2_content": "Para proporcionar nuestro servicio, recopilamos Información de la Cuenta (correo electrónico, credenciales), Datos del Perfil (medios subidos, biografías) e Información de Facturación. Los detalles de facturación son procesados de forma segura por Stripe; CircleSfera nunca almacena números completos de tarjetas en sus servidores.",
+        "s3_title": "3. Uso de Datos",
+        "s3_content": "Tus datos se utilizan exclusivamente para mantener tu experiencia social y procesar suscripciones. Bajo nuestro modelo SaaS, no facilitamos transferencias de dinero de igual a igual ni liquidaciones en mercados de terceros, asegurando que tus datos se mantengan dentro de nuestro ecosistema seguro.",
+        "s4_title": "4. Seguridad Absoluta",
+        "s4_content": "CircleSfera emplea protocolos de cifrado y seguridad estándar de la industria para salvaguardar tu universo. Todas las transacciones financieras son manejadas por Stripe, un proveedor de pagos compatible con PCI, asegurando el más alto nivel de confianza.",
+        "s5_title": "5. Contacto Legal",
+        "s5_content": "Para cualquier inquietud sobre la privacidad o solicitudes de datos, nuestro equipo legal especializado está listo para ayudar. Contáctanos directamente en legal@circlesfera.com para un soporte integral sobre tus derechos digitales."
+      }
+    },
+    "terms": {
+      "title": "Términos de Servicio - CircleSfera",
+      "header_title": "Términos de Servicio",
+      "header_subtitle": "El acuerdo entre tú y CircleSfera.",
+      "last_updated": "Última actualización: Octubre 2023",
+      "quick_nav": "Navegación Rápida",
+      "sections": {
+        "s1_title": "1. Uso Aceptable",
+        "s1_content": "CircleSfera es una red social diseñada para la expresión auténtica y creativa. Al utilizar nuestro servicio, aceptas interactuar de manera respetuosa con la comunidad. Cualquier intento de utilizar la plataforma para transacciones financieras no autorizadas o transmisión de dinero entre pares está estrictamente prohibido.",
+        "s2_title": "2. Suscripciones a la Plataforma",
+        "s2_content": "Los niveles de suscripción (Verificado, Creador Élite, Business) brindan acceso a características sociales especializadas, herramientas de crecimiento y mejoras en el perfil. Todos los pagos son procesados exclusivamente por CircleSfera como proveedor del servicio. No admitimos pagos a terceros, liquidaciones de mercado, ni monetización directa de creador a usuario.",
+        "s3_title": "3. Propiedad del Contenido",
+        "s3_content": "Mantienes la propiedad del contenido que compartes en tu universo. Sin embargo, otorgas a CircleSfera una licencia mundial no exclusiva para alojar y mostrar este contenido como parte del servicio.",
+        "s4_title": "4. Terminación",
+        "s4_content": "Nos reservamos el derecho de suspender o cancelar las cuentas que infrinjan estos términos o participen en actividades que comprometan la seguridad o el cumplimiento normativo de la plataforma.",
+        "s5_title": "5. Limitación de Responsabilidad",
+        "s5_content": "CircleSfera se proporciona \"tal cual\" sin garantías de ningún tipo. No somos responsables por daños indirectos, incidentales o consecuentes derivados de tu uso de la plataforma."
+      }
+    },
+    "badges": {
+      "privacy_hub": "Centro de Privacidad",
+      "legal_center": "Centro Legal",
+      "terms_hub": "Centro de Términos",
+      "community_hub": "Centro de Comunidad"
+    },
+    "quotes": {
+      "privacy": "Tu privacidad es la piedra angular de nuestro ecosistema social. Implementamos arquitectura de seguridad de grado militar para proteger cada bit.",
+      "terms": "Estos términos están diseñados para garantizar una relación justa, transparente y mutuamente beneficiosa entre tú y CircleSfera.",
+      "community": "Nuestra comunidad se basa en el respeto mutuo y la libertad creativa. Estas pautas ayudan a mantener un entorno positivo para todos."
+    },
+    "last_updated": {
+      "privacy": "Última Actualización: Abril 2026 • Protección de Datos por Niveles • CircleSfera Security Hub",
+      "terms": "Última Actualización: Abril 2026 • Jurisdicción Global • CircleSfera Legal Ops",
+      "community": "Última Actualización: Abril 2026 • Estándares Globales • CircleSfera Trust & Safety"
+    }
+  },
+  "feed": {
+    "home_title": "Inicio",
+    "brand_name": "CircleSfera",
+    "no_posts": "Todavía no hay publicaciones. ¡Explora para encontrar creadores!"
+  },
+  "explore": {
+    "page_title": "Explora el Universo",
+    "page_desc": "Descubre publicaciones en tendencia, creadores locales y usa nuestra búsqueda impulsada por IA para encontrar exactamente lo que buscas en CircleSfera.",
+    "heading": "Explorar",
+    "search_placeholder": "Busca usuarios, #etiquetas o contenido descrito...",
+    "searching": "Buscando...",
+    "smart_search": "Búsqueda Inteligente",
+    "beta_ai": "Beta AI",
+    "conceptual_match": "COINCIDENCIA CONCEPTUAL",
+    "no_conceptual_matches": "No se encontraron coincidencias conceptuales para esta búsqueda...",
+    "people": "Personas",
+    "followed_by": "Seguido por",
+    "trending_topics": "Temas en Tendencia",
+    "no_people_found": "No se encontraron personas",
+    "no_tags_found": "No se encontraron etiquetas",
+    "no_results": "No se encontraron resultados para",
+    "recent_searches": "Búsquedas Recientes",
+    "clear_all": "Borrar Todo",
+    "no_recent_searches": "No hay búsquedas recientes",
+    "for_you": "Para Ti",
+    "trending": "Trending",
+    "discover_content": "Descubre contenido nuevo aquí basado en tus gustos.",
+    "landing": {
+      "title": "Explora CircleSfera - La Red Social de Próxima Generación",
+      "desc": "Descubre las funciones, la filosofía y las herramientas detrás de CircleSfera. Construido para conexiones auténticas y excelencia visual.",
+      "the_platform": "La Plataforma",
+      "discover_new": "Descubre una Nueva",
+      "dimension": "Dimensión de lo Social",
+      "intro_text": "CircleSfera es más que una app. Es un santuario para la narrativa visual, conexiones auténticas y soberanía digital. Aléjate del ruido y explora la profundidad.",
+      "feat1_title": "Profundidad y Claridad Visual",
+      "feat1_desc": "Experimenta el contenido sin compresiones que arruinan tu arte. CircleSfera está construido para honrar la calidad cinematográfica de tu visión.",
+      "feat2_title": "Descubrimiento con IA",
+      "feat2_desc": "Nuestro Motor Semántico de IA entiende el contexto y la emoción detrás de tu contenido, conectándolo con audiencias a las que realmente les importa.",
+      "feat3_title": "Privacidad por Diseño",
+      "feat3_desc": "Tú controlas la narrativa. Usa Círculos Privados para compartir momentos íntimos, o transmite a toda la red cuando estés listo.",
+      "feat4_title": "Construido para Creadores",
+      "feat4_desc": "Monetización integrada, analíticas de élite y niveles de verificación. Te brindamos las herramientas que necesitas para construir una carrera digital sostenible.",
+      "join_title": "Únete a miles de creadores dando forma al futuro.",
+      "join_desc": "La próxima generación de internet pertenece a los que crean. Reclama tu nombre de usuario y comienza a construir tu legado hoy.",
+      "create_account": "Crea tu Cuenta",
+      "view_monetization": "Ver Monetización"
+    }
+  },
+  "post": {
+    "detail": {
+      "back_to_feed": "Volver al inicio",
+      "comments": "Comentarios"
+    },
+    "tag_feed": {
+      "discover": "Descubre publicaciones relacionadas con esta etiqueta",
+      "no_posts": "No se encontraron publicaciones para"
+    },
+    "actions": {
+      "comments": "Comentarios",
+      "share": "Compartir publicación",
+      "tip": "Dar propina",
+      "remove_bookmark": "Quitar de guardados",
+      "add_bookmark": "Guardar publicación"
+    },
+    "content": {
+      "likes": "me gusta",
+      "view_all_comments": "Ver los {{count}} comentarios"
+    },
+    "header": {
+      "promoted": "Publicidad"
+    },
+    "media": {
+      "unlock_success": "¡Publicación desbloqueada con éxito!",
+      "unlock_error": "Error al desbloquear la publicación"
+    },
+    "menu": {
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "report": "Reportar",
+      "save": "Guardar"
+    },
+    "modals": {
+      "delete_title": "¿Eliminar publicación?",
+      "delete_warning": "Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "delete": "Eliminar",
+      "deleting": "Eliminando...",
+      "edit_title": "Editar Descripción",
+      "write_caption": "Escribe una descripción...",
+      "save": "Guardar",
+      "saving": "Guardando..."
+    }
+  },
+  "story": {
+    "highlight_not_found": "Historia destacada no encontrada",
+    "go_back": "Volver",
+    "views": "Vistas",
+    "sent": "¡Enviado!",
+    "reply_placeholder": "Responder...",
+    "delete_title": "¿Eliminar historia?",
+    "delete_warning": "Esta acción no se puede deshacer.",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
+    "viewers": "Espectadores",
+    "no_views": "Sin vistas aún",
+    "viewer_list_empty": "La lista de espectadores aparecerá aquí"
+  },
+  "comments": {
+    "unlike": "Ya no me gusta",
+    "like": "Me gusta",
+    "reply": "Responder",
+    "delete": "Eliminar",
+    "likes_count": "{{count}} me gusta",
+    "likes_count_plural": "{{count}} me gusta",
+    "no_comments": "Aún no hay comentarios. ¡Sé el primero en comentar!",
+    "replying_to": "Respondiendo a",
+    "add_comment": "Añadir un comentario...",
+    "reply_to_user": "Responder a @{{username}}...",
+    "post": "Publicar",
+    "delete_title": "Eliminar Comentario",
+    "delete_warning": "¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer."
+  },
+  "profile": {
+    "tabs": {
+      "posts": "PUBLICACIONES",
+      "frames": "FRAMES",
+      "saved": "GUARDADO",
+      "tagged": "ETIQUETADO"
+    },
+    "stats": {
+      "posts": "Publicaciones",
+      "followers": "Seguidores",
+      "following": "Siguiendo"
+    },
+    "actions": {
+      "edit_profile": "Editar Perfil",
+      "message": "Mensaje",
+      "opening": "Abriendo...",
+      "subscribe": "Suscribirse",
+      "report_profile": "Reportar Perfil",
+      "block_user": "Bloquear Usuario",
+      "send_tip": "Enviar Propina",
+      "copy_link": "Copiar Enlace",
+      "new_collection": "Nueva Colección"
+    },
+    "blocked": {
+      "title": "Has bloqueado a este usuario.",
+      "subtitle": "Desbloquéalo en Configuración para ver su perfil."
+    },
+    "invite": {
+      "title": "Tu Código de Invitación",
+      "copied": "¡Enlace de invitación copiado!"
+    },
+    "private": {
+      "title": "Esta cuenta es privada",
+      "subtitle": "Sigue esta cuenta para ver sus fotos y videos."
+    },
+    "saved": {
+      "all_posts": "Todas",
+      "collections": "Colecciones",
+      "no_posts_yet": "Aún no hay publicaciones",
+      "save_to_see": "Guarda publicaciones en esta colección para verlas aquí.",
+      "save": "Guardar",
+      "save_desc": "Guarda fotos y videos que quieras volver a ver."
+    },
+    "empty": {
+      "share_photos": "Comparte Fotos",
+      "share_desc": "Cuando compartas fotos, aparecerán en tu perfil.",
+      "no_posts_yet": "Aún no hay publicaciones",
+      "frames": "Frames",
+      "frames_desc": "Comparte videos cortos en bucle.",
+      "tagged_you": "Fotos tuyas",
+      "tagged_them": "Fotos de {{username}}",
+      "tagged_desc_you": "Cuando la gente te etiquete en fotos, aparecerán aquí.",
+      "tagged_desc_them": "Cuando la gente los etiquete en fotos, aparecerán aquí.",
+      "no_users_found": "No se encontraron usuarios."
+    },
+    "messages": {
+      "subscribed_success": "¡Suscrito con éxito!",
+      "subscribe_error": "Error al suscribirse",
+      "chat_error": "No se pudo abrir el chat"
+    }
+  },
+  "suggestions": {
+    "title": "Sugerencias para ti",
+    "see_all": "Ver Todo",
+    "suggested": "Sugerido para ti",
+    "follow": "Seguir"
+  },
+  "createPost": {
+    "accessibility": {
+      "title": "Accesibilidad",
+      "subtitle": "Optimiza para lectores de pantalla",
+      "done": "Listo",
+      "info": "\"El texto alternativo describe tus fotos para personas con discapacidad visual. CircleSfera puede ayudarte a generarlos usando nuestra IA propietaria.\"",
+      "placeholder": "Escribe el texto alternativo...",
+      "generating": "Generando...",
+      "magic_ai": "IA Mágica"
+    },
+    "caption": {
+      "add_location": "Añadir Ubicación",
+      "tag_people": "Etiquetar Personas",
+      "accessibility": "Accesibilidad",
+      "advanced_settings": "Ajustes Avanzados",
+      "add_music": "Añadir Música",
+      "write_caption": "Escribe una descripción...",
+      "you": "Tú",
+      "hide_like_view": "Ocultar recuento de me gusta y visualizaciones",
+      "hide_like_view_desc": "Solo tú verás el número total de me gusta y visualizaciones en esta publicación.",
+      "turn_off_comments": "Desactivar comentarios",
+      "turn_off_comments_desc": "Puedes cambiar esto más tarde en el menú ... en la parte superior de tu publicación."
+    },
+    "edit": {
+      "edit_media": "Editar Medio",
+      "filters_adjustments": "Filtros y Ajustes",
+      "n_files": "{{count}} archivos",
+      "post": "Post",
+      "story": "Historia",
+      "frame": "Frame"
+    },
+    "header": {
+      "add_to_story": "Añadir a Historia",
+      "new_frame": "Nuevo Frame",
+      "new_post": "Nueva Publicación",
+      "share": "Compartir",
+      "next": "Siguiente"
+    },
+    "stepper": {
+      "upload": "Subir",
+      "edit": "Editar",
+      "share": "Compartir"
+    },
+    "location": {
+      "title": "Añadir Ubicación",
+      "search": "Buscar ubicación...",
+      "use_current": "Usar Ubicación Actual",
+      "suggested": "Ubicación Sugerida",
+      "not_found": "No se encontraron ubicaciones",
+      "try_different": "Intenta buscar una ciudad o región diferente."
+    },
+    "upload": {
+      "post": "Post",
+      "post_desc": "Comparte fotos y carruseles",
+      "post_hint": "JPG, PNG, MP4 · Máx 100MB",
+      "story": "Historia",
+      "story_desc": "Desaparece en 24h",
+      "story_hint": "Foto o video · Hasta 60s",
+      "frame": "Frame",
+      "frame_desc": "Video corto",
+      "frame_hint": "MP4, MOV · 15-90 segundos",
+      "drop_files": "Suelta los archivos aquí",
+      "drag_files": "Arrastra fotos y videos aquí",
+      "select_device": "Seleccionar del dispositivo",
+      "take_photo": "Tomar una foto",
+      "create_text_story": "Crear Historia de Texto",
+      "create_text_story_desc": "Fondos, texto y stickers"
+    },
+    "tags": {
+      "title": "Etiquetar Personas",
+      "tap_photo": "Toca la foto para etiquetar",
+      "search_user": "Buscar usuario...",
+      "searching": "Buscando...",
+      "no_users": "No se encontraron usuarios",
+      "type_to_search": "Escribe para buscar",
+      "unsupported": "El etiquetado solo es compatible con imágenes.",
+      "done": "Listo",
+      "tags_on_photo": "Etiquetas en esta foto",
+      "no_tags_yet": "Aún no hay etiquetas. Toca la foto para añadirlas."
+    },
+    "story": {
+      "add_music": "Añadir Música",
+      "close_friends": "Mejores Amigos",
+      "your_story": "Tu Historia"
+    }
+  },
+  "report": {
+    "title": "Reportar",
+    "success": "Gracias por reportar. Revisaremos tu reporte en breve.",
+    "why_report": "¿Por qué estás reportando este {{targetType}}?",
+    "additional_details": "Detalles adicionales (Opcional)",
+    "placeholder": "Cuéntanos más...",
+    "submitting": "Enviando...",
+    "submit": "Enviar Reporte",
+    "reasons": {
+      "spam": "Es spam",
+      "harassment": "Acoso o intimidación",
+      "inappropriate": "Contenido inapropiado",
+      "other": "Otra cosa"
+    }
+  },
+  "notifications": {
+    "seo_title": "Notificaciones",
+    "title": "Actividad",
+    "no_activity": "No hay actividad aún",
+    "unknown_user": "Desconocido",
+    "types": {
+      "like": "le ha gustado tu publicación.",
+      "comment_like": "le ha gustado tu comentario.",
+      "follow": "ha comenzado a seguirte.",
+      "comment": "ha comentado en tu publicación.",
+      "mention": "te ha mencionado en un comentario.",
+      "follow_request": "ha solicitado seguirte.",
+      "follow_accepted": "ha aceptado tu solicitud de seguimiento.",
+      "moderation": "Actualización de moderación: {{content}}",
+      "promotion_success": "¡Promoción Aprobada! {{content}}",
+      "promotion_rejected": "Promoción Rechazada. {{content}}"
+    }
+  },
+  "chat": {
+    "loading": "Cargando chats...",
+    "messages": "Mensajes",
+    "search": "Buscar mensajes...",
+    "no_messages": "Aún no hay mensajes",
+    "start_connecting": "Empieza a conectar con tus amigos.",
+    "send_message": "Enviar Mensaje",
+    "you": "Tú:",
+    "draft": "Borrador",
+    "media_attachment": "Archivo adjunto",
+    "started_chat": "Inició una conversación",
+    "sent_voice": "Envió un mensaje de voz",
+    "sent_image": "Envió una imagen",
+    "sent_attachment": "Envió un archivo adjunto",
+    "chat": "Chat",
+    "group_chat": "Chat de Grupo",
+    "user": "Usuario",
+    "members": "{{count}} miembros",
+    "typing": "Escribiendo",
+    "is_typing": "{{username}} está escribiendo...",
+    "people_typing": "{{count}} personas están escribiendo...",
+    "active_now": "Activo ahora",
+    "active_mins_ago": "Activo hace {{mins}}m",
+    "active_hours_ago": "Activo hace {{hours}}h",
+    "active_recently": "Activo recientemente",
+    "loading_history": "Cargando historial...",
+    "say_hello": "¡Di hola!",
+    "uploading_attachment": "Subiendo archivo adjunto...",
+    "replying_to": "Respondiendo a {{username}}",
+    "attachment": "Archivo adjunto",
+    "type_message": "Mensaje...",
+    "delete_chat_title": "¿Eliminar Conversación?",
+    "delete_chat_desc": "¿Estás seguro de que quieres eliminar este chat? Esta acción no se puede deshacer y la conversación se eliminará para todos.",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "replying_to_user": "Respondiendo a {{username}}",
+    "post": "Publicación",
+    "replied_to_story": "Respondió a tu historia",
+    "watch_video_again": "Mira el video de nuevo",
+    "view_original_story": "Ver historia original",
+    "your_messages": "Tus Mensajes",
+    "select_chat_desc": "Selecciona un chat en la lista de la izquierda o empieza una nueva conversación para enviar mensajes y fotos.",
+    "new_message": "Nuevo Mensaje",
+    "creating": "Creando...",
+    "to": "Para:",
+    "search_dots": "Buscar...",
+    "name_group_optional": "Nombra tu grupo (opcional)",
+    "no_account_found": "No se encontró la cuenta.",
+    "no_following": "No sigues a nadie",
+    "suggested": "Sugeridos",
+    "incoming_video_call": "Llamada de video entrante...",
+    "incoming_audio_call": "Llamada de audio entrante...",
+    "decline": "Rechazar",
+    "accept": "Aceptar",
+    "in_call": "En Llamada...",
+    "remote_user": "Usuario remoto"
+  },
+  "creator": {
+    "title": "Panel de Creador",
+    "subtitle": "Gestiona tu contenido, finanzas y audiencia",
+    "new_content": "Nuevo Contenido",
+    "wallet": "Mi Billetera",
+    "dashboard": {
+      "see_all": "Ver todo",
+      "content_performance": "Rendimiento del Contenido",
+      "see_all_content": "Ver todo el contenido",
+      "untitled_post": "Publicación sin título",
+      "promote_post": "Promocionar post",
+      "performance": "Performance",
+      "vs_avg": "+{{score}}% vs Avg.",
+      "studio_management": "Gestión del Estudio",
+      "finance_earnings": "Finanzas & Ganancias",
+      "finance_desc": "Configura tus métodos de pago y revisa tus ingresos totales.",
+      "ads_promotions": "Publicidad & Ads",
+      "ads_desc": "Crea campañas para promocionar tu perfil y llegar a más gente.",
+      "audience": "Audiencia",
+      "retention": "Retención",
+      "most_active_day": "Tu audiencia es más activa los {{day}}",
+      "most_active_hour": "A las {{hour}}:00 (Local)",
+      "retention_chart_aria": "Gráfico circular de retención de audiencia: {{rate}}%"
+    },
+    "analytics": {
+      "audience_evolution": "Evolución de Audiencia",
+      "views": "Vistas",
+      "followers": "Seguidores",
+      "not_enough_data": "No hay suficientes datos aún",
+      "upload_content": "Sube contenido para empezar a medir tu audiencia."
+    },
+    "promotions": {
+      "created": "Promoción creada",
+      "error_create": "Error al crear promoción",
+      "select_content": "Seleccionar Contenido",
+      "configure_reach": "Configurar Alcance",
+      "boost_best": "Impulsa tu mejor contenido",
+      "untitled": "Sin título",
+      "no_posts": "No hay publicaciones disponibles",
+      "selected_post": "Publicación seleccionada",
+      "change_post": "Cambiar publicación",
+      "daily_budget": "Presupuesto Diario ({{currency}})",
+      "campaign_duration": "Duración de Campaña",
+      "days": "{{count}} Días",
+      "processing": "Procesando...",
+      "boost_total": "Impulsar por {{currency}}{{total}} total",
+      "center": "Centro de Publicidad",
+      "marketing": "Performance Marketing para Creadores",
+      "new_campaign": "Nueva Campaña",
+      "no_active": "Sin campañas activas",
+      "boost_desc": "Impulsa tus mejores publicaciones para llegar a miles de personas nuevas y multiplicar tus seguidores.",
+      "create_first": "Crear mi primera campaña",
+      "in_progress": "En Curso ({{count}})",
+      "campaign": "Campaña {{type}}",
+      "started_on": "Iniciada el {{date}}",
+      "investment": "Inversión",
+      "total_reach": "Alcance Total",
+      "plan_execution": "Ejecución del Plan",
+      "days_left": "{{count}} Días Restantes",
+      "confirm": "Confirmar",
+      "no": "No",
+      "stop": "Detener",
+      "completed_history": "Histórico de Campañas ({{count}})",
+      "completed_campaign": "Campaña Finalizada",
+      "total": "Totales",
+      "finished": "Promoción finalizada",
+      "error_cancel": "Error al cancelar",
+      "restarted": "Campaña reiniciada",
+      "error_repeat": "Error al repetir"
+    },
+    "monetization": {
+      "error_checkout": "Error al iniciar el pago",
+      "error_portal": "Error al acceder al portal",
+      "loading_plans": "Cargando planes...",
+      "subscription_status": "Estatus de Suscripción",
+      "current_plan": "Plan Actual",
+      "select_plan_start": "Selecciona un plan abajo para comenzar.",
+      "manage_subscription": "Gestionar Suscripción",
+      "active": "Activo",
+      "per_month": "/ mes",
+      "per_year": "/ año",
+      "upgrade_now": "Mejorar Ahora",
+      "growth_analytics": "Analíticas de Crecimiento",
+      "growth_desc": "Descubre patrones de interacción y optimiza tu alcance con nuestras herramientas de IA propietarias.",
+      "vip_community": "Comunidad VIP",
+      "vip_desc": "Acceso exclusivo a círculos de otros creadores certificados y prioridad en el descubrimiento global."
+    }
+  },
+  "wallet": {
+    "bought_tokens": "¡Compraste {{amount}} tokens!",
+    "error_buy_tokens": "Error al comprar tokens",
+    "available_balance": "Saldo Disponible",
+    "tokens": "Tokens",
+    "amount_placeholder": "Cantidad...",
+    "buy": "Comprar",
+    "earnings_withdrawable": "Ganancias (Retirables)",
+    "request_withdrawal": "Solicitar Retiro",
+    "transaction_history": "Historial de Transacciones",
+    "no_transactions": "No hay transacciones recientes",
+    "exclusive_content": "Contenido Exclusivo",
+    "premium_description": "Este post es premium. Desbloquéalo con tokens o suscríbete al creador para ver su contenido.",
+    "unlocking": "Desbloqueando...",
+    "unlock_for": "Desbloquear por {{price}} Tokens",
+    "sent_tip": "Enviado {{amount}} tokens a {{name}}!",
+    "error_send_tip": "Error al enviar propina",
+    "send_gift": "Enviar Regalo",
+    "support_with_tokens": "Apoya a {{name}} con tokens",
+    "send_tip": "Enviar Propina",
+    "processing": "Procesando..."
+  },
+  "admin": {
+    "panel": "Panel de Administración",
+    "description": "Gestión y moderación de CircleSfera",
+    "connected_as": "Conectado como"
+  },
+  "collections": {
+    "new_collection": "Nueva Colección",
+    "collection_name": "Nombre de Colección",
+    "placeholder_name": "ej. Viajes, Recetas",
+    "create": "Crear Colección",
+    "posts_count": "{{count}} posts",
+    "saved_title": "Guardados",
+    "no_saved": "Aún no hay posts guardados",
+    "no_saved_desc": "Guarda posts para verlos más tarde tocando el icono de marcador."
+  },
+  "common": {
+    "footer": {
+      "desc": "Una capa social refinada construida para quienes valoran la profundidad visual y la conexión auténtica.",
+      "platform": "Plataforma",
+      "explore": "Explorar",
+      "login": "Iniciar Sesión",
+      "signup": "Registrarse",
+      "legal": "Legal",
+      "privacy": "Privacidad",
+      "terms": "Términos",
+      "guidelines": "Directrices",
+      "copyright": "© 2026 CircleSfera Social. Todos los derechos reservados.",
+      "designed_for": "Diseñado para la próxima generación de creadores."
+    }
+  },
+  "modals": {
+    "share": {
+      "shared_post": "Compartió un post: {{preview}}",
+      "share_to": "Compartir a...",
+      "search_conversations": "Buscar conversaciones...",
+      "sent": "Enviado",
+      "send": "Enviar",
+      "no_conversations": "No se encontraron conversaciones",
+      "done": "Hecho"
+    },
+    "insights": {
+      "post_stats": "Estadísticas del Post",
+      "realtime_metrics": "Métricas de rendimiento en tiempo real",
+      "views": "Vistas",
+      "loops": "Loops",
+      "watch_time": "Tiempo (seg)",
+      "likes": "Likes",
+      "comments": "Comentarios",
+      "saves": "Guardados",
+      "views_evolution": "Evolución de Vistas",
+      "last_days": "Últimos días",
+      "not_enough_data": "Aún no hay suficientes datos históricos",
+      "impact_summary": "Resumen de Impacto",
+      "engagement_rate_prefix": "Este post tiene una tasa de engagement del ",
+      "above_average": " Superas el promedio de tu categoría.",
+      "keep_promoting": " Sigue promocionando para ganar más alcance."
+    },
+    "confirm": {
+      "processing": "Procesando..."
+    },
+    "highlight": {
+      "new_highlight": "Nueva Historia Destacada",
+      "title_and_cover": "Título y Portada",
+      "select_stories_desc": "Selecciona historias para agregar a este destacado.",
+      "no_stories": "No se encontraron historias.",
+      "post_some_stories": "¡Publica algunas historias para crear un destacado!",
+      "highlight_name": "Nombre del Destacado",
+      "next": "Siguiente",
+      "creating": "Creando...",
+      "done": "Hecho"
+    }
+  },
+  "frames": {
+    "no_frames": "Aún no hay Frames",
+    "be_first": "¡Sé el primero en publicar un Frame!"
+  },
+  "landing": {
+    "seo": {
+      "title": "CircleSfera - Lo Social Reimaginado",
+      "description": "Experimenta la próxima generación de redes sociales. Una plataforma inmersiva de narrativa visual para conexiones auténticas y creatividad única."
+    },
+    "nav": {
+      "log_in": "Iniciar Sesión",
+      "sign_up": "Regístrate"
+    },
+    "hero": {
+      "badge": "Lo Social Reimaginado",
+      "title_part1": "Comparte Tu",
+      "title_part2": "Universo",
+      "subtitle": "Conecta con amigos, comparte tus momentos y explora un mundo de creatividad. Experimenta una plataforma social diseñada para una narrativa visual inigualable.",
+      "get_started": "Empezar",
+      "explore_demo": "Explorar Demo",
+      "mockup": {
+        "title": "Visuales Inmersivos",
+        "desc": "Experimenta una capa de interacción social que prioriza la profundidad del contenido."
+      }
+    },
+    "marquee": {
+      "community": "Comunidad",
+      "creativity": "Creatividad",
+      "connection": "Conexión",
+      "innovation": "Innovación"
+    },
+    "features": {
+      "title": "Todo lo que necesitas",
+      "subtitle": "Construido para la próxima generación de creadores visuales.",
+      "items": {
+        "capture": {
+          "title": "Captura",
+          "desc": "Uso compartido en alta definición. Filtros avanzados y herramientas narrativas diseñadas para dar profundidad visual."
+        },
+        "community": {
+          "title": "Comunidad",
+          "desc": "Crea tus propios Círculos, únete a grupos inmersivos y conecta con mentes que te inspiran."
+        },
+        "realtime": {
+          "title": "Tiempo real",
+          "desc": "Mantente en contacto mediante mensajería instantánea segura y cifrada que se siente tan fluida como el feed."
+        }
+      }
+    },
+    "faq": {
+      "badge": "Conocimiento General",
+      "title": "Preguntas",
+      "items": {
+        "free": {
+          "q": "¿CircleSfera es gratis?",
+          "a": "CircleSfera ofrece un nivel gratuito muy completo para todos los usuarios. Para creadores y empresas que buscan herramientas avanzadas, insignias de verificación y analíticas profundas, ofrecemos niveles de suscripción especializados."
+        },
+        "verify": {
+          "q": "¿Cómo verifico mi cuenta?",
+          "a": "La verificación actualmente se ofrece de forma selectiva a creadores activos y figuras públicas para mantener la autenticidad en toda la plataforma."
+        },
+        "security": {
+          "q": "¿Están seguros mis datos?",
+          "a": "La seguridad es nuestra base. Usamos encriptación de última generación y nunca vendemos tus datos personales. Tienes propiedad y control total."
+        },
+        "app": {
+          "q": "¿Habrá una aplicación móvil?",
+          "a": "Estamos construyendo experiencias nativas para iOS y Android que reflejarán la misma sensación glassmórfica característica, con lanzamiento a finales de este año."
+        }
+      }
+    },
+    "cta": {
+      "title": "¿Listo para unirte?",
+      "subtitle": "Miles de creadores ya están dando forma a la próxima generación. Reclama tu espacio hoy.",
+      "button": "Crear Cuenta"
+    },
+    "interactive": {
+      "badge": "La Plataforma",
+      "title": "Diseñada para ser profunda",
+      "tabs_header": "Sistema de Navegación",
+      "tabs": {
+        "connect": {
+          "label": "Conecta",
+          "title": "Red Global",
+          "desc": "Conéctate instantáneamente con creadores de todo el mundo sin fronteras geográficas ni silos de contenido."
+        },
+        "create": {
+          "label": "Crea",
+          "title": "Expresión Artística",
+          "desc": "Nuestro motor integrado favorece la profundidad y la textura, dando a tus historias una calidad cinematográfica única."
+        },
+        "share": {
+          "label": "Comparte",
+          "title": "Esferas Privadas",
+          "desc": "Control granular sobre quién ve tu contenido, desde Círculos específicos hasta todo el Universo."
+        }
+      }
+    },
+    "footer": {
+      "desc": "Una capa social refinada construida para quienes valoran la profundidad visual y la conexión auténtica.",
+      "platform": "Plataforma",
+      "explore": "Explorar",
+      "legal": "Legal",
+      "privacy": "Privacidad",
+      "terms": "Términos",
+      "guidelines": "Normas",
+      "rights": "© 2026 CircleSfera Social. Todos los derechos reservados.",
+      "tagline": "Diseñado para la próxima generación de creadores."
+    }
+  }
+}

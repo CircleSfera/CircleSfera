@@ -59,15 +59,7 @@ export class PostsController {
     return this.postsService.findAll(pagination, sort, user?.userId);
   }
 
-  /** Get personalized discovery feed (AI recommended). */
-  @Get('explore')
-  @UseGuards(JwtOptionalGuard)
-  async getExplore(
-    @CurrentUser() user: CurrentUserData | null,
-    @Query() pagination: PaginationDto,
-  ) {
-    return this.postsService.getDiscoveryFeed(user?.userId || null, pagination);
-  }
+
   /** Get video-only feed (Frames/Reels). */
   @Get('frames')
   @UseGuards(JwtOptionalGuard)
@@ -78,21 +70,7 @@ export class PostsController {
     return this.postsService.getFramesFeed(pagination, user?.userId);
   }
 
-  /** Get personalized feed from followed users (requires authentication). */
-  @Get('feed')
-  @UseGuards(JwtAuthGuard)
-  async getFeed(
-    @CurrentUser() user: CurrentUserData | null,
-    @Query() pagination: PaginationDto,
-  ) {
-    if (!user) {
-      return {
-        data: [],
-        meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
-      };
-    }
-    return this.postsService.getFeed(user.userId, pagination);
-  }
+
 
   /** Get posts by a specific user's username. */
   @Get('user/:username')

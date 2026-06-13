@@ -1,20 +1,34 @@
+import { api } from '../services';
 import { useSocketStore } from '../stores/socketStore';
 import { useCallStore } from '../stores/useCallStore';
 import { logger } from '../utils/logger';
 
-const RTC_CONFIG: RTCConfiguration = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-  ],
-};
-
 class WebRTCService {
   private pc: RTCPeerConnection | null = null;
   private localStream: MediaStream | null = null;
+  private screenStream: MediaStream | null = null;
+  private rtcConfig: RTCConfiguration = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+    ],
+  };
+
+  private async fetchIceServers() {
+    try {
+      const response = await api.get('/webrtc/ice-servers');
+      if (response.data && response.data.length > 0) {
+        this.rtcConfig.iceServers = response.data;
+        logger.log('Loaded TURN/STUN servers from backend');
+      }
+    } catch (error) {
+      logger.error('Failed to fetch ICE servers, using fallback', error);
+    }
+  }
 
   async startCall(userId: string, type: 'audio' | 'video') {
-    this.pc = new RTCPeerConnection(RTC_CONFIG);
+    await this.fetchIceServers();
+    this.pc = new RTCPeerConnection(this.rtcConfig);
     this.setupListeners(userId);
 
     // Get media
@@ -42,7 +56,8 @@ class WebRTCService {
   }
 
   async handleOffer(offer: RTCSessionDescriptionInit, fromId: string) {
-    this.pc = new RTCPeerConnection(RTC_CONFIG);
+    await this.fetchIceServers();
+    this.pc = new RTCPeerConnection(this.rtcConfig);
     this.setupListeners(fromId);
 
     // Get media
@@ -111,13 +126,64 @@ class WebRTCService {
     };
   }
 
+  async startScreenShare() {
+    if (!this.pc || !this.localStream) return;
+
+    try {
+      this.screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+      });
+
+      const screenVideoTrack = this.screenStream.getVideoTracks()[0];
+      const sender = this.pc.getSenders().find((s) => s.track?.kind === 'video');
+
+      if (sender && screenVideoTrack) {
+        await sender.replaceTrack(screenVideoTrack);
+        
+        // Listen for browser "stop sharing" button
+        screenVideoTrack.onended = () => {
+          this.stopScreenShare();
+        };
+
+        useCallStore.getState().setIsScreenSharing(true);
+        // Replace video in local UI
+        const newLocalStream = new MediaStream([screenVideoTrack, ...this.localStream.getAudioTracks()]);
+        useCallStore.getState().setLocalStream(newLocalStream);
+      }
+    } catch (error) {
+      logger.error('Error starting screen share', error);
+    }
+  }
+
+  async stopScreenShare() {
+    if (!this.pc || !this.localStream || !this.screenStream) return;
+
+    const localVideoTrack = this.localStream.getVideoTracks()[0];
+    const sender = this.pc.getSenders().find((s) => s.track?.kind === 'video');
+
+    if (sender && localVideoTrack) {
+      await sender.replaceTrack(localVideoTrack);
+      
+      this.screenStream.getTracks().forEach(t => t.stop());
+      this.screenStream = null;
+
+      useCallStore.getState().setIsScreenSharing(false);
+      // Restore video in local UI
+      useCallStore.getState().setLocalStream(this.localStream);
+    }
+  }
+
   cleanup() {
     this.pc?.close();
     this.pc = null;
     this.localStream?.getTracks().forEach((t) => {
       t.stop();
     });
+    this.screenStream?.getTracks().forEach((t) => {
+      t.stop();
+    });
     this.localStream = null;
+    this.screenStream = null;
   }
 }
 

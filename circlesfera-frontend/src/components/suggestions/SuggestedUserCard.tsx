@@ -1,5 +1,6 @@
 import type React from 'react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { followsApi } from '../../services';
 import type { SuggestedUser } from '../../types';
@@ -17,6 +18,7 @@ export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({
   user,
   onFollow,
 }) => {
+  const { t } = useTranslation();
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -75,7 +77,7 @@ export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({
           />
         </span>
         <span className="text-[10px] text-zinc-500 font-bold tracking-wider truncate w-full text-center mb-4">
-          {user.fullName || 'Suggested'}
+          {user.fullName || t('suggestions.suggested')}
         </span>
       </Link>
       <button
@@ -84,7 +86,7 @@ export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({
         disabled={loading}
         className="w-full py-1.5 bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white text-[10px] font-black tracking-wider rounded-lg px-4 disabled:opacity-50 transition-all active:scale-95 border border-brand-primary/20 hover:border-transparent"
       >
-        {loading ? '...' : 'Follow'}
+        {loading ? '...' : t('suggestions.follow')}
       </button>
     </div>
   );

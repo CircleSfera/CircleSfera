@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import CreatorAnalyticsTab from '../components/creator/CreatorAnalyticsTab';
 import CreatorDashboard from '../components/creator/CreatorDashboard';
 import CreatorMonetizationTab from '../components/creator/CreatorMonetizationTab';
 import CreatorPostsTab from '../components/creator/CreatorPostsTab';
@@ -23,6 +25,7 @@ export default function Creator() {
   const [toasts, setToasts] = useState<
     { id: string; message: string; type: string }[]
   >([]);
+  const { t } = useTranslation();
 
   // ─── Data Fetching ─────────────────────────────────────────────
   const { data: stats } = useQuery<CreatorStats>({
@@ -50,10 +53,10 @@ export default function Creator() {
       <header className="mb-8 flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight">
-            Panel de Creador
+            {t('creator.title')}
           </h1>
           <p className="text-zinc-500 mt-0.5 text-xs">
-            Gestiona tu contenido, finanzas y audiencia
+            {t('creator.subtitle')}
           </p>
         </div>
 
@@ -62,7 +65,7 @@ export default function Creator() {
           className="hidden sm:flex items-center gap-2 px-6 py-2.5 bg-brand-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-brand-primary/90 transition-all shadow-xl shadow-brand-primary/10"
         >
           <Plus size={14} />
-          Nuevo Contenido
+          {t('creator.new_content')}
         </button>
       </header>
 
@@ -81,6 +84,7 @@ export default function Creator() {
               chartData={chartData}
             />
           )}
+          {activeTab === 'analytics' && <CreatorAnalyticsTab />}
           {activeTab === 'content' && (
             <CreatorPostsTab onPromote={(post) => setPromotePost(post)} />
           )}
@@ -91,7 +95,7 @@ export default function Creator() {
           {activeTab === 'wallet' && (
             <div className="p-4 md:p-6 bg-[#090909] rounded-3xl border border-white/5">
               <h2 className="text-xl font-bold text-white mb-6">
-                Mi Billetera
+                {t('creator.wallet')}
               </h2>
               <WalletDashboard />
             </div>

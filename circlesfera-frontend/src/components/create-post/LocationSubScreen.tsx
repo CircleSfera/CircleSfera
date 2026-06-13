@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { MapPin, Navigation, Search, X } from 'lucide-react';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface LocationSubScreenProps {
   onClose: () => void;
@@ -13,6 +14,7 @@ export default function LocationSubScreen({
   onSelect,
   currentLocation = '',
 }: LocationSubScreenProps) {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = React.useState('');
 
   const locations = [
@@ -43,7 +45,9 @@ export default function LocationSubScreen({
         <div className="absolute inset-0 bg-radial-[at_50%_0%] from-blue-500/10 via-transparent to-transparent pointer-events-none" />
 
         <div className="p-5 border-b border-white/5 flex items-center justify-between relative z-10">
-          <h2 className="font-bold text-lg text-white">Add Location</h2>
+          <h2 className="font-bold text-lg text-white">
+            {t('createPost.location.title')}
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -61,7 +65,7 @@ export default function LocationSubScreen({
             />
             <input
               type="text"
-              placeholder="Find a location..."
+              placeholder={t('createPost.location.search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/10 transition-all duration-300"
@@ -73,7 +77,9 @@ export default function LocationSubScreen({
             className="w-full mt-4 flex items-center gap-3 px-4 py-3 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 transition-all"
           >
             <Navigation size={18} />
-            <span className="text-sm font-semibold">Use Current Location</span>
+            <span className="text-sm font-semibold">
+              {t('createPost.location.use_current')}
+            </span>
           </button>
         </div>
 
@@ -109,7 +115,7 @@ export default function LocationSubScreen({
                       {loc}
                     </div>
                     <div className="text-xs text-white/40 mt-0.5">
-                      Suggested Location
+                      {t('createPost.location.suggested')}
                     </div>
                   </div>
                 </motion.button>
@@ -121,10 +127,10 @@ export default function LocationSubScreen({
                 <MapPin size={24} className="text-white/20" />
               </div>
               <p className="text-sm font-medium text-white/60">
-                No locations found
+                {t('createPost.location.not_found')}
               </p>
               <p className="text-xs text-white/30 mt-1">
-                Try searching for a different city or region.
+                {t('createPost.location.try_different')}
               </p>
             </div>
           )}

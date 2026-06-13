@@ -10,6 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type {
   CreateMode,
   MediaFile,
@@ -44,6 +45,7 @@ export default function CaptionStep({
   setSelectedAudio,
   setShowMusicPicker,
 }: CaptionStepProps) {
+  const { t } = useTranslation();
   const { profile } = useAuthStore();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isFocused, setIsFocused] = useState(false);
@@ -73,7 +75,7 @@ export default function CaptionStep({
     {
       key: 'location',
       icon: MapPin,
-      label: location || 'Add Location',
+      label: location || t('createPost.caption.add_location'),
       isActive: !!location,
       activeColor: 'text-blue-400',
       onClick: () => setSubScreen('location'),
@@ -81,7 +83,7 @@ export default function CaptionStep({
     {
       key: 'tags',
       icon: UserPlus,
-      label: 'Tag People',
+      label: t('createPost.caption.tag_people'),
       isActive: false,
       activeColor: 'text-blue-400',
       onClick: () => setSubScreen('tags'),
@@ -89,7 +91,7 @@ export default function CaptionStep({
     {
       key: 'accessibility',
       icon: Eye,
-      label: 'Accessibility',
+      label: t('createPost.caption.accessibility'),
       isActive: false,
       activeColor: '',
       onClick: () => setSubScreen('accessibility'),
@@ -97,7 +99,7 @@ export default function CaptionStep({
     {
       key: 'advanced',
       icon: Settings,
-      label: 'Advanced Settings',
+      label: t('createPost.caption.advanced_settings'),
       isActive: false,
       activeColor: '',
       onClick: () => setSubScreen('advanced'),
@@ -107,7 +109,7 @@ export default function CaptionStep({
       icon: MusicIcon,
       label: selectedAudio
         ? `${selectedAudio.title} — ${selectedAudio.artist}`
-        : 'Add Music',
+        : t('createPost.caption.add_music'),
       isActive: !!selectedAudio,
       activeColor: 'text-blue-400',
       onClick: () => setShowMusicPicker(true),
@@ -173,7 +175,7 @@ export default function CaptionStep({
             )}
           </div>
           <span className="font-bold text-sm text-white/90">
-            {profile?.username || 'You'}
+            {profile?.username || t('createPost.caption.you')}
           </span>
         </div>
 
@@ -196,7 +198,7 @@ export default function CaptionStep({
               }}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
-              placeholder="Write a caption..."
+              placeholder={t('createPost.caption.write_caption')}
               className="w-full bg-transparent text-white/90 border-0 resize-none focus:ring-0 
                          placeholder-white/20 text-[15px] leading-relaxed outline-none
                          min-h-[100px] max-h-[220px] font-normal p-4"

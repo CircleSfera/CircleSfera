@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../services';
 import type { Post } from '../../types';
 import Carousel from '../Carousel';
@@ -10,12 +11,13 @@ interface PostMediaProps {
 }
 
 export default function PostMedia({ post }: PostMediaProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const unlockMutation = useMutation({
     mutationFn: () => api.post('/wallet/unlock', { postId: post.id }),
     onSuccess: () => {
-      toast.success('Post desbloqueado con éxito!');
+      toast.success(t('post.media.unlock_success'));
       // Invalidate relevant queries to fetch unblurred media
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['posts'] });
@@ -23,7 +25,9 @@ export default function PostMedia({ post }: PostMediaProps) {
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Error al desbloquear post');
+      toast.error(
+        error.response?.data?.message || t('post.media.unlock_error'),
+      );
     },
   });
 

@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { CheckCircle, Loader2, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import LayoutWrapper from '../layouts/LayoutWrapper';
 import { authApi } from '../services';
@@ -12,8 +13,9 @@ export default function VerifyEmail() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>(
     token ? 'loading' : 'error',
   );
+  const { t } = useTranslation();
   const [message, setMessage] = useState(
-    token ? '' : 'Verification token not found.',
+    token ? '' : t('auth.verify.no_token'),
   );
   const navigate = useNavigate();
 
@@ -24,19 +26,18 @@ export default function VerifyEmail() {
       try {
         await authApi.verifyEmail(token);
         setStatus('success');
-        setMessage('Your email has been successfully verified.');
+        setMessage(t('auth.verify.success'));
         setTimeout(() => navigate('/accounts/login'), 3000);
       } catch (err: unknown) {
         setStatus('error');
         const errorMessage =
-          (err as ApiError).response?.data?.message ||
-          'Failed to verify email.';
+          (err as ApiError).response?.data?.message || t('auth.verify.error');
         setMessage(errorMessage);
       }
     };
 
     verify();
-  }, [token, navigate]);
+  }, [token, navigate, t]);
 
   return (
     <LayoutWrapper showNavigation={false}>
@@ -70,10 +71,10 @@ export default function VerifyEmail() {
                 </div>
                 <div className="text-center">
                   <h1 className="text-2xl font-black mb-2 tracking-tighter text-white">
-                    Verifying Identity
+                    {t('auth.verify.loading_title')}
                   </h1>
                   <p className="text-gray-400 text-sm font-medium">
-                    Please wait while we validate your secure token...
+                    {t('auth.verify.loading_desc')}
                   </p>
                 </div>
               </motion.div>
@@ -94,15 +95,15 @@ export default function VerifyEmail() {
                 </div>
                 <div className="text-center w-full">
                   <h1 className="text-2xl font-black mb-2 tracking-tighter text-white">
-                    Access Granted
+                    {t('auth.verify.success_title')}
                   </h1>
                   <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl mb-6">
                     <p className="text-green-400 text-sm font-medium">
                       {message}
                     </p>
                   </div>
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-6 animate-pulse">
-                    Redirecting to portal...
+                  <p className="text-gray-400 text-sm mb-6">
+                    {t('auth.verify.success_desc')}
                   </p>
                   <Link
                     to="/accounts/login"
@@ -129,7 +130,7 @@ export default function VerifyEmail() {
                 </div>
                 <div className="text-center w-full">
                   <h1 className="text-2xl font-black mb-2 tracking-tighter text-white">
-                    Verification Failed
+                    {t('auth.verify.error_title')}
                   </h1>
                   <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl mb-8">
                     <p className="text-red-400 text-sm font-medium">

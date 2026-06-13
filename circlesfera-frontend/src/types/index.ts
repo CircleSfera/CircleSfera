@@ -71,6 +71,8 @@ export interface ProfileWithUser extends IProfile {
   verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
   isVerified?: boolean;
   banner?: string | null;
+  inviteCode?: string;
+  referredById?: string | null;
 }
 
 export interface PostMediaItem {

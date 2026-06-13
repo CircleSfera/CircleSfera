@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { apiClient, chatApi, uploadApi } from '../../services/index';
 import { useAuthStore } from '../../stores/authStore';
@@ -25,6 +26,7 @@ import AudioRecorder from './AudioRecorder';
 import MessageBubble from './MessageBubble';
 
 export default function ChatWindow() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -216,7 +218,7 @@ export default function ChatWindow() {
   const getChatInfo = () => {
     if (!conversation || !profile)
       return {
-        name: 'Chat',
+        name: t('chat.chat'),
         username: '',
         avatar: null,
         isGroup: false,
@@ -225,8 +227,10 @@ export default function ChatWindow() {
 
     if (conversation.isGroup) {
       return {
-        name: conversation.name || 'Group Chat',
-        username: `${conversation.participants.length} members`,
+        name: conversation.name || t('chat.group_chat'),
+        username: t('chat.members', {
+          count: conversation.participants.length,
+        }),
         avatar: null,
         isGroup: true,
         participants: conversation.participants,
@@ -262,7 +266,9 @@ export default function ChatWindow() {
 
     return {
       name:
-        targetUser?.profile.fullName || targetUser?.profile.username || 'User',
+        targetUser?.profile.fullName ||
+        targetUser?.profile.username ||
+        t('chat.user'),
       username: targetUser?.profile.username || '',
       avatar: targetUser?.profile.avatar,
       thumbnailUrl: targetUser?.profile.thumbnailUrl,
@@ -366,7 +372,7 @@ export default function ChatWindow() {
 
       await apiClient.post('/chat/messages', {
         conversationId: id,
-        content: 'Sent an image',
+        content: t('chat.sent_image'),
         url: uploadRes.data.url,
         mediaType: 'image',
       });
@@ -439,14 +445,14 @@ export default function ChatWindow() {
         const user = conversation.participants.find(
           (p: Participant) => p.userId === typingIds[0],
         );
-        return `${user?.user.profile.username} is typing...`;
+        return t('chat.is_typing', { username: user?.user.profile.username });
       }
-      return `${typingIds.length} people are typing...`;
+      return t('chat.people_typing', { count: typingIds.length });
     } else {
       return (
         <div className="flex items-center gap-1.5 opacity-80 mt-0.5">
           <span className="text-[11px] text-brand-primary font-bold tracking-wider">
-            Escribiendo
+            {t('chat.typing')}
           </span>
           <div className="flex items-center gap-0.5 pt-1">
             <motion.div
@@ -472,21 +478,23 @@ export default function ChatWindow() {
 
   const getStatusText = () => {
     if (chatInfo.isGroup) {
-      return `${conversation?.participants.length || 0} members`;
+      return t('chat.members', {
+        count: conversation?.participants.length || 0,
+      });
     }
 
     if (chatInfo.userId) {
       const socketStatus = userStatuses[chatInfo.userId];
       if (socketStatus) {
         if (socketStatus.isOnline)
-          return <span className="text-green-500">Active now</span>;
+          return <span className="text-green-500">{t('chat.active_now')}</span>;
         if (socketStatus.lastSeenAt) {
           const diff = Date.now() - new Date(socketStatus.lastSeenAt).getTime();
           const mins = Math.floor(diff / 60000);
-          if (mins < 60) return `Active ${mins}m ago`;
+          if (mins < 60) return t('chat.active_mins_ago', { mins });
           const hours = Math.floor(mins / 60);
-          if (hours < 24) return `Active ${hours}h ago`;
-          return `Active recently`;
+          if (hours < 24) return t('chat.active_hours_ago', { hours });
+          return t('chat.active_recently');
         }
       }
       // Fallback
@@ -494,7 +502,7 @@ export default function ChatWindow() {
         (p: Participant) => p.userId === chatInfo.userId,
       );
       if (participant?.user?.isOnline)
-        return <span className="text-green-500">Active now</span>;
+        return <span className="text-green-500">{t('chat.active_now')}</span>;
     }
     return null;
   };
@@ -673,7 +681,7 @@ export default function ChatWindow() {
                     className="w-full flex items-center gap-3 px-5 py-4 text-red-500 hover:bg-white/5 transition-colors text-sm font-semibold"
                   >
                     <Trash2 size={18} strokeWidth={2} />
-                    Delete Chat
+                    {t('chat.delete_chat_title')}
                   </button>
                 </motion.div>
               )}
@@ -691,15 +699,15 @@ export default function ChatWindow() {
           <div className="flex flex-col items-center justify-center h-full gap-3">
             <div className="w-8 h-8 rounded-full border-2 border-brand-primary/30 border-t-brand-primary animate-spin" />
             <span className="text-sm font-medium text-white/50">
-              Cargando historial...
+              {t('chat.loading_history')}
             </span>
           </div>
         )}
 
         {!isLoading && messages.length === 0 && !isUploading && (
           <div className="flex flex-col items-center justify-center h-full text-gray-500 opacity-50">
-            <p>No messages yet</p>
-            <p className="text-xs">Say hello!</p>
+            <p>{t('chat.no_messages')}</p>
+            <p className="text-xs">{t('chat.say_hello')}</p>
           </div>
         )}
 
@@ -761,7 +769,7 @@ export default function ChatWindow() {
             className="flex justify-end p-2"
           >
             <div className="bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2 text-xs text-white/50 animate-pulse border border-white/5">
-              Uploading attachment...
+              {t('chat.uploading_attachment')}
             </div>
           </motion.div>
         )}
@@ -780,11 +788,13 @@ export default function ChatWindow() {
               <div className="flex flex-col text-sm border-l-2 border-purple-500 pl-3">
                 <div className="flex items-center gap-2">
                   <span className="text-purple-400 font-semibold text-xs">
-                    Replying to {replyTo.sender?.profile.username}
+                    {t('chat.replying_to', {
+                      username: replyTo.sender?.profile.username,
+                    })}
                   </span>
                 </div>
                 <span className="text-gray-400 line-clamp-1 text-xs mt-0.5">
-                  {replyTo.content || 'Attachment'}
+                  {replyTo.content || t('chat.attachment')}
                 </span>
               </div>
               <button
@@ -841,7 +851,7 @@ export default function ChatWindow() {
                 }}
                 rows={1}
                 className="flex-1 bg-transparent border-none py-3.5 px-2 text-white placeholder-white/40 focus:ring-0 text-[15px] resize-none overflow-hidden custom-scrollbar max-h-[120px] min-h-[44px]"
-                placeholder="Mensaje..."
+                placeholder={t('chat.type_message')}
               />
 
               {input.trim() || isUploading ? (
@@ -900,11 +910,10 @@ export default function ChatWindow() {
                   <Trash2 size={24} />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">
-                  Delete Conversation?
+                  {t('chat.delete_chat_title')}
                 </h3>
                 <p className="text-white/60 text-sm mb-6">
-                  Are you sure you want to delete this chat? This action cannot
-                  be undone and the conversation will be removed for everyone.
+                  {t('chat.delete_chat_desc')}
                 </p>
                 <div className="flex gap-3 w-full">
                   <button
@@ -912,14 +921,14 @@ export default function ChatWindow() {
                     onClick={() => setShowDeleteConfirm(false)}
                     className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium transition-colors"
                   >
-                    Cancel
+                    {t('chat.cancel')}
                   </button>
                   <button
                     type="button"
                     onClick={confirmDelete}
                     className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold transition-colors shadow-lg shadow-red-500/20"
                   >
-                    Delete
+                    {t('chat.delete')}
                   </button>
                 </div>
               </div>

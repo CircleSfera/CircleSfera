@@ -28,6 +28,7 @@ import { CsrfController } from './common/csrf/csrf.controller.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { CreatorModule } from './creator/creator.module.js';
 import { EmailModule } from './email/email.module.js';
+import { FeedModule } from './feed/feed.module.js';
 import { FollowsModule } from './follows/follows.module.js';
 import { HealthModule } from './health/health.module.js';
 import { HighlightsModule } from './highlights/highlights.module.js';
@@ -40,12 +41,14 @@ import { ProfilesModule } from './profiles/profiles.module.js';
 import { PushModule } from './push/push.module.js';
 import { ReportsModule } from './reports/reports.module.js';
 import { SearchModule } from './search/search.module.js';
+import { SeoModule } from './seo/seo.module.js';
 import { SocketModule } from './socket/socket.module.js';
 import { StoriesModule } from './stories/stories.module.js';
 import { UploadsModule } from './uploads/uploads.module.js';
 import { UsersModule } from './users/users.module.js';
 import { WalletModule } from './wallet/wallet.module.js';
 import { WhitelistModule } from './whitelist/whitelist.module.js';
+import { WebrtcModule } from './webrtc/webrtc.module.js';
 
 @Module({
   imports: [
@@ -142,6 +145,9 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     PaymentsModule,
     PushModule,
     WalletModule,
+    SeoModule,
+    FeedModule,
+    WebrtcModule,
   ],
   controllers: [AppController, CsrfController],
   providers: [

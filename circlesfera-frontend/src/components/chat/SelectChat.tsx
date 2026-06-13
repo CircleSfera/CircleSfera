@@ -1,7 +1,10 @@
 import { motion } from 'framer-motion';
 import { MessageCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function SelectChat() {
+  const { t } = useTranslation();
+
   return (
     <div className="flex flex-col items-center justify-center h-full text-white/50 bg-[#050505] relative overflow-hidden">
       {/* Background Accent Mesh */}
@@ -27,11 +30,10 @@ export default function SelectChat() {
           />
         </div>
         <h2 className="text-2xl font-black mb-3 text-white tracking-tight">
-          Tus Mensajes
+          {t('chat.your_messages')}
         </h2>
         <p className="text-[15px] leading-relaxed opacity-80 font-medium">
-          Selecciona un chat en la lista de la izquierda o empieza una nueva
-          conversación para enviar mensajes y fotos.
+          {t('chat.select_chat_desc')}
         </p>
       </motion.div>
     </div>

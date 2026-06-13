@@ -6,6 +6,8 @@ interface AdvancedSettingsSubScreenProps {
   onClose: () => void;
 }
 
+import { useTranslation } from 'react-i18next';
+
 export default function AdvancedSettingsSubScreen({
   hideLikes,
   setHideLikes,
@@ -13,6 +15,7 @@ export default function AdvancedSettingsSubScreen({
   setTurnOffComments,
   onClose,
 }: AdvancedSettingsSubScreenProps) {
+  const { t } = useTranslation();
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="bg-neutral-900 border border-white/10 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl flex flex-col">
@@ -38,17 +41,18 @@ export default function AdvancedSettingsSubScreen({
               />
             </svg>
           </button>
-          <h2 className="font-bold text-lg">Advanced Settings</h2>
+          <h2 className="font-bold text-lg">
+            {t('createPost.caption.advanced_settings')}
+          </h2>
         </div>
         <div className="p-4 space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <div className="font-medium text-white">
-                Hide like and view counts
+                {t('createPost.caption.hide_like_view')}
               </div>
               <div className="text-xs text-gray-400 mt-1 max-w-[280px]">
-                Only you will see the total number of likes and views on this
-                post.
+                {t('createPost.caption.hide_like_view_desc')}
               </div>
             </div>
             <button
@@ -67,10 +71,11 @@ export default function AdvancedSettingsSubScreen({
 
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-medium text-white">Turn off commenting</div>
+              <div className="font-medium text-white">
+                {t('createPost.caption.turn_off_comments')}
+              </div>
               <div className="text-xs text-gray-400 mt-1 max-w-[280px]">
-                You can change this later by going to the ... menu at the top of
-                your post.
+                {t('createPost.caption.turn_off_comments_desc')}
               </div>
             </div>
             <button

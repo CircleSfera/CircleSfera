@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { chatApi, storiesApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { Story, UserWithProfile } from '../types';
@@ -32,6 +33,7 @@ export default function StoryViewer({
   initialIndex,
   onClose,
 }: StoryViewerProps) {
+  const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -480,7 +482,11 @@ export default function StoryViewer({
                         type="text"
                         value={replyText}
                         onChange={(e) => setReplyText(e.target.value)}
-                        placeholder={messageSent ? '¡Enviado!' : 'Responder...'}
+                        placeholder={
+                          messageSent
+                            ? t('story.sent')
+                            : t('story.reply_placeholder')
+                        }
                         className="bg-transparent text-white placeholder:text-white/50 flex-1 outline-none text-sm font-medium"
                         onFocus={() => setIsPaused(true)}
                         onBlur={() => setIsPaused(false)}
@@ -556,7 +562,7 @@ export default function StoryViewer({
                     >
                       <Eye size={16} />
                       <span className="font-bold text-xs">
-                        {viewers.length} Vistas
+                        {viewers.length} {t('story.views')}
                       </span>
                     </button>
                     <button
@@ -635,9 +641,11 @@ export default function StoryViewer({
               <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-1">
                 <Trash2 size={24} />
               </div>
-              <h3 className="text-white font-bold text-lg">Delete Story?</h3>
+              <h3 className="text-white font-bold text-lg">
+                {t('story.delete_title')}
+              </h3>
               <p className="text-white/60 text-sm mb-4">
-                This action cannot be undone.
+                {t('story.delete_warning')}
               </p>
 
               <div className="flex flex-col gap-2 w-full">
@@ -646,14 +654,14 @@ export default function StoryViewer({
                   onClick={confirmDelete}
                   className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors"
                 >
-                  Delete
+                  {t('story.delete')}
                 </button>
                 <button
                   type="button"
                   onClick={cancelDelete}
                   className="w-full py-3 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-lg transition-colors"
                 >
-                  Cancel
+                  {t('story.cancel')}
                 </button>
               </div>
             </div>
@@ -693,7 +701,7 @@ export default function StoryViewer({
 
             <div className="p-4 border-b border-white/5 flex items-center justify-between">
               <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                Viewers{' '}
+                {t('story.viewers')}{' '}
                 <span className="bg-white/10 text-xs px-2 py-0.5 rounded-full text-white/80">
                   {viewers.length}
                 </span>
@@ -752,9 +760,11 @@ export default function StoryViewer({
               ) : (
                 <div className="flex flex-col items-center justify-center py-16 opacity-40">
                   <Eye size={48} className="mb-3 text-white/50" />
-                  <p className="text-white font-medium">No views yet</p>
+                  <p className="text-white font-medium">
+                    {t('story.no_views')}
+                  </p>
                   <p className="text-white/50 text-sm">
-                    Viewer list will appear here
+                    {t('story.viewer_list_empty')}
                   </p>
                 </div>
               )}

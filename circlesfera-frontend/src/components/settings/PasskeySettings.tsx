@@ -11,11 +11,14 @@ import {
 } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+
 import { passkeyApi } from '../../services';
 import type { PasskeyInfo } from '../../services/passkey.service';
 import { logger } from '../../utils/logger';
 
 export const PasskeySettings: React.FC = () => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -107,10 +110,10 @@ export const PasskeySettings: React.FC = () => {
           </div>
           <div>
             <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 italic">
-              Security Keys (Passkeys)
+              {t('settings.passkey_settings.title')}
             </h3>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">
-              Passwordless, ultra-secure login
+              {t('settings.passkey_settings.subtitle')}
             </p>
           </div>
         </div>
@@ -120,8 +123,7 @@ export const PasskeySettings: React.FC = () => {
       <div className="space-y-6">
         <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700">
           <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed italic">
-            Passkeys allow you to log in securely using your device's biometric
-            sensors (like Touch ID or Face ID) or hardware security keys.
+            {t('settings.passkey_settings.desc')}
           </p>
         </div>
 
@@ -133,7 +135,7 @@ export const PasskeySettings: React.FC = () => {
         ) : passkeys.length > 0 ? (
           <div className="space-y-3">
             <h4 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-              Registered Keys ({passkeys.length})
+              {t('settings.passkey_settings.registered')} ({passkeys.length})
             </h4>
             {passkeys.map((passkey) => (
               <div
@@ -146,10 +148,11 @@ export const PasskeySettings: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      Passkey
+                      {t('settings.passkey_settings.passkey')}
                     </p>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      Added {formatDate(passkey.createdAt)}
+                      {t('settings.passkey_settings.added')}{' '}
+                      {formatDate(passkey.createdAt)}
                     </p>
                     {passkey.transports.length > 0 && (
                       <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
@@ -163,7 +166,7 @@ export const PasskeySettings: React.FC = () => {
                   onClick={() => handleDelete(passkey.id)}
                   disabled={deletingId === passkey.id}
                   className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all disabled:opacity-50"
-                  title="Remove passkey"
+                  title={t('settings.passkey_settings.remove')}
                 >
                   {deletingId === passkey.id ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -187,7 +190,7 @@ export const PasskeySettings: React.FC = () => {
           <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl border border-emerald-100 dark:border-emerald-900/30 animate-in fade-in slide-in-from-top-2">
             <CheckCircle className="w-5 h-5 shrink-0" />
             <p className="text-sm font-semibold">
-              Passkey registered successfully!
+              {t('settings.passkey_settings.success')}
             </p>
           </div>
         )}
@@ -201,12 +204,12 @@ export const PasskeySettings: React.FC = () => {
           {loading ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Initializing Secure Handshake...</span>
+              <span>{t('settings.passkey_settings.initializing')}</span>
             </>
           ) : (
             <>
               <Plus className="w-5 h-5" />
-              <span>Add New Security Key</span>
+              <span>{t('settings.passkey_settings.add_new')}</span>
             </>
           )}
         </button>
@@ -214,7 +217,7 @@ export const PasskeySettings: React.FC = () => {
 
       <div className="mt-8 flex items-center gap-3 text-xs text-zinc-400 dark:text-zinc-500 font-medium border-t border-zinc-100 dark:border-zinc-800 pt-6">
         <Shield className="w-4 h-4" />
-        <span>FIDO2 / WebAuthn Certified Protection</span>
+        <span>{t('settings.passkey_settings.fido')}</span>
       </div>
     </div>
   );

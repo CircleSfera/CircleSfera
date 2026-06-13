@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import Masonry from 'react-masonry-css';
 import { useParams } from 'react-router-dom';
 import { LoadingSpinner } from '../components/LoadingStates';
@@ -7,6 +8,7 @@ import LayoutWrapper from '../layouts/LayoutWrapper';
 import { postsApi } from '../services';
 
 export default function TagFeed() {
+  const { t } = useTranslation();
   const { tag } = useParams<{ tag: string }>();
 
   const { data, isLoading } = useQuery({
@@ -31,7 +33,7 @@ export default function TagFeed() {
           <h1 className="text-4xl font-black mb-2 text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-purple-400">
             #{tag}
           </h1>
-          <p className="text-gray-400">Discover posts related to this tag</p>
+          <p className="text-gray-400">{t('post.tag_feed.discover')}</p>
         </div>
 
         {isLoading ? (
@@ -40,7 +42,9 @@ export default function TagFeed() {
           </div>
         ) : data?.data.length === 0 ? (
           <div className="text-center py-20 opacity-50">
-            <p className="text-xl font-medium">No posts found for #{tag}</p>
+            <p className="text-xl font-medium">
+              {t('post.tag_feed.no_posts')} #{tag}
+            </p>
           </div>
         ) : (
           <Masonry

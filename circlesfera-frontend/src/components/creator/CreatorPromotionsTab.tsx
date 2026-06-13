@@ -14,6 +14,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type {
   CreatorPost,
   CreatorPromotion,
@@ -61,6 +62,7 @@ interface NewPromoModalProps {
 }
 
 function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [step, setStep] = useState<'select' | 'configure'>('select');
   const [selectedPost, setSelectedPost] = useState<CreatorPost | null>(null);
@@ -86,10 +88,10 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['creator', 'promotions'] });
-      onToast('Promoción creada', 'success');
+      onToast(t('creator.promotions.created'), 'success');
       onClose();
     },
-    onError: () => onToast('Error al crear promoción', 'error'),
+    onError: () => onToast(t('creator.promotions.error_create'), 'error'),
   });
 
   return (
@@ -113,11 +115,11 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
             <div>
               <h3 className="font-black text-white text-xl uppercase tracking-tight">
                 {step === 'select'
-                  ? 'Seleccionar Contenido'
-                  : 'Configurar Alcance'}
+                  ? t('creator.promotions.select_content')
+                  : t('creator.promotions.configure_reach')}
               </h3>
               <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mt-1">
-                Impulsa tu mejor contenido
+                {t('creator.promotions.boost_best')}
               </p>
             </div>
           </div>
@@ -168,14 +170,14 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
                     <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-60" />
                     <div className="absolute bottom-3 left-3 right-3 text-left">
                       <p className="text-white text-[10px] font-bold truncate">
-                        {post.caption || 'Sin título'}
+                        {post.caption || t('creator.promotions.untitled')}
                       </p>
                     </div>
                   </button>
                 ))
               ) : (
                 <p className="text-center text-zinc-600 py-12 col-span-2">
-                  No hay publicaciones disponibles
+                  {t('creator.promotions.no_posts')}
                 </p>
               )}
             </div>
@@ -196,14 +198,15 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-sm font-black truncate mb-1">
-                    {selectedPost?.caption || 'Publicación seleccionada'}
+                    {selectedPost?.caption ||
+                      t('creator.promotions.selected_post')}
                   </p>
                   <button
                     type="button"
                     onClick={() => setStep('select')}
                     className="text-[10px] font-black uppercase tracking-widest text-brand-primary hover:text-white transition-colors"
                   >
-                    Cambiar Pro publicación
+                    {t('creator.promotions.change_post')}
                   </button>
                 </div>
               </div>
@@ -211,7 +214,7 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
               {/* Budget */}
               <fieldset className="space-y-4 border-none p-0 m-0">
                 <legend className="block text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4">
-                  Presupuesto Diario (EUR)
+                  {t('creator.promotions.daily_budget', { currency: 'EUR' })}
                 </legend>
                 <div className="grid grid-cols-4 gap-3">
                   {[5, 10, 25, 50].map((v) => (
@@ -234,7 +237,7 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
               {/* Duration */}
               <fieldset className="space-y-4 border-none p-0 m-0">
                 <legend className="block text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4">
-                  Duración de Campaña
+                  {t('creator.promotions.campaign_duration')}
                 </legend>
                 <div className="grid grid-cols-4 gap-3">
                   {[3, 7, 14, 30].map((d) => (
@@ -248,7 +251,7 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
                           : 'bg-white/5 text-zinc-500 border-white/5 hover:bg-white/10'
                       }`}
                     >
-                      {d} Días
+                      {t('creator.promotions.days', { count: d })}
                     </button>
                   ))}
                 </div>
@@ -268,10 +271,14 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
             >
               {createMutation.isPending ? (
                 <span className="flex items-center justify-center gap-3">
-                  <Loader2 size={18} className="animate-spin" /> Procesando...
+                  <Loader2 size={18} className="animate-spin" />{' '}
+                  {t('creator.promotions.processing')}
                 </span>
               ) : (
-                `Impulsar por €${budget * duration} total`
+                t('creator.promotions.boost_total', {
+                  currency: '€',
+                  total: budget * duration,
+                })
               )}
             </button>
           </div>
@@ -288,6 +295,7 @@ interface Props {
 }
 
 export default function CreatorPromotionsTab({ onToast }: Props) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [showNewPromo, setShowNewPromo] = useState(false);
@@ -302,10 +310,10 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
     mutationFn: (id: string) => creatorApi.cancelPromotion(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['creator', 'promotions'] });
-      onToast('Promoción finalizada', 'success');
+      onToast(t('creator.promotions.finished'), 'success');
       setConfirmCancel(null);
     },
-    onError: () => onToast('Error al cancelar', 'error'),
+    onError: () => onToast(t('creator.promotions.error_cancel'), 'error'),
   });
 
   const activePromos = data?.data?.filter((p) => p.status === 'active') || [];
@@ -323,9 +331,9 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
       })
       .then(() => {
         queryClient.invalidateQueries({ queryKey: ['creator', 'promotions'] });
-        onToast('Campaña reiniciada', 'success');
+        onToast(t('creator.promotions.restarted'), 'success');
       })
-      .catch(() => onToast('Error al repetir', 'error'));
+      .catch(() => onToast(t('creator.promotions.error_repeat'), 'error'));
   };
 
   return (
@@ -334,10 +342,10 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h3 className="text-white font-black text-2xl uppercase tracking-tight">
-            Centro de Publicidad
+            {t('creator.promotions.center')}
           </h3>
           <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] mt-1 italic">
-            Performance Marketing para Creadores
+            {t('creator.promotions.marketing')}
           </p>
         </div>
         <button
@@ -346,7 +354,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
           className="flex items-center justify-center gap-3 px-8 py-4 bg-white text-black rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-white/5 hover:scale-[1.03] transition-all"
         >
           <Plus size={16} />
-          Nueva Campaña
+          {t('creator.promotions.new_campaign')}
         </button>
       </div>
 
@@ -365,18 +373,17 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             <TrendingUp size={48} className="text-brand-primary/40" />
           </div>
           <h4 className="text-white font-bold text-xl uppercase mb-2">
-            Sin campañas activas
+            {t('creator.promotions.no_active')}
           </h4>
           <p className="text-zinc-500 text-sm max-w-sm mx-auto mb-10 leading-relaxed">
-            Impulsa tus mejores publicaciones para llegar a miles de personas
-            nuevas y multiplicar tus seguidores.
+            {t('creator.promotions.boost_desc')}
           </p>
           <button
             type="button"
             onClick={() => setShowNewPromo(true)}
             className="px-10 py-4 bg-brand-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-brand-primary/20"
           >
-            Crear mi primera campaña
+            {t('creator.promotions.create_first')}
           </button>
         </div>
       ) : (
@@ -387,7 +394,9 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
               <div className="flex items-center gap-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
                 <h4 className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em]">
-                  En Curso ({activePromos.length})
+                  {t('creator.promotions.in_progress', {
+                    count: activePromos.length,
+                  })}
                 </h4>
               </div>
               <div className="grid grid-cols-1 gap-6">
@@ -421,17 +430,21 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                             <div>
                               <p className="text-white font-black text-lg tracking-tight mb-1">
                                 {promo.target?.caption ||
-                                  `Campaña ${promo.targetType}`}
+                                  t('creator.promotions.campaign', {
+                                    type: promo.targetType,
+                                  })}
                               </p>
                               <p className="text-zinc-500 text-[9px] font-black uppercase tracking-widest">
-                                Iniciada el {formatDate(promo.startDate)}
+                                {t('creator.promotions.started_on', {
+                                  date: formatDate(promo.startDate),
+                                })}
                               </p>
                             </div>
 
                             <div className="flex items-center gap-3">
                               <div className="text-right">
                                 <p className="text-zinc-500 text-[8px] font-black uppercase tracking-widest mb-1 italic text-right">
-                                  Inversión
+                                  {t('creator.promotions.investment')}
                                 </p>
                                 <p className="text-white font-black text-xl italic leading-none">
                                   {promo.budget} {promo.currency}
@@ -440,7 +453,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                               <div className="w-px h-8 bg-white/5" />
                               <div className="text-right">
                                 <p className="text-zinc-500 text-[8px] font-black uppercase tracking-widest mb-1 italic text-right">
-                                  Alcance Total
+                                  {t('creator.promotions.total_reach')}
                                 </p>
                                 <p className="text-brand-primary font-black text-xl italic leading-none">
                                   +{promo.reach.toLocaleString()}
@@ -453,10 +466,12 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                           <div className="space-y-3">
                             <div className="flex justify-between items-end">
                               <span className="text-zinc-400 text-[10px] font-black uppercase tracking-widest">
-                                Ejecución del Plan
+                                {t('creator.promotions.plan_execution')}
                               </span>
                               <span className="text-white text-xs font-black italic">
-                                {daysLeft} Días Restantes
+                                {t('creator.promotions.days_left', {
+                                  count: daysLeft,
+                                })}
                               </span>
                             </div>
                             <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
@@ -480,15 +495,15 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                                 className="flex-1 md:flex-none px-6 py-3 bg-rose-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-rose-600 transition disabled:opacity-40"
                               >
                                 {cancelMutation.isPending
-                                  ? 'Procesando...'
-                                  : 'Confirmar'}
+                                  ? t('creator.promotions.processing')
+                                  : t('creator.promotions.confirm')}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setConfirmCancel(null)}
                                 className="px-6 py-3 bg-white/5 text-zinc-500 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white/10 transition"
                               >
-                                No
+                                {t('creator.promotions.no')}
                               </button>
                             </div>
                           ) : (
@@ -497,7 +512,8 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                               onClick={() => setConfirmCancel(promo.id)}
                               className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white/5 text-zinc-500 hover:text-rose-400 hover:bg-rose-400/10 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-transparent hover:border-rose-400/20"
                             >
-                              <XCircle size={14} /> Detener
+                              <XCircle size={14} />{' '}
+                              {t('creator.promotions.stop')}
                             </button>
                           )}
                         </div>
@@ -514,7 +530,9 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             <div className="space-y-8 pt-8 border-t border-white/5">
               <h4 className="text-zinc-600 text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-3">
                 <CheckCircle2 size={12} />
-                Histórico de Campañas ({completedPromos.length})
+                {t('creator.promotions.completed_history', {
+                  count: completedPromos.length,
+                })}
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {completedPromos.map((promo) => (
@@ -535,12 +553,14 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-bold text-sm truncate mb-1">
-                        {promo.target?.caption || 'Campaña Finalizada'}
+                        {promo.target?.caption ||
+                          t('creator.promotions.completed_campaign')}
                       </p>
                       <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-widest text-zinc-500">
                         <span className="flex items-center gap-1">
                           <Zap size={10} className="text-brand-primary" />{' '}
-                          {promo.reach.toLocaleString()} Totales
+                          {promo.reach.toLocaleString()}{' '}
+                          {t('creator.promotions.total')}
                         </span>
                         <span className="flex items-center gap-1">
                           <DollarSign size={10} className="text-emerald-500" />{' '}

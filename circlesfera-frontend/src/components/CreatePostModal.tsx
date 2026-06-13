@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useCreatePost } from '../hooks/useCreatePost';
 import CaptionStep from './create-post/CaptionStep';
 import EditorOverlayManager from './create-post/EditorOverlayManager';
@@ -16,6 +17,7 @@ import MusicPicker from './MusicPicker';
 const STEP_ORDER = ['upload', 'edit', 'caption'] as const;
 
 export default function CreatePostModal() {
+  const { t } = useTranslation();
   const [showMusicPicker, setShowMusicPicker] = React.useState(false);
   const [stepDirection, setStepDirection] = React.useState(1);
   const [showStoryComposer, setShowStoryComposer] = React.useState(false);
@@ -97,16 +99,16 @@ export default function CreatePostModal() {
   // --- Computed Header Props ---
   const headerTitle =
     mode === 'STORY'
-      ? 'Add to Story'
+      ? t('createPost.header.add_to_story')
       : mode === 'FRAME'
-        ? 'New Frame'
-        : 'New Post';
+        ? t('createPost.header.new_frame')
+        : t('createPost.header.new_post');
 
   const nextLabel = (() => {
     if (step === 'caption' || (isStoryMode && step === 'edit')) {
-      return isPending ? null : 'Share';
+      return isPending ? null : t('createPost.header.share');
     }
-    return 'Next';
+    return t('createPost.header.next');
   })();
 
   const handleNext = () => {

@@ -2,6 +2,7 @@ import { startAuthentication } from '@simplewebauthn/browser';
 import { useMutation } from '@tanstack/react-query';
 import { Fingerprint, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import LayoutWrapper from '../layouts/LayoutWrapper';
 import { authApi, passkeyApi, profileApi } from '../services';
@@ -13,6 +14,7 @@ export default function Login() {
   const navigate = useNavigate();
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
   const setProfile = useAuthStore((state) => state.setProfile);
+  const { t } = useTranslation();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [passkeyLoading, setPasskeyLoading] = useState(false);
@@ -41,7 +43,7 @@ export default function Login() {
 
   const handlePasskeyLogin = async () => {
     if (!identifier) {
-      setError('Please enter your email or username first.');
+      setError(t('auth.login.no_identifier'));
       return;
     }
 
@@ -69,7 +71,7 @@ export default function Login() {
     } catch (err: unknown) {
       logger.error('Passkey authentication error:', err);
       const errorMessage =
-        err instanceof Error ? err.message : 'Authentication failed';
+        err instanceof Error ? err.message : t('auth.login.passkey_error');
       setError(errorMessage);
     } finally {
       setPasskeyLoading(false);
@@ -94,10 +96,10 @@ export default function Login() {
           <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-brand-secondary/20 rounded-full blur-3xl group-hover:bg-brand-secondary/30 transition-colors duration-700"></div>
 
           <h1 className="text-5xl font-black text-center mb-2 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-white via-white to-white/40">
-            CircleSfera
+            {t('auth.login.title')}
           </h1>
           <p className="text-gray-500 text-center font-medium mb-10 tracking-wide uppercase text-[11px]">
-            Welcome back, creator.
+            {t('auth.login.welcome')}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
@@ -106,7 +108,7 @@ export default function Login() {
                 htmlFor="identifier"
                 className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 px-1"
               >
-                Email or username
+                {t('auth.login.identifier_label')}
               </label>
               <input
                 id="identifier"
@@ -115,7 +117,7 @@ export default function Login() {
                 onChange={(e) => setIdentifier(e.target.value)}
                 required
                 className="w-full px-5 py-4 bg-white/3 border border-white/10 rounded-2xl focus:bg-white/[0.07] focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-lg"
-                placeholder="you@example.com"
+                placeholder={t('auth.login.identifier_placeholder')}
                 autoComplete="username"
               />
             </div>
@@ -125,7 +127,7 @@ export default function Login() {
                 htmlFor="password"
                 className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 px-1"
               >
-                Password
+                {t('auth.login.password_label')}
               </label>
               <input
                 id="password"
@@ -134,7 +136,7 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 className="w-full px-5 py-4 bg-white/3 border border-white/10 rounded-2xl focus:bg-white/[0.07] focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-lg"
-                placeholder="••••••••"
+                placeholder={t('auth.login.password_placeholder')}
                 autoComplete="current-password"
               />
             </div>
@@ -145,7 +147,7 @@ export default function Login() {
                 title="Forgot password"
                 className="text-xs font-bold text-gray-500 hover:text-white transition-colors"
               >
-                Forgot password?
+                {t('auth.login.forgot_password')}
               </Link>
             </div>
 
@@ -155,8 +157,7 @@ export default function Login() {
                   loginMutation.error as {
                     response?: { data?: { message?: string } };
                   }
-                )?.response?.data?.message ||
-                  'Invalid email, username or password'}
+                )?.response?.data?.message || t('auth.login.default_error')}
               </div>
             )}
 
@@ -173,13 +174,15 @@ export default function Login() {
                 disabled={loginMutation.isPending || passkeyLoading}
                 className="w-full bg-white text-black py-4 rounded-2xl font-black text-[15px] tracking-wide uppercase hover:bg-zinc-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_8px_30px_rgb(255,255,255,0.1)]"
               >
-                {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
+                {loginMutation.isPending
+                  ? t('auth.login.sign_in_loading')
+                  : t('auth.login.sign_in')}
               </button>
 
               <div className="relative flex items-center gap-4 py-4">
                 <div className="flex-1 h-px bg-white/5"></div>
                 <span className="text-[10px] font-black text-gray-600 uppercase tracking-[0.2em]">
-                  or
+                  {t('auth.login.or')}
                 </span>
                 <div className="flex-1 h-px bg-white/5"></div>
               </div>
@@ -193,12 +196,12 @@ export default function Login() {
                 {passkeyLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Verifying Identity...</span>
+                    <span>{t('auth.login.passkey_loading')}</span>
                   </>
                 ) : (
                   <>
                     <Fingerprint className="w-5 h-5 text-brand-primary group-hover:scale-110 transition-transform" />
-                    <span>Sign in with Passkey</span>
+                    <span>{t('auth.login.passkey_btn')}</span>
                   </>
                 )}
               </button>
@@ -206,12 +209,12 @@ export default function Login() {
           </form>
 
           <p className="mt-10 text-center text-gray-600 text-sm font-medium">
-            Don't have an account?{' '}
+            {t('auth.login.no_account')}{' '}
             <Link
               to="/accounts/emailsignup"
               className="text-white hover:text-brand-primary font-bold transition-colors ml-1"
             >
-              Sign up
+              {t('auth.login.sign_up_link')}
             </Link>
           </p>
         </div>

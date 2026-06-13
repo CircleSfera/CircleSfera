@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { AlertCircle, ArrowLeft, CheckCircle, Lock } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '../services';
 import type { ApiError } from '../types';
@@ -14,15 +15,16 @@ export default function ResetPassword() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const token = searchParams.get('token');
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
+      setError(t('auth.reset_password.error_mismatch'));
       return;
     }
     if (!token) {
-      setError('Token inválido o expirado');
+      setError(t('auth.reset_password.error_token'));
       return;
     }
 
@@ -36,7 +38,7 @@ export default function ResetPassword() {
     } catch (err: unknown) {
       setError(
         (err as ApiError).response?.data?.message ||
-          'Error al restablecer la contraseña.',
+          t('auth.reset_password.default_error'),
       );
     } finally {
       setLoading(false);
@@ -54,12 +56,15 @@ export default function ResetPassword() {
           <div className="bg-green-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-500" />
           </div>
-          <h1 className="text-2xl font-bold mb-4">Contraseña Actualizada</h1>
+          <h1 className="text-2xl font-bold mb-4">
+            {t('auth.reset_password.success_title')}
+          </h1>
           <p className="text-gray-400 mb-6">
-            Tu contraseña ha sido cambiada con éxito. Ya puedes iniciar sesión
-            con tus nuevas credenciales.
+            {t('auth.reset_password.success_desc')}
           </p>
-          <p className="text-xs text-gray-500">Redirigiendo...</p>
+          <p className="text-xs text-gray-500">
+            {t('auth.reset_password.redirecting')}
+          </p>
         </motion.div>
       </div>
     );
@@ -72,9 +77,11 @@ export default function ResetPassword() {
         animate={{ opacity: 1, y: 0 }}
         className="glass-panel p-8 rounded-2xl max-w-md w-full"
       >
-        <h1 className="text-2xl font-bold mb-2">Nueva Contraseña</h1>
+        <h1 className="text-2xl font-bold mb-2">
+          {t('auth.reset_password.title')}
+        </h1>
         <p className="text-gray-400 mb-8 text-sm">
-          Crea una nueva contraseña para tu cuenta de CircleSfera.
+          {t('auth.reset_password.subtitle')}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -83,7 +90,7 @@ export default function ResetPassword() {
               htmlFor="newPassword"
               className="text-xs font-bold text-gray-400 uppercase tracking-wider"
             >
-              Nueva Contraseña
+              {t('auth.reset_password.new_password')}
             </label>
             <div className="relative">
               <Lock
@@ -109,7 +116,7 @@ export default function ResetPassword() {
               htmlFor="confirmPassword"
               className="text-xs font-bold text-gray-400 uppercase tracking-wider"
             >
-              Confirmar Contraseña
+              {t('auth.reset_password.confirm_password')}
             </label>
             <div className="relative">
               <Lock
@@ -141,7 +148,9 @@ export default function ResetPassword() {
             disabled={loading}
             className="w-full bg-brand-primary py-3 rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50"
           >
-            {loading ? 'Actualizando...' : 'Cambiar Contraseña'}
+            {loading
+              ? t('auth.reset_password.submit_loading')
+              : t('auth.reset_password.submit')}
           </button>
         </form>
 
@@ -150,7 +159,7 @@ export default function ResetPassword() {
             to="/accounts/login"
             className="text-gray-400 hover:text-white inline-flex items-center gap-2 text-sm transition-colors"
           >
-            <ArrowLeft size={16} /> Cancelar y volver al login
+            <ArrowLeft size={16} /> {t('auth.reset_password.cancel')}
           </Link>
         </div>
       </motion.div>

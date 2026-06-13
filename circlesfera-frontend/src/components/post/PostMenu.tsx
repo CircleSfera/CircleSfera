@@ -1,5 +1,6 @@
 import { Bookmark, Flag, Pencil, Trash2 } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 interface PostMenuProps {
   showMenu: boolean;
@@ -22,6 +23,7 @@ export default function PostMenu({
   onReport,
   onAddToCollection,
 }: PostMenuProps) {
+  const { t } = useTranslation();
   if (!showMenu) return null;
 
   return createPortal(
@@ -43,7 +45,7 @@ export default function PostMenu({
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-white hover:bg-zinc-700 transition-colors"
           >
             <Pencil size={16} />
-            <span>Edit</span>
+            <span>{t('post.menu.edit')}</span>
           </button>
           <div className="mx-3 my-1 border-t border-zinc-600" />
           <button
@@ -52,7 +54,7 @@ export default function PostMenu({
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-zinc-700 transition-colors"
           >
             <Trash2 size={16} />
-            <span>Delete</span>
+            <span>{t('post.menu.delete')}</span>
           </button>
         </>
       ) : (
@@ -62,7 +64,7 @@ export default function PostMenu({
           className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-zinc-700 transition-colors"
         >
           <Flag size={16} />
-          <span>Report</span>
+          <span>{t('post.menu.report')}</span>
         </button>
       )}
       <div className="mx-3 my-1 border-t border-zinc-600" />
@@ -72,7 +74,7 @@ export default function PostMenu({
         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-white hover:bg-zinc-700 transition-colors"
       >
         <Bookmark size={16} />
-        <span>Save to Collection</span>
+        <span>{t('post.menu.save')}</span>
       </button>
     </div>,
     document.body,

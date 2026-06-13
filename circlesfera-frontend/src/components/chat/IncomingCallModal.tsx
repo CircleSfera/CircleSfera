@@ -1,11 +1,13 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Phone, Video, X } from 'lucide-react';
 import type React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useCallStore } from '../../stores/useCallStore';
 
 export const IncomingCallModal: React.FC = () => {
   const { status, remoteUser, callType, acceptCall, declineCall } =
     useCallStore();
+  const { t } = useTranslation();
 
   if (status !== 'incoming' || !remoteUser) return null;
 
@@ -40,7 +42,9 @@ export const IncomingCallModal: React.FC = () => {
             {remoteUser.profile.fullName || remoteUser.profile.username}
           </h2>
           <p className="text-gray-400 mb-8 animate-pulse text-sm">
-            Incoming {callType === 'video' ? 'video' : 'audio'} call...
+            {callType === 'video'
+              ? t('chat.incoming_video_call')
+              : t('chat.incoming_audio_call')}
           </p>
 
           <div className="flex gap-6 w-full justify-center">
@@ -54,7 +58,7 @@ export const IncomingCallModal: React.FC = () => {
                 <X size={28} />
               </div>
               <span className="text-[10px] uppercase tracking-wider font-bold text-gray-500 group-hover:text-red-400 transition-colors">
-                Decline
+                {t('chat.decline')}
               </span>
             </button>
 
@@ -68,7 +72,7 @@ export const IncomingCallModal: React.FC = () => {
                 <Check size={28} />
               </div>
               <span className="text-[10px] uppercase tracking-wider font-bold text-gray-500 group-hover:text-green-400 transition-colors">
-                Accept
+                {t('chat.accept')}
               </span>
             </button>
           </div>

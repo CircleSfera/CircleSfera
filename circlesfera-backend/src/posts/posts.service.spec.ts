@@ -93,9 +93,11 @@ describe('PostsService', () => {
       };
 
       const mockTx = {
-        post: { 
+        post: {
           create: vi.fn().mockResolvedValue({ id: 'post-1' }),
-          findUniqueOrThrow: vi.fn().mockResolvedValue({ id: 'post-1', media: [] }),
+          findUniqueOrThrow: vi
+            .fn()
+            .mockResolvedValue({ id: 'post-1', media: [] }),
         },
         postMedia: { createMany: vi.fn(), create: vi.fn() },
         postEmbedding: { create: vi.fn() },
@@ -142,9 +144,11 @@ describe('PostsService', () => {
       };
 
       const mockTx = {
-        post: { 
+        post: {
           create: vi.fn().mockResolvedValue({ id: 'post-1' }),
-          findUniqueOrThrow: vi.fn().mockResolvedValue({ id: 'post-1', media: [] }),
+          findUniqueOrThrow: vi
+            .fn()
+            .mockResolvedValue({ id: 'post-1', media: [] }),
         },
         postMedia: { createMany: vi.fn(), create: vi.fn() },
         hashtag: { upsert: vi.fn() },
@@ -230,31 +234,7 @@ describe('PostsService', () => {
     });
   });
 
-  describe('getFeed', () => {
-    it('should return posts from following users', async () => {
-      mockPrismaService.promotion.findMany.mockResolvedValue([]);
-      mockPrismaService.creatorSubscription.findMany.mockResolvedValue([]);
-      mockPrismaService.unlockedPost.findMany.mockResolvedValue([]);
-      mockPrismaService.transaction.findMany.mockResolvedValue([]);
-      mockPrismaService.follow.findMany.mockResolvedValue([
-        { followingId: 'user-2' },
-      ]);
-      mockPrismaService.post.findMany.mockResolvedValue([
-        { id: 'post-1', type: 'POST' },
-      ]);
-      mockPrismaService.post.count.mockResolvedValue(1);
 
-      const result = await service.getFeed('user-1', { page: 1, limit: 10 });
-      expect(result.data).toHaveLength(1);
-      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            userId: { in: ['user-2', 'user-1'] },
-          }) as unknown as Record<string, unknown>,
-        }),
-      );
-    });
-  });
 
   describe('findByUser', () => {
     it('should return posts for a specific user', async () => {

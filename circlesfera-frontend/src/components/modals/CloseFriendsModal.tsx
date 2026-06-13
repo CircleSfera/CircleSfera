@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Search, Star, X } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+
 import { useDebounce } from '../../hooks/useDebounce';
 import { api, closeFriendsApi } from '../../services';
 import type { UserWithProfile } from '../../types';
@@ -16,6 +18,7 @@ export default function CloseFriendsModal({
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<UserWithProfile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const { t } = useTranslation();
 
   // Fetch current close friends
   const { data: closeFriendsData, isLoading } = useQuery({
@@ -74,7 +77,7 @@ export default function CloseFriendsModal({
             <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
               <Star size={16} className="text-white fill-white" />
             </div>
-            Close Friends
+            {t('settings.close_friends_modal.title')}
           </h2>
           <button
             type="button"
@@ -93,7 +96,7 @@ export default function CloseFriendsModal({
             />
             <input
               type="text"
-              placeholder="Search..."
+              placeholder={t('settings.close_friends_modal.search')}
               value={searchTerm}
               onChange={handleSearch}
               className="w-full bg-[#363636] border-none rounded-lg py-2 pl-10 text-white placeholder-gray-500 focus:ring-0"
@@ -103,18 +106,20 @@ export default function CloseFriendsModal({
 
         <div className="flex-1 overflow-y-auto p-2">
           {isLoading ? (
-            <div className="p-4 text-center text-gray-400">Loading...</div>
+            <div className="p-4 text-center text-gray-400">
+              {t('settings.close_friends_modal.loading')}
+            </div>
           ) : (
             <div className="space-y-1">
               {/* If searching, show search results. Else show close friends list (or suggested) */}
               {searchTerm ? (
                 isSearching ? (
                   <div className="p-4 text-center text-gray-500">
-                    Searching...
+                    {t('settings.close_friends_modal.searching')}
                   </div>
                 ) : searchResults.length === 0 ? (
                   <div className="p-4 text-center text-gray-500">
-                    No users found
+                    {t('settings.close_friends_modal.no_users')}
                   </div>
                 ) : (
                   searchResults.map((user) => (
@@ -134,11 +139,10 @@ export default function CloseFriendsModal({
                         <Star size={32} className="text-gray-500" />
                       </div>
                       <h3 className="text-white font-medium mb-1">
-                        Close Friends List
+                        {t('settings.close_friends_modal.list_title')}
                       </h3>
                       <p className="text-gray-400 text-sm">
-                        We don't send notifications when you edit your close
-                        friends list.
+                        {t('settings.close_friends_modal.list_desc')}
                       </p>
                     </div>
                   )}
@@ -164,7 +168,7 @@ export default function CloseFriendsModal({
             onClick={onClose}
             className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-semibold transition"
           >
-            Done
+            {t('settings.close_friends_modal.done')}
           </button>
         </div>
       </div>

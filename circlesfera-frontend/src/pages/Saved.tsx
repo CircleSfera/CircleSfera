@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Bookmark } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import PostCard from '../components/PostCard';
 import { bookmarksApi } from '../services';
 
 export default function Saved() {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery({
     queryKey: ['bookmarks'],
     queryFn: () => bookmarksApi.getAll(1, 50),
@@ -23,7 +25,9 @@ export default function Saved() {
           >
             <ArrowLeft size={24} className="text-gray-400" />
           </Link>
-          <h1 className="text-xl font-bold text-white">Saved</h1>
+          <h1 className="text-xl font-bold text-white">
+            {t('collections.saved_title')}
+          </h1>
         </div>
 
         {isLoading ? (
@@ -34,11 +38,9 @@ export default function Saved() {
           <div className="text-center py-16">
             <Bookmark size={64} className="mx-auto mb-4 text-gray-600" />
             <h2 className="text-xl font-semibold text-white mb-2">
-              No saved posts yet
+              {t('collections.no_saved')}
             </h2>
-            <p className="text-gray-400">
-              Save posts to view them later by tapping the bookmark icon.
-            </p>
+            <p className="text-gray-400">{t('collections.no_saved_desc')}</p>
           </div>
         ) : (
           <div className="space-y-6">

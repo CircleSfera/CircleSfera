@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { ShieldCheck } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Toast } from '../components/admin';
 import {
   AdminSidebar,
@@ -27,6 +28,7 @@ import { useAuthStore } from '../stores/authStore';
 // Removed old TABS constant as it's now handled by AdminSidebar
 
 export default function Admin() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<Tab>('analytics');
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -44,10 +46,10 @@ export default function Admin() {
       <header className="mb-6 flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-black text-white tracking-tight">
-            Panel de Administración
+            {t('admin.panel')}
           </h1>
           <p className="text-gray-500 mt-0.5 text-xs">
-            Gestión y moderación de CircleSfera
+            {t('admin.description')}
           </p>
         </div>
         <AdminBadge />
@@ -101,6 +103,7 @@ export default function Admin() {
 }
 
 function AdminBadge() {
+  const { t } = useTranslation();
   const { profile } = useAuthStore();
   if (!profile) return null;
 
@@ -108,7 +111,7 @@ function AdminBadge() {
     <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-brand-primary/5 border border-brand-primary/20 rounded-xl">
       <ShieldCheck size={16} className="text-brand-primary" />
       <span className="text-sm text-gray-400">
-        Conectado como{' '}
+        {t('admin.connected_as')}{' '}
         <span className="text-brand-primary font-bold">
           @{profile.username}
         </span>

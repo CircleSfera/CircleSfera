@@ -1,4 +1,5 @@
 import { ChevronLeft, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import ProgressStepper from './ProgressStepper';
 
 interface HeaderProps {
@@ -22,6 +23,7 @@ export default function Header({
   step,
   mode,
 }: HeaderProps) {
+  const { t } = useTranslation();
   return (
     <div className="px-4 pt-4 pb-0 z-30 shrink-0">
       {/* Top bar: Back + Title + Action */}
@@ -50,7 +52,7 @@ export default function Header({
             px-4 py-1.5 rounded-xl font-bold text-sm transition-all duration-200
             disabled:opacity-30 disabled:cursor-not-allowed
             ${
-              nextLabel === 'Share'
+              nextLabel === t('createPost.header.share')
                 ? 'bg-linear-to-r from-brand-primary to-brand-blue text-white shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/30 active:scale-95'
                 : 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/10'
             }

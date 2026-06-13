@@ -2,6 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Check, Search, Send } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { chatApi } from '../../services';
 import type { Conversation, Participant, Post } from '../../types';
 import { logger } from '../../utils/logger';
@@ -17,6 +18,7 @@ export default function SharePostModal({
   onClose,
   post,
 }: SharePostModalProps) {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
@@ -36,7 +38,9 @@ export default function SharePostModal({
       return chatApi.sendMessage({
         conversationId,
         recipientId,
-        content: `Shared a post: ${post.caption?.substring(0, 30) || 'Post'}`,
+        content: t('modals.share.shared_post', {
+          preview: post.caption?.substring(0, 30) || 'Post',
+        }),
         postId: post.id,
       });
     },
@@ -84,7 +88,7 @@ export default function SharePostModal({
           <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-brand-primary via-brand-secondary to-brand-accent opacity-80" />
           <div className="flex items-center justify-between">
             <h3 className="text-xl font-bold text-white tracking-tight">
-              Share to...
+              {t('modals.share.share_to')}
             </h3>
             <button
               type="button"
@@ -104,7 +108,7 @@ export default function SharePostModal({
             />
             <input
               type="text"
-              placeholder="Search conversations..."
+              placeholder={t('modals.share.search_conversations')}
               className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 outline-none focus:border-brand-primary/50"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -167,14 +171,14 @@ export default function SharePostModal({
                       ) : (
                         <Send size={16} className="inline mr-1" />
                       )}
-                      {isSent ? 'Sent' : 'Send'}
+                      {isSent ? t('modals.share.sent') : t('modals.share.send')}
                     </button>
                   </div>
                 );
               })
             ) : (
               <div className="text-center py-8 text-gray-500 text-sm">
-                No conversations found
+                {t('modals.share.no_conversations')}
               </div>
             )}
           </div>
@@ -186,7 +190,7 @@ export default function SharePostModal({
             onClick={onClose}
             className="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm font-semibold transition-colors"
           >
-            Done
+            {t('modals.share.done')}
           </button>
         </div>
       </motion.div>

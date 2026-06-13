@@ -8,51 +8,53 @@ import {
   ShieldCheck,
   Zap,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import logoSrc from '../assets/logo.png';
 import SEO from '../components/common/SEO';
 import { useAuthStore } from '../stores/authStore';
 
-const sections = [
-  {
-    id: 'overview',
-    title: '1. Overview',
-    icon: Eye,
-    content: `At CircleSfera, we value your privacy above all. This policy outlines how we collect, use, and protect your data as a provider of a refined social networking experience and creator tools. We are committed to transparency and security in every interaction.`,
-    color: 'brand-blue',
-  },
-  {
-    id: 'collection',
-    title: '2. Data We Collect',
-    icon: Database,
-    content: `To provide our service, we collect Account Information (email, credentials), Profile Data (uploaded media, bios), and Billing Information. Billing details are processed securely by Stripe; CircleSfera never stores full card numbers on its servers.`,
-    color: 'brand-primary',
-  },
-  {
-    id: 'usage',
-    title: '3. Data Usage',
-    icon: Zap,
-    content: `Your data is used exclusively to maintain your social experience and process subscriptions. Under our SaaS model, we do not facilitate peer-to-peer money transfers or third-party marketplace settlements, ensuring your data stays within our secure ecosystem.`,
-    color: 'brand-accent',
-  },
-  {
-    id: 'security',
-    title: '4. Absolute Security',
-    icon: ShieldCheck,
-    content: `CircleSfera employs industry-standard encryption and security protocols to safeguard your universe. All financial transactions are handled by Stripe, a PCI-compliant payment provider, ensuring the highest level of trust.`,
-    color: 'emerald-500',
-  },
-  {
-    id: 'contact',
-    title: '5. Legal Contact',
-    icon: AtSign,
-    content: `For any privacy concerns or data requests, our specialized legal team is ready to assist. Contact us directly at legal@circlesfera.com for comprehensive support regarding your digital rights.`,
-    color: 'brand-secondary',
-  },
-];
-
 export default function PrivacyPolicy() {
+  const { t } = useTranslation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  const sections = [
+    {
+      id: 'overview',
+      title: t('legal.privacy.sections.s1_title'),
+      icon: Eye,
+      content: t('legal.privacy.sections.s1_content'),
+      color: 'brand-blue',
+    },
+    {
+      id: 'collection',
+      title: t('legal.privacy.sections.s2_title'),
+      icon: Database,
+      content: t('legal.privacy.sections.s2_content'),
+      color: 'brand-primary',
+    },
+    {
+      id: 'usage',
+      title: t('legal.privacy.sections.s3_title'),
+      icon: Zap,
+      content: t('legal.privacy.sections.s3_content'),
+      color: 'brand-accent',
+    },
+    {
+      id: 'security',
+      title: t('legal.privacy.sections.s4_title'),
+      icon: ShieldCheck,
+      content: t('legal.privacy.sections.s4_content'),
+      color: 'emerald-500',
+    },
+    {
+      id: 'contact',
+      title: t('legal.privacy.sections.s5_title'),
+      icon: AtSign,
+      content: t('legal.privacy.sections.s5_content'),
+      color: 'brand-secondary',
+    },
+  ];
 
   const scrollTo = (id: string) => {
     document
@@ -62,7 +64,7 @@ export default function PrivacyPolicy() {
 
   return (
     <div className="min-h-screen bg-[#030303] text-white pt-24 pb-24 px-6 font-sans relative overflow-hidden selection:bg-brand-primary/30">
-      <SEO title="Privacy Policy - CircleSfera" />
+      <SEO title={t('legal.privacy.title')} />
 
       {/* Background is now handled globally by LayoutWrapper */}
 
@@ -70,7 +72,11 @@ export default function PrivacyPolicy() {
       {!isAuthenticated && (
         <nav className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5 px-6 py-3 flex justify-between items-center backdrop-blur-xl bg-black/20">
           <Link to="/" className="flex items-center gap-2.5">
-            <img src={logoSrc} alt="CircleSfera" className="h-8 w-auto object-contain" />
+            <img
+              src={logoSrc}
+              alt="CircleSfera"
+              className="h-8 w-auto object-contain"
+            />
             <span className="text-lg font-black tracking-tight bg-clip-text text-transparent bg-linear-to-r from-white via-white to-white/40">
               CircleSfera
             </span>
@@ -80,13 +86,13 @@ export default function PrivacyPolicy() {
               to="/accounts/login"
               className="text-xs font-semibold text-white/70 hover:text-white transition-colors tracking-wide uppercase"
             >
-              Log In
+              {t('legal.nav.log_in')}
             </Link>
             <Link
               to="/accounts/emailsignup"
               className="px-5 py-2 text-xs font-bold bg-white text-black rounded-full hover:bg-white/90 transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.15)]"
             >
-              Sign Up
+              {t('legal.nav.sign_up')}
             </Link>
           </div>
         </nav>
@@ -99,12 +105,10 @@ export default function PrivacyPolicy() {
             <div className="sticky top-28 space-y-6">
               <div>
                 <span className="text-brand-primary font-black text-[9px] tracking-[0.3em] uppercase mb-3 block">
-                  Privacy Hub
+                  {t('legal.badges.privacy_hub')}
                 </span>
                 <h1 className="text-3xl font-black tracking-tighter italic uppercase leading-tight">
-                  Data
-                  <br />
-                  Protection
+                  {t('legal.privacy.header_title')}
                 </h1>
               </div>
 
@@ -136,9 +140,7 @@ export default function PrivacyPolicy() {
               <div className="p-5 glass-panel rounded-2xl border border-white/5 bg-white/1">
                 <Gavel className="text-brand-primary mb-2" size={20} />
                 <p className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest leading-relaxed italic">
-                  Tu privacidad es la piedra angular de nuestro ecosistema
-                  social. Implementamos arquitectura de seguridad de grado
-                  militar para proteger cada bit.
+                  {t('legal.quotes.privacy')}
                 </p>
               </div>
             </div>
@@ -155,12 +157,10 @@ export default function PrivacyPolicy() {
               {/* Mobile Header (Hidden on LG) */}
               <div className="lg:hidden mb-8 text-center pt-8">
                 <span className="text-brand-primary font-black text-[9px] tracking-[0.3em] uppercase mb-3 block">
-                  Legal Center
+                  {t('legal.badges.legal_center')}
                 </span>
-                <h1 className="text-4xl font-black tracking-tighter italic uppercase leading-tight">
-                  Privacy
-                  <br />
-                  Policy
+                <h1 className="text-3xl font-black tracking-tighter italic uppercase leading-tight">
+                  {t('legal.privacy.header_title')}
                 </h1>
               </div>
 
@@ -210,8 +210,7 @@ export default function PrivacyPolicy() {
                   />
                 </div>
                 <p className="text-zinc-500 text-[8px] uppercase font-black tracking-[0.2em] text-center italic">
-                  Last Updated: April 2026 • Tiered Data Protection •
-                  CircleSfera Security Hub
+                  {t('legal.last_updated.privacy')}
                 </p>
               </div>
             </motion.div>

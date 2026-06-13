@@ -19,25 +19,26 @@ export interface CallUser {
   };
 }
 
-interface CallState {
+export interface CallState {
   status: CallStatus;
-  callType: CallType | null;
   remoteUser: CallUser | null;
+  callType: CallType | null;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
+  isScreenSharing: boolean;
 
-  // Actions
+  setIncomingCall: (user: CallUser, type: CallType) => void;
+  acceptCall: () => void;
+  declineCall: () => void;
+  endCall: () => void;
   initiateCall: (
     targetUserId: string,
     type: CallType,
     remoteUser: CallUser,
   ) => void;
-  setIncomingCall: (caller: CallUser, type: CallType) => void;
-  acceptCall: () => void;
-  declineCall: () => void;
-  endCall: () => void;
   setLocalStream: (stream: MediaStream | null) => void;
   setRemoteStream: (stream: MediaStream | null) => void;
+  setIsScreenSharing: (isScreenSharing: boolean) => void;
   resetCall: () => void;
 }
 
@@ -47,6 +48,7 @@ export const useCallStore = create<CallState>((set, get) => ({
   remoteUser: null,
   localStream: null,
   remoteStream: null,
+  isScreenSharing: false,
 
   initiateCall: (targetUserId, type, remoteUser) => {
     const socket = useSocketStore.getState().socket;
@@ -95,6 +97,7 @@ export const useCallStore = create<CallState>((set, get) => ({
 
   setLocalStream: (stream) => set({ localStream: stream }),
   setRemoteStream: (stream) => set({ remoteStream: stream }),
+  setIsScreenSharing: (isScreenSharing) => set({ isScreenSharing }),
 
   resetCall: () => {
     // Stop all tracks
@@ -109,6 +112,7 @@ export const useCallStore = create<CallState>((set, get) => ({
       remoteUser: null,
       localStream: null,
       remoteStream: null,
+      isScreenSharing: false,
     });
   },
 }));

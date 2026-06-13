@@ -15,6 +15,7 @@ import {
   User,
 } from 'lucide-react';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import logoSrc from '../../assets/logo.png';
 import { chatApi, notificationsApi } from '../../services';
@@ -33,6 +34,7 @@ export default function Sidebar() {
   const setUnreadMessagesCount = useNotificationsStore(
     (state) => state.setUnreadMessagesCount,
   );
+  const { t } = useTranslation();
 
   // Fetch unread notification count
   const { data: unreadData } = useQuery({
@@ -66,31 +68,31 @@ export default function Sidebar() {
   const isProfileActive = profile?.username && path === `/${profile.username}`;
 
   const navItems = [
-    { icon: Home, label: 'Home', to: '/', badge: 0 },
-    { icon: Search, label: 'Search', to: '/explore', badge: 0 },
-    { icon: Clapperboard, label: 'Frames', to: '/frames', badge: 0 },
-    { icon: PlusSquare, label: 'Create', to: '/create', badge: 0 },
+    { icon: Home, label: t('nav.home'), to: '/', badge: 0 },
+    { icon: Search, label: t('nav.search'), to: '/explore', badge: 0 },
+    { icon: Clapperboard, label: t('nav.frames'), to: '/frames', badge: 0 },
+    { icon: PlusSquare, label: t('nav.create'), to: '/create', badge: 0 },
     {
       icon: MessageCircle,
-      label: 'Messages',
+      label: t('nav.messages'),
       to: '/direct/inbox',
       badge: unreadMessagesCount,
     },
     {
       icon: Heart,
-      label: 'Notifications',
+      label: t('nav.notifications'),
       to: '/activity',
       badge: unreadCount,
     },
-    { icon: Bookmark, label: 'Saved', to: '/saved', badge: 0 },
+    { icon: Bookmark, label: t('nav.saved'), to: '/saved', badge: 0 },
     {
       icon: BarChart3,
-      label: 'Creator Studio',
+      label: t('nav.creator_studio'),
       to: '/creator',
       badge: 0,
       roles: ['CREATOR', 'BUSINESS'],
     },
-    { icon: User, label: 'Profile', to: profileUrl, badge: 0 },
+    { icon: User, label: t('nav.profile'), to: profileUrl, badge: 0 },
   ].filter(
     (item) =>
       !item.roles || item.roles.includes(profile?.accountType || 'PERSONAL'),
@@ -122,7 +124,7 @@ export default function Sidebar() {
       <nav className="flex-1 px-3 space-y-2">
         {navItems.map((item) => {
           const isActive =
-            item.label === 'Profile'
+            item.label === t('nav.profile')
               ? isProfileActive
               : path === item.to ||
                 (item.to !== '/' && path.startsWith(item.to));
@@ -179,7 +181,7 @@ export default function Sidebar() {
             className="drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]"
           />
           <span className="hidden xl:block text-md font-bold tracking-wide">
-            Premium
+            {t('nav.premium')}
           </span>
         </Link>
 
@@ -189,7 +191,7 @@ export default function Sidebar() {
           className="flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-all duration-200"
         >
           <Settings size={26} />
-          <span className="hidden xl:block text-md">Settings</span>
+          <span className="hidden xl:block text-md">{t('nav.settings')}</span>
         </Link>
 
         {/* Logout Button */}
@@ -200,7 +202,7 @@ export default function Sidebar() {
           className="w-full flex items-center gap-4 p-3 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200"
         >
           <LogOut size={26} />
-          <span className="hidden xl:block text-md">Log out</span>
+          <span className="hidden xl:block text-md">{t('nav.log_out')}</span>
         </button>
       </div>
     </div>

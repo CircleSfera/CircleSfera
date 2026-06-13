@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type { ChangeEvent, MutableRefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { CreateMode } from '../../hooks/useCreatePost';
 
 interface UploadStepProps {
@@ -62,17 +63,25 @@ export default function UploadStep({
   setMode,
   onTextStory,
 }: UploadStepProps) {
+  const { t } = useTranslation();
   const [isDragging, setIsDragging] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
   const dragCounter = useRef(0);
+
   const config = MODE_CONFIG[mode];
+  const translatedConfig = {
+    ...config,
+    label: t(`createPost.upload.${mode.toLowerCase()}`),
+    description: t(`createPost.upload.${mode.toLowerCase()}_desc`),
+    hint: t(`createPost.upload.${mode.toLowerCase()}_hint`),
+  };
 
   // Update accepted file types on native input based on mode
   useEffect(() => {
     if (fileInputRef.current) {
-      fileInputRef.current.accept = config.accept;
+      fileInputRef.current.accept = translatedConfig.accept;
     }
-  }, [config.accept, fileInputRef]);
+  }, [translatedConfig.accept, fileInputRef]);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -127,7 +136,7 @@ export default function UploadStep({
       <AnimatePresence mode="wait">
         <motion.div
           key={mode}
-          className={`absolute inset-0 bg-radial-[at_50%_30%] ${config.gradient} to-transparent pointer-events-none`}
+          className={`absolute inset-0 bg-radial-[at_50%_30%] ${translatedConfig.gradient} to-transparent pointer-events-none`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -154,7 +163,7 @@ export default function UploadStep({
             border-2 border-dashed transition-colors duration-300 cursor-pointer
             ${
               isDragging
-                ? `${config.borderAccent} bg-white/4`
+                ? `${translatedConfig.borderAccent} bg-white/4`
                 : 'border-white/8 hover:border-white/15 bg-white/2 hover:bg-white/3'
             }
           `}
@@ -177,7 +186,7 @@ export default function UploadStep({
             className={`
               w-20 h-20 rounded-[22px] flex items-center justify-center
               bg-linear-to-br from-white/6 to-white/2
-              border border-white/8 ${config.glowColor} shadow-lg
+              border border-white/8 ${translatedConfig.glowColor} shadow-lg
             `}
             animate={{
               y: isDragging ? -8 : 0,
@@ -196,11 +205,11 @@ export default function UploadStep({
                 {isDragging ? (
                   <ArrowUpFromLine
                     size={36}
-                    className={config.accent}
+                    className={translatedConfig.accent}
                     strokeWidth={1.5}
                   />
                 ) : (
-                  <config.icon
+                  <translatedConfig.icon
                     size={36}
                     className="text-white/40"
                     strokeWidth={1.5}
@@ -221,10 +230,14 @@ export default function UploadStep({
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.2 }}
               >
-                {isDragging ? 'Drop files here' : 'Drag photos and videos here'}
+                {isDragging
+                  ? t('createPost.upload.drop_files')
+                  : t('createPost.upload.drag_files')}
               </motion.p>
             </AnimatePresence>
-            <p className="text-xs text-white/30 font-medium">{config.hint}</p>
+            <p className="text-xs text-white/30 font-medium">
+              {translatedConfig.hint}
+            </p>
           </div>
 
           {/* Upload Button */}
@@ -240,7 +253,7 @@ export default function UploadStep({
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
           >
-            Select from device
+            {t('createPost.upload.select_device')}
           </motion.button>
 
           {/* Camera Quick Action (hidden on desktop) */}
@@ -261,7 +274,7 @@ export default function UploadStep({
             }}
             className="flex items-center gap-2 text-xs text-white/30 hover:text-white/50 transition-colors font-medium md:hidden"
           >
-            <Camera size={14} /> Take a photo
+            <Camera size={14} /> {t('createPost.upload.take_photo')}
           </button>
 
           {/* Drag overlay shimmer effect */}
@@ -299,10 +312,10 @@ export default function UploadStep({
               </div>
               <div className="text-left">
                 <p className="text-sm font-bold text-white/90 group-hover:text-white transition-colors">
-                  Create Text Story
+                  {t('createPost.upload.create_text_story')}
                 </p>
                 <p className="text-[10px] text-white/30 font-medium">
-                  Backgrounds, text & stickers
+                  {t('createPost.upload.create_text_story_desc')}
                 </p>
               </div>
             </motion.button>
@@ -315,7 +328,7 @@ export default function UploadStep({
         ref={fileInputRef}
         type="file"
         multiple
-        accept={config.accept}
+        accept={translatedConfig.accept}
         className="hidden"
         onChange={handleFileSelect}
       />
@@ -358,7 +371,7 @@ export default function UploadStep({
                       isActive ? 'text-white' : 'text-white/30'
                     }`}
                   >
-                    {cfg.label}
+                    {t(`createPost.upload.${cfg.label.toLowerCase()}`)}
                   </span>
                 </button>
               );

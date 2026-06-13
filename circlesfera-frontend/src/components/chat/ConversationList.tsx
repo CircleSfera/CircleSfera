@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Edit, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { apiClient } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
@@ -17,6 +18,7 @@ export default function ConversationList() {
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const { profile: me } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
+  const { t } = useTranslation();
 
   const { socket, userStatuses } = useSocketStore();
 
@@ -95,7 +97,7 @@ export default function ConversationList() {
     return (
       <div className="flex flex-col h-full bg-black/95 border-r border-white/10 items-center justify-center space-y-4">
         <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-        <p className="text-sm text-gray-500 font-medium">Loading chats...</p>
+        <p className="text-sm text-gray-500 font-medium">{t('chat.loading')}</p>
       </div>
     );
   }
@@ -106,7 +108,7 @@ export default function ConversationList() {
       <div className="p-5 flex flex-col gap-5 bg-zinc-950/40 backdrop-blur-2xl sticky top-0 z-10 border-b border-white/5">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-black tracking-tighter text-white">
-            Messages
+            {t('chat.messages')}
           </h2>
           <motion.button
             type="button"
@@ -132,7 +134,7 @@ export default function ConversationList() {
           </div>
           <input
             type="text"
-            placeholder="Search messages..."
+            placeholder={t('chat.search')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-black/20 text-sm text-white rounded-2xl py-3 pl-10 pr-4 border-2 border-white/5 focus:border-blue-500/40 focus:ring-4 focus:ring-blue-500/5 outline-none placeholder-gray-600 transition-all font-medium"
@@ -157,10 +159,10 @@ export default function ConversationList() {
               </div>
               <div>
                 <h3 className="text-base font-semibold text-white">
-                  No messages yet
+                  {t('chat.no_messages')}
                 </h3>
                 <p className="text-xs text-gray-500 max-w-[180px] mx-auto mt-1 leading-relaxed">
-                  Start connecting with your friends.
+                  {t('chat.start_connecting')}
                 </p>
               </div>
               <motion.button
@@ -170,7 +172,7 @@ export default function ConversationList() {
                 onClick={() => setIsNewChatOpen(true)}
                 className="px-5 py-2 bg-white text-black text-sm font-semibold rounded-full hover:bg-gray-100 transition-colors"
               >
-                Send Message
+                {t('chat.send_message')}
               </motion.button>
             </motion.div>
           ) : (
@@ -246,17 +248,23 @@ export default function ConversationList() {
                           {lastMsg ? (
                             <>
                               {lastMsg.senderId === me?.userId && (
-                                <span className="mr-1 opacity-70">You:</span>
+                                <span className="mr-1 opacity-70">
+                                  {t('chat.you')}
+                                </span>
                               )}
-                              {renderMessageContent(lastMsg)}
+                              {renderMessageContent(lastMsg, t)}
                             </>
                           ) : (
-                            <span className="italic opacity-50">Draft</span>
+                            <span className="italic opacity-50">
+                              {t('chat.draft')}
+                            </span>
                           )}
-                          {lastMsg?.content ||
-                            (lastMsg?.url
-                              ? 'Media Attachment'
-                              : 'Started a chat')}
+                          {!lastMsg?.content &&
+                            lastMsg?.url &&
+                            t('chat.media_attachment')}
+                          {!lastMsg?.content &&
+                            !lastMsg?.url &&
+                            t('chat.started_chat')}
                         </p>
                         {isUnread && !isActive && (
                           <motion.div
@@ -292,9 +300,9 @@ function getTimeString(dateStr: string | Date) {
   return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-function renderMessageContent(msg: Message) {
-  if (msg.mediaType === 'audio') return 'Sent a voice message';
-  if (msg.mediaType === 'image') return 'Sent an image';
-  if (msg.url) return 'Sent an attachment';
+function renderMessageContent(msg: Message, t: any) {
+  if (msg.mediaType === 'audio') return t('chat.sent_voice');
+  if (msg.mediaType === 'image') return t('chat.sent_image');
+  if (msg.url) return t('chat.sent_attachment');
   return msg.content;
 }

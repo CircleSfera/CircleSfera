@@ -16,6 +16,7 @@ describe('StoriesService', () => {
     },
     follow: {
       findMany: vi.fn(),
+      findUnique: vi.fn(),
     },
     profile: {
       findUnique: vi.fn(),
@@ -26,6 +27,12 @@ describe('StoriesService', () => {
     storyView: {
       findUnique: vi.fn(),
       create: vi.fn(),
+      findMany: vi.fn(),
+    },
+    storyReaction: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
       findMany: vi.fn(),
     },
   };
@@ -135,5 +142,68 @@ describe('StoriesService', () => {
         where: { id: 'story-1', userId: 'user-1' },
       });
     });
-  });
-});
+    describe('findByUser', () => {
+      it('should return empty if user not found', async () => {
+        mockPrismaService.profile.findUnique.mockResolvedValue(null);
+        const result = await service.findByUser('unknown');
+        expect(result).toEqual([]);
+      });
+
+      it('should return stories for public user', async () => {
+        mockPrismaService.profile.findUnique.mockResolvedValue({ userId: 'u1', user: { settings: { privacyLevel: 'PUBLIC' } } });
+        mockPrismaService.story.findMany.mockResolvedValue([{ id: 's1', views: [] }]);
+
+        const result = await service.findByUser('user1');
+        expect(result).toHaveLength(1);
+      });
+
+      it('should return empty for private user if not following', async () => {
+        mockPrismaService.profile.findUnique.mockResolvedValue({ userId: 'u1', user: { settings: { privacyLevel: 'PRIVATE' } } });
+        mockPrismaService.follow.findUnique.mockResolvedValue(null);
+
+        const result = await service.findByUser('user1', 'u2');
+        expect(result).toEqual([]);
+      });
+    });
+
+    describe('getArchive', () => {
+      it('should return all stories for the user', async () => {
+        mockPrismaService.story.findMany.mockResolvedValue([{ id: 's1' }, { id: 's2' }]);
+        const result = await service.getArchive('u1');
+        expect(result).toHaveLength(2);
+      });
+    });
+
+    describe('getViews', () => {
+      it('should return users who viewed the story', async () => {
+        mockPrismaService.storyView.findMany.mockResolvedValue([{ viewer: { id: 'u1' } }]);
+        const result = await service.getViews('s1');
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe('u1');
+      });
+    });
+
+    describe('addReaction', () => {
+      it('should create new reaction', async () => {
+        mockPrismaService.storyReaction.findUnique.mockResolvedValue(null);
+        mockPrismaService.storyReaction.create.mockResolvedValue({ id: 'r1' });
+        const result = await service.addReaction('s1', 'u1', '👍');
+        expect(result.id).toBe('r1');
+      });
+
+      it('should update existing reaction', async () => {
+        mockPrismaService.storyReaction.findUnique.mockResolvedValue({ id: 'r1' });
+        mockPrismaService.storyReaction.update.mockResolvedValue({ id: 'r1', reaction: '🔥' });
+        const result = await service.addReaction('s1', 'u1', '🔥');
+        expect(mockPrismaService.storyReaction.update).toHaveBeenCalled();
+      });
+    });
+
+    describe('getReactions', () => {
+      it('should return all reactions for the story', async () => {
+        mockPrismaService.storyReaction.findMany.mockResolvedValue([{ id: 'r1' }]);
+        const result = await service.getReactions('s1');
+        expect(result).toHaveLength(1);
+      });
+    });
+  });});

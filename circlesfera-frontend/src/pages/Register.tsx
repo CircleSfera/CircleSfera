@@ -1,7 +1,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import LayoutWrapper from '../layouts/LayoutWrapper';
 import { authApi, profileApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
@@ -11,13 +12,25 @@ export default function Register() {
   const navigate = useNavigate();
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
   const setProfile = useAuthStore((state) => state.setProfile);
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
+  const [searchParams] = useSearchParams();
+  const [inviteCode, setInviteCode] = useState(
+    searchParams.get('inviteCode') || '',
+  );
 
   const registerMutation = useMutation({
-    mutationFn: () => authApi.register({ email, password, username, fullName }),
+    mutationFn: () =>
+      authApi.register({
+        email,
+        password,
+        username,
+        fullName,
+        inviteCode: inviteCode || undefined,
+      }),
     onSuccess: async () => {
       setAuthenticated();
       // Fetch and store user profile after registration
@@ -27,10 +40,7 @@ export default function Register() {
       } catch (error) {
         logger.error('Failed to fetch profile:', error);
       }
-      toast.success(
-        'Account created successfully! Please check your email to verify your account.',
-        { duration: 5000 },
-      );
+      toast.success(t('auth.register.success'), { duration: 5000 });
       navigate('/');
     },
   });
@@ -52,10 +62,10 @@ export default function Register() {
           <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-brand-secondary/20 rounded-full blur-3xl group-hover:bg-brand-secondary/30 transition-colors duration-700"></div>
 
           <h1 className="text-5xl font-black text-center mb-2 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-white via-white to-white/40">
-            CircleSfera
+            {t('auth.register.title')}
           </h1>
           <p className="text-gray-500 text-center font-medium mb-10 tracking-wide uppercase text-[11px]">
-            Join the inner circle.
+            {t('auth.register.subtitle')}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
@@ -64,7 +74,7 @@ export default function Register() {
                 htmlFor="email"
                 className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 px-1"
               >
-                Email
+                {t('auth.register.email_label')}
               </label>
               <input
                 id="email"
@@ -73,7 +83,7 @@ export default function Register() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full px-5 py-3.5 bg-white/3 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none"
-                placeholder="you@example.com"
+                placeholder={t('auth.register.email_placeholder')}
                 autoComplete="email"
               />
             </div>
@@ -83,7 +93,7 @@ export default function Register() {
                 htmlFor="username"
                 className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 px-1"
               >
-                Username
+                {t('auth.register.username_label')}
               </label>
               <input
                 id="username"
@@ -92,7 +102,7 @@ export default function Register() {
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 className="w-full px-5 py-3.5 bg-white/3 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none"
-                placeholder="johndoe"
+                placeholder={t('auth.register.username_placeholder')}
                 autoComplete="username"
               />
             </div>
@@ -102,7 +112,7 @@ export default function Register() {
                 htmlFor="fullName"
                 className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 px-1"
               >
-                Full Name
+                {t('auth.register.fullname_label')}
               </label>
               <input
                 id="fullName"
@@ -110,7 +120,7 @@ export default function Register() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="w-full px-5 py-3.5 bg-white/3 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none"
-                placeholder="John Doe"
+                placeholder={t('auth.register.fullname_placeholder')}
                 autoComplete="name"
               />
             </div>
@@ -120,7 +130,7 @@ export default function Register() {
                 htmlFor="password"
                 className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 px-1"
               >
-                Password
+                {t('auth.register.password_label')}
               </label>
               <input
                 id="password"
@@ -130,8 +140,28 @@ export default function Register() {
                 required
                 minLength={8}
                 className="w-full px-5 py-3.5 bg-white/3 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none"
-                placeholder="••••••••"
+                placeholder={t('auth.register.password_placeholder')}
                 autoComplete="new-password"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="inviteCode"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 px-1"
+              >
+                {t('auth.register.invite_label')}{' '}
+                <span className="text-gray-600 font-normal lowercase">
+                  {t('auth.register.optional')}
+                </span>
+              </label>
+              <input
+                id="inviteCode"
+                type="text"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                className="w-full px-5 py-3.5 bg-white/3 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none"
+                placeholder={t('auth.register.invite_placeholder')}
               />
             </div>
 
@@ -141,8 +171,7 @@ export default function Register() {
                   registerMutation.error as {
                     response?: { data?: { message?: string } };
                   }
-                )?.response?.data?.message ||
-                  'Registration failed. Please try again.'}
+                )?.response?.data?.message || t('auth.register.default_error')}
               </div>
             )}
 
@@ -151,17 +180,19 @@ export default function Register() {
               disabled={registerMutation.isPending}
               className="w-full bg-white text-black py-4 rounded-2xl font-black text-[15px] tracking-wide uppercase hover:bg-zinc-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_8px_30px_rgb(255,255,255,0.1)] mt-4"
             >
-              {registerMutation.isPending ? 'Creating account...' : 'Sign Up'}
+              {registerMutation.isPending
+                ? t('auth.register.sign_up_loading')
+                : t('auth.register.sign_up')}
             </button>
           </form>
 
           <p className="mt-10 text-center text-gray-600 text-sm font-medium">
-            Already have an account?{' '}
+            {t('auth.register.has_account')}{' '}
             <Link
               to="/accounts/login"
               className="text-white hover:text-brand-primary font-bold transition-colors ml-1"
             >
-              Sign in
+              {t('auth.register.sign_in_link')}
             </Link>
           </p>
         </div>

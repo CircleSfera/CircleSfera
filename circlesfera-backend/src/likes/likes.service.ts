@@ -1,5 +1,7 @@
+import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { $Enums } from '@prisma/client';
+import type { Queue } from 'bullmq';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -15,6 +17,7 @@ export class LikesService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(NotificationsService)
     private readonly notificationsService: NotificationsService,
+    @InjectQueue('analytics-processing') private readonly analyticsQueue: Queue,
   ) {}
 
   /**
@@ -43,6 +46,7 @@ export class LikesService {
     if (existingLike) {
       // Unlike
       await this.prisma.like.delete({ where: { id: existingLike.id } });
+      await this.analyticsQueue.add('update-performance-score', { postId });
       return { liked: false };
     } else {
       // Like
@@ -64,6 +68,7 @@ export class LikesService {
         });
       }
 
+      await this.analyticsQueue.add('update-performance-score', { postId });
       return { liked: true };
     }
   }

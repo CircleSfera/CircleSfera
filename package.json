@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test:e2e": "npx playwright test",
-    "check": "biome check --write ."
+    "check": "biome check --write .",
+    "prepare": "husky install"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +15,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.12",
     "@playwright/test": "^1.58.2",
-    "@types/node": "^25.2.3"
+    "@types/node": "^25.2.3",
+    "husky": "^9.1.7"
   }
 }

@@ -66,6 +66,18 @@ export class WalletController {
     return this.walletService.unlockPost(req.user.userId, body.postId);
   }
 
+  @Post('subscribe')
+  async subscribeToCreator(
+    @Req() req: AuthRequest,
+    @Body() body: { creatorId: string; monthlyTokens: number },
+  ) {
+    return this.walletService.subscribeToCreator(
+      req.user.userId,
+      body.creatorId,
+      body.monthlyTokens,
+    );
+  }
+
   @Post('payout')
   async requestPayout(
     @Req() req: AuthRequest,

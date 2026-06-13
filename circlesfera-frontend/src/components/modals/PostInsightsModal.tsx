@@ -10,6 +10,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   Area,
   AreaChart,
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export default function PostInsightsModal({ postId, onClose }: Props) {
+  const { t } = useTranslation();
   const { data: insights, isLoading } = useQuery({
     queryKey: ['post-insights', postId],
     queryFn: () => creatorApi.getPostInsights(postId).then((r) => r.data),
@@ -59,10 +61,10 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
               </div>
               <div>
                 <h3 className="text-white font-black text-lg leading-none">
-                  Estadísticas del Post
+                  {t('modals.insights.post_stats')}
                 </h3>
                 <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1.5">
-                  Métricas de rendimiento en tiempo real
+                  {t('modals.insights.realtime_metrics')}
                 </p>
               </div>
             </div>
@@ -90,7 +92,7 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                 {/* 1. Quick Stats Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <StatCard
-                    label="Vistas"
+                    label={t('modals.insights.views')}
                     value={insights.post.views}
                     icon={Eye}
                     color="text-blue-400"
@@ -99,14 +101,14 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                   {insights.post.type === 'FRAME' ? (
                     <>
                       <StatCard
-                        label="Loops"
+                        label={t('modals.insights.loops')}
                         value={insights.post.loops || 0}
                         icon={Zap}
                         color="text-amber-400"
                         bg="bg-amber-400/10"
                       />
                       <StatCard
-                        label="Tiempo (seg)"
+                        label={t('modals.insights.watch_time')}
                         value={insights.post.watchTime || 0}
                         icon={TrendingUp}
                         color="text-cyan-400"
@@ -119,14 +121,14 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                   ) : (
                     <>
                       <StatCard
-                        label="Likes"
+                        label={t('modals.insights.likes')}
                         value={insights.post._count.likes}
                         icon={Heart}
                         color="text-rose-400"
                         bg="bg-rose-400/10"
                       />
                       <StatCard
-                        label="Comentarios"
+                        label={t('modals.insights.comments')}
                         value={insights.post._count.comments}
                         icon={MessageCircle}
                         color="text-emerald-400"
@@ -135,7 +137,7 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                     </>
                   )}
                   <StatCard
-                    label="Guardados"
+                    label={t('modals.insights.saves')}
                     value={insights.post._count.bookmarks}
                     icon={Bookmark}
                     color="text-purple-400"
@@ -148,10 +150,10 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                   <div className="flex items-center justify-between">
                     <h4 className="text-white font-black text-xs uppercase tracking-widest flex items-center gap-2">
                       <TrendingUp size={14} className="text-brand-primary" />
-                      Evolución de Vistas
+                      {t('modals.insights.views_evolution')}
                     </h4>
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                      Últimos días
+                      {t('modals.insights.last_days')}
                     </span>
                   </div>
 
@@ -231,7 +233,7 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                       <div className="h-full flex flex-col items-center justify-center text-zinc-600 gap-2">
                         <BarChart3 size={32} strokeWidth={1.5} />
                         <p className="text-[10px] font-black uppercase tracking-widest">
-                          Aún no hay suficientes datos históricos
+                          {t('modals.insights.not_enough_data')}
                         </p>
                       </div>
                     )}
@@ -245,10 +247,10 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                   </div>
                   <div>
                     <h4 className="text-white font-bold mb-1">
-                      Resumen de Impacto
+                      {t('modals.insights.impact_summary')}
                     </h4>
                     <p className="text-zinc-500 text-sm leading-relaxed">
-                      Este post tiene una tasa de engagement del{' '}
+                      {t('modals.insights.engagement_rate_prefix')}{' '}
                       {(
                         ((insights.post._count.likes +
                           insights.post._count.comments) /
@@ -257,8 +259,8 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                       ).toFixed(1)}
                       %.
                       {insights.post.views > 100
-                        ? ' Superas el promedio de tu categoría.'
-                        : ' Sigue promocionando para ganar más alcance.'}
+                        ? t('modals.insights.above_average')
+                        : t('modals.insights.keep_promoting')}
                     </p>
                   </div>
                 </div>

@@ -8,6 +8,7 @@ import {
   Search,
   User,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useNotificationsStore } from '../../stores/notificationsStore';
@@ -17,6 +18,7 @@ export default function BottomNav() {
   const path = location.pathname;
   const { profile } = useAuthStore();
   const unreadCount = useNotificationsStore((state) => state.unreadCount);
+  const { t } = useTranslation();
 
   const profileUrl = profile?.username ? `/${profile.username}` : '/';
 
@@ -25,19 +27,24 @@ export default function BottomNav() {
 
   // Mobile nav items - expanded to include Notifications & Creator Studio
   const navItems = [
-    { icon: Home, label: 'Home', to: '/', badge: 0 },
-    { icon: Search, label: 'Search', to: '/explore', badge: 0 },
-    { icon: PlusSquare, label: 'Create', to: '/create', badge: 0 },
-    { icon: Clapperboard, label: 'Frames', to: '/frames', badge: 0 },
+    { icon: Home, label: t('nav.home'), to: '/', badge: 0 },
+    { icon: Search, label: t('nav.search'), to: '/explore', badge: 0 },
+    { icon: PlusSquare, label: t('nav.create'), to: '/create', badge: 0 },
+    { icon: Clapperboard, label: t('nav.frames'), to: '/frames', badge: 0 },
     {
       icon: BarChart3,
-      label: 'Creator',
+      label: t('nav.creator_studio'),
       to: '/creator',
       badge: 0,
       roles: ['CREATOR', 'BUSINESS'],
     },
-    { icon: Heart, label: 'Activity', to: '/activity', badge: unreadCount },
-    { icon: User, label: 'Profile', to: profileUrl, badge: 0 },
+    {
+      icon: Heart,
+      label: t('nav.notifications'),
+      to: '/activity',
+      badge: unreadCount,
+    },
+    { icon: User, label: t('nav.profile'), to: profileUrl, badge: 0 },
   ].filter(
     (item) =>
       !item.roles || item.roles.includes(profile?.accountType || 'PERSONAL'),
@@ -53,7 +60,7 @@ export default function BottomNav() {
       <div className="flex items-center justify-between w-full px-4 py-4 pb-safe relative z-10">
         {navItems.map((item) => {
           const isActive =
-            item.label === 'Profile'
+            item.label === t('nav.profile')
               ? isProfileActive
               : path === item.to ||
                 (item.to !== '/' && path.startsWith(item.to));

@@ -1,26 +1,59 @@
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import SEO from '../components/common/SEO';
 import { PostSkeleton, StorySkeleton } from '../components/LoadingStates';
 import PostCard from '../components/PostCard';
 import StoryList from '../components/StoryList';
 import { SuggestionsList } from '../components/suggestions/SuggestionsList';
-import { postsApi } from '../services';
+import { feedApi } from '../services';
+import { useAuthStore } from '../stores/authStore';
 
 export default function Home() {
+  const { t } = useTranslation();
+  const { isAuthenticated } = useAuthStore();
+  const [activeTab, setActiveTab] = useState<'foryou' | 'following'>('foryou');
+
   const { data, isLoading } = useQuery({
-    queryKey: ['feed'],
-    queryFn: () => postsApi.getFeed(),
+    queryKey: ['feed', activeTab],
+    queryFn: () =>
+      activeTab === 'foryou' ? feedApi.getForYou() : feedApi.getFollowing(),
+    enabled: activeTab === 'foryou' || isAuthenticated,
   });
 
   return (
     <div className="min-h-screen pt-4 md:pt-8 pb-32">
-      <SEO title="Inicio" />
+      <SEO title={t('feed.home_title')} />
       {/* Header Title - Hidden on mobile as TopNav replaces it */}
       <h1 className="hidden md:block text-4xl md:text-5xl font-black text-center mb-8 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
-        CircleSfera
+        {t('feed.brand_name')}
       </h1>
 
       <div className="max-w-lg mx-auto px-4">
+        {/* Feed Tabs */}
+        <div className="flex border-b border-gray-800 mb-6">
+          <button
+            onClick={() => setActiveTab('foryou')}
+            className={`flex-1 pb-4 text-center font-bold transition-colors ${
+              activeTab === 'foryou'
+                ? 'text-white border-b-2 border-brand-primary'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            {t('feed.foryou', 'Para Ti')}
+          </button>
+          <button
+            onClick={() => setActiveTab('following')}
+            className={`flex-1 pb-4 text-center font-bold transition-colors ${
+              activeTab === 'following'
+                ? 'text-white border-b-2 border-brand-primary'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            {t('feed.following', 'Siguiendo')}
+          </button>
+        </div>
+
         {/* Stories Section */}
         {isLoading ? (
           <div className="glass-panel rounded-2xl p-4 mb-6 flex gap-4 overflow-hidden">
@@ -34,15 +67,18 @@ export default function Home() {
 
         <SuggestionsList />
 
-        {/* Posts Feed - Instagram style single column */}
         <div className="space-y-6">
-          {isLoading ? (
+          {!isAuthenticated && activeTab === 'following' ? (
+            <div className="text-center py-12 glass-panel rounded-2xl p-8">
+              <p className="text-gray-400">
+                {t('feed.login_required', 'Inicia sesión para ver tu feed personalizado.')}
+              </p>
+            </div>
+          ) : isLoading ? (
             ['p1', 'p2', 'p3'].map((id) => <PostSkeleton key={id} />)
           ) : data?.data.data.length === 0 ? (
             <div className="text-center py-12 glass-panel rounded-2xl p-8">
-              <p className="text-gray-400">
-                No posts yet. Explore to find creators!
-              </p>
+              <p className="text-gray-400">{t('feed.no_posts')}</p>
             </div>
           ) : (
             data?.data.data.map((post) => (

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Send, Sparkles, Upload } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type Step = 'upload' | 'edit' | 'caption';
 
@@ -22,6 +23,7 @@ export default function ProgressStepper({
   currentStep,
   mode,
 }: ProgressStepperProps) {
+  const { t } = useTranslation();
   const currentIndex = getStepIndex(currentStep);
   const isStory = mode === 'STORY';
 
@@ -97,7 +99,7 @@ export default function ProgressStepper({
                 ${isCurrent ? 'text-white' : isCompleted ? 'text-white/40' : 'text-white/15'}
               `}
             >
-              {step.label}
+              {t(`createPost.stepper.${step.key}`)}
             </span>
           </div>
         );
