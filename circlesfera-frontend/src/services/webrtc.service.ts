@@ -164,7 +164,7 @@ class WebRTCService {
     if (sender && localVideoTrack) {
       await sender.replaceTrack(localVideoTrack);
       
-      this.screenStream.getTracks().forEach(t => t.stop());
+      this.screenStream.getTracks().forEach((t) => { t.stop(); });
       this.screenStream = null;
 
       useCallStore.getState().setIsScreenSharing(false);

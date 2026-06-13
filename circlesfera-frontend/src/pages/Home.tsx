@@ -33,6 +33,7 @@ export default function Home() {
         {/* Feed Tabs */}
         <div className="flex border-b border-gray-800 mb-6">
           <button
+            type="button"
             onClick={() => setActiveTab('foryou')}
             className={`flex-1 pb-4 text-center font-bold transition-colors ${
               activeTab === 'foryou'
@@ -43,6 +44,7 @@ export default function Home() {
             {t('feed.foryou', 'Para Ti')}
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('following')}
             className={`flex-1 pb-4 text-center font-bold transition-colors ${
               activeTab === 'following'
