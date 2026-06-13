@@ -194,7 +194,7 @@ describe('StoriesService', () => {
       it('should update existing reaction', async () => {
         mockPrismaService.storyReaction.findUnique.mockResolvedValue({ id: 'r1' });
         mockPrismaService.storyReaction.update.mockResolvedValue({ id: 'r1', reaction: '🔥' });
-        const result = await service.addReaction('s1', 'u1', '🔥');
+        await service.addReaction('s1', 'u1', '🔥');
         expect(mockPrismaService.storyReaction.update).toHaveBeenCalled();
       });
     });
