@@ -33,6 +33,7 @@ import { FollowsModule } from './follows/follows.module.js';
 import { HealthModule } from './health/health.module.js';
 import { HighlightsModule } from './highlights/highlights.module.js';
 import { LikesModule } from './likes/likes.module.js';
+import { MonetizationModule } from './monetization/monetization.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
 import { PostsModule } from './posts/posts.module.js';
@@ -46,7 +47,6 @@ import { SocketModule } from './socket/socket.module.js';
 import { StoriesModule } from './stories/stories.module.js';
 import { UploadsModule } from './uploads/uploads.module.js';
 import { UsersModule } from './users/users.module.js';
-import { WalletModule } from './wallet/wallet.module.js';
 import { WebrtcModule } from './webrtc/webrtc.module.js';
 import { WhitelistModule } from './whitelist/whitelist.module.js';
 
@@ -144,7 +144,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     HealthModule,
     PaymentsModule,
     PushModule,
-    WalletModule,
+    MonetizationModule,
     SeoModule,
     FeedModule,
     WebrtcModule,

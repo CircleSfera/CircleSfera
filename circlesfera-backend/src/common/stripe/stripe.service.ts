@@ -91,4 +91,53 @@ export class StripeService implements OnModuleInit {
   async getSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
     return this.stripe.subscriptions.retrieve(subscriptionId);
   }
+
+  // --- Stripe Connect Methods ---
+
+  /**
+   * Create an Express connected account for a creator.
+   */
+  async createExpressAccount(email: string): Promise<Stripe.Account> {
+    return this.stripe.accounts.create({
+      type: 'express',
+      country: 'US', // Adjust based on user or allow dynamic
+      email: email,
+      capabilities: {
+        transfers: { requested: true },
+      },
+    });
+  }
+
+  /**
+   * Create an Account Link for onboarding.
+   */
+  async createAccountLink(
+    accountId: string,
+    returnUrl: string,
+    refreshUrl: string,
+  ): Promise<Stripe.AccountLink> {
+    return this.stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: refreshUrl,
+      return_url: returnUrl,
+      type: 'account_onboarding',
+    });
+  }
+
+  /**
+   * Create a Transfer to a connected account.
+   */
+  async createTransfer(
+    amountInCents: number,
+    currency: string,
+    destinationAccountId: string,
+    description?: string,
+  ): Promise<Stripe.Transfer> {
+    return this.stripe.transfers.create({
+      amount: amountInCents,
+      currency: currency,
+      destination: destinationAccountId,
+      description: description,
+    });
+  }
 }
