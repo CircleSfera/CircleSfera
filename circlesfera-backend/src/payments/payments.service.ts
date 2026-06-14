@@ -201,6 +201,99 @@ export class PaymentsService {
           console.log(
             `Successfully processed promotion payment for ${promotionId}`,
           );
+        } else if (metadata?.type === 'DIRECT_POST_UNLOCK') {
+          // Handle Pay-Per-View Unlock
+          const clientReferenceId = session.client_reference_id;
+          const { postId, creatorId } = metadata;
+          const amount = session.amount_total || 0;
+          const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.id;
+
+          if (clientReferenceId && postId && creatorId) {
+            await this.prisma.$transaction(async (tx) => {
+              await tx.postUnlock.upsert({
+                where: { userId_postId: { userId: clientReferenceId, postId } },
+                update: {},
+                create: { userId: clientReferenceId, postId, pricePaid: amount },
+              });
+
+              await tx.transaction.create({
+                data: {
+                  type: 'DIRECT_POST_UNLOCK',
+                  amount: amount,
+                  senderId: clientReferenceId,
+                  receiverId: creatorId,
+                  postId: postId,
+                  status: 'COMPLETED',
+                  description: `Direct Post Unlock (Intent: ${paymentIntentId})`,
+                },
+              });
+
+              await tx.monetization.upsert({
+                where: { userId: creatorId },
+                update: { lifetimeEarningsCents: { increment: Math.floor(amount * 0.8) } },
+                create: { userId: creatorId, lifetimeEarningsCents: Math.floor(amount * 0.8) },
+              });
+            });
+            console.log(`Successfully processed Post Unlock for user ${clientReferenceId}`);
+          }
+        } else if (metadata?.type === 'DIRECT_TIP') {
+          // Handle Direct Tips
+          const clientReferenceId = session.client_reference_id;
+          const { creatorId, postId } = metadata;
+          const amount = session.amount_total || 0;
+          const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.id;
+
+          if (clientReferenceId && creatorId) {
+            await this.prisma.$transaction(async (tx) => {
+              await tx.transaction.create({
+                data: {
+                  type: 'DIRECT_TIP',
+                  amount: amount,
+                  senderId: clientReferenceId,
+                  receiverId: creatorId,
+                  postId: postId || null,
+                  status: 'COMPLETED',
+                  description: `Creator Tip (Intent: ${paymentIntentId})`,
+                },
+              });
+
+              await tx.monetization.upsert({
+                where: { userId: creatorId },
+                update: { lifetimeEarningsCents: { increment: Math.floor(amount * 0.8) } },
+                create: { userId: creatorId, lifetimeEarningsCents: Math.floor(amount * 0.8) },
+              });
+            });
+            console.log(`Successfully processed Tip from user ${clientReferenceId} to ${creatorId}`);
+          }
+        } else if (metadata?.type === 'STRIPE_SUBSCRIPTION') {
+          // Handle Creator Subscriptions
+          const subscriberId = session.client_reference_id;
+          const { creatorId, priceCents } = metadata;
+          const stripeSubscriptionId = session.subscription as string;
+
+          if (subscriberId && creatorId && stripeSubscriptionId) {
+            const expiresAt = new Date();
+            expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+            await this.prisma.creatorSubscription.upsert({
+              where: { subscriberId_creatorId: { subscriberId, creatorId } },
+              update: {
+                status: 'ACTIVE',
+                stripeSubscriptionId,
+                priceCents: parseInt(priceCents, 10),
+                expiresAt,
+              },
+              create: {
+                subscriberId,
+                creatorId,
+                status: 'ACTIVE',
+                stripeSubscriptionId,
+                priceCents: parseInt(priceCents, 10),
+                expiresAt,
+              },
+            });
+            console.log(`Successfully processed Creator Subscription from ${subscriberId} to ${creatorId}`);
+          }
         } else {
           // Handle Subscriptions (Existing logic)
           const userId = metadata?.userId;

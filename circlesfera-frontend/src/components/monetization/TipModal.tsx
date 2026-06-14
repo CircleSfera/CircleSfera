@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Coins, Gift, Heart, X } from 'lucide-react';
+import { Gift, Heart, X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -13,7 +13,8 @@ interface TipModalProps {
   receiverName: string;
 }
 
-const TIP_AMOUNTS = [10, 50, 100, 500];
+// Amounts in dollars
+const TIP_AMOUNTS = [1, 5, 10, 50];
 
 export default function TipModal({
   isOpen,
@@ -30,18 +31,17 @@ export default function TipModal({
     if (!selectedAmount) return;
     setIsSubmitting(true);
     try {
-      await api.post('/wallet/tip', {
+      const response = await api.post('/monetization/tip', {
         receiverId,
         postId,
-        amount: selectedAmount,
+        amountCents: selectedAmount * 100,
+        returnUrl: window.location.href,
       });
-      toast.success(
-        t('wallet.sent_tip', { amount: selectedAmount, name: receiverName }),
-      );
-      onClose();
+      if (response.data?.url) {
+        window.location.href = response.data.url;
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || t('wallet.error_send_tip'));
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -62,7 +62,7 @@ export default function TipModal({
             className="w-full max-w-sm rounded-[32px] overflow-hidden modal-glass"
           >
             <div className="relative pt-8 pb-4 px-6 text-center border-b border-white/5">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-yellow-400 via-brand-primary to-rose-500 opacity-80" />
+              <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-emerald-400 via-brand-primary to-teal-500 opacity-80" />
               <button
                 type="button"
                 onClick={onClose}
@@ -71,14 +71,14 @@ export default function TipModal({
                 <X size={20} />
               </button>
 
-              <div className="w-16 h-16 mx-auto bg-yellow-500/10 rounded-full flex items-center justify-center mb-4">
-                <Gift className="w-8 h-8 text-yellow-500" />
+              <div className="w-16 h-16 mx-auto bg-emerald-500/10 rounded-full flex items-center justify-center mb-4">
+                <Gift className="w-8 h-8 text-emerald-500" />
               </div>
               <h3 className="font-bold text-white text-xl tracking-tight mb-1">
                 {t('wallet.send_gift')}
               </h3>
               <p className="text-gray-400 text-sm">
-                {t('wallet.support_with_tokens', { name: receiverName })}
+                {t('wallet.support_with_money', { name: receiverName, defaultValue: `Support ${receiverName} with a tip` })}
               </p>
             </div>
 
@@ -91,17 +91,14 @@ export default function TipModal({
                     onClick={() => setSelectedAmount(amount)}
                     className={`flex flex-col items-center justify-center py-4 rounded-2xl border transition-all ${
                       selectedAmount === amount
-                        ? 'border-yellow-500 bg-yellow-500/10 shadow-[0_0_15px_rgba(234,179,8,0.2)]'
+                        ? 'border-emerald-500 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
                         : 'border-white/10 bg-white/5 hover:bg-white/10'
                     }`}
                   >
-                    <Coins
-                      className={`w-6 h-6 mb-2 ${selectedAmount === amount ? 'text-yellow-500' : 'text-gray-400'}`}
-                    />
                     <span
-                      className={`font-bold ${selectedAmount === amount ? 'text-yellow-500' : 'text-white'}`}
+                      className={`font-bold text-xl ${selectedAmount === amount ? 'text-emerald-500' : 'text-white'}`}
                     >
-                      {amount}
+                      ${amount}
                     </span>
                   </button>
                 ))}
@@ -111,7 +108,7 @@ export default function TipModal({
                 type="button"
                 onClick={handleTip}
                 disabled={!selectedAmount || isSubmitting}
-                className="w-full py-4 bg-linear-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white font-bold rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-4 bg-linear-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   t('wallet.processing')

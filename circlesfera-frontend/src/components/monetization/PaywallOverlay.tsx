@@ -35,10 +35,10 @@ export default function PaywallOverlay({
           <Lock className="w-7 h-7 text-white drop-shadow-md" />
         </div>
         <h3 className="text-xl font-black text-white mb-2 text-center tracking-tight drop-shadow-lg">
-          {t('wallet.exclusive_content')}
+          {t('monetization.exclusive_content')}
         </h3>
         <p className="text-zinc-400 text-[13px] text-center mb-8 max-w-[240px] leading-relaxed">
-          {t('wallet.premium_description')}
+          {t('monetization.premium_description')}
         </p>
 
         <button
@@ -52,10 +52,10 @@ export default function PaywallOverlay({
             {isLoading ? (
               <>
                 <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                {t('wallet.unlocking')}
+                {t('monetization.unlocking')}
               </>
             ) : (
-              t('wallet.unlock_for', { price })
+              t('monetization.unlock_for_money', { price: price.toFixed(2) })
             )}
           </span>
         </button>
