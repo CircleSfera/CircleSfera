@@ -9,6 +9,7 @@ export interface RegisterDto {
 export interface LoginDto {
   identifier: string;
   password: string;
+  twoFactorCode?: string;
 }
 
 export interface UpdateProfileDto {
