@@ -81,10 +81,10 @@ function AnimatedCounter({ value, label }: { value: number; label: string }) {
 
   return (
     <div className="text-center md:text-left group cursor-pointer">
-      <span className="block text-white font-black text-base md:text-xl leading-none transition-transform duration-300 origin-center md:origin-left group-hover:scale-110 group-hover:text-brand-primary">
+      <span className="block text-white font-black text-base md:text-xl leading-none transition-all duration-300 origin-center md:origin-left group-hover:scale-110 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-brand-secondary group-hover:to-brand-primary">
         {count}
       </span>
-      <span className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest mt-1 block">
+      <span className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest mt-1 block transition-colors duration-300 group-hover:text-brand-primary/80">
         {label}
       </span>
     </div>
@@ -108,14 +108,14 @@ export default function Profile() {
   const subscribeMutation = useMutation({
     mutationFn: () =>
       import('../services').then((m) =>
-        m.api.post('/wallet/subscribe', {
+        m.api.post('/creator/subscribe', {
           creatorId: profile?.data.userId,
           monthlyTokens: 500,
         }),
       ),
     onSuccess: () => {
       toast.success(t('profile.messages.subscribed_success'));
-      queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['creator-subscription'] });
       queryClient.invalidateQueries({ queryKey: ['userProfile', username] });
     },
     onError: (e: any) => {
@@ -562,7 +562,7 @@ export default function Profile() {
                   {/* Identity */}
                   <div className="space-y-0.5">
                     <div className="flex items-center justify-center md:justify-start gap-2.5">
-                      <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">
+                      <h1 className="text-2xl md:text-3xl font-black tracking-tight bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
                         {profile.data.fullName}
                       </h1>
                       <VerificationBadge
