@@ -18,7 +18,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 
 const NotificationType = $Enums.NotificationType;
 
-import type { Queue } from 'bullmq';
+import { Queue } from 'bullmq';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import {
   createPaginatedResult,

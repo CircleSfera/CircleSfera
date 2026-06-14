@@ -98,6 +98,23 @@ export class EmailService {
   }
 
   /**
+   * Send a moderation notice to a user.
+   */
+  async sendModerationEmail(
+    email: string,
+    userName: string,
+    action: string,
+    targetType: string,
+    reason: string,
+  ) {
+    await this.sendMail({
+      to: email,
+      subject: 'Aviso de Moderación - CircleSfera',
+      html: EmailTemplates.moderationAction(userName, action, targetType, reason),
+    });
+  }
+
+  /**
    * Low-level method to send an email via Brevo API.
    * @param options - Email options
    */

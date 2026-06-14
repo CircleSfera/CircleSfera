@@ -1,4 +1,4 @@
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { S3Provider } from './s3.provider.js';
 

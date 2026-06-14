@@ -9,9 +9,13 @@ import {
   TrendingUp,
   Users,
   Zap,
+  Wallet,
+  ArrowRight,
+  ExternalLink,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { paymentsApi } from '../../services/payments.service';
+import { monetizationApi } from '../../services/monetization.service';
 import { useAuthStore } from '../../stores/authStore';
 import type { PlatformPlanDto } from '../../types';
 
@@ -26,9 +30,37 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
 
   const currentLevel = user?.verificationLevel || 'BASIC';
 
-  const { data: plans, isLoading } = useQuery<PlatformPlanDto[]>({
+  const { data: plans, isLoading: isLoadingPlans } = useQuery<PlatformPlanDto[]>({
     queryKey: ['platform-plans'],
     queryFn: paymentsApi.getPlans,
+  });
+
+  const { data: monetizationStatus, isLoading: isLoadingMonetization } = useQuery({
+    queryKey: ['monetization-status'],
+    queryFn: monetizationApi.getStatus,
+  });
+
+  const connectMutation = useMutation({
+    mutationFn: () => {
+      const returnUrl = window.location.href;
+      return monetizationApi.connectStripe(returnUrl, returnUrl);
+    },
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+    onError: (err: Error) => {
+      onToast(err.message || 'Error connecting to Stripe', 'error');
+    },
+  });
+
+  const dashboardMutation = useMutation({
+    mutationFn: () => monetizationApi.getDashboardLink(),
+    onSuccess: (data) => {
+      window.open(data.url, '_blank');
+    },
+    onError: (err: Error) => {
+      onToast(err.message || 'Error opening dashboard', 'error');
+    },
   });
 
   const checkoutMutation = useMutation({
@@ -70,7 +102,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
     return false;
   };
 
-  if (isLoading) {
+  if (isLoadingPlans || isLoadingMonetization) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="animate-spin text-brand-primary" size={40} />
@@ -83,6 +115,74 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
 
   return (
     <div className="space-y-12 pb-20">
+      {/* 1. Direct Earnings (Stripe Connect) */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="p-8 glass-panel rounded-2xl border border-white/5 bg-linear-to-br from-emerald-500/10 via-transparent to-transparent relative overflow-hidden"
+      >
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+              <Wallet size={20} className="text-emerald-400" />
+            </div>
+            <h3 className="text-sm font-black text-white uppercase tracking-[0.3em] italic">
+              Ganancias Directas (Stripe)
+            </h3>
+          </div>
+
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+            <div>
+              <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-2">
+                Ingresos Totales (Lifetime)
+              </p>
+              <h2 className="text-4xl font-bold text-white tracking-tight uppercase">
+                ${((monetizationStatus?.lifetimeEarningsCents || 0) / 100).toFixed(2)}
+              </h2>
+            </div>
+            
+            {monetizationStatus?.hasStripeAccount ? (
+              <button
+                type="button"
+                disabled={dashboardMutation.isPending}
+                onClick={() => dashboardMutation.mutate()}
+                className="px-8 py-4 bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 font-black rounded-2xl text-xs uppercase tracking-widest hover:bg-emerald-500/30 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {dashboardMutation.isPending ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : (
+                  <>
+                    Ver Express Dashboard
+                    <ExternalLink size={14} />
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={connectMutation.isPending}
+                onClick={() => connectMutation.mutate()}
+                className="px-8 py-4 bg-white text-black font-black rounded-2xl text-xs uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 flex items-center gap-2 shadow-xl shadow-white/10"
+              >
+                {connectMutation.isPending ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : (
+                  <>
+                    Conectar con Stripe
+                    <ArrowRight size={14} />
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+        
+        <div className="absolute top-0 right-0 p-10 opacity-5">
+          <Wallet size={200} className="text-emerald-400" />
+        </div>
+      </motion.div>
+
+      {/* 2. Platform Subscriptions */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

@@ -11,7 +11,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
-import type { TwoFactorService } from './two-factor.service.js';
+import { TwoFactorService } from './two-factor.service.js';
 
 @ApiTags('2FA')
 @Controller('2fa')

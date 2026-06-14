@@ -1,5 +1,6 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   type Prisma,
   type Profile,
@@ -8,7 +9,7 @@ import {
   type User,
   Visibility,
 } from '@prisma/client';
-import type { Queue } from 'bullmq';
+import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service.js';
 // biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { CreateStoryDto } from './dto/create-story.dto.js';
@@ -25,6 +26,8 @@ export type StoryReactionWithUser = StoryReaction & {
  */
 @Injectable()
 export class StoriesService {
+  private readonly logger = new Logger(StoriesService.name);
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
@@ -378,5 +381,24 @@ export class StoriesService {
     });
 
     return reactions as StoryReactionWithUser[];
+  }
+
+  /**
+   * Cron job to physically delete expired stories every hour to free up database space.
+   */
+  @Cron(CronExpression.EVERY_HOUR)
+  async cleanupExpiredStories() {
+    try {
+      const deleted = await this.prisma.story.deleteMany({
+        where: {
+          expiresAt: { lt: new Date() },
+        },
+      });
+      if (deleted.count > 0) {
+        this.logger.log(`Cleaned up ${deleted.count} expired stories.`);
+      }
+    } catch (error) {
+      this.logger.error('Failed to clean up expired stories', error);
+    }
   }
 }

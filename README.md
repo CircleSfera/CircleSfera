@@ -267,4 +267,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <p align="center">
   Made with ❤️ using NestJS + React
+// CI trigger: 2026-06-14T20:33:00+02:00
 </p>

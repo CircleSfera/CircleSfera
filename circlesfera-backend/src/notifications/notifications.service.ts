@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { $Enums, Prisma } from '@prisma/client';
+import { $Enums, Prisma } from '@prisma/client';
 import type { PaginationDto } from '../common/dto/pagination.dto.js';
 import { createPaginatedResult } from '../common/dto/pagination.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';

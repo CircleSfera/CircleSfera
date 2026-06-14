@@ -1,12 +1,14 @@
 import * as fs from 'node:fs';
+import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import { Injectable, Logger } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
-// @ts-expect-error
-import archiver from 'archiver';
-import type { EmailService } from '../email/email.service.js';
-import type { PrismaService } from '../prisma/prisma.service.js';
-import type { UsersService } from './users.service.js';
+import { ConfigService } from '@nestjs/config';
+
+const require = createRequire(import.meta.url);
+const archiver = require('archiver');
+import { EmailService } from '../email/email.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { UsersService } from './users.service.js';
 
 @Injectable()
 export class DataExportService {

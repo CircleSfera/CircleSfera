@@ -24,7 +24,16 @@ export class MonetizationService {
         data: { userId },
       });
     }
-    return monetization;
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { stripeConnectAccountId: true },
+    });
+
+    return {
+      ...monetization,
+      hasStripeAccount: !!user?.stripeConnectAccountId,
+    };
   }
 
   async getTransactions(userId: string, page = 1, limit = 20) {
@@ -202,6 +211,18 @@ export class MonetizationService {
       returnUrl,
       refreshUrl,
     );
+    return { url: link.url };
+  }
+
+  async getDashboardLink(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    
+    if (!user.stripeConnectAccountId) {
+      throw new BadRequestException('Stripe Connect account not set up yet');
+    }
+
+    const link = await this.stripeService.createLoginLink(user.stripeConnectAccountId);
     return { url: link.url };
   }
 }

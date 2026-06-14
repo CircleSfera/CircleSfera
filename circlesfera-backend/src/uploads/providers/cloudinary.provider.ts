@@ -2,7 +2,7 @@ import { Readable } from 'node:stream';
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary } from 'cloudinary';
-import type { StorageProvider } from '../interfaces/storage-provider.interface.js';
+import { StorageProvider } from '../interfaces/storage-provider.interface.js';
 import type { UploadedFile } from '../interfaces/uploaded-file.interface.js';
 
 @Injectable()
