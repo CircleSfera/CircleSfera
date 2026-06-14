@@ -226,11 +226,11 @@
       "success": "¡Cuenta creada exitosamente! Por favor, revisa tu email para verificar tu cuenta."
     },
     "verify": {
-      "no_token": "Token de verificación no encontrado.",
+
       "success": "Tu email ha sido verificado con éxito.",
       "error": "Fallo al verificar el email.",
       "loading_title": "Verificando Identidad",
-      "loading_desc": "Por favor, espera mientras validamos tu token seguro...",
+
       "success_title": "Acceso Concedido",
       "success_desc": "Serás redirigido a la página de inicio de sesión en un momento...",
       "error_title": "Verificación Fallida",
@@ -252,7 +252,7 @@
     },
     "reset_password": {
       "error_mismatch": "Las contraseñas no coinciden",
-      "error_token": "Token inválido o expirado",
+
       "default_error": "Error al restablecer la contraseña.",
       "success_title": "Contraseña Actualizada",
       "success_desc": "Tu contraseña ha sido cambiada con éxito. Ya puedes iniciar sesión con tus nuevas credenciales.",
@@ -714,7 +714,7 @@
     "title": "Panel de Creador",
     "subtitle": "Gestiona tu contenido, finanzas y audiencia",
     "new_content": "Nuevo Contenido",
-    "wallet": "Mi Billetera",
+    "monetization_label": "Monetización",
     "dashboard": {
       "see_all": "Ver todo",
       "content_performance": "Rendimiento del Contenido",
@@ -798,11 +798,8 @@
       "vip_desc": "Acceso exclusivo a círculos de otros creadores certificados y prioridad en el descubrimiento global."
     }
   },
-  "wallet": {
-    "bought_tokens": "¡Compraste {{amount}} tokens!",
-    "error_buy_tokens": "Error al comprar tokens",
+  "monetization": {
     "available_balance": "Saldo Disponible",
-    "tokens": "Tokens",
     "amount_placeholder": "Cantidad...",
     "buy": "Comprar",
     "earnings_withdrawable": "Ganancias (Retirables)",
@@ -810,13 +807,10 @@
     "transaction_history": "Historial de Transacciones",
     "no_transactions": "No hay transacciones recientes",
     "exclusive_content": "Contenido Exclusivo",
-    "premium_description": "Este post es premium. Desbloquéalo con tokens o suscríbete al creador para ver su contenido.",
+    "premium_description": "Este post es premium. Desbloquéalo suscribiéndote al creador para ver su contenido.",
     "unlocking": "Desbloqueando...",
-    "unlock_for": "Desbloquear por {{price}} Tokens",
-    "sent_tip": "Enviado {{amount}} tokens a {{name}}!",
     "error_send_tip": "Error al enviar propina",
     "send_gift": "Enviar Regalo",
-    "support_with_tokens": "Apoya a {{name}} con tokens",
     "send_tip": "Enviar Propina",
     "processing": "Procesando..."
   },
