@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import type Stripe from 'stripe';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PaymentsService } from './payments.service.js';
 
@@ -34,7 +35,7 @@ export class PaymentsController {
   async createCheckout(
     @Req() req: RequestWithUser,
     @Body() body: { planId: string; billingCycle?: 'MONTHLY' | 'YEARLY' },
-  ) {
+  ): Promise<Stripe.Checkout.Session | { url: string }> {
     return this.paymentsService.createCheckout(
       req.user.userId,
       body.planId,
@@ -44,7 +45,7 @@ export class PaymentsController {
 
   @Get('portal')
   @UseGuards(JwtAuthGuard)
-  async getPortal(@Req() req: RequestWithUser) {
+  async getPortal(@Req() req: RequestWithUser): Promise<Stripe.BillingPortal.Session | { url: string }> {
     return this.paymentsService.getPortalUrl(req.user.userId);
   }
 

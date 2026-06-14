@@ -5,6 +5,7 @@ import {
   SubscriptionStatus,
   VerificationLevel,
 } from '@prisma/client';
+import type Stripe from 'stripe';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -49,7 +50,7 @@ export class PaymentsService {
     userId: string,
     planId: string,
     billingCycle: 'MONTHLY' | 'YEARLY' = 'MONTHLY',
-  ) {
+  ): Promise<Stripe.Checkout.Session | { url: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { platformSubscriptions: true },
@@ -127,7 +128,7 @@ export class PaymentsService {
     });
   }
 
-  async getPortalUrl(userId: string) {
+  async getPortalUrl(userId: string): Promise<Stripe.BillingPortal.Session | { url: string }> {
     if (process.env.PAYMENT_MODE === 'SIMULATOR') {
       return {
         url: `${process.env.CORS_ORIGIN?.split(',')[0] || 'http://localhost:8080'}/creator`,
