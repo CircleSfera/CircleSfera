@@ -1,14 +1,28 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Mic, MicOff, MonitorUp, PhoneOff, Video, VideoOff } from 'lucide-react';
+import {
+  Mic,
+  MicOff,
+  MonitorUp,
+  PhoneOff,
+  Video,
+  VideoOff,
+} from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useCallStore } from '../../stores/useCallStore';
 import { webrtcService } from '../../services/webrtc.service';
+import { useCallStore } from '../../stores/useCallStore';
 
 export const CallOverlay: React.FC = () => {
-  const { status, remoteUser, callType, localStream, remoteStream, isScreenSharing, endCall } =
-    useCallStore();
+  const {
+    status,
+    remoteUser,
+    callType,
+    localStream,
+    remoteStream,
+    isScreenSharing,
+    endCall,
+  } = useCallStore();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(false);
