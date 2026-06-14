@@ -27,60 +27,87 @@ class WebRTCService {
   }
 
   async startCall(userId: string, type: 'audio' | 'video') {
-    await this.fetchIceServers();
-    this.pc = new RTCPeerConnection(this.rtcConfig);
-    this.setupListeners(userId);
+    try {
+      await this.fetchIceServers();
+      this.pc = new RTCPeerConnection(this.rtcConfig);
+      this.setupListeners(userId);
 
-    // Get media
-    this.localStream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-      video: type === 'video',
-    });
+      // Get media with error handling
+      this.localStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: type === 'video',
+      });
 
-    useCallStore.getState().setLocalStream(this.localStream);
+      useCallStore.getState().setLocalStream(this.localStream);
 
-    // Add tracks to PC
-    this.localStream.getTracks().forEach((track) => {
-      this.pc?.addTrack(track, this.localStream!);
-    });
+      // Add tracks to PC
+      this.localStream.getTracks().forEach((track) => {
+        this.pc?.addTrack(track, this.localStream!);
+      });
 
-    // Create offer
-    const offer = await this.pc.createOffer();
-    await this.pc.setLocalDescription(offer);
+      // Create offer
+      const offer = await this.pc.createOffer();
+      await this.pc.setLocalDescription(offer);
 
-    // Send offer
-    useSocketStore.getState().socket?.emit('call:signal', {
-      targetId: userId,
-      signal: { type: 'offer', sdp: offer.sdp },
-    });
+      // Send offer
+      useSocketStore.getState().socket?.emit('call:signal', {
+        targetId: userId,
+        signal: { type: 'offer', sdp: offer.sdp },
+      });
+    } catch (error) {
+      logger.error('Failed to start call (Hardware/Permission issue):', error);
+
+      // Clean up and notify the other party
+      this.cleanup();
+      useCallStore.getState().resetCall();
+
+      // Notify the backend that the call has been aborted
+      useSocketStore.getState().socket?.emit('call:hangup', {
+        targetId: userId,
+      });
+
+      throw error;
+    }
   }
 
   async handleOffer(offer: RTCSessionDescriptionInit, fromId: string) {
-    await this.fetchIceServers();
-    this.pc = new RTCPeerConnection(this.rtcConfig);
-    this.setupListeners(fromId);
+    try {
+      await this.fetchIceServers();
+      this.pc = new RTCPeerConnection(this.rtcConfig);
+      this.setupListeners(fromId);
 
-    // Get media
-    const callType = useCallStore.getState().callType;
-    this.localStream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-      video: callType === 'video',
-    });
+      // Get media
+      const callType = useCallStore.getState().callType;
+      this.localStream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: callType === 'video',
+      });
 
-    useCallStore.getState().setLocalStream(this.localStream);
+      useCallStore.getState().setLocalStream(this.localStream);
 
-    this.localStream.getTracks().forEach((track) => {
-      this.pc?.addTrack(track, this.localStream!);
-    });
+      this.localStream.getTracks().forEach((track) => {
+        this.pc?.addTrack(track, this.localStream!);
+      });
 
-    await this.pc.setRemoteDescription(new RTCSessionDescription(offer));
-    const answer = await this.pc.createAnswer();
-    await this.pc.setLocalDescription(answer);
+      await this.pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await this.pc.createAnswer();
+      await this.pc.setLocalDescription(answer);
 
-    useSocketStore.getState().socket?.emit('call:signal', {
-      targetId: fromId,
-      signal: { type: 'answer', sdp: answer.sdp },
-    });
+      useSocketStore.getState().socket?.emit('call:signal', {
+        targetId: fromId,
+        signal: { type: 'answer', sdp: answer.sdp },
+      });
+    } catch (error) {
+      logger.error('Failed to answer call (Hardware/Permission issue):', error);
+
+      this.cleanup();
+      useCallStore.getState().resetCall();
+
+      // Tell caller we declined/failed to answer so they don't hang
+      useSocketStore.getState().socket?.emit('call:decline', {
+        callerId: fromId,
+      });
+    }
   }
 
   async handleAnswer(answer: RTCSessionDescriptionInit) {
@@ -135,11 +162,13 @@ class WebRTCService {
       });
 
       const screenVideoTrack = this.screenStream.getVideoTracks()[0];
-      const sender = this.pc.getSenders().find((s) => s.track?.kind === 'video');
+      const sender = this.pc
+        .getSenders()
+        .find((s) => s.track?.kind === 'video');
 
       if (sender && screenVideoTrack) {
         await sender.replaceTrack(screenVideoTrack);
-        
+
         // Listen for browser "stop sharing" button
         screenVideoTrack.onended = () => {
           this.stopScreenShare();
@@ -147,7 +176,10 @@ class WebRTCService {
 
         useCallStore.getState().setIsScreenSharing(true);
         // Replace video in local UI
-        const newLocalStream = new MediaStream([screenVideoTrack, ...this.localStream.getAudioTracks()]);
+        const newLocalStream = new MediaStream([
+          screenVideoTrack,
+          ...this.localStream.getAudioTracks(),
+        ]);
         useCallStore.getState().setLocalStream(newLocalStream);
       }
     } catch (error) {
@@ -163,8 +195,10 @@ class WebRTCService {
 
     if (sender && localVideoTrack) {
       await sender.replaceTrack(localVideoTrack);
-      
-      this.screenStream.getTracks().forEach((t) => { t.stop(); });
+
+      this.screenStream.getTracks().forEach((t) => {
+        t.stop();
+      });
       this.screenStream = null;
 
       useCallStore.getState().setIsScreenSharing(false);

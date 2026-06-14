@@ -19,7 +19,8 @@ export type SubScreen =
   | 'location'
   | 'accessibility'
   | 'advanced'
-  | 'tags';
+  | 'tags'
+  | 'monetization';
 
 export interface PostTagData {
   userId: string;
@@ -60,6 +61,8 @@ export function useCreatePost() {
   const [isCloseFriendsOnly, setIsCloseFriendsOnly] = useState(false);
   const [altTextMap, setAltTextMap] = useState<Record<number, string>>({});
   const [tagsMap, setTagsMap] = useState<Record<number, PostTagData[]>>({});
+  const [isPremium, setIsPremium] = useState(false);
+  const [price, setPrice] = useState<number>(0);
 
   // Story Specific Persistence
   const [storyElements, setStoryElements] = useState<StoryElement[]>([]);
@@ -227,6 +230,8 @@ export function useCreatePost() {
               x: t.x,
               y: t.y,
             })),
+          isPremium,
+          priceCents: isPremium ? Math.round(price * 100) : 0,
         };
         await createPostMutation.mutateAsync(payload);
       }
@@ -288,6 +293,10 @@ export function useCreatePost() {
     setAltTextMap,
     tagsMap,
     setTagsMap,
+    isPremium,
+    setIsPremium,
+    price,
+    setPrice,
     isUploading,
     fileInputRef,
     handleFileSelect,
