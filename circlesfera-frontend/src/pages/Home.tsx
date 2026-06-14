@@ -73,7 +73,10 @@ export default function Home() {
           {!isAuthenticated && activeTab === 'following' ? (
             <div className="text-center py-12 glass-panel rounded-2xl p-8">
               <p className="text-gray-400">
-                {t('feed.login_required', 'Inicia sesión para ver tu feed personalizado.')}
+                {t(
+                  'feed.login_required',
+                  'Inicia sesión para ver tu feed personalizado.',
+                )}
               </p>
             </div>
           ) : isLoading ? (
