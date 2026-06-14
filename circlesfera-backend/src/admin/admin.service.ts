@@ -328,9 +328,22 @@ export class AdminService {
     const result = await this.prisma.user.update({
       where: { id: userId },
       data: { isActive: false },
+      include: { profile: true },
     });
     await this.logAction(adminId, AdminAction.BAN_USER, 'user', userId);
     await this.invalidateProfileCache(userId);
+
+    // Notify user via email
+    if (result.email) {
+      await this.emailService.sendModerationEmail(
+        result.email,
+        result.profile?.fullName || result.profile?.username || 'Usuario',
+        'suspendida',
+        'Cuenta',
+        'Violación de los Términos de Servicio',
+      );
+    }
+
     return result;
   }
 
@@ -536,7 +549,22 @@ export class AdminService {
   /** Delete a post with audit logging. */
   async deletePost(adminId: string, postId: string) {
     await this.logAction(adminId, AdminAction.DELETE_POST, 'post', postId);
-    return this.prisma.post.delete({ where: { id: postId } });
+    const deletedPost = await this.prisma.post.delete({ 
+      where: { id: postId },
+      include: { user: { include: { profile: true } } },
+    });
+
+    if (deletedPost.user?.email) {
+      await this.emailService.sendModerationEmail(
+        deletedPost.user.email,
+        deletedPost.user.profile?.username || 'Usuario',
+        'eliminada',
+        'Publicación',
+        'Incumplimiento de nuestras políticas de contenido',
+      );
+    }
+
+    return deletedPost;
   }
 
   // ─── Reports ──────────────────────────────────────────────────────

@@ -72,4 +72,9 @@ export class MonetizationController {
       body.returnUrl
     );
   }
+
+  @Get('dashboard')
+  async getDashboard(@Req() req: AuthRequest) {
+    return this.monetizationService.getDashboardLink(req.user.userId);
+  }
 }

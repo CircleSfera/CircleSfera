@@ -1,9 +1,9 @@
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { Injectable, Logger } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
-import type { StorageProvider } from '../interfaces/storage-provider.interface.js';
-import type { UploadedFile } from '../interfaces/uploaded-file.interface.js';
+import { ConfigService } from '@nestjs/config';
+import { StorageProvider } from '../interfaces/storage-provider.interface.js';
+import { UploadedFile } from '../interfaces/uploaded-file.interface.js';
 
 @Injectable()
 export class S3Provider implements StorageProvider {

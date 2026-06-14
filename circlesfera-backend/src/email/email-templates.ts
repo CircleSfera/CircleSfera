@@ -185,4 +185,17 @@ export const EmailTemplates = {
       buttonText,
       buttonUrl,
     }),
+
+  moderationAction: (
+    userName: string,
+    action: string,
+    targetType: string,
+    reason: string,
+  ) =>
+    getBaseLayout({
+      title: 'Aviso de Moderación',
+      content: `Hola ${userName},<br><br>Tu ${targetType.toLowerCase()} ha sido ${action.toLowerCase()} por nuestro equipo de moderación.<br><br><strong>Motivo:</strong> ${reason}<br><br>Por favor, respeta nuestras normas de la comunidad para evitar la suspensión de tu cuenta.`,
+      buttonText: 'Contactar Soporte',
+      buttonUrl: 'mailto:support@circlesfera.com',
+    }),
 };

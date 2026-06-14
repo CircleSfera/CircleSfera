@@ -140,4 +140,11 @@ export class StripeService implements OnModuleInit {
       description: description,
     });
   }
+
+  /**
+   * Create a login link for the connected Express account.
+   */
+  async createLoginLink(accountId: string): Promise<Stripe.LoginLink> {
+    return this.stripe.accounts.createLoginLink(accountId);
+  }
 }

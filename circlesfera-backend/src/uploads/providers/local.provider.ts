@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { Injectable, Logger } from '@nestjs/common';
-import type { StorageProvider } from '../interfaces/storage-provider.interface.js';
+import { StorageProvider } from '../interfaces/storage-provider.interface.js';
 import type { UploadedFile } from '../interfaces/uploaded-file.interface.js';
 
 @Injectable()
