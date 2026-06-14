@@ -19,7 +19,7 @@ export type CreatorTab =
   | 'stories'
   | 'finance'
   | 'ads'
-  | 'wallet'
+  | 'monetization'
   | 'analytics';
 
 interface NavGroup {
@@ -36,7 +36,7 @@ const GROUPS: NavGroup[] = [
       { id: 'overview', label: 'Resumen', icon: LayoutDashboard },
       { id: 'analytics', label: 'Analíticas', icon: BarChart3 },
       { id: 'finance', label: 'Ingresos', icon: DollarSign },
-      { id: 'wallet', label: 'Billetera', icon: DollarSign },
+      { id: 'monetization', label: 'Monetización', icon: DollarSign },
       { id: 'ads', label: 'Publicidad', icon: Megaphone },
     ],
   },
