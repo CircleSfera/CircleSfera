@@ -51,6 +51,10 @@ export class SearchService {
         LIMIT ${limit}
       `;
 
+      // Guard against undefined matches
+      if (!matches || matches.length === 0) return [];
+
+
       if (matches.length === 0) return [];
 
       // 3. Enrich the posts with details
