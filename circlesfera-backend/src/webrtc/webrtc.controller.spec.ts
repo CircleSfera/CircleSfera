@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import { vi } from 'vitest';
 import { WebrtcController } from './webrtc.controller.js';
 import { WebrtcService } from './webrtc.service.js';
-import { vi } from 'vitest';
 
 describe('WebrtcController', () => {
   let controller: WebrtcController;

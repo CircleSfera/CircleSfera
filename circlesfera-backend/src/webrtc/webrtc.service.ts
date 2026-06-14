@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+// biome-ignore lint/style/useImportType: required for NestJS DI
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 
@@ -18,7 +19,9 @@ export class WebrtcService {
     ];
 
     if (!domain || !secretKey) {
-      this.logger.warn('Metered.ca credentials not found, using fallback STUN servers');
+      this.logger.warn(
+        'Metered.ca credentials not found, using fallback STUN servers',
+      );
       return fallbackIceServers;
     }
 
@@ -27,10 +30,13 @@ export class WebrtcService {
       const response = await axios.get(
         `https://${domain}/api/v1/turn/credentials?apiKey=${secretKey}`,
       );
-      
+
       return response.data;
     } catch (error) {
-      this.logger.error('Failed to fetch TURN credentials from Metered.ca, using fallback', error);
+      this.logger.error(
+        'Failed to fetch TURN credentials from Metered.ca, using fallback',
+        error,
+      );
       return fallbackIceServers;
     }
   }
