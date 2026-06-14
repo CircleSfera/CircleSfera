@@ -301,6 +301,84 @@ export class FollowsService {
   }
 
   /**
+   * Mute a user.
+   * @param muterId - The muting user's ID
+   * @param mutedUsername - Username of the user to mute
+   * @throws NotFoundException if target user not found
+   */
+  async muteUser(
+    muterId: string,
+    mutedUsername: string,
+  ): Promise<SuccessResponse> {
+    const profile = await this.prisma.profile.findUnique({
+      where: { username: mutedUsername },
+    });
+    if (!profile) throw new NotFoundException('User not found');
+
+    const mutedId = profile.userId;
+    if (muterId === mutedId)
+      throw new BadRequestException('Cannot mute yourself');
+
+    await this.prisma.mute.upsert({
+      where: {
+        muterId_mutedId: {
+          muterId,
+          mutedId,
+        },
+      },
+      create: { muterId, mutedId },
+      update: {},
+    });
+
+    return { success: true };
+  }
+
+  /**
+   * Unmute a previously muted user.
+   * @param muterId - The muting user's ID
+   * @param mutedUsername - Username to unmute
+   * @throws NotFoundException if target user not found
+   */
+  async unmuteUser(
+    muterId: string,
+    mutedUsername: string,
+  ): Promise<SuccessResponse> {
+    const profile = await this.prisma.profile.findUnique({
+      where: { username: mutedUsername },
+    });
+    if (!profile) throw new NotFoundException('User not found');
+
+    try {
+      await this.prisma.mute.delete({
+        where: {
+          muterId_mutedId: {
+            muterId,
+            mutedId: profile.userId,
+          },
+        },
+      });
+    } catch {
+      // Ignore if not muted
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * Get all users muted by the current user.
+   * @param userId - The authenticated user's ID
+   */
+  async getMutedUsers(userId: string): Promise<UserWithProfile[]> {
+    const mutes = await this.prisma.mute.findMany({
+      where: { muterId: userId },
+      include: {
+        muted: { include: { profile: true } },
+      },
+    });
+    return mutes.map((m) => m.muted);
+  }
+
+  /**
    * Get all pending follow requests for the current user (private account).
    * @param userId - The authenticated user's ID
    */

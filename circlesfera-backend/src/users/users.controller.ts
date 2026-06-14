@@ -16,6 +16,7 @@ import {
 } from '../auth/decorators/current-user.decorator.js';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { DataExportService } from './data-export.service.js';
 // biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
 import { UsersService } from './users.service.js';
@@ -26,6 +27,8 @@ import { UsersService } from './users.service.js';
 export class UsersController {
   constructor(
     @Inject(UsersService) private readonly usersService: UsersService,
+    @Inject(DataExportService)
+    private readonly dataExportService: DataExportService,
   ) {}
 
   /** Get suggested users to follow based on popularity. */
@@ -53,12 +56,10 @@ export class UsersController {
     return this.usersService.unbanUser(id);
   }
 
-  /** GDPR: Export all user data as JSON. */
+  /** GDPR: Request Data Export (.zip). */
   @Get('gdpr/export')
-  async exportData(
-    @CurrentUser() user: CurrentUserData,
-  ): Promise<Record<string, unknown>> {
-    return this.usersService.exportUserData(user.userId);
+  async requestDataExport(@CurrentUser() user: CurrentUserData) {
+    return this.dataExportService.requestDataExport(user.userId);
   }
 
   /** GDPR: Full account deletion (irreversible). */
