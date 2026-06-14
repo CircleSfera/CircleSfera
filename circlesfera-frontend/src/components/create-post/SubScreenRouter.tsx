@@ -3,12 +3,25 @@ import type { MediaFile } from '../../hooks/useCreatePost';
 import AccessibilitySubScreen from './AccessibilitySubScreen';
 import AdvancedSettingsSubScreen from './AdvancedSettingsSubScreen';
 import LocationSubScreen from './LocationSubScreen';
+import MonetizationSubScreen from './MonetizationSubScreen';
 import TagPeopleSubScreen from './TagPeopleSubScreen';
 
 interface SubScreenRouterProps {
-  subScreen: 'none' | 'location' | 'accessibility' | 'advanced' | 'tags';
+  subScreen:
+    | 'none'
+    | 'location'
+    | 'accessibility'
+    | 'advanced'
+    | 'tags'
+    | 'monetization';
   setSubScreen: (
-    screen: 'none' | 'location' | 'accessibility' | 'advanced' | 'tags',
+    screen:
+      | 'none'
+      | 'location'
+      | 'accessibility'
+      | 'advanced'
+      | 'tags'
+      | 'monetization',
   ) => void;
   mediaFiles: MediaFile[];
   altTextMap: Record<number, string>;
@@ -23,6 +36,10 @@ interface SubScreenRouterProps {
   setLocation: (loc: string) => void;
   location: string;
   onGenerateAltText: (index: number) => Promise<void>;
+  isPremium?: boolean;
+  setIsPremium?: (val: boolean) => void;
+  price?: number;
+  setPrice?: (val: number) => void;
 }
 
 export default function SubScreenRouter({
@@ -41,6 +58,10 @@ export default function SubScreenRouter({
   setLocation,
   location,
   onGenerateAltText,
+  isPremium,
+  setIsPremium,
+  price,
+  setPrice,
 }: SubScreenRouterProps) {
   if (subScreen === 'location') {
     return (
@@ -86,6 +107,18 @@ export default function SubScreenRouter({
         mediaFiles={mediaFiles}
         tagsMap={tagsMap}
         setTagsMap={setTagsMap}
+        onClose={() => setSubScreen('none')}
+      />
+    );
+  }
+
+  if (subScreen === 'monetization') {
+    return (
+      <MonetizationSubScreen
+        isPremium={isPremium!}
+        setIsPremium={setIsPremium!}
+        price={price!}
+        setPrice={setPrice!}
         onClose={() => setSubScreen('none')}
       />
     );

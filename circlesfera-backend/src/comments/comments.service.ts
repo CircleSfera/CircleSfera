@@ -225,7 +225,9 @@ export class CommentsService {
     await this.prisma.comment.delete({ where: { id } });
 
     // Trigger score recalculation
-    await this.analyticsQueue.add('update-performance-score', { postId: comment.postId });
+    await this.analyticsQueue.add('update-performance-score', {
+      postId: comment.postId,
+    });
   }
 
   /** Like a comment */
