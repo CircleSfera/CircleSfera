@@ -19,7 +19,8 @@
     "skipLibCheck": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true,
+    "ignoreDeprecations": "5.0",
+
     "types": ["node"]
   },
     "include": [
