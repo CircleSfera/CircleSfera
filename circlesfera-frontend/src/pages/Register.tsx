@@ -53,7 +53,7 @@ export default function Register() {
   return (
     <LayoutWrapper showNavigation={false}>
       <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="modal-glass p-10 rounded-[32px] w-full max-w-md relative overflow-hidden group">
+        <div className="modal-glass p-8 rounded-[32px] w-full max-w-sm relative overflow-hidden group">
           {/* Brand Accent Line */}
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-linear-to-r from-brand-primary via-brand-secondary to-brand-accent opacity-90" />
 
@@ -61,10 +61,10 @@ export default function Register() {
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-primary/20 rounded-full blur-3xl group-hover:bg-brand-primary/30 transition-colors duration-700"></div>
           <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-brand-secondary/20 rounded-full blur-3xl group-hover:bg-brand-secondary/30 transition-colors duration-700"></div>
 
-          <h1 className="text-5xl font-black text-center mb-2 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-white via-white to-white/40">
+          <h1 className="text-4xl font-black text-center mb-2 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-white via-white to-white/40">
             {t('auth.register.title')}
           </h1>
-          <p className="text-gray-500 text-center font-medium mb-10 tracking-wide uppercase text-[11px]">
+          <p className="text-gray-500 text-center font-medium mb-6 tracking-wide uppercase text-[10px]">
             {t('auth.register.subtitle')}
           </p>
 
@@ -72,7 +72,7 @@ export default function Register() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 px-1"
+                className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 px-1"
               >
                 {t('auth.register.email_label')}
               </label>
@@ -82,53 +82,55 @@ export default function Register() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-5 py-3.5 bg-white/3 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
                 placeholder={t('auth.register.email_placeholder')}
                 autoComplete="email"
               />
             </div>
 
-            <div>
-              <label
-                htmlFor="username"
-                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 px-1"
-              >
-                {t('auth.register.username_label')}
-              </label>
-              <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                className="w-full px-5 py-3.5 bg-white/3 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none"
-                placeholder={t('auth.register.username_placeholder')}
-                autoComplete="username"
-              />
-            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label
+                  htmlFor="username"
+                  className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 px-1"
+                >
+                  {t('auth.register.username_label')}
+                </label>
+                <input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
+                  placeholder={t('auth.register.username_placeholder')}
+                  autoComplete="username"
+                />
+              </div>
 
-            <div>
-              <label
-                htmlFor="fullName"
-                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 px-1"
-              >
-                {t('auth.register.fullname_label')}
-              </label>
-              <input
-                id="fullName"
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full px-5 py-3.5 bg-white/3 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none"
-                placeholder={t('auth.register.fullname_placeholder')}
-                autoComplete="name"
-              />
+              <div>
+                <label
+                  htmlFor="fullName"
+                  className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 px-1"
+                >
+                  {t('auth.register.fullname_label')}
+                </label>
+                <input
+                  id="fullName"
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
+                  placeholder={t('auth.register.fullname_placeholder')}
+                  autoComplete="name"
+                />
+              </div>
             </div>
 
             <div>
               <label
                 htmlFor="password"
-                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 px-1"
+                className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 px-1"
               >
                 {t('auth.register.password_label')}
               </label>
@@ -139,7 +141,7 @@ export default function Register() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
-                className="w-full px-5 py-3.5 bg-white/3 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
                 placeholder={t('auth.register.password_placeholder')}
                 autoComplete="new-password"
               />
@@ -148,10 +150,10 @@ export default function Register() {
             <div>
               <label
                 htmlFor="inviteCode"
-                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 px-1"
+                className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 px-1"
               >
                 {t('auth.register.invite_label')}{' '}
-                <span className="text-gray-600 font-normal lowercase">
+                <span className="text-gray-600 font-normal lowercase tracking-normal">
                   {t('auth.register.optional')}
                 </span>
               </label>
@@ -160,7 +162,7 @@ export default function Register() {
                 type="text"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
-                className="w-full px-5 py-3.5 bg-white/3 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
                 placeholder={t('auth.register.invite_placeholder')}
               />
             </div>
@@ -178,7 +180,7 @@ export default function Register() {
             <button
               type="submit"
               disabled={registerMutation.isPending}
-              className="w-full bg-white text-black py-4 rounded-2xl font-black text-[15px] tracking-wide uppercase hover:bg-zinc-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_8px_30px_rgb(255,255,255,0.1)] mt-4"
+              className="w-full bg-white text-black py-3 rounded-2xl font-black text-[15px] tracking-wide uppercase hover:bg-zinc-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_8px_30px_rgb(255,255,255,0.1)] mt-2"
             >
               {registerMutation.isPending
                 ? t('auth.register.sign_up_loading')
@@ -186,7 +188,7 @@ export default function Register() {
             </button>
           </form>
 
-          <p className="mt-10 text-center text-gray-600 text-sm font-medium">
+          <p className="mt-6 text-center text-gray-600 text-sm font-medium">
             {t('auth.register.has_account')}{' '}
             <Link
               to="/accounts/login"
