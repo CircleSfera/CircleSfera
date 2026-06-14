@@ -1,9 +1,9 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FeedService } from './feed.service.js';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 describe('FeedService', () => {
   let service: FeedService;
