@@ -45,7 +45,9 @@ export class PaymentsController {
 
   @Get('portal')
   @UseGuards(JwtAuthGuard)
-  async getPortal(@Req() req: RequestWithUser): Promise<Stripe.BillingPortal.Session | { url: string }> {
+  async getPortal(
+    @Req() req: RequestWithUser,
+  ): Promise<Stripe.BillingPortal.Session | { url: string }> {
     return this.paymentsService.getPortalUrl(req.user.userId);
   }
 

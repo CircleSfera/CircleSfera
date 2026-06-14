@@ -436,7 +436,7 @@ export class PostsService {
           })
         : null;
 
-      if (!follow || follow.status !== 'ACCEPTED') {
+      if (follow?.status !== 'ACCEPTED') {
         throw new ForbiddenException('This account is private');
       }
     }
@@ -511,7 +511,7 @@ export class PostsService {
           })
         : null;
 
-      if (!follow || follow.status !== 'ACCEPTED') {
+      if (follow?.status !== 'ACCEPTED') {
         throw new ForbiddenException('This account is private');
       }
     }

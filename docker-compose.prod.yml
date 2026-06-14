@@ -59,7 +59,7 @@ services:
 
   backend:
     <<: *default-logging
-    image: ${REGISTRY:-ghcr.io/shadyfeliu/circlesfera}/backend:latest
+    image: ${REGISTRY:-ghcr.io/circlesfera/circlesfera}/backend:latest
     container_name: CircleSfera-Backend
     env_file: ./.env.production
     environment:
@@ -78,14 +78,14 @@ services:
 
   landing:
     <<: *default-logging
-    image: ${REGISTRY:-ghcr.io/shadyfeliu/circlesfera}/landing:latest
+    image: ${REGISTRY:-ghcr.io/circlesfera/circlesfera}/landing:latest
     container_name: CircleSfera-Landing
     networks:
       - circlesfera-network
 
   frontend:
     <<: *default-logging
-    image: ${REGISTRY:-ghcr.io/shadyfeliu/circlesfera}/frontend:latest
+    image: ${REGISTRY:-ghcr.io/circlesfera/circlesfera}/frontend:latest
     container_name: CircleSfera-Frontend
     restart: unless-stopped
     networks:

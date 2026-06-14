@@ -1,4 +1,8 @@
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -37,11 +41,11 @@ describe('ChatService', () => {
   const mockTo = vi.fn(() => ({ emit: mockEmit }));
 
   const mockCryptoService = {
-  encrypt: vi.fn((txt) => txt),
-  decrypt: vi.fn((txt) => txt),
-};
+    encrypt: vi.fn((txt) => txt),
+    decrypt: vi.fn((txt) => txt),
+  };
 
-const mockModuleRef = {
+  const mockModuleRef = {
     get: vi.fn((type) => {
       if (type === AppGateway) {
         return {

@@ -16,7 +16,6 @@ import {
   createPaginatedResult,
   type PaginationDto,
 } from '../common/dto/pagination.dto.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 
 /**

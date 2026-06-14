@@ -11,7 +11,6 @@ import {
 } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { CreateStoryDto } from './dto/create-story.dto.js';
 
 export type StoryReactionWithUser = StoryReaction & {
@@ -193,7 +192,7 @@ export class StoriesService {
           })
         : null;
 
-      if (!follow || follow.status !== 'ACCEPTED') {
+      if (follow?.status !== 'ACCEPTED') {
         return []; // Return empty or throw Forbidden? Let's return empty to match findByUser style
       }
     }

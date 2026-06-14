@@ -8,7 +8,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-// biome-ignore lint/style/useImportType: DI needs value
 import { MonetizationService } from './monetization.service.js';
 
 interface AuthRequest extends Request {
@@ -53,7 +52,12 @@ export class MonetizationController {
   @Post('tip')
   async sendTip(
     @Req() req: AuthRequest,
-    @Body() body: { receiverId: string; amountCents: number; returnUrl: string; postId?: string },
+    @Body() body: {
+      receiverId: string;
+      amountCents: number;
+      returnUrl: string;
+      postId?: string;
+    },
   ) {
     return this.monetizationService.createTipSession(
       req.user.userId,
@@ -65,11 +69,14 @@ export class MonetizationController {
   }
 
   @Post('unlock')
-  async unlockPost(@Req() req: AuthRequest, @Body() body: { postId: string; returnUrl: string }) {
+  async unlockPost(
+    @Req() req: AuthRequest,
+    @Body() body: { postId: string; returnUrl: string },
+  ) {
     return this.monetizationService.createPostUnlockSession(
       req.user.userId,
       body.postId,
-      body.returnUrl
+      body.returnUrl,
     );
   }
 
