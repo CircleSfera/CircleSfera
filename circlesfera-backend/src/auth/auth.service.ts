@@ -258,6 +258,26 @@ export class AuthService {
       throw new UnauthorizedException('Account is deactivated');
     }
 
+    if (user.isTwoFactorEnabled) {
+      if (!dto.twoFactorCode) {
+        throw new UnauthorizedException('2FA_REQUIRED'); // Custom error message so frontend knows
+      }
+
+      if (!user.twoFactorSecret) {
+        throw new UnauthorizedException('2FA configuration error');
+      }
+
+      const { verifySync } = await import('otplib');
+      const isTwoFactorCodeValid = verifySync({
+        token: dto.twoFactorCode,
+        secret: user.twoFactorSecret,
+      }).valid;
+
+      if (!isTwoFactorCodeValid) {
+        throw new UnauthorizedException('Invalid 2FA code');
+      }
+    }
+
     // Generate tokens
     return this.generateTokens(user.id, user.email);
   }

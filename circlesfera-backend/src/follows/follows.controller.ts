@@ -62,6 +62,32 @@ export class FollowsController {
     return this.followsService.unblockUser(user.userId, username);
   }
 
+  /** Mute a user by username. */
+  @Post(':username/follow/mute')
+  async mute(
+    @Param('username') username: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.followsService.muteUser(user.userId, username);
+  }
+
+  /** Unmute a previously muted user. */
+  @Post(':username/follow/unmute')
+  async unmute(
+    @Param('username') username: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.followsService.unmuteUser(user.userId, username);
+  }
+
+  /** List all muted users. */
+  @Get('me/follow/muted')
+  async getMuted(
+    @CurrentUser() user: CurrentUserData,
+  ): Promise<(User & { profile: Profile | null })[]> {
+    return this.followsService.getMutedUsers(user.userId);
+  }
+
   /** List all blocked users. */
   @Get('me/follow/blocked')
   async getBlocked(

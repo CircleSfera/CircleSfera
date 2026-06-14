@@ -59,7 +59,6 @@ export class PostsController {
     return this.postsService.findAll(pagination, sort, user?.userId);
   }
 
-
   /** Get video-only feed (Frames/Reels). */
   @Get('frames')
   @UseGuards(JwtOptionalGuard)
@@ -69,8 +68,6 @@ export class PostsController {
   ) {
     return this.postsService.getFramesFeed(pagination, user?.userId);
   }
-
-
 
   /** Get posts by a specific user's username. */
   @Get('user/:username')

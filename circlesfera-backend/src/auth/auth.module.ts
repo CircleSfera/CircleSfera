@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { PasskeyModule } from './passkey/passkey.module.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
+import { TwoFactorModule } from './two-factor/two-factor.module.js';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
     JwtModule.register({}),
     EmailModule,
     forwardRef(() => PasskeyModule),
+    TwoFactorModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

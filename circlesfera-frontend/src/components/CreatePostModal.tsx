@@ -64,6 +64,10 @@ export default function CreatePostModal() {
     setIsComposed,
     originalStoryMedia,
     setOriginalStoryMedia,
+    isPremium,
+    setIsPremium,
+    price,
+    setPrice,
     isPending,
   } = useCreatePost();
 
@@ -163,6 +167,10 @@ export default function CreatePostModal() {
         onGenerateAltText={generateAltTextForIndex}
         tagsMap={tagsMap}
         setTagsMap={setTagsMap}
+        isPremium={isPremium}
+        setIsPremium={setIsPremium}
+        price={price}
+        setPrice={setPrice}
       />
     );
   }
@@ -259,6 +267,7 @@ export default function CreatePostModal() {
                   selectedAudio={selectedAudio}
                   setSelectedAudio={setSelectedAudio}
                   setShowMusicPicker={setShowMusicPicker}
+                  isPremium={isPremium}
                 />
               </StepAnimationWrapper>
             )}

@@ -10,4 +10,6 @@ export const usersApi = {
   ban: (id: string) => apiClient.patch(`/users/${id}/ban`),
 
   unban: (id: string) => apiClient.patch(`/users/${id}/unban`),
+
+  requestExport: () => apiClient.post<{ message: string }>('/users/export'),
 };

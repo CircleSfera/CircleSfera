@@ -1,7 +1,7 @@
-import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { WebrtcService } from './webrtc.service.js';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { vi } from 'vitest';
+import { WebrtcService } from './webrtc.service.js';
 
 describe('WebrtcService', () => {
   let service: WebrtcService;

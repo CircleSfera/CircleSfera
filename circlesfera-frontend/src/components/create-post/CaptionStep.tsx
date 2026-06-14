@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ChevronRight,
+  DollarSign,
   Eye,
   Hash,
   MapPin,
@@ -30,6 +31,7 @@ interface CaptionStepProps {
   selectedAudio: AudioTrack | null;
   setSelectedAudio: (audio: AudioTrack | null) => void;
   setShowMusicPicker: (show: boolean) => void;
+  isPremium?: boolean;
 }
 
 const MAX_CAPTION_LENGTH = 2200;
@@ -44,6 +46,7 @@ export default function CaptionStep({
   selectedAudio,
   setSelectedAudio,
   setShowMusicPicker,
+  isPremium,
 }: CaptionStepProps) {
   const { t } = useTranslation();
   const { profile } = useAuthStore();
@@ -103,6 +106,14 @@ export default function CaptionStep({
       isActive: false,
       activeColor: '',
       onClick: () => setSubScreen('advanced'),
+    },
+    {
+      key: 'monetization',
+      icon: DollarSign,
+      label: t('createPost.caption.monetization', 'Monetization'),
+      isActive: !!isPremium,
+      activeColor: 'text-emerald-500',
+      onClick: () => setSubScreen('monetization'),
     },
     {
       key: 'music',

@@ -45,7 +45,7 @@ describe('FeedService', () => {
         { id: '1', type: 'POST', user: { profile: {} }, likes: [] },
       ]);
 
-      const result = await service.getHybridFeed(null, { page: 1, limit: 10 });
+      const result = await service.getHybridFeed(null, { page: 1, limit: 10 }) as any;
       expect(result.data).toHaveLength(1);
       expect(result.data[0].id).toBe('1');
     });
@@ -66,8 +66,11 @@ describe('FeedService', () => {
         { id: '2', likes: [] },
       ]);
 
-      const result = await service.getHybridFeed('user-1', { page: 1, limit: 10 });
-      
+      const result = await service.getHybridFeed('user-1', {
+        page: 1,
+        limit: 10,
+      }) as any;
+
       expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
       expect(result.data).toHaveLength(1);
       expect(result.data[0].id).toBe('2');
@@ -85,8 +88,11 @@ describe('FeedService', () => {
       ]);
       mockPrismaService.post.count.mockResolvedValue(1);
 
-      const result = await service.getFollowingFeed('user-1', { page: 1, limit: 10 });
-      
+      const result = await service.getFollowingFeed('user-1', {
+        page: 1,
+        limit: 10,
+      });
+
       expect(mockPrismaService.post.findMany).toHaveBeenCalled();
       expect(result.data).toHaveLength(1);
     });

@@ -63,7 +63,7 @@ export default function PrivacyPolicy() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030303] text-white pt-24 pb-24 px-6 font-sans relative overflow-hidden selection:bg-brand-primary/30">
+    <div className="min-h-screen text-white pt-24 pb-24 px-6 font-sans relative overflow-hidden selection:bg-brand-primary/30 flex flex-col justify-between">
       <SEO title={t('legal.privacy.title')} />
 
       {/* Background is now handled globally by LayoutWrapper */}
@@ -107,8 +107,10 @@ export default function PrivacyPolicy() {
                 <span className="text-brand-primary font-black text-[9px] tracking-[0.3em] uppercase mb-3 block">
                   {t('legal.badges.privacy_hub')}
                 </span>
-                <h1 className="text-3xl font-black tracking-tighter italic uppercase leading-tight">
-                  {t('legal.privacy.header_title')}
+                <h1 className="text-4xl lg:text-5xl font-black tracking-tighter uppercase leading-[0.9] drop-shadow-2xl">
+                  <span className="bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
+                    {t('legal.privacy.header_title')}
+                  </span>
                 </h1>
               </div>
 
@@ -159,8 +161,10 @@ export default function PrivacyPolicy() {
                 <span className="text-brand-primary font-black text-[9px] tracking-[0.3em] uppercase mb-3 block">
                   {t('legal.badges.legal_center')}
                 </span>
-                <h1 className="text-3xl font-black tracking-tighter italic uppercase leading-tight">
-                  {t('legal.privacy.header_title')}
+                <h1 className="text-4xl font-black tracking-tighter uppercase leading-[0.9] drop-shadow-2xl">
+                  <span className="bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
+                    {t('legal.privacy.header_title')}
+                  </span>
                 </h1>
               </div>
 
@@ -172,7 +176,7 @@ export default function PrivacyPolicy() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-10% 0px' }}
                   transition={{ delay: index * 0.05, duration: 0.5 }}
-                  className="glass-panel p-6 md:p-8 rounded-4xl border border-white/5 relative group hover:border-white/10 transition-all overflow-hidden"
+                  className="glass-panel p-6 md:p-8 rounded-4xl border border-white/5 relative group hover:border-brand-primary/30 hover:shadow-[0_0_40px_rgba(131,58,180,0.15)] transition-all duration-500 overflow-hidden backdrop-blur-2xl hover:-translate-y-1"
                 >
                   <div
                     className={`absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none`}
@@ -183,14 +187,14 @@ export default function PrivacyPolicy() {
                   <div className="relative z-10">
                     <div className="flex items-center gap-3 mb-6">
                       <div
-                        className={`w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 shadow-lg`}
+                        className={`w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 shadow-lg group-hover:scale-110 group-hover:bg-brand-primary/20 transition-all duration-500`}
                       >
                         <section.icon
                           size={20}
-                          className={`text-${section.color}`}
+                          className={`text-${section.color} group-hover:text-brand-primary transition-colors`}
                         />
                       </div>
-                      <h2 className="text-lg md:text-xl font-black text-white italic uppercase tracking-tight">
+                      <h2 className="text-lg md:text-xl font-black text-white italic uppercase tracking-tight group-hover:text-brand-primary transition-colors">
                         {section.title}
                       </h2>
                     </div>

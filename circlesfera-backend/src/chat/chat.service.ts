@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import type { Conversation, Message, MessageReaction } from '@prisma/client';
+import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
 
@@ -19,6 +20,7 @@ export class ChatService {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(ModuleRef) private moduleRef: ModuleRef,
+    @Inject(CryptoService) private cryptoService: CryptoService,
   ) {}
 
   private get gateway(): AppGateway {
@@ -195,10 +197,12 @@ export class ChatService {
       );
     }
 
-    // 2. Create message
+    // 2. Encrypt and create message
+    const encryptedContent = this.cryptoService.encrypt(content);
+
     const message = await this.prisma.message.create({
       data: {
-        content,
+        content: encryptedContent,
         senderId,
         conversationId: conversation.id,
         url,
@@ -253,6 +257,9 @@ export class ChatService {
       },
     });
 
+    // Decrypt the content for real-time broadcast and returning
+    message.content = this.cryptoService.decrypt(message.content);
+
     // 3. Emit real-time event to ALL participants
     conversation.participants.forEach((p: any) => {
       this.gateway.server
@@ -288,7 +295,7 @@ export class ChatService {
    */
   async getConversations(userId: string): Promise<Conversation[]> {
     // Find all conversations where the user is a participant
-    return await this.prisma.conversation.findMany({
+    const conversations = await this.prisma.conversation.findMany({
       where: {
         participants: {
           some: {
@@ -324,6 +331,17 @@ export class ChatService {
         updatedAt: 'desc',
       },
     });
+
+    // Decrypt the last message for each conversation
+    for (const conv of conversations) {
+      if (conv.messages && conv.messages.length > 0) {
+        conv.messages[0].content = this.cryptoService.decrypt(
+          conv.messages[0].content,
+        );
+      }
+    }
+
+    return conversations;
   }
 
   /**
@@ -386,7 +404,7 @@ export class ChatService {
       }
     }
 
-    return await this.prisma.message.findMany({
+    const messages = await this.prisma.message.findMany({
       where: { conversationId },
       orderBy: { createdAt: 'asc' },
       take: limit,
@@ -428,6 +446,12 @@ export class ChatService {
         },
       },
     });
+
+    for (const msg of messages) {
+      msg.content = this.cryptoService.decrypt(msg.content);
+    }
+
+    return messages;
   }
 
   /**

@@ -99,4 +99,102 @@ Disallow: /api/
 Sitemap: ${baseUrl}/api/v1/sitemap.xml
 `;
   }
+
+  async generateOpenGraphHtml(path: string): Promise<string> {
+    const baseUrl = 'https://circlesfera.com';
+    const fallbackImage = 'https://circlesfera.com/og-image.jpg'; // TODO: Update with real default OpenGraph image
+
+    // Default meta tags
+    let title = 'CircleSfera - The Next-Gen Social Network';
+    let description =
+      'Connect, share, and monetize your content on CircleSfera.';
+    let imageUrl = fallbackImage;
+
+    try {
+      // 1. Post Route Match: /p/:id
+      if (path.startsWith('/p/')) {
+        const postId = path.split('/p/')[1]?.split('?')[0];
+        if (postId) {
+          const post = await this.prisma.post.findUnique({
+            where: { id: postId },
+            include: { user: { include: { profile: true } }, media: true },
+          });
+
+          if (post) {
+            title = post.caption
+              ? `${post.user.profile?.fullName || post.user.profile?.username} on CircleSfera: "${post.caption.substring(0, 50)}..."`
+              : `Post by ${post.user.profile?.fullName || post.user.profile?.username}`;
+            description = post.caption || description;
+
+            // Extract image if available
+            if (post.media && post.media.length > 0) {
+              const firstMedia = post.media[0];
+              imageUrl =
+                firstMedia.standardUrl ||
+                firstMedia.thumbnailUrl ||
+                firstMedia.url ||
+                fallbackImage;
+            }
+          }
+        }
+      }
+      // 2. Profile Route Match: /:username (Ignore static routes)
+      else if (
+        path.length > 1 &&
+        !path.startsWith('/api') &&
+        !path.startsWith('/accounts') &&
+        !path.startsWith('/explore')
+      ) {
+        const username = path.substring(1).split('?')[0]; // remove leading slash
+        const profile = await this.prisma.profile.findUnique({
+          where: { username },
+          include: {
+            user: {
+              include: {
+                _count: { select: { followers: true, following: true } },
+              },
+            },
+          },
+        });
+
+        if (profile) {
+          title = `${profile.fullName} (@${profile.username}) | CircleSfera`;
+          description = profile.bio
+            ? profile.bio
+            : `Follow @${profile.username} on CircleSfera. ${profile.user?._count?.followers || 0} Followers.`;
+          imageUrl = profile.avatar || fallbackImage;
+        }
+      }
+    } catch (error) {
+      console.error('Error generating OG metadata:', error);
+      // Fallback to default metadata on error
+    }
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>${title}</title>
+    <meta name="description" content="${description}">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="${baseUrl}${path}">
+    <meta property="og:title" content="${title}">
+    <meta property="og:description" content="${description}">
+    <meta property="og:image" content="${imageUrl}">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="${baseUrl}${path}">
+    <meta property="twitter:title" content="${title}">
+    <meta property="twitter:description" content="${description}">
+    <meta property="twitter:image" content="${imageUrl}">
+</head>
+<body>
+    <p>CircleSfera preview. Redirecting...</p>
+    <script>window.location.replace("${baseUrl}${path}");</script>
+</body>
+</html>`;
+  }
 }

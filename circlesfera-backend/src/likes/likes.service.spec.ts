@@ -30,7 +30,10 @@ describe('LikesService', () => {
         LikesService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: NotificationsService, useValue: mockNotificationsService },
-        { provide: 'BullQueue_analytics-processing', useValue: { add: vi.fn() } },
+        {
+          provide: 'BullQueue_analytics-processing',
+          useValue: { add: vi.fn() },
+        },
       ],
     }).compile();
 

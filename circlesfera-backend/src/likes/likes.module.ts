@@ -7,7 +7,7 @@ import { LikesService } from './likes.service.js';
 
 @Module({
   imports: [
-    PrismaModule, 
+    PrismaModule,
     NotificationsModule,
     BullModule.registerQueue({ name: 'analytics-processing' }),
   ],

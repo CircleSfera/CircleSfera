@@ -11,9 +11,7 @@ import { FeedService } from './feed.service.js';
 
 @Controller('feed')
 export class FeedController {
-  constructor(
-    @Inject(FeedService) private readonly feedService: FeedService,
-  ) {}
+  constructor(@Inject(FeedService) private readonly feedService: FeedService) {}
 
   /** Get personalized hybrid "For You" feed */
   @Get('foryou')

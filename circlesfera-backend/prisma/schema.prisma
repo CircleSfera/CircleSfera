@@ -39,9 +39,11 @@ model User {
   messages         Message[]
   messageReactions MessageReaction[] // New: User reactions to messages
 
-  // Block relations
+  // Block & Mute relations
   blockedBy Block[] @relation("BlockedBy")
   blocking  Block[] @relation("Blocking")
+  mutedBy   Mute[]  @relation("MutedBy")
+  muting    Mute[]  @relation("Muting")
 
   // Bookmarks
   bookmarks   Bookmark[]
@@ -75,6 +77,9 @@ model User {
   // Admin Audit Logs (actions performed by this admin)
   auditLogs AdminAuditLog[]
 
+  // GDPR Data Export
+  dataExportRequests DataExportRequest[]
+
   // Promotions
   promotions Promotion[]
 
@@ -82,11 +87,12 @@ model User {
   isOnline   Boolean   @default(false)
   lastSeenAt DateTime?
 
-  // Platform Subscriptions
-  stripeCustomerId      String? @unique
-  platformSubscriptions PlatformSubscription[]
-  postViews             PostView[]
-  metrics               UserMetric[]
+  // Platform Subscriptions & Connect
+  stripeCustomerId       String?                @unique
+  stripeConnectAccountId String?                @unique
+  platformSubscriptions  PlatformSubscription[]
+  postViews              PostView[]
+  metrics                UserMetric[]
 
   // Growth & Referrals
   inviteCode   String? @unique
@@ -99,8 +105,12 @@ model User {
   // Verification and Reset Tokens
   emailVerified     DateTime?
   verificationToken String?   @unique
-  resetToken        String?   @unique
-  resetTokenExpires DateTime?
+
+  // 2FA (TOTP)
+  isTwoFactorEnabled Boolean   @default(false)
+  twoFactorSecret    String?
+  resetToken         String?   @unique
+  resetTokenExpires  DateTime?
 
   // Verification & Account Type
   verificationLevel VerificationLevel @default(BASIC)
@@ -113,12 +123,13 @@ model User {
   pushSubscriptions PushSubscription[]
 
   // Virtual Economy & Monetization
-  wallet               Wallet?
+  monetization         Monetization?
   sentTransactions     Transaction[]         @relation("SentTransactions")
   receivedTransactions Transaction[]         @relation("ReceivedTransactions")
   subscribedToCreator  CreatorSubscription[] @relation("SubscribedToCreator")
   creatorSubscribers   CreatorSubscription[] @relation("CreatorSubscribers")
   payoutRequests       PayoutRequest[]
+  postUnlocks          PostUnlock[]
 
   @@index([isOnline])
   @@index([verificationToken])
@@ -170,21 +181,21 @@ model RefreshToken {
 }
 
 model Profile {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  username  String   @unique
-  fullName  String?
-  bio       String?
-  avatar       String?
-  standardUrl  String? // New: Optimized variant
-  thumbnailUrl String? // New: Optimized variant
-  cover        String?
-  coverStandardUrl String?
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  username          String   @unique
+  fullName          String?
+  bio               String?
+  avatar            String?
+  standardUrl       String? // New: Optimized variant
+  thumbnailUrl      String? // New: Optimized variant
+  cover             String?
+  coverStandardUrl  String?
   coverThumbnailUrl String?
-  website   String?
-  location  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  website           String?
+  location          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -218,22 +229,23 @@ model Post {
   hideLikes       Boolean @default(false)
   turnOffComments Boolean @default(false)
 
-  type             PostType         @default(POST)
-  contentRating    ContentRating    @default(GENERAL)
-  views            Int              @default(0)
-  loops            Int              @default(0) // For Frames (vertical video)
-  watchTime        Int              @default(0) // Total watch time in seconds
-  performanceScore Float            @default(0)
-  visibility       Visibility       @default(PUBLIC)
+  type             PostType      @default(POST)
+  contentRating    ContentRating @default(GENERAL)
+  views            Int           @default(0)
+  loops            Int           @default(0) // For Frames (vertical video)
+  watchTime        Int           @default(0) // Total watch time in seconds
+  performanceScore Float         @default(0)
+  visibility       Visibility    @default(PUBLIC)
   audioId          String?
-  audio            Audio?           @relation(fields: [audioId], references: [id], onDelete: SetNull)
+  audio            Audio?        @relation(fields: [audioId], references: [id], onDelete: SetNull)
 
   moderationStatus ModerationStatus @default(VISIBLE)
   moderationNote   String?          @db.Text
 
   // Phase 8: Premium Content
-  isPremium        Boolean          @default(false)
-  price            Int              @default(0) // Price in tokens
+  isPremium   Boolean      @default(false)
+  priceCents  Int          @default(0) // Price in fiat cents (e.g., 500 = $5.00)
+  postUnlocks PostUnlock[]
 
   @@index([userId, type, visibility, createdAt, moderationStatus])
   @@index([userId])
@@ -280,14 +292,14 @@ model Bookmark {
 }
 
 model Collection {
-  id        String   @id @default(uuid())
-  userId    String
-  name      String
+  id           String   @id @default(uuid())
+  userId       String
+  name         String
   coverUrl     String?
   standardUrl  String? // New: Optimized variant
   thumbnailUrl String? // New: Optimized variant
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   bookmarks Bookmark[]
@@ -297,16 +309,16 @@ model Collection {
 }
 
 model PostMedia {
-  id        String   @id @default(uuid())
-  postId    String
+  id           String   @id @default(uuid())
+  postId       String
   url          String
   standardUrl  String? // New: Optimized variant
   thumbnailUrl String? // New: Optimized variant
-  type      String   @default("image") // "image" | "video"
-  order     Int      @default(0) // For carousel ordering
-  filter    String? // Store filter ID (e.g. "sepia", "clarendon")
-  altText   String? // Accessibility text
-  createdAt DateTime @default(now())
+  type         String   @default("image") // "image" | "video"
+  order        Int      @default(0) // For carousel ordering
+  filter       String? // Store filter ID (e.g. "sepia", "clarendon")
+  altText      String? // Accessibility text
+  createdAt    DateTime @default(now())
 
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
@@ -315,19 +327,17 @@ model PostMedia {
 }
 
 model Story {
-  id        String   @id @default(uuid())
-  userId    String
+  id           String   @id @default(uuid())
+  userId       String
   url          String
   standardUrl  String? // New: Optimized variant
   thumbnailUrl String? // New: Optimized variant
-  mediaType String   @default("image") // image or video
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  mediaType    String   @default("image") // image or video
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
 
   // New: Close Friends support
   isCloseFriendsOnly Boolean @default(false)
-
-
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -376,7 +386,7 @@ model StoryView {
 model PostView {
   id        String   @id @default(uuid())
   postId    String
-  viewerId  String?  // Optional: tracking anonymous or identified views
+  viewerId  String? // Optional: tracking anonymous or identified views
   createdAt DateTime @default(now())
 
   post   Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
@@ -388,10 +398,10 @@ model PostView {
 }
 
 model UserMetric {
-  id        String   @id @default(uuid())
-  userId    String
-  date      DateTime @default(now())
-  
+  id     String   @id @default(uuid())
+  userId String
+  date   DateTime @default(now())
+
   // Snapshots
   followers Int @default(0)
   following Int @default(0)
@@ -560,6 +570,41 @@ model Block {
   @@map("blocks")
 }
 
+model Mute {
+  id        String   @id @default(uuid())
+  muterId   String
+  mutedId   String
+  createdAt DateTime @default(now())
+
+  muter User @relation("Muting", fields: [muterId], references: [id], onDelete: Cascade)
+  muted User @relation("MutedBy", fields: [mutedId], references: [id], onDelete: Cascade)
+
+  @@unique([muterId, mutedId])
+  @@map("mutes")
+}
+
+model DataExportRequest {
+  id        String       @id @default(uuid())
+  userId    String
+  status    ExportStatus @default(PENDING)
+  expiresAt DateTime?
+  url       String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("data_export_requests")
+}
+
+enum ExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 enum FollowStatus {
   PENDING
   ACCEPTED
@@ -573,20 +618,20 @@ enum Visibility {
 
 // Platform Subscriptions (Phase 1 SaaS Model)
 model PlatformPlan {
-  id                    String   @id @default(uuid())
-  name                  String   // e.g. "Pro Creator", "Verified"
-  description           String?
-  price                 Float
-  yearlyPrice           Float?   // INC-04: Support for yearly pricing
-  currency              String   @default("EUR") // INC-13: Default to EUR
-  interval              String   @default("month") // "month", "year"
-  stripeProductId       String   @unique
-  stripePriceId         String   @unique
-  yearlyStripePriceId   String?  @unique // INC-04: Support for yearly pricing
-  features              String[] // Array of included features
-  isActive              Boolean  @default(true)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  name                String // e.g. "Pro Creator", "Verified"
+  description         String?
+  price               Float
+  yearlyPrice         Float? // INC-04: Support for yearly pricing
+  currency            String   @default("EUR") // INC-13: Default to EUR
+  interval            String   @default("month") // "month", "year"
+  stripeProductId     String   @unique
+  stripePriceId       String   @unique
+  yearlyStripePriceId String?  @unique // INC-04: Support for yearly pricing
+  features            String[] // Array of included features
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   subscriptions PlatformSubscription[]
 
@@ -594,16 +639,16 @@ model PlatformPlan {
 }
 
 model PlatformSubscription {
-  id                   String   @id @default(uuid())
+  id                   String             @id @default(uuid())
   userId               String
   planId               String
   status               SubscriptionStatus @default(ACTIVE) // Mapping Stripe statuses
   stripeSubscriptionId String             @unique
   currentPeriodStart   DateTime
   currentPeriodEnd     DateTime
-  cancelAtPeriodEnd    Boolean  @default(false)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
 
   user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan PlatformPlan @relation(fields: [planId], references: [id])
@@ -616,37 +661,37 @@ model PlatformSubscription {
 
 // Log of incoming webhooks to ensure idempotency
 model WebhookEvent {
-  id         String   @id @default(uuid())
-  provider   String // "stripe", "ccbill", "segpay"
-  externalId String   @unique // The event ID from the provider
-  payload    Json
-  status     String   @default("PENDING") // "PENDING", "PROCESSED", "FAILED"
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String    @id @default(uuid())
+  provider    String // "stripe", "ccbill", "segpay"
+  externalId  String    @unique // The event ID from the provider
+  payload     Json
+  status      String    @default("PENDING") // "PENDING", "PROCESSED", "FAILED"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   processedAt DateTime?
 
   @@map("webhook_events")
 }
 
 model Notification {
-  id          String  @id @default(uuid())
+  id          String           @id @default(uuid())
   recipientId String
   senderId    String?
   type        NotificationType
   content     String
-  read        Boolean @default(false)
+  read        Boolean          @default(false)
 
   // INC-03: Polymorphic references
-  postId      String?
-  storyId     String?
-  reportId    String?
-  messageId   String? // New: Link to affected DM for moderation alerts
-  targetType  String? // "post" | "story" | "comment" | "report" | "message"
-  targetId    String?
+  postId     String?
+  storyId    String?
+  reportId   String?
+  messageId  String? // New: Link to affected DM for moderation alerts
+  targetType String? // "post" | "story" | "comment" | "report" | "message"
+  targetId   String?
 
-  post   Post?   @relation(fields: [postId], references: [id], onDelete: Cascade)
-  story  Story?  @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  report Report? @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  story   Story?   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  report  Report?  @relation(fields: [reportId], references: [id], onDelete: Cascade)
   message Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -728,12 +773,12 @@ model Message {
 
   // New: Story Sharing/Replying
   storyId String?
-  story   Story?   @relation("SharedStories", fields: [storyId], references: [id], onDelete: SetNull)
+  story   Story?  @relation("SharedStories", fields: [storyId], references: [id], onDelete: SetNull)
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
-  reactions MessageReaction[]
+  reactions     MessageReaction[]
   notifications Notification[]
 
   @@index([conversationId])
@@ -809,7 +854,7 @@ model Passkey {
 
 // Content Reporting
 model Report {
-  id         String  @id @default(uuid())
+  id         String       @id @default(uuid())
   reporterId String
   reason     ReportReason @default(OTHER)
   details    String?
@@ -822,7 +867,7 @@ model Report {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reporter      User           @relation(fields: [reporterId], references: [id], onDelete: Cascade)
   notifications Notification[]
 
   @@index([reporterId])
@@ -843,10 +888,10 @@ enum ReportReason {
 
 // Search History
 model SearchHistory {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   userId    String
   query     String
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   expiresAt DateTime? // INC-08: GDPR retention (90 days)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -874,13 +919,13 @@ model Audio {
 
 // Admin Audit Log — tracks all admin actions for accountability
 model AdminAuditLog {
-  id         String   @id @default(uuid())
+  id         String      @id @default(uuid())
   adminId    String
   action     AdminAction
-  targetType String      // "user", "post", "report"
+  targetType String // "user", "post", "report"
   targetId   String
   details    String?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime    @default(now())
 
   admin User @relation(fields: [adminId], references: [id])
 
@@ -891,7 +936,7 @@ model AdminAuditLog {
 
 // Promotions — users can boost their content
 model Promotion {
-  id         String   @id @default(uuid())
+  id         String              @id @default(uuid())
   userId     String
   targetType PromotionTargetType
   targetId   String
@@ -903,7 +948,7 @@ model Promotion {
   reach      Int                 @default(0)
 
   // Monetization fixes (INC-05)
-  stripePaymentIntentId String? @unique
+  stripePaymentIntentId String?               @unique
   chargedAt             DateTime?
   refundPolicy          PromotionRefundPolicy @default(PROPORTIONAL)
   refundedAt            DateTime?
@@ -957,11 +1002,11 @@ model UserSettings {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  privacyLevel         Visibility        @default(PUBLIC)
+  privacyLevel         Visibility    @default(PUBLIC)
   contentPreference    ContentRating @default(GENERAL)
-  blurSensitiveContent Boolean           @default(true)
-  emailNotifications   Boolean           @default(true)
-  pushNotifications    Boolean           @default(true)
+  blurSensitiveContent Boolean       @default(true)
+  emailNotifications   Boolean       @default(true)
+  pushNotifications    Boolean       @default(true)
 
   updatedAt DateTime @updatedAt
 
@@ -996,7 +1041,7 @@ enum AdminAction {
   PROMOTE_USER
   DEMOTE_USER
   UPDATE_USER_STATUS
-  
+
   // Content Management
   DELETE_POST
   DELETE_COMMENT
@@ -1005,13 +1050,13 @@ enum AdminAction {
   CONTENT_RESTRICTED
   CONTENT_RESTORED
   CONTENT_LABELED
-  
+
   // Report Management
   REPORT_REVIEWED
   REPORT_RESOLVED
   REPORT_DISMISSED
   REPORT_ESCALATED
-  
+
   // Whitelist & Misc
   UPDATE_WHITELIST
   DELETE_WHITELIST
@@ -1056,31 +1101,48 @@ model PushSubscription {
   @@map("push_subscriptions")
 }
 
-// ─── Phase 8: Virtual Economy & Monetization ────────────────────────
+// ─── Virtual Economy & Monetization ────────────────────────
 
-model Wallet {
-  id           String   @id @default(uuid())
-  userId       String   @unique
-  balance      Int      @default(0) // Purchased tokens
-  earnedTokens Int      @default(0) // Tokens earned from tips/subscriptions/PPV
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+model Monetization {
+  id     String @id @default(uuid())
+  userId String @unique
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // En el nuevo modelo Directo (Stripe Connect), los fondos van directamente a Stripe.
+  // Mantenemos esto solo como un ledger estadístico visual (en centavos de dólar).
+  lifetimeEarningsCents Int @default(0)
 
-  @@map("wallets")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("monetization")
+}
+
+model PostUnlock {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  pricePaid Int // In cents
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("post_unlocks")
 }
 
 model Transaction {
-  id          String            @id @default(uuid())
-  type        TransactionType
-  amount      Int               // Positive for incoming, negative for outgoing
-  currency    String            @default("TOKEN")
-  status      TransactionStatus @default(COMPLETED)
+  id       String            @id @default(uuid())
+  type     TransactionType
+  amount   Int // Positive for incoming, negative for outgoing
+  currency String            @default("TOKEN")
+  status   TransactionStatus @default(COMPLETED)
 
   // Participants
-  senderId    String?
-  receiverId  String?
+  senderId   String?
+  receiverId String?
 
   // Associated entities
   postId      String?
@@ -1090,8 +1152,8 @@ model Transaction {
   description String?
   createdAt   DateTime @default(now())
 
-  sender      User?    @relation("SentTransactions", fields: [senderId], references: [id], onDelete: SetNull)
-  receiver    User?    @relation("ReceivedTransactions", fields: [receiverId], references: [id], onDelete: SetNull)
+  sender   User? @relation("SentTransactions", fields: [senderId], references: [id], onDelete: SetNull)
+  receiver User? @relation("ReceivedTransactions", fields: [receiverId], references: [id], onDelete: SetNull)
 
   @@index([senderId])
   @@index([receiverId])
@@ -1100,10 +1162,9 @@ model Transaction {
 }
 
 enum TransactionType {
-  TOKEN_PURCHASE
-  TIP
-  POST_UNLOCK
-  SUBSCRIPTION
+  DIRECT_POST_UNLOCK
+  DIRECT_TIP
+  STRIPE_SUBSCRIPTION
   PROMOTION_PAYMENT
   PAYOUT
 }
@@ -1116,17 +1177,21 @@ enum TransactionStatus {
 }
 
 model CreatorSubscription {
-  id              String   @id @default(uuid())
-  subscriberId    String
-  creatorId       String
-  monthlyTokens   Int
-  status          SubscriptionStatus @default(ACTIVE)
-  startedAt       DateTime @default(now())
-  expiresAt       DateTime
-  autoRenew       Boolean  @default(true)
+  id           String             @id @default(uuid())
+  subscriberId String
+  creatorId    String
+  status       SubscriptionStatus @default(ACTIVE)
 
-  subscriber      User     @relation("SubscribedToCreator", fields: [subscriberId], references: [id], onDelete: Cascade)
-  creator         User     @relation("CreatorSubscribers", fields: [creatorId], references: [id], onDelete: Cascade)
+  priceCents           Int // Price per month in cents
+  stripeSubscriptionId String? @unique // Stripe Billing ID
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  autoRenew Boolean  @default(true)
+
+  subscriber User @relation("SubscribedToCreator", fields: [subscriberId], references: [id], onDelete: Cascade)
+  creator    User @relation("CreatorSubscribers", fields: [creatorId], references: [id], onDelete: Cascade)
 
   @@unique([subscriberId, creatorId])
   @@index([creatorId])
@@ -1141,14 +1206,14 @@ model PayoutRequest {
   amountFiat    Float
   currency      String       @default("USD")
   status        PayoutStatus @default(PENDING)
-  payoutMethod  String       // e.g. "PAYPAL", "BANK_TRANSFER"
-  payoutDetails String?      // e.g. "paypal@email.com"
+  payoutMethod  String // e.g. "PAYPAL", "BANK_TRANSFER"
+  payoutDetails String? // e.g. "paypal@email.com"
 
-  createdAt     DateTime     @default(now())
-  processedAt   DateTime?
-  adminNotes    String?
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+  adminNotes  String?
 
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])

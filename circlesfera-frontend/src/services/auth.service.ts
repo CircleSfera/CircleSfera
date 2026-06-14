@@ -18,4 +18,17 @@ export const authApi = {
 
   resetPassword: (data: { token: string; newPassword: string }) =>
     apiClient.post('/auth/reset-password', data),
+
+  generate2fa: () =>
+    apiClient.post<{ secret: string; qrCodeDataUrl: string }>(
+      '/auth/2fa/generate',
+    ),
+
+  verify2fa: (data: { code: string }) =>
+    apiClient.post<{ isValid: boolean }>('/auth/2fa/verify', data),
+
+  enable2fa: (data: { code: string }) =>
+    apiClient.post<{ success: boolean }>('/auth/2fa/enable', data),
+
+  disable2fa: () => apiClient.post<{ success: boolean }>('/auth/2fa/disable'),
 };

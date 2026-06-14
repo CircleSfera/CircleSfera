@@ -28,6 +28,14 @@ export const followsApi = {
       'users/me/follow/blocked',
     ),
 
+  mute: (username: string) => apiClient.post(`users/${username}/follow/mute`),
+
+  unmute: (username: string) =>
+    apiClient.post(`users/${username}/follow/unmute`),
+
+  getMuted: () =>
+    apiClient.get<{ id: string; profile?: Profile }[]>('users/me/follow/muted'),
+
   // Pending follow requests
   getPending: () =>
     apiClient.get<{ id: string; profile?: Profile }[]>(

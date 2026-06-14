@@ -234,8 +234,6 @@ describe('PostsService', () => {
     });
   });
 
-
-
   describe('findByUser', () => {
     it('should return posts for a specific user', async () => {
       mockPrismaService.profile.findUnique.mockResolvedValue({

@@ -1,4 +1,4 @@
-import { Controller, Get, Header, Inject } from '@nestjs/common';
+import { Controller, Get, Header, Inject, Query } from '@nestjs/common';
 import { SeoService } from './seo.service.js';
 
 @Controller()
@@ -15,5 +15,14 @@ export class SeoController {
   @Header('Content-Type', 'text/plain')
   getRobotsTxt() {
     return this.seoService.generateRobotsTxt();
+  }
+
+  @Get('og')
+  @Header('Content-Type', 'text/html')
+  async getOpenGraphHtml(@Query('path') path: string) {
+    if (!path) {
+      path = '/';
+    }
+    return this.seoService.generateOpenGraphHtml(path);
   }
 }

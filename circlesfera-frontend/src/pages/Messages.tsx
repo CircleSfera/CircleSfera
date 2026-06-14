@@ -6,12 +6,13 @@ import { useSocketStore } from '../stores/socketStore';
 
 export default function Messages() {
   const { id } = useParams();
-  const { connect, disconnect } = useSocketStore();
+  const { connect } = useSocketStore();
 
+  // Socket connection is now handled globally in AuthGuard/Layout
+  // We only ensure it's connected here as a fallback
   useEffect(() => {
     connect();
-    return () => disconnect();
-  }, [connect, disconnect]);
+  }, [connect]);
 
   return (
     <div className="h-full md:h-[calc(100vh-80px)] md:mt-8 px-0 md:px-4 max-w-6xl mx-auto overflow-hidden bg-transparent">

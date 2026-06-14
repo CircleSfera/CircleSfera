@@ -826,11 +826,9 @@ export class PostsService {
     const subscribedCreatorIds = new Set(subscriptions.map((s) => s.creatorId));
 
     // Fetch user's unlocked posts
-    const unlocks = await this.prisma.transaction.findMany({
+    const unlocks = await this.prisma.postUnlock.findMany({
       where: {
-        senderId: currentUserId,
-        type: 'POST_UNLOCK',
-        status: 'COMPLETED',
+        userId: currentUserId,
       },
       select: { postId: true },
     });

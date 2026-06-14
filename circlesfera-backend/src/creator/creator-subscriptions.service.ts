@@ -4,30 +4,42 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 // biome-ignore lint/style/useImportType: DI needs value
-import { PrismaService } from '../prisma/prisma.service.js';
+import { StripeService } from '../common/stripe/stripe.service.js';
 // biome-ignore lint/style/useImportType: DI needs value
-import { WalletService } from '../wallet/wallet.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class CreatorSubscriptionsService {
   constructor(
     private prisma: PrismaService,
-    private walletService: WalletService,
+    private stripeService: StripeService,
   ) {}
 
-  async subscribe(
+  async createSubscriptionSession(
     subscriberId: string,
     creatorId: string,
-    monthlyTokens: number,
+    priceCents: number,
+    returnUrl: string,
   ) {
     if (subscriberId === creatorId) {
       throw new BadRequestException('Cannot subscribe to yourself');
     }
 
+    if (priceCents < 100) {
+      throw new BadRequestException('Minimum subscription is $1.00 USD/month');
+    }
+
     const creator = await this.prisma.user.findUnique({
       where: { id: creatorId },
     });
-    if (!creator) throw new NotFoundException('Creator not found');
+    if (!creator?.stripeConnectAccountId) {
+      throw new BadRequestException('Creator has not setup Stripe Connect');
+    }
+
+    const subscriber = await this.prisma.user.findUnique({
+      where: { id: subscriberId },
+    });
+    if (!subscriber) throw new NotFoundException('Subscriber not found');
 
     const existing = await this.prisma.creatorSubscription.findUnique({
       where: { subscriberId_creatorId: { subscriberId, creatorId } },
@@ -38,70 +50,45 @@ export class CreatorSubscriptionsService {
       existing.status === 'ACTIVE' &&
       existing.expiresAt > new Date()
     ) {
-      return { success: true, message: 'Already subscribed' };
+      throw new BadRequestException('Already actively subscribed');
     }
 
-    const wallet = await this.walletService.getWallet(subscriberId);
-    if (wallet.balance < monthlyTokens) {
-      throw new BadRequestException('Insufficient tokens for subscription');
-    }
-
-    return this.prisma.$transaction(async (tx) => {
-      // Deduct tokens
-      await tx.wallet.update({
-        where: { userId: subscriberId },
-        data: { balance: { decrement: monthlyTokens } },
-      });
-
-      // Give to creator
-      await tx.wallet.update({
-        where: { userId: creatorId },
-        data: { earnedTokens: { increment: monthlyTokens } },
-      });
-
-      // Log transaction
-      await tx.transaction.create({
-        data: {
-          type: 'SUBSCRIPTION',
-          amount: monthlyTokens,
-          senderId: subscriberId,
-          receiverId: creatorId,
-          description: `Subscription to ${creator.email}`,
+    // Usamos Stripe Checkout en modo "subscription"
+    const session = await this.stripeService.createCheckoutSession({
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      customer_email: subscriber.email,
+      client_reference_id: subscriberId,
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            recurring: { interval: 'month' },
+            product_data: {
+              name: `VIP Subscription to ${creator.email}`,
+              description: 'Monthly premium content access',
+            },
+            unit_amount: priceCents,
+          },
+          quantity: 1,
         },
-      });
-
-      const expiresAt = new Date();
-      expiresAt.setMonth(expiresAt.getMonth() + 1);
-
-      // Upsert subscription
-      const subscription = await tx.creatorSubscription.upsert({
-        where: { subscriberId_creatorId: { subscriberId, creatorId } },
-        create: {
-          subscriberId,
-          creatorId,
-          monthlyTokens,
-          status: 'ACTIVE',
-          expiresAt,
+      ],
+      subscription_data: {
+        application_fee_percent: 20.0,
+        transfer_data: {
+          destination: creator.stripeConnectAccountId,
         },
-        update: {
-          status: 'ACTIVE',
-          expiresAt,
-          monthlyTokens,
-        },
-      });
-
-      // Send Notification
-      await tx.notification.create({
-        data: {
-          recipientId: creatorId,
-          senderId: subscriberId,
-          type: 'SUBSCRIPTION',
-          content: 'You have a new subscriber!',
-        },
-      });
-
-      return subscription;
+      },
+      metadata: {
+        type: 'STRIPE_SUBSCRIPTION',
+        creatorId: creatorId,
+        priceCents: priceCents.toString(),
+      },
+      success_url: `${returnUrl}?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${returnUrl}?canceled=true`,
     });
+
+    return { url: session.url };
   }
 
   async checkSubscription(subscriberId: string, creatorId: string) {

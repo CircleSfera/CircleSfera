@@ -8,6 +8,7 @@ export interface User {
   isMonetizationEnabled?: boolean;
   verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
   accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
+  stripeConnectAccountId?: string | null;
 }
 
 export interface Profile {

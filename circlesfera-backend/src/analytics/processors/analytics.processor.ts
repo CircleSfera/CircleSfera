@@ -42,19 +42,22 @@ export class AnalyticsProcessor extends WorkerHost {
 
       if (!post) return;
 
-      const score = 
-        (post._count.likes * 2) + 
-        (post._count.comments * 3) + 
-        (post.views * 0.1);
+      const score =
+        post._count.likes * 2 + post._count.comments * 3 + post.views * 0.1;
 
       await this.prisma.post.update({
         where: { id: postId },
         data: { performanceScore: score },
       });
 
-      this.logger.debug(`Updated performanceScore for post ${postId} to ${score}`);
+      this.logger.debug(
+        `Updated performanceScore for post ${postId} to ${score}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to update performance score for ${postId}`, error);
+      this.logger.error(
+        `Failed to update performance score for ${postId}`,
+        error,
+      );
       throw error;
     }
   }

@@ -236,6 +236,25 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     if (isAuthenticated) {
       newSocket.connect();
     }
+
+    // Handle mobile browser sleep/wake (Page Visibility API)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const currentSocket = get().socket;
+        if (
+          useAuthStore.getState().isAuthenticated &&
+          currentSocket &&
+          !currentSocket.connected
+        ) {
+          logger.log('Socket: App became visible, forcing reconnection...');
+          currentSocket.connect();
+        }
+      }
+    };
+
+    // Remove any existing listener to prevent duplicates
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
   },
 
   disconnect: () => {

@@ -14,7 +14,9 @@ export { default as RichText } from './RichText';
 // Story components
 export { default as StoryList } from './StoryList';
 export { default as StoryViewer } from './StoryViewer';
+
 // Settings components
 export { default as PasskeySettings } from './settings/PasskeySettings';
+export { TwoFactorSettings } from './TwoFactorSettings';
 export { default as UserAvatar } from './UserAvatar';
 export { default as VerificationBadge } from './VerificationBadge';

@@ -1,5 +1,7 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import { Visibility } from '@prisma/client';
+import type { Cache } from 'cache-manager';
 import { AIService } from '../ai/ai.service.js';
 // biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import {
@@ -12,6 +14,8 @@ import { PrismaService } from '../prisma/prisma.service.js';
 export class FeedService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    // biome-ignore lint/correctness/noUnusedPrivateClassMembers: aiService injected for future use
     @Inject(AIService) private readonly aiService: AIService,
   ) {}
 
@@ -26,6 +30,12 @@ export class FeedService {
     // 1. If not logged in, return a trending chronological feed
     if (!userId) {
       return this.getTrendingFeed(page, limit, skip);
+    }
+
+    const cacheKey = `feed:hybrid:user_${userId}:page_${page}:limit_${limit}`;
+    const cachedFeed = await this.cacheManager.get(cacheKey);
+    if (cachedFeed) {
+      return cachedFeed;
     }
 
     // 2. Logged in: Build Hybrid Feed
@@ -59,9 +69,9 @@ export class FeedService {
 
       // Step B: Execute the Hybrid SQL Query
       // We use $queryRaw to combine vector distance, time decay, and social relationships
-      
+
       let postsRaw: any[] = [];
-      
+
       if (targetVectorStr) {
         // Hybrid Query WITH AI Vector
         postsRaw = await this.prisma.$queryRaw`
@@ -100,14 +110,15 @@ export class FeedService {
             AND p."moderationStatus" = 'VISIBLE'
             AND p."userId" != ${userId}
             AND p.id NOT IN (SELECT "postId" FROM "likes" WHERE "userId" = ${userId})
+            AND p."userId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${userId})
             
           ORDER BY final_score DESC
           LIMIT ${limit}
           OFFSET ${skip}
         `;
       } else {
-         // Hybrid Query WITHOUT AI Vector (User has no likes yet)
-         postsRaw = await this.prisma.$queryRaw`
+        // Hybrid Query WITHOUT AI Vector (User has no likes yet)
+        postsRaw = await this.prisma.$queryRaw`
           WITH social_graph AS (
             SELECT "followingId", 1.5 AS weight
             FROM "follows"
@@ -137,6 +148,7 @@ export class FeedService {
           WHERE p.visibility = 'PUBLIC'
             AND p."moderationStatus" = 'VISIBLE'
             AND p."userId" != ${userId}
+            AND p."userId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${userId})
             
           ORDER BY final_score DESC
           LIMIT ${limit}
@@ -168,10 +180,10 @@ export class FeedService {
       const formattedPosts = sortedPosts.map((post: any) => {
         const { likes, ...rest } = post;
         const isLiked = Array.isArray(likes) ? likes.length > 0 : false;
-        
+
         // Attach algorithm reasoning score for debugging
         const rawData = postsRaw.find((r) => r.id === post.id);
-        
+
         return {
           ...rest,
           isLiked,
@@ -180,8 +192,12 @@ export class FeedService {
       });
 
       // Simple mock total since accurate counts are heavy for algorithmic feeds
-      return createPaginatedResult(formattedPosts, 1000, page, limit);
+      const result = createPaginatedResult(formattedPosts, 1000, page, limit);
 
+      // Save to cache for 3 minutes (180000 ms)
+      await this.cacheManager.set(cacheKey, result, 180000);
+
+      return result;
     } catch (error) {
       console.error('Error generating Hybrid Feed:', error);
       return this.getTrendingFeed(page, limit, skip, userId);
@@ -195,12 +211,22 @@ export class FeedService {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
 
-    const following = await this.prisma.follow.findMany({
-      where: { followerId: userId, status: 'ACCEPTED' },
-      select: { followingId: true },
-    });
+    const [following, mutes] = await Promise.all([
+      this.prisma.follow.findMany({
+        where: { followerId: userId, status: 'ACCEPTED' },
+        select: { followingId: true },
+      }),
+      this.prisma.mute.findMany({
+        where: { muterId: userId },
+        select: { mutedId: true },
+      }),
+    ]);
 
-    const followingIds = following.map((f) => f.followingId);
+    const mutedIds = new Set(mutes.map((m) => m.mutedId));
+    const followingIds = following
+      .map((f) => f.followingId)
+      .filter((id) => !mutedIds.has(id));
+
     followingIds.push(userId); // Include own posts
 
     const [posts, total] = await Promise.all([
@@ -246,9 +272,33 @@ export class FeedService {
   /**
    * Fallback / Trending feed logic
    */
-  private async getTrendingFeed(page: number, limit: number, skip: number, currentUserId?: string | null) {
+  private async getTrendingFeed(
+    page: number,
+    limit: number,
+    skip: number,
+    currentUserId?: string | null,
+  ) {
+    const cacheKey = `feed:trending:user_${currentUserId || 'guest'}:page_${page}:limit_${limit}`;
+    const cachedFeed = await this.cacheManager.get(cacheKey);
+    if (cachedFeed) {
+      return cachedFeed;
+    }
+
+    let mutedIds: string[] = [];
+    if (currentUserId) {
+      const mutes = await this.prisma.mute.findMany({
+        where: { muterId: currentUserId },
+        select: { mutedId: true },
+      });
+      mutedIds = mutes.map((m) => m.mutedId);
+    }
+
     const posts = await this.prisma.post.findMany({
-      where: { visibility: Visibility.PUBLIC, moderationStatus: 'VISIBLE' },
+      where: {
+        visibility: Visibility.PUBLIC,
+        moderationStatus: 'VISIBLE',
+        ...(mutedIds.length > 0 ? { userId: { notIn: mutedIds } } : {}),
+      },
       orderBy: [{ performanceScore: 'desc' }, { createdAt: 'desc' }],
       skip,
       take: limit,
@@ -256,16 +306,24 @@ export class FeedService {
         user: { include: { profile: true } },
         media: true,
         _count: { select: { likes: true, comments: true } },
-        likes: currentUserId ? { where: { userId: currentUserId }, take: 1 } : false,
+        likes: currentUserId
+          ? { where: { userId: currentUserId }, take: 1 }
+          : false,
       },
     });
 
     const formattedPosts = posts.map((post) => {
       const { likes, ...rest } = post;
-      const isLiked = currentUserId && Array.isArray(likes) ? likes.length > 0 : false;
+      const isLiked =
+        currentUserId && Array.isArray(likes) ? likes.length > 0 : false;
       return { ...rest, isLiked };
     });
 
-    return createPaginatedResult(formattedPosts, 1000, page, limit);
+    const result = createPaginatedResult(formattedPosts, 1000, page, limit);
+
+    // Save to cache for 5 minutes (300000 ms)
+    await this.cacheManager.set(cacheKey, result, 300000);
+
+    return result;
   }
 }

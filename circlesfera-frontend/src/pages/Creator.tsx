@@ -11,7 +11,7 @@ import type { CreatorTab } from '../components/creator/CreatorSidebar';
 import CreatorSidebar from '../components/creator/CreatorSidebar';
 import CreatorStoriesTab from '../components/creator/CreatorStoriesTab';
 import PromoteModal from '../components/creator/PromoteModal';
-import WalletDashboard from '../components/monetization/WalletDashboard';
+import MonetizationDashboard from '../components/monetization/MonetizationDashboard';
 import type {
   CreatorChartDay,
   CreatorPost,
@@ -92,12 +92,12 @@ export default function Creator() {
           {activeTab === 'finance' && (
             <CreatorMonetizationTab onToast={addToast} />
           )}
-          {activeTab === 'wallet' && (
+          {activeTab === 'monetization' && (
             <div className="p-4 md:p-6 bg-[#090909] rounded-3xl border border-white/5">
               <h2 className="text-xl font-bold text-white mb-6">
-                {t('creator.wallet')}
+                {t('creator.monetization_label', 'Monetization')}
               </h2>
-              <WalletDashboard />
+              <MonetizationDashboard />
             </div>
           )}
           {activeTab === 'ads' && <CreatorPromotionsTab onToast={addToast} />}

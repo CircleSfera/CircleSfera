@@ -137,12 +137,13 @@ export class CreatorController {
   @Post('subscribe')
   async subscribe(
     @Req() req: AuthRequest,
-    @Body() body: { creatorId: string; monthlyTokens: number },
+    @Body() body: { creatorId: string; priceCents: number; returnUrl: string },
   ) {
-    return this.creatorSubscriptionsService.subscribe(
+    return this.creatorSubscriptionsService.createSubscriptionSession(
       req.user.userId,
       body.creatorId,
-      body.monthlyTokens,
+      body.priceCents,
+      body.returnUrl,
     );
   }
 

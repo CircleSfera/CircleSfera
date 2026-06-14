@@ -23,12 +23,13 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { PasskeySettings } from '../components';
+import { PasskeySettings, TwoFactorSettings } from '../components';
 import CloseFriendsModal from '../components/modals/CloseFriendsModal';
 import UserAvatar from '../components/UserAvatar';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { followsApi, profileApi, uploadApi } from '../services';
 import { paymentsApi } from '../services/payments.service';
+import { usersApi } from '../services/users.service';
 import { useAuthStore } from '../stores/authStore';
 import type { Profile, UpdateProfileDto } from '../types';
 import { logger } from '../utils/logger';
@@ -176,6 +177,14 @@ export default function Settings() {
   });
   const blockedUsers = blockedUsersData?.data || [];
 
+  // --- Muted Users Data ---
+  const { data: mutedUsersData, refetch: refetchMuted } = useQuery({
+    queryKey: ['mutedUsers'],
+    queryFn: () => followsApi.getMuted(),
+    enabled: activeTab === 'mutes',
+  });
+  const mutedUsers = mutedUsersData?.data || [];
+
   // --- Pending Follow Requests ---
   const { data: pendingRequestsData, refetch: refetchPending } = useQuery({
     queryKey: ['pendingFollowRequests'],
@@ -234,6 +243,13 @@ export default function Settings() {
     },
   });
 
+  const unmuteMutation = useMutation({
+    mutationFn: (targetUsername: string) => followsApi.unmute(targetUsername),
+    onSuccess: () => {
+      refetchMuted();
+    },
+  });
+
   const acceptRequestMutation = useMutation({
     mutationFn: (username: string) => followsApi.acceptRequest(username),
     onSuccess: () => {
@@ -262,6 +278,23 @@ export default function Settings() {
     onSuccess: () => {
       logout();
       navigate('/accounts/login');
+    },
+  });
+
+  const exportDataMutation = useMutation({
+    mutationFn: () => usersApi.requestExport(),
+    onSuccess: () => {
+      toast.success(
+        t(
+          'settings.account.export_success',
+          'Data export started. You will receive an email when it is ready.',
+        ),
+      );
+    },
+    onError: () => {
+      toast.error(
+        t('settings.account.export_error', 'Failed to request data export.'),
+      );
     },
   });
 
@@ -1029,61 +1062,122 @@ export default function Settings() {
             )}
 
             {activeTab === 'mutes' && (
-              <div className="max-w-lg">
-                <h2 className="text-xl font-bold text-white mb-6">
-                  {t('settings.mutes.title')}
-                </h2>
+              <div className="max-w-lg space-y-12">
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-6">
+                    {t('settings.mutes.blocked_title', 'Blocked Users')}
+                  </h2>
 
-                {blockedUsers.length === 0 ? (
-                  <div className="text-center text-gray-400 py-10">
-                    <UserX size={48} className="mx-auto mb-4 opacity-50" />
-                    <p>{t('settings.mutes.empty')}</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {blockedUsers.map(
-                      (user: {
-                        id: string;
-                        username?: string;
-                        profile?: Profile;
-                      }) => (
-                        <div
-                          key={user.id}
-                          className="bg-white/2 border border-white/5 flex items-center justify-between p-4 rounded-2xl"
-                        >
-                          <div className="flex items-center gap-4">
-                            <UserAvatar
-                              src={user.profile?.avatar || undefined}
-                              thumbnailUrl={user.profile?.thumbnailUrl}
-                              standardUrl={user.profile?.standardUrl}
-                              alt={user.profile?.username || 'User'}
-                              className="w-12 h-12 rounded-full object-cover"
-                            />
-                            <div>
-                              <p className="font-bold text-white tracking-tight leading-none mb-1">
-                                {user.profile?.username ||
-                                  t('settings.mutes.unknown')}
-                              </p>
-                              <p className="text-[11px] font-medium text-gray-500 uppercase tracking-widest">
-                                {user.profile?.fullName}
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              user.profile?.username &&
-                              unblockMutation.mutate(user.profile.username)
-                            }
-                            className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all"
+                  {blockedUsers.length === 0 ? (
+                    <div className="text-center text-gray-400 py-10 border border-white/5 rounded-3xl bg-white/2">
+                      <UserX size={48} className="mx-auto mb-4 opacity-50" />
+                      <p>
+                        {t('settings.mutes.blocked_empty', 'No blocked users')}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {blockedUsers.map(
+                        (user: {
+                          id: string;
+                          username?: string;
+                          profile?: Profile;
+                        }) => (
+                          <div
+                            key={user.id}
+                            className="bg-white/2 border border-white/5 flex items-center justify-between p-4 rounded-2xl"
                           >
-                            {t('settings.mutes.unblock')}
-                          </button>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                )}
+                            <div className="flex items-center gap-4">
+                              <UserAvatar
+                                src={user.profile?.avatar || undefined}
+                                thumbnailUrl={user.profile?.thumbnailUrl}
+                                standardUrl={user.profile?.standardUrl}
+                                alt={user.profile?.username || 'User'}
+                                className="w-12 h-12 rounded-full object-cover"
+                              />
+                              <div>
+                                <p className="font-bold text-white tracking-tight leading-none mb-1">
+                                  {user.profile?.username ||
+                                    t('settings.mutes.unknown')}
+                                </p>
+                                <p className="text-[11px] font-medium text-gray-500 uppercase tracking-widest">
+                                  {user.profile?.fullName}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                user.profile?.username &&
+                                unblockMutation.mutate(user.profile.username)
+                              }
+                              className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all"
+                            >
+                              {t('settings.mutes.unblock')}
+                            </button>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-6">
+                    {t('settings.mutes.muted_title', 'Muted Users')}
+                  </h2>
+
+                  {mutedUsers.length === 0 ? (
+                    <div className="text-center text-gray-400 py-10 border border-white/5 rounded-3xl bg-white/2">
+                      <UserX size={48} className="mx-auto mb-4 opacity-50" />
+                      <p>{t('settings.mutes.muted_empty', 'No muted users')}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {mutedUsers.map(
+                        (user: {
+                          id: string;
+                          username?: string;
+                          profile?: Profile;
+                        }) => (
+                          <div
+                            key={user.id}
+                            className="bg-white/2 border border-white/5 flex items-center justify-between p-4 rounded-2xl"
+                          >
+                            <div className="flex items-center gap-4">
+                              <UserAvatar
+                                src={user.profile?.avatar || undefined}
+                                thumbnailUrl={user.profile?.thumbnailUrl}
+                                standardUrl={user.profile?.standardUrl}
+                                alt={user.profile?.username || 'User'}
+                                className="w-12 h-12 rounded-full object-cover"
+                              />
+                              <div>
+                                <p className="font-bold text-white tracking-tight leading-none mb-1">
+                                  {user.profile?.username ||
+                                    t('settings.mutes.unknown')}
+                                </p>
+                                <p className="text-[11px] font-medium text-gray-500 uppercase tracking-widest">
+                                  {user.profile?.fullName}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                user.profile?.username &&
+                                unmuteMutation.mutate(user.profile.username)
+                              }
+                              className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all"
+                            >
+                              {t('settings.mutes.unmute', 'Unmute')}
+                            </button>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1096,6 +1190,32 @@ export default function Settings() {
                   <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-widest italic opacity-60">
                     {t('settings.account.subtitle')}
                   </p>
+                </div>
+
+                <div className="bg-blue-500/5 p-6 rounded-3xl border border-blue-500/10 hover:bg-blue-500/10 transition-colors group mb-8">
+                  <h3 className="font-bold text-blue-400 uppercase tracking-widest text-[11px] mb-2 flex items-center gap-2">
+                    <LogOut size={14} className="rotate-90" />
+                    {t('settings.account.export.title', 'Export Data')}
+                  </h3>
+                  <p className="text-sm text-gray-500 leading-relaxed font-medium mb-5">
+                    {t(
+                      'settings.account.export.desc',
+                      'Download a copy of your data including your profile, posts, and messages. This process may take a few minutes.',
+                    )}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => exportDataMutation.mutate()}
+                    disabled={exportDataMutation.isPending}
+                    className="px-5 py-3 bg-blue-500/10 text-blue-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-400 hover:text-white transition-all disabled:opacity-50"
+                  >
+                    {exportDataMutation.isPending
+                      ? t(
+                          'settings.account.export.btn_loading',
+                          'Requesting...',
+                        )
+                      : t('settings.account.export.btn', 'Request Export')}
+                  </button>
                 </div>
 
                 {/* Language Switcher */}
@@ -1264,6 +1384,11 @@ export default function Settings() {
                     {t('settings.security.subtitle')}
                   </p>
                 </div>
+
+                <div className="bg-white/2 p-6 rounded-3xl border border-white/5">
+                  <TwoFactorSettings />
+                </div>
+
                 <div className="bg-white/2 p-6 rounded-3xl border border-white/5">
                   <PasskeySettings />
                 </div>

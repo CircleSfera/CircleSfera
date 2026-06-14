@@ -31,6 +31,7 @@ export type Post = IPost & {
   promotionId?: string;
   isPremium?: boolean;
   price?: number | null;
+  priceCents?: number | null;
   isLocked?: boolean;
 };
 export type PostMedia = IPostMedia;
@@ -59,8 +60,10 @@ export interface ProfileWithUser extends IProfile {
     createdAt: Date | string;
     providerAccountId?: string | null;
     isMonetizationEnabled?: boolean;
+    isTwoFactorEnabled?: boolean;
     verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
     accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
+    stripeConnectAccountId?: string | null;
     _count?: {
       posts: number;
       followers: number;
@@ -111,6 +114,8 @@ export type CreatePostDto = {
     x: number;
     y: number;
   }[];
+  isPremium?: boolean;
+  priceCents?: number;
 };
 
 export type CreateStoryDto = {

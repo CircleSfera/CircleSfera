@@ -483,7 +483,7 @@ const InteractiveFeatures = () => {
         </div>
 
         {/* Content Area */}
-        <div className="w-full lg:w-2/3 p-6 md:p-10 relative flex items-center justify-center bg-black/20 overflow-hidden">
+        <div className="w-full lg:w-2/3 flex-1 min-h-[280px] p-6 md:p-10 relative flex items-center justify-center bg-black/20 overflow-hidden">
           {/* Animated grid background for content */}
           <div className="absolute inset-0 opacity-10 pointer-events-none">
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#888_1px,transparent_1px),linear-gradient(to_bottom,#888_1px,transparent_1px)] bg-size-[40px_40px]"></div>

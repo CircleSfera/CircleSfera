@@ -1,0 +1,305 @@
+{
+  "total_count": 3,
+  "jobs": [
+    {
+      "id": 81220282437,
+      "run_id": 27477845352,
+      "workflow_name": "Deploy to OVH VPS",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/CircleSfera/CircleSfera/actions/runs/27477845352",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOS4uhvc8AAAAS6RsoRQ",
+      "head_sha": "e2ecec24bce342b3fba8281be735efc30e9eeaf5",
+      "url": "https://api.github.com/repos/CircleSfera/CircleSfera/actions/jobs/81220282437",
+      "html_url": "https://github.com/CircleSfera/CircleSfera/actions/runs/27477845352/job/81220282437",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-06-13T20:13:44Z",
+      "started_at": "2026-06-13T20:13:46Z",
+      "completed_at": "2026-06-13T20:14:39Z",
+      "name": "Run Lint and Unit Tests",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-06-13T20:13:47Z",
+          "completed_at": "2026-06-13T20:13:47Z"
+        },
+        {
+          "name": "Checkout repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-06-13T20:13:47Z",
+          "completed_at": "2026-06-13T20:13:49Z"
+        },
+        {
+          "name": "Set up Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-06-13T20:13:49Z",
+          "completed_at": "2026-06-13T20:13:56Z"
+        },
+        {
+          "name": "Install Monorepo Dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-06-13T20:13:56Z",
+          "completed_at": "2026-06-13T20:13:59Z"
+        },
+        {
+          "name": "Backend: Install, Lint and Test",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-06-13T20:13:59Z",
+          "completed_at": "2026-06-13T20:14:28Z"
+        },
+        {
+          "name": "Frontend: Install and Lint",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-06-13T20:14:28Z",
+          "completed_at": "2026-06-13T20:14:36Z"
+        },
+        {
+          "name": "Post Set up Node.js",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-06-13T20:14:36Z",
+          "completed_at": "2026-06-13T20:14:36Z"
+        },
+        {
+          "name": "Post Checkout repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-06-13T20:14:36Z",
+          "completed_at": "2026-06-13T20:14:36Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-06-13T20:14:36Z",
+          "completed_at": "2026-06-13T20:14:36Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/CircleSfera/CircleSfera/check-runs/81220282437",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000000189,
+      "runner_name": "GitHub Actions 1000000189",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 81220336679,
+      "run_id": 27477845352,
+      "workflow_name": "Deploy to OVH VPS",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/CircleSfera/CircleSfera/actions/runs/27477845352",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOS4uhvc8AAAAS6Rv8Jw",
+      "head_sha": "e2ecec24bce342b3fba8281be735efc30e9eeaf5",
+      "url": "https://api.github.com/repos/CircleSfera/CircleSfera/actions/jobs/81220336679",
+      "html_url": "https://github.com/CircleSfera/CircleSfera/actions/runs/27477845352/job/81220336679",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-06-13T20:14:39Z",
+      "started_at": "2026-06-13T20:14:47Z",
+      "completed_at": "2026-06-13T20:17:53Z",
+      "name": "Build and Push Docker Images",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-06-13T20:14:48Z",
+          "completed_at": "2026-06-13T20:14:51Z"
+        },
+        {
+          "name": "Checkout repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-06-13T20:14:51Z",
+          "completed_at": "2026-06-13T20:14:53Z"
+        },
+        {
+          "name": "Set up Docker Buildx",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-06-13T20:14:53Z",
+          "completed_at": "2026-06-13T20:14:57Z"
+        },
+        {
+          "name": "Log in to the Container registry",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-06-13T20:14:57Z",
+          "completed_at": "2026-06-13T20:14:58Z"
+        },
+        {
+          "name": "Build and push Backend",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-06-13T20:14:58Z",
+          "completed_at": "2026-06-13T20:16:47Z"
+        },
+        {
+          "name": "Build and push Frontend",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-06-13T20:16:47Z",
+          "completed_at": "2026-06-13T20:17:28Z"
+        },
+        {
+          "name": "Build and push Landing",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-06-13T20:17:28Z",
+          "completed_at": "2026-06-13T20:17:43Z"
+        },
+        {
+          "name": "Post Build and push Landing",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-06-13T20:17:43Z",
+          "completed_at": "2026-06-13T20:17:44Z"
+        },
+        {
+          "name": "Post Build and push Frontend",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-06-13T20:17:44Z",
+          "completed_at": "2026-06-13T20:17:44Z"
+        },
+        {
+          "name": "Post Build and push Backend",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-06-13T20:17:44Z",
+          "completed_at": "2026-06-13T20:17:44Z"
+        },
+        {
+          "name": "Post Log in to the Container registry",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-06-13T20:17:44Z",
+          "completed_at": "2026-06-13T20:17:44Z"
+        },
+        {
+          "name": "Post Set up Docker Buildx",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-06-13T20:17:44Z",
+          "completed_at": "2026-06-13T20:17:51Z"
+        },
+        {
+          "name": "Post Checkout repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-06-13T20:17:51Z",
+          "completed_at": "2026-06-13T20:17:51Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-06-13T20:17:51Z",
+          "completed_at": "2026-06-13T20:17:51Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/CircleSfera/CircleSfera/check-runs/81220336679",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000000190,
+      "runner_name": "GitHub Actions 1000000190",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 81220538776,
+      "run_id": 27477845352,
+      "workflow_name": "Deploy to OVH VPS",
+      "head_branch": "main",
+      "run_url": "https://api.github.com/repos/CircleSfera/CircleSfera/actions/runs/27477845352",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOS4uhvc8AAAAS6R8RmA",
+      "head_sha": "e2ecec24bce342b3fba8281be735efc30e9eeaf5",
+      "url": "https://api.github.com/repos/CircleSfera/CircleSfera/actions/jobs/81220538776",
+      "html_url": "https://github.com/CircleSfera/CircleSfera/actions/runs/27477845352/job/81220538776",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-06-13T20:17:53Z",
+      "started_at": "2026-06-13T20:17:55Z",
+      "completed_at": "2026-06-13T20:18:59Z",
+      "name": "Deploy to Production",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-06-13T20:17:56Z",
+          "completed_at": "2026-06-13T20:17:56Z"
+        },
+        {
+          "name": "Build appleboy/ssh-action@v1.0.3",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-06-13T20:17:56Z",
+          "completed_at": "2026-06-13T20:18:02Z"
+        },
+        {
+          "name": "Execute Remote SSH Deployment",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-06-13T20:18:02Z",
+          "completed_at": "2026-06-13T20:18:57Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-06-13T20:18:57Z",
+          "completed_at": "2026-06-13T20:18:57Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/CircleSfera/CircleSfera/check-runs/81220538776",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000000191,
+      "runner_name": "GitHub Actions 1000000191",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}
