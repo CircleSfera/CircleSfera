@@ -78,7 +78,10 @@ export default function TipModal({
                 {t('wallet.send_gift')}
               </h3>
               <p className="text-gray-400 text-sm">
-                {t('wallet.support_with_money', { name: receiverName, defaultValue: `Support ${receiverName} with a tip` })}
+                {t('wallet.support_with_money', {
+                  name: receiverName,
+                  defaultValue: `Support ${receiverName} with a tip`,
+                })}
               </p>
             </div>
 

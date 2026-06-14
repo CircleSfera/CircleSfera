@@ -34,7 +34,10 @@ export default function ConnectStripeButton() {
     <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-2xl p-6 text-center">
       <ShieldCheck className="w-12 h-12 text-brand-primary mx-auto mb-4" />
       <h3 className="text-white font-bold text-lg mb-2">
-        {t('monetization.verify_identity', 'Verify Identity to Receive Payouts')}
+        {t(
+          'monetization.verify_identity',
+          'Verify Identity to Receive Payouts',
+        )}
       </h3>
       <p className="text-gray-400 text-sm mb-6">
         {t(

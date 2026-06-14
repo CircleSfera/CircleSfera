@@ -14,7 +14,7 @@ export class AdminGuard implements CanActivate {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const user = request.user as CurrentUserData;
 
-    if (!user || user.role !== 'ADMIN') {
+    if (user?.role !== 'ADMIN') {
       throw new ForbiddenException('Admin access required');
     }
 

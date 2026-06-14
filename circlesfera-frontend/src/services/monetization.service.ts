@@ -18,7 +18,10 @@ export interface Transaction {
   status: string;
   createdAt: string;
   sender?: { id: string; profile: { username: string; avatar: string | null } };
-  receiver?: { id: string; profile: { username: string; avatar: string | null } };
+  receiver?: {
+    id: string;
+    profile: { username: string; avatar: string | null };
+  };
 }
 
 export const monetizationApi = {
@@ -27,13 +30,24 @@ export const monetizationApi = {
     return res.data;
   },
 
-  getTransactions: async (page = 1, limit = 20): Promise<PaginatedResponse<Transaction>> => {
-    const res = await api.get('/monetization/transactions', { params: { page, limit } });
+  getTransactions: async (
+    page = 1,
+    limit = 20,
+  ): Promise<PaginatedResponse<Transaction>> => {
+    const res = await api.get('/monetization/transactions', {
+      params: { page, limit },
+    });
     return res.data;
   },
 
-  connectStripe: async (returnUrl: string, refreshUrl: string): Promise<{ url: string }> => {
-    const res = await api.post('/monetization/connect', { returnUrl, refreshUrl });
+  connectStripe: async (
+    returnUrl: string,
+    refreshUrl: string,
+  ): Promise<{ url: string }> => {
+    const res = await api.post('/monetization/connect', {
+      returnUrl,
+      refreshUrl,
+    });
     return res.data;
   },
 
@@ -42,12 +56,25 @@ export const monetizationApi = {
     return res.data;
   },
 
-  tipCreator: async (receiverId: string, amountCents: number, returnUrl: string, postId?: string): Promise<{ url: string }> => {
-    const res = await api.post('/monetization/tip', { receiverId, amountCents, returnUrl, postId });
+  tipCreator: async (
+    receiverId: string,
+    amountCents: number,
+    returnUrl: string,
+    postId?: string,
+  ): Promise<{ url: string }> => {
+    const res = await api.post('/monetization/tip', {
+      receiverId,
+      amountCents,
+      returnUrl,
+      postId,
+    });
     return res.data;
   },
 
-  unlockPost: async (postId: string, returnUrl: string): Promise<{ url: string }> => {
+  unlockPost: async (
+    postId: string,
+    returnUrl: string,
+  ): Promise<{ url: string }> => {
     const res = await api.post('/monetization/unlock', { postId, returnUrl });
     return res.data;
   },

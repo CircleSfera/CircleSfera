@@ -128,7 +128,9 @@ export class PaymentsService {
     });
   }
 
-  async getPortalUrl(userId: string): Promise<Stripe.BillingPortal.Session | { url: string }> {
+  async getPortalUrl(
+    userId: string,
+  ): Promise<Stripe.BillingPortal.Session | { url: string }> {
     if (process.env.PAYMENT_MODE === 'SIMULATOR') {
       return {
         url: `${process.env.CORS_ORIGIN?.split(',')[0] || 'http://localhost:8080'}/creator`,
@@ -207,14 +209,21 @@ export class PaymentsService {
           const clientReferenceId = session.client_reference_id;
           const { postId, creatorId } = metadata;
           const amount = session.amount_total || 0;
-          const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.id;
+          const paymentIntentId =
+            typeof session.payment_intent === 'string'
+              ? session.payment_intent
+              : session.id;
 
           if (clientReferenceId && postId && creatorId) {
             await this.prisma.$transaction(async (tx) => {
               await tx.postUnlock.upsert({
                 where: { userId_postId: { userId: clientReferenceId, postId } },
                 update: {},
-                create: { userId: clientReferenceId, postId, pricePaid: amount },
+                create: {
+                  userId: clientReferenceId,
+                  postId,
+                  pricePaid: amount,
+                },
               });
 
               await tx.transaction.create({
@@ -231,18 +240,30 @@ export class PaymentsService {
 
               await tx.monetization.upsert({
                 where: { userId: creatorId },
-                update: { lifetimeEarningsCents: { increment: Math.floor(amount * 0.8) } },
-                create: { userId: creatorId, lifetimeEarningsCents: Math.floor(amount * 0.8) },
+                update: {
+                  lifetimeEarningsCents: {
+                    increment: Math.floor(amount * 0.8),
+                  },
+                },
+                create: {
+                  userId: creatorId,
+                  lifetimeEarningsCents: Math.floor(amount * 0.8),
+                },
               });
             });
-            console.log(`Successfully processed Post Unlock for user ${clientReferenceId}`);
+            console.log(
+              `Successfully processed Post Unlock for user ${clientReferenceId}`,
+            );
           }
         } else if (metadata?.type === 'DIRECT_TIP') {
           // Handle Direct Tips
           const clientReferenceId = session.client_reference_id;
           const { creatorId, postId } = metadata;
           const amount = session.amount_total || 0;
-          const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.id;
+          const paymentIntentId =
+            typeof session.payment_intent === 'string'
+              ? session.payment_intent
+              : session.id;
 
           if (clientReferenceId && creatorId) {
             await this.prisma.$transaction(async (tx) => {
@@ -260,11 +281,20 @@ export class PaymentsService {
 
               await tx.monetization.upsert({
                 where: { userId: creatorId },
-                update: { lifetimeEarningsCents: { increment: Math.floor(amount * 0.8) } },
-                create: { userId: creatorId, lifetimeEarningsCents: Math.floor(amount * 0.8) },
+                update: {
+                  lifetimeEarningsCents: {
+                    increment: Math.floor(amount * 0.8),
+                  },
+                },
+                create: {
+                  userId: creatorId,
+                  lifetimeEarningsCents: Math.floor(amount * 0.8),
+                },
               });
             });
-            console.log(`Successfully processed Tip from user ${clientReferenceId} to ${creatorId}`);
+            console.log(
+              `Successfully processed Tip from user ${clientReferenceId} to ${creatorId}`,
+            );
           }
         } else if (metadata?.type === 'STRIPE_SUBSCRIPTION') {
           // Handle Creator Subscriptions
@@ -293,7 +323,9 @@ export class PaymentsService {
                 expiresAt,
               },
             });
-            console.log(`Successfully processed Creator Subscription from ${subscriberId} to ${creatorId}`);
+            console.log(
+              `Successfully processed Creator Subscription from ${subscriberId} to ${creatorId}`,
+            );
           }
         } else {
           // Handle Subscriptions (Existing logic)

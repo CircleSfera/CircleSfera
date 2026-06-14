@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-// biome-ignore lint/style/useImportType: required for NestJS DI
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 

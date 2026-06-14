@@ -3,10 +3,18 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 function stripCaret(obj) {
-  for (const depType of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
+  for (const depType of [
+    'dependencies',
+    'devDependencies',
+    'peerDependencies',
+    'optionalDependencies',
+  ]) {
     if (obj[depType]) {
       for (const [pkg, version] of Object.entries(obj[depType])) {
-        if (typeof version === 'string' && (version.startsWith('^') || version.startsWith('~'))) {
+        if (
+          typeof version === 'string' &&
+          (version.startsWith('^') || version.startsWith('~'))
+        ) {
           obj[depType][pkg] = version.replace(/^[\^~]/, '');
         }
       }
@@ -27,5 +35,11 @@ const backendPkg = path.join(__dirname, '..', 'package.json');
 processPackageJson(backendPkg);
 
 // Frontend package.json (sibling folder)
-const frontendPkg = path.join(__dirname, '..', '..', 'circlesfera-frontend', 'package.json');
+const frontendPkg = path.join(
+  __dirname,
+  '..',
+  '..',
+  'circlesfera-frontend',
+  'package.json',
+);
 processPackageJson(frontendPkg);

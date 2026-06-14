@@ -420,7 +420,7 @@ export class FollowsService {
       },
     });
 
-    if (!follow || follow.status !== 'PENDING') {
+    if (follow?.status !== 'PENDING') {
       throw new NotFoundException('Follow request not found');
     }
 
@@ -464,7 +464,7 @@ export class FollowsService {
       },
     });
 
-    if (!follow || follow.status !== 'PENDING') {
+    if (follow?.status !== 'PENDING') {
       throw new NotFoundException('Follow request not found');
     }
 

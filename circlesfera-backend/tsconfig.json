@@ -14,7 +14,6 @@
     "outDir": "./dist",
     "rootDir": "./src",
 
-
     "incremental": true,
     "skipLibCheck": true,
     "strict": true,
@@ -23,9 +22,7 @@
 
     "types": ["node"]
   },
-    "include": [
-      "src/**/*"
-    ],
+  "include": ["src/**/*"],
   "exclude": [
     "vitest.config.ts",
     "vitest.e2e.config.ts",

@@ -3,9 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-// biome-ignore lint/style/useImportType: NestJS DI needs the value for metadata reflection
 import { StripeService } from '../common/stripe/stripe.service.js';
-// biome-ignore lint/style/useImportType: NestJS DI needs the value for metadata reflection
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
@@ -80,7 +78,11 @@ export class MonetizationService {
 
   // --- NEW DIRECT MONETIZATION METHODS ---
 
-  async createPostUnlockSession(userId: string, postId: string, returnUrl: string) {
+  async createPostUnlockSession(
+    userId: string,
+    postId: string,
+    returnUrl: string,
+  ) {
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
       include: { user: true },
@@ -95,14 +97,16 @@ export class MonetizationService {
 
     const creator = post.user;
     if (!creator.stripeConnectAccountId) {
-      throw new BadRequestException('Creator has not setup their Stripe account');
+      throw new BadRequestException(
+        'Creator has not setup their Stripe account',
+      );
     }
 
     const buyer = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!buyer) throw new NotFoundException('Buyer not found');
 
     // Platform takes 20% commission
-    const platformFee = Math.floor(post.priceCents * 0.20);
+    const platformFee = Math.floor(post.priceCents * 0.2);
 
     const session = await this.stripeService.createCheckoutSession({
       payment_method_types: ['card'],
@@ -140,21 +144,34 @@ export class MonetizationService {
     return { url: session.url };
   }
 
-  async createTipSession(senderId: string, receiverId: string, amountCents: number, returnUrl: string, postId?: string) {
+  async createTipSession(
+    senderId: string,
+    receiverId: string,
+    amountCents: number,
+    returnUrl: string,
+    postId?: string,
+  ) {
     if (amountCents < 100) {
       throw new BadRequestException('Minimum tip is $1.00 USD');
     }
-    if (senderId === receiverId) throw new BadRequestException('Cannot tip yourself');
+    if (senderId === receiverId)
+      throw new BadRequestException('Cannot tip yourself');
 
-    const receiver = await this.prisma.user.findUnique({ where: { id: receiverId } });
+    const receiver = await this.prisma.user.findUnique({
+      where: { id: receiverId },
+    });
     if (!receiver?.stripeConnectAccountId) {
-      throw new BadRequestException('Creator cannot receive tips yet (no Stripe account)');
+      throw new BadRequestException(
+        'Creator cannot receive tips yet (no Stripe account)',
+      );
     }
 
-    const sender = await this.prisma.user.findUnique({ where: { id: senderId } });
+    const sender = await this.prisma.user.findUnique({
+      where: { id: senderId },
+    });
     if (!sender) throw new NotFoundException('Sender not found');
 
-    const platformFee = Math.floor(amountCents * 0.20);
+    const platformFee = Math.floor(amountCents * 0.2);
 
     const session = await this.stripeService.createCheckoutSession({
       payment_method_types: ['card'],
@@ -192,7 +209,11 @@ export class MonetizationService {
     return { url: session.url };
   }
 
-  async onboardConnectAccount(userId: string, returnUrl: string, refreshUrl: string) {
+  async onboardConnectAccount(
+    userId: string,
+    returnUrl: string,
+    refreshUrl: string,
+  ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
@@ -217,13 +238,14 @@ export class MonetizationService {
   async getDashboardLink(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
-    
+
     if (!user.stripeConnectAccountId) {
       throw new BadRequestException('Stripe Connect account not set up yet');
     }
 
-    const link = await this.stripeService.createLoginLink(user.stripeConnectAccountId);
+    const link = await this.stripeService.createLoginLink(
+      user.stripeConnectAccountId,
+    );
     return { url: link.url };
   }
 }
-

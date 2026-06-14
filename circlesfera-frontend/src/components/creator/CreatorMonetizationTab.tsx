@@ -1,21 +1,21 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
+  ArrowRight,
   Award,
   CheckCircle2,
+  ExternalLink,
   Loader2,
   Shield,
   Star,
   TrendingUp,
   Users,
-  Zap,
   Wallet,
-  ArrowRight,
-  ExternalLink,
+  Zap,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { paymentsApi } from '../../services/payments.service';
 import { monetizationApi } from '../../services/monetization.service';
+import { paymentsApi } from '../../services/payments.service';
 import { useAuthStore } from '../../stores/authStore';
 import type { PlatformPlanDto } from '../../types';
 
@@ -30,15 +30,18 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
 
   const currentLevel = user?.verificationLevel || 'BASIC';
 
-  const { data: plans, isLoading: isLoadingPlans } = useQuery<PlatformPlanDto[]>({
+  const { data: plans, isLoading: isLoadingPlans } = useQuery<
+    PlatformPlanDto[]
+  >({
     queryKey: ['platform-plans'],
     queryFn: paymentsApi.getPlans,
   });
 
-  const { data: monetizationStatus, isLoading: isLoadingMonetization } = useQuery({
-    queryKey: ['monetization-status'],
-    queryFn: monetizationApi.getStatus,
-  });
+  const { data: monetizationStatus, isLoading: isLoadingMonetization } =
+    useQuery({
+      queryKey: ['monetization-status'],
+      queryFn: monetizationApi.getStatus,
+    });
 
   const connectMutation = useMutation({
     mutationFn: () => {
@@ -137,10 +140,13 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                 Ingresos Totales (Lifetime)
               </p>
               <h2 className="text-4xl font-bold text-white tracking-tight uppercase">
-                ${((monetizationStatus?.lifetimeEarningsCents || 0) / 100).toFixed(2)}
+                $
+                {(
+                  (monetizationStatus?.lifetimeEarningsCents || 0) / 100
+                ).toFixed(2)}
               </h2>
             </div>
-            
+
             {monetizationStatus?.hasStripeAccount ? (
               <button
                 type="button"
@@ -176,7 +182,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
             )}
           </div>
         </div>
-        
+
         <div className="absolute top-0 right-0 p-10 opacity-5">
           <Wallet size={200} className="text-emerald-400" />
         </div>

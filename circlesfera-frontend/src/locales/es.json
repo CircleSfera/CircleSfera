@@ -226,7 +226,6 @@
       "success": "¡Cuenta creada exitosamente! Por favor, revisa tu email para verificar tu cuenta."
     },
     "verify": {
-
       "success": "Tu email ha sido verificado con éxito.",
       "error": "Fallo al verificar el email.",
       "loading_title": "Verificando Identidad",

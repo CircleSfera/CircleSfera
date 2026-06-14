@@ -80,7 +80,10 @@ export default function MonetizationSubScreen({
 
           {isPremium && (
             <div className="space-y-3 animate-in slide-in-from-top-2 fade-in duration-200">
-              <label htmlFor="premium-price" className="block text-sm font-medium text-white">
+              <label
+                htmlFor="premium-price"
+                className="block text-sm font-medium text-white"
+              >
                 {t('createPost.caption.price_usd', 'Price (USD)')}
               </label>
               <div className="relative">
@@ -93,7 +96,9 @@ export default function MonetizationSubScreen({
                   min="1"
                   step="0.01"
                   value={price || ''}
-                  onChange={(e) => setPrice(Number.parseFloat(e.target.value) || 0)}
+                  onChange={(e) =>
+                    setPrice(Number.parseFloat(e.target.value) || 0)
+                  }
                   placeholder="5.00"
                   className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-8 pr-4 text-white focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all"
                 />

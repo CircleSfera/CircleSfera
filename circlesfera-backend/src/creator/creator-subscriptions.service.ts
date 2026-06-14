@@ -3,9 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-// biome-ignore lint/style/useImportType: DI needs value
 import { StripeService } from '../common/stripe/stripe.service.js';
-// biome-ignore lint/style/useImportType: DI needs value
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()

@@ -549,7 +549,7 @@ export class AdminService {
   /** Delete a post with audit logging. */
   async deletePost(adminId: string, postId: string) {
     await this.logAction(adminId, AdminAction.DELETE_POST, 'post', postId);
-    const deletedPost = await this.prisma.post.delete({ 
+    const deletedPost = await this.prisma.post.delete({
       where: { id: postId },
       include: { user: { include: { profile: true } } },
     });

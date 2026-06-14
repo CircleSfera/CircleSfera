@@ -110,7 +110,12 @@ export class EmailService {
     await this.sendMail({
       to: email,
       subject: 'Aviso de Moderación - CircleSfera',
-      html: EmailTemplates.moderationAction(userName, action, targetType, reason),
+      html: EmailTemplates.moderationAction(
+        userName,
+        action,
+        targetType,
+        reason,
+      ),
     });
   }
 

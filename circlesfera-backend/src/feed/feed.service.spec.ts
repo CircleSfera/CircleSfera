@@ -26,10 +26,10 @@ describe('FeedService', () => {
   };
 
   const mockAIService = {};
-const mockCache = {
-  get: vi.fn().mockResolvedValue(null),
-  set: vi.fn().mockResolvedValue(undefined),
-};
+  const mockCache = {
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue(undefined),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -54,7 +54,10 @@ const mockCache = {
         { id: '1', type: 'POST', user: { profile: {} }, likes: [] },
       ]);
 
-      const result = await service.getHybridFeed(null, { page: 1, limit: 10 }) as any;
+      const result = (await service.getHybridFeed(null, {
+        page: 1,
+        limit: 10,
+      })) as any;
       expect(result.data).toHaveLength(1);
       expect(result.data[0].id).toBe('1');
     });
@@ -75,10 +78,10 @@ const mockCache = {
         { id: '2', likes: [] },
       ]);
 
-      const result = await service.getHybridFeed('user-1', {
+      const result = (await service.getHybridFeed('user-1', {
         page: 1,
         limit: 10,
-      }) as any;
+      })) as any;
 
       expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
       expect(result.data).toHaveLength(1);
