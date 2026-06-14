@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FeedService } from './feed.service.js';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 describe('FeedService', () => {
   let service: FeedService;
@@ -18,10 +19,17 @@ describe('FeedService', () => {
     follow: {
       findMany: vi.fn(),
     },
+    mute: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     $queryRaw: vi.fn(),
   };
 
   const mockAIService = {};
+const mockCache = {
+  get: vi.fn().mockResolvedValue(null),
+  set: vi.fn().mockResolvedValue(undefined),
+};
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -29,6 +37,7 @@ describe('FeedService', () => {
         FeedService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: AIService, useValue: mockAIService },
+        { provide: CACHE_MANAGER, useValue: mockCache },
       ],
     }).compile();
 
