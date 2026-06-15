@@ -140,25 +140,27 @@ jobs:
           REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml down
           REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml up -d
           
-          # Wait for backend to be healthy before declaring success
-          echo "Waiting for backend to start..."
-          for i in $(seq 1 20); do
-            STATUS=$(docker inspect --format='{{.State.Status}}' CircleSfera-Backend 2>/dev/null || echo "missing")
-            if [ "$STATUS" = "running" ]; then
-              echo "✅ Backend is running."
-              break
-            fi
-            if [ "$i" = "20" ]; then
-              echo "❌ Backend failed to start. Last logs:"
-              docker logs CircleSfera-Backend --tail=30 2>&1 || true
-              exit 1
-            fi
-            echo "  Waiting... ($i/20) status=$STATUS"
-            sleep 3
-          done
-          
+          # Wait for backend to stabilise (give it 20s to either start or crash)
+          echo "Waiting 20s for backend to stabilise..."
+          sleep 20
+
+          STATUS=$(docker inspect --format='{{.State.Status}}' CircleSfera-Backend 2>/dev/null || echo "missing")
+          RESTARTS=$(docker inspect --format='{{.RestartCount}}' CircleSfera-Backend 2>/dev/null || echo "99")
+
+          echo "--- Backend status: $STATUS | restarts: $RESTARTS ---"
+          echo "--- Last backend logs: ---"
+          docker logs CircleSfera-Backend --tail=50 2>&1 || true
+          echo "--- End logs ---"
+
+          if [ "$STATUS" != "running" ] || [ "$RESTARTS" -gt "0" ]; then
+            echo "❌ Backend is not healthy (status=$STATUS, restarts=$RESTARTS). Deploy FAILED."
+            exit 1
+          fi
+
+          echo "✅ Backend is healthy."
+
           # Clean up dangling images
           docker system prune -f
-          
+
           echo "✅ Deployment completed successfully!"
 
