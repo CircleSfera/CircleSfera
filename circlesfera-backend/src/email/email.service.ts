@@ -149,11 +149,14 @@ export class EmailService {
       });
       this.logger.log(`Email sent to ${options.to}: ${options.subject}`);
     } catch (error: unknown) {
-      this.logger.error('Failed to send email via Brevo', error);
-
-      if (this.configService.get<string>('NODE_ENV') === 'production') {
-        throw error;
-      }
+      // Always log email failures with full detail for observability,
+      // but never propagate — a failed email must not block user-facing flows
+      // (registration, password reset, etc.). Users can request a resend.
+      this.logger.error(
+        `Failed to send email to ${options.to} (subject: "${options.subject}"). ` +
+          'User flow continues unaffected.',
+        error,
+      );
     }
   }
 }
