@@ -61,11 +61,16 @@ services:
     <<: *default-logging
     image: ${REGISTRY:-ghcr.io/circlesfera/circlesfera}/backend:latest
     container_name: CircleSfera-Backend
-    env_file: ./.env.production
+    env_file:
+      - path: ./.env.production
+        required: false
     environment:
       - NODE_ENV=production
       - DB_HOST=postgres
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # DATABASE_URL hardcoded so Prisma works even if .env.production is missing on VPS
+      - DATABASE_URL=postgresql://CircleSfera:Amazonico1198@postgres:5432/CircleSfera?schema=public
     depends_on:
       postgres:
         condition: service_healthy
