@@ -41,6 +41,8 @@ WORKDIR /app/circlesfera-backend
 # Copy package files and prisma for runtime
 COPY --chown=node:node circlesfera-backend/package*.json ./
 COPY --chown=node:node circlesfera-backend/prisma ./prisma/
+# prisma.config.ts is required by Prisma 7 to resolve DATABASE_URL at migrate/runtime
+COPY --chown=node:node circlesfera-backend/prisma.config.ts ./
 
 # Create uploads directory and set permissions
 RUN mkdir -p uploads && chown -R node:node uploads
