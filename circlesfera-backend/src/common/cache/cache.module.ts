@@ -9,12 +9,20 @@ import { redisStore } from 'cache-manager-redis-yet';
     CacheModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
-        store: await redisStore({
+      useFactory: async (configService: ConfigService) => {
+        const store = await redisStore({
           url: `redis://${configService.get<string>('REDIS_HOST') || 'localhost'}:${configService.get<number>('REDIS_PORT') || 6379}`,
           ttl: 600000, // 10 minutes
-        }),
-      }),
+        });
+
+        if (store.client) {
+          store.client.on('error', (err) => {
+            console.error('Redis cache error (prevented crash):', err.message || err);
+          });
+        }
+
+        return { store };
+      },
     }),
   ],
   exports: [CacheModule],

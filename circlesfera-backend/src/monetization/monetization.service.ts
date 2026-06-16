@@ -214,25 +214,36 @@ export class MonetizationService {
     returnUrl: string,
     refreshUrl: string,
   ) {
+    if (process.env.PAYMENT_MODE === 'SIMULATOR') {
+      return { url: `${returnUrl}?success=true&mode=simulator` };
+    }
+
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
-    let accountId = user.stripeConnectAccountId;
-    if (!accountId) {
-      const account = await this.stripeService.createExpressAccount(user.email);
-      accountId = account.id;
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { stripeConnectAccountId: accountId },
-      });
-    }
+    try {
+      let accountId = user.stripeConnectAccountId;
+      if (!accountId) {
+        const account = await this.stripeService.createExpressAccount(user.email);
+        accountId = account.id;
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { stripeConnectAccountId: accountId },
+        });
+      }
 
-    const link = await this.stripeService.createAccountLink(
-      accountId,
-      returnUrl,
-      refreshUrl,
-    );
-    return { url: link.url };
+      const link = await this.stripeService.createAccountLink(
+        accountId,
+        returnUrl,
+        refreshUrl,
+      );
+      return { url: link.url };
+    } catch (error: any) {
+      console.error('Stripe Connect Onboarding Error:', error);
+      throw new BadRequestException(
+        error.message || 'Failed to connect with Stripe',
+      );
+    }
   }
 
   async getDashboardLink(userId: string) {
