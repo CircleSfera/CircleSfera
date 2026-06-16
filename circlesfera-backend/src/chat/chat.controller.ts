@@ -14,10 +14,7 @@ import {
 } from '@nestjs/common';
 import type { Conversation, Message } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { ChatService } from './chat.service.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
-import { CreateGroupDto } from './dto/create-group.dto.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
+import { ChatService } from './chat.service.js';import { CreateGroupDto } from './dto/create-group.dto.js';
 import { SendMessageDto } from './dto/send-message.dto.js';
 
 interface AuthenticatedRequest extends Request {

@@ -1,5 +1,4 @@
 import { Body, Controller, Inject, Post } from '@nestjs/common';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { CreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
 import { WhitelistService } from './whitelist.service.js';
 

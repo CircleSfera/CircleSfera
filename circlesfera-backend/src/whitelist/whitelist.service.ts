@@ -1,7 +1,6 @@
 import { ConflictException, Inject, Injectable, Logger } from '@nestjs/common';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { CreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
 
 @Injectable()

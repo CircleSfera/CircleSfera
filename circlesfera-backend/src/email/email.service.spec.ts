@@ -37,8 +37,8 @@ describe('EmailService', () => {
     mockConfigService.get.mockImplementation((key: string) => {
       if (key === 'BREVO_API_KEY') return 'test_brevo_key';
       if (key === 'FRONTEND_URL') return 'http://localhost:5173';
-      if (key === 'EMAIL_FROM') return 'no-reply@circlesfera.com';
-      if (key === 'EMAIL_FROM_NAME') return 'SferaBot';
+      if (key === 'EMAIL_FROM') return 'noreply@circlesfera.com';
+      if (key === 'EMAIL_FROM_NAME') return 'CircleSfera';
       if (key === 'NODE_ENV') return 'production';
       return null;
     });
@@ -99,7 +99,7 @@ describe('EmailService', () => {
         expect.objectContaining({
           subject: '¡Bienvenido a CircleSfera!',
           to: [{ email: 'test@example.com' }],
-          sender: { email: 'no-reply@circlesfera.com', name: 'SferaBot' },
+          sender: { email: 'noreply@circlesfera.com', name: 'CircleSfera' },
         }),
       );
     });

@@ -8,9 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for DI
 import { AudioService } from './audio.service.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { CreateAudioDto } from './dto/create-audio.dto.js';
 
 /** REST controller for audio track management. All endpoints require authentication. */

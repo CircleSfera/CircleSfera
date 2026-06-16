@@ -776,7 +776,6 @@ export default function StoryComposer({
             ? undefined
             : '#000000',
         style: { borderRadius: '0' },
-        cacheBust: true,
       });
 
       if (!blob) throw new Error('Failed to generate image blob');
@@ -899,7 +898,7 @@ export default function StoryComposer({
           {backgroundUrl && (
             <img
               src={backgroundUrl}
-              crossOrigin="anonymous"
+              crossOrigin={backgroundUrl.startsWith('blob:') ? undefined : 'anonymous'}
               className="w-full h-full object-cover"
               alt="Background"
               onLoad={() => logger.log('Background image loaded in editor')}
