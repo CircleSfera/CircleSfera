@@ -24,4 +24,12 @@ export const paymentsApi = {
     const response = await api.get('/payments/portal');
     return response.data; // { url: string }
   },
+
+  /** Create an Identity Verification Session. */
+  createIdentitySession: async (returnUrl: string) => {
+    const response = await api.post('/payments/identity-session', {
+      returnUrl,
+    });
+    return response.data; // { url: string }
+  },
 };

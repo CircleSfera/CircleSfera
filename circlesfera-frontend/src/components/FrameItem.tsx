@@ -101,143 +101,136 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
     post.media?.[0] || { url: '' };
 
   return (
-    <div className="w-full h-full p-2 flex items-center justify-center">
-      <div className="glass-panel-post w-full h-full rounded-2xl overflow-hidden flex flex-col relative">
-        {/* Header - PostCard Style */}
-        <div className="p-3 flex items-center gap-3 border-b border-white/5 bg-black/20 backdrop-blur-sm z-20">
-          <Link to={`/${post.user.profile.username}`} className="relative">
-            <div className="absolute -inset-0.5 bg-linear-to-tr from-brand-primary to-brand-blue rounded-full opacity-70 blur-sm"></div>
+    <div className="w-full h-full bg-black relative flex items-center justify-center snap-start">
+      {/* Video Area */}
+      <button
+        type="button"
+        className="absolute inset-0 w-full h-full border-none p-0 z-10 focus:outline-none"
+        onDoubleClick={handleDoubleTap}
+        aria-label="Video playback area"
+      >
+        <video
+          ref={videoRef}
+          src={videoMedia.url}
+          className="w-full h-full object-cover"
+          loop
+          playsInline
+          muted={false}
+          onTimeUpdate={handleTimeUpdate}
+          onClick={(e) => {
+            if (e.currentTarget.paused) e.currentTarget.play();
+            else e.currentTarget.pause();
+          }}
+        >
+          <track kind="captions" />
+        </video>
+
+        {/* Double Tap Heart Animation */}
+        {showHeartAnim && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+            <Heart
+              size={120}
+              className="fill-white text-white opacity-0 animate-heart-pop drop-shadow-2xl"
+            />
+          </div>
+        )}
+      </button>
+
+      {/* Overlay Gradients */}
+      <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-linear-to-t from-black/80 via-black/20 to-transparent pointer-events-none z-10" />
+      <div className="absolute top-0 left-0 right-0 h-24 bg-linear-to-b from-black/40 to-transparent pointer-events-none z-10" />
+
+      {/* Bottom Left Info */}
+      <div className="absolute bottom-0 left-0 right-16 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <div className="flex items-center gap-3 mb-3 pointer-events-auto">
+          <Link
+            to={`/${post.user.profile.username}`}
+            className="relative shrink-0"
+          >
             <img
               src={post.user.profile.avatar || '#noimage'}
               alt={post.user.profile.username}
-              className="relative w-8 h-8 rounded-full object-cover border border-white/20"
+              className="w-10 h-10 rounded-full object-cover border border-white/20 shadow-md"
             />
           </Link>
-          <div className="flex-1 min-w-0">
-            <Link
-              to={`/${post.user.profile.username}`}
-              className="hover:opacity-80 transition-opacity"
-            >
-              <div className="font-semibold text-sm text-white truncate">
-                {post.user.profile.fullName || post.user.profile.username}
-              </div>
-              <div className="text-xs text-gray-400 truncate">
-                @{post.user.profile.username}
-              </div>
-            </Link>
-          </div>
-
+          <Link
+            to={`/${post.user.profile.username}`}
+            className="font-bold text-[15px] text-white drop-shadow-md hover:underline"
+          >
+            {post.user.profile.username}
+          </Link>
           {!isOwner && (
             <button
               type="button"
               onClick={() => followMutation.mutate()}
-              className="px-3 py-1 bg-white/10 hover:bg-white/20 border border-white/10 rounded-full text-xs font-bold text-white transition-all transform active:scale-95"
+              className="ml-2 px-3 py-1 bg-transparent border border-white rounded-full text-xs font-bold text-white transition-all transform active:scale-95"
             >
               Follow
             </button>
           )}
-
-          <button
-            type="button"
-            className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
-          >
-            <MoreHorizontal size={20} className="text-gray-400" />
-          </button>
         </div>
 
-        {/* Video Area */}
+        {post.caption && (
+          <div className="text-sm text-white drop-shadow-md line-clamp-2 mb-2 pointer-events-auto">
+            <RichText text={post.caption} />
+          </div>
+        )}
+      </div>
+
+      {/* Right Sidebar Actions */}
+      <div className="absolute bottom-0 right-0 w-16 pb-6 flex flex-col items-center justify-end gap-6 z-20 pointer-events-auto">
+        <div className="flex flex-col items-center gap-1 group">
+          <LikeButton
+            postId={post.id}
+            onToggle={(newLiked) => {
+              setLikesCount((prev) => (newLiked ? prev + 1 : prev - 1));
+            }}
+          />
+          <span className="text-white font-semibold text-xs drop-shadow-md">
+            {likesCount}
+          </span>
+        </div>
+
+        <Link
+          to={`/p/${post.id}`}
+          className="flex flex-col items-center gap-1 group transition-transform active:scale-90"
+        >
+          <MessageCircle size={28} className="text-white drop-shadow-lg" />
+          <span className="text-white font-semibold text-xs drop-shadow-md">
+            {post._count?.comments || 0}
+          </span>
+        </Link>
+
         <button
           type="button"
-          className="flex-1 relative bg-black overflow-hidden flex items-center justify-center border-none p-0 w-full"
-          onDoubleClick={handleDoubleTap}
-          aria-label="Video playback area"
+          className="flex flex-col items-center gap-1 transition-transform active:scale-90"
         >
-          <video
-            ref={videoRef}
-            src={videoMedia.url}
-            className="w-full h-full object-cover"
-            loop
-            playsInline
-            muted={false}
-            onTimeUpdate={handleTimeUpdate}
-            onClick={(e) => {
-              if (e.currentTarget.paused) e.currentTarget.play();
-              else e.currentTarget.pause();
-            }}
-          >
-            <track kind="captions" />
-          </video>
-
-          {/* Double Tap Heart Animation */}
-          {showHeartAnim && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-              <Heart
-                size={100}
-                className={`fill-white text-white opacity-0 animate-heart-pop`}
-              />
-            </div>
-          )}
+          <Share2 size={28} className="text-white drop-shadow-lg" />
+          <span className="text-white font-semibold text-xs drop-shadow-md">
+            Share
+          </span>
         </button>
 
-        {/* Footer - PostCard Style */}
-        <div className="p-4 bg-black/40 backdrop-blur-md border-t border-white/5 z-20">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-5">
-              <LikeButton
-                postId={post.id}
-                onToggle={(newLiked) => {
-                  setLikesCount((prev) => (newLiked ? prev + 1 : prev - 1));
-                }}
-              />
-              <Link
-                to={`/p/${post.id}`}
-                className="hover:scale-110 transition-transform"
-              >
-                <MessageCircle
-                  size={26}
-                  className="text-white/70 hover:text-white transition-colors"
-                />
-              </Link>
-              <button
-                type="button"
-                className="hover:scale-110 transition-transform"
-              >
-                <Share2
-                  size={26}
-                  className="text-white/70 hover:text-white transition-colors"
-                />
-              </button>
-            </div>
-            <button
-              type="button"
-              className="hover:scale-110 transition-transform"
-            >
-              <Bookmark
-                size={26}
-                className="text-white/70 hover:text-white transition-colors"
-              />
-            </button>
-          </div>
+        <button
+          type="button"
+          className="transition-transform active:scale-90 flex flex-col items-center gap-1 group"
+        >
+          <Bookmark size={26} className="text-white drop-shadow-lg" />
+          <span className="text-white font-semibold text-[10px] drop-shadow-md">
+            Save
+          </span>
+        </button>
 
-          <div className="font-bold text-sm mb-2 text-white">
-            {likesCount} likes
-          </div>
+        <button type="button" className="transition-transform active:scale-90">
+          <MoreHorizontal size={24} className="text-white drop-shadow-lg" />
+        </button>
 
-          {post.caption && (
-            <div className="text-sm text-gray-200 mb-2 line-clamp-3">
-              <Link
-                to={`/${post.user.profile.username}`}
-                className="font-bold text-white mr-2 hover:underline"
-              >
-                {post.user.profile.username}
-              </Link>
-              <RichText text={post.caption} />
-            </div>
-          )}
-
-          <div className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">
-            {new Date(post.createdAt).toLocaleDateString()}
-          </div>
+        <div className="mt-4 w-9 h-9 rounded-md bg-white/20 border border-white/40 overflow-hidden flex items-center justify-center">
+          <img
+            src={post.user.profile.avatar || '#noimage'}
+            alt="Audio"
+            className="w-full h-full object-cover animate-[spin_4s_linear_infinite]"
+          />
         </div>
       </div>
     </div>
