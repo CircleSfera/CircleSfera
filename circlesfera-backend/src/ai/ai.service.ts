@@ -36,8 +36,6 @@ export class AIService {
    * @throws Error if API key is missing in production
    */
   async generateEmbedding(text: string): Promise<number[]> {
-    const isProd = this.configService.get<string>('NODE_ENV') === 'production';
-
     if (!this.openai) {
       this.logger.warn(
         'AI Service unavailable: OPENAI_API_KEY is missing. Mocking embedding.',
@@ -82,8 +80,6 @@ export class AIService {
     text: string,
     mediaUrls: string[] = [],
   ): Promise<ContentModerationResult> {
-    const isProd = this.configService.get<string>('NODE_ENV') === 'production';
-
     if (!this.openai) {
       this.logger.warn(
         'AI Service unavailable: OPENAI_API_KEY is missing. Mocking moderation.',
@@ -158,8 +154,6 @@ export class AIService {
    * @param imageUrl - The public URL of the image
    */
   async generateAltText(imageUrl: string): Promise<string> {
-    const isProd = this.configService.get<string>('NODE_ENV') === 'production';
-
     if (!this.openai) {
       this.logger.warn(
         'AI Service unavailable: OPENAI_API_KEY is missing. Mocking alt-text.',
