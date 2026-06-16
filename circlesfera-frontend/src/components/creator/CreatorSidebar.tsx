@@ -57,7 +57,7 @@ interface Props {
 
 export default function CreatorSidebar({ activeTab, onTabChange }: Props) {
   return (
-    <aside className="w-full lg:w-64 flex flex-col lg:h-[calc(100vh-5rem)] lg:sticky lg:top-6 overflow-hidden">
+    <aside className="w-full lg:w-64 flex flex-col lg:h-[calc(100vh-5rem)] lg:sticky lg:top-6 overflow-hidden z-20">
       {/* Brand & Back Link */}
       <div className="hidden lg:block px-3 mb-8 space-y-3">
         <Link to="/" className="block">
@@ -75,47 +75,47 @@ export default function CreatorSidebar({ activeTab, onTabChange }: Props) {
         </Link>
       </div>
 
-      <div className="flex lg:flex-col overflow-x-auto lg:overflow-y-auto space-x-4 lg:space-x-0 lg:space-y-5 pb-4 lg:pb-0 lg:pr-2 scrollbar-hide snap-x">
+      <div className="flex lg:flex-col overflow-x-auto lg:overflow-y-auto space-x-2 lg:space-x-0 lg:space-y-4 pb-4 lg:pb-0 lg:pr-2 no-scrollbar snap-x">
         {GROUPS.map((group) => (
           <div
             key={group.label}
             className="flex lg:flex-col items-center lg:items-stretch lg:space-y-1.5 snap-start shrink-0"
           >
-            <h3 className="hidden lg:flex px-3 text-[9px] font-black uppercase tracking-[0.2em] text-zinc-600 items-center gap-2">
+            <h3 className="hidden lg:flex px-3 text-[9px] font-black uppercase tracking-[0.2em] text-white/40 items-center gap-2 mb-1">
               <group.icon size={11} className="opacity-50" />
               {group.label}
             </h3>
-            <div className="flex lg:flex-col gap-1 lg:gap-0.5">
+            <div className="flex lg:flex-col gap-2 lg:gap-1">
               {group.items.map((item) => (
                 <button
                   type="button"
                   key={item.id}
                   onClick={() => onTabChange(item.id)}
                   className={clsx(
-                    'flex items-center justify-between px-3 py-2 rounded-lg text-[13px] font-bold transition-all group whitespace-nowrap',
+                    'flex items-center justify-center lg:justify-between px-4 py-2.5 lg:px-3 lg:py-2.5 rounded-full lg:rounded-xl text-[12px] lg:text-[13px] font-bold transition-all group whitespace-nowrap border',
                     activeTab === item.id
-                      ? 'bg-brand-primary/10 text-brand-primary border border-brand-primary/15'
-                      : 'text-zinc-500 hover:bg-white/5 hover:text-white border border-transparent',
+                      ? 'bg-white/10 text-white border-white/20 shadow-lg'
+                      : 'bg-white/5 text-white/50 border-white/5 hover:bg-white/10 hover:text-white',
                   )}
                 >
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2">
                     <item.icon
                       size={16}
                       className={clsx(
                         'transition-colors',
                         activeTab === item.id
-                          ? 'text-brand-primary'
-                          : 'text-zinc-600 group-hover:text-white',
+                          ? 'text-white'
+                          : 'text-white/40 group-hover:text-white/80',
                       )}
                     />
-                    <span className="lg:inline">{item.label}</span>
+                    <span>{item.label}</span>
                   </div>
                   {activeTab === item.id && (
                     <motion.div
                       layoutId="active-indicator"
                       className="hidden lg:block ml-2"
                     >
-                      <ChevronRight size={14} className="text-brand-primary" />
+                      <ChevronRight size={14} className="text-white/50" />
                     </motion.div>
                   )}
                 </button>
