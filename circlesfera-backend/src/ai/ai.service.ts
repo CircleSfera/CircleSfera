@@ -39,13 +39,10 @@ export class AIService {
     const isProd = this.configService.get<string>('NODE_ENV') === 'production';
 
     if (!this.openai) {
-      if (!isProd) {
-        this.logger.warn('Mocking embedding (no OpenAI client)');
-        return this.getMockEmbedding();
-      }
-      throw new Error(
-        'AI Service unavailable: OPENAI_API_KEY is missing in production.',
+      this.logger.warn(
+        'AI Service unavailable: OPENAI_API_KEY is missing. Mocking embedding.',
       );
+      return this.getMockEmbedding();
     }
 
     this.logger.log(
@@ -88,13 +85,10 @@ export class AIService {
     const isProd = this.configService.get<string>('NODE_ENV') === 'production';
 
     if (!this.openai) {
-      if (!isProd) {
-        this.logger.warn('Mocking moderation (no OpenAI client)');
-        return { flagged: false, categories: {}, category_scores: {} };
-      }
-      throw new Error(
-        'AI Service unavailable: OPENAI_API_KEY is missing in production.',
+      this.logger.warn(
+        'AI Service unavailable: OPENAI_API_KEY is missing. Mocking moderation.',
       );
+      return { flagged: false, categories: {}, category_scores: {} };
     }
 
     try {
@@ -167,11 +161,10 @@ export class AIService {
     const isProd = this.configService.get<string>('NODE_ENV') === 'production';
 
     if (!this.openai) {
-      if (!isProd) {
-        this.logger.warn('Mocking alt-text (no OpenAI client)');
-        return `A beautiful high-quality image from CircleSfera (Ref: ${imageUrl.split('/').pop()})`;
-      }
-      throw new Error('AI Service unavailable.');
+      this.logger.warn(
+        'AI Service unavailable: OPENAI_API_KEY is missing. Mocking alt-text.',
+      );
+      return `A beautiful high-quality image from CircleSfera (Ref: ${imageUrl.split('/').pop()})`;
     }
 
     try {
