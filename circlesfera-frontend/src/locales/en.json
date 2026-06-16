@@ -782,6 +782,13 @@
       "error_repeat": "Error repeating"
     }
   },
+  "wallet": {
+    "send_gift": "Send Gift",
+    "support_with_money": "Support {{name}} with a tip",
+    "processing": "Processing...",
+    "send_tip": "Send Tip",
+    "error_send_tip": "Error sending tip"
+  },
   "monetization": {
     "available_balance": "Available Balance",
     "amount_placeholder": "Amount...",
