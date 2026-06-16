@@ -898,7 +898,9 @@ export default function StoryComposer({
           {backgroundUrl && (
             <img
               src={backgroundUrl}
-              crossOrigin={backgroundUrl.startsWith('blob:') ? undefined : 'anonymous'}
+              crossOrigin={
+                backgroundUrl.startsWith('blob:') ? undefined : 'anonymous'
+              }
               className="w-full h-full object-cover"
               alt="Background"
               onLoad={() => logger.log('Background image loaded in editor')}
