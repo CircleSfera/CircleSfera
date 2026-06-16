@@ -3,7 +3,27 @@
 # 1. Unified Proxy (Landing & API)
 server {
     listen 80;
+    server_name circlesfera.com www.circlesfera.com api.circlesfera.com dev.circlesfera.com;
+    
+    # Allow Let's Encrypt ACME challenge (if using webroot)
+    location /.well-known/acme-challenge/ {
+        root /var/www/html;
+    }
+    
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# 1. Unified Proxy (Landing & API)
+server {
+    listen 443 ssl;
     server_name circlesfera.com www.circlesfera.com;
+
+    ssl_certificate /etc/letsencrypt/live/circlesfera.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/circlesfera.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
     client_max_body_size 500m;
     client_body_buffer_size 100M;
     client_body_timeout 300s;
@@ -107,8 +127,13 @@ server {
 
 # 1.5. Dedicated API Proxy
 server {
-    listen 80;
+    listen 443 ssl;
     server_name api.circlesfera.com;
+
+    ssl_certificate /etc/letsencrypt/live/circlesfera.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/circlesfera.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
 
     client_max_body_size 500m;
     resolver 127.0.0.11 valid=30s;
@@ -129,8 +154,13 @@ server {
 
 # 2. Private Development App (dev.circlesfera.com - Protected)
 server {
-    listen 80;
+    listen 443 ssl;
     server_name dev.circlesfera.com;
+
+    ssl_certificate /etc/letsencrypt/live/circlesfera.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/circlesfera.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
     client_max_body_size 500M;
     client_body_buffer_size 100M;
     client_body_timeout 300s;
