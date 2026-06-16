@@ -18,7 +18,6 @@ import {
   REFRESH_TOKEN_COOKIE,
   refreshTokenCookieOptions,
 } from '../../common/config/cookie.config.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for DI
 import { AuthService } from '../auth.service.js';
 import {
   CurrentUser,
@@ -30,7 +29,6 @@ import type {
   GetPasskeyOptionsDto,
   RegisterPasskeyDto,
 } from './dto/passkey.dto.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for DI
 import { PasskeyService } from './passkey.service.js';
 
 /** REST controller for FIDO2/WebAuthn passkey registration and authentication. */

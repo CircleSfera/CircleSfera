@@ -21,18 +21,13 @@ import {
 } from '@prisma/client';
 import type { Request, Response } from 'express';
 import { AudioService } from '../audio/audio.service.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { CreateAudioDto } from '../audio/dto/create-audio.dto.js';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { AdminService } from './admin.service.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { AdminQueryDto } from './dto/admin-query.dto.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { BroadcastEmailDto } from './dto/broadcast-email.dto.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { UpdateUserStatusDto } from './dto/update-user-status.dto.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { UpdateWhitelistEntryDto } from './dto/update-whitelist-entry.dto.js';
 
 /** Extend Express Request with the authenticated user payload. */

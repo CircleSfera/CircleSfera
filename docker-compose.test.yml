@@ -1,0 +1,7 @@
+services:
+  test:
+    image: alpine
+    env_file: .env.production
+    environment:
+      - DATABASE_URL=postgresql://${MISSING_USER}:${MISSING_PASSWORD}@postgres:5432/${MISSING_DB}?schema=public
+    command: printenv DATABASE_URL

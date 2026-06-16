@@ -14,7 +14,6 @@ import {
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for DI
 import { BookmarksService } from './bookmarks.service.js';
 
 /** REST controller for bookmark management. All endpoints require authentication. */
