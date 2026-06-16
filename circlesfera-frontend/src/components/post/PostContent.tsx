@@ -11,7 +11,7 @@ interface PostContentProps {
 export default function PostContent({ post, likesCount }: PostContentProps) {
   const { t } = useTranslation();
   return (
-    <div className="p-3 pt-0">
+    <div className="pt-1">
       <div className="font-semibold text-sm mb-1">
         {likesCount} {t('post.content.likes')}
       </div>

@@ -31,12 +31,26 @@ export default function PostDetail() {
   }
 
   return (
-    <div className="min-h-screen pt-6 pb-24">
-      <div className="max-w-lg mx-auto px-4">
-        {/* Back Button */}
+    <div className="min-h-screen pb-24 md:pt-6">
+      <div className="w-full md:max-w-lg mx-auto">
+        {/* Sticky Header (Mobile Only) */}
+        <div className="md:hidden sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/10 flex items-center justify-between p-4 pt-[calc(1rem+env(safe-area-inset-top))]">
+          <Link
+            to="/"
+            className="p-1 -ml-1 text-white hover:bg-white/10 rounded-full transition-colors"
+          >
+            <ArrowLeft size={24} />
+          </Link>
+          <h1 className="text-base font-bold text-white uppercase tracking-wider">
+            {t('post.detail.title', 'Publicación')}
+          </h1>
+          <div className="w-6" /> {/* Spacer for centering */}
+        </div>
+
+        {/* Back Button (Desktop) */}
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-4 transition-colors text-sm"
+          className="hidden md:inline-flex items-center gap-2 text-gray-400 hover:text-white mb-4 transition-colors text-sm px-4"
         >
           <ArrowLeft size={18} />
           <span>{t('post.detail.back_to_feed')}</span>
@@ -46,7 +60,7 @@ export default function PostDetail() {
         <PostCard post={post.data} />
 
         {/* Comments Section */}
-        <div className="mt-4 glass-panel-post rounded-2xl p-4">
+        <div className="md:mt-4 md:glass-panel-post md:rounded-2xl p-4 bg-black/50 border-t border-white/5 md:border-none">
           <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
             <span>{t('post.detail.comments')}</span>
             <span className="text-sm font-normal text-gray-400">

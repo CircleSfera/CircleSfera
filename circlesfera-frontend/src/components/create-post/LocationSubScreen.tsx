@@ -33,28 +33,28 @@ export default function LocationSubScreen({
   );
 
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+    <div className="absolute inset-0 z-50 bg-black flex flex-col">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        initial={{ opacity: 0, x: '100%' }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: '100%' }}
         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-        className="bg-neutral-900/90 backdrop-blur-xl border border-white/10 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[70vh] max-h-[600px] relative"
+        className="w-full h-full bg-black flex flex-col relative"
       >
         {/* Ambient glow */}
         <div className="absolute inset-0 bg-radial-[at_50%_0%] from-blue-500/10 via-transparent to-transparent pointer-events-none" />
 
-        <div className="p-5 border-b border-white/5 flex items-center justify-between relative z-10">
-          <h2 className="font-bold text-lg text-white">
-            {t('createPost.location.title')}
-          </h2>
+        <div className="sticky top-0 z-10 flex items-center px-4 h-14 bg-black border-b border-white/10">
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+            className="p-2 -ml-2 text-white/90 hover:text-white transition-colors"
           >
-            <X size={18} className="text-white/70" />
+            <X size={24} strokeWidth={2} />
           </button>
+          <h2 className="flex-1 text-center font-bold text-[15px] tracking-tight text-white pr-6">
+            {t('createPost.location.title')}
+          </h2>
         </div>
 
         <div className="p-4 relative z-10">

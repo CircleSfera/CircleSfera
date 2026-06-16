@@ -97,8 +97,14 @@ export default function TagPeopleSubScreen({
   };
 
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/90 p-4">
-      <div className="w-full max-w-4xl h-full md:h-[80vh] flex flex-col md:flex-row bg-neutral-900 rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black">
+      <motion.div
+        initial={{ opacity: 0, x: '100%' }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: '100%' }}
+        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+        className="w-full h-full flex flex-col md:flex-row bg-black relative"
+      >
         {/* Left Side: Image Preview */}
         <div className="flex-1 bg-black relative flex flex-col justify-center items-center overflow-hidden border-b md:border-b-0 md:border-r border-white/10">
           <div className="absolute top-4 left-4 z-20 md:hidden">
@@ -232,17 +238,24 @@ export default function TagPeopleSubScreen({
         </div>
 
         {/* Right Side: Navigation & List */}
-        <div className="w-full md:w-80 flex flex-col bg-neutral-900 shrink-0">
-          <div className="p-5 border-b border-white/10 flex items-center justify-between">
-            <h2 className="font-bold text-lg text-white">
+        <div className="w-full md:w-80 flex flex-col bg-black shrink-0">
+          <div className="sticky top-0 z-10 flex items-center justify-between px-4 h-14 bg-black border-b border-white/10">
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 -ml-2 text-white/90 hover:text-white transition-colors"
+            >
+              <X size={24} strokeWidth={2} />
+            </button>
+            <h2 className="font-bold text-[15px] tracking-tight text-white">
               {t('createPost.tags.title')}
             </h2>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm rounded-xl transition-colors"
+              className="text-brand-primary font-bold text-sm transition-colors"
             >
-              {t('createPost.tags.done')}
+              {t('createPost.tags.done', 'Done')}
             </button>
           </div>
 
@@ -302,7 +315,7 @@ export default function TagPeopleSubScreen({
             ))}
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
