@@ -143,10 +143,14 @@ class WebRTCService {
     };
 
     this.pc.onconnectionstatechange = () => {
-      logger.log('WebRTC connection state:', this.pc?.connectionState);
+      if (!this.pc) return;
+      logger.log('WebRTC connection state:', this.pc.connectionState);
+      useCallStore.getState().setConnectionStatus(this.pc.connectionState);
+
       if (
-        this.pc?.connectionState === 'disconnected' ||
-        this.pc?.connectionState === 'failed'
+        this.pc.connectionState === 'disconnected' ||
+        this.pc.connectionState === 'failed' ||
+        this.pc.connectionState === 'closed'
       ) {
         useCallStore.getState().resetCall();
       }

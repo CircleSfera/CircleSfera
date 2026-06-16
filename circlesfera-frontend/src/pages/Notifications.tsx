@@ -135,15 +135,15 @@ export default function Notifications() {
   };
 
   return (
-    <div className="pt-24 pb-20 px-4 min-h-screen max-w-2xl mx-auto">
+    <div className="pb-20 min-h-screen md:max-w-2xl md:mx-auto">
       <SEO title={t('notifications.seo_title')} />
-      <div className="flex items-center justify-between mb-8 px-2">
-        <h1 className="text-3xl font-extrabold tracking-tight">
-          {t('notifications.title')}
+      <div className="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/10 p-4 pt-[calc(1rem+env(safe-area-inset-top))]">
+        <h1 className="text-xl font-bold tracking-tight text-white">
+          {t('notifications.title', 'Actividad')}
         </h1>
       </div>
 
-      <div className="space-y-3">
+      <div className="flex flex-col">
         {notifs.length === 0 ? (
           <div className="text-center py-32 opacity-50 flex flex-col items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
@@ -157,7 +157,7 @@ export default function Notifications() {
           notifs.map((notif) => (
             <div
               key={notif.id}
-              className={`group relative overflow-hidden p-4 rounded-2xl flex items-center gap-4 transition-all duration-300 border border-white/5 hover:border-white/10 hover:bg-white/3 ${!notif.read ? 'bg-white/5 border-white/10' : 'bg-black/20'}`}
+              className={`group relative flex items-center gap-4 transition-colors p-4 md:px-0 ${!notif.read ? 'bg-white/5' : 'hover:bg-white/5'}`}
             >
               {/* Visual Unread Indicator */}
               {!notif.read && (

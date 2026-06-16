@@ -1,5 +1,10 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   $Enums,
   AdminAction,
@@ -1181,6 +1186,13 @@ export class AdminService {
     status: 'VISIBLE' | 'HIDDEN' | 'REMOVED',
     note?: string,
   ) {
+    if (!['POST', 'STORY', 'COMMENT'].includes(targetType)) {
+      throw new BadRequestException(`Invalid targetType: ${targetType}`);
+    }
+    if (!['VISIBLE', 'HIDDEN', 'REMOVED'].includes(status)) {
+      throw new BadRequestException(`Invalid status: ${status}`);
+    }
+
     const data = {
       moderationStatus: status as $Enums.ModerationStatus,
       moderationNote: note,

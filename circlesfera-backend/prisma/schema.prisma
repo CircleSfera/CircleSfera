@@ -102,6 +102,11 @@ model User {
 
   role Role @default(USER)
 
+  // Identity & KYC
+  identityVerifiedAt      DateTime?
+  dateOfBirth             DateTime?
+  stripeIdentitySessionId String?   @unique
+
   // Verification and Reset Tokens
   emailVerified     DateTime?
   verificationToken String?   @unique

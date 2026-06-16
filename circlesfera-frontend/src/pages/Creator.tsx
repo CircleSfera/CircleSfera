@@ -48,7 +48,7 @@ export default function Creator() {
   }, []);
 
   return (
-    <div className="min-h-screen px-4 py-6 md:px-6 lg:px-8 max-w-6xl mx-auto">
+    <div className="min-h-screen bg-black px-4 py-6 md:px-6 lg:px-8 max-w-6xl mx-auto">
       {/* 1. Header (Matching Admin) */}
       <header className="mb-8 flex items-end justify-between">
         <div>
@@ -93,7 +93,7 @@ export default function Creator() {
             <CreatorMonetizationTab onToast={addToast} />
           )}
           {activeTab === 'monetization' && (
-            <div className="p-4 md:p-6 bg-[#090909] rounded-3xl border border-white/5">
+            <div className="p-4 md:p-6 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10">
               <h2 className="text-xl font-bold text-white mb-6">
                 {t('creator.monetization_label', 'Monetization')}
               </h2>

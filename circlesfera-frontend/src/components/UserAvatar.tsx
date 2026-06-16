@@ -143,7 +143,9 @@ export default memo(function UserAvatar({
   }
 
   return (
-    <div className={`relative block ${sizeClasses[size]} rounded-full ${className}`}>
+    <div
+      className={`relative block ${sizeClasses[size]} rounded-full ${className}`}
+    >
       {innerContent}
     </div>
   );

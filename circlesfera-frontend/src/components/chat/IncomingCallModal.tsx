@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Phone, Video, X } from 'lucide-react';
 import type React from 'react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCallStore } from '../../stores/useCallStore';
 
@@ -8,11 +9,26 @@ export const IncomingCallModal: React.FC = () => {
   const { status, remoteUser, callType, acceptCall, declineCall } =
     useCallStore();
   const { t } = useTranslation();
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    if (status === 'incoming' && audioRef.current) {
+      audioRef.current
+        .play()
+        .catch((e) => console.error('Audio play blocked:', e));
+    } else if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  }, [status]);
 
   if (status !== 'incoming' || !remoteUser) return null;
 
   return (
     <AnimatePresence>
+      <audio ref={audioRef} src="/ringtone.mp3" loop preload="auto">
+        <track kind="captions" />
+      </audio>
       <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}

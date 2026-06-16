@@ -54,8 +54,9 @@ export class StripeService implements OnModuleInit {
 
   async createCheckoutSession(
     params: Stripe.Checkout.SessionCreateParams,
+    options?: Stripe.RequestOptions,
   ): Promise<Stripe.Checkout.Session> {
-    return this.stripe.checkout.sessions.create(params);
+    return this.stripe.checkout.sessions.create(params, options);
   }
 
   async createCustomer(email: string, name?: string): Promise<Stripe.Customer> {
@@ -145,5 +146,30 @@ export class StripeService implements OnModuleInit {
    */
   async createLoginLink(accountId: string): Promise<Stripe.LoginLink> {
     return this.stripe.accounts.createLoginLink(accountId);
+  }
+
+  // --- Stripe Identity Methods ---
+
+  /**
+   * Create an Identity Verification Session.
+   */
+  async createIdentityVerificationSession(
+    userId: string,
+    returnUrl: string,
+  ): Promise<Stripe.Identity.VerificationSession> {
+    return this.stripe.identity.verificationSessions.create({
+      type: 'document',
+      metadata: {
+        userId,
+      },
+      options: {
+        document: {
+          require_id_number: true,
+          require_live_capture: true,
+          require_matching_selfie: true,
+        },
+      },
+      return_url: returnUrl,
+    });
   }
 }

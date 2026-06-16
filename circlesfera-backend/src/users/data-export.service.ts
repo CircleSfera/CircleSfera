@@ -42,6 +42,14 @@ export class DataExportService {
     };
   }
 
+  async getExportHistory(userId: string) {
+    return this.prisma.dataExportRequest.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+  }
+
   private async processDataExport(requestId: string, userId: string) {
     await this.prisma.dataExportRequest.update({
       where: { id: requestId },

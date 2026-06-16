@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Edit, Search } from 'lucide-react';
+import { ChevronLeft, Edit, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
@@ -105,31 +105,32 @@ export default function ConversationList() {
   return (
     <div className="flex flex-col h-full bg-transparent">
       {/* Header Area */}
-      <div className="p-5 flex flex-col gap-5 bg-zinc-950/40 backdrop-blur-2xl sticky top-0 z-10 border-b border-white/5">
+      <div className="p-4 flex flex-col gap-4 bg-black/80 backdrop-blur-2xl sticky top-0 z-10 border-b border-white/10">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-black tracking-tighter text-white">
-            {t('chat.messages')}
-          </h2>
-          <motion.button
-            type="button"
-            whileHover={{
-              scale: 1.1,
-              backgroundColor: 'rgba(255,255,255,0.05)',
-            }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setIsNewChatOpen(true)}
-            className="p-2 -mr-2 text-white/90 rounded-2xl transition-all border border-white/5 bg-white/5"
+          <Link
+            to="/"
+            className="p-2 -ml-2 text-white hover:bg-white/10 rounded-full transition-colors"
           >
-            <Edit size={18} strokeWidth={2.5} />
-          </motion.button>
+            <ChevronLeft size={28} />
+          </Link>
+          <h2 className="text-lg font-bold text-white tracking-tight flex-1 text-center">
+            {me?.username || t('chat.messages')}
+          </h2>
+          <button
+            type="button"
+            onClick={() => setIsNewChatOpen(true)}
+            className="p-2 -mr-2 text-white hover:bg-white/10 rounded-full transition-colors"
+          >
+            <Edit size={24} />
+          </button>
         </div>
 
-        {/* Search Bar (Settings Style) */}
+        {/* Search Bar */}
         <div className="relative group">
-          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
             <Search
-              size={14}
-              className="text-gray-500 group-focus-within:text-blue-400 transition-colors"
+              size={16}
+              className="text-gray-400 group-focus-within:text-white transition-colors"
             />
           </div>
           <input
@@ -137,7 +138,7 @@ export default function ConversationList() {
             placeholder={t('chat.search')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-black/20 text-sm text-white rounded-2xl py-3 pl-10 pr-4 border-2 border-white/5 focus:border-blue-500/40 focus:ring-4 focus:ring-blue-500/5 outline-none placeholder-gray-600 transition-all font-medium"
+            className="w-full bg-white/10 text-sm text-white rounded-xl py-2 pl-9 pr-4 focus:bg-white/20 outline-none placeholder-gray-400 transition-all font-medium"
           />
         </div>
       </div>

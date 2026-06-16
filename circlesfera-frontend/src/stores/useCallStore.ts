@@ -26,6 +26,7 @@ export interface CallState {
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   isScreenSharing: boolean;
+  connectionStatus: RTCPeerConnectionState;
 
   setIncomingCall: (user: CallUser, type: CallType) => void;
   acceptCall: () => void;
@@ -39,6 +40,7 @@ export interface CallState {
   setLocalStream: (stream: MediaStream | null) => void;
   setRemoteStream: (stream: MediaStream | null) => void;
   setIsScreenSharing: (isScreenSharing: boolean) => void;
+  setConnectionStatus: (status: RTCPeerConnectionState) => void;
   resetCall: () => void;
 }
 
@@ -49,6 +51,9 @@ export const useCallStore = create<CallState>((set, get) => ({
   localStream: null,
   remoteStream: null,
   isScreenSharing: false,
+  connectionStatus: 'new' as RTCPeerConnectionState,
+
+  setConnectionStatus: (status) => set({ connectionStatus: status }),
 
   initiateCall: (targetUserId, type, remoteUser) => {
     const socket = useSocketStore.getState().socket;
@@ -113,6 +118,7 @@ export const useCallStore = create<CallState>((set, get) => ({
       localStream: null,
       remoteStream: null,
       isScreenSharing: false,
+      connectionStatus: 'new' as RTCPeerConnectionState,
     });
   },
 }));

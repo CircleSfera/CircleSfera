@@ -11,5 +11,7 @@ export const usersApi = {
 
   unban: (id: string) => apiClient.patch(`/users/${id}/unban`),
 
-  requestExport: () => apiClient.post<{ message: string }>('/users/export'),
+  requestExport: () => apiClient.get<{ message: string }>('/users/gdpr/export'),
+
+  getExportHistory: () => apiClient.get<any[]>('/users/gdpr/exports'),
 };

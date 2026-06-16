@@ -2,6 +2,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { AnalyticsController } from './analytics.controller.js';
+import { AnalyticsCron } from './analytics.cron.js';
 import { AnalyticsService } from './analytics.service.js';
 import { AnalyticsProcessor } from './processors/analytics.processor.js';
 
@@ -13,7 +14,7 @@ import { AnalyticsProcessor } from './processors/analytics.processor.js';
     }),
   ],
   controllers: [AnalyticsController],
-  providers: [AnalyticsService, AnalyticsProcessor],
+  providers: [AnalyticsService, AnalyticsProcessor, AnalyticsCron],
   exports: [AnalyticsService],
 })
 export class AnalyticsModule {}

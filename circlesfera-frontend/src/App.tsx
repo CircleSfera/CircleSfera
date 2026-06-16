@@ -3,10 +3,10 @@ import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import AdminGuard from './components/auth/AdminGuard';
 import AuthGuard from './components/auth/AuthGuard';
 import GuestGuard from './components/auth/GuestGuard';
-import CreatePostModal from './components/CreatePostModal';
 import ChatWindow from './components/chat/ChatWindow';
 import SelectChat from './components/chat/SelectChat';
 import ScrollToTop from './components/common/ScrollToTop';
+import CreateBottomSheet from './components/modals/CreateBottomSheet';
 import { GlobalCallContainer } from './components/navigation/GlobalCallContainer';
 import LayoutWrapper from './layouts/LayoutWrapper';
 
@@ -68,6 +68,7 @@ function App() {
     <LayoutWrapper>
       <ScrollToTop />
       <GlobalCallContainer />
+      <CreateBottomSheet />
       <Suspense
         fallback={
           <div className="h-screen w-full flex items-center justify-center">
@@ -128,14 +129,7 @@ function App() {
           />
 
           {/* Create post - Instagram opens modal, we keep as route for now */}
-          <Route
-            path="/create"
-            element={
-              <AuthGuard>
-                <CreatePostModal />
-              </AuthGuard>
-            }
-          />
+          <Route path="/create" element={<Navigate to="/" replace />} />
 
           {/* Tags - Instagram style: /explore/tags/:tag */}
           <Route

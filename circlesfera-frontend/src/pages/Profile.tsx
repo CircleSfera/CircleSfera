@@ -1,22 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
 import {
-  Ban,
   Bookmark,
   Clapperboard,
-  ExternalLink,
-  Flag,
-  Gift,
   Grid,
   Heart,
   Link as LinkIcon,
-  MapPin,
+  Lock,
+  Menu,
   MessageCircle,
   MoreHorizontal,
   Plus,
-  Settings,
+  PlusSquare,
   Shield,
-  Star,
   UserSquare2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -46,6 +41,7 @@ import {
   profileApi,
   storiesApi,
 } from '../services';
+import { useUIStore } from '../stores/uiStore';
 import type {
   Collection,
   Post,
@@ -80,11 +76,11 @@ function AnimatedCounter({ value, label }: { value: number; label: string }) {
   }, [value]);
 
   return (
-    <div className="text-center md:text-left group cursor-pointer">
-      <span className="block text-white font-black text-base md:text-xl leading-none transition-all duration-300 origin-center md:origin-left group-hover:scale-110 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-brand-secondary group-hover:to-brand-primary">
+    <div className="text-center group cursor-pointer flex flex-col items-center">
+      <span className="block text-white font-bold text-[17px] md:text-xl transition-all duration-300 origin-center md:origin-left group-hover:scale-110">
         {count}
       </span>
-      <span className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest mt-1 block transition-colors duration-300 group-hover:text-brand-primary/80">
+      <span className="text-white/90 text-[13px] md:text-sm mt-0.5 block transition-colors duration-300">
         {label}
       </span>
     </div>
@@ -144,6 +140,7 @@ export default function Profile() {
     retry: false,
   });
   const isMe = myProfile?.data.username === username;
+  const openCreateMenu = useUIStore((state) => state.openCreateMenu);
 
   const { data: followStatus } = useQuery({
     queryKey: ['follow', username],
@@ -518,285 +515,190 @@ export default function Profile() {
         ogImage={profile.data.avatar || undefined}
       />
       <div className="max-w-3xl mx-auto px-4">
-        {/* Profile Card */}
-        <div className="glass-panel rounded-3xl md:rounded-[32px] p-5 md:p-8 mb-6 overflow-hidden relative border border-white/5 shadow-2xl backdrop-blur-2xl">
-          {/* Background Accent Gradient (Parallax Effect) */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.5, ease: 'easeOut' }}
-            className="absolute -top-20 -right-20 w-64 md:w-96 h-64 md:h-96 bg-linear-to-br from-brand-primary/20 to-brand-secondary/20 blur-[100px] -z-10 rounded-full"
-          />
+        {/* IG Style Mobile Top Bar (Only visible on mobile) */}
+        <div className="md:hidden flex items-center justify-between py-3 mb-4">
+          <div className="flex items-center gap-2">
+            {profile.data.isPrivate && (
+              <Lock size={18} className="text-white" />
+            )}
+            <h1 className="text-2xl font-bold text-white tracking-tight">
+              {profile.data.username}
+            </h1>
+            <VerificationBadge
+              level={profile.data.verificationLevel as VerificationLevel}
+              size={18}
+            />
+          </div>
+          <div className="flex items-center gap-6">
+            {isMe && (
+              <button
+                type="button"
+                onClick={openCreateMenu}
+                className="text-white focus:outline-none"
+              >
+                <PlusSquare size={26} strokeWidth={2} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() =>
+                isMe ? navigate('/accounts/edit') : setShowMenu(!showMenu)
+              }
+              className="text-white focus:outline-none"
+            >
+              {isMe ? (
+                <Menu size={28} strokeWidth={2} />
+              ) : (
+                <MoreHorizontal size={24} />
+              )}
+            </button>
+          </div>
+        </div>
 
-          <div className="flex flex-col gap-4 md:gap-7">
-            <div className="flex flex-col md:flex-row items-center md:items-start gap-5 md:gap-10">
-              {/* Avatar - Compact size */}
-              <div className="relative shrink-0">
-                <UserAvatar
-                  src={profile.data.avatar}
-                  thumbnailUrl={profile.data.thumbnailUrl}
-                  standardUrl={profile.data.standardUrl}
-                  alt={profile.data.username}
-                  size="xl"
-                  hasStory={hasActiveStories}
-                  onClick={
-                    hasActiveStories
-                      ? () => setIsStoryViewerOpen(true)
-                      : undefined
-                  }
-                  className="transition-all duration-300"
+        {/* Profile Card Refactored (IG Style) */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            {/* Avatar Section */}
+            <div className="relative shrink-0 ml-1">
+              <UserAvatar
+                src={profile.data.avatar}
+                thumbnailUrl={profile.data.thumbnailUrl}
+                standardUrl={profile.data.standardUrl}
+                alt={profile.data.username}
+                size="xl"
+                hasStory={hasActiveStories}
+                onClick={
+                  hasActiveStories
+                    ? () => setIsStoryViewerOpen(true)
+                    : undefined
+                }
+                className="w-20 h-20 md:w-32 md:h-32 transition-all duration-300"
+              />
+              {isMe && (
+                <button
+                  type="button"
+                  onClick={() => setIsHighlightModalOpen(true)}
+                  className="absolute bottom-0 right-0 p-1 bg-brand-primary rounded-full text-white shadow-xl hover:scale-110 transition-transform z-20 border-2 border-black"
+                >
+                  <Plus size={16} strokeWidth={3} />
+                </button>
+              )}
+            </div>
+
+            {/* Stats Row */}
+            <div className="flex-1 flex justify-around text-center ml-4">
+              <div className="flex flex-col items-center">
+                <AnimatedCounter
+                  value={profile.data.user?._count?.posts || 0}
+                  label={t('profile.stats.posts')}
                 />
-                {isMe && (
-                  <Link
-                    to="/accounts/edit"
-                    className="absolute -bottom-0.5 -right-0.5 p-1.5 bg-zinc-900 border border-white/10 rounded-full text-white hover:bg-zinc-800 transition-colors shadow-xl opacity-0 hover:opacity-100 group-hover:opacity-100 duration-300 z-20"
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowFollowsModal('followers')}
+                className="flex flex-col items-center"
+              >
+                <AnimatedCounter
+                  value={profile.data.user?._count?.followers || 0}
+                  label={t('profile.stats.followers')}
+                />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowFollowsModal('following')}
+                className="flex flex-col items-center"
+              >
+                <AnimatedCounter
+                  value={profile.data.user?._count?.following || 0}
+                  label={t('profile.stats.following')}
+                />
+              </button>
+            </div>
+          </div>
+
+          {/* Bio Section */}
+          <div className="px-1 mb-4">
+            <h2 className="font-bold text-[15px] text-white">
+              {profile.data.fullName}
+            </h2>
+            {profile.data.bio && (
+              <p className="text-[14px] text-white mt-1 whitespace-pre-wrap leading-tight">
+                {profile.data.bio}
+              </p>
+            )}
+            {(profile.data.website || profile.data.location) && (
+              <div className="mt-1 text-[14px]">
+                {profile.data.location && (
+                  <span className="block text-gray-400">
+                    {profile.data.location}
+                  </span>
+                )}
+                {profile.data.website && (
+                  <a
+                    href={
+                      profile.data.website.startsWith('http')
+                        ? profile.data.website
+                        : `https://${profile.data.website}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 font-semibold text-brand-primary mt-1"
                   >
-                    <Plus size={12} />
-                  </Link>
+                    <LinkIcon size={14} />
+                    {profile.data.website.replace(/^https?:\/\/(www\.)?/, '')}
+                  </a>
                 )}
               </div>
+            )}
+          </div>
 
-              {/* Stats & Identity Group */}
-              <div className="flex-1 flex flex-col justify-center text-center md:text-left">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-10 mb-2 md:mb-5">
-                  {/* Identity */}
-                  <div className="space-y-0.5">
-                    <div className="flex items-center justify-center md:justify-start gap-2.5">
-                      <h1 className="text-2xl md:text-3xl font-black tracking-tight bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
-                        {profile.data.fullName}
-                      </h1>
-                      <VerificationBadge
-                        level={
-                          profile.data.verificationLevel as VerificationLevel
-                        }
-                        size={18}
-                      />
-                    </div>
-                    <span className="text-brand-primary font-bold text-sm tracking-tight block">
-                      @{profile.data.username}
-                    </span>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="flex items-center justify-center md:justify-start gap-6 md:gap-10">
-                    <AnimatedCounter
-                      value={profile.data.user?._count?.posts || 0}
-                      label={t('profile.stats.posts')}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowFollowsModal('followers')}
-                    >
-                      <AnimatedCounter
-                        value={profile.data.user?._count?.followers || 0}
-                        label={t('profile.stats.followers')}
-                      />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowFollowsModal('following')}
-                    >
-                      <AnimatedCounter
-                        value={profile.data.user?._count?.following || 0}
-                        label={t('profile.stats.following')}
-                      />
-                    </button>
-                  </div>
+          {/* Actions Row */}
+          <div className="flex gap-2 mb-2">
+            {isMe ? (
+              <>
+                <Link
+                  to="/accounts/edit"
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white py-[6px] px-4 rounded-[8px] font-semibold text-[14px] text-center transition-colors"
+                >
+                  {t('profile.actions.edit_profile', 'Editar perfil')}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      `${window.location.origin}/${profile.data.username}`,
+                    );
+                    toast.success('Enlace copiado al portapapeles');
+                  }}
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white py-[6px] px-4 rounded-[8px] font-semibold text-[14px] text-center transition-colors"
+                >
+                  {t('profile.actions.share_profile', 'Compartir perfil')}
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="flex-1">
+                  <FollowButton username={profile.data.username} />
                 </div>
-
-                {/* Action Buttons */}
-                <div className="hidden md:flex items-center gap-2.5">
-                  {isMe ? (
-                    <>
-                      <Link
-                        to="/accounts/edit"
-                        className="px-6 py-2 bg-white text-black hover:bg-zinc-200 rounded-lg font-black transition-all duration-300 flex items-center justify-center text-[10px] uppercase tracking-widest shadow-lg hover:shadow-white/20 hover:scale-105 active:scale-95"
-                      >
-                        {t('profile.actions.edit_profile')}
-                      </Link>
-                      <button
-                        type="button"
-                        className="p-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]"
-                      >
-                        <Settings size={18} />
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <FollowButton username={profile.data.username} />
-
-                      {profile.data.accountType === 'CREATOR' && (
-                        <button
-                          type="button"
-                          onClick={() => subscribeMutation.mutate()}
-                          disabled={subscribeMutation.isPending}
-                          className="px-4 py-2 bg-linear-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white rounded-lg font-black text-[10px] uppercase tracking-widest transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1 disabled:opacity-50"
-                        >
-                          <Star size={14} fill="currentColor" />
-                          {t('profile.actions.subscribe')}
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => setShowTipModal(true)}
-                        className="p-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-lg border border-yellow-500/20 transition-all duration-300 hover:scale-105 active:scale-95"
-                        title={t('profile.actions.send_tip')}
-                      >
-                        <Gift size={18} />
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={handleMessageClick}
-                        disabled={isCreatingChat}
-                        className="px-6 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 font-black text-[10px] uppercase tracking-widest transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] disabled:opacity-50"
-                      >
-                        {isCreatingChat
-                          ? t('profile.actions.opening')
-                          : t('profile.actions.message')}
-                      </button>
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={() => setShowMenu(!showMenu)}
-                          className="p-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95"
-                        >
-                          <MoreHorizontal size={18} />
-                        </button>
-
-                        {showMenu && (
-                          <div className="absolute top-full mt-2 right-0 bg-[#161616] border border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-[180px] z-60 backdrop-blur-xl animate-in fade-in zoom-in-95">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowMenu(false);
-                                setShowReportModal(true);
-                              }}
-                              className="w-full text-left px-4 py-3 text-red-400 hover:bg-white/5 flex items-center justify-between font-bold text-[10px] uppercase tracking-wider"
-                            >
-                              {t('profile.actions.report_profile')}
-                              <Flag size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              className="w-full text-left px-4 py-3 text-red-400 hover:bg-white/5 flex items-center justify-between font-bold text-[10px] uppercase tracking-wider border-t border-white/5"
-                              onClick={() => {
-                                setShowMenu(false);
-                                setShowBlockModal(true);
-                              }}
-                            >
-                              {t('profile.actions.block_user')}
-                              <Ban size={14} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Bio & Details Section */}
-            <div className="space-y-4">
-              <div className="max-w-xl text-center md:text-left mx-auto md:mx-0">
-                {profile.data.bio && (
-                  <p className="text-zinc-400 text-sm md:text-base leading-relaxed whitespace-pre-wrap">
-                    {profile.data.bio}
-                  </p>
-                )}
-
-                {(profile.data.website || profile.data.location) && (
-                  <div className="flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-2 mt-4 text-xs md:text-sm font-medium">
-                    {profile.data.location && (
-                      <span className="flex items-center gap-2 text-zinc-500">
-                        <MapPin size={16} className="text-brand-secondary" />
-                        {profile.data.location}
-                      </span>
-                    )}
-                    {profile.data.website && (
-                      <a
-                        href={
-                          profile.data.website.startsWith('http')
-                            ? profile.data.website
-                            : `https://${profile.data.website}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-brand-blue hover:text-blue-300 transition-colors"
-                      >
-                        <LinkIcon size={16} />
-                        <span className="underline decoration-white/10 underline-offset-4">
-                          {profile.data.website.replace(
-                            /^https?:\/\/(www\.)?/,
-                            '',
-                          )}
-                        </span>
-                        <ExternalLink size={12} className="opacity-40" />
-                      </a>
-                    )}
-                  </div>
-                )}
-
-                {isMe &&
-                  profile.data.accountType === 'CREATOR' &&
-                  profile.data.inviteCode && (
-                    <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-xl max-w-sm mx-auto md:mx-0 flex items-center justify-between gap-3 backdrop-blur-md">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                          {t('profile.invite.title')}
-                        </span>
-                        <span className="font-mono text-brand-primary font-bold tracking-wider text-sm">
-                          {profile.data.inviteCode}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(
-                            `${window.location.origin}/register?inviteCode=${profile.data.inviteCode}`,
-                          );
-                          toast.success(t('profile.invite.copied'));
-                        }}
-                        className="px-4 py-2 bg-white text-black hover:bg-zinc-200 rounded-lg text-xs font-black uppercase tracking-wider transition-all"
-                      >
-                        {t('profile.actions.copy_link')}
-                      </button>
-                    </div>
-                  )}
-              </div>
-
-              {/* Mobile Only Action Buttons */}
-              <div className="flex md:hidden items-center gap-2 pt-2">
-                {isMe ? (
-                  <>
-                    <Link
-                      to="/accounts/edit"
-                      className="flex-1 px-6 py-3 bg-white text-black hover:bg-zinc-200 rounded-xl font-black transition-all flex items-center justify-center text-[10px] uppercase tracking-widest shadow-lg shadow-white/5"
-                    >
-                      {t('profile.actions.edit_profile')}
-                    </Link>
-                    <button
-                      type="button"
-                      className="p-3 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 transition-all"
-                    >
-                      <Settings size={20} />
-                    </button>
-                  </>
-                ) : (
-                  <div className="flex-1 flex gap-2">
-                    <FollowButton username={profile.data.username} />
-                    <button
-                      type="button"
-                      className="flex-1 px-5 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 font-black text-[10px] uppercase tracking-widest transition-all"
-                    >
-                      {t('profile.actions.message')}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => subscribeMutation.mutate()}
+                  className="flex-1 bg-brand-primary hover:bg-brand-secondary text-white py-[6px] px-4 rounded-[8px] font-semibold text-[14px] text-center transition-colors"
+                >
+                  {t('profile.actions.subscribe', 'Suscribirse')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleMessageClick}
+                  disabled={isCreatingChat}
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white py-[6px] px-4 rounded-[8px] font-semibold text-[14px] text-center transition-colors disabled:opacity-50"
+                >
+                  {isCreatingChat
+                    ? t('profile.actions.opening')
+                    : t('profile.actions.message')}
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -857,96 +759,61 @@ export default function Profile() {
 
           {/* Tabs */}
           {canView && (
-            <div className="flex justify-center gap-2 md:gap-4 mb-6 p-1.5 bg-black/40 backdrop-blur-xl rounded-2xl border border-white/5 w-fit mx-auto">
+            <div className="flex justify-around border-t border-white/10 mt-4 mb-1">
               <button
                 type="button"
                 onClick={() => setActiveTab('posts')}
-                className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[11px] font-black tracking-[0.2em] transition-all relative z-10 ${
+                className={`flex-1 flex justify-center items-center py-3 transition-colors ${
                   activeTab === 'posts'
-                    ? 'text-white'
+                    ? 'border-b-2 border-white text-white'
                     : 'text-zinc-500 hover:text-zinc-300'
                 }`}
               >
-                {activeTab === 'posts' && (
-                  <motion.div
-                    layoutId="activeTabProfileGlass"
-                    className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-xl -z-10 border border-white/10 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
-                <Grid size={14} />
-                <span className="hidden sm:inline">
-                  {t('profile.tabs.posts')}
-                </span>
+                <Grid size={22} strokeWidth={activeTab === 'posts' ? 2 : 1.5} />
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('frames')}
-                className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[11px] font-black tracking-[0.2em] transition-all relative z-10 ${
+                className={`flex-1 flex justify-center items-center py-3 transition-colors ${
                   activeTab === 'frames'
-                    ? 'text-white'
+                    ? 'border-b-2 border-white text-white'
                     : 'text-zinc-500 hover:text-zinc-300'
                 }`}
               >
-                {activeTab === 'frames' && (
-                  <motion.div
-                    layoutId="activeTabProfileGlass"
-                    className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-xl -z-10 border border-white/10 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
-                <Clapperboard size={14} />
-                <span className="hidden sm:inline">
-                  {t('profile.tabs.frames')}
-                </span>
+                <Clapperboard
+                  size={22}
+                  strokeWidth={activeTab === 'frames' ? 2 : 1.5}
+                />
               </button>
               {isMe && (
                 <button
                   type="button"
                   onClick={() => setActiveTab('saved')}
-                  className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[11px] font-black tracking-[0.2em] transition-all relative z-10 ${
+                  className={`flex-1 flex justify-center items-center py-3 transition-colors ${
                     activeTab === 'saved'
-                      ? 'text-white'
+                      ? 'border-b-2 border-white text-white'
                       : 'text-zinc-500 hover:text-zinc-300'
                   }`}
                 >
-                  {activeTab === 'saved' && (
-                    <motion.div
-                      layoutId="activeTabProfileGlass"
-                      className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-xl -z-10 border border-white/10 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
-                      transition={{
-                        type: 'spring',
-                        bounce: 0.2,
-                        duration: 0.6,
-                      }}
-                    />
-                  )}
-                  <Bookmark size={14} />
-                  <span className="hidden sm:inline">
-                    {t('profile.tabs.saved')}
-                  </span>
+                  <Bookmark
+                    size={22}
+                    strokeWidth={activeTab === 'saved' ? 2 : 1.5}
+                  />
                 </button>
               )}
               <button
                 type="button"
                 onClick={() => setActiveTab('tagged')}
-                className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[11px] font-black tracking-[0.2em] transition-all relative z-10 ${
+                className={`flex-1 flex justify-center items-center py-3 transition-colors ${
                   activeTab === 'tagged'
-                    ? 'text-white'
+                    ? 'border-b-2 border-white text-white'
                     : 'text-zinc-500 hover:text-zinc-300'
                 }`}
               >
-                {activeTab === 'tagged' && (
-                  <motion.div
-                    layoutId="activeTabProfileGlass"
-                    className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-xl -z-10 border border-white/10 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
-                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
-                <UserSquare2 size={14} />
-                <span className="hidden sm:inline">
-                  {t('profile.tabs.tagged')}
-                </span>
+                <UserSquare2
+                  size={22}
+                  strokeWidth={activeTab === 'tagged' ? 2 : 1.5}
+                />
               </button>
             </div>
           )}

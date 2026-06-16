@@ -82,6 +82,7 @@ export class MonetizationService {
     userId: string,
     postId: string,
     returnUrl: string,
+    idempotencyKey?: string,
   ) {
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
@@ -139,6 +140,8 @@ export class MonetizationService {
       },
       success_url: `${returnUrl}?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${returnUrl}?canceled=true`,
+    }, {
+      idempotencyKey: idempotencyKey,
     });
 
     return { url: session.url };
@@ -150,6 +153,7 @@ export class MonetizationService {
     amountCents: number,
     returnUrl: string,
     postId?: string,
+    idempotencyKey?: string,
   ) {
     if (amountCents < 100) {
       throw new BadRequestException('Minimum tip is $1.00 USD');
@@ -204,6 +208,8 @@ export class MonetizationService {
       },
       success_url: `${returnUrl}?success=true&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${returnUrl}?canceled=true`,
+    }, {
+      idempotencyKey: idempotencyKey,
     });
 
     return { url: session.url };
