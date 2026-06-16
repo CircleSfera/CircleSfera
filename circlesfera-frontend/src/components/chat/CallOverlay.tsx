@@ -25,9 +25,22 @@ export const CallOverlay: React.FC = () => {
   } = useCallStore();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const constraintsRef = useRef<HTMLDivElement>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const { t } = useTranslation();
+
+  useEffect(() => {
+    if (status === 'ringing' && audioRef.current) {
+      audioRef.current
+        .play()
+        .catch((e) => console.error('Audio play blocked:', e));
+    } else if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+  }, [status]);
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -77,8 +90,14 @@ export const CallOverlay: React.FC = () => {
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-110 bg-black flex flex-col md:flex-row overflow-hidden"
       >
+        <audio ref={audioRef} src="/ringtone.mp3" loop preload="auto">
+          <track kind="captions" />
+        </audio>
         {/* Main Background (Remote Video or Avatar) */}
-        <div className="flex-1 relative bg-zinc-950 flex items-center justify-center overflow-hidden">
+        <div
+          ref={constraintsRef}
+          className="flex-1 relative bg-zinc-950 flex items-center justify-center overflow-hidden"
+        >
           {callType === 'video' && remoteStream ? (
             <video
               ref={remoteVideoRef}
@@ -112,12 +131,7 @@ export const CallOverlay: React.FC = () => {
           {callType === 'video' && (
             <motion.div
               drag
-              dragConstraints={{
-                left: -300,
-                right: 300,
-                top: -500,
-                bottom: 500,
-              }}
+              dragConstraints={constraintsRef}
               className="absolute top-8 right-8 w-40 md:w-56 aspect-3/4 bg-zinc-900 rounded-2xl overflow-hidden border border-white/20 shadow-2xl z-10 cursor-move ring-4 ring-black/30"
             >
               <video
@@ -125,8 +139,10 @@ export const CallOverlay: React.FC = () => {
                 autoPlay
                 playsInline
                 muted
-                className={`w-full h-full object-cover ${isVideoOff ? 'hidden' : ''}`}
-              />
+                className={`w-full h-full object-cover mirror ${isVideoOff ? 'hidden' : ''}`}
+              >
+                <track kind="captions" />
+              </video>
               {isVideoOff && (
                 <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-gray-500">
                   <VideoOff size={32} />
