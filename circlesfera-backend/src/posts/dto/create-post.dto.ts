@@ -93,4 +93,12 @@ export class CreatePostDto {
   @Type(() => TagDto)
   @IsOptional()
   tags?: TagDto[];
+
+  @IsBoolean()
+  @IsOptional()
+  isPremium?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  priceCents?: number;
 }
