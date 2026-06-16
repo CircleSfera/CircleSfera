@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, IsBoolean, IsNumber } from 'class-validator';
+import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateStoryDto {
   @IsString()
