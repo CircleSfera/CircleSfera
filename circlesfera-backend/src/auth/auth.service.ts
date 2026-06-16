@@ -233,21 +233,42 @@ export class AuthService {
     // Verify password
     let isPasswordValid = false;
 
-    // Check if it's an argon2 hash (modern) or bcrypt (legacy)
-    if (user.password.startsWith('$argon2')) {
-      isPasswordValid = await argon2.verify(user.password, dto.password);
-    } else {
-      // Legacy bcrypt support
-      isPasswordValid = await bcrypt.compare(dto.password, user.password);
+    try {
+      // Check if it's an argon2 hash (modern) or bcrypt (legacy)
+      if (user.password.startsWith('$argon2')) {
+        isPasswordValid = await argon2.verify(user.password, dto.password);
+      } else if (
+        user.password.startsWith('$2b$') ||
+        user.password.startsWith('$2a$') ||
+        user.password.startsWith('$2y$')
+      ) {
+        // Legacy bcrypt support
+        isPasswordValid = await bcrypt.compare(dto.password, user.password);
 
-      // If valid, migrate to argon2
-      if (isPasswordValid) {
-        const newHashedPassword = await argon2.hash(dto.password);
-        await this.prisma.user.update({
-          where: { id: user.id },
-          data: { password: newHashedPassword },
-        });
+        // If valid, migrate to argon2
+        if (isPasswordValid) {
+          const newHashedPassword = await argon2.hash(dto.password);
+          await this.prisma.user.update({
+            where: { id: user.id },
+            data: { password: newHashedPassword },
+          });
+        }
+      } else {
+        // Plain text or malformed hash fallback (used if manually edited in DB)
+        isPasswordValid = user.password === dto.password;
+
+        if (isPasswordValid) {
+          // Auto-migrate plain text to argon2
+          const newHashedPassword = await argon2.hash(dto.password);
+          await this.prisma.user.update({
+            where: { id: user.id },
+            data: { password: newHashedPassword },
+          });
+        }
       }
+    } catch {
+      // If verify or compare throws (e.g., malformed hash string), fail securely without 500
+      isPasswordValid = false;
     }
 
     if (!isPasswordValid) {
