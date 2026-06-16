@@ -22,6 +22,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { BookmarksModule } from './bookmarks/bookmarks.module.js';
 import { ChatModule } from './chat/chat.module.js';
 import { CloseFriendsModule } from './close-friends/close-friends.module.js';
+import { CollectionsModule } from './collections/collections.module.js';
 import { CommentsModule } from './comments/comments.module.js';
 import { RedisCacheModule } from './common/cache/cache.module.js';
 import { CsrfController } from './common/csrf/csrf.controller.js';
@@ -121,6 +122,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     SearchModule,
     UploadsModule,
     BookmarksModule,
+    CollectionsModule,
     ...(process.env.CLOUDINARY_NAME
       ? []
       : [
