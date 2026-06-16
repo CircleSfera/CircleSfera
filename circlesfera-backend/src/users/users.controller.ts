@@ -61,6 +61,12 @@ export class UsersController {
     return this.dataExportService.requestDataExport(user.userId);
   }
 
+  /** GDPR: Get Data Export History. */
+  @Get('gdpr/exports')
+  async getExportHistory(@CurrentUser() user: CurrentUserData) {
+    return this.dataExportService.getExportHistory(user.userId);
+  }
+
   /** GDPR: Full account deletion (irreversible). */
   @Delete('gdpr/account')
   async deleteAccount(@CurrentUser() user: CurrentUserData) {
