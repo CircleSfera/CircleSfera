@@ -7,6 +7,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { MonetizationService } from './monetization.service.js';
 
@@ -38,6 +39,7 @@ export class MonetizationController {
   }
 
   @Post('connect')
+  @UseGuards(IdentityVerifiedGuard)
   async connectStripe(
     @Req() req: AuthRequest,
     @Body() body: { returnUrl: string; refreshUrl: string },
@@ -50,6 +52,7 @@ export class MonetizationController {
   }
 
   @Post('tip')
+  @UseGuards(IdentityVerifiedGuard)
   async sendTip(
     @Req() req: AuthRequest,
     @Body() body: {
@@ -57,6 +60,7 @@ export class MonetizationController {
       amountCents: number;
       returnUrl: string;
       postId?: string;
+      idempotencyKey?: string;
     },
   ) {
     return this.monetizationService.createTipSession(
@@ -65,18 +69,21 @@ export class MonetizationController {
       body.amountCents,
       body.returnUrl,
       body.postId,
+      body.idempotencyKey,
     );
   }
 
   @Post('unlock')
+  @UseGuards(IdentityVerifiedGuard)
   async unlockPost(
     @Req() req: AuthRequest,
-    @Body() body: { postId: string; returnUrl: string },
+    @Body() body: { postId: string; returnUrl: string; idempotencyKey?: string },
   ) {
     return this.monetizationService.createPostUnlockSession(
       req.user.userId,
       body.postId,
       body.returnUrl,
+      body.idempotencyKey,
     );
   }
 

@@ -177,22 +177,28 @@ export class PaymentsService {
 
     console.log(`Processing Stripe webhook event: ${type}`);
 
-    // Log the event for idempotency/audit (using the model in schema)
-    await this.prisma.webhookEvent
-      .create({
+    try {
+      // Log the event for idempotency/audit (using the model in schema)
+      await this.prisma.webhookEvent.create({
         data: {
           provider: 'stripe',
           externalId: event.id,
           payload: event as unknown as object,
           status: 'PENDING',
         },
-      })
-      .catch((err: Error) =>
-        console.warn(
-          'Could not log webhook event (likely duplicate):',
-          err.message,
-        ),
-      );
+      });
+    } catch (err: unknown) {
+      if (
+        typeof err === 'object' &&
+        err !== null &&
+        'code' in err &&
+        (err as { code: string }).code === 'P2002'
+      ) {
+        console.warn(`Duplicate webhook event detected (Idempotency check): ${event.id}. Skipping.`);
+        return;
+      }
+      throw err;
+    }
 
     switch (type) {
       case 'checkout.session.completed': {
@@ -485,8 +491,68 @@ export class PaymentsService {
         break;
       }
 
+      case 'identity.verification_session.verified': {
+        const session = data.object as Stripe.Identity.VerificationSession;
+        const userId = session.metadata?.userId;
+
+        if (userId) {
+          const dob = session.verified_outputs?.dob;
+          let dateOfBirth: Date | null = null;
+          let isActive = true;
+          const verificationLevel = VerificationLevel.VERIFIED;
+          
+          if (dob?.year && dob?.month && dob?.day) {
+            dateOfBirth = new Date(dob.year, dob.month - 1, dob.day);
+            
+            // Calculate age
+            const today = new Date();
+            let age = today.getFullYear() - dateOfBirth.getFullYear();
+            const m = today.getMonth() - dateOfBirth.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < dateOfBirth.getDate())) {
+              age--;
+            }
+
+            if (age < 16) {
+              isActive = false; // Suspend under 16 for GDPR compliance
+              console.log(`User ${userId} suspended due to being under 16 (Age: ${age})`);
+            } else if (age < 18) {
+              console.log(`User ${userId} verified but under 18 (Age: ${age})`);
+            }
+          }
+
+          await this.prisma.user.update({
+            where: { id: userId },
+            data: {
+              identityVerifiedAt: new Date(),
+              ...(dateOfBirth && { dateOfBirth }),
+              verificationLevel: verificationLevel,
+              isActive: isActive,
+            },
+          });
+          console.log(`Successfully verified identity for user ${userId}`);
+        }
+
+        await this.prisma.webhookEvent.update({
+          where: { externalId: event.id },
+          data: { status: 'PROCESSED', processedAt: new Date() },
+        });
+        break;
+      }
+
       default:
         console.log(`Unhandled event type: ${type}`);
     }
+  }
+
+  async createIdentitySession(userId: string, returnUrl: string): Promise<{ url: string }> {
+    const session = await this.stripeService.createIdentityVerificationSession(userId, returnUrl);
+    
+    // Save the session ID to the user for tracking
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { stripeIdentitySessionId: session.id },
+    });
+
+    return { url: session.url || returnUrl };
   }
 }

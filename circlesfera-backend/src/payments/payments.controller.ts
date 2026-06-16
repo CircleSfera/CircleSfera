@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import type Stripe from 'stripe';
+import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PaymentsService } from './payments.service.js';
 
@@ -31,7 +32,7 @@ export class PaymentsController {
   }
 
   @Post('checkout')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, IdentityVerifiedGuard)
   async createCheckout(
     @Req() req: RequestWithUser,
     @Body() body: { planId: string; billingCycle?: 'MONTHLY' | 'YEARLY' },
@@ -69,5 +70,18 @@ export class PaymentsController {
       console.error(`Webhook Error: ${message}`);
       return { received: false, error: message };
     }
+  }
+
+  @Post('identity-session')
+  @UseGuards(JwtAuthGuard)
+  async createIdentitySession(
+    @Req() req: RequestWithUser,
+    @Body() body: { returnUrl: string },
+  ): Promise<{ url: string }> {
+    return this.paymentsService.createIdentitySession(
+      req.user.userId,
+      body.returnUrl ||
+        `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/edit`,
+    );
   }
 }
