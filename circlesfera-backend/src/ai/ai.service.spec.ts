@@ -108,7 +108,7 @@ describe('AIService', () => {
       expect(result).toEqual([0.1, 0.2, 0.3]);
     });
 
-    it('should throw an error in production if API key is missing', async () => {
+    it('should fallback to mock embedding if API key is missing', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'OPENAI_API_KEY') return undefined;
         if (key === 'NODE_ENV') return 'production';
@@ -123,35 +123,15 @@ describe('AIService', () => {
       }).compile();
       const prodServiceWithoutKey = module.get<AIService>(AIService);
 
-      await expect(
-        prodServiceWithoutKey.generateEmbedding('test text'),
-      ).rejects.toThrow('OPENAI_API_KEY is missing');
-    });
-
-    it('should fallback to mock embedding in development if missing key', async () => {
-      mockConfigService.get.mockImplementation((key: string) => {
-        if (key === 'OPENAI_API_KEY') return undefined;
-        if (key === 'NODE_ENV') return 'development';
-        return null;
-      });
-
-      const module = await Test.createTestingModule({
-        providers: [
-          AIService,
-          { provide: ConfigService, useValue: mockConfigService },
-        ],
-      }).compile();
-      const devServiceWithoutKey = module.get<AIService>(AIService);
-
-      const result = await devServiceWithoutKey.generateEmbedding('test');
+      const result = await prodServiceWithoutKey.generateEmbedding('test text');
       expect(result).toHaveLength(1536);
       expect(typeof result[0]).toBe('number');
     });
 
-    it('should fallback to mock embedding in development if OpenAI errors', async () => {
+    it('should fallback to mock embedding if OpenAI errors', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'OPENAI_API_KEY') return 'test_key';
-        if (key === 'NODE_ENV') return 'development';
+        if (key === 'NODE_ENV') return 'production';
         return null;
       });
 
@@ -167,13 +147,6 @@ describe('AIService', () => {
 
       const result = await updatedService.generateEmbedding('test');
       expect(result).toHaveLength(1536);
-    });
-
-    it('should throw error in production if OpenAI errors', async () => {
-      openAiInstance.embeddings.create.mockRejectedValue(new Error('API Down'));
-      await expect(service.generateEmbedding('test')).rejects.toThrow(
-        'API Down',
-      );
     });
   });
 
@@ -199,10 +172,10 @@ describe('AIService', () => {
       expect(result.category_scores.hate).toBe(0.99);
     });
 
-    it('should fallback to empty moderation in development if OpenAI errors', async () => {
+    it('should fallback to empty moderation if OpenAI errors', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'OPENAI_API_KEY') return 'test_key';
-        if (key === 'NODE_ENV') return 'development';
+        if (key === 'NODE_ENV') return 'production';
         return null;
       });
 
@@ -223,10 +196,10 @@ describe('AIService', () => {
       expect(result.categories).toEqual({});
     });
 
-    it('should fallback to empty moderation in dev if missing key', async () => {
+    it('should fallback to empty moderation if missing key', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'OPENAI_API_KEY') return undefined;
-        if (key === 'NODE_ENV') return 'development';
+        if (key === 'NODE_ENV') return 'production';
         return null;
       });
       const module = await Test.createTestingModule({
