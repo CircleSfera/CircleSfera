@@ -7,7 +7,6 @@ import {
 } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { PrismaService } from '../prisma/prisma.service.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 
 /**
@@ -181,13 +180,29 @@ export class ProfilesService {
       throw new NotFoundException('Profile not found');
     }
 
-    const { accountType, ...profileData } = dto;
+    const { accountType, isPrivate, ...profileData } = dto;
 
-    // If accountType is provided, update the User model
-    if (accountType) {
+    // If accountType or isPrivate is provided, update the User and UserSettings models
+    if (accountType || isPrivate !== undefined) {
       await this.prisma.user.update({
         where: { id: userId },
-        data: { accountType: accountType as AccountType },
+        data: {
+          ...(accountType ? { accountType: accountType as AccountType } : {}),
+          ...(isPrivate !== undefined
+            ? {
+                settings: {
+                  upsert: {
+                    create: {
+                      privacyLevel: isPrivate ? Visibility.PRIVATE : Visibility.PUBLIC,
+                    },
+                    update: {
+                      privacyLevel: isPrivate ? Visibility.PRIVATE : Visibility.PUBLIC,
+                    },
+                  },
+                },
+              }
+            : {}),
+        },
       });
     }
 
