@@ -575,6 +575,7 @@
     "stepper": {
       "upload": "Upload",
       "edit": "Edit",
+      "caption": "Caption",
       "share": "Share"
     },
     "location": {
