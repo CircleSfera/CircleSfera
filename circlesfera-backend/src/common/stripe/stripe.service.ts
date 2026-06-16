@@ -100,7 +100,6 @@ export class StripeService implements OnModuleInit {
   async createExpressAccount(email: string): Promise<Stripe.Account> {
     return this.stripe.accounts.create({
       type: 'express',
-      country: 'US', // Adjust based on user or allow dynamic
       email: email,
       capabilities: {
         transfers: { requested: true },
