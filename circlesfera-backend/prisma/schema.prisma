@@ -361,6 +361,10 @@ model Story {
 
   notifications Notification[]
 
+  // Premium Content
+  isPremium   Boolean @default(false)
+  priceCents  Int     @default(0)
+
   @@index([userId, expiresAt])
   @@index([userId, createdAt])
   @@index([userId])

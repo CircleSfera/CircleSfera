@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsBoolean, IsNumber } from 'class-validator';
 
 export class CreateStoryDto {
   @IsString()
@@ -22,4 +22,12 @@ export class CreateStoryDto {
   @IsString()
   @IsOptional()
   audioId?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isPremium?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  priceCents?: number;
 }
