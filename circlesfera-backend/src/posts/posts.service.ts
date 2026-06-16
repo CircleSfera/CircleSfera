@@ -24,9 +24,7 @@ import {
   createPaginatedResult,
   type PaginationDto,
 } from '../common/dto/pagination.dto.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { CreatePostDto } from './dto/create-post.dto.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { UpdatePostDto } from './dto/update-post.dto.js';
 
 /**

@@ -19,15 +19,10 @@ import {
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { PaginationDto } from '../common/dto/pagination.dto.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { CreatePostDto } from './dto/create-post.dto.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { FindPostsQueryDto } from './dto/find-posts-query.dto.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { GetPostsDto } from './dto/get-posts.dto.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { UpdatePostDto } from './dto/update-post.dto.js';
 import { PostsService } from './posts.service.js';
 

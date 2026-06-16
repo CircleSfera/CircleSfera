@@ -133,39 +133,28 @@ describe('EmailService', () => {
       );
     });
 
-    it('should safely catch errors from the Brevo API in non-production mode', async () => {
-      mockConfigService.get.mockImplementation((key: string) => {
-        if (key === 'BREVO_API_KEY') return 'test_brevo_key';
-        if (key === 'NODE_ENV') return 'development';
-        return null;
-      });
-      const module = await Test.createTestingModule({
-        providers: [
-          EmailService,
-          { provide: ConfigService, useValue: mockConfigService },
-        ],
-      }).compile();
-      const devService = module.get<EmailService>(EmailService);
-
+    it('should safely catch errors from the Brevo API in any environment', async () => {
       mBrevoInstance.transactionalEmails.sendTransacEmail.mockRejectedValue(
         new Error('Brevo Down'),
       );
 
-      // Should completely swallow the error
+      // Email errors must never propagate to the caller, regardless of NODE_ENV.
+      // The service logs the error internally but the user flow is unaffected.
       await expect(
-        devService.sendVerificationEmail('error@example.com', 'asd'),
+        service.sendVerificationEmail('error@example.com', 'asd'),
       ).resolves.toBeUndefined();
     });
 
-    it('should throw errors from the Brevo API in production mode', async () => {
+    it('should safely catch errors from the Brevo API in production mode', async () => {
       mBrevoInstance.transactionalEmails.sendTransacEmail.mockRejectedValue(
         new Error('Brevo Down'),
       );
 
-      // Should throw the error
+      // In production, email errors are logged but never re-thrown.
+      // A Brevo failure must not turn a successful registration into a 500.
       await expect(
         service.sendVerificationEmail('error@example.com', 'asd'),
-      ).rejects.toThrow('Brevo Down');
+      ).resolves.toBeUndefined();
     });
   });
 });
