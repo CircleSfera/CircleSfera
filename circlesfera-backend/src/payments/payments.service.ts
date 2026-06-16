@@ -141,12 +141,22 @@ export class PaymentsService {
       where: { id: userId },
     });
 
-    if (!user?.stripeCustomerId) {
-      throw new NotFoundException('Stripe customer not found for this user');
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    let customerId = user.stripeCustomerId;
+    if (!customerId) {
+      const customer = await this.stripeService.createCustomer(user.email);
+      customerId = customer.id;
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { stripeCustomerId: customerId },
+      });
     }
 
     return this.stripeService.createPortalSession(
-      user.stripeCustomerId,
+      customerId,
       `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/edit`,
     );
   }
