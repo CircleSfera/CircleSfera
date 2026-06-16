@@ -6,7 +6,7 @@
 echo "🛡️ CircleSfera Security: Scanning for secrets..."
 
 # 1. Prevent .env files from being committed entirely
-STAGED_ENV_FILES=$(git diff --cached --name-only | grep -E '^\.env$|\.env\.')
+STAGED_ENV_FILES=$(git diff --cached --name-only | grep -E '^\.env$|\.env\.' || true)
 
 if [ -n "$STAGED_ENV_FILES" ]; then
   # .env.example is usually fine, but let's exclude it from the error if it's strictly .env.example
