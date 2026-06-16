@@ -41,7 +41,7 @@ export default function Admin() {
   }, []);
 
   return (
-    <div className="min-h-screen px-4 py-6 md:px-6 lg:px-8 max-w-[1600px] mx-auto">
+    <div className="min-h-screen bg-black px-4 py-6 md:px-6 lg:px-8 max-w-[1600px] mx-auto">
       {/* Header */}
       <header className="mb-6 flex items-end justify-between">
         <div>
