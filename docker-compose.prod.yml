@@ -22,6 +22,7 @@ services:
       - ./nginx/master.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      - uploads_data:/usr/share/nginx/html/uploads:ro
     depends_on:
       - landing
       - backend
@@ -53,6 +54,9 @@ services:
     <<: *default-logging
     image: redis:7-alpine
     container_name: CircleSfera-Redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
     restart: unless-stopped
     networks:
       - circlesfera-network
@@ -69,8 +73,10 @@ services:
       - DB_HOST=postgres
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      # DATABASE_URL hardcoded so Prisma works even if .env.production is missing on VPS
-      - DATABASE_URL=postgresql://CircleSfera:Amazonico1198@postgres:5432/CircleSfera?schema=public
+      # DATABASE_URL mapped via postgres credentials
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+    volumes:
+      - uploads_data:/app/circlesfera-backend/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -98,6 +104,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  uploads_data:
 
 networks:
   circlesfera-network:
