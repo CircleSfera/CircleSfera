@@ -50,96 +50,41 @@ export default memo(function UserAvatar({
   const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(alt)}&background=random&color=fff&bold=true`;
   const sanitizedSrc = sanitizeUrl(src);
 
-  return (
-    <div className={`relative inline-block rounded-full ${className}`}>
-      {onClick ? (
-        <button
-          type="button"
-          className={`
-            relative block
-            ${sizeClasses[size]}
-            cursor-pointer hover:scale-105 transition-transform duration-300
-            rounded-full bg-transparent border-none p-0 group
-          `}
-          onClick={onClick}
-          aria-label={`Ver perfil de ${alt}`}
-        >
-          {/* Animated Story Ring */}
-          {hasStory && (
-            <div className="absolute -inset-1 rounded-full p-[2px] bg-linear-to-tr from-brand-primary via-brand-secondary to-brand-accent animate-spin-slow opacity-90 group-hover:opacity-100 transition-opacity">
-              <div className="absolute inset-0 bg-black rounded-full" />
-            </div>
-          )}
-          <div
-            className={`relative w-full h-full rounded-full overflow-hidden bg-zinc-900 border-2 ${hasStory ? 'border-black' : 'border-white/5'} shadow-inner`}
-          >
-            <img
-              src={sanitizedSrc || defaultAvatar}
-              srcSet={
-                thumbnailUrl && standardUrl
-                  ? `${thumbnailUrl} 150w, ${standardUrl} 300w, ${sanitizedSrc} 600w`
-                  : undefined
-              }
-              sizes={
-                size === 'xs' || size === 'sm'
-                  ? '32px'
-                  : size === 'full'
-                    ? '128px'
-                    : '64px'
-              }
-              alt={alt}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              decoding="async"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = defaultAvatar;
-                (e.target as HTMLImageElement).srcset = '';
-              }}
-            />
-          </div>
-        </button>
-      ) : (
-        <div
-          className={`
-            relative block
-            ${sizeClasses[size]}
-          `}
-        >
-          {/* Animated Story Ring */}
-          {hasStory && (
-            <div className="absolute -inset-1 rounded-full p-[2px] bg-linear-to-tr from-brand-primary via-brand-secondary to-brand-accent animate-spin-slow opacity-90">
-              <div className="absolute inset-0 bg-black rounded-full" />
-            </div>
-          )}
-          <div
-            className={`relative w-full h-full rounded-full overflow-hidden bg-zinc-900 border-2 ${hasStory ? 'border-black' : 'border-white/5'} shadow-inner`}
-          >
-            <img
-              src={sanitizedSrc || defaultAvatar}
-              srcSet={
-                thumbnailUrl && standardUrl
-                  ? `${thumbnailUrl} 150w, ${standardUrl} 300w, ${sanitizedSrc} 600w`
-                  : undefined
-              }
-              sizes={
-                size === 'xs' || size === 'sm'
-                  ? '32px'
-                  : size === 'full'
-                    ? '128px'
-                    : '64px'
-              }
-              alt={alt}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              decoding="async"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = defaultAvatar;
-                (e.target as HTMLImageElement).srcset = '';
-              }}
-            />
-          </div>
+  const innerContent = (
+    <>
+      {/* Animated Story Ring */}
+      {hasStory && (
+        <div className="absolute -inset-1 rounded-full p-[2px] bg-linear-to-tr from-brand-primary via-brand-secondary to-brand-accent animate-spin-slow opacity-90 group-hover:opacity-100 transition-opacity">
+          <div className="absolute inset-0 bg-black rounded-full" />
         </div>
       )}
+      <div
+        className={`relative w-full h-full rounded-full overflow-hidden bg-zinc-900 border-2 ${hasStory ? 'border-black' : 'border-white/5'} shadow-inner`}
+      >
+        <img
+          src={sanitizedSrc || defaultAvatar}
+          srcSet={
+            thumbnailUrl && standardUrl
+              ? `${thumbnailUrl} 150w, ${standardUrl} 300w, ${sanitizedSrc} 600w`
+              : undefined
+          }
+          sizes={
+            size === 'xs' || size === 'sm'
+              ? '32px'
+              : size === 'full'
+                ? '128px'
+                : '64px'
+          }
+          alt={alt}
+          className="w-full h-full object-cover"
+          loading="lazy"
+          decoding="async"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = defaultAvatar;
+            (e.target as HTMLImageElement).srcset = '';
+          }}
+        />
+      </div>
 
       {isVerified && (
         <div
@@ -177,9 +122,29 @@ export default memo(function UserAvatar({
             ${statusSizeClasses[size]}
             bg-green-500
             border-2 border-[#1c1c1c] rounded-full
+            z-10
           `}
         />
       )}
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={`Ver perfil de ${alt}`}
+        className={`relative block ${sizeClasses[size]} rounded-full cursor-pointer hover:scale-105 transition-transform duration-300 group p-0 border-none bg-transparent ${className}`}
+      >
+        {innerContent}
+      </button>
+    );
+  }
+
+  return (
+    <div className={`relative block ${sizeClasses[size]} rounded-full ${className}`}>
+      {innerContent}
     </div>
   );
 });
