@@ -798,6 +798,13 @@
       "vip_desc": "Acceso exclusivo a círculos de otros creadores certificados y prioridad en el descubrimiento global."
     }
   },
+  "wallet": {
+    "send_gift": "Enviar Regalo",
+    "support_with_money": "Apoya a {{name}} con una propina",
+    "processing": "Procesando...",
+    "send_tip": "Enviar Propina",
+    "error_send_tip": "Error al enviar la propina"
+  },
   "monetization": {
     "available_balance": "Saldo Disponible",
     "amount_placeholder": "Cantidad...",
