@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { sanitizeUrl } from '../utils/apiUtils';
+import VerificationBadge, { type VerificationLevel } from './VerificationBadge';
 
 interface UserAvatarProps {
   src?: string | null;
@@ -11,7 +12,7 @@ interface UserAvatarProps {
   onClick?: () => void;
   hasStory?: boolean;
   isOnline?: boolean;
-  isVerified?: boolean;
+  verificationLevel?: VerificationLevel;
 }
 
 const sizeClasses: Record<NonNullable<UserAvatarProps['size']>, string> = {
@@ -45,7 +46,7 @@ export default memo(function UserAvatar({
   onClick,
   hasStory = false,
   isOnline,
-  isVerified,
+  verificationLevel,
 }: UserAvatarProps) {
   const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(alt)}&background=random&color=fff&bold=true`;
   const sanitizedSrc = sanitizeUrl(src);
@@ -86,32 +87,9 @@ export default memo(function UserAvatar({
         />
       </div>
 
-      {isVerified && (
-        <div
-          className={`
-            absolute top-0 right-0
-            ${statusSizeClasses[size]}
-            flex items-center justify-center
-            bg-linear-to-tr from-purple-500 to-pink-500
-            border border-white/20 rounded-full shadow-lg
-            z-10
-          `}
-          title="Verified Creator"
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="4"
-            className="w-[70%] h-[70%] text-white"
-          >
-            <path
-              d="M5 13l4 4L19 7"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+      {verificationLevel && verificationLevel !== 'BASIC' && (
+        <div className={`absolute top-0 right-0 ${statusSizeClasses[size]} bg-black rounded-full flex items-center justify-center p-[2px]`}>
+          <VerificationBadge level={verificationLevel} size={size === 'xs' || size === 'sm' ? 10 : 14} />
         </div>
       )}
 

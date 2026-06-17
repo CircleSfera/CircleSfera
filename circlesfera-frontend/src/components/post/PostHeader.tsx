@@ -27,7 +27,7 @@ export default function PostHeader({
           thumbnailUrl={post.user.profile.thumbnailUrl}
           standardUrl={post.user.profile.standardUrl}
           alt={post.user.profile.username}
-          isVerified={post.user.verificationLevel !== 'BASIC'}
+          verificationLevel={post.user.verificationLevel as any}
           className="relative w-8 h-8 rounded-full object-cover border border-white/20"
         />
       </Link>
