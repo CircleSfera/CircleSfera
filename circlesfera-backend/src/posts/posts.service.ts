@@ -485,8 +485,8 @@ export class PostsService {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
 
-    const profile = await this.prisma.profile.findUnique({
-      where: { username },
+    const profile = await this.prisma.profile.findFirst({
+      where: { username: { equals: username, mode: 'insensitive' } },
       include: { user: { include: { settings: true } } },
     });
 
@@ -570,8 +570,8 @@ export class PostsService {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
 
-    const profile = await this.prisma.profile.findUnique({
-      where: { username },
+    const profile = await this.prisma.profile.findFirst({
+      where: { username: { equals: username, mode: 'insensitive' } },
     });
 
     if (!profile) {

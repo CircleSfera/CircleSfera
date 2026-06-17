@@ -168,8 +168,8 @@ export class StoriesService {
    * @returns Array of active stories or empty array if user not found
    */
   async findByUser(username: string, currentUserId?: string) {
-    const profile = await this.prisma.profile.findUnique({
-      where: { username },
+    const profile = await this.prisma.profile.findFirst({
+      where: { username: { equals: username, mode: 'insensitive' } },
       include: { user: { include: { settings: true } } },
     });
 
