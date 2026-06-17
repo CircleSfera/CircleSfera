@@ -146,7 +146,7 @@ function App() {
             element={<Navigate to="/explore/tags/:tag" replace />}
           />
 
-          {/* Post detail - Instagram style: /p/:id */}
+          {/* Post detail - /p/:id */}
           <Route
             path="/p/:id"
             element={

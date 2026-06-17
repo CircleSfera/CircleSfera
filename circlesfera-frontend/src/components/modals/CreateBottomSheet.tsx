@@ -47,10 +47,10 @@ export default function CreateBottomSheet() {
 
   const menuItems = [
     {
-      id: 'reel',
+      id: 'frame',
       icon: Clapperboard,
-      label: t('create_menu.reel', 'Reel'),
-      action: () => handleNavigation('/frames/create'),
+      label: t('create_menu.frame', 'Frame'),
+      action: () => handleNavigation('/create?mode=frame'),
     },
     {
       id: 'edits',
@@ -69,7 +69,7 @@ export default function CreateBottomSheet() {
       id: 'story',
       icon: PlusCircle,
       label: t('create_menu.story', 'Historia'),
-      action: () => handleNavigation('/story/create'),
+      action: () => handleNavigation('/create?mode=story'),
     },
     {
       id: 'highlights',
@@ -81,13 +81,13 @@ export default function CreateBottomSheet() {
       id: 'live',
       icon: Radio,
       label: t('create_menu.live', 'Directo'),
-      action: () => handleNavigation('/live/create'),
+      action: () => handleNavigation('/create'),
     },
     {
       id: 'fundraiser',
       icon: Heart,
       label: t('create_menu.fundraiser', 'Recaudación de fondos'),
-      action: () => handleNavigation('/fundraiser/create'),
+      action: () => handleNavigation('/create'),
     },
   ];
 
@@ -121,7 +121,7 @@ export default function CreateBottomSheet() {
                 closeCreateMenu();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 z-101 bg-[#1C1C1E] rounded-t-[32px] md:max-w-md md:mx-auto md:bottom-4 md:rounded-[32px] overflow-hidden flex flex-col max-h-[85vh]"
+            className="fixed bottom-0 left-0 right-0 z-101 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-t-[32px] md:max-w-md md:mx-auto md:bottom-4 md:rounded-[32px] shadow-[0_0_40px_rgba(131,58,180,0.2)] overflow-hidden flex flex-col max-h-[85vh]"
           >
             {/* Drag Handle Area */}
             <div
