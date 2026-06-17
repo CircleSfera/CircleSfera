@@ -44,8 +44,8 @@ export default function PostMedia({ post }: PostMediaProps) {
       ? post.priceCents / 100
       : post.price || 0;
     return (
-      <div className="relative aspect-4/5 bg-black overflow-hidden group">
-        <Carousel media={post.media} />
+      <div className="relative aspect-square bg-black overflow-hidden group">
+        <Carousel media={post.media} aspectRatio="aspect-square" />
         {post.isLocked && (
           <PaywallOverlay
             price={displayPrice}

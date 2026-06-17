@@ -21,7 +21,7 @@ const MODE_CONFIG = {
     icon: Image,
     label: 'Post',
     accent: 'text-violet-400',
-    ratio: 'aspect-4/5',
+    ratio: 'aspect-square',
   },
   STORY: {
     icon: Clock,
@@ -105,7 +105,7 @@ export default function EditStep({
 
           {/* Aspect Ratio Badge */}
           <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 text-[10px] font-bold text-white/60 uppercase tracking-wider pointer-events-none">
-            {mode === 'POST' ? '4:5' : '9:16'}
+            {mode === 'POST' ? '1:1' : '9:16'}
           </div>
 
           {/* File count badge */}
