@@ -25,7 +25,7 @@ export default function PostActions({
 }: PostActionsProps) {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center justify-between mb-2">
+    <div className="flex items-center justify-between mb-3">
       <div className="flex items-center gap-4">
         <LikeButton postId={post.id} onToggle={onLikeToggle} />
         <Link
