@@ -193,10 +193,14 @@ export class ProfilesService {
                 settings: {
                   upsert: {
                     create: {
-                      privacyLevel: isPrivate ? Visibility.PRIVATE : Visibility.PUBLIC,
+                      privacyLevel: isPrivate
+                        ? Visibility.PRIVATE
+                        : Visibility.PUBLIC,
                     },
                     update: {
-                      privacyLevel: isPrivate ? Visibility.PRIVATE : Visibility.PUBLIC,
+                      privacyLevel: isPrivate
+                        ? Visibility.PRIVATE
+                        : Visibility.PUBLIC,
                     },
                   },
                 },

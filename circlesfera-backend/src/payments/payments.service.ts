@@ -194,7 +194,9 @@ export class PaymentsService {
         'code' in err &&
         (err as { code: string }).code === 'P2002'
       ) {
-        console.warn(`Duplicate webhook event detected (Idempotency check): ${event.id}. Skipping.`);
+        console.warn(
+          `Duplicate webhook event detected (Idempotency check): ${event.id}. Skipping.`,
+        );
         return;
       }
       throw err;
@@ -500,10 +502,10 @@ export class PaymentsService {
           let dateOfBirth: Date | null = null;
           let isActive = true;
           const verificationLevel = VerificationLevel.VERIFIED;
-          
+
           if (dob?.year && dob?.month && dob?.day) {
             dateOfBirth = new Date(dob.year, dob.month - 1, dob.day);
-            
+
             // Calculate age
             const today = new Date();
             let age = today.getFullYear() - dateOfBirth.getFullYear();
@@ -514,7 +516,9 @@ export class PaymentsService {
 
             if (age < 16) {
               isActive = false; // Suspend under 16 for GDPR compliance
-              console.log(`User ${userId} suspended due to being under 16 (Age: ${age})`);
+              console.log(
+                `User ${userId} suspended due to being under 16 (Age: ${age})`,
+              );
             } else if (age < 18) {
               console.log(`User ${userId} verified but under 18 (Age: ${age})`);
             }
@@ -544,9 +548,15 @@ export class PaymentsService {
     }
   }
 
-  async createIdentitySession(userId: string, returnUrl: string): Promise<{ url: string }> {
-    const session = await this.stripeService.createIdentityVerificationSession(userId, returnUrl);
-    
+  async createIdentitySession(
+    userId: string,
+    returnUrl: string,
+  ): Promise<{ url: string }> {
+    const session = await this.stripeService.createIdentityVerificationSession(
+      userId,
+      returnUrl,
+    );
+
     // Save the session ID to the user for tracking
     await this.prisma.user.update({
       where: { id: userId },

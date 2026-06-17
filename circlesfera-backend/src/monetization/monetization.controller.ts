@@ -77,7 +77,11 @@ export class MonetizationController {
   @UseGuards(IdentityVerifiedGuard)
   async unlockPost(
     @Req() req: AuthRequest,
-    @Body() body: { postId: string; returnUrl: string; idempotencyKey?: string },
+    @Body() body: {
+      postId: string;
+      returnUrl: string;
+      idempotencyKey?: string;
+    },
   ) {
     return this.monetizationService.createPostUnlockSession(
       req.user.userId,
