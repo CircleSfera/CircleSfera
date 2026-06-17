@@ -11,6 +11,7 @@ import {
   PlusSquare,
   Search,
   Settings,
+  Shield,
   Sparkles,
   User,
 } from 'lucide-react';
@@ -73,7 +74,12 @@ export default function Sidebar() {
     { icon: Home, label: t('nav.home'), to: '/', badge: 0 },
     { icon: Search, label: t('nav.search'), to: '/explore', badge: 0 },
     { icon: Clapperboard, label: t('nav.frames'), to: '/frames', badge: 0 },
-    { icon: PlusSquare, label: t('nav.create'), onClick: openCreateMenu, badge: 0 },
+    {
+      icon: PlusSquare,
+      label: t('nav.create'),
+      onClick: openCreateMenu,
+      badge: 0,
+    },
     {
       icon: MessageCircle,
       label: t('nav.messages'),
@@ -94,11 +100,22 @@ export default function Sidebar() {
       badge: 0,
       roles: ['CREATOR', 'BUSINESS'],
     },
+    {
+      icon: Shield,
+      label: 'Admin Panel',
+      to: '/admin',
+      badge: 0,
+      adminOnly: true,
+    },
     { icon: User, label: t('nav.profile'), to: profileUrl, badge: 0 },
-  ].filter(
-    (item) =>
-      !item.roles || item.roles.includes(profile?.accountType || 'PERSONAL'),
-  );
+  ].filter((item) => {
+    if ('adminOnly' in item && item.adminOnly) {
+      return profile?.user?.role === 'ADMIN';
+    }
+    return (
+      !item.roles || item.roles.includes(profile?.accountType || 'PERSONAL')
+    );
+  });
 
   return (
     <div className="hidden md:flex md:flex-col fixed left-0 top-0 h-screen w-20 xl:w-64 border-r border-white/5 bg-black/40 backdrop-blur-2xl z-50 transition-all duration-300">
@@ -128,7 +145,10 @@ export default function Sidebar() {
           const isActive =
             item.label === t('nav.profile')
               ? isProfileActive
-              : item.to ? (path === item.to || (item.to !== '/' && path.startsWith(item.to))) : false;
+              : item.to
+                ? path === item.to ||
+                  (item.to !== '/' && path.startsWith(item.to))
+                : false;
 
           const content = (
             <>

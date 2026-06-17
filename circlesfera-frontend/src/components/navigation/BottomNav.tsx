@@ -6,6 +6,7 @@ import {
   Home,
   PlusSquare,
   Search,
+  Shield,
   User,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -31,7 +32,12 @@ export default function BottomNav() {
   const navItems = [
     { icon: Home, label: t('nav.home'), to: '/', badge: 0 },
     { icon: Search, label: t('nav.search'), to: '/explore', badge: 0 },
-    { icon: PlusSquare, label: t('nav.create'), onClick: openCreateMenu, badge: 0 },
+    {
+      icon: PlusSquare,
+      label: t('nav.create'),
+      onClick: openCreateMenu,
+      badge: 0,
+    },
     { icon: Clapperboard, label: t('nav.frames'), to: '/frames', badge: 0 },
     {
       icon: BarChart3,
@@ -46,11 +52,22 @@ export default function BottomNav() {
       to: '/activity',
       badge: unreadCount,
     },
+    {
+      icon: Shield,
+      label: 'Admin',
+      to: '/admin',
+      badge: 0,
+      adminOnly: true,
+    },
     { icon: User, label: t('nav.profile'), to: profileUrl, badge: 0 },
-  ].filter(
-    (item) =>
-      !item.roles || item.roles.includes(profile?.accountType || 'PERSONAL'),
-  );
+  ].filter((item) => {
+    if ('adminOnly' in item && item.adminOnly) {
+      return profile?.user?.role === 'ADMIN';
+    }
+    return (
+      !item.roles || item.roles.includes(profile?.accountType || 'PERSONAL')
+    );
+  });
 
   return (
     <nav
@@ -64,7 +81,10 @@ export default function BottomNav() {
           const isActive =
             item.label === t('nav.profile')
               ? isProfileActive
-              : item.to ? (path === item.to || (item.to !== '/' && path.startsWith(item.to))) : false;
+              : item.to
+                ? path === item.to ||
+                  (item.to !== '/' && path.startsWith(item.to))
+                : false;
 
           const content = (
             <motion.div
