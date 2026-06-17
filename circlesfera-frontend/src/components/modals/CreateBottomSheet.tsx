@@ -57,7 +57,7 @@ export default function CreateBottomSheet() {
       icon: Wand2,
       label: t('create_menu.edits', 'Edits'),
       badge: t('create_menu.new', 'Nuevo'),
-      action: () => handleNavigation('/create?tab=edit'),
+      action: () => handleNavigation('/edits'),
     },
     {
       id: 'post',

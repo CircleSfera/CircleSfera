@@ -16,6 +16,7 @@ const Creator = lazy(() => import('./pages/Creator'));
 
 import CommunityGuidelines from './pages/CommunityGuidelines';
 import Explore from './pages/Explore';
+import EditsStudio from './pages/EditsStudio';
 import ExploreLanding from './pages/ExploreLanding';
 import ForgotPassword from './pages/ForgotPassword';
 import Frames from './pages/Frames';
@@ -135,6 +136,16 @@ function App() {
             element={
               <AuthGuard>
                 <CreatePostModal />
+              </AuthGuard>
+            }
+          />
+
+          {/* Edits Studio */}
+          <Route
+            path="/edits"
+            element={
+              <AuthGuard>
+                <EditsStudio />
               </AuthGuard>
             }
           />
