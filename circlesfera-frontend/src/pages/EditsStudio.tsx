@@ -1,29 +1,117 @@
-import { Download, ImagePlus, PlusSquare } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import { Download, ImagePlus, PlusSquare, Clock, Trash2 } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 import PhotoEditor, { type CropData } from '../components/PhotoEditor';
 import { useMediaProcessing } from '../hooks/useMediaProcessing';
+import { useMediaUpload } from '../hooks/useMediaUpload';
 import { useUIStore } from '../stores/uiStore';
+import { editsService, type EditProject, type EditProjectState } from '../services/edits.service';
 import { exportEditedImage } from '../utils/imageExport';
 
 export default function EditsStudio() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [editedFile, setEditedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [projects, setProjects] = useState<EditProject[]>([]);
+  const [activeProject, setActiveProject] = useState<EditProject | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { processFiles } = useMediaProcessing();
+  const { uploadFiles } = useMediaUpload();
   const navigate = useNavigate();
   const openCreateMenu = useUIStore((state) => state.openCreateMenu);
+
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  const loadProjects = async () => {
+    try {
+      const data = await editsService.getProjects();
+      setProjects(data);
+    } catch (err) {
+      console.error('Failed to load drafts', err);
+    }
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const files = Array.from(e.target.files);
       const processedFiles = await processFiles(files);
-      setSelectedFile(processedFiles[0]);
-      setEditedFile(null); // Reset
+      const fileToEdit = processedFiles[0];
+      
+      // Upload immediately to get a URL for the draft
+      try {
+        setIsProcessing(true);
+        const uploadedMedia = await uploadFiles([{ file: fileToEdit, type: 'image' }], {});
+        if (uploadedMedia.length > 0) {
+          const newProject = await editsService.createProject(
+            uploadedMedia[0].url,
+            uploadedMedia[0].type,
+            { filter: '', adjustments: {} } // empty initial state
+          );
+          setActiveProject(newProject);
+          setSelectedFile(fileToEdit);
+          setEditedFile(null);
+          loadProjects(); // refresh gallery
+        }
+      } catch (err) {
+        console.error('Failed to upload draft', err);
+        alert('Error creating draft project.');
+      } finally {
+        setIsProcessing(false);
+      }
     }
   };
+
+  const openProject = async (project: EditProject) => {
+    setIsProcessing(true);
+    try {
+      const response = await fetch(project.mediaUrl);
+      const blob = await response.blob();
+      const file = new File([blob], 'draft.jpg', { type: blob.type });
+      setActiveProject(project);
+      setSelectedFile(file);
+      setEditedFile(null);
+    } catch (err) {
+      console.error('Failed to load project media', err);
+      alert('Error loading project.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const deleteProject = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    try {
+      await editsService.deleteProject(id);
+      loadProjects();
+    } catch (err) {
+      console.error('Failed to delete draft', err);
+    }
+  };
+
+  const handleStateChange = (state: EditProjectState) => {
+    if (activeProject) {
+      setActiveProject((prev) => prev ? { ...prev, state } : prev);
+    }
+  };
+
+  // Debounced auto-save
+  useEffect(() => {
+    if (!activeProject || !activeProject.state) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        await editsService.updateProjectState(activeProject.id, activeProject.state);
+      } catch (err) {
+        console.error('Auto-save failed', err);
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [activeProject?.state]);
 
   const handleSaveEdit = async (file: File, filterString: string, cropData?: CropData) => {
     setIsProcessing(true);
@@ -31,6 +119,7 @@ export default function EditsStudio() {
       const finalImage = await exportEditedImage(file, filterString, cropData);
       setEditedFile(finalImage);
       setSelectedFile(null); // Close editor view
+      loadProjects(); // Refresh the preview image if needed
     } catch (err) {
       console.error('Failed to export image:', err);
       alert('Failed to export image.');
@@ -75,8 +164,14 @@ export default function EditsStudio() {
         )}
         <PhotoEditor
           image={selectedFile}
+          initialState={activeProject?.state}
+          onStateChange={handleStateChange}
           onSave={handleSaveEdit}
-          onCancel={() => setSelectedFile(null)}
+          onCancel={() => {
+            setSelectedFile(null);
+            setActiveProject(null);
+            loadProjects(); // refresh latest state
+          }}
         />
       </div>
     );
@@ -97,20 +192,57 @@ export default function EditsStudio() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Workspace Area */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 lg:col-span-2">
           {!editedFile ? (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="aspect-4/5 md:aspect-square w-full bg-zinc-900/50 border-2 border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-zinc-800/50 hover:border-white/20 transition-all group"
-            >
-              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <ImagePlus size={32} className="text-white/40 group-hover:text-white/80" />
-              </div>
-              <p className="text-white/60 font-medium">Sube una foto para editar</p>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="aspect-video w-full bg-zinc-900/50 border-2 border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-zinc-800/50 hover:border-white/20 transition-all group"
+              >
+                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <ImagePlus size={32} className="text-white/40 group-hover:text-white/80" />
+                </div>
+                <p className="text-white/60 font-medium">Sube una foto nueva</p>
+              </button>
+
+              {/* Drafts Gallery */}
+              {projects.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Clock size={18} className="text-white/60" />
+                    <h3 className="text-white font-bold text-lg">Tus Borradores</h3>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {projects.map((project) => (
+                      <div
+                        key={project.id}
+                        onClick={() => openProject(project)}
+                        className="group relative aspect-4/5 bg-zinc-900 rounded-2xl overflow-hidden cursor-pointer hover:ring-2 ring-brand-primary transition-all"
+                      >
+                        <img
+                          src={project.mediaUrl}
+                          alt="Draft"
+                          className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                          <span className="text-xs font-bold text-white uppercase">Continuar Edición</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => deleteProject(e, project.id)}
+                          className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-red-500/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <div className="aspect-4/5 md:aspect-square bg-zinc-900 rounded-3xl overflow-hidden relative group">
               <img

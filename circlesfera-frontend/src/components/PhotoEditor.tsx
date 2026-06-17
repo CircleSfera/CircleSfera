@@ -77,6 +77,8 @@ interface PhotoEditorProps {
   image: File;
   onSave: (file: File, filter: string, cropData?: CropData) => void;
   onCancel: () => void;
+  onStateChange?: (state: any) => void;
+  initialState?: any;
 }
 
 const AdjustmentSlider = ({
@@ -133,20 +135,27 @@ export default function PhotoEditor({
   image,
   onSave,
   onCancel,
+  onStateChange,
+  initialState,
 }: PhotoEditorProps) {
   const [activeTab, setActiveTab] = useState<'FILTERS' | 'ADJUST' | 'CROP'>('FILTERS');
-  const [selectedFilter, setSelectedFilter] = useState(FILTERS[0]);
-  const [adjustments, setAdjustments] =
-    useState<Adjustments>(DEFAULT_ADJUSTMENTS);
-  const [activeAdjustment, setActiveAdjustment] =
-    useState<keyof Adjustments>('brightness');
+  
+  const [selectedFilter, setSelectedFilter] = useState(
+    initialState?.filter ? FILTERS.find(f => f.class === initialState.filter) || FILTERS[0] : FILTERS[0]
+  );
+  
+  const [adjustments, setAdjustments] = useState<Adjustments>(
+    initialState?.adjustments || DEFAULT_ADJUSTMENTS
+  );
+  
+  const [activeAdjustment, setActiveAdjustment] = useState<keyof Adjustments>('brightness');
 
   // Crop state
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [crop, setCrop] = useState(initialState?.cropData ? { x: initialState.cropData.x, y: initialState.cropData.y } : { x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [rotation, setRotation] = useState(0);
-  const [aspect, setAspect] = useState<number | undefined>(undefined); // Freeform
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropData | null>(null);
+  const [rotation, setRotation] = useState(initialState?.cropData?.rotation || 0);
+  const [aspect, setAspect] = useState<number | undefined>(undefined);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropData | null>(initialState?.cropData || null);
 
   const onCropComplete = useCallback((_croppedArea: any, croppedAreaPixels: any) => {
     setCroppedAreaPixels({ ...croppedAreaPixels, rotation });
@@ -155,6 +164,17 @@ export default function PhotoEditor({
   const [previewUrl] = useState(URL.createObjectURL(image));
   const [thumbnailUrl, setThumbnailUrl] = useState<string>(previewUrl);
   const isVideo = image.type.startsWith('video');
+
+  // Auto-save effect
+  useEffect(() => {
+    if (onStateChange) {
+      onStateChange({
+        filter: selectedFilter.class,
+        adjustments,
+        cropData: croppedAreaPixels,
+      });
+    }
+  }, [selectedFilter, adjustments, croppedAreaPixels, onStateChange]);
 
   const isAdjusted =
     JSON.stringify(adjustments) !== JSON.stringify(DEFAULT_ADJUSTMENTS);

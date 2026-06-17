@@ -51,6 +51,8 @@ import { UsersModule } from './users/users.module.js';
 import { WebrtcModule } from './webrtc/webrtc.module.js';
 import { WhitelistModule } from './whitelist/whitelist.module.js';
 
+import { EditsModule } from './edits/edits.module.js';
+
 @Module({
   imports: [
     SentryModule.forRoot(),
@@ -150,6 +152,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     SeoModule,
     FeedModule,
     WebrtcModule,
+    EditsModule,
   ],
   controllers: [AppController, CsrfController],
   providers: [
