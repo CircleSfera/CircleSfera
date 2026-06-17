@@ -16,7 +16,7 @@ COPY biome.json ./biome.json
 WORKDIR /app/circlesfera-frontend
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy frontend source code
 COPY circlesfera-frontend .
