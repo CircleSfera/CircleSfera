@@ -183,4 +183,39 @@ export class AIService {
       return 'An image shared on CircleSfera.';
     }
   }
+
+  /**
+   * Generate a morning briefing summary for Slack based on daily metrics.
+   * @param metrics - Raw metrics from the database
+   */
+  async generateMorningBriefing(metrics: any): Promise<string> {
+    if (!this.openai) {
+      return `👋 ¡Buenos días! Las métricas de ayer:\n- Nuevos usuarios: ${metrics.newUsers}\n- Posts creados: ${metrics.newPosts}\n- Reportes pendientes: ${metrics.pendingReports}\n- Nuevas suscripciones: ${metrics.newSubscriptions}\n\n(Modo Mock: OpenAI no configurado)`;
+    }
+
+    try {
+      this.logger.log('Generating AI Morning Briefing...');
+      const prompt = `Eres un asistente virtual de operaciones (SOC/NOC) para la red social CircleSfera.
+Escribe un breve y amigable mensaje de "Buenos días" resumiendo el rendimiento de la plataforma en las últimas 24 horas para el CEO. Usa emojis. No uses saludos genéricos muy largos.
+
+Métricas crudas:
+- Nuevos usuarios registrados: ${metrics.newUsers}
+- Posts creados: ${metrics.newPosts}
+- Reportes de moderación pendientes: ${metrics.pendingReports}
+- Nuevas suscripciones premium: ${metrics.newSubscriptions}
+
+El mensaje debe tener menos de 100 palabras.`;
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 150,
+      });
+
+      return response.choices[0].message.content || 'Resumen no disponible.';
+    } catch (error) {
+      this.logger.error('Failed to generate morning briefing', error);
+      return `📊 Métricas crudas (Error AI):\nUsuarios: ${metrics.newUsers}\nPosts: ${metrics.newPosts}\nReportes: ${metrics.pendingReports}\nSuscripciones: ${metrics.newSubscriptions}`;
+    }
+  }
 }
