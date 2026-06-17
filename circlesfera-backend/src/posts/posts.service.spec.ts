@@ -16,6 +16,7 @@ describe('PostsService', () => {
     $transaction: vi.fn(),
     post: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       count: vi.fn(),
       create: vi.fn(),
@@ -24,6 +25,7 @@ describe('PostsService', () => {
     },
     profile: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
     },
     follow: {
@@ -236,7 +238,7 @@ describe('PostsService', () => {
 
   describe('findByUser', () => {
     it('should return posts for a specific user', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({
+      mockPrismaService.profile.findFirst.mockResolvedValue({
         userId: 'user-1',
         user: { settings: { privacyLevel: 'PUBLIC' } },
       });

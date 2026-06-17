@@ -11,12 +11,15 @@ describe('FollowsService', () => {
   const mockPrismaService = {
     user: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
     profile: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
     follow: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
       deleteMany: vi.fn(),
@@ -25,6 +28,7 @@ describe('FollowsService', () => {
     },
     block: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
       findMany: vi.fn(),
@@ -54,7 +58,7 @@ describe('FollowsService', () => {
     const followingId = 'user-2';
 
     it('should follow a public user successfully', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({
+      mockPrismaService.profile.findFirst.mockResolvedValue({
         userId: followingId,
         isPrivate: false,
       });
@@ -76,7 +80,7 @@ describe('FollowsService', () => {
     });
 
     it('should create a pending request for private users', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({
+      mockPrismaService.profile.findFirst.mockResolvedValue({
         userId: followingId,
         isPrivate: true,
       });
@@ -97,7 +101,7 @@ describe('FollowsService', () => {
     });
 
     it('should unfollow an already followed user', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({
+      mockPrismaService.profile.findFirst.mockResolvedValue({
         userId: followingId,
       });
       mockPrismaService.block.findUnique.mockResolvedValue(null);
@@ -110,7 +114,7 @@ describe('FollowsService', () => {
     });
 
     it('should throw BadRequestException for self-follow', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({
+      mockPrismaService.profile.findFirst.mockResolvedValue({
         userId: followerId,
       });
 
@@ -120,7 +124,7 @@ describe('FollowsService', () => {
     });
 
     it('should throw NotFoundException if user is blocked', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({
+      mockPrismaService.profile.findFirst.mockResolvedValue({
         userId: followingId,
       });
       mockPrismaService.block.findUnique.mockResolvedValue({ id: 'block-1' });
@@ -133,7 +137,7 @@ describe('FollowsService', () => {
 
   describe('checkFollow', () => {
     it('should return following: true if accepted', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({ userId: '2' });
+      mockPrismaService.profile.findFirst.mockResolvedValue({ userId: '2' });
       mockPrismaService.block.findUnique.mockResolvedValue(null);
       mockPrismaService.follow.findUnique.mockResolvedValue({
         status: 'ACCEPTED',
@@ -145,7 +149,7 @@ describe('FollowsService', () => {
     });
 
     it('should return following: false if pending', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({ userId: '2' });
+      mockPrismaService.profile.findFirst.mockResolvedValue({ userId: '2' });
       mockPrismaService.block.findUnique.mockResolvedValue(null);
       mockPrismaService.follow.findUnique.mockResolvedValue({
         status: 'PENDING',
@@ -157,7 +161,7 @@ describe('FollowsService', () => {
     });
 
     it('should return status BLOCKED if blocked', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({ userId: '2' });
+      mockPrismaService.profile.findFirst.mockResolvedValue({ userId: '2' });
       mockPrismaService.block.findUnique.mockResolvedValue({ id: 'b1' });
 
       const result = await service.checkFollow('user2', '1');
@@ -167,7 +171,7 @@ describe('FollowsService', () => {
 
   describe('getLists', () => {
     it('should return followers array', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({ userId: '2' });
+      mockPrismaService.profile.findFirst.mockResolvedValue({ userId: '2' });
       mockPrismaService.follow.findMany.mockResolvedValue([
         { follower: { id: '1', profile: {} } },
       ]);
@@ -178,7 +182,7 @@ describe('FollowsService', () => {
     });
 
     it('should return following array', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({ userId: '1' });
+      mockPrismaService.profile.findFirst.mockResolvedValue({ userId: '1' });
       mockPrismaService.follow.findMany.mockResolvedValue([
         { following: { id: '2', profile: {} } },
       ]);
@@ -191,7 +195,7 @@ describe('FollowsService', () => {
 
   describe('block management', () => {
     it('should block user and remove existing follows', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({
+      mockPrismaService.profile.findFirst.mockResolvedValue({
         userId: 'blocked-id',
       });
 
@@ -202,14 +206,14 @@ describe('FollowsService', () => {
     });
 
     it('should throw BadRequestException when blocking self', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({ userId: '1' });
+      mockPrismaService.profile.findFirst.mockResolvedValue({ userId: '1' });
       await expect(service.blockUser('1', 'self')).rejects.toThrow(
         BadRequestException,
       );
     });
 
     it('should unblock user successfully', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({ userId: '2' });
+      mockPrismaService.profile.findFirst.mockResolvedValue({ userId: '2' });
       mockPrismaService.block.delete.mockResolvedValue({ id: 'b1' });
 
       const result = await service.unblockUser('1', 'user2');
@@ -241,7 +245,7 @@ describe('FollowsService', () => {
 
     it('should accept a pending request', async () => {
       const requesterUsername = 'requester';
-      mockPrismaService.profile.findUnique.mockResolvedValue({
+      mockPrismaService.profile.findFirst.mockResolvedValue({
         userId: 'user-req',
       });
       mockPrismaService.follow.findUnique.mockResolvedValue({
@@ -264,7 +268,7 @@ describe('FollowsService', () => {
     });
 
     it('should reject follow request', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({ userId: '2' });
+      mockPrismaService.profile.findFirst.mockResolvedValue({ userId: '2' });
       mockPrismaService.follow.findUnique.mockResolvedValue({
         id: 'f1',
         status: 'PENDING',
@@ -276,7 +280,7 @@ describe('FollowsService', () => {
     });
 
     it('should throw if no pending request to accept', async () => {
-      mockPrismaService.profile.findUnique.mockResolvedValue({ userId: '2' });
+      mockPrismaService.profile.findFirst.mockResolvedValue({ userId: '2' });
       mockPrismaService.follow.findUnique.mockResolvedValue(null);
 
       await expect(service.acceptFollowRequest('1', 'user2')).rejects.toThrow(

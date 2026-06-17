@@ -19,14 +19,17 @@ describe('AuthService', () => {
   const mockPrismaService = {
     user: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
     },
     profile: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
     refreshToken: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
       deleteMany: vi.fn(),
@@ -79,7 +82,7 @@ describe('AuthService', () => {
 
     it('should hash password with argon2 and create user', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
-      mockPrismaService.profile.findUnique.mockResolvedValue(null);
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
       mockPrismaService.user.create.mockResolvedValue({
         id: '1',
         email: dto.email,
