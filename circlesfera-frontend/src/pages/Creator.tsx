@@ -48,7 +48,7 @@ export default function Creator() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black px-4 py-6 md:px-6 lg:px-8 max-w-6xl mx-auto">
+    <div className="px-4 py-6 md:px-6 lg:px-8 max-w-6xl mx-auto">
       {/* 1. Header (Matching Admin) */}
       <header className="mb-8 flex items-end justify-between">
         <div>
