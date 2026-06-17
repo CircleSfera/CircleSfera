@@ -566,7 +566,7 @@ export default function Settings() {
           </motion.button>
         </div>
 
-        <div className="glass-panel rounded-3xl overflow-hidden flex flex-col md:flex-row min-h-0 border-white/5 shadow-2xl relative">
+        <div className="glass-panel rounded-3xl overflow-hidden flex flex-col md:flex-row min-h-[600px] md:min-h-[750px] border-white/5 shadow-2xl relative">
           {/* Mobile Tabs / Desktop Sidebar */}
           <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/5 bg-black/40 md:bg-white/1 shrink-0 sticky top-0 md:top-0 z-20 md:z-10 backdrop-blur-2xl md:backdrop-blur-none">
             <div className="flex flex-row md:flex-col gap-2 md:gap-1.5 overflow-x-auto md:overflow-x-visible no-scrollbar p-3 md:p-4 sticky md:top-24 items-center md:items-stretch">

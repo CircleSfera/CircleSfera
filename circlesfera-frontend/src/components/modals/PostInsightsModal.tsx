@@ -15,12 +15,12 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
 import { creatorApi } from '../../services/creator.service';
+import SafeResponsiveContainer from '../common/SafeResponsiveContainer';
 
 interface Props {
   postId: string;
@@ -159,7 +159,7 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
 
                   <div className="h-64 w-full bg-black/40 rounded-4xl border border-white/5 p-6">
                     {insights.chart.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
+                      <SafeResponsiveContainer width="100%" height="100%">
                         <AreaChart
                           data={insights.chart}
                           margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
@@ -228,7 +228,7 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                             animationDuration={1500}
                           />
                         </AreaChart>
-                      </ResponsiveContainer>
+                      </SafeResponsiveContainer>
                     ) : (
                       <div className="h-full flex flex-col items-center justify-center text-zinc-600 gap-2">
                         <BarChart3 size={32} strokeWidth={1.5} />

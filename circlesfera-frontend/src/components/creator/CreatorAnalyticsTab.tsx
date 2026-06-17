@@ -4,13 +4,13 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
 import type { CreatorChartDay } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
+import SafeResponsiveContainer from '../common/SafeResponsiveContainer';
 
 export default function CreatorAnalyticsTab() {
   const { t } = useTranslation();
@@ -40,7 +40,7 @@ export default function CreatorAnalyticsTab() {
 
         <div className="h-[300px] w-full">
           {chartData && chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
+            <SafeResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
@@ -121,7 +121,7 @@ export default function CreatorAnalyticsTab() {
                   fill="url(#colorFollowers)"
                 />
               </AreaChart>
-            </ResponsiveContainer>
+            </SafeResponsiveContainer>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-zinc-500">
               <p className="text-sm font-bold">
