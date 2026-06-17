@@ -1,4 +1,15 @@
-import './instrument.js';
+import * as Sentry from '@sentry/nestjs';
+import { nodeProfilingIntegration } from '@sentry/profiling-node';
+
+const isProd = process.env.NODE_ENV === 'production';
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  integrations: [nodeProfilingIntegration()],
+  environment: process.env.NODE_ENV || 'development',
+  tracesSampleRate: isProd ? 0.1 : 1.0,
+  profilesSampleRate: isProd ? 0.1 : 1.0,
+});
 import { ConfigService } from '@nestjs/config';
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
