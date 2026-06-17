@@ -137,7 +137,7 @@ export default function Notifications() {
   return (
     <div className="pb-20 min-h-screen md:max-w-2xl md:mx-auto">
       <SEO title={t('notifications.seo_title')} />
-      <div className="sticky top-0 z-50 bg-black/80 backdrop-blur-xl p-4 pt-[calc(1rem+env(safe-area-inset-top))]">
+      <div className="sticky top-0 z-50 bg-transparent backdrop-blur-xl p-4 pt-[calc(1rem+env(safe-area-inset-top))]">
         <h1 className="text-xl font-bold tracking-tight text-white">
           {t('notifications.title', 'Actividad')}
         </h1>

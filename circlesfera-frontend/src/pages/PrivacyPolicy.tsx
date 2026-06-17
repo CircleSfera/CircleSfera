@@ -70,7 +70,7 @@ export default function PrivacyPolicy() {
 
       {/* Guest Navigation (Only if not logged in) */}
       {!isAuthenticated && (
-        <nav className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5 px-6 py-3 flex justify-between items-center backdrop-blur-xl bg-black/20">
+        <nav className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5 px-6 py-3 flex justify-between items-center backdrop-blur-xl bg-transparent">
           <Link to="/" className="flex items-center gap-2.5">
             <img
               src={logoSrc}
