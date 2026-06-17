@@ -121,18 +121,18 @@ export default function CreateBottomSheet() {
                 closeCreateMenu();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 z-101 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-t-[32px] md:max-w-md md:mx-auto md:bottom-4 md:rounded-[32px] shadow-[0_0_40px_rgba(131,58,180,0.2)] overflow-hidden flex flex-col max-h-[85vh]"
+            className="fixed bottom-0 left-0 right-0 z-101 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-t-[32px] md:top-0 md:bottom-0 md:h-fit md:m-auto md:max-w-md md:rounded-[32px] shadow-[0_0_40px_rgba(131,58,180,0.2)] overflow-hidden flex flex-col max-h-[85vh]"
           >
             {/* Drag Handle Area */}
             <div
-              className="w-full flex justify-center pt-4 pb-2 cursor-grab active:cursor-grabbing touch-none"
+              className="w-full flex md:hidden justify-center pt-4 pb-2 cursor-grab active:cursor-grabbing touch-none"
               onPointerDown={(e) => dragControls.start(e)}
             >
               <div className="w-10 h-1.5 bg-white/20 rounded-full" />
             </div>
 
             {/* Header */}
-            <div className="text-center pb-4 border-b border-white/10">
+            <div className="text-center pb-4 md:pt-4 border-b border-white/10">
               <h2 className="text-white font-bold text-lg">
                 {t('create_menu.title', 'Crear')}
               </h2>
