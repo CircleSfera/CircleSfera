@@ -27,7 +27,6 @@ export default function PostHeader({
           thumbnailUrl={post.user.profile.thumbnailUrl}
           standardUrl={post.user.profile.standardUrl}
           alt={post.user.profile.username}
-          verificationLevel={post.user.verificationLevel as any}
           className="relative w-8 h-8 rounded-full object-cover border border-white/20"
         />
       </Link>
@@ -42,7 +41,7 @@ export default function PostHeader({
           />
         </div>
         <div className="flex items-center gap-2">
-          <div className="text-[10px] uppercase tracking-wider font-medium text-gray-500">
+          <div className="text-[10px] tracking-wider font-medium text-gray-500">
             @{post.user.profile.username}
           </div>
           {post.isPromoted && (
