@@ -87,7 +87,7 @@ export default function StoryList() {
                       alt="Your story"
                       size="lg"
                       hasStory={false}
-                      isVerified={profile?.verificationLevel !== 'BASIC'}
+                      verificationLevel={profile?.verificationLevel as any}
                     />
                   </div>
                 </div>
@@ -115,7 +115,7 @@ export default function StoryList() {
                         standardUrl={profile.standardUrl}
                         alt="Your story"
                         size="lg"
-                        isVerified={profile?.verificationLevel !== 'BASIC'}
+                        verificationLevel={profile?.verificationLevel as any}
                         className="border border-white/10"
                       />
                       <div className="absolute bottom-0 right-0">
@@ -179,7 +179,7 @@ export default function StoryList() {
                       alt={group.user.profile.username}
                       size="lg"
                       hasStory={false}
-                      isVerified={group.user.verificationLevel !== 'BASIC'}
+                      verificationLevel={group.user.verificationLevel as any}
                     />
                   </div>
                 </div>
