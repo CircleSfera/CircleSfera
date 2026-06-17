@@ -37,7 +37,13 @@ export default function StoryList() {
       }
     });
 
-    return Array.from(groups.values());
+    const result = Array.from(groups.values());
+    // Reverse stories within each group to show chronologically (oldest first)
+    result.forEach((group) => {
+      group.stories.reverse();
+    });
+
+    return result;
   }, [storiesResponse]);
 
   // Flatten all stories for the viewer
