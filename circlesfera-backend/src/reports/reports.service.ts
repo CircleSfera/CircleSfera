@@ -64,6 +64,7 @@ export class ReportsService {
     // Send Slack alert in the background
     this.slackService
       .sendModerationAlert({
+        reportId: report.id,
         reporterId,
         targetType: dto.targetType,
         targetId: dto.targetId,
