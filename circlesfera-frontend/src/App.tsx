@@ -7,6 +7,7 @@ import ChatWindow from './components/chat/ChatWindow';
 import SelectChat from './components/chat/SelectChat';
 import ScrollToTop from './components/common/ScrollToTop';
 import CreateBottomSheet from './components/modals/CreateBottomSheet';
+import CreatePostModal from './components/CreatePostModal';
 import { GlobalCallContainer } from './components/navigation/GlobalCallContainer';
 import LayoutWrapper from './layouts/LayoutWrapper';
 
@@ -128,8 +129,15 @@ function App() {
             }
           />
 
-          {/* Create post - opens modal, we keep as route for now */}
-          <Route path="/create" element={<Navigate to="/" replace />} />
+          {/* Create post - opens modal */}
+          <Route
+            path="/create"
+            element={
+              <AuthGuard>
+                <CreatePostModal />
+              </AuthGuard>
+            }
+          />
 
           {/* Tags */}
           <Route
