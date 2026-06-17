@@ -2,7 +2,7 @@ import { Download, ImagePlus, PlusSquare } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SEO from '../components/common/SEO';
-import PhotoEditor from '../components/PhotoEditor';
+import PhotoEditor, { type CropData } from '../components/PhotoEditor';
 import { useMediaProcessing } from '../hooks/useMediaProcessing';
 import { useUIStore } from '../stores/uiStore';
 import { exportEditedImage } from '../utils/imageExport';
@@ -25,10 +25,10 @@ export default function EditsStudio() {
     }
   };
 
-  const handleSaveEdit = async (file: File, filterString: string) => {
+  const handleSaveEdit = async (file: File, filterString: string, cropData?: CropData) => {
     setIsProcessing(true);
     try {
-      const finalImage = await exportEditedImage(file, filterString);
+      const finalImage = await exportEditedImage(file, filterString, cropData);
       setEditedFile(finalImage);
       setSelectedFile(null); // Close editor view
     } catch (err) {

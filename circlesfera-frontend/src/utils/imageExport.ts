@@ -1,6 +1,9 @@
+import type { CropData } from '../components/PhotoEditor';
+
 export async function exportEditedImage(
   file: File,
   filterString: string,
+  cropData?: CropData,
 ): Promise<File> {
   return new Promise((resolve, reject) => {
     // 1. Parse the filter string
@@ -44,22 +47,61 @@ export async function exportEditedImage(
     // 3. Render onto canvas
     const img = new Image();
     img.onload = () => {
+      // First canvas: handle rotation and filtering
       const canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-
       const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        return resolve(file); // fallback
-      }
+      if (!ctx) return resolve(file);
+
+      // Calculate bounding box for rotated image
+      const rotation = cropData?.rotation || 0;
+      const rotRad = (rotation * Math.PI) / 180;
+      
+      const bBoxWidth =
+        Math.abs(Math.cos(rotRad) * img.naturalWidth) +
+        Math.abs(Math.sin(rotRad) * img.naturalHeight);
+      const bBoxHeight =
+        Math.abs(Math.sin(rotRad) * img.naturalWidth) +
+        Math.abs(Math.cos(rotRad) * img.naturalHeight);
+
+      canvas.width = bBoxWidth;
+      canvas.height = bBoxHeight;
 
       if (finalFilter) {
         ctx.filter = finalFilter;
       }
 
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      ctx.translate(bBoxWidth / 2, bBoxHeight / 2);
+      ctx.rotate(rotRad);
+      ctx.translate(-img.naturalWidth / 2, -img.naturalHeight / 2);
 
-      canvas.toBlob(
+      ctx.drawImage(img, 0, 0);
+
+      // Second canvas: handle crop
+      const finalCanvas = document.createElement('canvas');
+      const finalCtx = finalCanvas.getContext('2d');
+      if (!finalCtx) return resolve(file);
+
+      const targetWidth = cropData ? cropData.width : bBoxWidth;
+      const targetHeight = cropData ? cropData.height : bBoxHeight;
+      const sx = cropData ? cropData.x : 0;
+      const sy = cropData ? cropData.y : 0;
+
+      finalCanvas.width = targetWidth;
+      finalCanvas.height = targetHeight;
+
+      finalCtx.drawImage(
+        canvas,
+        sx,
+        sy,
+        targetWidth,
+        targetHeight,
+        0,
+        0,
+        targetWidth,
+        targetHeight
+      );
+
+      finalCanvas.toBlob(
         (blob) => {
           if (!blob) return resolve(file);
           const newFile = new File(
