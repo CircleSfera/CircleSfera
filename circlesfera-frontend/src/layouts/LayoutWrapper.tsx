@@ -24,7 +24,6 @@ export default function LayoutWrapper({
     '/accounts/login',
     '/accounts/emailsignup',
     '/admin',
-    '/creator',
   ];
 
   // Only show nav if authenticated AND not in hidden routes
