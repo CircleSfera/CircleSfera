@@ -81,7 +81,7 @@ export default function Frames() {
   return (
     <div
       ref={containerRef}
-      className="h-[calc(100dvh-64px)] md:h-[calc(100dvh-80px)] w-full md:max-w-[450px] mx-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide bg-black"
+      className="h-[calc(100dvh-64px)] md:h-[calc(100dvh-80px)] w-full md:max-w-[450px] mx-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
       style={{ scrollBehavior: 'smooth' }}
     >
       {frames.map((frame, index) => (

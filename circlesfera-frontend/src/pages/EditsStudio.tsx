@@ -351,7 +351,7 @@ export default function EditsStudio() {
   }
 
   return (
-    <div className="min-h-screen bg-black pb-20 md:pb-0 pt-16 md:pt-20 px-4 md:px-8 max-w-4xl mx-auto">
+    <div className="min-h-screen pb-20 md:pb-0 pt-16 md:pt-20 px-4 md:px-8 max-w-4xl mx-auto">
       <SEO title="Edits Studio | CircleSfera" />
 
       <div className="flex items-center justify-between mb-8">
