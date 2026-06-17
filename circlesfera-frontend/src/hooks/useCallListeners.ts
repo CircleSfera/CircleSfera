@@ -7,7 +7,7 @@ import { logger } from '../utils/logger';
 
 export const useCallListeners = () => {
   const socket = useSocketStore((state) => state.socket);
-  const { setIncomingCall, resetCall, callType, status } = useCallStore();
+  const { setIncomingCall, resetCall } = useCallStore();
 
   useEffect(() => {
     if (!socket) return;
@@ -19,14 +19,17 @@ export const useCallListeners = () => {
       caller: CallUser;
       type: CallType;
     }) => {
-      if (status !== 'idle') return;
+      const currentStatus = useCallStore.getState().status;
+      if (currentStatus !== 'idle') return;
       logger.log('Incoming call from:', caller.profile.username);
       setIncomingCall(caller, type);
     };
 
     const handleAccepted = async ({ receiverId }: { receiverId: string }) => {
       logger.log('Call accepted by:', receiverId);
-      await webrtcService.startCall(receiverId, callType!);
+      const currentCallType = useCallStore.getState().callType;
+      useCallStore.setState({ status: 'active' }); // Update caller to active
+      await webrtcService.startCall(receiverId, currentCallType!);
     };
 
     const handleSignal = async ({
@@ -73,5 +76,5 @@ export const useCallListeners = () => {
       socket.off('call:ended', handleEnded);
       socket.off('call:declined', handleDeclined);
     };
-  }, [socket, setIncomingCall, resetCall, callType, status]);
+  }, [socket, setIncomingCall, resetCall]);
 };

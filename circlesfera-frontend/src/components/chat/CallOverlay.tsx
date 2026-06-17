@@ -25,20 +25,21 @@ export const CallOverlay: React.FC = () => {
   } = useCallStore();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
+  const ringtoneRef = useRef<HTMLAudioElement>(null);
   const constraintsRef = useRef<HTMLDivElement>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const { t } = useTranslation();
 
   useEffect(() => {
-    if (status === 'ringing' && audioRef.current) {
-      audioRef.current
+    if (status === 'ringing' && ringtoneRef.current) {
+      ringtoneRef.current
         .play()
         .catch((e) => console.error('Audio play blocked:', e));
-    } else if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+    } else if (ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current.currentTime = 0;
     }
   }, [status]);
 
@@ -49,10 +50,15 @@ export const CallOverlay: React.FC = () => {
   }, [localStream]);
 
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
+    if (remoteStream) {
+      if (remoteVideoRef.current && callType === 'video') {
+        remoteVideoRef.current.srcObject = remoteStream;
+      }
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.srcObject = remoteStream;
+      }
     }
-  }, [remoteStream]);
+  }, [remoteStream, callType]);
 
   const toggleMute = () => {
     if (localStream) {
@@ -88,9 +94,12 @@ export const CallOverlay: React.FC = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-110 bg-black flex flex-col md:flex-row overflow-hidden"
+        className="fixed inset-0 z-50 bg-black flex flex-col md:flex-row overflow-hidden"
       >
-        <audio ref={audioRef} src="/ringtone.mp3" loop preload="auto">
+        <audio ref={ringtoneRef} src="/ringtone.mp3" loop preload="auto">
+          <track kind="captions" />
+        </audio>
+        <audio ref={remoteAudioRef} autoPlay playsInline>
           <track kind="captions" />
         </audio>
         {/* Main Background (Remote Video or Avatar) */}
