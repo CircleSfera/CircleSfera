@@ -374,7 +374,7 @@ export default function StoryViewer({
               return currentStory.mediaType === 'video' ? (
                 <video
                   src={currentStory.url}
-                  className={`w-full h-full md:rounded-2xl shadow-2xl object-cover pointer-events-auto ${className}`}
+                  className={`absolute inset-0 w-full h-full md:rounded-2xl shadow-2xl object-contain pointer-events-auto z-10 ${className}`}
                   style={style}
                   autoPlay
                   muted
@@ -390,12 +390,16 @@ export default function StoryViewer({
                   }
                   sizes="(max-width: 768px) 100vw, 500px"
                   alt="Story"
-                  className={`w-full h-full md:rounded-2xl shadow-2xl object-cover pointer-events-auto ${className}`}
+                  className={`absolute inset-0 w-full h-full md:rounded-2xl shadow-2xl object-contain pointer-events-auto z-10 ${className}`}
                   style={style}
                   loading="eager"
                 />
               );
             })()}
+
+            {/* Readability Gradients */}
+            <div className="absolute inset-x-0 top-0 h-40 bg-linear-to-b from-black/80 via-black/40 to-transparent pointer-events-none z-20 md:rounded-t-2xl" />
+            <div className="absolute inset-x-0 bottom-0 h-48 bg-linear-to-t from-black/90 via-black/50 to-transparent pointer-events-none z-20 md:rounded-b-2xl" />
 
             {/* UI Overlays inside the 9:16 frame */}
 
@@ -476,7 +480,7 @@ export default function StoryViewer({
                   <div className="flex items-center gap-3">
                     <form
                       onSubmit={handleSendReply}
-                      className={`flex-1 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-full px-4 py-3 flex items-center shadow-2xl transition-all focus-within:bg-white/15 ${messageSent ? 'border-green-500/50 bg-green-500/5' : ''}`}
+                      className={`flex-1 bg-black/40 backdrop-blur-2xl border border-white/20 rounded-full px-4 py-3 flex items-center shadow-2xl transition-all focus-within:bg-black/60 ${messageSent ? 'border-green-500/50 bg-green-500/20' : ''}`}
                     >
                       <input
                         type="text"
@@ -554,14 +558,14 @@ export default function StoryViewer({
                     </AnimatePresence>
                   </div>
                 ) : (
-                  <div className="flex justify-between items-center bg-black/20 backdrop-blur-md rounded-full px-4 py-2 border border-white/10">
+                  <div className="flex justify-between items-center">
                     <button
                       type="button"
                       onClick={handleShowViewers}
-                      className="flex items-center gap-2 text-white"
+                      className="flex items-center gap-2 text-white bg-black/40 backdrop-blur-xl rounded-full px-5 py-3 border border-white/20 hover:bg-black/60 transition-colors shadow-2xl"
                     >
-                      <Eye size={16} />
-                      <span className="font-bold text-xs">
+                      <Eye size={20} />
+                      <span className="font-bold text-sm">
                         {viewers.length} {t('story.views')}
                       </span>
                     </button>
@@ -569,9 +573,9 @@ export default function StoryViewer({
                       type="button"
                       onClick={handleDeleteClick}
                       aria-label="Delete this story"
-                      className="text-red-400 p-2 hover:bg-red-500/10 rounded-full transition-colors"
+                      className="text-white bg-black/40 backdrop-blur-xl p-3 rounded-full border border-white/20 hover:bg-red-500/80 hover:border-red-500 transition-all shadow-2xl"
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={20} />
                     </button>
                   </div>
                 )}
@@ -608,14 +612,14 @@ export default function StoryViewer({
 
       {/* Reactions Display (Owner View) */}
       {isOwner && reactions.length > 0 && (
-        <div className="absolute bottom-20 left-4 z-20 flex flex-wrap gap-2 pointer-events-none">
+        <div className="absolute bottom-24 left-4 z-50 flex flex-wrap gap-2 pointer-events-none">
           {reactions.slice(0, 5).map((r) => (
             <div
               key={r.userId}
-              className="flex items-center gap-1 bg-black/40 backdrop-blur-md rounded-full px-2 py-1 border border-white/10 pointer-events-auto"
+              className="flex items-center gap-1 bg-black/60 backdrop-blur-md rounded-full px-3 py-1.5 border border-white/20 pointer-events-auto"
             >
-              <span className="text-sm">{r.reaction}</span>
-              <span className="text-[10px] text-white/70">
+              <span className="text-base">{r.reaction}</span>
+              <span className="text-[11px] font-medium text-white">
                 {r.user.profile.username}
               </span>
             </div>
