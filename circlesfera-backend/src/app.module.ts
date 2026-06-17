@@ -45,6 +45,7 @@ import { PushModule } from './push/push.module.js';
 import { ReportsModule } from './reports/reports.module.js';
 import { SearchModule } from './search/search.module.js';
 import { SeoModule } from './seo/seo.module.js';
+import { SlackModule } from './slack/slack.module.js';
 import { SocketModule } from './socket/socket.module.js';
 import { StoriesModule } from './stories/stories.module.js';
 import { UploadsModule } from './uploads/uploads.module.js';
@@ -152,6 +153,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     FeedModule,
     WebrtcModule,
     EditsModule,
+    SlackModule,
   ],
   controllers: [AppController, CsrfController],
   providers: [

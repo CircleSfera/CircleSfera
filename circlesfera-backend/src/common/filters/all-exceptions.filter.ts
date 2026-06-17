@@ -8,12 +8,16 @@ import {
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import * as Sentry from '@sentry/nestjs';
+import { SlackService } from '../../slack/slack.service.js';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
 
-  constructor(private readonly httpAdapterHost: HttpAdapterHost) {}
+  constructor(
+    private readonly httpAdapterHost: HttpAdapterHost,
+    private readonly slackService?: SlackService,
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     // In some edge cases or tests, httpAdapterHost might not be fully ready
@@ -84,6 +88,18 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
       // Report internal server errors to Sentry
       Sentry.captureException(exception);
+
+      // Also notify Slack for 500 errors
+      if (this.slackService) {
+        this.slackService
+          .sendProductionAlert({
+            message:
+              exception instanceof Error ? exception.message : 'Unknown Error',
+            stack: errorStack,
+            path: httpAdapter.getRequestUrl(request) as string,
+          })
+          .catch((e) => this.logger.error('Failed to send slack alert', e));
+      }
     }
 
     httpAdapter.reply(ctx.getResponse(), responseBody, httpStatus);

@@ -8,6 +8,7 @@ import {
 import type Stripe from 'stripe';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SlackService } from '../slack/slack.service.js';
 
 /** Trigger re-index */
 @Injectable()
@@ -15,6 +16,7 @@ export class PaymentsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(StripeService) private readonly stripeService: StripeService,
+    @Inject(SlackService) private readonly slackService: SlackService,
   ) {}
 
   /** Map Stripe status to our SubscriptionStatus enum. */
@@ -222,6 +224,14 @@ export class PaymentsService {
           console.log(
             `Successfully processed promotion payment for ${promotionId}`,
           );
+          this.slackService
+            .sendPaymentAlert({
+              eventType: 'Promotion Payment',
+              amount: session.amount_total || 0,
+              currency: session.currency || 'usd',
+              description: `Promotion ID: ${promotionId}`,
+            })
+            .catch((e) => console.error(e));
         } else if (metadata?.type === 'DIRECT_POST_UNLOCK') {
           // Handle Pay-Per-View Unlock
           const clientReferenceId = session.client_reference_id;
@@ -272,6 +282,15 @@ export class PaymentsService {
             console.log(
               `Successfully processed Post Unlock for user ${clientReferenceId}`,
             );
+            this.slackService
+              .sendPaymentAlert({
+                eventType: 'Post Unlock',
+                amount: amount,
+                currency: session.currency || 'usd',
+                description: `User ${clientReferenceId} unlocked post ${postId} by creator ${creatorId}`,
+                userId: clientReferenceId,
+              })
+              .catch((e) => console.error(e));
           }
         } else if (metadata?.type === 'DIRECT_TIP') {
           // Handle Direct Tips
@@ -313,6 +332,15 @@ export class PaymentsService {
             console.log(
               `Successfully processed Tip from user ${clientReferenceId} to ${creatorId}`,
             );
+            this.slackService
+              .sendPaymentAlert({
+                eventType: 'Creator Tip',
+                amount: amount,
+                currency: session.currency || 'usd',
+                description: `User ${clientReferenceId} tipped creator ${creatorId}`,
+                userId: clientReferenceId,
+              })
+              .catch((e) => console.error(e));
           }
         } else if (metadata?.type === 'STRIPE_SUBSCRIPTION') {
           // Handle Creator Subscriptions
@@ -344,6 +372,15 @@ export class PaymentsService {
             console.log(
               `Successfully processed Creator Subscription from ${subscriberId} to ${creatorId}`,
             );
+            this.slackService
+              .sendPaymentAlert({
+                eventType: 'Creator Subscription',
+                amount: parseInt(priceCents, 10),
+                currency: session.currency || 'usd',
+                description: `User ${subscriberId} subscribed to creator ${creatorId}`,
+                userId: subscriberId,
+              })
+              .catch((e) => console.error(e));
           }
         } else {
           // Handle Subscriptions (Existing logic)
@@ -431,6 +468,15 @@ export class PaymentsService {
           console.log(
             `Successfully processed checkout for user ${userId}, plan ${planId}`,
           );
+          this.slackService
+            .sendPaymentAlert({
+              eventType: 'Platform Subscription Checkout',
+              amount: session.amount_total || 0,
+              currency: session.currency || 'usd',
+              description: `User ${userId} subscribed to plan ${planId}`,
+              userId: userId,
+            })
+            .catch((e) => console.error(e));
         }
 
         // Update event status

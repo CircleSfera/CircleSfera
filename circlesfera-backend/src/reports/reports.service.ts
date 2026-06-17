@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { Report, ReportStatus } from '@prisma/client';
 import { AIService } from '../ai/ai.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SlackService } from '../slack/slack.service.js';
 import {
   type CreateReportDto,
   ReportTargetType,
@@ -13,6 +14,7 @@ export class ReportsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(AIService) private readonly aiService: AIService,
+    @Inject(SlackService) private readonly slackService: SlackService,
   ) {}
 
   /**
@@ -49,7 +51,7 @@ export class ReportsService {
         : aiAssessment
       : dto.details;
 
-    return (await this.prisma.report.create({
+    const report = (await this.prisma.report.create({
       data: {
         reporterId,
         targetType: dto.targetType,
@@ -58,6 +60,19 @@ export class ReportsService {
         details: finalDetails,
       },
     })) as Report;
+
+    // Send Slack alert in the background
+    this.slackService
+      .sendModerationAlert({
+        reporterId,
+        targetType: dto.targetType,
+        targetId: dto.targetId,
+        reason: dto.reason,
+        details: finalDetails || undefined,
+      })
+      .catch((e) => console.error('Failed to send slack moderation alert', e));
+
+    return report;
   }
 
   /** List all reports with reporter profiles (admin only). */
