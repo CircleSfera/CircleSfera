@@ -15,8 +15,8 @@ const Admin = lazy(() => import('./pages/Admin'));
 const Creator = lazy(() => import('./pages/Creator'));
 
 import CommunityGuidelines from './pages/CommunityGuidelines';
-import Explore from './pages/Explore';
 import EditsStudio from './pages/EditsStudio';
+import Explore from './pages/Explore';
 import ExploreLanding from './pages/ExploreLanding';
 import ForgotPassword from './pages/ForgotPassword';
 import Frames from './pages/Frames';
