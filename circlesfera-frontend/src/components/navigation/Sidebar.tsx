@@ -21,12 +21,14 @@ import logoSrc from '../../assets/logo.png';
 import { chatApi, notificationsApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
 import { useNotificationsStore } from '../../stores/notificationsStore';
+import { useUIStore } from '../../stores/uiStore';
 
 export default function Sidebar() {
   const location = useLocation();
   const path = location.pathname;
   const { profile, logout, isAuthenticated } = useAuthStore();
   const unreadCount = useNotificationsStore((state) => state.unreadCount);
+  const openCreateMenu = useUIStore((state) => state.openCreateMenu);
   const unreadMessagesCount = useNotificationsStore(
     (state) => state.unreadMessagesCount,
   );
@@ -71,7 +73,7 @@ export default function Sidebar() {
     { icon: Home, label: t('nav.home'), to: '/', badge: 0 },
     { icon: Search, label: t('nav.search'), to: '/explore', badge: 0 },
     { icon: Clapperboard, label: t('nav.frames'), to: '/frames', badge: 0 },
-    { icon: PlusSquare, label: t('nav.create'), to: '/create', badge: 0 },
+    { icon: PlusSquare, label: t('nav.create'), onClick: openCreateMenu, badge: 0 },
     {
       icon: MessageCircle,
       label: t('nav.messages'),
@@ -126,21 +128,10 @@ export default function Sidebar() {
           const isActive =
             item.label === t('nav.profile')
               ? isProfileActive
-              : path === item.to ||
-                (item.to !== '/' && path.startsWith(item.to));
+              : item.to ? (path === item.to || (item.to !== '/' && path.startsWith(item.to))) : false;
 
-          return (
-            <Link
-              key={item.label}
-              to={item.to}
-              aria-label={item.label}
-              aria-current={isActive ? 'page' : undefined}
-              className={`flex items-center gap-4 p-3 rounded-xl transition-all duration-200 group ${
-                isActive
-                  ? 'bg-linear-to-r from-brand-primary/30 to-brand-secondary/20 text-white font-bold shadow-[0_0_25px_rgba(131,58,180,0.2)] border border-white/15'
-                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
-              }`}
-            >
+          const content = (
+            <>
               <motion.div
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
@@ -163,6 +154,40 @@ export default function Sidebar() {
                   {item.badge > 99 ? '99+' : item.badge}
                 </span>
               )}
+            </>
+          );
+
+          if (item.onClick) {
+            return (
+              <button
+                type="button"
+                key={item.label}
+                onClick={item.onClick}
+                aria-label={item.label}
+                className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all duration-200 group ${
+                  isActive
+                    ? 'bg-linear-to-r from-brand-primary/30 to-brand-secondary/20 text-white font-bold shadow-[0_0_25px_rgba(131,58,180,0.2)] border border-white/15'
+                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                {content}
+              </button>
+            );
+          }
+
+          return (
+            <Link
+              key={item.label}
+              to={item.to!}
+              aria-label={item.label}
+              aria-current={isActive ? 'page' : undefined}
+              className={`flex items-center gap-4 p-3 rounded-xl transition-all duration-200 group ${
+                isActive
+                  ? 'bg-linear-to-r from-brand-primary/30 to-brand-secondary/20 text-white font-bold shadow-[0_0_25px_rgba(131,58,180,0.2)] border border-white/15'
+                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              {content}
             </Link>
           );
         })}

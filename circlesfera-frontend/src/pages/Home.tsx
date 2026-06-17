@@ -22,15 +22,20 @@ export default function Home() {
   });
 
   return (
-    <div className="min-h-screen pt-2 pb-32 md:pt-8 md:pb-8">
+    <div className="min-h-screen pt-4 md:pt-8 pb-32">
       <SEO title={t('feed.home_title')} />
-      <div className="w-full md:max-w-lg mx-auto">
-        {/* Feed Tabs (Hidden on mobile IG, optional) */}
-        <div className="flex border-b border-white/10 mb-2 md:mb-6 px-4 md:px-0">
+      {/* Header Title - Hidden on mobile as TopNav replaces it */}
+      <h1 className="hidden md:block text-4xl md:text-5xl font-black text-center mb-8 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
+        {t('feed.brand_name')}
+      </h1>
+
+      <div className="max-w-lg mx-auto px-4">
+        {/* Feed Tabs */}
+        <div className="flex border-b border-gray-800 mb-6">
           <button
             type="button"
             onClick={() => setActiveTab('foryou')}
-            className={`flex-1 pb-3 text-center font-bold text-[14px] transition-colors ${
+            className={`flex-1 pb-4 text-center font-bold transition-colors ${
               activeTab === 'foryou'
                 ? 'text-white border-b-2 border-brand-primary'
                 : 'text-gray-500 hover:text-gray-300'
@@ -41,7 +46,7 @@ export default function Home() {
           <button
             type="button"
             onClick={() => setActiveTab('following')}
-            className={`flex-1 pb-3 text-center font-bold text-[14px] transition-colors ${
+            className={`flex-1 pb-4 text-center font-bold transition-colors ${
               activeTab === 'following'
                 ? 'text-white border-b-2 border-brand-primary'
                 : 'text-gray-500 hover:text-gray-300'
@@ -64,7 +69,7 @@ export default function Home() {
 
         <SuggestionsList />
 
-        <div className="space-y-4 md:space-y-6">
+        <div className="space-y-6">
           {!isAuthenticated && activeTab === 'following' ? (
             <div className="text-center py-12 glass-panel rounded-2xl p-8">
               <p className="text-gray-400">

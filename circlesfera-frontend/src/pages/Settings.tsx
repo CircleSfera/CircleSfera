@@ -6,8 +6,6 @@ import {
   Bell,
   Camera,
   Check,
-  ChevronLeft,
-  ChevronRight,
   CreditCard,
   Globe,
   Key,
@@ -25,16 +23,13 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 
-import {
-  DataExportSettings,
-  PasskeySettings,
-  TwoFactorSettings,
-} from '../components';
+import { PasskeySettings, TwoFactorSettings } from '../components';
 import CloseFriendsModal from '../components/modals/CloseFriendsModal';
 import UserAvatar from '../components/UserAvatar';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { followsApi, profileApi, uploadApi } from '../services';
 import { paymentsApi } from '../services/payments.service';
+import { usersApi } from '../services/users.service';
 import { useAuthStore } from '../stores/authStore';
 import type { Profile, UpdateProfileDto } from '../types';
 import { logger } from '../utils/logger';
@@ -150,7 +145,6 @@ export default function Settings() {
   const logout = useAuthStore((state) => state.logout);
   const setProfile = useAuthStore((state) => state.setProfile);
   const [activeTab, setActiveTab] = useState<
-    | 'menu'
     | 'profile'
     | 'privacy'
     | 'security'
@@ -160,19 +154,7 @@ export default function Settings() {
     | 'account'
     | 'close_friends'
     | 'notifications'
-  >(window.innerWidth < 768 ? 'menu' : 'profile');
-
-  // Handle resize for menu state
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768 && activeTab === 'menu') {
-        setActiveTab('profile');
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [activeTab]);
-
+  >('profile');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { t, i18n } = useTranslation();
 
@@ -296,6 +278,23 @@ export default function Settings() {
     onSuccess: () => {
       logout();
       navigate('/accounts/login');
+    },
+  });
+
+  const exportDataMutation = useMutation({
+    mutationFn: () => usersApi.requestExport(),
+    onSuccess: () => {
+      toast.success(
+        t(
+          'settings.account.export_success',
+          'Data export started. You will receive an email when it is ready.',
+        ),
+      );
+    },
+    onError: () => {
+      toast.error(
+        t('settings.account.export_error', 'Failed to request data export.'),
+      );
     },
   });
 
@@ -480,56 +479,62 @@ export default function Settings() {
     navigate('/accounts/login');
   };
 
-  const tabGroups = [
+  const tabs = [
     {
-      title: 'Tu cuenta',
-      items: [
-        { id: 'profile', label: t('settings.tabs.profile.label'), icon: User },
-        {
-          id: 'account',
-          label: t('settings.tabs.account.label'),
-          icon: AlertTriangle,
-        },
-        {
-          id: 'billing',
-          label: t('settings.tabs.billing.label'),
-          icon: CreditCard,
-        },
-      ],
+      id: 'profile',
+      label: t('settings.tabs.profile.label'),
+      desc: t('settings.tabs.profile.desc'),
+      icon: User,
     },
     {
-      title: 'Cómo interactúan contigo',
-      items: [
-        {
-          id: 'privacy',
-          label: t('settings.tabs.privacy.label'),
-          icon: Shield,
-        },
-        {
-          id: 'close_friends',
-          label: t('settings.tabs.close_friends.label'),
-          icon: Star,
-        },
-        {
-          id: 'requests',
-          label: t('settings.tabs.requests.label'),
-          icon: UserPlus,
-        },
-        { id: 'mutes', label: t('settings.tabs.mutes.label'), icon: UserX },
-      ],
+      id: 'privacy',
+      label: t('settings.tabs.privacy.label'),
+      desc: t('settings.tabs.privacy.desc'),
+      icon: Shield,
     },
     {
-      title: 'Tu aplicación y contenido',
-      items: [
-        {
-          id: 'notifications',
-          label: t('settings.tabs.notifications.label'),
-          icon: Bell,
-        },
-        { id: 'security', label: t('settings.tabs.security.label'), icon: Key },
-      ],
+      id: 'notifications',
+      label: t('settings.tabs.notifications.label'),
+      desc: t('settings.tabs.notifications.desc'),
+      icon: Bell,
     },
-  ];
+    {
+      id: 'security',
+      label: t('settings.tabs.security.label'),
+      desc: t('settings.tabs.security.desc'),
+      icon: Key,
+    },
+    {
+      id: 'billing',
+      label: t('settings.tabs.billing.label'),
+      desc: t('settings.tabs.billing.desc'),
+      icon: CreditCard,
+    },
+    {
+      id: 'requests',
+      label: t('settings.tabs.requests.label'),
+      desc: t('settings.tabs.requests.desc'),
+      icon: UserPlus,
+    },
+    {
+      id: 'close_friends',
+      label: t('settings.tabs.close_friends.label'),
+      desc: t('settings.tabs.close_friends.desc'),
+      icon: Star,
+    },
+    {
+      id: 'mutes',
+      label: t('settings.tabs.mutes.label'),
+      desc: t('settings.tabs.mutes.desc'),
+      icon: UserX,
+    },
+    {
+      id: 'account',
+      label: t('settings.tabs.account.label'),
+      desc: t('settings.tabs.account.desc'),
+      icon: AlertTriangle,
+    },
+  ] as const;
 
   const canSubmit =
     username === profile?.username || usernameStatus.available === true;
@@ -562,68 +567,51 @@ export default function Settings() {
         </div>
 
         <div className="glass-panel rounded-3xl overflow-hidden flex flex-col md:flex-row min-h-0 border-white/5 shadow-2xl relative">
-          {/* Sidebar / Mobile Menu */}
-          <div
-            className={`w-full md:w-80 border-r border-white/5 bg-zinc-950/50 md:bg-white/1 shrink-0 ${activeTab === 'menu' ? 'block' : 'hidden md:block'}`}
-          >
-            <div className="p-4 overflow-y-auto max-h-[80vh] no-scrollbar">
-              {tabGroups.map((group) => (
-                <div key={group.title} className="mb-6 last:mb-0">
-                  <h3 className="text-[12px] font-bold text-zinc-500 uppercase tracking-widest mb-2 px-4">
-                    {group.title}
-                  </h3>
-                  <div className="bg-white/5 rounded-2xl overflow-hidden divide-y divide-white/5">
-                    {group.items.map((tab) => (
-                      <button
-                        type="button"
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id as any)}
-                        className={`w-full flex items-center justify-between p-4 transition-colors ${
-                          activeTab === tab.id
-                            ? 'bg-white/10 text-white'
-                            : 'text-zinc-300 hover:bg-white/5 hover:text-white'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <tab.icon
-                            size={20}
-                            className={
-                              activeTab === tab.id
-                                ? 'text-blue-400'
-                                : 'text-zinc-400'
-                            }
-                          />
-                          <span className="font-semibold text-[15px]">
-                            {tab.label}
-                          </span>
-                        </div>
-                        <ChevronRight size={18} className="text-zinc-500" />
-                      </button>
-                    ))}
+          {/* Mobile Tabs / Desktop Sidebar */}
+          <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/5 bg-zinc-950/50 md:bg-white/1 shrink-0 sticky top-0 md:top-0 z-20 md:z-10 backdrop-blur-xl md:backdrop-blur-none">
+            <div className="flex md:flex-col gap-1.5 overflow-x-auto md:overflow-x-visible no-scrollbar p-2 md:p-4 sticky md:top-24">
+              {tabs.map((tab) => (
+                <button
+                  type="button"
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex flex-col items-start gap-0 px-3.5 py-2.5 rounded-xl transition-all relative group ${
+                    activeTab === tab.id
+                      ? 'bg-white/10 text-white shadow-md shadow-black/10 ring-1 ring-white/5'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <tab.icon
+                      size={16}
+                      className={
+                        activeTab === tab.id
+                          ? 'text-blue-400'
+                          : 'group-hover:text-blue-300 transition-colors'
+                      }
+                    />
+                    <span className="font-bold text-[11px] tracking-wide uppercase truncate">
+                      {t(`settings.tabs.${tab.id}.label`)}
+                    </span>
                   </div>
-                </div>
+                  <span
+                    className={`hidden md:inline text-[9px] ml-6.5 font-medium leading-none ${activeTab === tab.id ? 'text-blue-400/60' : 'text-gray-500'}`}
+                  >
+                    {t(`settings.tabs.${tab.id}.desc`)}
+                  </span>
+                  {activeTab === tab.id && (
+                    <motion.div
+                      layoutId="activeTabIndicator"
+                      className="absolute left-0 w-1 h-6 bg-blue-500 rounded-r-full hidden md:block"
+                    />
+                  )}
+                </button>
               ))}
             </div>
           </div>
 
           {/* Content Area */}
-          <div
-            className={`flex-1 p-4 md:p-8 ${activeTab !== 'menu' ? 'block' : 'hidden md:block'}`}
-          >
-            {/* Mobile Back Button */}
-            <div className="md:hidden mb-4 flex items-center">
-              <button
-                type="button"
-                onClick={() => setActiveTab('menu')}
-                className="flex items-center gap-1 text-zinc-400 hover:text-white"
-              >
-                <ChevronLeft size={20} />
-                <span className="font-semibold">
-                  {t('common.back', 'Volver')}
-                </span>
-              </button>
-            </div>
-
+          <div className="flex-1 p-6 md:p-8">
             {activeTab === 'profile' && (
               <form
                 onSubmit={handleProfileSubmit}
@@ -1204,47 +1192,29 @@ export default function Settings() {
                   </p>
                 </div>
 
-                {/* Data Export Module */}
                 <div className="bg-blue-500/5 p-6 rounded-3xl border border-blue-500/10 hover:bg-blue-500/10 transition-colors group mb-8">
-                  <DataExportSettings />
-                </div>
-
-                <div className="bg-purple-500/5 p-6 rounded-3xl border border-purple-500/10 hover:bg-purple-500/10 transition-colors group mb-8">
-                  <h3 className="font-bold text-purple-400 uppercase tracking-widest text-[11px] mb-2 flex items-center gap-2">
-                    <Shield size={14} />
-                    {t(
-                      'settings.account.verify.title',
-                      'Identity Verification',
-                    )}
+                  <h3 className="font-bold text-blue-400 uppercase tracking-widest text-[11px] mb-2 flex items-center gap-2">
+                    <LogOut size={14} className="rotate-90" />
+                    {t('settings.account.export.title', 'Export Data')}
                   </h3>
                   <p className="text-sm text-gray-500 leading-relaxed font-medium mb-5">
                     {t(
-                      'settings.account.verify.desc',
-                      'Verify your identity using an official document and a selfie to prove your age and that you are a real person.',
+                      'settings.account.export.desc',
+                      'Download a copy of your data including your profile, posts, and messages. This process may take a few minutes.',
                     )}
                   </p>
                   <button
                     type="button"
-                    onClick={async () => {
-                      try {
-                        const returnUrl = window.location.href;
-                        const response =
-                          await paymentsApi.createIdentitySession(returnUrl);
-                        if (response.url) {
-                          window.location.href = response.url;
-                        }
-                      } catch {
-                        toast.error(
-                          t(
-                            'settings.account.verify.error',
-                            'Failed to start verification process.',
-                          ),
-                        );
-                      }
-                    }}
-                    className="px-5 py-3 bg-purple-500/10 text-purple-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-purple-400 hover:text-white transition-all disabled:opacity-50"
+                    onClick={() => exportDataMutation.mutate()}
+                    disabled={exportDataMutation.isPending}
+                    className="px-5 py-3 bg-blue-500/10 text-blue-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-400 hover:text-white transition-all disabled:opacity-50"
                   >
-                    {t('settings.account.verify.btn', 'Verify Identity')}
+                    {exportDataMutation.isPending
+                      ? t(
+                          'settings.account.export.btn_loading',
+                          'Requesting...',
+                        )
+                      : t('settings.account.export.btn', 'Request Export')}
                   </button>
                 </div>
 
