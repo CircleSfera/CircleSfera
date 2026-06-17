@@ -39,15 +39,15 @@ async function main() {
 
     // 2. Regular User
     const regularUser = await prisma.user.upsert({
-      where: { email: 'shadyfeliu@gmail.com' },
+      where: { email: 'easyfeliu@gmail.com' },
       update: {},
       create: {
-        email: 'shadyfeliu@gmail.com',
+        email: 'easyfeliu@gmail.com',
         password: hashedPassword,
         role: 'USER',
         profile: {
           create: {
-            username: 'ShadyFeliu',
+            username: 'EasyFeliu',
             fullName: 'Luis Feliu Gomez Polo',
           },
         },
