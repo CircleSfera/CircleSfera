@@ -567,7 +567,7 @@ export default function Profile() {
                   {/* Identity */}
                   <div className="space-y-0.5">
                     <div className="flex items-center justify-center md:justify-start gap-2.5">
-                      <h1 className="text-2xl md:text-3xl font-black tracking-tight bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
+                      <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
                         {profile.data.fullName}
                       </h1>
                       <VerificationBadge
@@ -577,7 +577,7 @@ export default function Profile() {
                         size={18}
                       />
                     </div>
-                    <span className="text-brand-primary font-bold text-sm tracking-tight block">
+                    <span className="text-white font-bold text-sm tracking-tight block">
                       @{profile.data.username}
                     </span>
                   </div>

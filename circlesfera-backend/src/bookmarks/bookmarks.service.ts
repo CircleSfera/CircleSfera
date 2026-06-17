@@ -45,7 +45,7 @@ export class BookmarksService {
     if (existingBookmark) {
       if (collectionId && existingBookmark.collectionId === collectionId) {
         // If clicking same collection, maybe remove from collection but keep saved?
-        // Instagram logic: "Save" adds to All. "Save to Collection" adds to Collection.
+        // Standard logic: "Save" adds to All. "Save to Collection" adds to Collection.
       } else if (collectionId) {
         // It's bookmarked, but we want to move/add to collection
         return this.prisma.bookmark.update({

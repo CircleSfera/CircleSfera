@@ -1,6 +1,6 @@
 # Session Log: Story Replies & Backend Integration (2026-04-02)
 
-This document captures the end-to-end engineering process for implementing the Instagram-style story reply system.
+This document captures the end-to-end engineering process for implementing the story reply system.
 
 ## Objective
 Enable users to respond to stories with rich, interactive chat previews, ensuring full cross-platform synchronization and optimized database performance.

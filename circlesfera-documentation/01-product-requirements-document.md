@@ -16,7 +16,7 @@ La documentación debe reflejar esa realidad: CircleSfera no es ya solo un MVP m
 
 ## 2. Visión de producto
 
-CircleSfera busca competir con Instagram y TikTok mediante una propuesta más clara para usuarios y creadores: identidad controlada, relaciones sociales explícitas, experiencias de contenido mixto, monetización first-party y una operativa de confianza más auditable.
+CircleSfera busca competir en el mercado mediante una propuesta más clara para usuarios y creadores: identidad controlada, relaciones sociales explícitas, experiencias de contenido mixto, monetización first-party y una operativa de confianza más auditable.
 
 La diferenciación no depende solo del feed, sino de combinar:
 
@@ -78,7 +78,7 @@ No deben figurar como parte del producto actual si no existen en el schema:
 ### 4.1 Objetivos principales
 
 - Construir una experiencia social completa basada en identidad, contenido y mensajería.
-- Dar soporte a publicación visual similar a Instagram, incluyendo stories, colecciones y highlights.
+- Dar soporte a publicación visual estándar, incluyendo stories, colecciones y highlights.
 - Permitir evolución hacia recomendaciones y discovery con embeddings.
 - Mantener una base apta para monetización first-party con Stripe.
 - Sostener capacidades de moderación, auditoría y seguridad que den credibilidad al producto.

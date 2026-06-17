@@ -8,7 +8,7 @@
 
 ## 1. Criterios de corrección
 
-Este documento define la especificación de la API v4.0, alineada con el modelo de datos más reciente que incorpora Stories, Promociones, Facturación Anual y un sistema de Privacidad avanzado estilo Instagram. Se corrigen incoherencias previas y se consolidan los nuevos enums como `PromotionStatus`, `ContentRating` y `Visibility`.
+Este documento define la especificación de la API v4.0, alineada con el modelo de datos más reciente que incorpora Stories, Promociones, Facturación Anual y un sistema de Privacidad avanzado. Se corrigen incoherencias previas y se consolidan los nuevos enums como `PromotionStatus`, `ContentRating` y `Visibility`.
 
 ---
 

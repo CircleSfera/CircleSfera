@@ -1,6 +1,6 @@
 # 🌐 CircleSfera
 
-A full-stack social media platform inspired by Instagram, built with modern technologies and best practices.
+A full-stack social media platform, built with modern technologies and best practices.
 
 <p align="center">
   <img src="https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS">

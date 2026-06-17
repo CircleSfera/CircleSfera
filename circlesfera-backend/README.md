@@ -18,7 +18,7 @@ A modern, production-ready REST API for a social media platform built with NestJ
 
 ## 🎯 Overview
 
-CircleSfera Backend is a RESTful API that powers a social media application similar to Instagram. It provides comprehensive functionality for user authentication, content management, social interactions, and real-time notifications.
+CircleSfera Backend is a RESTful API that powers a social media application. It provides comprehensive functionality for user authentication, content management, social interactions, and real-time notifications.
 
 ## 🛠 Technology Stack
 

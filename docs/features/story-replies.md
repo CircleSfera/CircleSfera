@@ -1,4 +1,4 @@
-# Instagram-Style Story Replies
+# Story Replies
 
 This feature enables users to respond directly to stories, creating a rich communication flow where the chat message includes an interactive preview of the original story content.
 

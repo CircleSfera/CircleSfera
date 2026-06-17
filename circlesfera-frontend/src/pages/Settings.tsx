@@ -568,41 +568,41 @@ export default function Settings() {
 
         <div className="glass-panel rounded-3xl overflow-hidden flex flex-col md:flex-row min-h-0 border-white/5 shadow-2xl relative">
           {/* Mobile Tabs / Desktop Sidebar */}
-          <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/5 bg-zinc-950/50 md:bg-white/1 shrink-0 sticky top-0 md:top-0 z-20 md:z-10 backdrop-blur-xl md:backdrop-blur-none">
-            <div className="flex md:flex-col gap-1.5 overflow-x-auto md:overflow-x-visible no-scrollbar p-2 md:p-4 sticky md:top-24">
+          <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/5 bg-black/40 md:bg-white/1 shrink-0 sticky top-0 md:top-0 z-20 md:z-10 backdrop-blur-2xl md:backdrop-blur-none">
+            <div className="flex flex-row md:flex-col gap-2 md:gap-1.5 overflow-x-auto md:overflow-x-visible no-scrollbar p-3 md:p-4 sticky md:top-24 items-center md:items-stretch">
               {tabs.map((tab) => (
                 <button
                   type="button"
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex flex-col items-start gap-0 px-3.5 py-2.5 rounded-xl transition-all relative group ${
+                  className={`flex flex-row md:flex-col items-center md:items-start gap-2 md:gap-0 px-4 md:px-3.5 py-2.5 md:py-2.5 rounded-full md:rounded-xl transition-all relative group shrink-0 ${
                     activeTab === tab.id
-                      ? 'bg-white/10 text-white shadow-md shadow-black/10 ring-1 ring-white/5'
+                      ? 'bg-blue-500/10 text-white shadow-[0_0_15px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/30'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2">
                     <tab.icon
                       size={16}
                       className={
                         activeTab === tab.id
-                          ? 'text-blue-400'
-                          : 'group-hover:text-blue-300 transition-colors'
+                          ? 'text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]'
+                          : 'group-hover:text-gray-200 transition-colors'
                       }
                     />
-                    <span className="font-bold text-[11px] tracking-wide uppercase truncate">
+                    <span className="font-bold text-[11px] tracking-widest uppercase whitespace-nowrap">
                       {t(`settings.tabs.${tab.id}.label`)}
                     </span>
                   </div>
                   <span
-                    className={`hidden md:inline text-[9px] ml-6.5 font-medium leading-none ${activeTab === tab.id ? 'text-blue-400/60' : 'text-gray-500'}`}
+                    className={`hidden md:block text-[9px] ml-6 font-medium leading-relaxed mt-0.5 ${activeTab === tab.id ? 'text-blue-300/80' : 'text-gray-500'}`}
                   >
                     {t(`settings.tabs.${tab.id}.desc`)}
                   </span>
                   {activeTab === tab.id && (
                     <motion.div
                       layoutId="activeTabIndicator"
-                      className="absolute left-0 w-1 h-6 bg-blue-500 rounded-r-full hidden md:block"
+                      className="absolute left-0 w-1 h-6 bg-blue-500 rounded-r-full hidden md:block drop-shadow-[0_0_5px_rgba(59,130,246,0.8)]"
                     />
                   )}
                 </button>

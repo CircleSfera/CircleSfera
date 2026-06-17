@@ -27,7 +27,7 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-hidden group rounded-2xl border border-white/5 bg-black/40 backdrop-blur-xl"
+      className="relative overflow-hidden group rounded-2xl border border-white/5 glass-panel"
     >
       {/* ─── Mesh Gradient Background ──────────────────────────────── */}
       <div className="absolute inset-0 pointer-events-none">
