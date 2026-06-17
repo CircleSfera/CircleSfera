@@ -17,20 +17,25 @@ describe('StoriesService', () => {
     follow: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
     profile: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
     closeFriend: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
     storyView: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
       findMany: vi.fn(),
     },
     storyReaction: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       findMany: vi.fn(),
@@ -144,13 +149,13 @@ describe('StoriesService', () => {
     });
     describe('findByUser', () => {
       it('should return empty if user not found', async () => {
-        mockPrismaService.profile.findUnique.mockResolvedValue(null);
+        mockPrismaService.profile.findFirst.mockResolvedValue(null);
         const result = await service.findByUser('unknown');
         expect(result).toEqual([]);
       });
 
       it('should return stories for public user', async () => {
-        mockPrismaService.profile.findUnique.mockResolvedValue({
+        mockPrismaService.profile.findFirst.mockResolvedValue({
           userId: 'u1',
           user: { settings: { privacyLevel: 'PUBLIC' } },
         });
@@ -163,7 +168,7 @@ describe('StoriesService', () => {
       });
 
       it('should return empty for private user if not following', async () => {
-        mockPrismaService.profile.findUnique.mockResolvedValue({
+        mockPrismaService.profile.findFirst.mockResolvedValue({
           userId: 'u1',
           user: { settings: { privacyLevel: 'PRIVATE' } },
         });
