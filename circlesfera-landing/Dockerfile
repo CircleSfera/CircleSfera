@@ -9,7 +9,7 @@ COPY circlesfera-landing/package*.json ./circlesfera-landing/
 WORKDIR /app/circlesfera-landing
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy landing source code
 COPY circlesfera-landing .
