@@ -65,7 +65,7 @@ export default function EditsStudio() {
 
   if (selectedFile) {
     return (
-      <div className="fixed inset-0 z-[100] bg-black">
+      <div className="fixed inset-0 z-100 bg-black">
         {isProcessing && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
             <div className="text-white font-bold animate-pulse">
@@ -101,15 +101,16 @@ export default function EditsStudio() {
         {/* Workspace Area */}
         <div className="flex flex-col gap-6">
           {!editedFile ? (
-            <div
+            <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="aspect-4/5 md:aspect-square bg-zinc-900/50 border-2 border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-zinc-800/50 hover:border-white/20 transition-all group"
+              className="aspect-4/5 md:aspect-square w-full bg-zinc-900/50 border-2 border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-zinc-800/50 hover:border-white/20 transition-all group"
             >
               <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
                 <ImagePlus size={32} className="text-white/40 group-hover:text-white/80" />
               </div>
               <p className="text-white/60 font-medium">Sube una foto para editar</p>
-            </div>
+            </button>
           ) : (
             <div className="aspect-4/5 md:aspect-square bg-zinc-900 rounded-3xl overflow-hidden relative group">
               <img
@@ -119,6 +120,7 @@ export default function EditsStudio() {
               />
               <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
                 <button
+                  type="button"
                   onClick={() => setEditedFile(null)}
                   className="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white font-medium backdrop-blur-md transition-colors"
                 >
@@ -147,6 +149,7 @@ export default function EditsStudio() {
 
             <div className="flex flex-col gap-3">
               <button
+                type="button"
                 disabled={!editedFile}
                 onClick={handleDownload}
                 className="w-full flex items-center justify-center gap-3 py-3.5 bg-brand-primary text-white font-bold rounded-xl hover:bg-brand-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -156,6 +159,7 @@ export default function EditsStudio() {
               </button>
 
               <button
+                type="button"
                 disabled={!editedFile}
                 onClick={handleCreatePost}
                 className="w-full flex items-center justify-center gap-3 py-3.5 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
