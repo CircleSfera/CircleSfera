@@ -2,7 +2,7 @@ name: Deploy to OVH VPS
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 env:
   REGISTRY: ghcr.io
@@ -21,8 +21,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: "24"
+          cache: "npm"
 
       - name: Install Monorepo Dependencies
         run: npm install
@@ -101,74 +101,75 @@ jobs:
     name: Deploy to Production
     needs: build
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Execute Remote SSH Deployment
-      uses: appleboy/ssh-action@v1.2.5
-      env:
-        ENV_PRODUCTION_B64: ${{ secrets.ENV_PRODUCTION_B64 }}
-        SLACK_WEBHOOK_DEPLOYMENTS: ${{ secrets.SLACK_WEBHOOK_DEPLOYMENTS }}
-      with:
-        host: ${{ secrets.VPS_HOST }}
-        username: ${{ secrets.VPS_USER }}
-        key: ${{ secrets.VPS_SSH_KEY }}
-        envs: ENV_PRODUCTION_B64,SLACK_WEBHOOK_DEPLOYMENTS
-        script: |
-          set -e
-          echo "Starting deployment on OVH VPS..."
-          
-          # Navigate to project directory
-          cd /srv/circlesfera
-          
-          # Write .env.production from GitHub Secret (base64-encoded to handle newlines safely)
-          if [ -n "$ENV_PRODUCTION_B64" ]; then
-            echo "$ENV_PRODUCTION_B64" | base64 -d > .env.production
-            echo "✅ .env.production written from secret."
-          else
-            echo "⚠️  WARNING: ENV_PRODUCTION_B64 secret not set. Using existing .env.production."
-          fi
-          
-          # Login to GHCR on the VPS
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          
-          # Pull latest code (for docker-compose.prod.yml and nginx config)
-          git fetch origin
-          git reset --hard origin/main
-          
-          # Pull latest images
-          REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml pull
-          
-          # Restart containers (container command runs migrations then starts app)
-          REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml down
-          REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml up -d
-          
-          # Wait for backend to stabilise (give it 20s to either start or crash)
-          echo "Waiting 20s for backend to stabilise..."
-          sleep 20
+      - name: Execute Remote SSH Deployment
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          ENV_PRODUCTION_B64: ${{ secrets.ENV_PRODUCTION_B64 }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: ENV_PRODUCTION_B64
+          script: |
+            set -e
+            echo "Starting deployment on OVH VPS..."
 
-          STATUS=$(docker inspect --format='{{.State.Status}}' CircleSfera-Backend 2>/dev/null || echo "missing")
-          RESTARTS=$(docker inspect --format='{{.RestartCount}}' CircleSfera-Backend 2>/dev/null || echo "99")
+            # Navigate to project directory
+            cd /srv/circlesfera
 
-          echo "--- Backend status: $STATUS | restarts: $RESTARTS ---"
-          echo "--- Last backend logs: ---"
-          docker logs CircleSfera-Backend --tail=50 2>&1 || true
-          echo "--- End logs ---"
-
-          if [ "$STATUS" != "running" ] || [ "$RESTARTS" -gt "0" ]; then
-            echo "❌ Backend is not healthy (status=$STATUS, restarts=$RESTARTS). Deploy FAILED."
-            if [ -n "$SLACK_WEBHOOK_DEPLOYMENTS" ]; then
-              curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 *Deployment FAILED* to OVH VPS. Backend is not healthy."}' "$SLACK_WEBHOOK_DEPLOYMENTS" || true
+            # Write .env.production from GitHub Secret (base64-encoded to handle newlines safely)
+            if [ -n "$ENV_PRODUCTION_B64" ]; then
+              echo "$ENV_PRODUCTION_B64" | base64 -d > .env.production
+              echo "✅ .env.production written from secret."
+            else
+              echo "⚠️  WARNING: ENV_PRODUCTION_B64 secret not set. Using existing .env.production."
             fi
-            exit 1
-          fi
 
-          echo "✅ Backend is healthy."
+            # Extract the deployment webhook directly from the .env file to bypass IDE schema warnings
+            DEPLOY_WEBHOOK=$(grep '^SLACK_WEBHOOK_DEPLOYMENTS=' .env.production | cut -d '=' -f2- || echo "")
 
-          # Clean up dangling images
-          docker system prune -f
+            # Login to GHCR on the VPS
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-          echo "✅ Deployment completed successfully!"
-          if [ -n "$SLACK_WEBHOOK_DEPLOYMENTS" ]; then
-            curl -X POST -H 'Content-type: application/json' --data '{"text":"✅ *Deployment SUCCESS* to OVH VPS. All containers running."}' "$SLACK_WEBHOOK_DEPLOYMENTS" || true
-          fi
+            # Pull latest code (for docker-compose.prod.yml and nginx config)
+            git fetch origin
+            git reset --hard origin/main
 
+            # Pull latest images
+            REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml pull
+
+            # Restart containers (container command runs migrations then starts app)
+            REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml down
+            REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml up -d
+
+            # Wait for backend to stabilise (give it 20s to either start or crash)
+            echo "Waiting 20s for backend to stabilise..."
+            sleep 20
+
+            STATUS=$(docker inspect --format='{{.State.Status}}' CircleSfera-Backend 2>/dev/null || echo "missing")
+            RESTARTS=$(docker inspect --format='{{.RestartCount}}' CircleSfera-Backend 2>/dev/null || echo "99")
+
+            echo "--- Backend status: $STATUS | restarts: $RESTARTS ---"
+            echo "--- Last backend logs: ---"
+            docker logs CircleSfera-Backend --tail=50 2>&1 || true
+            echo "--- End logs ---"
+
+            if [ "$STATUS" != "running" ] || [ "$RESTARTS" -gt "0" ]; then
+              echo "❌ Backend is not healthy (status=$STATUS, restarts=$RESTARTS). Deploy FAILED."
+              if [ -n "$DEPLOY_WEBHOOK" ]; then
+                curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 *Deployment FAILED* to OVH VPS. Backend is not healthy."}' "$DEPLOY_WEBHOOK" || true
+              fi
+              exit 1
+            fi
+
+            echo "✅ Backend is healthy."
+
+            # Clean up dangling images
+            docker system prune -f
+
+            echo "✅ Deployment completed successfully!"
+            if [ -n "$DEPLOY_WEBHOOK" ]; then
+              curl -X POST -H 'Content-type: application/json' --data '{"text":"✅ *Deployment SUCCESS* to OVH VPS. All containers running."}' "$DEPLOY_WEBHOOK" || true
+            fi
