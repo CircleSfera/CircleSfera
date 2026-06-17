@@ -45,7 +45,10 @@ export class EditsService {
       where: { id: edit.id },
       data: {
         name: updateEditDto.name !== undefined ? updateEditDto.name : edit.name,
-        state: updateEditDto.state !== undefined ? updateEditDto.state : (edit.state as any),
+        state:
+          updateEditDto.state !== undefined
+            ? updateEditDto.state
+            : (edit.state as any),
       },
     });
   }

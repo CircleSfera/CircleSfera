@@ -47,7 +47,12 @@ export class GdprCron {
           // We need to extract the filename to delete it locally
           const filename = req.url.split('/').pop();
           if (filename) {
-            const filePath = path.join(process.cwd(), 'uploads', 'exports', filename);
+            const filePath = path.join(
+              process.cwd(),
+              'uploads',
+              'exports',
+              filename,
+            );
             if (fs.existsSync(filePath)) {
               fs.unlinkSync(filePath);
               deletedFiles++;
@@ -65,7 +70,9 @@ export class GdprCron {
         },
       });
 
-      this.logger.log(`Purged ${result.count} expired data export records and deleted ${deletedFiles} files.`);
+      this.logger.log(
+        `Purged ${result.count} expired data export records and deleted ${deletedFiles} files.`,
+      );
     } catch (error) {
       this.logger.error('Failed to purge expired data exports', error);
     }

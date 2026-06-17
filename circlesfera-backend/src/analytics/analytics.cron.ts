@@ -11,7 +11,7 @@ export class AnalyticsCron {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async snapshotUserMetrics() {
     this.logger.log('Starting daily snapshot of UserMetrics...');
-    
+
     // Batch process users to avoid loading everyone in memory
     const batchSize = 500;
     let skip = 0;
@@ -36,7 +36,7 @@ export class AnalyticsCron {
         break;
       }
 
-      const metricsToInsert = users.map(user => ({
+      const metricsToInsert = users.map((user) => ({
         userId: user.id,
         followersCount: user._count.followers,
         followingCount: user._count.following,

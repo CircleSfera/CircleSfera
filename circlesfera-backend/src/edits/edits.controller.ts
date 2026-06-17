@@ -28,7 +28,10 @@ export class EditsController {
   constructor(private readonly editsService: EditsService) {}
 
   @Post()
-  create(@Request() req: RequestWithUser, @Body() createEditDto: CreateEditDto) {
+  create(
+    @Request() req: RequestWithUser,
+    @Body() createEditDto: CreateEditDto,
+  ) {
     return this.editsService.create(req.user.id, createEditDto);
   }
 

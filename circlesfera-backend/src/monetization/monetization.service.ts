@@ -109,40 +109,43 @@ export class MonetizationService {
     // Platform takes 20% commission
     const platformFee = Math.floor(post.priceCents * 0.2);
 
-    const session = await this.stripeService.createCheckoutSession({
-      payment_method_types: ['card'],
-      mode: 'payment',
-      customer_email: buyer.email,
-      client_reference_id: userId,
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'Premium Post Unlock',
-              description: `Unlock exclusive content from ${creator.email}`,
+    const session = await this.stripeService.createCheckoutSession(
+      {
+        payment_method_types: ['card'],
+        mode: 'payment',
+        customer_email: buyer.email,
+        client_reference_id: userId,
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Premium Post Unlock',
+                description: `Unlock exclusive content from ${creator.email}`,
+              },
+              unit_amount: post.priceCents,
             },
-            unit_amount: post.priceCents,
+            quantity: 1,
           },
-          quantity: 1,
+        ],
+        payment_intent_data: {
+          application_fee_amount: platformFee,
+          transfer_data: {
+            destination: creator.stripeConnectAccountId,
+          },
         },
-      ],
-      payment_intent_data: {
-        application_fee_amount: platformFee,
-        transfer_data: {
-          destination: creator.stripeConnectAccountId,
+        metadata: {
+          type: 'DIRECT_POST_UNLOCK',
+          postId: postId,
+          creatorId: creator.id,
         },
+        success_url: `${returnUrl}?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${returnUrl}?canceled=true`,
       },
-      metadata: {
-        type: 'DIRECT_POST_UNLOCK',
-        postId: postId,
-        creatorId: creator.id,
+      {
+        idempotencyKey: idempotencyKey,
       },
-      success_url: `${returnUrl}?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${returnUrl}?canceled=true`,
-    }, {
-      idempotencyKey: idempotencyKey,
-    });
+    );
 
     return { url: session.url };
   }
@@ -177,40 +180,43 @@ export class MonetizationService {
 
     const platformFee = Math.floor(amountCents * 0.2);
 
-    const session = await this.stripeService.createCheckoutSession({
-      payment_method_types: ['card'],
-      mode: 'payment',
-      customer_email: sender.email,
-      client_reference_id: senderId,
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'Creator Tip',
-              description: `Tip for ${receiver.email}`,
+    const session = await this.stripeService.createCheckoutSession(
+      {
+        payment_method_types: ['card'],
+        mode: 'payment',
+        customer_email: sender.email,
+        client_reference_id: senderId,
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'Creator Tip',
+                description: `Tip for ${receiver.email}`,
+              },
+              unit_amount: amountCents,
             },
-            unit_amount: amountCents,
+            quantity: 1,
           },
-          quantity: 1,
+        ],
+        payment_intent_data: {
+          application_fee_amount: platformFee,
+          transfer_data: {
+            destination: receiver.stripeConnectAccountId,
+          },
         },
-      ],
-      payment_intent_data: {
-        application_fee_amount: platformFee,
-        transfer_data: {
-          destination: receiver.stripeConnectAccountId,
+        metadata: {
+          type: 'DIRECT_TIP',
+          creatorId: receiverId,
+          postId: postId || '',
         },
+        success_url: `${returnUrl}?success=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${returnUrl}?canceled=true`,
       },
-      metadata: {
-        type: 'DIRECT_TIP',
-        creatorId: receiverId,
-        postId: postId || '',
+      {
+        idempotencyKey: idempotencyKey,
       },
-      success_url: `${returnUrl}?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${returnUrl}?canceled=true`,
-    }, {
-      idempotencyKey: idempotencyKey,
-    });
+    );
 
     return { url: session.url };
   }
@@ -230,7 +236,9 @@ export class MonetizationService {
     try {
       let accountId = user.stripeConnectAccountId;
       if (!accountId) {
-        const account = await this.stripeService.createExpressAccount(user.email);
+        const account = await this.stripeService.createExpressAccount(
+          user.email,
+        );
         accountId = account.id;
         await this.prisma.user.update({
           where: { id: userId },
