@@ -5,7 +5,6 @@ import {
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for DI
 import { FollowsService } from './follows.service.js';
 
 /** REST controller for follow management, blocking, and follow requests. All endpoints require authentication. */

@@ -12,7 +12,6 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { UploadedFile } from './interfaces/uploaded-file.interface.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for DI
 import { UploadsService } from './uploads.service.js';
 
 /** REST controller for file uploads. Accepts images and videos up to 10 MB. */

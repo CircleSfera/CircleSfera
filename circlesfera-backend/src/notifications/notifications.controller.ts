@@ -4,9 +4,7 @@ import {
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { PaginationDto } from '../common/dto/pagination.dto.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for DI
 import { NotificationsService } from './notifications.service.js';
 
 /** REST controller for notifications. All endpoints require authentication. */

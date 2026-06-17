@@ -2,7 +2,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ContentRating, Visibility } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
 
 /**

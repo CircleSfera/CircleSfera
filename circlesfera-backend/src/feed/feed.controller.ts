@@ -5,7 +5,6 @@ import {
 } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { FeedService } from './feed.service.js';
 

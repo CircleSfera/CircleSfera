@@ -22,7 +22,6 @@ import {
   CurrentUser,
   type CurrentUserData,
 } from './decorators/current-user.decorator.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import {
   LoginDto,
   RegisterDto,

@@ -15,7 +15,6 @@ import {
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { ProfilesService } from './profiles.service.js';
 

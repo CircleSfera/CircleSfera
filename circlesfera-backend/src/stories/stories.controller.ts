@@ -14,11 +14,8 @@ import {
 } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { CreateStoryDto } from './dto/create-story.dto.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { StoryReactionDto } from './dto/story-reaction.dto.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for DI
 import {
   StoriesService,
   type StoryReactionWithUser,

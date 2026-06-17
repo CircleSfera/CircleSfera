@@ -15,11 +15,8 @@ import {
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { PaginationDto } from '../common/dto/pagination.dto.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for DI
 import { CommentsService } from './comments.service.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 
 /** REST controller for comments on posts. Supports creating, listing, and deleting comments. */

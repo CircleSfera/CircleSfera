@@ -1,6 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { CreateAudioDto } from './dto/create-audio.dto.js';
 
 /** Service for audio track CRUD, search, and trending retrieval. */

@@ -28,6 +28,7 @@ import { RedisCacheModule } from './common/cache/cache.module.js';
 import { CsrfController } from './common/csrf/csrf.controller.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { CreatorModule } from './creator/creator.module.js';
+import { EditsModule } from './edits/edits.module.js';
 import { EmailModule } from './email/email.module.js';
 import { FeedModule } from './feed/feed.module.js';
 import { FollowsModule } from './follows/follows.module.js';
@@ -50,8 +51,6 @@ import { UploadsModule } from './uploads/uploads.module.js';
 import { UsersModule } from './users/users.module.js';
 import { WebrtcModule } from './webrtc/webrtc.module.js';
 import { WhitelistModule } from './whitelist/whitelist.module.js';
-
-import { EditsModule } from './edits/edits.module.js';
 
 @Module({
   imports: [
