@@ -17,7 +17,6 @@ import {
 } from '../auth/decorators/current-user.decorator.js';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { CreateReportDto } from './dto/create-report.dto.js';
 import { ReportsService } from './reports.service.js';
 

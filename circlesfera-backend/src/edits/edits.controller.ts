@@ -1,19 +1,18 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
-  UseGuards,
-  Request,
+  Get,
+  Param,
+  Post,
   Put,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
-import { EditsService } from './edits.service.js';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { CreateEditDto } from './dto/create-edit.dto.js';
 import { UpdateEditDto } from './dto/update-edit.dto.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { EditsService } from './edits.service.js';
 
 interface RequestWithUser {
   user: {

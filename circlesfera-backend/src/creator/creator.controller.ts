@@ -18,7 +18,6 @@ import { RequiresPlan } from '../auth/decorators/requires-plan.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { SubscriptionGuard } from '../auth/guards/subscription.guard.js';
 import { CreatorService } from './creator.service.js';
-// biome-ignore lint/style/useImportType: DI needs value
 import { CreatorSubscriptionsService } from './creator-subscriptions.service.js';
 
 interface AuthRequest extends Request {

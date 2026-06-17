@@ -11,9 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { CreateHighlightDto } from './dto/create-highlight.dto.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import { UpdateHighlightDto } from './dto/update-highlight.dto.js';
 import { HighlightsService } from './highlights.service.js';
 

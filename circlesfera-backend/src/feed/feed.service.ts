@@ -3,7 +3,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { Visibility } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { AIService } from '../ai/ai.service.js';
-// biome-ignore lint/style/useImportType: NestJS requires value import for metadata reflection
 import {
   createPaginatedResult,
   PaginationDto,
