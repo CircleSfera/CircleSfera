@@ -18,7 +18,7 @@ A modern, responsive social media web application built with React, TypeScript, 
 
 ## 🎯 Overview
 
-CircleSfera Frontend is a single-page application that provides a beautiful and intuitive user interface for social media interactions. Built with modern React patterns and TypeScript for type safety, it offers a seamless user experience similar to Instagram.
+CircleSfera Frontend is a single-page application that provides a beautiful and intuitive user interface for social media interactions. Built with modern React patterns and TypeScript for type safety, it offers a seamless user experience.
 
 ## 🛠 Technology Stack
 

@@ -131,7 +131,7 @@ Estas reglas son obligatorias y prioritarias.
 - El dominio social implica especial cuidado con identidad, publicaciones, relaciones, historias, mensajes, suscripciones, promociones y auditoría.
 - No introducir lógica que contradiga la transparencia del producto ni políticas explícitas del proyecto.
 - No introducir flujos ambiguos en moderación, visibilidad, ranking o privilegios sin validación explícita.
-- No asumir features “tipo Instagram/TikTok” si no están respaldadas por CircleSfera real.
+- No asumir features de otras redes sociales si no están respaldadas por CircleSfera real.
 - Todo cambio funcional debe respetar los tiers, restricciones y reglas reales del proyecto.
 
 ## Estándares de Código

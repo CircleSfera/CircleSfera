@@ -3,7 +3,7 @@
 ## [2026-04-02] - Story Replies & Database Optimization
 
 ### Added
-- **Instagram-Style Story Replies**: 
+- **Standard Story Replies**: 
     - Real-time interactive thumbnails in chat bubbles.
     - Global `storyStore` and `StoryViewer` integration for app-wide navigation.
     - Interactive "Open Story" flow from chat thumbnails.

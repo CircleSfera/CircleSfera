@@ -43,7 +43,7 @@ A comprehensive collection of over 100 historical documents from previous develo
 - **[Historical Walkthroughs](./archive/walkthroughs/)**: Detailed reports of past milestones and stabilization.
 - **[Implementation Plans](./archive/plans/)**: Technical roadmaps used for major feature builds.
 - **[Past Task Logs](./archive/tasks/)**: Session-by-session checklists tracking the project's journey.
-- **[Other Technical Notes](./archive/others/)**: Analysis on Instagram gaps, security patches, resilience strategies, and more.
+- **[Other Technical Notes](./archive/others/)**: Analysis on gaps, security patches, resilience strategies, and more.
 
 ---
 *Note: This documentation is maintained by Antigravity as a permanent knowledge base for CircleSfera.*

@@ -128,10 +128,10 @@ function App() {
             }
           />
 
-          {/* Create post - Instagram opens modal, we keep as route for now */}
+          {/* Create post - opens modal, we keep as route for now */}
           <Route path="/create" element={<Navigate to="/" replace />} />
 
-          {/* Tags - Instagram style: /explore/tags/:tag */}
+          {/* Tags */}
           <Route
             path="/explore/tags/:tag"
             element={
@@ -158,7 +158,7 @@ function App() {
           {/* Keep old route for compatibility */}
           <Route path="/post/:id" element={<Navigate to="/p/:id" replace />} />
 
-          {/* Direct messages - Instagram style: /direct/inbox */}
+          {/* Direct messages */}
           <Route
             path="/direct/inbox"
             element={
@@ -180,7 +180,7 @@ function App() {
             element={<Navigate to="/direct/inbox/t/:id" replace />}
           />
 
-          {/* Settings - Instagram style: /accounts/edit */}
+          {/* Settings */}
           <Route
             path="/accounts/edit"
             element={
@@ -275,7 +275,7 @@ function App() {
             }
           />
 
-          {/* User profile - Instagram style: /:username (MUST be last to avoid conflicts) */}
+          {/* User profile (MUST be last to avoid conflicts) */}
           <Route
             path="/:username"
             element={

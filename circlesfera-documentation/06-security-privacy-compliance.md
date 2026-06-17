@@ -185,7 +185,7 @@ El producto actual ya contempla mensajería. Eso cambia de forma importante el m
 
 Si en el futuro se decide moderación proactiva de DMs, eso debe documentarse con cuidado por impacto legal y reputacional.
 
-### Privacidad de Perfil (Instagram-style)
+### Privacidad de Perfil
 - **Perfil Público**: Todo el contenido es visible para cualquier usuario (o invitado). Los seguidores se aceptan automáticamente.
 - **Perfil Privado**: Solo los seguidores con estado `ACCEPTED` pueden ver posts y stories. Las nuevas solicitudes quedan en estado `PENDING` hasta que el usuario las aprueba o rechaza.
 

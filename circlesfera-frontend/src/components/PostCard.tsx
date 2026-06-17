@@ -118,7 +118,7 @@ export default memo(function PostCard({ post }: PostCardProps) {
 
   return (
     <>
-      <div className="bg-black border-b border-white/10 md:glass-panel-post md:rounded-2xl overflow-hidden mb-2">
+      <div className="glass-panel-post rounded-2xl overflow-hidden mb-4">
         <PostHeader
           post={post}
           menuButtonRef={menuButtonRef}
@@ -127,7 +127,7 @@ export default memo(function PostCard({ post }: PostCardProps) {
 
         <PostMedia post={post} />
 
-        <div className="px-3 pb-3">
+        <div className="p-3">
           <PostActions
             post={post}
             isBookmarked={isBookmarked}

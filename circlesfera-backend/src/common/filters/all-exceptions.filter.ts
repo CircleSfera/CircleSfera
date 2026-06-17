@@ -6,7 +6,6 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-// biome-ignore lint/style/useImportType: NestJS requires value import for DI
 import { HttpAdapterHost } from '@nestjs/core';
 import * as Sentry from '@sentry/nestjs';
 
