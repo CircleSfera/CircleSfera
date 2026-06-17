@@ -3,6 +3,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SlackService } from '../slack/slack.service.js';
 import {
   type CreateReportDto,
   ReportTargetType,
@@ -30,12 +31,17 @@ describe('ReportsService', () => {
     moderateContent: vi.fn(),
   };
 
+  const mockSlackService = {
+    sendModerationAlert: vi.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ReportsService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: AIService, useValue: mockAIService },
+        { provide: SlackService, useValue: mockSlackService },
       ],
     }).compile();
 
