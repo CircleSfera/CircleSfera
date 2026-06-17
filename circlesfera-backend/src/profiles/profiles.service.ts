@@ -32,8 +32,8 @@ export class ProfilesService {
       return cachedProfile;
     }
 
-    const profile = await this.prisma.profile.findUnique({
-      where: { username },
+    const profile = await this.prisma.profile.findFirst({
+      where: { username: { equals: username, mode: 'insensitive' } },
       include: {
         user: {
           select: {
@@ -147,8 +147,8 @@ export class ProfilesService {
     }
 
     // Check if username exists
-    const existingProfile = await this.prisma.profile.findUnique({
-      where: { username },
+    const existingProfile = await this.prisma.profile.findFirst({
+      where: { username: { equals: username, mode: 'insensitive' } },
       select: { id: true },
     });
 

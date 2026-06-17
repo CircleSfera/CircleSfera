@@ -56,8 +56,8 @@ export class AuthService {
     }
 
     // Check if username is taken
-    const existingProfile = await this.prisma.profile.findUnique({
-      where: { username: dto.username },
+    const existingProfile = await this.prisma.profile.findFirst({
+      where: { username: { equals: dto.username, mode: 'insensitive' } },
     });
 
     if (existingProfile) {
@@ -217,8 +217,8 @@ export class AuthService {
 
     if (!user) {
       // Try finding by username in profile
-      const profile = await this.prisma.profile.findUnique({
-        where: { username: dto.identifier },
+      const profile = await this.prisma.profile.findFirst({
+        where: { username: { equals: dto.identifier, mode: 'insensitive' } },
         include: { user: true },
       });
       if (profile) {

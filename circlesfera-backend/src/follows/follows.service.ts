@@ -45,8 +45,8 @@ export class FollowsService {
     followingUsername: string,
     followerId: string,
   ): Promise<FollowStatusResponse> {
-    const profile = await this.prisma.profile.findUnique({
-      where: { username: followingUsername },
+    const profile = await this.prisma.profile.findFirst({
+      where: { username: { equals: followingUsername, mode: 'insensitive' } },
     });
 
     if (!profile) {
@@ -134,8 +134,8 @@ export class FollowsService {
     followingUsername: string,
     followerId: string,
   ): Promise<FollowStatusResponse> {
-    const profile = await this.prisma.profile.findUnique({
-      where: { username: followingUsername },
+    const profile = await this.prisma.profile.findFirst({
+      where: { username: { equals: followingUsername, mode: 'insensitive' } },
     });
 
     if (!profile) {
@@ -175,8 +175,8 @@ export class FollowsService {
    * @returns Array of follower users with profiles
    */
   async getFollowers(username: string): Promise<UserWithProfile[]> {
-    const profile = await this.prisma.profile.findUnique({
-      where: { username },
+    const profile = await this.prisma.profile.findFirst({
+      where: { username: { equals: username, mode: 'insensitive' } },
     });
 
     if (!profile) throw new NotFoundException('User not found');
@@ -202,8 +202,8 @@ export class FollowsService {
    * @returns Array of followed users with profiles
    */
   async getFollowing(username: string): Promise<UserWithProfile[]> {
-    const profile = await this.prisma.profile.findUnique({
-      where: { username },
+    const profile = await this.prisma.profile.findFirst({
+      where: { username: { equals: username, mode: 'insensitive' } },
     });
 
     if (!profile) throw new NotFoundException('User not found');
@@ -233,8 +233,8 @@ export class FollowsService {
     blockerId: string,
     blockedUsername: string,
   ): Promise<SuccessResponse> {
-    const profile = await this.prisma.profile.findUnique({
-      where: { username: blockedUsername },
+    const profile = await this.prisma.profile.findFirst({
+      where: { username: { equals: blockedUsername, mode: 'insensitive' } },
     });
     if (!profile) throw new NotFoundException('User not found');
 
@@ -269,8 +269,8 @@ export class FollowsService {
     blockerId: string,
     blockedUsername: string,
   ): Promise<SuccessResponse> {
-    const profile = await this.prisma.profile.findUnique({
-      where: { username: blockedUsername },
+    const profile = await this.prisma.profile.findFirst({
+      where: { username: { equals: blockedUsername, mode: 'insensitive' } },
     });
     if (!profile) throw new NotFoundException('User not found');
 
@@ -310,8 +310,8 @@ export class FollowsService {
     muterId: string,
     mutedUsername: string,
   ): Promise<SuccessResponse> {
-    const profile = await this.prisma.profile.findUnique({
-      where: { username: mutedUsername },
+    const profile = await this.prisma.profile.findFirst({
+      where: { username: { equals: mutedUsername, mode: 'insensitive' } },
     });
     if (!profile) throw new NotFoundException('User not found');
 
@@ -343,8 +343,8 @@ export class FollowsService {
     muterId: string,
     mutedUsername: string,
   ): Promise<SuccessResponse> {
-    const profile = await this.prisma.profile.findUnique({
-      where: { username: mutedUsername },
+    const profile = await this.prisma.profile.findFirst({
+      where: { username: { equals: mutedUsername, mode: 'insensitive' } },
     });
     if (!profile) throw new NotFoundException('User not found');
 
@@ -406,8 +406,8 @@ export class FollowsService {
     userId: string,
     requesterUsername: string,
   ): Promise<SuccessResponse> {
-    const requesterProfile = await this.prisma.profile.findUnique({
-      where: { username: requesterUsername },
+    const requesterProfile = await this.prisma.profile.findFirst({
+      where: { username: { equals: requesterUsername, mode: 'insensitive' } },
     });
     if (!requesterProfile) throw new NotFoundException('User not found');
 
@@ -450,8 +450,8 @@ export class FollowsService {
     userId: string,
     requesterUsername: string,
   ): Promise<SuccessResponse> {
-    const requesterProfile = await this.prisma.profile.findUnique({
-      where: { username: requesterUsername },
+    const requesterProfile = await this.prisma.profile.findFirst({
+      where: { username: { equals: requesterUsername, mode: 'insensitive' } },
     });
     if (!requesterProfile) throw new NotFoundException('User not found');
 

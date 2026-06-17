@@ -146,8 +146,8 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
         !path.startsWith('/explore')
       ) {
         const username = path.substring(1).split('?')[0]; // remove leading slash
-        const profile = await this.prisma.profile.findUnique({
-          where: { username },
+        const profile = await this.prisma.profile.findFirst({
+          where: { username: { equals: username, mode: 'insensitive' } },
           include: {
             user: {
               include: {
