@@ -150,7 +150,7 @@ export default function CaptionStep({
           layout
           className={`relative w-full ${
             mode === 'POST'
-              ? 'max-w-[280px] aspect-square'
+              ? 'max-w-[280px] aspect-4/5'
               : 'max-w-[220px] aspect-9/16'
           } bg-black rounded-2xl border border-white/6 overflow-hidden shadow-2xl shadow-black/60 z-10`}
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
@@ -162,7 +162,7 @@ export default function CaptionStep({
               type: m.type,
               filter: m.filter,
             }))}
-            aspectRatio={mode === 'POST' ? 'aspect-square' : 'aspect-9/16'}
+            aspectRatio={mode === 'POST' ? 'aspect-4/5' : 'aspect-9/16'}
             objectFit="cover"
           />
         </motion.div>

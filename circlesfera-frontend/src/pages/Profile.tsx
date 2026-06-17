@@ -484,7 +484,7 @@ export default function Profile() {
             <button
               type="button"
               onClick={() => setIsCreateCollectionModalOpen(true)}
-              className="aspect-square rounded-2xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-colors group"
+              className="aspect-4/5 rounded-2xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-colors group"
             >
               <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
                 <Plus size={24} className="text-white" />

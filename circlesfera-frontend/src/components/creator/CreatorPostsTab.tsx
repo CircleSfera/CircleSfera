@@ -72,7 +72,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
               className="glass-panel rounded-3xl border border-white/5 overflow-hidden hover:border-white/10 hover:bg-white/5 transition-all group/card flex flex-col"
             >
               {/* Thumbnail */}
-              <div className="aspect-square bg-white/5 relative overflow-hidden shrink-0">
+              <div className="aspect-4/5 bg-white/5 relative overflow-hidden shrink-0">
                 {post.media?.[0] ? (
                   <img
                     src={post.media[0].url}

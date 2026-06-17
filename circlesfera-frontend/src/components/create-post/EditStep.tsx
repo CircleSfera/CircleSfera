@@ -21,7 +21,7 @@ const MODE_CONFIG = {
     icon: Image,
     label: 'Post',
     accent: 'text-violet-400',
-    ratio: 'aspect-square',
+    ratio: 'aspect-4/5',
   },
   STORY: {
     icon: Clock,

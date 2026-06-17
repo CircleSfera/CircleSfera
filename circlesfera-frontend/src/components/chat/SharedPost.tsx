@@ -29,7 +29,7 @@ export default function SharedPost({ post }: SharedPostProps) {
         </span>
       </div>
 
-      <div className="aspect-square relative overflow-hidden bg-black">
+      <div className="aspect-4/5 relative overflow-hidden bg-black">
         {isVideo ? (
           <video
             src={mediaUrl}

@@ -141,7 +141,7 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
                   (id) => (
                     <div
                       key={id}
-                      className="aspect-square rounded-2xl bg-white/5 animate-pulse"
+                      className="aspect-4/5 rounded-2xl bg-white/5 animate-pulse"
                     />
                   ),
                 )
