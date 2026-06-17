@@ -1,12 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { SupportTicket } from '@prisma/client';
 import axios from 'axios';
+import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class SlackService {
   private readonly logger = new Logger(SlackService.name);
 
-  constructor(private prisma: PrismaService) {}
+  private readonly slackBotToken: string | undefined;
+
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService,
+    private configService: ConfigService,
+  ) {
+    this.slackBotToken = this.configService.get<string>('SLACK_BOT_TOKEN');
+  }
 
   private readonly defaultWebhookUrl = process.env.SLACK_WEBHOOK_URL;
   private readonly alertsWebhookUrl =
@@ -15,6 +26,8 @@ export class SlackService {
     process.env.SLACK_WEBHOOK_MODERATION || this.defaultWebhookUrl;
   private readonly paymentsWebhookUrl =
     process.env.SLACK_WEBHOOK_PAYMENTS || this.defaultWebhookUrl;
+  private readonly supportWebhookUrl =
+    process.env.SLACK_WEBHOOK_SUPPORT || this.defaultWebhookUrl;
 
   private async sendMessage(
     webhookUrl: string | undefined,
@@ -191,6 +204,42 @@ export class SlackService {
     await this.sendMessage(this.paymentsWebhookUrl, payload);
   }
 
+  async sendSupportAlert(ticket: SupportTicket): Promise<void> {
+    const payload = {
+      blocks: [
+        {
+          type: 'header',
+          text: { type: 'plain_text', text: '🎟️ Nuevo Ticket de Soporte' },
+        },
+        {
+          type: 'section',
+          fields: [
+            { type: 'mrkdwn', text: `*Email:*\n${ticket.email}` },
+            { type: 'mrkdwn', text: `*Asunto:*\n${ticket.subject}` },
+            { type: 'mrkdwn', text: `*ID:*\n\`${ticket.id}\`` },
+          ],
+        },
+        {
+          type: 'section',
+          text: { type: 'mrkdwn', text: `*Mensaje:*\n${ticket.message}` },
+        },
+        {
+          type: 'actions',
+          elements: [
+            {
+              type: 'button',
+              text: { type: 'plain_text', text: '✍️ Responder', emoji: true },
+              style: 'primary',
+              value: ticket.id,
+              action_id: 'support_reply',
+            },
+          ],
+        },
+      ],
+    };
+    await this.sendMessage(this.supportWebhookUrl, payload);
+  }
+
   // Phase 2: Slash Commands
   async handleStatsCommand(): Promise<any> {
     try {
@@ -322,6 +371,50 @@ export class SlackService {
         } else {
           resultText = `⚠️ Could not find user to ban`;
         }
+      } else if (actionId === 'support_reply') {
+        const ticketId = value;
+        const triggerId = payload.trigger_id;
+
+        if (!this.slackBotToken) {
+          this.logger.error(
+            'SLACK_BOT_TOKEN not configured. Cannot open modal.',
+          );
+          return { text: 'Bot token missing. Check server config.' };
+        }
+
+        try {
+          await axios.post(
+            'https://slack.com/api/views.open',
+            {
+              trigger_id: triggerId,
+              view: {
+                type: 'modal',
+                callback_id: `support_reply_modal_${ticketId}`,
+                title: { type: 'plain_text', text: 'Responder Ticket' },
+                submit: { type: 'plain_text', text: 'Enviar Respuesta' },
+                close: { type: 'plain_text', text: 'Cancelar' },
+                blocks: [
+                  {
+                    type: 'input',
+                    block_id: 'reply_input_block',
+                    element: {
+                      type: 'plain_text_input',
+                      action_id: 'reply_text',
+                      multiline: true,
+                    },
+                    label: { type: 'plain_text', text: 'Tu Respuesta' },
+                  },
+                ],
+              },
+            },
+            {
+              headers: { Authorization: `Bearer ${this.slackBotToken}` },
+            },
+          );
+        } catch (error) {
+          this.logger.error('Failed to open slack modal', error);
+        }
+        return; // Empty response for modal opening
       }
 
       // We should return an update to the original message to remove the buttons and add the resolution text
@@ -348,6 +441,43 @@ export class SlackService {
     } catch (error) {
       this.logger.error('Error handling moderation interaction', error);
       return { text: '❌ Error executing moderation action' };
+    }
+  }
+
+  // Phase 3: Modal Submission
+  async handleViewSubmission(payload: any): Promise<any> {
+    try {
+      const callbackId = payload.view?.callback_id;
+      if (callbackId?.startsWith('support_reply_modal_')) {
+        const ticketId = callbackId.replace('support_reply_modal_', '');
+        const stateValues = payload.view.state.values;
+        const replyText = stateValues.reply_input_block.reply_text.value;
+
+        const ticket = await this.prisma.supportTicket.findUnique({
+          where: { id: ticketId },
+        });
+
+        if (ticket && ticket.status !== 'RESOLVED') {
+          // Send email via Brevo
+          await this.emailService.sendSupportReplyEmail(
+            ticket.email,
+            ticket.subject,
+            replyText,
+          );
+
+          // Update ticket status in DB
+          await this.prisma.supportTicket.update({
+            where: { id: ticketId },
+            data: { status: 'RESOLVED', reply: replyText },
+          });
+
+          this.logger.log(`Support ticket ${ticketId} resolved via Slack`);
+        }
+      }
+      return { response_action: 'clear' };
+    } catch (error) {
+      this.logger.error('Error handling view submission', error);
+      return { response_action: 'clear' };
     }
   }
 }

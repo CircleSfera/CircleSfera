@@ -120,6 +120,24 @@ export class EmailService {
   }
 
   /**
+   * Send a support ticket reply to a user.
+   */
+  async sendSupportReplyEmail(
+    email: string,
+    originalSubject: string,
+    replyText: string,
+  ) {
+    await this.sendMail({
+      to: email,
+      subject: `Re: ${originalSubject} - Soporte CircleSfera`,
+      html: EmailTemplates.broadcast(
+        'Respuesta a tu consulta',
+        replyText.replace(/\n/g, '<br/>'),
+      ),
+    });
+  }
+
+  /**
    * Low-level method to send an email via Brevo API.
    * @param options - Email options
    */

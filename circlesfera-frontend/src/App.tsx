@@ -30,6 +30,7 @@ import Notifications from './pages/Notifications';
 import PostDetail from './pages/PostDetail';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Profile from './pages/Profile';
+import { Support } from './pages/Support';
 
 const Pricing = lazy(() => import('./pages/payments/Pricing'));
 
@@ -308,6 +309,7 @@ function App() {
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/guidelines" element={<CommunityGuidelines />} />
+          <Route path="/support" element={<Support />} />
         </Routes>
       </Suspense>
     </LayoutWrapper>
