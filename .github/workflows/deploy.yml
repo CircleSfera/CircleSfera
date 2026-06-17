@@ -8,6 +8,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: circlesfera/circlesfera
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  NODE_OPTIONS: "--no-deprecation"
 
 jobs:
   test:
@@ -103,7 +104,7 @@ jobs:
     
     steps:
     - name: Execute Remote SSH Deployment
-      uses: appleboy/ssh-action@v1.0.3
+      uses: appleboy/ssh-action@v1.2.5
       env:
         ENV_PRODUCTION_B64: ${{ secrets.ENV_PRODUCTION_B64 }}
       with:

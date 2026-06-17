@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  NODE_OPTIONS: "--no-deprecation"
+
 jobs:
   test:
     name: Run Lint and Unit Tests
