@@ -1,6 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, RotateCcw, SlidersHorizontal, Sparkles, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import Cropper from 'react-easy-crop';
+import { Crop } from 'lucide-react';
 
 const FILTERS = [
   { name: 'Normal', class: '' },
@@ -63,9 +65,17 @@ const ADJUSTMENT_CONFIG: {
   { key: 'grayscale', label: 'Grayscale', min: 0, max: 100, unit: '%' },
 ];
 
+export interface CropData {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rotation: number;
+}
+
 interface PhotoEditorProps {
   image: File;
-  onSave: (file: File, filter: string) => void;
+  onSave: (file: File, filter: string, cropData?: CropData) => void;
   onCancel: () => void;
 }
 
@@ -124,12 +134,23 @@ export default function PhotoEditor({
   onSave,
   onCancel,
 }: PhotoEditorProps) {
-  const [activeTab, setActiveTab] = useState<'FILTERS' | 'ADJUST'>('FILTERS');
+  const [activeTab, setActiveTab] = useState<'FILTERS' | 'ADJUST' | 'CROP'>('FILTERS');
   const [selectedFilter, setSelectedFilter] = useState(FILTERS[0]);
   const [adjustments, setAdjustments] =
     useState<Adjustments>(DEFAULT_ADJUSTMENTS);
   const [activeAdjustment, setActiveAdjustment] =
     useState<keyof Adjustments>('brightness');
+
+  // Crop state
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [aspect, setAspect] = useState<number | undefined>(undefined); // Freeform
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropData | null>(null);
+
+  const onCropComplete = useCallback((_croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels({ ...croppedAreaPixels, rotation });
+  }, [rotation]);
 
   const [previewUrl] = useState(URL.createObjectURL(image));
   const [thumbnailUrl, setThumbnailUrl] = useState<string>(previewUrl);
@@ -177,7 +198,7 @@ export default function PhotoEditor({
 
   const handleSave = () => {
     const filterString = `filter-class:${selectedFilter.class}__style:${computedStyle.filter}`;
-    onSave(image, filterString);
+    onSave(image, filterString, croppedAreaPixels || undefined);
   };
 
   return (
@@ -218,6 +239,20 @@ export default function PhotoEditor({
               autoPlay
               muted
             />
+          ) : activeTab === 'CROP' ? (
+            <div className="absolute inset-0">
+              <Cropper
+                image={previewUrl}
+                crop={crop}
+                zoom={zoom}
+                rotation={rotation}
+                aspect={aspect}
+                onCropChange={setCrop}
+                onRotationChange={setRotation}
+                onCropComplete={onCropComplete}
+                onZoomChange={setZoom}
+              />
+            </div>
           ) : (
             <img
               src={previewUrl}
@@ -275,7 +310,7 @@ export default function PhotoEditor({
                   </button>
                 ))}
               </motion.div>
-            ) : (
+            ) : activeTab === 'ADJUST' ? (
               <motion.div
                 key="adjust"
                 initial={{ opacity: 0 }}
@@ -301,7 +336,35 @@ export default function PhotoEditor({
                   ) : null,
                 )}
               </motion.div>
-            )}
+            ) : activeTab === 'CROP' ? (
+              <motion.div
+                key="crop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="w-full max-w-sm mx-auto flex flex-col gap-4 px-4 py-2"
+              >
+                <div className="flex justify-between gap-2">
+                  <button type="button" onClick={() => setAspect(undefined)} className={`flex-1 py-2 text-xs font-bold rounded-lg ${!aspect ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/60'}`}>Libre</button>
+                  <button type="button" onClick={() => setAspect(1)} className={`flex-1 py-2 text-xs font-bold rounded-lg ${aspect === 1 ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/60'}`}>1:1</button>
+                  <button type="button" onClick={() => setAspect(4 / 5)} className={`flex-1 py-2 text-xs font-bold rounded-lg ${aspect === 4 / 5 ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/60'}`}>4:5</button>
+                  <button type="button" onClick={() => setAspect(16 / 9)} className={`flex-1 py-2 text-xs font-bold rounded-lg ${aspect === 16 / 9 ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/60'}`}>16:9</button>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-[10px] font-bold text-white/40 uppercase">Rotación</span>
+                  <input
+                    type="range"
+                    min={-180}
+                    max={180}
+                    value={rotation}
+                    onChange={(e) => setRotation(Number(e.target.value))}
+                    className="flex-1 h-1 bg-white/6 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                  />
+                  <span className="text-[10px] font-bold text-blue-400 w-8">{rotation}°</span>
+                </div>
+              </motion.div>
+            ) : null}
           </AnimatePresence>
         </div>
 
@@ -384,6 +447,19 @@ export default function PhotoEditor({
             >
               <SlidersHorizontal size={13} />
               Adjust
+            </button>
+            <div className="w-px bg-white/4" />
+            <button
+              type="button"
+              onClick={() => setActiveTab('CROP')}
+              className={`flex-1 flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-wider transition-all ${
+                activeTab === 'CROP'
+                  ? 'text-white bg-white/3'
+                  : 'text-white/25 hover:text-white/40'
+              }`}
+            >
+              <Crop size={13} />
+              Crop
             </button>
           </div>
         </div>
