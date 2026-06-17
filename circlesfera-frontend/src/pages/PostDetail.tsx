@@ -34,7 +34,7 @@ export default function PostDetail() {
     <div className="min-h-screen pb-24 md:pt-6">
       <div className="w-full md:max-w-lg mx-auto">
         {/* Sticky Header (Mobile Only) */}
-        <div className="md:hidden sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/10 flex items-center justify-between p-4 pt-[calc(1rem+env(safe-area-inset-top))]">
+        <div className="md:hidden sticky top-0 z-50 bg-transparent backdrop-blur-xl border-b border-white/10 flex items-center justify-between p-4 pt-[calc(1rem+env(safe-area-inset-top))]">
           <Link
             to="/"
             className="p-1 -ml-1 text-white hover:bg-white/10 rounded-full transition-colors"

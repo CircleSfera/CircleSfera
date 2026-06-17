@@ -18,7 +18,7 @@ export default function TopNav() {
     profile?.username && location.pathname === `/${profile.username}`;
 
   return (
-    <div className="flex md:hidden sticky top-0 left-0 right-0 pt-[env(safe-area-inset-top)] border-b border-white/5 bg-black/60 backdrop-blur-2xl z-50 items-center justify-between px-4 h-[calc(4rem+env(safe-area-inset-top))]">
+    <div className="flex md:hidden sticky top-0 left-0 right-0 pt-[env(safe-area-inset-top)] border-b border-white/5 bg-transparent backdrop-blur-2xl z-50 items-center justify-between px-4 h-[calc(4rem+env(safe-area-inset-top))]">
       {/* Left: Create Button */}
       <div className="flex-1 flex justify-start">
         <button
