@@ -107,11 +107,12 @@ jobs:
       uses: appleboy/ssh-action@v1.2.5
       env:
         ENV_PRODUCTION_B64: ${{ secrets.ENV_PRODUCTION_B64 }}
+        SLACK_WEBHOOK_DEPLOYMENTS: ${{ secrets.SLACK_WEBHOOK_DEPLOYMENTS }}
       with:
         host: ${{ secrets.VPS_HOST }}
         username: ${{ secrets.VPS_USER }}
         key: ${{ secrets.VPS_SSH_KEY }}
-        envs: ENV_PRODUCTION_B64
+        envs: ENV_PRODUCTION_B64,SLACK_WEBHOOK_DEPLOYMENTS
         script: |
           set -e
           echo "Starting deployment on OVH VPS..."
@@ -155,6 +156,9 @@ jobs:
 
           if [ "$STATUS" != "running" ] || [ "$RESTARTS" -gt "0" ]; then
             echo "❌ Backend is not healthy (status=$STATUS, restarts=$RESTARTS). Deploy FAILED."
+            if [ -n "$SLACK_WEBHOOK_DEPLOYMENTS" ]; then
+              curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 *Deployment FAILED* to OVH VPS. Backend is not healthy."}' "$SLACK_WEBHOOK_DEPLOYMENTS" || true
+            fi
             exit 1
           fi
 
@@ -164,4 +168,7 @@ jobs:
           docker system prune -f
 
           echo "✅ Deployment completed successfully!"
+          if [ -n "$SLACK_WEBHOOK_DEPLOYMENTS" ]; then
+            curl -X POST -H 'Content-type: application/json' --data '{"text":"✅ *Deployment SUCCESS* to OVH VPS. All containers running."}' "$SLACK_WEBHOOK_DEPLOYMENTS" || true
+          fi
 
