@@ -158,7 +158,7 @@ export default function UploadStep({
         {/* Drop Zone Visual */}
         <motion.div
           className={`
-            relative w-full max-w-[320px] aspect-square rounded-3xl
+            relative w-full max-w-[320px] aspect-4/5 rounded-3xl
             flex flex-col items-center justify-center gap-5
             border-2 border-dashed transition-colors duration-300 cursor-pointer
             ${

@@ -97,7 +97,7 @@ export function PostSkeleton() {
           <Skeleton variant="text" className="w-16 h-3 opacity-50" />
         </div>
       </div>
-      <Skeleton className="aspect-square w-full rounded-none" />
+      <Skeleton className="aspect-4/5 w-full rounded-none" />
       <div className="p-4 space-y-4">
         <div className="flex gap-4">
           <Skeleton variant="circle" className="w-6 h-6" />
