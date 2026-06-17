@@ -31,7 +31,6 @@ export async function exportEditedVideo(
 
   // 2. Parse tailwind filters to FFmpeg eq filters
   // Format is like "filter-class:Gingham__style:brightness(105%) contrast(90%)__temp:120__vignette:50__noise:20"
-  let _tailwindClasses = '';
   let inlineStyle = '';
   let temperature = 100;
   let vignette = 0;
@@ -39,7 +38,6 @@ export async function exportEditedVideo(
 
   const parts = filterString.split('__style:');
   if (parts.length > 1) {
-    _tailwindClasses = parts[0].replace('filter-class:', '');
     const subparts = parts[1].split('__temp:');
     inlineStyle = subparts[0];
     if (subparts.length > 1) {
