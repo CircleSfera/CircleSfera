@@ -371,7 +371,7 @@ export default function Settings() {
   const debouncedCheckUsername = useDebounce(checkUsernameAvailability, 500);
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, '');
+    const value = e.target.value.replace(/[^a-zA-Z0-9._]/g, '');
     setUsername(value);
     debouncedCheckUsername(value);
   };
