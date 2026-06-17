@@ -69,6 +69,7 @@ export default function CreatePostModal() {
     price,
     setPrice,
     isPending,
+    isProcessingEdit,
   } = useCreatePost();
 
   const isStoryMode = mode === 'STORY';
@@ -128,7 +129,6 @@ export default function CreatePostModal() {
 
   const editorOverlay = (
     <EditorOverlayManager
-      mode={mode}
       showStoryComposer={showStoryComposer}
       setShowStoryComposer={setShowStoryComposer}
       currentEditIndex={currentEditIndex}
@@ -144,6 +144,7 @@ export default function CreatePostModal() {
       setStoryElements={setStoryElements}
       setStoryBgStyle={setStoryBgStyle}
       handleFilterSave={handleFilterSave}
+      isProcessingEdit={isProcessingEdit}
     />
   );
 

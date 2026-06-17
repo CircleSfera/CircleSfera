@@ -131,8 +131,6 @@ export default function Profile() {
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   const navigate = useNavigate();
 
-
-
   const openCreateMenu = useUIStore((state) => state.openCreateMenu);
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery({

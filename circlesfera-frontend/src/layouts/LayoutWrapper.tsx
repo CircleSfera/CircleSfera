@@ -20,11 +20,7 @@ export default function LayoutWrapper({
   const location = useLocation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { connect, disconnect } = useSocketStore();
-  const hideNavRoutes = [
-    '/accounts/login',
-    '/accounts/emailsignup',
-    '/admin',
-  ];
+  const hideNavRoutes = ['/accounts/login', '/accounts/emailsignup', '/admin'];
 
   // Only show nav if authenticated AND not in hidden routes
   // This ensures Landing Page (at '/') doesn't show nav when not logged in

@@ -88,8 +88,13 @@ export default memo(function UserAvatar({
       </div>
 
       {verificationLevel && verificationLevel !== 'BASIC' && (
-        <div className={`absolute top-0 right-0 ${statusSizeClasses[size]} bg-black rounded-full flex items-center justify-center p-[2px]`}>
-          <VerificationBadge level={verificationLevel} size={size === 'xs' || size === 'sm' ? 10 : 14} />
+        <div
+          className={`absolute top-0 right-0 ${statusSizeClasses[size]} bg-black rounded-full flex items-center justify-center p-[2px]`}
+        >
+          <VerificationBadge
+            level={verificationLevel}
+            size={size === 'xs' || size === 'sm' ? 10 : 14}
+          />
         </div>
       )}
 

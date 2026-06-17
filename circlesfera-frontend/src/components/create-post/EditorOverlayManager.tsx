@@ -1,10 +1,9 @@
-import type { CreateMode, MediaFile } from '../../hooks/useCreatePost';
+import type { MediaFile } from '../../hooks/useCreatePost';
 import type { StoryElement } from '../../types';
 import PhotoEditor from '../PhotoEditor';
 import StoryComposer from '../story/StoryComposer';
 
 interface EditorOverlayManagerProps {
-  mode: CreateMode;
   showStoryComposer: boolean;
   setShowStoryComposer: (val: boolean) => void;
   currentEditIndex: number | null;
@@ -25,11 +24,17 @@ interface EditorOverlayManagerProps {
   storyBgStyle: string;
   setStoryElements: (elements: StoryElement[]) => void;
   setStoryBgStyle: (style: string) => void;
-  handleFilterSave: (img: File, filter: string) => void;
+  handleFilterSave: (
+    file: File,
+    filterString: string,
+    cropData?: any,
+    overlayDataUrl?: string,
+    videoData?: any,
+  ) => void;
+  isProcessingEdit?: boolean;
 }
 
 export default function EditorOverlayManager({
-  mode,
   showStoryComposer,
   setShowStoryComposer,
   currentEditIndex,
@@ -45,9 +50,8 @@ export default function EditorOverlayManager({
   setStoryElements,
   setStoryBgStyle,
   handleFilterSave,
+  isProcessingEdit,
 }: EditorOverlayManagerProps) {
-  const isStoryMode = mode === 'STORY';
-
   const handleComposerSave = async (blob: Blob) => {
     const file = new File([blob], 'story_composed.png', { type: 'image/png' });
     const url = URL.createObjectURL(file);
@@ -82,18 +86,29 @@ export default function EditorOverlayManager({
   }
 
   if (currentEditIndex !== null) {
-    if (isStoryMode) {
-      setShowStoryComposer(true);
-      setCurrentEditIndex(null);
-      return null;
-    }
-
     return (
       <div className="fixed inset-0 z-50 bg-black">
+        {isProcessingEdit && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="text-white font-bold animate-pulse">
+              Processing Media...
+            </div>
+          </div>
+        )}
         <PhotoEditor
           image={mediaFiles[currentEditIndex].file}
           onSave={handleFilterSave}
           onCancel={() => setCurrentEditIndex(null)}
+          onApplyToAll={(filterString) => {
+            setMediaFiles(
+              mediaFiles.map((m, idx) => {
+                if (idx === currentEditIndex) return m;
+                return { ...m, filter: filterString };
+              }),
+            );
+            // Optionally we can show a toast here
+            alert('Filtros aplicados a todos los archivos');
+          }}
         />
       </div>
     );
