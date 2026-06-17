@@ -1,11 +1,12 @@
 import { Global, Module } from '@nestjs/common';
+import { EmailModule } from '../email/email.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { SlackController } from './slack.controller.js';
 import { SlackService } from './slack.service.js';
 
 @Global()
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, EmailModule],
   controllers: [SlackController],
   providers: [SlackService],
   exports: [SlackService],

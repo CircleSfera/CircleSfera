@@ -37,6 +37,10 @@ export class SlackController {
       return { text: 'Invalid payload JSON' };
     }
 
+    if (payload.type === 'view_submission') {
+      return this.slackService.handleViewSubmission(payload);
+    }
+
     // Process interaction asynchronously and return 200 OK immediately
     // to prevent Slack from showing a timeout error to the user
     this.slackService
