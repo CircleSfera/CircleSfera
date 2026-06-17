@@ -1,7 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Cron } from '@nestjs/schedule';
 import { SupportTicket } from '@prisma/client';
 import axios from 'axios';
+import { AIService } from '../ai/ai.service.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -14,6 +16,7 @@ export class SlackService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    private aiService: AIService,
     private configService: ConfigService,
   ) {
     this.slackBotToken = this.configService.get<string>('SLACK_BOT_TOKEN');
@@ -154,6 +157,16 @@ export class SlackService {
               value: `ban_${reportInfo.reportId}`,
               action_id: 'moderate_ban',
             },
+            {
+              type: 'button',
+              text: {
+                type: 'plain_text',
+                text: '🤖 Analizar con IA',
+                emoji: true,
+              },
+              value: `ai_${reportInfo.reportId}`,
+              action_id: 'moderate_ai',
+            },
           ],
         },
       ],
@@ -288,6 +301,137 @@ export class SlackService {
     }
   }
 
+  async handleUserCommand(text: string): Promise<any> {
+    if (!text || text.trim() === '') {
+      return {
+        text: '⚠️ Por favor, proporciona un email o username (ej. `/cs-user shading`).',
+      };
+    }
+
+    const searchTerm = text.trim();
+    try {
+      const user = await this.prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: searchTerm },
+            { profile: { username: searchTerm } }
+          ],
+        },
+        include: {
+          profile: true,
+          posts: {
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+      });
+
+      if (!user) {
+        return {
+          text: `❌ No se ha encontrado ningún usuario con: \`${searchTerm}\``,
+        };
+      }
+
+      return {
+        response_type: 'in_channel',
+        blocks: [
+          {
+            type: 'header',
+            text: {
+              type: 'plain_text',
+              text: `🔍 Información de Usuario: @${user.profile?.username || 'Desconocido'}`,
+            },
+          },
+          {
+            type: 'section',
+            fields: [
+              { type: 'mrkdwn', text: `*ID:*\n\`${user.id}\`` },
+              { type: 'mrkdwn', text: `*Email:*\n${user.email}` },
+              {
+                type: 'mrkdwn',
+                text: `*Estado:*\n${user.isActive ? '✅ Activo' : '🚫 Baneado/Inactivo'}`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Verificado:*\n${user.verificationLevel}`,
+              },
+              {
+                type: 'mrkdwn',
+                text: `*Registro:*\n${user.createdAt.toISOString().split('T')[0]}`,
+              },
+              { type: 'mrkdwn', text: `*Role:*\n${user.role}` },
+            ],
+          },
+          ...(user.profile?.bio
+            ? [
+                {
+                  type: 'section',
+                  text: {
+                    type: 'mrkdwn',
+                    text: `*Bio:*\n_${user.profile.bio}_`,
+                  },
+                },
+              ]
+            : []),
+          ...(user.posts && user.posts.length > 0
+            ? [
+                {
+                  type: 'section',
+                  text: { type: 'mrkdwn', text: `*Último Post:*\n${user.posts[0].caption || '(Sin texto)'}` },
+                },
+              ]
+            : []),
+        ],
+      };
+    } catch (error) {
+      this.logger.error('Error in handleUserCommand', error);
+      return { text: '❌ Error al buscar el usuario en la base de datos.' };
+    }
+  }
+
+  @Cron('0 8 * * *') // Runs every day at 08:00 AM UTC
+  async sendDailyMorningBriefing(): Promise<void> {
+    if (!this.alertsWebhookUrl) return;
+
+    this.logger.log('Executing Daily Morning Briefing Cron Job...');
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    try {
+      const newUsers = await this.prisma.user.count({
+        where: { createdAt: { gte: yesterday } },
+      });
+      const newPosts = await this.prisma.post.count({
+        where: { createdAt: { gte: yesterday } },
+      });
+      const pendingReports = await this.prisma.report.count({
+        where: { status: 'PENDING' },
+      });
+      const newCreatorSubscriptions = await this.prisma.creatorSubscription.count({ where: { createdAt: { gte: yesterday } } });
+      const newPlatformSubscriptions = await this.prisma.platformSubscription.count({ where: { createdAt: { gte: yesterday } } });
+      const newSubscriptions = newCreatorSubscriptions + newPlatformSubscriptions;
+
+      const metrics = { newUsers, newPosts, pendingReports, newSubscriptions };
+      const aiSummary = await this.aiService.generateMorningBriefing(metrics);
+
+      const payload = {
+        blocks: [
+          {
+            type: 'header',
+            text: { type: 'plain_text', text: '🌅 Morning Briefing (AI)' },
+          },
+          {
+            type: 'section',
+            text: { type: 'mrkdwn', text: aiSummary },
+          },
+        ],
+      };
+
+      await this.sendMessage(this.alertsWebhookUrl, payload);
+    } catch (error) {
+      this.logger.error('Error executing Morning Briefing Cron', error);
+    }
+  }
+
   // Phase 2: Interactive Moderation
   async handleModerationInteraction(payload: any): Promise<any> {
     const action = payload.actions?.[0];
@@ -371,6 +515,35 @@ export class SlackService {
         } else {
           resultText = `⚠️ Could not find user to ban`;
         }
+      } else if (actionId === 'moderate_ai') {
+        let contentToAnalyze = '';
+        if (report.targetType === 'POST') {
+          const post = await this.prisma.post.findUnique({ where: { id: report.targetId } });
+          contentToAnalyze = post?.caption || '';
+        } else if (report.targetType === 'COMMENT') {
+          const comment = await this.prisma.comment.findUnique({
+            where: { id: report.targetId },
+          });
+          contentToAnalyze = comment?.content || '';
+        }
+
+        if (!contentToAnalyze) {
+          resultText = `🤖 AI Analysis: El contenido ya no está disponible o está vacío.`;
+        } else {
+          // Fallback to OpenAI Moderation endpoint or ChatGPT chat
+          const modResult =
+            await this.aiService.moderateContent(contentToAnalyze);
+          if (modResult.flagged) {
+            const flags = Object.keys(modResult.categories)
+              .filter((k) => modResult.categories[k])
+              .join(', ');
+            resultText = `🤖 *AI Analysis (FLAGGED):* Contenido detectado como inapropiado por OpenAI. Categorías: ${flags}.`;
+          } else {
+            resultText = `🤖 *AI Analysis (SAFE):* OpenAI no ha detectado contenido explícito o inapropiado.`;
+          }
+        }
+
+        // No cerramos el reporte, solo mostramos el veredicto
       } else if (actionId === 'support_reply') {
         const ticketId = value;
         const triggerId = payload.trigger_id;

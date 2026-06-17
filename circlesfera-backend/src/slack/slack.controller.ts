@@ -20,6 +20,9 @@ export class SlackController {
     if (body.command === '/cs-stats') {
       return this.slackService.handleStatsCommand();
     }
+    if (body.command === '/cs-user') {
+      return this.slackService.handleUserCommand(body.text);
+    }
     return { text: `Command not recognized: ${body.command}` };
   }
 
