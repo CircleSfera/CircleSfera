@@ -10,6 +10,7 @@ Sentry.init({
   tracesSampleRate: isProd ? 0.1 : 1.0,
   profilesSampleRate: isProd ? 0.1 : 1.0,
 });
+
 import { ConfigService } from '@nestjs/config';
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
