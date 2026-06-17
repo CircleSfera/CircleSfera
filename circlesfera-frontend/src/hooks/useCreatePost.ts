@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import type { CropData, VideoData } from '../components/PhotoEditor';
 import { api, storiesApi } from '../services';
 import type {
   Audio as AudioTrack,
@@ -8,7 +9,9 @@ import type {
   CreateStoryDto,
   StoryElement,
 } from '../types';
+import { exportEditedImage } from '../utils/imageExport';
 import { logger } from '../utils/logger';
+import { exportEditedVideo } from '../utils/videoExport';
 import { useMediaProcessing } from './useMediaProcessing';
 import { useMediaUpload } from './useMediaUpload';
 
@@ -31,10 +34,12 @@ export interface PostTagData {
 
 export interface MediaFile {
   file: File;
-  url: string;
-  filter?: string;
+  url: string; // Blob URL
   type: 'image' | 'video';
-  altText?: string;
+  filter?: string;
+  cropData?: CropData;
+  overlayDataUrl?: string;
+  videoData?: VideoData;
 }
 
 export function useCreatePost() {
@@ -125,13 +130,25 @@ export function useCreatePost() {
     }
   };
 
-  const handleFilterSave = (_: File, filterClass: string) => {
+  const [isProcessingEdit, setIsProcessingEdit] = useState(false);
+
+  const handleFilterSave = async (
+    file: File,
+    filterString: string,
+    cropData?: CropData,
+    overlayDataUrl?: string,
+    videoData?: VideoData,
+  ) => {
     if (currentEditIndex !== null) {
       setMediaFiles((prev) => {
         const updated = [...prev];
         updated[currentEditIndex] = {
           ...updated[currentEditIndex],
-          filter: filterClass,
+          file, // Actualizamos la referencia del archivo por si cambia externamente
+          filter: filterString,
+          cropData,
+          overlayDataUrl,
+          videoData,
         };
         return updated;
       });
@@ -199,11 +216,50 @@ export function useCreatePost() {
     if (mediaFiles.length === 0) return;
 
     try {
-      const uploadedMedia = await uploadFiles(mediaFiles, altTextMap);
+      setIsProcessingEdit(true);
+
+      // Batch export all files with their respective edits before uploading
+      const processedFilesPromises = mediaFiles.map(async (m) => {
+        // If there are no edits, just return the original file
+        if (!m.filter && !m.cropData && !m.overlayDataUrl && !m.videoData) {
+          return m;
+        }
+
+        try {
+          let exportedFile: File;
+          if (m.type === 'video') {
+            exportedFile = await exportEditedVideo(
+              m.file,
+              m.filter || '',
+              m.videoData,
+              m.overlayDataUrl,
+            );
+          } else {
+            exportedFile = await exportEditedImage(
+              m.file,
+              m.filter || '',
+              m.cropData,
+              m.overlayDataUrl,
+            );
+          }
+          return {
+            ...m,
+            file: exportedFile,
+            // Keep filter string for UI consistency or if needed later
+          };
+        } catch (e) {
+          console.error('Error exporting file, falling back to original', e);
+          return m;
+        }
+      });
+
+      const finalMediaFiles = await Promise.all(processedFilesPromises);
+
+      const uploadedMedia = await uploadFiles(finalMediaFiles, altTextMap);
 
       if (mode === 'STORY') {
         await Promise.all(
-          mediaFiles.map((_, idx) =>
+          finalMediaFiles.map((_, idx) =>
             createStoryMutation.mutateAsync({
               url: uploadedMedia[idx].url,
               standardUrl: uploadedMedia[idx].standardUrl,
@@ -242,6 +298,8 @@ export function useCreatePost() {
           ? error.message
           : 'Failed to create content. Please try again.';
       alert(message);
+    } finally {
+      setIsProcessingEdit(false);
     }
   };
 
@@ -317,5 +375,6 @@ export function useCreatePost() {
       createPostMutation.isPending ||
       createStoryMutation.isPending ||
       isUploading,
+    isProcessingEdit,
   };
 }

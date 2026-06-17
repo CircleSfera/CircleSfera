@@ -1,6 +1,32 @@
 import { apiClient } from './api';
 
-export interface EditProjectState {
+export interface OverlayElement {
+  id: string;
+  type: 'text' | 'image' | 'line';
+  x: number;
+  y: number;
+  rotation?: number;
+  scaleX?: number;
+  scaleY?: number;
+  width?: number;
+  height?: number;
+  text?: string;
+  fill?: string;
+  fontSize?: number;
+  fontFamily?: string;
+  points?: number[];
+  strokeWidth?: number;
+  shadowBlur?: number;
+  src?: string; // For images
+}
+
+export interface VideoData {
+  startTime?: number;
+  endTime?: number;
+  muted?: boolean;
+}
+
+export interface SingleEditProjectState {
   filter: string;
   adjustments: Record<string, number>;
   cropData?: {
@@ -10,7 +36,22 @@ export interface EditProjectState {
     height: number;
     rotation: number;
   };
+  overlays?: OverlayElement[];
+  videoData?: VideoData;
 }
+
+export interface EditProjectBatchItem {
+  mediaUrl: string;
+  mediaType: string;
+  state: SingleEditProjectState;
+}
+
+export type EditProjectState =
+  | SingleEditProjectState
+  | {
+      version: 2;
+      items: EditProjectBatchItem[];
+    };
 
 export interface EditProject {
   id: string;
@@ -38,7 +79,7 @@ export const editsService = {
     mediaUrl: string,
     mediaType: string,
     state: EditProjectState,
-    name?: string
+    name?: string,
   ): Promise<EditProject> {
     const { data } = await apiClient.post('/edits', {
       mediaUrl,
@@ -49,7 +90,10 @@ export const editsService = {
     return data;
   },
 
-  async updateProjectState(id: string, state: EditProjectState): Promise<EditProject> {
+  async updateProjectState(
+    id: string,
+    state: EditProjectState,
+  ): Promise<EditProject> {
     const { data } = await apiClient.put(`/edits/${id}`, { state });
     return data;
   },

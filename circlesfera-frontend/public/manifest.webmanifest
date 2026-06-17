@@ -1,7 +1,7 @@
 {
   "name": "CircleSfera",
   "short_name": "CircleSfera",
-  "description": "Premium Social Network",
+  "description": "Your World, Connected.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
