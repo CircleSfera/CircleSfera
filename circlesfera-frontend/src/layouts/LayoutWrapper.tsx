@@ -9,6 +9,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useNotificationsStore } from '../stores/notificationsStore';
 import { useSocketStore } from '../stores/socketStore';
 import { useStoryStore } from '../stores/storyStore';
+import { useE2EInit } from '../hooks/useE2EInit';
 
 export default function LayoutWrapper({
   children,
@@ -37,6 +38,9 @@ export default function LayoutWrapper({
     }
     return () => disconnect();
   }, [isAuthenticated, connect, disconnect]);
+
+  // Initialize E2E keys
+  useE2EInit();
 
   // Accessibility: Announce new notifications to screen readers
   const liveNotifications = useNotificationsStore(

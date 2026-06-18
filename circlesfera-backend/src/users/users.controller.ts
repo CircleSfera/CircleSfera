@@ -101,4 +101,23 @@ export class UsersController {
   ) {
     return this.usersService.updateSettings(user.userId, dto);
   }
+
+  /** E2EE: Upload public and encrypted private key for the user. */
+  @Put('me/e2e-keys')
+  async uploadE2EKeys(
+    @CurrentUser() user: CurrentUserData,
+    @Body() body: { publicKey: string; privateKeyEncrypted: string },
+  ) {
+    return this.usersService.updateE2EKeys(
+      user.userId,
+      body.publicKey,
+      body.privateKeyEncrypted,
+    );
+  }
+
+  /** E2EE: Get public key of a user. */
+  @Get(':id/e2e-key')
+  async getE2EPublicKey(@Param('id') id: string) {
+    return this.usersService.getE2EPublicKey(id);
+  }
 }

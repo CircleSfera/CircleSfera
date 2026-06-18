@@ -20,6 +20,7 @@ export const chatApi = {
     postId?: string;
     storyId?: string;
     replyToId?: string;
+    e2eKeys?: Record<string, string>;
   }) => apiClient.post<Message>('/chat/messages', data),
 
   markAsRead: (conversationId: string) =>
@@ -30,4 +31,7 @@ export const chatApi = {
 
   deleteConversation: (id: string, mode: 'me' | 'both' = 'both') =>
     apiClient.delete(`/chat/conversations/${id}?mode=${mode}`),
+
+  getPublicKey: (userId: string) =>
+    apiClient.get<{ publicKey: string }>(`/users/${userId}/e2e-key`),
 };

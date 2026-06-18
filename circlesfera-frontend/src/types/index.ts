@@ -131,7 +131,8 @@ export type Message = Omit<
   IMessage,
   'sender' | 'replyTo' | 'createdAt' | 'updatedAt'
 > & {
-  tempId?: string;
+  mediaType?: string;
+  e2eKeys?: Record<string, string>;
   createdAt: Date | string;
   updatedAt: Date | string;
   sender?: {
@@ -142,7 +143,9 @@ export type Message = Omit<
     id: string;
     reaction: string;
     userId: string;
-    user?: {
+    user: {
+      id: string;
+      e2ePublicKey?: string;
       profile: {
         username: string;
       };

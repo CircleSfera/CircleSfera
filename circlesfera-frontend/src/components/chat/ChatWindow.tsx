@@ -20,6 +20,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
 import { useCallStore } from '../../stores/useCallStore';
 import type { Conversation, Message, Participant } from '../../types';
+import { E2EService } from '../../utils/e2e';
 import { logger } from '../../utils/logger';
 import UserAvatar from '../UserAvatar';
 import AudioRecorder from './AudioRecorder';
@@ -424,7 +425,7 @@ export default function ChatWindow() {
 
     const tempMsg: Message = {
       id: tempId,
-      content: input,
+      content: input, // We keep plaintext locally for immediate display
       conversationId: id,
       senderId: profile.id,
       createdAt: new Date().toISOString(),
@@ -446,16 +447,60 @@ export default function ChatWindow() {
     };
     setMessages((prev) => [...prev, tempMsg]);
 
-    apiClient
-      .post('/chat/messages', {
-        conversationId: id,
-        content: input,
-        replyToId: replyTo?.id,
-        tempId,
-      })
-      .catch((err) => {
-        logger.error('Failed to send', err);
-      });
+    const doSend = async () => {
+      try {
+        let finalContent = input;
+        let e2eKeys: Record<string, string> | undefined = undefined;
+
+        // Try to encrypt if participants have E2E keys
+        const keysMap: Record<string, CryptoKey> = {};
+        
+        if (conversation && conversation.participants) {
+          for (const p of conversation.participants) {
+            if (p.user?.e2ePublicKey) {
+              try {
+                keysMap[p.userId] = await E2EService.importPublicKey(p.user.e2ePublicKey);
+              } catch (e) {
+                console.warn('Invalid public key for user', p.userId);
+              }
+            }
+          }
+        }
+
+        if (Object.keys(keysMap).length > 0) {
+          // Add my own public key so I can read my own messages later (if I have one)
+          const myPubB64 = localStorage.getItem('e2e_public_key');
+          if (myPubB64 && !keysMap[profile.id]) {
+            try {
+               keysMap[profile.id] = await E2EService.importPublicKey(myPubB64);
+            } catch(e) {}
+          }
+
+          const aesKey = await E2EService.generateSymmetricKey();
+          const encrypted = await E2EService.encryptMessage(input, aesKey);
+          finalContent = JSON.stringify(encrypted);
+
+          e2eKeys = {};
+          for (const [pid, pubKey] of Object.entries(keysMap)) {
+            e2eKeys[pid] = await E2EService.wrapSymmetricKey(aesKey, pubKey);
+          }
+        }
+
+        await apiClient.post('/chat/messages', {
+          conversationId: id,
+          content: finalContent,
+          replyToId: replyTo?.id,
+          tempId,
+          e2eKeys,
+        });
+      } catch (err) {
+        logger.error('Failed to send E2E message', err);
+        // Remove temp message on error
+        setMessages((prev) => prev.filter(m => m.tempId !== tempId));
+      }
+    };
+
+    doSend();
 
     setInput('');
     setReplyTo(null);

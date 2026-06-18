@@ -139,6 +139,10 @@ model User {
   // Support
   supportTickets SupportTicket[]
 
+  // E2E Encryption
+  e2ePublicKey           String?
+  e2ePrivateKeyEncrypted String?
+
   // Edit Projects (Drafts)
   editProjects     EditProject[]
 
@@ -797,6 +801,9 @@ model Message {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  // E2E Encryption
+  e2eKeys Json? // Stores encrypted symmetric keys for participants
 
   // New: Reply support
   replyToId String?

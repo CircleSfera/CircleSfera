@@ -86,7 +86,9 @@ export class ChatController {
       dto.conversationId,
       dto.tempId,
       dto.postId,
+      dto.storyId,
       dto.replyToId,
+      dto.e2eKeys,
     );
   }
 
