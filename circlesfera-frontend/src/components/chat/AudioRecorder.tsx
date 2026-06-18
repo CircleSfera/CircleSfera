@@ -98,9 +98,8 @@ export default function AudioRecorder({
       delay: `${i * 0.1}s`,
     }));
   }, []);
-
   return (
-    <div className="flex items-center gap-4 bg-[#262626] p-2 rounded-[26px] w-full animate-in fade-in slide-in-from-bottom-2 duration-200">
+    <div className="flex items-center gap-4 glass-panel p-2 rounded-[32px] w-full border border-white/10 shadow-2xl shadow-brand-primary/20 animate-in fade-in slide-in-from-bottom-2 duration-200">
       <div className="flex-1 flex items-center gap-3 px-4">
         {isRecording ? (
           <div className="flex items-center gap-2">
@@ -115,14 +114,14 @@ export default function AudioRecorder({
           </div>
         )}
 
-        {/* Visualizer placeholder */}
+        {/* Visualizer */}
         {isRecording && (
-          <div className="flex items-center gap-1 h-8 flex-1 justify-center opacity-50">
+          <div className="flex items-center gap-1 h-8 flex-1 justify-center opacity-80">
             {['v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8', 'v9', 'v10'].map(
               (id, i) => (
                 <div
                   key={id}
-                  className="w-1 bg-white rounded-full animate-pulse"
+                  className="w-1.5 bg-brand-primary rounded-full animate-pulse shadow-[0_0_8px_rgba(var(--brand-primary),0.8)]"
                   style={{
                     height: visualizerBars[i].height,
                     animationDelay: visualizerBars[i].delay,
@@ -147,17 +146,17 @@ export default function AudioRecorder({
           <button
             type="button"
             onClick={handleStop}
-            className="p-2 text-red-500 hover:text-red-400 hover:bg-white/10 rounded-full transition-colors"
+            className="p-3 text-white bg-red-500 hover:bg-red-400 rounded-full transition-all shadow-lg shadow-red-500/30"
           >
-            <Square size={20} fill="currentColor" />
+            <Square size={18} fill="currentColor" />
           </button>
         ) : (
           <button
             type="button"
             onClick={handleSend}
-            className="p-2 text-[#3797f0] hover:text-blue-400 hover:bg-white/10 rounded-full transition-colors"
+            className="p-3 text-white bg-linear-to-r from-brand-primary to-brand-secondary hover:opacity-90 rounded-full transition-all shadow-lg shadow-brand-primary/30"
           >
-            <Send size={20} />
+            <Send size={18} fill="currentColor" className="ml-0.5" />
           </button>
         )}
       </div>

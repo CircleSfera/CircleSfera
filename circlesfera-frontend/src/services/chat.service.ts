@@ -28,6 +28,6 @@ export const chatApi = {
   createGroup: (data: { participantIds: string[]; name?: string }) =>
     apiClient.post<Conversation>('/chat/conversations', data),
 
-  deleteConversation: (id: string) =>
-    apiClient.delete(`/chat/conversations/${id}`),
+  deleteConversation: (id: string, mode: 'me' | 'both' = 'both') =>
+    apiClient.delete(`/chat/conversations/${id}?mode=${mode}`),
 };

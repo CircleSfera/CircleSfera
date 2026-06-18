@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Ban,
   Download,
@@ -420,14 +420,11 @@ export default function UsersTab({ onToast }: Props) {
       />
 
       {/* Preview Modal */}
-      <AnimatePresence>
-        {previewUserId && (
-          <UserPreviewModal
-            userId={previewUserId}
-            onClose={() => setPreviewUserId(null)}
-          />
-        )}
-      </AnimatePresence>
+      <UserPreviewModal
+        userId={previewUserId}
+        isOpen={!!previewUserId}
+        onClose={() => setPreviewUserId(null)}
+      />
     </div>
   );
 }

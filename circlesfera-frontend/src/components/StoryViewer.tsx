@@ -437,46 +437,48 @@ export default function StoryViewer({
             </div>
 
             {/* Header */}
-            <div className="absolute top-4 left-0 right-0 z-40 px-4 flex items-center justify-between pointer-events-none">
+            <div className="absolute top-12 md:top-10 left-0 right-0 z-40 px-4 flex items-center justify-between pointer-events-none">
               <div className="flex items-center gap-3 pointer-events-auto">
-                <UserAvatar
-                  src={currentStory.user.profile?.avatar}
-                  thumbnailUrl={currentStory.user.profile?.thumbnailUrl}
-                  standardUrl={currentStory.user.profile?.standardUrl}
-                  alt={currentStory.user.profile?.username || 'User'}
-                  size="sm"
-                />
-                <div className="flex flex-col">
-                  <span className="text-white font-semibold text-sm drop-shadow-md flex items-center gap-1">
+                <div className="ring-1 ring-white/20 rounded-full shadow-lg">
+                  <UserAvatar
+                    src={currentStory.user.profile?.avatar}
+                    thumbnailUrl={currentStory.user.profile?.thumbnailUrl}
+                    standardUrl={currentStory.user.profile?.standardUrl}
+                    alt={currentStory.user.profile?.username || 'User'}
+                    size="sm"
+                  />
+                </div>
+                <div className="flex flex-col gap-0.5 justify-center">
+                  <span className="text-white font-semibold text-[15px] leading-tight drop-shadow-md flex items-center gap-1.5">
                     {currentStory.user.profile.username}
                     <VerificationBadge
                       level={
                         currentStory.user.verificationLevel as VerificationLevel
                       }
-                      size={12}
+                      size={14}
                     />
                   </span>
-                  <span className="text-white/80 text-xs drop-shadow-md">
+                  <span className="text-white/80 text-[13px] font-medium leading-tight drop-shadow-md">
                     {getRelativeTime(currentStory.createdAt)}
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2 pointer-events-auto">
+              <div className="flex items-center gap-2.5 pointer-events-auto">
                 <button
                   type="button"
                   onClick={() => setIsMuted(!isMuted)}
                   aria-label={isMuted ? 'Unmute' : 'Mute'}
-                  className="text-white/90 bg-black/20 p-2 rounded-full backdrop-blur-md"
+                  className="text-white/90 bg-black/30 hover:bg-black/50 p-2.5 rounded-full backdrop-blur-md transition-colors shadow-lg"
                 >
-                  {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                  {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
                   aria-label="Close story viewer"
-                  className="text-white bg-black/20 p-2 rounded-full backdrop-blur-md"
+                  className="text-white/90 bg-black/30 hover:bg-black/50 p-2.5 rounded-full backdrop-blur-md transition-colors shadow-lg"
                 >
-                  <X size={20} />
+                  <X size={22} />
                 </button>
               </div>
             </div>

@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Music, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Clock, Music, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import type { AdminAudio } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
+import ConfirmModal from '../modals/ConfirmModal';
+import AdminDrawer from './AdminDrawer';
 import { ActionButton, Pagination, SearchInput, Table } from './AdminTable';
 
 interface AudioTabProps {
@@ -220,189 +222,151 @@ export default function AudioTab({ onToast }: AudioTabProps) {
         <Pagination meta={meta} onPageChange={setPage} />
       )}
 
-      {/* Add / Edit Track Modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-zinc-900 border border-white/10 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl">
-            <div className="p-5 border-b border-white/5 flex items-center justify-between">
-              <h3 className="text-lg font-bold">
-                {editingTrack
-                  ? 'Editar pista de audio'
-                  : 'Añadir pista de audio'}
-              </h3>
-              <button
-                type="button"
-                onClick={closeForm}
-                className="p-2 hover:bg-white/10 rounded-full transition-colors text-zinc-400 hover:text-white"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="audio-title"
-                    className="block text-xs font-semibold text-zinc-400 mb-1.5 uppercase tracking-wider"
-                  >
-                    Título *
-                  </label>
-                  <input
-                    id="audio-title"
-                    type="text"
-                    required
-                    value={form.title}
-                    onChange={(e) =>
-                      setForm({ ...form, title: e.target.value })
-                    }
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white placeholder-zinc-500"
-                    placeholder="Nombre de la canción"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="audio-artist"
-                    className="block text-xs font-semibold text-zinc-400 mb-1.5 uppercase tracking-wider"
-                  >
-                    Artista *
-                  </label>
-                  <input
-                    id="audio-artist"
-                    type="text"
-                    required
-                    value={form.artist}
-                    onChange={(e) =>
-                      setForm({ ...form, artist: e.target.value })
-                    }
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white placeholder-zinc-500"
-                    placeholder="Nombre del artista"
-                  />
-                </div>
-              </div>
-              <div>
-                <label
-                  htmlFor="audio-url"
-                  className="block text-xs font-semibold text-zinc-400 mb-1.5 uppercase tracking-wider"
-                >
-                  URL del audio *
-                </label>
-                <input
-                  id="audio-url"
-                  type="url"
-                  required
-                  value={form.url}
-                  onChange={(e) => setForm({ ...form, url: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white placeholder-zinc-500"
-                  placeholder="https://example.com/audio.mp3"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="audio-thumbnail"
-                    className="block text-xs font-semibold text-zinc-400 mb-1.5 uppercase tracking-wider"
-                  >
-                    Thumbnail URL
-                  </label>
-                  <input
-                    id="audio-thumbnail"
-                    type="url"
-                    value={form.thumbnailUrl}
-                    onChange={(e) =>
-                      setForm({ ...form, thumbnailUrl: e.target.value })
-                    }
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white placeholder-zinc-500"
-                    placeholder="https://example.com/cover.jpg"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="audio-duration"
-                    className="block text-xs font-semibold text-zinc-400 mb-1.5 uppercase tracking-wider"
-                  >
-                    Duración (seg) *
-                  </label>
-                  <input
-                    id="audio-duration"
-                    type="number"
-                    required
-                    min={1}
-                    value={form.duration || ''}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        duration: Number.parseInt(e.target.value, 10) || 0,
-                      })
-                    }
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white placeholder-zinc-500"
-                    placeholder="180"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={closeForm}
-                  className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm font-medium text-zinc-300 hover:bg-white/10 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-50 shadow-lg shadow-blue-500/20"
-                >
-                  {isSaving
-                    ? editingTrack
-                      ? 'Guardando...'
-                      : 'Añadiendo...'
-                    : editingTrack
-                      ? 'Guardar cambios'
-                      : 'Añadir pista'}
-                </button>
-              </div>
-            </form>
+      {/* Add / Edit Track Drawer */}
+      <AdminDrawer
+        isOpen={showForm}
+        onClose={closeForm}
+        title={editingTrack ? 'Editar pista de audio' : 'Añadir pista de audio'}
+      >
+        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+          <div className="space-y-1.5">
+            <label
+              htmlFor="audio-title"
+              className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
+            >
+              Título *
+            </label>
+            <input
+              id="audio-title"
+              type="text"
+              required
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+              placeholder="Nombre de la canción"
+            />
           </div>
-        </div>
-      )}
+
+          <div className="space-y-1.5">
+            <label
+              htmlFor="audio-artist"
+              className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
+            >
+              Artista *
+            </label>
+            <input
+              id="audio-artist"
+              type="text"
+              required
+              value={form.artist}
+              onChange={(e) => setForm({ ...form, artist: e.target.value })}
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+              placeholder="Nombre del artista"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label
+              htmlFor="audio-url"
+              className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
+            >
+              URL del audio *
+            </label>
+            <input
+              id="audio-url"
+              type="url"
+              required
+              value={form.url}
+              onChange={(e) => setForm({ ...form, url: e.target.value })}
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+              placeholder="https://example.com/audio.mp3"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label
+              htmlFor="audio-thumbnail"
+              className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
+            >
+              Thumbnail URL
+            </label>
+            <input
+              id="audio-thumbnail"
+              type="url"
+              value={form.thumbnailUrl}
+              onChange={(e) =>
+                setForm({ ...form, thumbnailUrl: e.target.value })
+              }
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+              placeholder="https://example.com/cover.jpg"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label
+              htmlFor="audio-duration"
+              className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
+            >
+              Duración (seg) *
+            </label>
+            <input
+              id="audio-duration"
+              type="number"
+              required
+              min={1}
+              value={form.duration || ''}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  duration: Number.parseInt(e.target.value, 10) || 0,
+                })
+              }
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+              placeholder="180"
+            />
+          </div>
+
+          <div className="pt-4 flex gap-3">
+            <button
+              type="button"
+              onClick={closeForm}
+              className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 text-gray-300 font-bold rounded-xl transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="flex-1 py-3 px-4 bg-brand-primary hover:bg-brand-primary/80 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-brand-primary/20 transition-all"
+            >
+              {isSaving
+                ? editingTrack
+                  ? 'Guardando...'
+                  : 'Añadiendo...'
+                : editingTrack
+                  ? 'Guardar cambios'
+                  : 'Añadir pista'}
+            </button>
+          </div>
+        </form>
+      </AdminDrawer>
 
       {/* Delete Confirmation Modal */}
-      {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-zinc-900 border border-white/10 w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl">
-            <div className="p-6 text-center">
-              <div className="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="text-red-400" size={24} />
-              </div>
-              <h3 className="text-lg font-bold mb-2">Eliminar pista</h3>
-              <p className="text-sm text-zinc-400">
-                ¿Estás seguro de que quieres eliminar{' '}
-                <span className="text-white font-medium">
-                  "{deleteTarget.title}"
-                </span>{' '}
-                de {deleteTarget.artist}?
-              </p>
-            </div>
-            <div className="flex gap-3 p-4 border-t border-white/5">
-              <button
-                type="button"
-                onClick={() => setDeleteTarget(null)}
-                className="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm font-medium text-zinc-300 hover:bg-white/10 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={() => deleteMutation.mutate(deleteTarget.id)}
-                disabled={deleteMutation.isPending}
-                className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-50"
-              >
-                {deleteMutation.isPending ? 'Eliminando...' : 'Eliminar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+        title="Eliminar pista"
+        message={
+          deleteTarget
+            ? `¿Estás seguro de que quieres eliminar "${deleteTarget.title}" de ${deleteTarget.artist}?`
+            : ''
+        }
+        confirmText={deleteMutation.isPending ? 'Eliminando...' : 'Eliminar'}
+        cancelText="Cancelar"
+        isDestructive={true}
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

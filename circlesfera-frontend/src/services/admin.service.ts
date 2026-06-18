@@ -45,6 +45,8 @@ export interface AdminUser {
     standardUrl?: string | null;
     thumbnailUrl?: string | null;
   } | null;
+  identityVerifiedAt?: string | null;
+  stripeIdentitySessionId?: string | null;
 }
 
 export interface AdminPost {
@@ -164,7 +166,11 @@ export interface AdminUserDetail {
   email: string;
   isActive: boolean;
   role: string;
+  verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
+  accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
   createdAt: string;
+  identityVerifiedAt?: string | null;
+  stripeIdentitySessionId?: string | null;
   profile?: {
     username: string;
     fullName: string | null;
@@ -239,6 +245,8 @@ export const adminApi = {
   promoteUser: (id: string) => apiClient.patch(`admin/users/${id}/promote`),
 
   demoteUser: (id: string) => apiClient.patch(`admin/users/${id}/demote`),
+
+  revokeUserKYC: (id: string) => apiClient.post(`admin/users/${id}/revoke-kyc`),
 
   deleteUser: (id: string) => apiClient.delete(`admin/users/${id}`),
 

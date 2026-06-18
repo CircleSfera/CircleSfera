@@ -1,17 +1,26 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import { ExternalLink, Megaphone, Sparkles, TrendingUp } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  ArrowLeft,
+  CheckCircle,
+  ExternalLink,
+  Ghost,
+  Megaphone,
+  Target,
+  TrendingUp,
+  XCircle,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useDebounce } from '../../hooks/useDebounce';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { LoadingSpinner } from '../index';
+import UserAvatar from '../UserAvatar';
 import {
-  ActionButton,
   FilterDropdown,
   Pagination,
   SearchInput,
   StatusBadge,
-  Table,
 } from './AdminTable';
 
 interface AdminPromotion {
@@ -47,18 +56,23 @@ export default function PromotionsTab({ onToast }: Props) {
   const debouncedSearch = useDebounce(search);
   const queryClient = useQueryClient();
 
+  const [selectedPromoId, setSelectedPromoId] = useState<string | null>(null);
+
   const { data, isLoading } = useQuery<PaginatedResponse<AdminPromotion>>({
     queryKey: ['admin', 'promotions', page, debouncedSearch, statusFilter],
     queryFn: () =>
       adminApi
         .getPromotions(
           page,
-          10,
+          20,
           statusFilter || undefined,
           debouncedSearch || undefined,
         )
         .then((res) => res.data as PaginatedResponse<AdminPromotion>),
   });
+
+  const promos = data?.data || [];
+  const selectedPromo = promos.find((p) => p.id === selectedPromoId);
 
   const updateMutation = useMutation({
     mutationFn: ({
@@ -72,6 +86,20 @@ export default function PromotionsTab({ onToast }: Props) {
     }) => adminApi.updatePromotion(id, status, note),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'promotions'] });
+
+      // Auto-advance
+      if (
+        selectedPromoId &&
+        (variables.status === 'ACTIVE' || variables.status === 'REJECTED')
+      ) {
+        const currentIndex = promos.findIndex((p) => p.id === selectedPromoId);
+        if (currentIndex !== -1 && currentIndex + 1 < promos.length) {
+          setSelectedPromoId(promos[currentIndex + 1].id);
+        } else {
+          setSelectedPromoId(null);
+        }
+      }
+
       const msg =
         variables.status === 'ACTIVE'
           ? 'Promoción aprobada'
@@ -82,207 +110,327 @@ export default function PromotionsTab({ onToast }: Props) {
   });
 
   return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <SearchInput
-          value={search}
-          onChange={(v) => {
-            setSearch(v);
-            setPage(1);
-          }}
-          placeholder="Buscar por usuario..."
-        />
-        <FilterDropdown
-          label="Estado"
-          value={statusFilter}
-          onChange={(v) => {
-            setStatusFilter(v);
-            setPage(1);
-          }}
-          options={[
-            { value: '', label: 'Todos los estados' },
-            { value: 'PENDING', label: 'Pendientes' },
-            { value: 'ACTIVE', label: 'Activas' },
-            { value: 'COMPLETED', label: 'Completadas' },
-            { value: 'REJECTED', label: 'Rechazadas' },
-          ]}
-        />
-      </div>
-
-      <div className="glass-panel rounded-2xl overflow-clip border border-white/10">
-        <Table
-          headers={[
-            'Creador',
-            'Contenido',
-            'Presupuesto',
-            'Alcance',
-            'Estado',
-            'Acciones',
-          ]}
-          loading={isLoading}
-          isEmpty={!data || data.data.length === 0}
-        >
-          {data?.data.map((promo) => (
-            <motion.tr
-              key={promo.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="hover:bg-white/4 transition-colors border-b border-white/5 last:border-0"
-            >
-              <td className="px-4 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden border border-white/5">
-                    {promo.user.profile.avatar ? (
-                      <img
-                        src={promo.user.profile.avatar}
-                        className="w-full h-full object-cover"
-                        alt=""
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[10px] font-bold">
-                        {promo.user.profile.username[0].toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-white text-xs font-bold italic uppercase tracking-tight">
-                      @{promo.user.profile.username}
-                    </p>
-                    <p className="text-zinc-500 text-[9px] uppercase tracking-tighter">
-                      {promo.user.email}
-                    </p>
-                  </div>
-                </div>
-              </td>
-              <td className="px-4 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
-                    {promo.target?.media?.[0]?.url || promo.target?.url ? (
-                      <img
-                        src={promo.target?.media?.[0]?.url || promo.target?.url}
-                        className="w-full h-full object-cover"
-                        alt=""
-                      />
-                    ) : (
-                      <Sparkles size={16} className="text-zinc-700" />
-                    )}
-                  </div>
-                  <div className="min-w-0 max-w-[120px]">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-brand-primary block mb-0.5">
-                      {promo.targetType}
-                    </span>
-                    <p className="text-white text-[10px] truncate leading-tight">
-                      {promo.target?.caption ||
-                        promo.target?.text ||
-                        'Sin descripción'}
-                    </p>
-                  </div>
-                </div>
-              </td>
-              <td className="px-4 py-4">
-                <div className="flex flex-col">
-                  <span className="text-white font-black text-sm tabular-nums">
-                    {promo.budget} {promo.currency}
-                  </span>
-                  <span className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest">
-                    Post Boost
-                  </span>
-                </div>
-              </td>
-              <td className="px-4 py-4">
-                <div className="flex items-center gap-2">
-                  <TrendingUp size={14} className="text-emerald-400" />
-                  <span className="text-white font-black text-xs tabular-nums">
-                    {promo.reach.toLocaleString()}
-                  </span>
-                </div>
-              </td>
-              <td className="px-4 py-4">
-                <StatusBadge status={promo.status} />
-              </td>
-              <td className="px-4 py-4">
-                <div className="flex gap-2 items-center">
-                  {promo.status === 'PENDING' && (
-                    <>
-                      <ActionButton
-                        onClick={() =>
-                          updateMutation.mutate({
-                            id: promo.id,
-                            status: 'ACTIVE',
-                          })
-                        }
-                        label="Aprobar"
-                        variant="success"
-                        iconOnly
-                        disabled={updateMutation.isPending}
-                      />
-                      <ActionButton
-                        onClick={() => {
-                          const reason = window.prompt('Motivo del rechazo:');
-                          if (reason !== null) {
-                            updateMutation.mutate({
-                              id: promo.id,
-                              status: 'REJECTED',
-                              note: reason,
-                            });
-                          }
-                        }}
-                        label="Rechazar"
-                        variant="danger"
-                        iconOnly
-                        disabled={updateMutation.isPending}
-                      />
-                    </>
-                  )}
-                  <a
-                    href={`/post/${promo.targetId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-lg text-zinc-500 hover:bg-white/5 hover:text-white transition-all"
-                    title="Ver contenido"
-                  >
-                    <ExternalLink size={14} />
-                  </a>
-                </div>
-              </td>
-            </motion.tr>
-          ))}
-        </Table>
-        <Pagination meta={data?.meta} onPageChange={setPage} />
-      </div>
-
-      {/* Insight Sidebar/Footer */}
-      <div className="p-6 glass-panel rounded-3xl border border-brand-primary/10 bg-brand-primary/2 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 flex items-center justify-center">
-            <Megaphone size={24} className="text-brand-primary" />
+    <div className="flex flex-col h-[calc(100vh-12rem)] space-y-4">
+      {/* Header & Controls */}
+      <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-brand-primary/10 border border-brand-primary/20 rounded-xl">
+            <Megaphone size={20} className="text-brand-primary" />
           </div>
           <div>
-            <h4 className="text-white font-black text-xs uppercase tracking-widest">
+            <h2 className="text-lg font-black text-white">
               Cola de Promociones
-            </h4>
-            <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-tighter italic">
-              {data?.meta.total || 0} boost requests en el sistema
+            </h2>
+            <p className="text-xs text-gray-500">
+              Solicitudes de anuncios y posts patrocinados
             </p>
           </div>
         </div>
-        <div className="flex gap-6">
-          <div className="text-right">
-            <span className="block text-white font-black text-lg tabular-nums">
-              {data?.data.filter((p) => p.status === 'PENDING').length || 0}
-            </span>
-            <span className="block text-[9px] text-zinc-500 font-black uppercase tracking-widest">
-              Pendientes
-            </span>
+
+        <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+          <SearchInput
+            value={search}
+            onChange={(val) => {
+              setSearch(val);
+              setPage(1);
+            }}
+            placeholder="Buscar usuario..."
+          />
+          <FilterDropdown
+            label="Estado"
+            value={statusFilter}
+            onChange={(v) => {
+              setStatusFilter(v);
+              setPage(1);
+            }}
+            options={[
+              { value: '', label: 'Todos' },
+              { value: 'PENDING', label: 'Pendientes' },
+              { value: 'ACTIVE', label: 'Activas' },
+              { value: 'COMPLETED', label: 'Completadas' },
+              { value: 'REJECTED', label: 'Rechazadas' },
+            ]}
+          />
+        </div>
+      </div>
+
+      {/* Split Pane Layout */}
+      <div className="flex flex-1 min-h-0 gap-6">
+        {/* Left Pane: Queue */}
+        <div
+          className={`w-full lg:w-1/3 flex-col glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-lg ${selectedPromoId ? 'hidden lg:flex' : 'flex'}`}
+        >
+          <div className="p-4 border-b border-white/5 shrink-0 bg-white/2 flex justify-between items-center">
+            <h3 className="font-bold text-white text-sm flex items-center gap-2">
+              <Target size={16} className="text-brand-primary" />
+              Solicitudes ({data?.meta.total || 0})
+            </h3>
           </div>
-          <div className="text-right">
-            <span className="block text-emerald-400 font-black text-lg tabular-nums">
-              {data?.data.filter((p) => p.status === 'ACTIVE').length || 0}
-            </span>
-            <span className="block text-[9px] text-zinc-500 font-black uppercase tracking-widest">
-              Activas
-            </span>
+
+          <div className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
+            {isLoading ? (
+              <div className="flex justify-center p-8">
+                <LoadingSpinner />
+              </div>
+            ) : promos.length === 0 ? (
+              <div className="text-center p-8 text-gray-500 text-sm">
+                No hay promociones encontradas
+              </div>
+            ) : (
+              promos.map((promo) => (
+                <button
+                  type="button"
+                  key={promo.id}
+                  onClick={() => setSelectedPromoId(promo.id)}
+                  className={`w-full text-left p-3 rounded-xl border transition-all flex flex-col gap-2 ${
+                    selectedPromoId === promo.id
+                      ? 'bg-brand-primary/10 border-brand-primary/30'
+                      : 'bg-white/2 border-transparent hover:bg-white/5 hover:border-white/10'
+                  }`}
+                >
+                  <div className="flex justify-between items-start w-full">
+                    <StatusBadge status={promo.status} />
+                    <span className="text-xs font-bold text-white tabular-nums">
+                      {promo.budget} {promo.currency}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden shrink-0">
+                      {promo.target?.media?.[0]?.url || promo.target?.url ? (
+                        <img
+                          src={
+                            promo.target?.media?.[0]?.thumbnailUrl ||
+                            promo.target?.media?.[0]?.url ||
+                            promo.target?.url
+                          }
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                          <Ghost size={16} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-white text-sm truncate font-bold italic">
+                        @{promo.user.profile.username}
+                      </p>
+                      <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-bold uppercase tracking-widest mt-0.5">
+                        <TrendingUp size={12} />
+                        {promo.reach.toLocaleString()} alcance est.
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              ))
+            )}
           </div>
+
+          <div className="p-2 border-t border-white/5 shrink-0 bg-white/2">
+            <Pagination meta={data?.meta} onPageChange={setPage} />
+          </div>
+        </div>
+
+        {/* Right Pane: Details & Resolution */}
+        <div
+          className={`flex-1 glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-lg flex-col relative ${selectedPromoId ? 'flex' : 'hidden lg:flex'}`}
+        >
+          <AnimatePresence mode="wait">
+            {selectedPromo ? (
+              <motion.div
+                key={selectedPromo.id}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.15 }}
+                className="flex flex-col h-full"
+              >
+                {/* Header Action Bar */}
+                <div className="p-4 border-b border-white/5 bg-white/2 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPromoId(null)}
+                      className="lg:hidden p-2 -ml-2 text-gray-400 hover:text-white"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <div className="flex items-center gap-3">
+                      <UserAvatar
+                        src={selectedPromo.user.profile.avatar || undefined}
+                        alt={selectedPromo.user.profile.username}
+                        size="sm"
+                      />
+                      <div>
+                        <h3 className="text-sm font-bold text-white">
+                          @{selectedPromo.user.profile.username}
+                        </h3>
+                        <p className="text-[10px] text-gray-400">
+                          {selectedPromo.user.email}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {selectedPromo.status === 'PENDING' && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const reason = window.prompt(
+                              'Motivo del rechazo (opcional):',
+                            );
+                            if (reason !== null) {
+                              updateMutation.mutate({
+                                id: selectedPromo.id,
+                                status: 'REJECTED',
+                                note: reason,
+                              });
+                            }
+                          }}
+                          className="p-2 md:px-4 md:py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
+                          disabled={updateMutation.isPending}
+                        >
+                          <XCircle size={16} />{' '}
+                          <span className="hidden md:inline">Rechazar</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateMutation.mutate({
+                              id: selectedPromo.id,
+                              status: 'ACTIVE',
+                            })
+                          }
+                          disabled={updateMutation.isPending}
+                          className="p-2 md:px-4 md:py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
+                        >
+                          <CheckCircle size={16} />{' '}
+                          <span className="hidden md:inline">Aprobar</span>
+                        </button>
+                      </>
+                    )}
+                    <a
+                      href={`/post/${selectedPromo.targetId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors"
+                      title="Abrir en nueva pestaña"
+                    >
+                      <ExternalLink size={18} />
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
+                  {/* Promo Stats Banner */}
+                  <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-2xl p-4 mb-6 grid grid-cols-2 sm:grid-cols-4 gap-4 divide-x divide-white/5">
+                    <div className="px-2">
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
+                        Presupuesto
+                      </p>
+                      <p className="text-lg font-black text-white">
+                        {selectedPromo.budget}{' '}
+                        <span className="text-sm text-gray-400">
+                          {selectedPromo.currency}
+                        </span>
+                      </p>
+                    </div>
+                    <div className="px-4">
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
+                        Alcance Est.
+                      </p>
+                      <p className="text-lg font-black text-emerald-400 flex items-center gap-2">
+                        <TrendingUp size={16} />
+                        {selectedPromo.reach.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="px-4">
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
+                        Fecha Inicio
+                      </p>
+                      <p className="text-sm font-bold text-white">
+                        {new Date(selectedPromo.startDate).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="px-4">
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
+                        Estado
+                      </p>
+                      <StatusBadge status={selectedPromo.status} />
+                    </div>
+                  </div>
+
+                  {/* Content Preview */}
+                  <div className="w-full max-w-md bg-zinc-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+                    <div className="p-3 bg-white/5 border-b border-white/10 flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">
+                        {selectedPromo.targetType} Promocionado
+                      </span>
+                    </div>
+
+                    {/* Media */}
+                    {selectedPromo.target?.media &&
+                      selectedPromo.target.media.length > 0 && (
+                        <div className="relative aspect-4/5 bg-black">
+                          {selectedPromo.target.media[0].type?.includes(
+                            'video',
+                          ) ? (
+                            <video
+                              src={selectedPromo.target.media[0].url}
+                              className="w-full h-full object-cover"
+                              controls
+                              muted
+                              playsInline
+                            />
+                          ) : (
+                            <img
+                              src={selectedPromo.target.media[0].url}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                          {selectedPromo.target.media.length > 1 && (
+                            <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full backdrop-blur-md">
+                              1/{selectedPromo.target.media.length}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                    {/* Text Content */}
+                    <div className="p-4">
+                      {selectedPromo.target?.caption ||
+                      selectedPromo.target?.text ? (
+                        <p className="text-white text-sm whitespace-pre-wrap leading-relaxed">
+                          {selectedPromo.target.caption ||
+                            selectedPromo.target.text}
+                        </p>
+                      ) : (
+                        <p className="text-gray-500 text-sm italic">
+                          Sin descripción
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex-1 flex flex-col items-center justify-center text-gray-500"
+              >
+                <Megaphone size={48} className="mb-4 text-white/10" />
+                <p className="font-bold">Selecciona una promoción</p>
+                <p className="text-sm">
+                  Para revisar los detalles y aprobar la campaña
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

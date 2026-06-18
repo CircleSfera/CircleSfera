@@ -318,6 +318,8 @@ export class AdminService {
         createdAt: u.createdAt,
         profile: u.profile,
         postCount: u._count.posts,
+        identityVerifiedAt: u.identityVerifiedAt,
+        stripeIdentitySessionId: u.stripeIdentitySessionId,
       })),
       meta: {
         total,
@@ -420,6 +422,27 @@ export class AdminService {
       `Nivel: ${data.verificationLevel || 'n/a'}, Tipo: ${
         data.accountType || 'n/a'
       }`,
+    );
+    await this.invalidateProfileCache(userId);
+    return result;
+  }
+
+  /** Revoke Stripe Identity KYC status. */
+  async revokeUserKYC(adminId: string, userId: string) {
+    const result = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        identityVerifiedAt: null,
+        stripeIdentitySessionId: null,
+        verificationLevel: 'BASIC',
+      },
+    });
+    await this.logAction(
+      adminId,
+      AdminAction.UPDATE_USER_STATUS,
+      'user',
+      userId,
+      'Revoked KYC Verification',
     );
     await this.invalidateProfileCache(userId);
     return result;

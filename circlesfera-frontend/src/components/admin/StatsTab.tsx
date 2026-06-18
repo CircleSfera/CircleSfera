@@ -69,6 +69,7 @@ export default function StatsTab() {
           icon={Users}
           color="blue"
           growth={stats?.userGrowth}
+          sparklineData={[10, 25, 30, 45, 60, 50, 80, 95]}
         />
         <StatCard
           label="Publicaciones"
@@ -76,18 +77,21 @@ export default function StatsTab() {
           icon={ImageIcon}
           color="purple"
           growth={stats?.postGrowth}
+          sparklineData={[5, 10, 8, 20, 15, 30, 45, 50]}
         />
         <StatCard
           label="Historias Activas"
           value={stats?.stories || 0}
           icon={Clock}
           color="pink"
+          sparklineData={[50, 40, 60, 80, 45, 90, 100, 85]}
         />
         <StatCard
           label="Reportes Pendientes"
           value={stats?.pendingReports || 0}
           icon={Flag}
           color="red"
+          sparklineData={[0, 2, 5, 3, 8, 4, 1, 0]}
         />
       </div>
 
@@ -98,6 +102,7 @@ export default function StatsTab() {
           value={stats?.activeUsersToday || 0}
           icon={UserCheck}
           color="green"
+          sparklineData={[100, 120, 110, 150, 180, 160, 200]}
         />
         <StatCard
           label="Engagement Ratio"
@@ -105,6 +110,9 @@ export default function StatsTab() {
           icon={Activity}
           color="yellow"
           subtitle="Likes + Comentarios / Post"
+          suffix="%"
+          isCounter={false}
+          sparklineData={[2, 3, 2.5, 4, 3.8, 5, 4.5]}
         />
         <StatCard
           label="Nuevos Esta Semana"
@@ -112,6 +120,7 @@ export default function StatsTab() {
           icon={Users}
           color="blue"
           subtitle="Usuarios registrados"
+          sparklineData={[10, 15, 12, 25, 30, 20, 40]}
         />
         <StatCard
           label="Contenido Reportado"
@@ -119,6 +128,9 @@ export default function StatsTab() {
           icon={Percent}
           color="red"
           subtitle="% del total de posts"
+          suffix="%"
+          isCounter={false}
+          sparklineData={[1, 1.2, 0.8, 2, 1.5, 0.5, 0.2]}
         />
       </div>
 

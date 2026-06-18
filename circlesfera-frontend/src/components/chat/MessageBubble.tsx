@@ -93,8 +93,8 @@ export default memo(function MessageBubble({
           <div
             className={`px-5 py-3 text-[15px] leading-relaxed relative transition-all duration-300 ${
               isMe
-                ? `bg-linear-to-br from-brand-primary to-blue-600 text-white shadow-lg shadow-brand-primary/20 ${isSeq ? 'rounded-[24px]' : 'rounded-[24px] rounded-tr-[4px]'}`
-                : `bg-white/10 backdrop-blur-xl border border-white/10 text-white shadow-2xl ${isSeq ? 'rounded-[24px]' : 'rounded-[24px] rounded-tl-[4px]'}`
+                ? `bg-linear-to-br from-brand-primary to-brand-secondary text-white shadow-xl shadow-brand-primary/20 ${isSeq ? 'rounded-[24px]' : 'rounded-[24px] rounded-tr-[4px]'}`
+                : `glass-panel border border-white/10 text-white shadow-xl shadow-black/40 ${isSeq ? 'rounded-[24px]' : 'rounded-[24px] rounded-tl-[4px]'}`
             } ${isSeq ? 'mt-1' : 'mt-3'}`}
           >
             {/* Story Reply Preview */}

@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, Edit2, Mail, Save, Trash2, User, X } from 'lucide-react';
+import { Calendar, Edit2, Mail, Save, Trash2, User } from 'lucide-react';
 import { useState } from 'react';
 import { useDebounce } from '../../hooks/useDebounce';
 import type { WhitelistEntry } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { LoadingSpinner } from '../index';
+import AdminDrawer from './AdminDrawer';
 import {
   ActionButton,
   Pagination,
@@ -125,123 +126,110 @@ export default function WhitelistTab() {
         <Pagination meta={data?.meta} onPageChange={setPage} />
       </div>
 
-      {/* Edit Modal */}
-      {editingEntry && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="glass-panel w-full max-w-md rounded-2xl border border-white/10 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-white/2">
-              <h3 className="text-white font-black uppercase tracking-widest text-sm">
-                Editar Registro
-              </h3>
+      <AdminDrawer
+        isOpen={!!editingEntry}
+        onClose={() => setEditingEntry(null)}
+        title="Editar Registro"
+      >
+        {editingEntry && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              updateMutation.mutate({
+                id: editingEntry.id,
+                data: {
+                  name: formData.get('name') as string,
+                  email: formData.get('email') as string,
+                  status: formData.get('status') as WhitelistEntry['status'],
+                },
+              });
+            }}
+            className="space-y-6"
+          >
+            <div className="space-y-1.5">
+              <label
+                htmlFor="whitelist-name"
+                className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
+              >
+                Nombre
+              </label>
+              <input
+                id="whitelist-name"
+                name="name"
+                type="text"
+                defaultValue={editingEntry.name || ''}
+                className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="whitelist-email"
+                className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
+              >
+                Email
+              </label>
+              <input
+                id="whitelist-email"
+                name="email"
+                type="email"
+                defaultValue={editingEntry.email}
+                className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+                required
+                autoComplete="email"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="whitelist-status"
+                className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
+              >
+                Estado
+              </label>
+              <select
+                id="whitelist-status"
+                name="status"
+                defaultValue={editingEntry.status}
+                className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors appearance-none cursor-pointer"
+              >
+                <option value="VALID" className="bg-[#1a1a2e]">
+                  VALID
+                </option>
+                <option value="REGISTERED" className="bg-[#1a1a2e]">
+                  REGISTERED
+                </option>
+              </select>
+            </div>
+
+            <div className="pt-4 flex gap-3">
               <button
                 type="button"
                 onClick={() => setEditingEntry(null)}
-                className="p-1.5 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white transition-colors"
-                aria-label="Cerrar modal"
+                className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 text-gray-300 font-bold rounded-xl transition-all"
               >
-                <X size={20} />
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={updateMutation.isPending}
+                className="flex-1 py-3 px-4 bg-brand-primary hover:bg-brand-primary/80 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-brand-primary/20 transition-all flex items-center justify-center gap-2"
+              >
+                {updateMutation.isPending ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <>
+                    <Save size={18} />
+                    Guardar
+                  </>
+                )}
               </button>
             </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                updateMutation.mutate({
-                  id: editingEntry.id,
-                  data: {
-                    name: formData.get('name') as string,
-                    email: formData.get('email') as string,
-                    status: formData.get('status') as WhitelistEntry['status'],
-                  },
-                });
-              }}
-              className="p-6 space-y-4"
-            >
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="whitelist-name"
-                  className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
-                >
-                  Nombre
-                </label>
-                <input
-                  id="whitelist-name"
-                  name="name"
-                  type="text"
-                  defaultValue={editingEntry.name || ''}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="whitelist-email"
-                  className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
-                >
-                  Email
-                </label>
-                <input
-                  id="whitelist-email"
-                  name="email"
-                  type="email"
-                  defaultValue={editingEntry.email}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
-                  required
-                  autoComplete="email"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="whitelist-status"
-                  className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
-                >
-                  Estado
-                </label>
-                <select
-                  id="whitelist-status"
-                  name="status"
-                  defaultValue={editingEntry.status}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors appearance-none cursor-pointer"
-                >
-                  <option value="VALID" className="bg-[#1a1a2e]">
-                    VALID
-                  </option>
-                  <option value="REGISTERED" className="bg-[#1a1a2e]">
-                    REGISTERED
-                  </option>
-                </select>
-              </div>
-
-              <div className="pt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setEditingEntry(null)}
-                  className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 text-gray-300 font-bold rounded-xl transition-all"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={updateMutation.isPending}
-                  className="flex-1 py-3 px-4 bg-brand-primary hover:bg-brand-primary/80 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-brand-primary/20 transition-all flex items-center justify-center gap-2"
-                >
-                  {updateMutation.isPending ? (
-                    <LoadingSpinner size="sm" />
-                  ) : (
-                    <>
-                      <Save size={18} />
-                      Guardar
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+          </form>
+        )}
+      </AdminDrawer>
     </div>
   );
 }

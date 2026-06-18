@@ -183,6 +183,9 @@ export default function ConversationList() {
                 participants.find(
                   (p: Participant) => p.userId !== me?.userId,
                 ) || participants[0];
+              const myParticipant = participants.find(
+                (p: Participant) => p.userId === me?.userId,
+              );
               const other = otherParticipant?.user;
 
               const lastMsg = conv.messages[0];
@@ -192,8 +195,14 @@ export default function ConversationList() {
                 ? status.isOnline
                 : (other?.isOnline ?? false);
 
-              // Check if last message is unread (simple check for now, ideally strictly check read receipts)
-              const isUnread = lastMsg && lastMsg.senderId !== me?.userId; // simplified logic
+              // Check if last message is unread using lastReadAt timestamp
+              const isUnread = Boolean(
+                lastMsg &&
+                  lastMsg.senderId !== me?.userId &&
+                  (!myParticipant?.lastReadAt ||
+                    new Date(lastMsg.createdAt).getTime() >
+                      new Date(myParticipant.lastReadAt).getTime()),
+              );
 
               return (
                 <Link to={`/direct/inbox/t/${conv.id}`} key={conv.id}>
@@ -202,15 +211,17 @@ export default function ConversationList() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className={`group relative flex items-center p-3 rounded-xl transition-all duration-300 ${
-                      isActive ? 'bg-white/10 shadow-lg' : 'hover:bg-white/5'
+                    className={`group relative flex items-center p-3 rounded-2xl transition-all duration-300 ${
+                      isActive
+                        ? 'bg-white/10 shadow-lg shadow-black/20'
+                        : 'hover:bg-white/5 hover:scale-[1.02]'
                     }`}
                   >
                     {/* Active Indicator Bar */}
                     {isActive && (
                       <motion.div
                         layoutId="active-bar"
-                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-blue-500 rounded-r-full shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-linear-to-b from-brand-secondary to-brand-primary rounded-r-full shadow-[0_0_15px_rgba(131,58,180,0.5)]"
                       />
                     )}
 
@@ -236,7 +247,7 @@ export default function ConversationList() {
                         </span>
                         {lastMsg && (
                           <span
-                            className={`text-[10px] font-medium ${isActive ? 'text-white/70' : 'text-gray-500'}`}
+                            className={`text-[10px] font-bold ${isActive ? 'text-brand-primary drop-shadow-[0_0_5px_rgba(131,58,180,0.5)]' : 'text-gray-500'}`}
                           >
                             {getTimeString(lastMsg.createdAt)}
                           </span>

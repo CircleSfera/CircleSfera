@@ -122,8 +122,26 @@ export default function ChatWindow() {
       const conv = res.data.find((c: Conversation) => c.id === id);
       if (conv) {
         setConversation(conv);
-        markRead(id);
-        queryClient.invalidateQueries({ queryKey: ['unreadMessages'] });
+
+        // Use the chatApi to persist the read status in the database
+        chatApi
+          .markAsRead(id)
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey: ['unreadMessages'] });
+          })
+          .catch((err) => {
+            logger.error('Failed to mark conversation as read', err);
+          });
+
+        // Try to emit socket event if possible, but the API is the source of truth
+        if (!conv.isGroup && conv.participants) {
+          const other = conv.participants.find(
+            (p: Participant) => p.userId !== profile?.id,
+          );
+          if (other) {
+            markRead(id, other.userId);
+          }
+        }
       }
     });
   }, [id, profile, markRead, queryClient]);
@@ -147,8 +165,20 @@ export default function ChatWindow() {
 
           return [...prev, msg];
         });
-        markRead(id);
-        queryClient.invalidateQueries({ queryKey: ['unreadMessages'] });
+
+        // Persist read status in database on new message while window is open
+        chatApi
+          .markAsRead(id)
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey: ['unreadMessages'] });
+          })
+          .catch((err) => {
+            logger.error('Failed to mark conversation as read', err);
+          });
+
+        if (msg.senderId !== profile?.id) {
+          markRead(id, msg.senderId);
+        }
       }
     };
 
@@ -212,7 +242,7 @@ export default function ChatWindow() {
       socket.off('message_reaction', handleReaction);
       socket.off('messages_read', handleMessagesRead);
     };
-  }, [socket, id, markRead, queryClient]);
+  }, [socket, id, markRead, queryClient, profile?.id]);
 
   // Helper to get display name/avatar
   const getChatInfo = () => {
@@ -349,10 +379,11 @@ export default function ChatWindow() {
     );
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = async (mode: 'me' | 'both') => {
     if (!id) return;
     try {
-      await chatApi.deleteConversation(id);
+      await chatApi.deleteConversation(id, mode);
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
       navigate('/direct/inbox');
     } catch (error) {
       logger.error('Failed to delete conversation', error);
@@ -524,7 +555,7 @@ export default function ChatWindow() {
       </div>
 
       {/* Details Header */}
-      <div className="px-4 md:px-6 pt-[calc(1.2rem+env(safe-area-inset-top,0px))] pb-4 flex items-center justify-between bg-black/40 backdrop-blur-3xl border-b border-white/10 relative z-30 shrink-0 shadow-xl w-full">
+      <div className="px-4 md:px-6 pt-[calc(1.2rem+env(safe-area-inset-top,0px))] pb-4 flex items-center justify-between bg-black/20 backdrop-blur-3xl border-b border-white/10 relative z-30 shrink-0 shadow-2xl w-full">
         <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1 mr-4">
           <Link
             to="/direct/inbox"
@@ -776,7 +807,7 @@ export default function ChatWindow() {
       </div>
 
       {/* Input Area */}
-      <div className="px-4 md:px-6 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3 bg-black/40 backdrop-blur-2xl border-t border-white/10 relative z-30 shrink-0 w-full mt-auto shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+      <div className="px-4 md:px-6 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3 bg-transparent relative z-30 shrink-0 w-full mt-auto">
         <AnimatePresence>
           {replyTo && (
             <motion.div
@@ -817,7 +848,7 @@ export default function ChatWindow() {
           ) : (
             <form
               onSubmit={sendMessage}
-              className={`flex items-end gap-1.5 bg-white/5 backdrop-blur-3xl p-1.5 rounded-[28px] border border-white/10 shadow-inner focus-within:bg-white/10 focus-within:border-white/20 transition-all duration-300 ${replyTo ? 'rounded-t-[10px] border-t-0' : ''}`}
+              className={`flex items-end gap-1.5 glass-panel p-1.5 rounded-[32px] border border-white/10 shadow-2xl shadow-black/50 focus-within:border-brand-primary/50 focus-within:shadow-[0_0_20px_rgba(131,58,180,0.2)] transition-all duration-300 ${replyTo ? 'rounded-t-[10px] border-t-0' : ''}`}
             >
               <input
                 type="file"
@@ -860,7 +891,7 @@ export default function ChatWindow() {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   disabled={!input.trim() && !isUploading}
-                  className="p-2.5 rounded-full bg-linear-to-tr from-blue-600 to-indigo-500 text-white font-semibold hover:from-blue-500 hover:to-indigo-400 disabled:opacity-50 transition-colors shrink-0 shadow-lg shadow-blue-500/30 mb-0.5 mr-0.5"
+                  className="p-3 rounded-full bg-linear-to-tr from-brand-primary to-brand-secondary text-white font-semibold hover:opacity-90 disabled:opacity-50 transition-colors shrink-0 shadow-lg shadow-brand-primary/30 mb-0.5 mr-0.5"
                 >
                   <Send size={18} fill="currentColor" className="ml-0.5" />
                 </motion.button>
@@ -915,20 +946,31 @@ export default function ChatWindow() {
                 <p className="text-white/60 text-sm mb-6">
                   {t('chat.delete_chat_desc')}
                 </p>
-                <div className="flex gap-3 w-full">
+                <div className="flex flex-col gap-2.5 w-full">
                   <button
                     type="button"
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium transition-colors"
+                    onClick={() => confirmDelete('me')}
+                    className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium transition-colors"
                   >
-                    {t('chat.cancel')}
+                    {t('chat.delete_for_me', {
+                      defaultValue: 'Eliminar para mí',
+                    })}
                   </button>
                   <button
                     type="button"
-                    onClick={confirmDelete}
-                    className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold transition-colors shadow-lg shadow-red-500/20"
+                    onClick={() => confirmDelete('both')}
+                    className="w-full py-2.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 text-red-500 font-bold transition-colors border border-red-500/20"
                   >
-                    {t('chat.delete')}
+                    {t('chat.delete_for_everyone', {
+                      defaultValue: 'Eliminar para todos',
+                    })}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="w-full py-2.5 rounded-xl bg-transparent hover:bg-white/5 text-gray-400 font-medium transition-colors mt-2"
+                  >
+                    {t('chat.cancel')}
                   </button>
                 </div>
               </div>
