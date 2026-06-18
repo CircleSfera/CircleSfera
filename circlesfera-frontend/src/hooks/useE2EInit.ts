@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
+import { apiClient } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
-import { E2EService } from './e2e';
-import apiClient from '../services/api';
+import { E2EService } from '../utils/e2e';
 
 /**
  * Hook to initialize E2EE keys when the user logs in.

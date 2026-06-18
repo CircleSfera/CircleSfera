@@ -230,7 +230,7 @@ export default function ConversationList() {
                         src={other?.profile?.avatar || undefined}
                         thumbnailUrl={other?.profile?.thumbnailUrl}
                         standardUrl={other?.profile?.standardUrl}
-                        alt={other?.profile?.username}
+                        alt={other?.profile?.username || 'User'}
                         className={`w-12 h-12 transition-all hover:opacity-90`}
                         isOnline={isOnline}
                       />

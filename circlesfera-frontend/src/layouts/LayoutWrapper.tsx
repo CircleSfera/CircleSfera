@@ -5,11 +5,11 @@ import Sidebar from '../components/navigation/Sidebar';
 import TopNav from '../components/navigation/TopNav';
 
 import StoryViewer from '../components/StoryViewer';
+import { useE2EInit } from '../hooks/useE2EInit';
 import { useAuthStore } from '../stores/authStore';
 import { useNotificationsStore } from '../stores/notificationsStore';
 import { useSocketStore } from '../stores/socketStore';
 import { useStoryStore } from '../stores/storyStore';
-import { useE2EInit } from '../hooks/useE2EInit';
 
 export default function LayoutWrapper({
   children,

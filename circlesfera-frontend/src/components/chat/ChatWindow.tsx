@@ -275,7 +275,7 @@ export default function ChatWindow() {
     // Filter out me strictly by username (case-insensitive) AND ID
     // We want to find the participant that is NOT me.
     const others = conversation.participants.filter((p: Participant) => {
-      const pUsername = p.user.profile.username?.toLowerCase();
+      const pUsername = p.user?.profile.username?.toLowerCase();
       const pId = p.userId;
       return pUsername !== myUsername && pId !== myId;
     });
@@ -284,10 +284,10 @@ export default function ChatWindow() {
       myUsername,
       myId,
       allParticipants: conversation.participants.map((p: Participant) => ({
-        u: p.user.profile.username,
+        u: p.user?.profile.username,
         id: p.userId,
       })),
-      others: others.map((p: Participant) => p.user.profile.username),
+      others: others.map((p: Participant) => p.user?.profile.username),
     });
 
     // If others exist, take the first one.
@@ -450,17 +450,18 @@ export default function ChatWindow() {
     const doSend = async () => {
       try {
         let finalContent = input;
-        let e2eKeys: Record<string, string> | undefined = undefined;
+        let e2eKeys: Record<string, string> | undefined;
 
         // Try to encrypt if participants have E2E keys
         const keysMap: Record<string, CryptoKey> = {};
         
-        if (conversation && conversation.participants) {
+        if (conversation?.participants) {
           for (const p of conversation.participants) {
-            if (p.user?.e2ePublicKey) {
+            const pubKey = p.user?.e2ePublicKey;
+            if (pubKey) {
               try {
-                keysMap[p.userId] = await E2EService.importPublicKey(p.user.e2ePublicKey);
-              } catch (e) {
+                keysMap[p.userId] = await E2EService.importPublicKey(pubKey);
+              } catch {
                 console.warn('Invalid public key for user', p.userId);
               }
             }
@@ -473,7 +474,9 @@ export default function ChatWindow() {
           if (myPubB64 && !keysMap[profile.id]) {
             try {
                keysMap[profile.id] = await E2EService.importPublicKey(myPubB64);
-            } catch(e) {}
+            } catch {
+              // Ignore errors fetching my own key
+            }
           }
 
           const aesKey = await E2EService.generateSymmetricKey();
@@ -521,7 +524,7 @@ export default function ChatWindow() {
         const user = conversation.participants.find(
           (p: Participant) => p.userId === typingIds[0],
         );
-        return t('chat.is_typing', { username: user?.user.profile.username });
+        return t('chat.is_typing', { username: user?.user?.profile.username });
       }
       return t('chat.people_typing', { count: typingIds.length });
     } else {
@@ -627,12 +630,12 @@ export default function ChatWindow() {
                         <img
                           key={p.id}
                           src={
-                            p.user.profile.thumbnailUrl ||
-                            p.user.profile.avatar ||
+                            p.user?.profile.thumbnailUrl ||
+                            p.user?.profile.avatar ||
                             '/default-avatar.png'
                           }
                           className="w-full h-full object-cover"
-                          alt={p.user.profile.username}
+                          alt={p.user?.profile.username || 'User'}
                           loading="lazy"
                         />
                       ))}
