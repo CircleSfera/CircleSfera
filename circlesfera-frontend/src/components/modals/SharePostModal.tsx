@@ -57,7 +57,7 @@ export default function SharePostModal({
     const otherParticipant = c.participants.find(
       (p: Participant) => p.userId !== post.userId,
     );
-    return otherParticipant?.user.profile.username
+    return otherParticipant?.user?.profile.username
       .toLowerCase()
       .includes(search.toLowerCase());
   });
@@ -129,9 +129,9 @@ export default function SharePostModal({
                   : null;
                 const name = c.isGroup
                   ? c.name
-                  : otherParticipant?.user.profile.username;
+                  : otherParticipant?.user?.profile.username;
                 const avatar = !c.isGroup
-                  ? otherParticipant?.user.profile.avatar
+                  ? otherParticipant?.user?.profile.avatar
                   : null;
                 const isSent = selectedIds.includes(c.id);
 

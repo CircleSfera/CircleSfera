@@ -117,7 +117,7 @@ export default function Admin() {
               {activeTab === 'promotions' && (
                 <PromotionsTab onToast={addToast} />
               )}
-              {activeTab === 'verification' && <UserVerificationTab />}
+              {activeTab === 'verification' && <UserVerificationTab onToast={addToast} />}
               {activeTab === 'newsletter' && (
                 <NewsletterTab onToast={addToast} />
               )}
