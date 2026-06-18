@@ -86,9 +86,17 @@ export interface PostMediaItem {
   filter?: string;
   altText?: string;
 }
-export type Participant = IParticipant;
-export type Conversation = Omit<IConversation, 'messages'> & {
+export type Participant = Omit<IParticipant, 'user'> & {
+  user?: {
+    id: string;
+    isOnline?: boolean;
+    e2ePublicKey?: string;
+    profile: Profile;
+  };
+};
+export type Conversation = Omit<IConversation, 'messages' | 'participants'> & {
   messages: Message[];
+  participants: Participant[];
 };
 export type Notification = INotification;
 export type SearchResult = ISearchResult;
@@ -131,6 +139,7 @@ export type Message = Omit<
   IMessage,
   'sender' | 'replyTo' | 'createdAt' | 'updatedAt'
 > & {
+  tempId?: string;
   mediaType?: string;
   e2eKeys?: Record<string, string>;
   createdAt: Date | string;
@@ -143,7 +152,7 @@ export type Message = Omit<
     id: string;
     reaction: string;
     userId: string;
-    user: {
+    user?: {
       id: string;
       e2ePublicKey?: string;
       profile: {

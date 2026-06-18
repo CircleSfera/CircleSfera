@@ -20,7 +20,7 @@
     "forceConsistentCasingInFileNames": true,
     "ignoreDeprecations": "5.0",
 
-    "types": ["node"]
+    "types": ["node", "vitest/globals"]
   },
   "include": ["src/**/*"],
   "exclude": [

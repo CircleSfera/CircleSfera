@@ -117,6 +117,10 @@ model User {
   resetToken         String?   @unique
   resetTokenExpires  DateTime?
 
+  // E2E Encryption
+  e2ePublicKey           String? // User's public key for E2EE (Base64)
+  e2ePrivateKeyEncrypted String? // User's private key encrypted with their password (Base64)
+
   // Verification & Account Type
   verificationLevel VerificationLevel @default(BASIC)
   accountType       AccountType       @default(PERSONAL)
@@ -138,10 +142,6 @@ model User {
 
   // Support
   supportTickets SupportTicket[]
-
-  // E2E Encryption
-  e2ePublicKey           String?
-  e2ePrivateKeyEncrypted String?
 
   // Edit Projects (Drafts)
   editProjects     EditProject[]

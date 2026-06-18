@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import type { Message, MessageReaction } from '@prisma/client';
-import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
 
@@ -20,7 +19,6 @@ export class ChatService {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(ModuleRef) private moduleRef: ModuleRef,
-    @Inject(CryptoService) private cryptoService: CryptoService,
   ) {}
 
   private get gateway(): AppGateway {
@@ -218,7 +216,7 @@ export class ChatService {
     const message = await this.prisma.message.create({
       data: {
         content, // Client sends ciphertext
-        e2eKeys: e2eKeys ? e2eKeys : null,
+        e2eKeys: e2eKeys ? e2eKeys : undefined,
         senderId,
         conversationId: conversation.id,
         url,
@@ -540,7 +538,22 @@ export class ChatService {
       );
     }
 
-    // Emit deletion event to participants
+
+
+    if (mode === 'me') {
+      // Soft delete for this user only
+      await this.prisma.participant.update({
+        where: { id: isParticipant.id },
+        data: { deletedAt: new Date() },
+      });
+      // Emit only to the user who deleted it
+      this.gateway.server
+        .to(`user:${userId}`)
+        .emit('conversationDeleted', { conversationId });
+      return { success: true, mode: 'me' };
+    }
+
+    // Emit deletion event to all participants
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
       include: { participants: true },
@@ -552,15 +565,6 @@ export class ChatService {
           .to(`user:${p.userId}`)
           .emit('conversationDeleted', { conversationId });
       });
-    }
-
-    if (mode === 'me') {
-      // Soft delete for this user only
-      await this.prisma.participant.update({
-        where: { id: isParticipant.id },
-        data: { deletedAt: new Date() },
-      });
-      return { success: true, mode: 'me' };
     }
 
     // mode === 'both' -> Delete conversation entirely (cascades to participants and messages)

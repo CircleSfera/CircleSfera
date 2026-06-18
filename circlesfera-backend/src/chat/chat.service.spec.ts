@@ -334,7 +334,8 @@ describe('ChatService', () => {
       mockPrismaService.conversation.delete.mockResolvedValueOnce({ id: 'c1' });
 
       const result = await service.deleteConversation('c1', 'userA');
-      expect(result.id).toBe('c1');
+      expect(result.success).toBe(true);
+      expect(result.mode).toBe('both');
       expect(mockTo).toHaveBeenCalledWith('user:userA');
       expect(mockTo).toHaveBeenCalledWith('user:userB');
       expect(mockEmit).toHaveBeenCalledWith('conversationDeleted', {

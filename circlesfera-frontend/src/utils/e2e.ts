@@ -5,42 +5,42 @@
  * AES-GCM for encrypting the actual message content.
  */
 
-export class E2EService {
-  private static readonly ALGO_ASYM = {
+export const E2EService = {
+  ALGO_ASYM: {
     name: 'RSA-OAEP',
     modulusLength: 2048,
     publicExponent: new Uint8Array([1, 0, 1]),
     hash: 'SHA-256',
-  };
+  },
 
-  private static readonly ALGO_SYM = {
+  ALGO_SYM: {
     name: 'AES-GCM',
     length: 256,
-  };
+  },
 
   /** Generate a new RSA-OAEP Key Pair */
-  static async generateKeyPair(): Promise<CryptoKeyPair> {
+  async generateKeyPair(): Promise<CryptoKeyPair> {
     return window.crypto.subtle.generateKey(
       this.ALGO_ASYM,
       true,
       ['encrypt', 'decrypt', 'wrapKey', 'unwrapKey'],
     );
-  }
+  },
 
   /** Export Public Key to Base64 (SPKI) */
-  static async exportPublicKey(key: CryptoKey): Promise<string> {
+  async exportPublicKey(key: CryptoKey): Promise<string> {
     const exported = await window.crypto.subtle.exportKey('spki', key);
     return this.bufferToBase64(exported);
-  }
+  },
 
   /** Export Private Key to Base64 (PKCS8) */
-  static async exportPrivateKey(key: CryptoKey): Promise<string> {
+  async exportPrivateKey(key: CryptoKey): Promise<string> {
     const exported = await window.crypto.subtle.exportKey('pkcs8', key);
     return this.bufferToBase64(exported);
-  }
+  },
 
   /** Import Public Key from Base64 */
-  static async importPublicKey(base64Key: string): Promise<CryptoKey> {
+  async importPublicKey(base64Key: string): Promise<CryptoKey> {
     const buffer = this.base64ToBuffer(base64Key);
     return window.crypto.subtle.importKey(
       'spki',
@@ -49,10 +49,10 @@ export class E2EService {
       true,
       ['encrypt', 'wrapKey'],
     );
-  }
+  },
 
   /** Import Private Key from Base64 */
-  static async importPrivateKey(base64Key: string): Promise<CryptoKey> {
+  async importPrivateKey(base64Key: string): Promise<CryptoKey> {
     const buffer = this.base64ToBuffer(base64Key);
     return window.crypto.subtle.importKey(
       'pkcs8',
@@ -61,19 +61,19 @@ export class E2EService {
       true,
       ['decrypt', 'unwrapKey'],
     );
-  }
+  },
 
   /** Generate a random AES-GCM Symmetric Key */
-  static async generateSymmetricKey(): Promise<CryptoKey> {
+  async generateSymmetricKey(): Promise<CryptoKey> {
     return window.crypto.subtle.generateKey(
       this.ALGO_SYM,
       true,
       ['encrypt', 'decrypt'],
     );
-  }
+  },
 
   /** Encrypt text using AES-GCM key */
-  static async encryptMessage(
+  async encryptMessage(
     text: string,
     aesKey: CryptoKey,
   ): Promise<{ ciphertext: string; iv: string }> {
@@ -91,10 +91,10 @@ export class E2EService {
       ciphertext: this.bufferToBase64(encrypted),
       iv: this.bufferToBase64(iv.buffer),
     };
-  }
+  },
 
   /** Decrypt text using AES-GCM key */
-  static async decryptMessage(
+  async decryptMessage(
     ciphertextBase64: string,
     ivBase64: string,
     aesKey: CryptoKey,
@@ -110,10 +110,10 @@ export class E2EService {
 
     const decoder = new TextDecoder();
     return decoder.decode(decrypted);
-  }
+  },
 
   /** Wrap (Encrypt) AES key with recipient's RSA Public Key */
-  static async wrapSymmetricKey(
+  async wrapSymmetricKey(
     aesKey: CryptoKey,
     publicKey: CryptoKey,
   ): Promise<string> {
@@ -124,10 +124,10 @@ export class E2EService {
       this.ALGO_ASYM,
     );
     return this.bufferToBase64(wrapped);
-  }
+  },
 
   /** Unwrap (Decrypt) AES key with my RSA Private Key */
-  static async unwrapSymmetricKey(
+  async unwrapSymmetricKey(
     wrappedKeyBase64: string,
     privateKey: CryptoKey,
   ): Promise<CryptoKey> {
@@ -141,24 +141,24 @@ export class E2EService {
       true,
       ['encrypt', 'decrypt'],
     );
-  }
+  },
 
   // --- Utility functions ---
-  private static bufferToBase64(buffer: ArrayBuffer): string {
+  bufferToBase64(buffer: ArrayBuffer): string {
     const bytes = new Uint8Array(buffer);
     let binary = '';
     for (let i = 0; i < bytes.byteLength; i++) {
       binary += String.fromCharCode(bytes[i]);
     }
     return window.btoa(binary);
-  }
+  },
 
-  private static base64ToBuffer(base64: string): ArrayBuffer {
+  base64ToBuffer(base64: string): ArrayBuffer {
     const binary = window.atob(base64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) {
       bytes[i] = binary.charCodeAt(i);
     }
     return bytes.buffer;
-  }
-}
+  },
+};
