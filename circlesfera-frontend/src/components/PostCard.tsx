@@ -37,6 +37,7 @@ export default memo(function PostCard({ post }: PostCardProps) {
   const [showTipModal, setShowTipModal] = useState(false);
   const [editCaption, setEditCaption] = useState(post.caption || '');
   const [likesCount, setLikesCount] = useState(post._count?.likes || 0);
+  const [isDeleted, setIsDeleted] = useState(false);
 
   // Refs
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -94,9 +95,13 @@ export default memo(function PostCard({ post }: PostCardProps) {
     mutationFn: () => postsApi.delete(post.id),
     onSuccess: () => {
       setShowDeleteModal(false);
+      setIsDeleted(true);
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+      queryClient.invalidateQueries({ queryKey: ['frames'] });
+      queryClient.invalidateQueries({ queryKey: ['userFrames'] });
+      queryClient.invalidateQueries({ queryKey: ['userTagged'] });
     },
   });
 
@@ -115,6 +120,8 @@ export default memo(function PostCard({ post }: PostCardProps) {
     e.preventDefault();
     updateMutation.mutate(editCaption);
   };
+
+  if (isDeleted) return null;
 
   return (
     <>
