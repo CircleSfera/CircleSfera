@@ -20,7 +20,7 @@ export default function LayoutWrapper({
   const location = useLocation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { connect, disconnect } = useSocketStore();
-  const hideNavRoutes = ['/accounts/login', '/accounts/emailsignup', '/admin'];
+  const hideNavRoutes = ['/accounts/login', '/accounts/emailsignup'];
 
   // Only show nav if authenticated AND not in hidden routes
   // This ensures Landing Page (at '/') doesn't show nav when not logged in
@@ -99,7 +99,9 @@ export default function LayoutWrapper({
         >
           <div
             className={
-              shouldShowNav && !location.pathname.startsWith('/direct')
+              shouldShowNav &&
+              !location.pathname.startsWith('/direct') &&
+              !location.pathname.startsWith('/admin')
                 ? 'mx-auto max-w-5xl px-4'
                 : `w-full h-full ${shouldShowNav ? 'md:pb-10' : ''}`
             }

@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import type { Conversation, Message, MessageReaction } from '@prisma/client';
+import type { Message, MessageReaction } from '@prisma/client';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
@@ -257,6 +257,17 @@ export class ChatService {
       },
     });
 
+    // 3. Reactivate conversation for all participants (if they had deleted it)
+    await this.prisma.participant.updateMany({
+      where: {
+        conversationId: conversation.id,
+        deletedAt: { not: null },
+      },
+      data: {
+        deletedAt: null,
+      },
+    });
+
     // Decrypt the content for real-time broadcast and returning
     message.content = this.cryptoService.decrypt(message.content);
 
@@ -293,13 +304,14 @@ export class ChatService {
    * @param userId - The authenticated user's ID
    * @returns Array of conversations with participants and last message
    */
-  async getConversations(userId: string): Promise<Conversation[]> {
+  async getConversations(userId: string) {
     // Find all conversations where the user is a participant
     const conversations = await this.prisma.conversation.findMany({
       where: {
         participants: {
           some: {
             userId,
+            deletedAt: null,
           },
         },
       },
@@ -500,7 +512,11 @@ export class ChatService {
    * @throws NotFoundException if conversation not found
    * @throws ForbiddenException if user is not a participant
    */
-  async deleteConversation(conversationId: string, userId: string) {
+  async deleteConversation(
+    conversationId: string,
+    userId: string,
+    mode: 'me' | 'both' = 'both',
+  ) {
     const isParticipant = await this.prisma.participant.findFirst({
       where: {
         conversationId,
@@ -528,9 +544,19 @@ export class ChatService {
       });
     }
 
-    // Delete conversation (cascades to participants and messages)
-    return await this.prisma.conversation.delete({
+    if (mode === 'me') {
+      // Soft delete for this user only
+      await this.prisma.participant.update({
+        where: { id: isParticipant.id },
+        data: { deletedAt: new Date() },
+      });
+      return { success: true, mode: 'me' };
+    }
+
+    // mode === 'both' -> Delete conversation entirely (cascades to participants and messages)
+    await this.prisma.conversation.delete({
       where: { id: conversationId },
     });
+    return { success: true, mode: 'both' };
   }
 }

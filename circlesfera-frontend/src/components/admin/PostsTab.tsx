@@ -14,7 +14,7 @@ import {
   SearchInput,
   Table,
 } from './AdminTable';
-import PostPreviewModal from './PostPreviewModal';
+import PostPreviewDrawer from './PostPreviewDrawer';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
@@ -216,9 +216,9 @@ export default function PostsTab({ onToast }: Props) {
         <Pagination meta={data?.meta} onPageChange={setPage} />
       </div>
 
-      {/* Preview Modal */}
+      {/* Preview Drawer */}
       {previewPost && (
-        <PostPreviewModal
+        <PostPreviewDrawer
           post={previewPost}
           onClose={() => setPreviewPost(null)}
         />

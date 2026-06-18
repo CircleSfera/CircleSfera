@@ -9,6 +9,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -104,7 +105,8 @@ export class ChatController {
   async deleteConversation(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
+    @Query('mode') mode?: 'me' | 'both',
   ) {
-    return this.chatService.deleteConversation(id, req.user.userId);
+    return this.chatService.deleteConversation(id, req.user.userId, mode);
   }
 }

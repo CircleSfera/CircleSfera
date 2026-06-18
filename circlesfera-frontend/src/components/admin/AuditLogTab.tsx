@@ -51,7 +51,7 @@ export default function AuditLogTab() {
           {data?.data?.map((log) => (
             <tr
               key={log.id}
-              className="hidden md:table-row hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
+              className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
             >
               <td className="px-4 py-3 text-gray-400 text-sm whitespace-nowrap">
                 {new Date(log.createdAt).toLocaleString()}

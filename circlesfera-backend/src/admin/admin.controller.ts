@@ -124,6 +124,12 @@ export class AdminController {
     return this.adminService.updateUserStatus(req.user.userId, id, data);
   }
 
+  /** Revoke Stripe Identity KYC status. */
+  @Post('users/:id/revoke-kyc')
+  async revokeUserKYC(@Param('id') id: string, @Req() req: AuthRequest) {
+    return this.adminService.revokeUserKYC(req.user.userId, id);
+  }
+
   /** Hard-delete a user account. */
   @Delete('users/:id')
   async deleteUser(@Param('id') id: string, @Req() req: AuthRequest) {

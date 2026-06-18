@@ -1,18 +1,50 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MoreVertical, Search, ShieldCheck } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  ArrowLeft,
+  Check,
+  CheckCircle2,
+  Clock,
+  RefreshCw,
+  ShieldAlert,
+  ShieldCheck,
+  UserX,
+} from 'lucide-react';
 import { useState } from 'react';
-import { type AdminUser, adminApi } from '../../services/admin.service';
+import { adminApi } from '../../services/admin.service';
+import { LoadingSpinner } from '../index';
 import UserAvatar from '../UserAvatar';
-import type { VerificationLevel } from '../VerificationBadge';
-import VerificationBadge from '../VerificationBadge';
+import VerificationBadge, {
+  type VerificationLevel,
+} from '../VerificationBadge';
+import { Pagination, SearchInput } from './AdminTable';
 
-export default function UserVerificationTab() {
+function timeAgo(date: string | Date): string {
+  const now = Date.now();
+  const d = new Date(date).getTime();
+  const diff = Math.max(0, now - d);
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return 'ahora';
+  if (mins < 60) return `hace ${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `hace ${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `hace ${days}d`;
+}
+
+export default function UserVerificationTab({
+  onToast,
+}: {
+  onToast: (msg: string, type: 'success' | 'error') => void;
+}) {
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const { data: usersData, isLoading } = useQuery({
-    queryKey: ['admin-users', searchTerm],
-    queryFn: () => adminApi.getUsers(1, 50, searchTerm), // Assuming this exists or I'll create it
+    queryKey: ['admin-users', page, searchTerm],
+    queryFn: () => adminApi.getUsers(page, 20, searchTerm),
   });
 
   const updateVerificationMutation = useMutation({
@@ -28,153 +60,404 @@ export default function UserVerificationTab() {
       adminApi.updateUserStatus(userId, {
         verificationLevel: level,
         accountType,
-      }), // Assuming this exists or I'll create it
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      onToast('Perfil actualizado correctamente', 'success');
     },
+    onError: () => onToast('Error al actualizar perfil', 'error'),
+  });
+
+  const revokeKycMutation = useMutation({
+    mutationFn: (userId: string) => adminApi.revokeUserKYC(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      onToast('Verificación KYC revocada', 'success');
+    },
+    onError: () => onToast('Error al revocar KYC', 'error'),
   });
 
   const users = usersData?.data?.data || [];
+  const selectedUser = users.find((u) => u.id === selectedUserId);
+
+  // Local state for the right pane form
+  const [draftLevel, setDraftLevel] = useState<VerificationLevel | null>(null);
+  const [draftType, setDraftType] = useState<string | null>(null);
+
+  // Reset drafts when selection changes
+  if (selectedUser && draftLevel === null && draftType === null) {
+    setDraftLevel(
+      (selectedUser.verificationLevel as VerificationLevel) || 'BASIC',
+    );
+    setDraftType(selectedUser.accountType || 'PERSONAL');
+  } else if (!selectedUser && draftLevel !== null) {
+    setDraftLevel(null);
+    setDraftType(null);
+  }
+
+  const hasChanges =
+    selectedUser &&
+    (draftLevel !== selectedUser.verificationLevel ||
+      draftType !== selectedUser.accountType);
+
+  const handleSave = () => {
+    if (!selectedUser || !draftLevel || !draftType) return;
+    updateVerificationMutation.mutate({
+      userId: selectedUser.id,
+      level: draftLevel,
+      accountType: draftType,
+    });
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="flex flex-col h-[calc(100vh-12rem)] space-y-6">
+      {/* Header & Controls */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
         <div>
           <h2 className="text-2xl font-black text-white flex items-center gap-2">
             <ShieldCheck className="text-brand-primary" />
-            Gestión de Verificación
+            KYC & Verificación
           </h2>
           <p className="text-gray-400 text-sm">
-            Administra los niveles de confianza y roles de los creadores.
+            Estado de Stripe Identity y niveles de cuenta de los creadores.
           </p>
         </div>
 
-        <div className="relative group">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-brand-primary transition-colors"
-            size={18}
-          />
-          <input
-            type="text"
-            placeholder="Buscar usuarios..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-white placeholder-gray-500 focus:outline-hidden focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all w-full md:w-64"
-          />
-        </div>
+        <SearchInput
+          value={searchTerm}
+          onChange={(v) => {
+            setSearchTerm(v);
+            setPage(1);
+          }}
+          placeholder="Buscar usuarios..."
+        />
       </div>
 
-      <div className="glass-panel rounded-3xl overflow-hidden border border-white/5">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[700px]">
-            <thead>
-              <tr className="bg-white/5 text-[10px] uppercase tracking-widest font-black text-gray-500 border-b border-white/5">
-                <th className="px-6 py-4">Usuario</th>
-                <th className="px-6 py-4">Nivel Actual</th>
-                <th className="px-6 py-4">Tipo Cuenta</th>
-                <th className="px-6 py-4 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {isLoading ? (
-                ['v1', 'v2', 'v3', 'v4', 'v5'].map((id) => (
-                  <tr key={id} className="animate-pulse">
-                    <td className="px-6 py-4" colSpan={4}>
-                      <div className="h-10 bg-white/5 rounded-lg" />
-                    </td>
-                  </tr>
-                ))
-              ) : users.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-6 py-12 text-center text-gray-500 font-medium"
-                  >
-                    No se encontraron usuarios.
-                  </td>
-                </tr>
-              ) : (
-                (users as AdminUser[]).map((user) => (
-                  <tr
+      {/* Split Pane Layout */}
+      <div className="flex flex-1 min-h-0 gap-6">
+        {/* Left Pane: Queue */}
+        <div className={`w-full lg:w-1/3 flex-col glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-lg ${selectedUserId ? 'hidden lg:flex' : 'flex'}`}>
+          <div className="p-4 border-b border-white/5 shrink-0 bg-white/2">
+            <h3 className="font-bold text-white flex items-center gap-2">
+              <ShieldAlert size={16} className="text-brand-primary" />
+              Cola de Usuarios
+            </h3>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
+            {isLoading ? (
+              <div className="flex justify-center p-8">
+                <LoadingSpinner />
+              </div>
+            ) : users.length === 0 ? (
+              <div className="text-center p-8 text-gray-500 text-sm">
+                No se encontraron usuarios.
+              </div>
+            ) : (
+              users.map((user) => {
+                const isVerified = !!user.identityVerifiedAt;
+                const isPending = !isVerified && !!user.stripeIdentitySessionId;
+
+                return (
+                  <button
+                    type="button"
                     key={user.id}
-                    className="hover:bg-white/2 transition-colors group"
+                    onClick={() => {
+                      setSelectedUserId(user.id);
+                      setDraftLevel(
+                        (user.verificationLevel as VerificationLevel) ||
+                          'BASIC',
+                      );
+                      setDraftType(user.accountType || 'PERSONAL');
+                    }}
+                    className={`w-full text-left p-3 rounded-xl border transition-all ${
+                      selectedUserId === user.id
+                        ? 'bg-brand-primary/10 border-brand-primary/30'
+                        : 'bg-white/2 border-transparent hover:bg-white/5 hover:border-white/10'
+                    }`}
                   >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <UserAvatar
-                          src={user.profile?.avatar || undefined}
-                          thumbnailUrl={user.profile?.thumbnailUrl || undefined}
-                          standardUrl={user.profile?.standardUrl || undefined}
-                          alt={user.profile?.username || 'User'}
-                          size="sm"
-                        />
-                        <div>
-                          <div className="flex items-center gap-1.5 text-sm font-bold text-white">
-                            {user.profile?.username}
-                            <VerificationBadge
-                              level={
-                                user.verificationLevel as VerificationLevel
-                              }
-                              size={14}
-                            />
-                          </div>
-                          <div className="text-[10px] text-gray-500 font-medium">
-                            {user.email}
-                          </div>
+                    <div className="flex justify-between items-start mb-2">
+                      <span
+                        className={`text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${
+                          isVerified
+                            ? 'text-green-400 bg-green-400/10'
+                            : isPending
+                              ? 'text-yellow-400 bg-yellow-400/10'
+                              : 'text-zinc-400 bg-zinc-400/10'
+                        }`}
+                      >
+                        {isVerified
+                          ? 'KYC Completado'
+                          : isPending
+                            ? 'KYC en Proceso'
+                            : 'KYC No Iniciado'}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {timeAgo(user.createdAt)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <UserAvatar
+                        src={user.profile?.avatar || undefined}
+                        thumbnailUrl={user.profile?.thumbnailUrl || undefined}
+                        standardUrl={user.profile?.standardUrl || undefined}
+                        alt={user.profile?.username || 'User'}
+                        size="sm"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-white text-sm font-bold truncate">
+                            @{user.profile?.username || 'Desconocido'}
+                          </p>
+                          <VerificationBadge
+                            level={user.verificationLevel as VerificationLevel}
+                            size={14}
+                          />
                         </div>
+                        <p className="text-zinc-500 text-[10px] truncate uppercase tracking-widest font-black">
+                          {user.accountType}
+                        </p>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <select
-                        value={user.verificationLevel || 'BASIC'}
-                        onChange={(e) =>
-                          updateVerificationMutation.mutate({
-                            userId: user.id,
-                            level:
-                              (e.target.value as VerificationLevel) || 'BASIC',
-                            accountType: user.accountType || 'PERSONAL',
-                          })
-                        }
-                        className="bg-zinc-900 border border-white/10 rounded-lg text-xs font-bold py-1 px-2 text-white focus:outline-hidden focus:ring-1 focus:ring-brand-primary cursor-pointer hover:border-brand-primary/50 transition-colors"
-                      >
-                        <option value="BASIC">Standard</option>
-                        <option value="VERIFIED">Verificado</option>
-                        <option value="BUSINESS">Business</option>
-                        <option value="ELITE">Elite Creator</option>
-                      </select>
-                    </td>
-                    <td className="px-6 py-4">
-                      <select
-                        value={user.accountType || 'PERSONAL'}
-                        onChange={(e) =>
-                          updateVerificationMutation.mutate({
-                            userId: user.id,
-                            level:
-                              (user.verificationLevel as VerificationLevel) ||
-                              'BASIC',
-                            accountType: e.target.value,
-                          })
-                        }
-                        className="bg-zinc-900 border border-white/10 rounded-lg text-xs font-bold py-1 px-2 text-white focus:outline-hidden focus:ring-1 focus:ring-brand-primary cursor-pointer hover:border-brand-primary/50 transition-colors"
-                      >
-                        <option value="PERSONAL">Personal</option>
-                        <option value="CREATOR">Creador</option>
-                        <option value="BUSINESS">Empresa</option>
-                      </select>
-                    </td>
-                    <td className="px-6 py-4 text-right">
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          <div className="p-2 border-t border-white/5 shrink-0 bg-white/2">
+            <Pagination meta={usersData?.data?.meta} onPageChange={setPage} />
+          </div>
+        </div>
+
+        {/* Right Pane: Details & Actions */}
+        <div className={`flex-1 glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-lg flex-col relative ${selectedUserId ? 'flex' : 'hidden lg:flex'}`}>
+          <AnimatePresence mode="wait">
+            {selectedUser ? (
+              <motion.div
+                key={selectedUser.id}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.15 }}
+                className="flex flex-col h-full"
+              >
+                {/* Header Action Bar */}
+                <div className="p-4 border-b border-white/5 bg-white/2 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-4">
+                    <button 
+                      type="button"
+                      onClick={() => setSelectedUserId(null)}
+                      className="lg:hidden p-2 -ml-2 text-gray-400 hover:text-white"
+                    >
+                      <ArrowLeft size={20} />
+                    </button>
+                    <UserAvatar
+                      src={selectedUser.profile?.avatar || undefined}
+                      thumbnailUrl={
+                        selectedUser.profile?.thumbnailUrl || undefined
+                      }
+                      standardUrl={
+                        selectedUser.profile?.standardUrl || undefined
+                      }
+                      alt={selectedUser.profile?.username || 'User'}
+                      size="md"
+                    />
+                    <div>
+                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        @{selectedUser.profile?.username}
+                        <VerificationBadge
+                          level={
+                            selectedUser.verificationLevel as VerificationLevel
+                          }
+                          size={18}
+                        />
+                      </h3>
+                      <p className="text-xs text-gray-400">
+                        ID: {selectedUser.id}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {hasChanges && (
                       <button
                         type="button"
-                        className="p-2 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-all"
+                        onClick={handleSave}
+                        disabled={updateVerificationMutation.isPending}
+                        className="px-4 py-2 bg-brand-primary hover:bg-brand-primary-light text-white rounded-xl text-sm font-bold flex items-center gap-2 transition-colors shadow-lg shadow-brand-primary/20"
                       >
-                        <MoreVertical size={18} />
+                        <Check size={16} /> Guardar Cambios
                       </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                  {/* Stripe Identity KYC Status Card */}
+                  <div>
+                    <h4 className="text-white font-black text-sm uppercase tracking-widest mb-4">
+                      Estado de Stripe Identity (KYC)
+                    </h4>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {selectedUser.identityVerifiedAt ? (
+                        <div className="p-6 bg-green-500/10 border border-green-500/20 rounded-2xl flex flex-col items-center justify-center text-center">
+                          <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mb-4">
+                            <CheckCircle2 size={32} />
+                          </div>
+                          <h5 className="text-green-400 font-bold text-lg mb-1">
+                            Identidad Verificada
+                          </h5>
+                          <p className="text-xs text-gray-400">
+                            Stripe confirmó la identidad de este usuario el{' '}
+                            {new Date(
+                              selectedUser.identityVerifiedAt,
+                            ).toLocaleDateString()}
+                            .
+                          </p>
+                        </div>
+                      ) : selectedUser.stripeIdentitySessionId ? (
+                        <div className="p-6 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex flex-col items-center justify-center text-center">
+                          <div className="w-16 h-16 bg-yellow-500/20 text-yellow-400 rounded-full flex items-center justify-center mb-4">
+                            <Clock size={32} />
+                          </div>
+                          <h5 className="text-yellow-400 font-bold text-lg mb-1">
+                            Sesión Creadada (Pendiente)
+                          </h5>
+                          <p className="text-xs text-gray-400">
+                            El usuario ha iniciado el proceso pero aún no lo ha
+                            completado o está bajo revisión en Stripe.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="p-6 bg-white/5 border border-white/10 rounded-2xl flex flex-col items-center justify-center text-center">
+                          <div className="w-16 h-16 bg-white/10 text-gray-400 rounded-full flex items-center justify-center mb-4">
+                            <UserX size={32} />
+                          </div>
+                          <h5 className="text-gray-300 font-bold text-lg mb-1">
+                            No Iniciado
+                          </h5>
+                          <p className="text-xs text-gray-500">
+                            El usuario aún no ha requerido pasar por el proceso
+                            de verificación KYC.
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="p-6 bg-white/2 border border-white/5 rounded-2xl flex flex-col justify-between">
+                        <div>
+                          <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
+                            Session ID
+                          </p>
+                          <p className="text-white text-xs font-mono break-all bg-black/50 p-2 rounded-lg border border-white/10">
+                            {selectedUser.stripeIdentitySessionId || 'N/A'}
+                          </p>
+                        </div>
+
+                        {(selectedUser.identityVerifiedAt ||
+                          selectedUser.stripeIdentitySessionId) && (
+                          <div className="mt-6">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    '¿Estás seguro de que quieres revocar el KYC de este usuario? Tendrá que volver a verificar su identidad con Stripe.',
+                                  )
+                                ) {
+                                  revokeKycMutation.mutate(selectedUser.id);
+                                }
+                              }}
+                              disabled={revokeKycMutation.isPending}
+                              className="w-full px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors border border-red-500/30"
+                            >
+                              <RefreshCw size={16} /> Revocar Verificación y
+                              Forzar KYC
+                            </button>
+                            <p className="text-[10px] text-gray-500 text-center mt-2">
+                              Esto borrará el registro de validación y la sesión
+                              actual.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Profile Level Controls */}
+                  <div>
+                    <h4 className="text-white font-black text-sm uppercase tracking-widest mb-4">
+                      Control de Nivel y Permisos
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 bg-white/2 rounded-xl border border-white/5 space-y-2">
+                        <label className="flex flex-col gap-2">
+                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                            Nivel de Verificación de Perfil
+                          </span>
+                          <select
+                            value={draftLevel || 'BASIC'}
+                            onChange={(e) =>
+                              setDraftLevel(e.target.value as VerificationLevel)
+                            }
+                            className="w-full bg-zinc-900 border border-white/10 rounded-lg text-sm font-bold py-2 px-3 text-white focus:outline-hidden focus:ring-1 focus:ring-brand-primary cursor-pointer hover:border-brand-primary/50 transition-colors"
+                          >
+                            <option value="BASIC">Standard</option>
+                            <option value="VERIFIED">
+                              Verificado (Blue Check)
+                            </option>
+                            <option value="BUSINESS">
+                              Business (Gold Check)
+                            </option>
+                            <option value="ELITE">
+                              Elite Creator (Red Check)
+                            </option>
+                          </select>
+                        </label>
+                        <p className="text-[10px] text-gray-500 mt-2">
+                          Define el distintivo (badge) público que se muestra en
+                          el perfil del usuario.
+                        </p>
+                      </div>
+
+                      <div className="p-4 bg-white/2 rounded-xl border border-white/5 space-y-2">
+                        <label className="flex flex-col gap-2">
+                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                            Tipo de Cuenta
+                          </span>
+                          <select
+                            value={draftType || 'PERSONAL'}
+                            onChange={(e) => setDraftType(e.target.value)}
+                            className="w-full bg-zinc-900 border border-white/10 rounded-lg text-sm font-bold py-2 px-3 text-white focus:outline-hidden focus:ring-1 focus:ring-brand-primary cursor-pointer hover:border-brand-primary/50 transition-colors"
+                          >
+                            <option value="PERSONAL">Cuenta Personal</option>
+                            <option value="CREATOR">Cuenta de Creador</option>
+                            <option value="BUSINESS">Cuenta de Empresa</option>
+                          </select>
+                        </label>
+                        <p className="text-[10px] text-gray-500 mt-2">
+                          Define las herramientas (analytics, monetización) a
+                          las que tiene acceso el usuario.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex-1 flex flex-col items-center justify-center text-gray-500"
+              >
+                <ShieldCheck size={48} className="mb-4 text-white/10" />
+                <p className="font-bold">Selecciona un usuario de la cola</p>
+                <p className="text-sm">
+                  Para revisar su estado de KYC y niveles
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

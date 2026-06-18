@@ -1,3 +1,4 @@
+export { default as AdminDrawer } from './AdminDrawer';
 export { default as AdminSidebar } from './AdminSidebar';
 export type { Toast } from './AdminTable';
 export {
@@ -16,7 +17,7 @@ export { default as HashtagsTab } from './HashtagsTab';
 export { default as ModerationTab } from './ModerationTab';
 export { default as MonetizationTab } from './MonetizationTab';
 export { default as NewsletterTab } from './NewsletterTab';
-export { default as PostPreviewModal } from './PostPreviewModal';
+export { default as PostPreviewDrawer } from './PostPreviewDrawer';
 export { default as PostsTab } from './PostsTab';
 export { default as PromotionsTab } from './PromotionsTab';
 export { default as ReportsTab } from './ReportsTab';

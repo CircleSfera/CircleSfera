@@ -34,22 +34,35 @@ export const IncomingCallModal: React.FC = () => {
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-zinc-900 border border-white/10 rounded-3xl p-8 w-full max-w-sm shadow-2xl flex flex-col items-center text-center"
+          className="glass-panel border border-white/10 rounded-[32px] p-8 w-full max-w-sm shadow-2xl shadow-black/80 flex flex-col items-center text-center relative overflow-hidden"
         >
+          {/* Subtle background glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-brand-primary/10 blur-[60px] -z-10 rounded-full pointer-events-none" />
+
           {/* Avatar Area */}
-          <div className="relative mb-6">
-            <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-brand-primary p-1">
+          <div className="relative mb-8 mt-4">
+            {/* Ripple Effects */}
+            <div
+              className="absolute inset-0 bg-brand-primary/30 rounded-full animate-ping"
+              style={{ animationDuration: '2s' }}
+            />
+            <div
+              className="absolute inset-[-15px] bg-brand-primary/10 rounded-full animate-ping"
+              style={{ animationDuration: '2.5s', animationDelay: '0.5s' }}
+            />
+
+            <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-brand-primary p-1 relative z-10 bg-black shadow-[0_0_30px_rgba(var(--brand-primary),0.5)]">
               <img
                 src={remoteUser.profile.avatar || '/default-avatar.png'}
                 alt={remoteUser.profile.username}
                 className="w-full h-full object-cover rounded-full"
               />
             </div>
-            <div className="absolute -bottom-2 -right-2 bg-brand-primary p-2 rounded-full ring-4 ring-zinc-900 animate-pulse">
+            <div className="absolute -bottom-2 -right-2 bg-brand-primary p-2.5 rounded-full ring-4 ring-zinc-900 shadow-xl animate-bounce z-20">
               {callType === 'video' ? (
-                <Video size={18} fill="white" />
+                <Video size={20} fill="white" />
               ) : (
-                <Phone size={18} fill="white" />
+                <Phone size={20} fill="white" />
               )}
             </div>
           </div>
@@ -57,7 +70,7 @@ export const IncomingCallModal: React.FC = () => {
           <h2 className="text-xl font-bold text-white mb-2">
             {remoteUser.profile.fullName || remoteUser.profile.username}
           </h2>
-          <p className="text-gray-400 mb-8 animate-pulse text-sm">
+          <p className="text-white/60 mb-10 animate-pulse text-[13px] uppercase tracking-widest font-bold">
             {callType === 'video'
               ? t('chat.incoming_video_call')
               : t('chat.incoming_audio_call')}
@@ -84,7 +97,7 @@ export const IncomingCallModal: React.FC = () => {
               onClick={acceptCall}
               className="group flex flex-col items-center gap-2"
             >
-              <div className="w-16 h-16 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center group-hover:bg-green-500 group-hover:text-white transition-all duration-300 shadow-lg shadow-green-500/20">
+              <div className="w-16 h-16 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center group-hover:bg-green-500 group-hover:text-white transition-all duration-300 shadow-[0_0_20px_rgba(34,197,94,0.3)]">
                 <Check size={28} />
               </div>
               <span className="text-[10px] uppercase tracking-wider font-bold text-gray-500 group-hover:text-green-400 transition-colors">

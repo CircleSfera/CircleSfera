@@ -12,6 +12,7 @@ export interface StatCardProps {
   prefix?: string;
   suffix?: string;
   isCounter?: boolean;
+  sparklineData?: number[];
 }
 
 const colorMap: Record<string, string> = {
@@ -21,6 +22,15 @@ const colorMap: Record<string, string> = {
   red: 'text-red-400 bg-red-400/10 border-red-400/20',
   green: 'text-green-400 bg-green-400/10 border-green-400/20',
   yellow: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
+};
+
+const strokeMap: Record<string, string> = {
+  blue: '#60a5fa',
+  purple: '#c084fc',
+  pink: '#f472b6',
+  red: '#f87171',
+  green: '#4ade80',
+  yellow: '#facc15',
 };
 
 const gradientMap: Record<string, string> = {
@@ -77,12 +87,28 @@ export default function StatCard({
   color,
   growth,
   subtitle,
-  prefix = '$',
+  prefix = '',
   suffix = '',
   isCounter = true,
+  sparklineData,
 }: StatCardProps) {
   const displayValue = useCountUp(value);
   const formattedValue = isCounter ? displayValue : value;
+
+  // Generate simple SVG path for sparkline
+  let sparklinePath = '';
+  if (sparklineData && sparklineData.length > 1) {
+    const min = Math.min(...sparklineData);
+    const max = Math.max(...sparklineData);
+    const range = max - min || 1; // avoid division by zero
+    const points = sparklineData.map((val, i) => {
+      const x = (i / (sparklineData.length - 1)) * 100;
+      const y = 100 - ((val - min) / range) * 100;
+      return `${x},${y}`;
+    });
+    // Smooth the line a bit (basic polyline)
+    sparklinePath = `M ${points.join(' L ')}`;
+  }
 
   return (
     <div
@@ -98,6 +124,25 @@ export default function StatCard({
           gradientMap[color],
         )}
       />
+
+      {sparklineData && sparklineData.length > 1 && (
+        <svg
+          aria-hidden="true"
+          className="absolute bottom-0 left-0 w-full h-1/2 opacity-20 pointer-events-none"
+          preserveAspectRatio="none"
+          viewBox="0 -10 100 120"
+        >
+          <path
+            d={sparklinePath}
+            fill="none"
+            stroke={strokeMap[color]}
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+
       <div className="flex items-start justify-between gap-3 relative z-10">
         <div className="min-w-0">
           <p className="text-white/40 text-[10px] font-black uppercase tracking-wider mb-0.5">
@@ -132,7 +177,7 @@ export default function StatCard({
         </div>
         <div
           className={clsx(
-            'p-2 rounded-lg border border-white/5 shrink-0',
+            'p-2 rounded-lg border border-white/5 shrink-0 bg-black/40 backdrop-blur-md',
             colorMap[color],
           )}
         >

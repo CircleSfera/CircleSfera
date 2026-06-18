@@ -141,7 +141,10 @@ export const CallOverlay: React.FC = () => {
             <motion.div
               drag
               dragConstraints={constraintsRef}
-              className="absolute top-8 right-8 w-40 md:w-56 aspect-3/4 bg-zinc-900 rounded-2xl overflow-hidden border border-white/20 shadow-2xl z-10 cursor-move ring-4 ring-black/30"
+              dragElastic={0.2}
+              whileDrag={{ scale: 1.05, cursor: 'grabbing' }}
+              dragMomentum={true}
+              className="absolute top-8 right-8 w-40 md:w-56 aspect-3/4 bg-zinc-900 rounded-2xl overflow-hidden border border-white/20 shadow-2xl shadow-black z-10 cursor-grab ring-2 ring-black/50"
             >
               <video
                 ref={localVideoRef}
@@ -161,12 +164,12 @@ export const CallOverlay: React.FC = () => {
           )}
 
           {/* Bottom Floating Controls */}
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-6 px-8 py-5 bg-white/5 backdrop-blur-3xl rounded-full border border-white/10 shadow-2xl z-20">
+          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-6 px-8 py-4 glass-panel rounded-[32px] border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.5)] z-20">
             {/* Audio Toggle */}
             <button
               type="button"
               onClick={toggleMute}
-              className={`p-4 rounded-full transition-all duration-300 ${isMuted ? 'bg-red-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
+              className={`p-4 rounded-full transition-all duration-300 shadow-xl ${isMuted ? 'bg-red-500 text-white shadow-red-500/20' : 'bg-white/10 text-white hover:bg-white/20'}`}
             >
               {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
             </button>
@@ -177,7 +180,7 @@ export const CallOverlay: React.FC = () => {
                 <button
                   type="button"
                   onClick={toggleVideo}
-                  className={`p-4 rounded-full transition-all duration-300 ${isVideoOff ? 'bg-red-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                  className={`p-4 rounded-full transition-all duration-300 shadow-xl ${isVideoOff ? 'bg-red-500 text-white shadow-red-500/20' : 'bg-white/10 text-white hover:bg-white/20'}`}
                 >
                   {isVideoOff ? <VideoOff size={24} /> : <Video size={24} />}
                 </button>
@@ -185,7 +188,7 @@ export const CallOverlay: React.FC = () => {
                 <button
                   type="button"
                   onClick={toggleScreenShare}
-                  className={`p-4 rounded-full transition-all duration-300 ${isScreenSharing ? 'bg-brand-primary text-black' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                  className={`p-4 rounded-full transition-all duration-300 shadow-xl ${isScreenSharing ? 'bg-brand-primary text-white shadow-brand-primary/20' : 'bg-white/10 text-white hover:bg-white/20'}`}
                 >
                   <MonitorUp size={24} />
                 </button>

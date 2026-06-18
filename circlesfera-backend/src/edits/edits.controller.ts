@@ -16,7 +16,7 @@ import { EditsService } from './edits.service.js';
 
 interface RequestWithUser {
   user: {
-    id: string;
+    userId: string;
     email: string;
     role: string;
   };
@@ -32,17 +32,17 @@ export class EditsController {
     @Request() req: RequestWithUser,
     @Body() createEditDto: CreateEditDto,
   ) {
-    return this.editsService.create(req.user.id, createEditDto);
+    return this.editsService.create(req.user.userId, createEditDto);
   }
 
   @Get()
   findAll(@Request() req: RequestWithUser) {
-    return this.editsService.findAll(req.user.id);
+    return this.editsService.findAll(req.user.userId);
   }
 
   @Get(':id')
   findOne(@Request() req: RequestWithUser, @Param('id') id: string) {
-    return this.editsService.findOne(req.user.id, id);
+    return this.editsService.findOne(req.user.userId, id);
   }
 
   @Put(':id')
@@ -51,11 +51,11 @@ export class EditsController {
     @Param('id') id: string,
     @Body() updateEditDto: UpdateEditDto,
   ) {
-    return this.editsService.update(req.user.id, id, updateEditDto);
+    return this.editsService.update(req.user.userId, id, updateEditDto);
   }
 
   @Delete(':id')
   remove(@Request() req: RequestWithUser, @Param('id') id: string) {
-    return this.editsService.remove(req.user.id, id);
+    return this.editsService.remove(req.user.userId, id);
   }
 }

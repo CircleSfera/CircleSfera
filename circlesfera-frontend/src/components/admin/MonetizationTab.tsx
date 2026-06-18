@@ -83,6 +83,56 @@ export default function MonetizationTab() {
         />
       </div>
 
+      {/* Stripe Integration Status */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="glass-panel p-6 rounded-3xl border border-white/5 flex flex-col justify-between group hover:border-brand-primary/30 transition-all">
+          <div className="flex justify-between items-start mb-4">
+            <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+              <Zap size={20} />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-green-400 bg-green-400/10 px-2 py-1 rounded-full border border-green-400/20">
+              Conectado
+            </span>
+          </div>
+          <div>
+            <h4 className="text-white font-black uppercase text-sm mb-1 tracking-tight">Stripe API</h4>
+            <p className="text-gray-400 text-xs">Conexión principal con Stripe habilitada. Pagos activos.</p>
+          </div>
+        </div>
+
+        <div className="glass-panel p-6 rounded-3xl border border-white/5 flex flex-col justify-between group hover:border-blue-400/30 transition-all relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-blue-500/0 via-blue-500/50 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="flex justify-between items-start mb-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
+              <Users size={20} />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded-full border border-yellow-400/20">
+              En Implementación
+            </span>
+          </div>
+          <div>
+            <h4 className="text-white font-black uppercase text-sm mb-1 tracking-tight">Stripe Connect</h4>
+            <p className="text-gray-400 text-xs">Infraestructura para pagos divididos y Creadores.</p>
+          </div>
+        </div>
+
+        <div className="glass-panel p-6 rounded-3xl border border-white/5 flex flex-col justify-between group hover:border-purple-400/30 transition-all relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-purple-500/0 via-purple-500/50 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="flex justify-between items-start mb-4">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400">
+              <ShieldCheck size={20} />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded-full border border-yellow-400/20">
+              En Implementación
+            </span>
+          </div>
+          <div>
+            <h4 className="text-white font-black uppercase text-sm mb-1 tracking-tight">Stripe Identity (KYC)</h4>
+            <p className="text-gray-400 text-xs">Verificación de identidad automatizada para Creadores.</p>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Tier Distribution Chart (Linear) */}
         <div className="glass-panel rounded-4xl border border-white/5 p-8 bg-linear-to-br from-brand-secondary/5 to-transparent">
@@ -223,16 +273,14 @@ export default function MonetizationTab() {
               />
               <div>
                 <h4 className="text-white font-black text-xs uppercase tracking-widest mb-2">
-                  Punto de Verificación SaaS
+                  Cumplimiento de Pagos
                 </h4>
                 <p className="text-zinc-500 text-[10px] font-medium leading-relaxed uppercase tracking-tighter italic">
-                  Todos los ingresos son procesados como{' '}
+                  Las cuentas están migrando hacia el modelo de{' '}
                   <span className="text-white font-bold">
-                    First-Party Subscriptions
+                    Stripe Connect
                   </span>
-                  . No hay flujos de marketplace o liquidaciones externas
-                  activos, garantizando el cumplimiento total con las políticas
-                  de merchant-of-record.
+                  . Es necesario que los creadores completen la validación de KYC mediante Stripe Identity antes de poder retirar fondos.
                 </p>
               </div>
             </div>

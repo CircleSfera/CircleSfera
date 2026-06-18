@@ -111,10 +111,10 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="bg-[#1c1c1c] border border-white/10 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[70vh] max-h-[800px] relative z-10"
+        className="glass-panel w-full max-w-2xl rounded-[32px] overflow-hidden shadow-2xl shadow-black/80 border border-white/10 flex flex-col h-[75vh] max-h-[800px] relative z-10"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/5 backdrop-blur-xl shrink-0 rounded-t-3xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-black/20 backdrop-blur-xl shrink-0 rounded-t-[32px]">
           <button
             type="button"
             onClick={onClose}
@@ -136,8 +136,8 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
         </div>
 
         {/* Search & Selection Area */}
-        <div className="px-6 py-3 border-b border-white/5 shrink-0">
-          <div className="flex flex-wrap gap-2 items-center min-h-[44px] bg-[#262626] px-4 py-2 rounded-xl border border-white/5 focus-within:border-white/20 transition-colors">
+        <div className="px-6 py-4 border-b border-white/5 shrink-0 bg-black/10">
+          <div className="flex flex-wrap gap-2 items-center min-h-[48px] bg-black/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 focus-within:border-brand-primary/50 focus-within:shadow-[0_0_15px_rgba(131,58,180,0.15)] transition-all">
             <span className="text-white/60 font-medium text-[15px] mr-1">
               {t('chat.to')}
             </span>
@@ -152,7 +152,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
                   exit={{ scale: 0.8, opacity: 0 }}
                   key={u.id}
                   onClick={() => handleUserToggle(u)}
-                  className="bg-[#e0f1ff] text-[#0095f6] px-2.5 py-0.5 rounded-full text-[13px] font-semibold flex items-center gap-1 hover:opacity-90 transition-opacity"
+                  className="bg-brand-primary text-white px-3 py-1 rounded-full text-[13px] font-semibold flex items-center gap-1.5 hover:opacity-90 transition-opacity shadow-lg shadow-brand-primary/20"
                 >
                   {u.username}
                   <X size={12} />
@@ -181,8 +181,8 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
               exit={{ height: 0, opacity: 0 }}
               className="px-6 py-2 border-b border-white/5 shrink-0 overflow-hidden"
             >
-              <div className="flex items-center bg-[#262626] rounded-xl px-4 py-3 border border-white/10 focus-within:border-blue-500/50 transition-colors">
-                <div className="bg-white/10 p-1.5 rounded-lg mr-3">
+              <div className="flex items-center bg-black/20 backdrop-blur-md rounded-2xl px-4 py-3 border border-white/10 focus-within:border-brand-primary/50 focus-within:shadow-[0_0_15px_rgba(131,58,180,0.15)] transition-all">
+                <div className="bg-white/10 p-2 rounded-xl mr-3">
                   <Users size={16} className="text-white/70" />
                 </div>
                 <input
@@ -221,7 +221,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
           ) : (
             <>
               {!debouncedSearch && (
-                <div className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider sticky top-0 bg-[#1c1c1c]/95 backdrop-blur-sm z-10">
+                <div className="px-4 py-3 text-[11px] font-black text-white/40 uppercase tracking-[0.15em] sticky top-0 bg-transparent backdrop-blur-xl z-10">
                   {t('chat.suggested')}
                 </div>
               )}
@@ -247,20 +247,20 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
                           thumbnailUrl={profile.thumbnailUrl || undefined}
                           standardUrl={profile.standardUrl || undefined}
                           alt={profile.username}
-                          className="w-12 h-12"
+                          className="w-14 h-14 shadow-lg shadow-black/40"
                         />
                         <div className="text-left">
-                          <div className="font-semibold text-white text-[15px]">
+                          <div className="font-bold text-white text-[16px]">
                             {profile.username}
                           </div>
-                          <div className="text-xs text-gray-400 font-medium">
+                          <div className="text-[13px] text-gray-400 font-medium">
                             {profile.fullName}
                           </div>
                         </div>
                       </div>
 
                       <div
-                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${isSelected ? 'bg-[#3797f0] border-[#3797f0]' : 'border-white/20 group-hover:border-white/50'}`}
+                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${isSelected ? 'bg-brand-primary border-brand-primary shadow-[0_0_10px_rgba(var(--brand-primary),0.5)]' : 'border-white/20 group-hover:border-white/50'}`}
                       >
                         {isSelected && (
                           <motion.div

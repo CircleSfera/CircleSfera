@@ -42,7 +42,7 @@ export default function HashtagsTab() {
           {data?.data?.map((tag, i) => (
             <tr
               key={tag.id}
-              className="hidden md:table-row hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
+              className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
             >
               <td className="px-4 py-3 text-gray-600 text-sm font-bold">
                 {(page - 1) * 20 + i + 1}
