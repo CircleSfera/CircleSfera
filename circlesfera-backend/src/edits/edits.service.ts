@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { HttpException as NestHttpException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateEditDto } from './dto/create-edit.dto.js';
 import { UpdateEditDto } from './dto/update-edit.dto.js';
@@ -8,15 +8,22 @@ export class EditsService {
   constructor(private prisma: PrismaService) {}
 
   async create(userId: string, createEditDto: CreateEditDto) {
-    return this.prisma.editProject.create({
-      data: {
-        userId,
-        mediaUrl: createEditDto.mediaUrl,
-        mediaType: createEditDto.mediaType || 'image',
-        name: createEditDto.name,
-        state: createEditDto.state,
-      },
-    });
+    try {
+      if (!this.prisma.editProject) {
+        throw new Error('Prisma EditProject model is undefined. Prisma client was not generated correctly in production.');
+      }
+      return await this.prisma.editProject.create({
+        data: {
+          userId,
+          mediaUrl: createEditDto.mediaUrl,
+          mediaType: createEditDto.mediaType || 'image',
+          name: createEditDto.name,
+          state: createEditDto.state,
+        },
+      });
+    } catch (error: any) {
+      throw new NestHttpException(`Debug Error: ${error?.message || String(error)}`, 500);
+    }
   }
 
   async findAll(userId: string) {
