@@ -1,4 +1,8 @@
-import { HttpException as NestHttpException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  HttpException as NestHttpException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateEditDto } from './dto/create-edit.dto.js';
 import { UpdateEditDto } from './dto/update-edit.dto.js';
@@ -10,7 +14,9 @@ export class EditsService {
   async create(userId: string, createEditDto: CreateEditDto) {
     try {
       if (!this.prisma.editProject) {
-        throw new Error('Prisma EditProject model is undefined. Prisma client was not generated correctly in production.');
+        throw new Error(
+          'Prisma EditProject model is undefined. Prisma client was not generated correctly in production.',
+        );
       }
       return await this.prisma.editProject.create({
         data: {
@@ -22,7 +28,10 @@ export class EditsService {
         },
       });
     } catch (error: any) {
-      throw new NestHttpException(`Debug Error: ${error?.message || String(error)}`, 500);
+      throw new NestHttpException(
+        `Debug Error: ${error?.message || String(error)}`,
+        500,
+      );
     }
   }
 

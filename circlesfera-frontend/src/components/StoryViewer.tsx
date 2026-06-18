@@ -22,6 +22,14 @@ import { parseFilter } from '../utils/styleUtils';
 import UserAvatar from './UserAvatar';
 import VerificationBadge, { type VerificationLevel } from './VerificationBadge';
 
+const getRelativeTime = (dateValue: string | Date | number) => {
+  const diffMins = Math.floor(
+    (Date.now() - new Date(dateValue).getTime()) / 60000,
+  );
+  if (diffMins < 60) return `${Math.max(1, diffMins)}m`;
+  return `${Math.floor(diffMins / 60)}h`;
+};
+
 interface StoryViewerProps {
   stories: Story[];
   initialIndex: number;
@@ -100,10 +108,12 @@ export default function StoryViewer({
   useEffect(() => {
     let viewed = false;
     if (currentStory && !isOwner && !viewed) {
-      storiesApi.markViewed(currentStory.id).catch(console.error);
+      storiesApi.markViewed(currentStory.id).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['stories'] });
+      }).catch(console.error);
       viewed = true;
     }
-  }, [currentStory, isOwner]);
+  }, [currentStory, isOwner, queryClient]);
 
   // Audio Playback Initialization
   useEffect(() => {
@@ -182,6 +192,7 @@ export default function StoryViewer({
     try {
       await storiesApi.delete(currentStory.id);
       queryClient.invalidateQueries({ queryKey: ['stories'] });
+      queryClient.invalidateQueries({ queryKey: ['my-stories'] });
       onClose();
     } catch (error) {
       logger.error('Failed to delete story:', error);
@@ -446,10 +457,7 @@ export default function StoryViewer({
                     />
                   </span>
                   <span className="text-white/80 text-xs drop-shadow-md">
-                    {new Date(currentStory.createdAt).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    {getRelativeTime(currentStory.createdAt)}
                   </span>
                 </div>
               </div>
