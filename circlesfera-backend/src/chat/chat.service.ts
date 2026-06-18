@@ -151,13 +151,22 @@ export class ChatService {
     postId?: string,
     storyId?: string,
     replyToId?: string,
+    e2eKeys?: Record<string, string>,
   ): Promise<Message> {
     let conversation: any;
 
     if (conversationId) {
       conversation = await this.prisma.conversation.findUnique({
         where: { id: conversationId },
-        include: { participants: true },
+        include: {
+          participants: {
+            include: {
+              user: {
+                select: { e2ePublicKey: true }
+              }
+            }
+          }
+        },
       });
 
       if (!conversation) throw new NotFoundException('Conversation not found');
@@ -177,7 +186,15 @@ export class ChatService {
             { participants: { some: { userId: recipientId } } },
           ],
         },
-        include: { participants: true },
+        include: {
+          participants: {
+            include: {
+              user: {
+                select: { e2ePublicKey: true }
+              }
+            }
+          }
+        },
       });
 
       if (!conversation) {
@@ -197,12 +214,11 @@ export class ChatService {
       );
     }
 
-    // 2. Encrypt and create message
-    const encryptedContent = this.cryptoService.encrypt(content);
-
+    // 2. Create message (content is already E2EE encrypted by the client)
     const message = await this.prisma.message.create({
       data: {
-        content: encryptedContent,
+        content, // Client sends ciphertext
+        e2eKeys: e2eKeys ? e2eKeys : null,
         senderId,
         conversationId: conversation.id,
         url,
@@ -268,10 +284,9 @@ export class ChatService {
       },
     });
 
-    // Decrypt the content for real-time broadcast and returning
-    message.content = this.cryptoService.decrypt(message.content);
-
-    // 3. Emit real-time event to ALL participants
+    // 4. Emit to all participants
+    // We DO NOT decrypt the content since it is E2EE.
+    // The client will decrypt it using their e2eKeys.
     conversation.participants.forEach((p: any) => {
       this.gateway.server
         .to(`user:${p.userId}`)
@@ -321,6 +336,7 @@ export class ChatService {
             user: {
               select: {
                 id: true,
+                e2ePublicKey: true,
                 profile: {
                   select: {
                     username: true,
@@ -345,13 +361,8 @@ export class ChatService {
     });
 
     // Decrypt the last message for each conversation
-    for (const conv of conversations) {
-      if (conv.messages && conv.messages.length > 0) {
-        conv.messages[0].content = this.cryptoService.decrypt(
-          conv.messages[0].content,
-        );
-      }
-    }
+    // DEPRECATED for E2EE: We no longer decrypt on the server.
+    // The client handles decryption.
 
     return conversations;
   }
@@ -459,11 +470,10 @@ export class ChatService {
       },
     });
 
-    for (const msg of messages) {
-      msg.content = this.cryptoService.decrypt(msg.content);
-    }
-
-    return messages;
+    // Decrypt messages
+    // DEPRECATED for E2EE: We no longer decrypt on the server.
+    // The client handles decryption.
+    return messages as any;
   }
 
   /**

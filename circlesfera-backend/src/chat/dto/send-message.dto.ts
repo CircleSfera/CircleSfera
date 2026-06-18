@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsObject } from 'class-validator';
 
 export class SendMessageDto {
   @IsString()
@@ -36,4 +36,8 @@ export class SendMessageDto {
   @IsString()
   @IsOptional()
   replyToId?: string;
+
+  @IsObject()
+  @IsOptional()
+  e2eKeys?: Record<string, string>;
 }

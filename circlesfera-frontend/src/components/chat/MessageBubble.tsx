@@ -22,6 +22,9 @@ interface MessageBubbleProps {
 
 const EMOJI_OPTIONS = ['❤️', '😂', '😮', '😢', '🔥', '👍'];
 
+import { useEffect, useState } from 'react';
+import { E2EService } from '../../utils/e2e';
+
 export default memo(function MessageBubble({
   msg,
   isMe,
@@ -41,6 +44,60 @@ export default memo(function MessageBubble({
         minute: '2-digit',
       })
     : '';
+
+  const [decryptedText, setDecryptedText] = useState<string>(
+    msg.e2eKeys ? '' : msg.content
+  );
+  const [isDecrypting, setIsDecrypting] = useState<boolean>(!!msg.e2eKeys);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (msg.e2eKeys && currentUserId && msg.e2eKeys[currentUserId]) {
+      const decrypt = async () => {
+        try {
+          const privateKeyStr = localStorage.getItem('e2e_private_key');
+          if (!privateKeyStr) {
+            if (isMounted) {
+              setDecryptedText('🔒 Mensaje cifrado (Falta tu clave privada)');
+              setIsDecrypting(false);
+            }
+            return;
+          }
+
+          const privateKey = await E2EService.importPrivateKey(privateKeyStr);
+          const wrappedAesKey = msg.e2eKeys![currentUserId];
+          const aesKey = await E2EService.unwrapSymmetricKey(wrappedAesKey, privateKey);
+          
+          const payload = JSON.parse(msg.content);
+          const text = await E2EService.decryptMessage(payload.ciphertext, payload.iv, aesKey);
+          
+          if (isMounted) {
+            setDecryptedText(text);
+            setIsDecrypting(false);
+          }
+        } catch (err) {
+          console.error('Error decrypting message', err);
+          if (isMounted) {
+            setDecryptedText('🔒 Error al descifrar el mensaje');
+            setIsDecrypting(false);
+          }
+        }
+      };
+      decrypt();
+    } else if (msg.e2eKeys) {
+      // It has E2E keys, but not for this user?
+      if (isMounted) {
+        setDecryptedText('🔒 Mensaje cifrado (No tienes acceso)');
+        setIsDecrypting(false);
+      }
+    } else {
+      if (isMounted) {
+        setDecryptedText(msg.content);
+        setIsDecrypting(false);
+      }
+    }
+    return () => { isMounted = false; };
+  }, [msg, currentUserId]);
 
   return (
     <motion.div
@@ -81,7 +138,7 @@ export default memo(function MessageBubble({
               })}
             </div>
             <div className="truncate opacity-90 italic">
-              {msg.replyTo?.content ||
+              {msg.replyTo?.content ? 'Mensaje' :
                 (msg.replyTo?.url
                   ? t('chat.media_attachment')
                   : t('chat.post'))}
@@ -181,7 +238,11 @@ export default memo(function MessageBubble({
             {msg.content && (
               <div className="relative">
                 <span className="break-all whitespace-pre-wrap">
-                  {msg.content}
+                  {isDecrypting ? (
+                <span className="opacity-50 italic">Descifrando...</span>
+              ) : (
+                decryptedText
+              )}
                 </span>
                 <span className="inline-block w-16 h-4" />{' '}
                 {/* Spacer for absolute timestamp */}

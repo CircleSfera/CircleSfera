@@ -236,4 +236,36 @@ export class UsersService {
       },
     });
   }
+
+  /**
+   * E2EE: Update public and encrypted private key for the user.
+   */
+  async updateE2EKeys(
+    userId: string,
+    publicKey: string,
+    privateKeyEncrypted: string,
+  ) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        e2ePublicKey: publicKey,
+        e2ePrivateKeyEncrypted: privateKeyEncrypted,
+      },
+    });
+    return { success: true };
+  }
+
+  /**
+   * E2EE: Get the public key of a user to encrypt a message for them.
+   */
+  async getE2EPublicKey(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { e2ePublicKey: true },
+    });
+    if (!user) {
+      throw new Error('User not found');
+    }
+    return { publicKey: user.e2ePublicKey };
+  }
 }
