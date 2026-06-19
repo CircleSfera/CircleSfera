@@ -23,12 +23,14 @@ export default function LayoutWrapper({
   const { connect, disconnect } = useSocketStore();
   const hideNavRoutes = ['/accounts/login', '/accounts/emailsignup'];
 
-  // Only show nav if authenticated AND not in hidden routes
-  // This ensures Landing Page (at '/') doesn't show nav when not logged in
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  
+  // Only show nav if authenticated AND not in hidden routes AND not in admin
   const shouldShowNav =
     showNavigation &&
     isAuthenticated &&
-    !hideNavRoutes.includes(location.pathname);
+    !hideNavRoutes.includes(location.pathname) &&
+    !isAdminRoute;
 
   useEffect(() => {
     if (isAuthenticated) {
