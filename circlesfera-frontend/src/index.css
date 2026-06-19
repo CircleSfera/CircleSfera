@@ -232,7 +232,7 @@ body {
   width: 100%;
 }
 /* Override Tailwind's px-4 with higher specificity */
-table.admin-table-responsive tbody td, table.admin-table-responsive thead th {
+.admin-table-responsive tbody td, .admin-table-responsive thead th {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
 }
@@ -258,7 +258,7 @@ table.admin-table-responsive tbody td, table.admin-table-responsive thead th {
     border-radius: 0.75rem;
     padding: 0.5rem;
   }
-  .admin-table-responsive td {
+  .admin-table-responsive tbody td {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -267,7 +267,7 @@ table.admin-table-responsive tbody td, table.admin-table-responsive thead th {
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     text-align: right;
   }
-  .admin-table-responsive td::before {
+  .admin-table-responsive tbody td::before {
     content: attr(data-label);
     font-weight: 800;
     font-size: 0.65rem;
@@ -278,7 +278,7 @@ table.admin-table-responsive tbody td, table.admin-table-responsive thead th {
     text-align: left;
     flex-shrink: 0;
   }
-  .admin-table-responsive td:last-child {
+  .admin-table-responsive tbody td:last-child {
     border-bottom: none;
     display: flex;
     justify-content: space-between;
