@@ -48,9 +48,11 @@ export default function ChatWindow() {
   const [isUploading, setIsUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
-  const [editingMessage, setEditingMessage] = useState<{ id: string, text: string } | null>(null);
+  const [editingMessage, setEditingMessage] = useState<{
+    id: string;
+    text: string;
+  } | null>(null);
   const [showMenu, setShowMenu] = useState(false);
-
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -111,7 +113,13 @@ export default function ChatWindow() {
     try {
       await chatApi.deleteMessage(messageId);
       // Optimistic update
-      setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, isDeleted: true, content: '', e2eKeys: undefined } : m));
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? { ...m, isDeleted: true, content: '', e2eKeys: undefined }
+            : m,
+        ),
+      );
     } catch (err) {
       logger.error('Failed to delete message', err);
     }
@@ -253,12 +261,20 @@ export default function ChatWindow() {
 
     const handleMessageEdited = (editedMsg: Message) => {
       if (editedMsg.conversationId === id) {
-        setMessages((prev) => prev.map((m) => m.id === editedMsg.id ? editedMsg : m));
+        setMessages((prev) =>
+          prev.map((m) => (m.id === editedMsg.id ? editedMsg : m)),
+        );
       }
     };
 
     const handleMessageDeleted = (data: { messageId: string }) => {
-      setMessages((prev) => prev.map((m) => m.id === data.messageId ? { ...m, isDeleted: true, content: '', e2eKeys: undefined } : m));
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === data.messageId
+            ? { ...m, isDeleted: true, content: '', e2eKeys: undefined }
+            : m,
+        ),
+      );
     };
 
     socket.on('receiveMessage', handleReceiveMessage);
@@ -476,7 +492,7 @@ export default function ChatWindow() {
         : undefined,
       tempId,
     };
-    
+
     if (!editingMessage) {
       setMessages((prev) => [...prev, tempMsg]);
     }
@@ -488,7 +504,7 @@ export default function ChatWindow() {
 
         // Try to encrypt if participants have E2E keys
         const keysMap: Record<string, CryptoKey> = {};
-        
+
         if (conversation?.participants) {
           for (const p of conversation.participants) {
             const pubKey = p.user?.e2ePublicKey;
@@ -507,7 +523,7 @@ export default function ChatWindow() {
           const myPubB64 = localStorage.getItem('e2e_public_key');
           if (myPubB64 && !keysMap[profile.id]) {
             try {
-               keysMap[profile.id] = await E2EService.importPublicKey(myPubB64);
+              keysMap[profile.id] = await E2EService.importPublicKey(myPubB64);
             } catch {
               // Ignore errors fetching my own key
             }
@@ -538,7 +554,7 @@ export default function ChatWindow() {
       } catch (err) {
         logger.error('Failed to send E2E message', err);
         // Remove temp message on error
-        setMessages((prev) => prev.filter(m => m.tempId !== tempId));
+        setMessages((prev) => prev.filter((m) => m.tempId !== tempId));
       }
     };
 
@@ -801,7 +817,9 @@ export default function ChatWindow() {
                     className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-3 font-medium"
                   >
                     <Trash2 size={16} />
-                    {t('chat.delete_for_me', { defaultValue: 'Eliminar para mí' })}
+                    {t('chat.delete_for_me', {
+                      defaultValue: 'Eliminar para mí',
+                    })}
                   </button>
                   <button
                     type="button"
@@ -813,7 +831,9 @@ export default function ChatWindow() {
                     className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-3 font-medium border-t border-white/10"
                   >
                     <Trash2 size={16} />
-                    {t('chat.delete_for_everyone', { defaultValue: 'Eliminar para todos' })}
+                    {t('chat.delete_for_everyone', {
+                      defaultValue: 'Eliminar para todos',
+                    })}
                   </button>
                 </motion.div>
               )}
@@ -950,7 +970,9 @@ export default function ChatWindow() {
               <div className="flex flex-col text-sm border-l-2 border-blue-500 pl-3">
                 <div className="flex items-center gap-2">
                   <span className="text-blue-400 font-semibold text-xs">
-                    {t('chat.editing_message', { defaultValue: 'Editando mensaje' })}
+                    {t('chat.editing_message', {
+                      defaultValue: 'Editando mensaje',
+                    })}
                   </span>
                 </div>
                 <span className="text-gray-400 line-clamp-1 text-xs mt-0.5">

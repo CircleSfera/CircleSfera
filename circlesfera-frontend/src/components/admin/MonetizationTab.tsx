@@ -95,8 +95,12 @@ export default function MonetizationTab() {
             </span>
           </div>
           <div>
-            <h4 className="text-white font-black uppercase text-sm mb-1 tracking-tight">Stripe API</h4>
-            <p className="text-gray-400 text-xs">Conexión principal con Stripe habilitada. Pagos activos.</p>
+            <h4 className="text-white font-black uppercase text-sm mb-1 tracking-tight">
+              Stripe API
+            </h4>
+            <p className="text-gray-400 text-xs">
+              Conexión principal con Stripe habilitada. Pagos activos.
+            </p>
           </div>
         </div>
 
@@ -111,8 +115,12 @@ export default function MonetizationTab() {
             </span>
           </div>
           <div>
-            <h4 className="text-white font-black uppercase text-sm mb-1 tracking-tight">Stripe Connect</h4>
-            <p className="text-gray-400 text-xs">Infraestructura para pagos divididos y Creadores.</p>
+            <h4 className="text-white font-black uppercase text-sm mb-1 tracking-tight">
+              Stripe Connect
+            </h4>
+            <p className="text-gray-400 text-xs">
+              Infraestructura para pagos divididos y Creadores.
+            </p>
           </div>
         </div>
 
@@ -127,8 +135,12 @@ export default function MonetizationTab() {
             </span>
           </div>
           <div>
-            <h4 className="text-white font-black uppercase text-sm mb-1 tracking-tight">Stripe Identity (KYC)</h4>
-            <p className="text-gray-400 text-xs">Verificación de identidad automatizada para Creadores.</p>
+            <h4 className="text-white font-black uppercase text-sm mb-1 tracking-tight">
+              Stripe Identity (KYC)
+            </h4>
+            <p className="text-gray-400 text-xs">
+              Verificación de identidad automatizada para Creadores.
+            </p>
           </div>
         </div>
       </div>
@@ -277,10 +289,9 @@ export default function MonetizationTab() {
                 </h4>
                 <p className="text-zinc-500 text-[10px] font-medium leading-relaxed uppercase tracking-tighter italic">
                   Las cuentas están migrando hacia el modelo de{' '}
-                  <span className="text-white font-bold">
-                    Stripe Connect
-                  </span>
-                  . Es necesario que los creadores completen la validación de KYC mediante Stripe Identity antes de poder retirar fondos.
+                  <span className="text-white font-bold">Stripe Connect</span>.
+                  Es necesario que los creadores completen la validación de KYC
+                  mediante Stripe Identity antes de poder retirar fondos.
                 </p>
               </div>
             </div>

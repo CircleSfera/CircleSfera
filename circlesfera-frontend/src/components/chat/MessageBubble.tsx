@@ -48,7 +48,7 @@ export default memo(function MessageBubble({
     : '';
 
   const [decryptedText, setDecryptedText] = useState<string>(
-    msg.e2eKeys ? '' : msg.content
+    msg.e2eKeys ? '' : msg.content,
   );
   const [isDecrypting, setIsDecrypting] = useState<boolean>(!!msg.e2eKeys);
 
@@ -68,11 +68,18 @@ export default memo(function MessageBubble({
 
           const privateKey = await E2EService.importPrivateKey(privateKeyStr);
           const wrappedAesKey = msg.e2eKeys![currentUserId];
-          const aesKey = await E2EService.unwrapSymmetricKey(wrappedAesKey, privateKey);
-          
+          const aesKey = await E2EService.unwrapSymmetricKey(
+            wrappedAesKey,
+            privateKey,
+          );
+
           const payload = JSON.parse(msg.content);
-          const text = await E2EService.decryptMessage(payload.ciphertext, payload.iv, aesKey);
-          
+          const text = await E2EService.decryptMessage(
+            payload.ciphertext,
+            payload.iv,
+            aesKey,
+          );
+
           if (isMounted) {
             setDecryptedText(text);
             setIsDecrypting(false);
@@ -98,7 +105,9 @@ export default memo(function MessageBubble({
         setIsDecrypting(false);
       }
     }
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [msg, currentUserId]);
 
   return (
@@ -140,10 +149,11 @@ export default memo(function MessageBubble({
               })}
             </div>
             <div className="truncate opacity-90 italic">
-              {msg.replyTo?.content ? 'Mensaje' :
-                (msg.replyTo?.url
+              {msg.replyTo?.content
+                ? 'Mensaje'
+                : msg.replyTo?.url
                   ? t('chat.media_attachment')
-                  : t('chat.post'))}
+                  : t('chat.post')}
             </div>
           </div>
         )}
@@ -239,9 +249,16 @@ export default memo(function MessageBubble({
             {/* Text Content */}
             {(msg.content || msg.isDeleted) && (
               <div className="relative">
-                <span className={`break-all whitespace-pre-wrap ${msg.isDeleted ? 'opacity-70 italic' : ''}`}>
+                <span
+                  className={`break-all whitespace-pre-wrap ${msg.isDeleted ? 'opacity-70 italic' : ''}`}
+                >
                   {msg.isDeleted ? (
-                    <>🚫 {t('chat.message_deleted', { defaultValue: 'Este mensaje fue eliminado' })}</>
+                    <>
+                      🚫{' '}
+                      {t('chat.message_deleted', {
+                        defaultValue: 'Este mensaje fue eliminado',
+                      })}
+                    </>
                   ) : isDecrypting ? (
                     <span className="opacity-50 italic">Descifrando...</span>
                   ) : (
@@ -257,7 +274,9 @@ export default memo(function MessageBubble({
               className={`absolute bottom-1 right-2.5 flex items-center gap-1.5 pl-2 text-[10px] ${isMe ? 'text-white/80' : 'text-gray-400'}`}
             >
               <span className="tabular-nums font-mono leading-none tracking-widest opacity-80 flex items-center gap-1">
-                {msg.isEdited && !msg.isDeleted && <span className="text-[9px] lowercase">(editado)</span>}
+                {msg.isEdited && !msg.isDeleted && (
+                  <span className="text-[9px] lowercase">(editado)</span>
+                )}
                 {timeString}
               </span>
               {isMe && (
@@ -366,10 +385,21 @@ export default memo(function MessageBubble({
                   className="p-1.5 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
                   title="Edit"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="Edit">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-label="Edit"
+                  >
                     <title>Edit</title>
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                   </svg>
                 </button>
               )}

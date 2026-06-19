@@ -108,9 +108,12 @@ export default function StoryViewer({
   useEffect(() => {
     let viewed = false;
     if (currentStory && !isOwner && !viewed) {
-      storiesApi.markViewed(currentStory.id).then(() => {
-        queryClient.invalidateQueries({ queryKey: ['stories'] });
-      }).catch(console.error);
+      storiesApi
+        .markViewed(currentStory.id)
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: ['stories'] });
+        })
+        .catch(console.error);
       viewed = true;
     }
   }, [currentStory, isOwner, queryClient]);

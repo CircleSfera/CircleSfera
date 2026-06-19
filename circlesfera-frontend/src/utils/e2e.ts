@@ -1,6 +1,6 @@
 /**
  * End-to-End Encryption (E2EE) Utility using Web Crypto API.
- * 
+ *
  * Uses RSA-OAEP for key wrapping (encrypting the symmetric key) and
  * AES-GCM for encrypting the actual message content.
  */
@@ -20,11 +20,12 @@ export const E2EService = {
 
   /** Generate a new RSA-OAEP Key Pair */
   async generateKeyPair(): Promise<CryptoKeyPair> {
-    return window.crypto.subtle.generateKey(
-      this.ALGO_ASYM,
-      true,
-      ['encrypt', 'decrypt', 'wrapKey', 'unwrapKey'],
-    );
+    return window.crypto.subtle.generateKey(this.ALGO_ASYM, true, [
+      'encrypt',
+      'decrypt',
+      'wrapKey',
+      'unwrapKey',
+    ]);
   },
 
   /** Export Public Key to Base64 (SPKI) */
@@ -65,11 +66,10 @@ export const E2EService = {
 
   /** Generate a random AES-GCM Symmetric Key */
   async generateSymmetricKey(): Promise<CryptoKey> {
-    return window.crypto.subtle.generateKey(
-      this.ALGO_SYM,
-      true,
-      ['encrypt', 'decrypt'],
-    );
+    return window.crypto.subtle.generateKey(this.ALGO_SYM, true, [
+      'encrypt',
+      'decrypt',
+    ]);
   },
 
   /** Encrypt text using AES-GCM key */

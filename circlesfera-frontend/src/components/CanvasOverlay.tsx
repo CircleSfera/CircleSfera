@@ -151,9 +151,12 @@ export default function CanvasOverlay({
   selectedOverlayId,
   onSelectOverlay,
 }: CanvasOverlayProps) {
-  const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
-  
-  const selectedId = selectedOverlayId !== undefined ? selectedOverlayId : internalSelectedId;
+  const [internalSelectedId, setInternalSelectedId] = useState<string | null>(
+    null,
+  );
+
+  const selectedId =
+    selectedOverlayId !== undefined ? selectedOverlayId : internalSelectedId;
   const setSelectedId = onSelectOverlay || setInternalSelectedId;
 
   const isDrawing = useRef(false);
@@ -161,12 +164,15 @@ export default function CanvasOverlay({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't delete if they are typing in an input field somewhere else
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
         return;
       }
       if (e.key === 'Backspace' || e.key === 'Delete') {
         if (selectedId) {
-          onChange(overlays.filter(o => o.id !== selectedId));
+          onChange(overlays.filter((o) => o.id !== selectedId));
           setSelectedId(null);
         }
       }
