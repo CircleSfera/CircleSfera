@@ -48,9 +48,9 @@ export default function ChatWindow() {
   const [isUploading, setIsUploading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [editingMessage, setEditingMessage] = useState<{ id: string, text: string } | null>(null);
   const [showMenu, setShowMenu] = useState(false);
 
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -99,6 +99,23 @@ export default function ChatWindow() {
       return () => clearTimeout(timer);
     }
   }, [messages.length, scrollToBottom]); // Only on conversation change or first load of messages
+
+  const handleEdit = useCallback((msg: Message, decryptedText: string) => {
+    setEditingMessage({ id: msg.id!, text: decryptedText });
+    setReplyTo(null);
+    setInput(decryptedText);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, []);
+
+  const handleDelete = useCallback(async (messageId: string) => {
+    try {
+      await chatApi.deleteMessage(messageId);
+      // Optimistic update
+      setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, isDeleted: true, content: '', e2eKeys: undefined } : m));
+    } catch (err) {
+      logger.error('Failed to delete message', err);
+    }
+  }, []);
 
   // Smooth scroll on new messages or typing
   useEffect(() => {
@@ -234,14 +251,28 @@ export default function ChatWindow() {
       }
     };
 
+    const handleMessageEdited = (editedMsg: Message) => {
+      if (editedMsg.conversationId === id) {
+        setMessages((prev) => prev.map((m) => m.id === editedMsg.id ? editedMsg : m));
+      }
+    };
+
+    const handleMessageDeleted = (data: { messageId: string }) => {
+      setMessages((prev) => prev.map((m) => m.id === data.messageId ? { ...m, isDeleted: true, content: '', e2eKeys: undefined } : m));
+    };
+
     socket.on('receiveMessage', handleReceiveMessage);
     socket.on('message_reaction', handleReaction);
     socket.on('messages_read', handleMessagesRead);
+    socket.on('message_edited', handleMessageEdited);
+    socket.on('message_deleted', handleMessageDeleted);
 
     return () => {
       socket.off('receiveMessage', handleReceiveMessage);
       socket.off('message_reaction', handleReaction);
       socket.off('messages_read', handleMessagesRead);
+      socket.off('message_edited', handleMessageEdited);
+      socket.off('message_deleted', handleMessageDeleted);
     };
   }, [socket, id, markRead, queryClient, profile?.id]);
 
@@ -445,7 +476,10 @@ export default function ChatWindow() {
         : undefined,
       tempId,
     };
-    setMessages((prev) => [...prev, tempMsg]);
+    
+    if (!editingMessage) {
+      setMessages((prev) => [...prev, tempMsg]);
+    }
 
     const doSend = async () => {
       try {
@@ -489,13 +523,18 @@ export default function ChatWindow() {
           }
         }
 
-        await apiClient.post('/chat/messages', {
-          conversationId: id,
-          content: finalContent,
-          replyToId: replyTo?.id,
-          tempId,
-          e2eKeys,
-        });
+        if (editingMessage) {
+          await chatApi.editMessage(editingMessage.id, finalContent, e2eKeys);
+          // Only update UI if we want to manually handle it, but websocket will update it anyway
+        } else {
+          await apiClient.post('/chat/messages', {
+            conversationId: id,
+            content: finalContent,
+            replyToId: replyTo?.id,
+            tempId,
+            e2eKeys,
+          });
+        }
       } catch (err) {
         logger.error('Failed to send E2E message', err);
         // Remove temp message on error
@@ -507,6 +546,7 @@ export default function ChatWindow() {
 
     setInput('');
     setReplyTo(null);
+    setEditingMessage(null);
     setIsTyping(false);
     if (!chatInfo.isGroup && chatInfo.userId) {
       stopTyping(id, chatInfo.userId);
@@ -753,14 +793,27 @@ export default function ChatWindow() {
                 >
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowDeleteConfirm(true);
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setShowMenu(false);
+                      confirmDelete('me');
                     }}
-                    className="w-full flex items-center gap-3 px-5 py-4 text-red-500 hover:bg-white/5 transition-colors text-sm font-semibold"
+                    className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-3 font-medium"
                   >
-                    <Trash2 size={18} strokeWidth={2} />
-                    {t('chat.delete_chat_title')}
+                    <Trash2 size={16} />
+                    {t('chat.delete_for_me', { defaultValue: 'Eliminar para mí' })}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMenu(false);
+                      confirmDelete('both');
+                    }}
+                    className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-3 font-medium border-t border-white/10"
+                  >
+                    <Trash2 size={16} />
+                    {t('chat.delete_for_everyone', { defaultValue: 'Eliminar para todos' })}
                   </button>
                 </motion.div>
               )}
@@ -820,6 +873,8 @@ export default function ChatWindow() {
                   showAvatar={showAvatar}
                   onReply={handleReply}
                   onReact={sendReaction}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
                   isRead={isRead}
                   currentUserId={currentUserId}
                 />
@@ -857,7 +912,7 @@ export default function ChatWindow() {
       {/* Input Area */}
       <div className="px-4 md:px-6 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3 bg-transparent relative z-30 shrink-0 w-full mt-auto">
         <AnimatePresence>
-          {replyTo && (
+          {replyTo && !editingMessage && (
             <motion.div
               initial={{ opacity: 0, y: 10, height: 0 }}
               animate={{ opacity: 1, y: 0, height: 'auto' }}
@@ -879,6 +934,35 @@ export default function ChatWindow() {
               <button
                 type="button"
                 onClick={cancelReply}
+                className="p-1.5 bg-black/40 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors border border-white/10"
+              >
+                <X size={14} strokeWidth={2.5} />
+              </button>
+            </motion.div>
+          )}
+          {editingMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: 10, height: 0 }}
+              className="flex items-center justify-between bg-blue-500/10 p-3 rounded-t-[20px] border-x border-t border-blue-500/20 mb-[-16px] pb-5 pt-3 px-4 mx-2 backdrop-blur-md relative z-0"
+            >
+              <div className="flex flex-col text-sm border-l-2 border-blue-500 pl-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-blue-400 font-semibold text-xs">
+                    {t('chat.editing_message', { defaultValue: 'Editando mensaje' })}
+                  </span>
+                </div>
+                <span className="text-gray-400 line-clamp-1 text-xs mt-0.5">
+                  {editingMessage.text}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingMessage(null);
+                  setInput('');
+                }}
                 className="p-1.5 bg-black/40 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors border border-white/10"
               >
                 <X size={14} strokeWidth={2.5} />
@@ -967,65 +1051,7 @@ export default function ChatWindow() {
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      <AnimatePresence>
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowDeleteConfirm(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative bg-[#262626] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl overflow-hidden"
-            >
-              <div className="flex flex-col items-center text-center">
-                <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-4 text-red-500">
-                  <Trash2 size={24} />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">
-                  {t('chat.delete_chat_title')}
-                </h3>
-                <p className="text-white/60 text-sm mb-6">
-                  {t('chat.delete_chat_desc')}
-                </p>
-                <div className="flex flex-col gap-2.5 w-full">
-                  <button
-                    type="button"
-                    onClick={() => confirmDelete('me')}
-                    className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium transition-colors"
-                  >
-                    {t('chat.delete_for_me', {
-                      defaultValue: 'Eliminar para mí',
-                    })}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => confirmDelete('both')}
-                    className="w-full py-2.5 rounded-xl bg-red-600/20 hover:bg-red-600/30 text-red-500 font-bold transition-colors border border-red-500/20"
-                  >
-                    {t('chat.delete_for_everyone', {
-                      defaultValue: 'Eliminar para todos',
-                    })}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="w-full py-2.5 rounded-xl bg-transparent hover:bg-white/5 text-gray-400 font-medium transition-colors mt-2"
-                  >
-                    {t('chat.cancel')}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Modal deleted, options moved directly to dropdown menu */}
     </div>
   );
 }
