@@ -307,7 +307,7 @@ export default function TagPeopleSubScreen({
                 <button
                   type="button"
                   onClick={() => removeTag(idx)}
-                  className="p-1.5 hover:bg-white/10 rounded-lg text-white/40 hover:text-red-400 transition-colors"
+                  className="p-1 hover:bg-white/10 rounded-lg text-white/40 hover:text-red-400 transition-colors"
                 >
                   <X size={14} />
                 </button>

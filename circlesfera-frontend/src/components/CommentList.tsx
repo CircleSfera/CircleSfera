@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Heart,
   Image as ImageIcon,
-  Loader2,
   MessageCircle,
   Trash2,
   X,
@@ -13,6 +12,7 @@ import { commentsApi, uploadApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { Comment, CreateCommentDto } from '../types';
 import UserAvatar from './UserAvatar';
+import { Button } from './ui';
 import VerificationBadge, { type VerificationLevel } from './VerificationBadge';
 
 interface CommentListProps {
@@ -98,35 +98,38 @@ const CommentItem = ({
               )}
             </div>
 
-            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                type="button"
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button
                 onClick={() => onLike(comment.id, isLiked)}
-                className={`p-1 transition-colors ${isLiked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}
+                variant="ghost"
+                size="icon"
+                className={`w-6 h-6 p-0 transition-colors ${isLiked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}
                 title={isLiked ? t('comments.unlike') : t('comments.like')}
               >
                 <Heart size={14} fill={isLiked ? 'currentColor' : 'none'} />
-              </button>
+              </Button>
 
-              <button
-                type="button"
+              <Button
                 onClick={() => onReply(comment)}
-                className="p-1 text-gray-400 hover:text-purple-400 transition-colors"
+                variant="ghost"
+                size="icon"
+                className="w-6 h-6 p-0 text-gray-400 hover:text-purple-400 transition-colors"
                 title={t('comments.reply')}
               >
                 <MessageCircle size={14} />
-              </button>
+              </Button>
 
               {isOwner && (
-                <button
-                  type="button"
+                <Button
                   onClick={() => onDelete(comment.id)}
                   disabled={isDeleting}
-                  className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                  variant="ghost"
+                  size="icon"
+                  className="w-6 h-6 p-0 text-gray-400 hover:text-red-400 transition-colors"
                   title={t('comments.delete')}
                 >
                   <Trash2 size={14} />
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -145,13 +148,13 @@ const CommentItem = ({
                 )}
               </span>
             )}
-            <button
-              type="button"
+            <Button
               onClick={() => onReply(comment)}
-              className="text-xs font-semibold text-gray-500 hover:text-white transition-colors"
+              variant="ghost"
+              className="h-auto p-0 text-xs font-semibold text-gray-500 hover:text-white hover:bg-transparent transition-colors"
             >
               {t('comments.reply')}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -298,7 +301,7 @@ export default function CommentList({ postId, comments }: CommentListProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="space-y-4">
         {comments.map((comment) => (
           <CommentItem
@@ -325,20 +328,21 @@ export default function CommentList({ postId, comments }: CommentListProps) {
         className="mt-6 pt-4 border-t border-white/10 sticky bottom-0 bg-[#000000]/80 backdrop-blur-md p-4 -mx-4 rounded-b-2xl"
       >
         {replyingTo && (
-          <div className="flex items-center justify-between bg-white/5 px-3 py-2 rounded-lg mb-2 text-sm border border-white/10">
+          <div className="flex items-center justify-between bg-white/5 px-2 py-1 rounded-lg mb-2 text-sm border border-white/10">
             <span className="text-gray-300">
               {t('comments.replying_to')}{' '}
               <span className="font-bold text-purple-400">
                 @{replyingTo.user.profile.username}
               </span>
             </span>
-            <button
-              type="button"
+            <Button
               onClick={() => setReplyingTo(null)}
-              className="text-gray-400 hover:text-white"
+              variant="ghost"
+              size="icon"
+              className="w-6 h-6 text-gray-400 hover:text-white rounded-full"
             >
               <X size={14} />
-            </button>
+            </Button>
           </div>
         )}
 
@@ -349,13 +353,14 @@ export default function CommentList({ postId, comments }: CommentListProps) {
               alt="Preview"
               className="w-20 h-20 object-cover rounded-lg border border-white/20"
             />
-            <button
-              type="button"
+            <Button
               onClick={() => setMedia(null)}
-              className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+              variant="danger"
+              size="icon"
+              className="absolute -top-2 -right-2 w-6 h-6 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <X size={12} />
-            </button>
+            </Button>
           </div>
         )}
 
@@ -367,18 +372,16 @@ export default function CommentList({ postId, comments }: CommentListProps) {
             accept="image/*,video/*"
             onChange={handleFileUpload}
           />
-          <button
-            type="button"
-            disabled={isUploading || commentMutation.isPending}
+          <Button
+            disabled={commentMutation.isPending}
+            isLoading={isUploading}
             onClick={() => fileInputRef.current?.click()}
-            className="p-3 bg-white/5 border border-white/10 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all shrink-0"
+            variant="ghost"
+            size="icon"
+            className="w-12 h-12 bg-white/5 border border-white/10 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 shrink-0"
           >
-            {isUploading ? (
-              <Loader2 size={20} className="animate-spin" />
-            ) : (
-              <ImageIcon size={20} />
-            )}
-          </button>
+            {!isUploading && <ImageIcon size={20} />}
+          </Button>
           <input
             ref={inputRef}
             type="text"
@@ -391,15 +394,17 @@ export default function CommentList({ postId, comments }: CommentListProps) {
                   })
                 : t('comments.add_comment')
             }
-            className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-500 outline-none transition-all"
+            className="flex-1 px-2 py-1 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-500 outline-none transition-all"
           />
-          <button
+          <Button
             type="submit"
-            disabled={!newComment.trim() || commentMutation.isPending}
-            className="px-6 py-2 bg-linear-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-500/20"
+            disabled={!newComment.trim()}
+            isLoading={commentMutation.isPending}
+            variant="primary"
+            className="px-6 py-2 bg-linear-to-r from-purple-600 to-pink-600 font-semibold hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/20 border-transparent"
           >
             {t('comments.post')}
-          </button>
+          </Button>
         </div>
       </form>
 

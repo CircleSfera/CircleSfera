@@ -188,7 +188,7 @@ export default function CreatePostModal() {
         className={`
           bg-neutral-900/95 backdrop-blur-2xl border border-white/6 w-full
           ${step === 'caption' ? 'max-w-4xl h-[78vh]' : 'max-w-md md:max-w-2xl max-h-[90vh] md:max-h-[85vh] h-full'}
-          rounded-3xl overflow-hidden shadow-[0_24px_80px_-12px_rgba(0,0,0,0.8)]
+          rounded-xl overflow-hidden shadow-[0_24px_80px_-12px_rgba(0,0,0,0.8)]
           flex flex-col relative
         `}
         transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}

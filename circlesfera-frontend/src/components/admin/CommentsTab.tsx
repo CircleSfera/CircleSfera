@@ -35,7 +35,7 @@ export default function CommentsTab({ onToast }: Props) {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-wrap gap-4 items-center">
         <SearchInput
           value={search}
@@ -47,7 +47,7 @@ export default function CommentsTab({ onToast }: Props) {
         />
       </div>
 
-      <div className="glass-panel rounded-2xl overflow-clip border border-white/10">
+      <div className="glass-panel rounded-lg overflow-clip border border-white/10">
         <Table
           headers={['Autor', 'Comentario', 'Post', 'Fecha', 'Acciones']}
           loading={isLoading}
@@ -58,7 +58,7 @@ export default function CommentsTab({ onToast }: Props) {
               key={comment.id}
               className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
             >
-              <td className="px-4 py-3">
+              <td className="px-2 py-1">
                 <span
                   className="text-white text-sm font-medium max-w-[100px] lg:max-w-[150px] truncate block"
                   title={comment.user?.profile?.username}
@@ -66,20 +66,20 @@ export default function CommentsTab({ onToast }: Props) {
                   @{comment.user?.profile?.username || 'unknown'}
                 </span>
               </td>
-              <td className="px-4 py-3">
+              <td className="px-2 py-1">
                 <p className="text-gray-300 text-sm max-w-xs truncate">
                   {comment.content}
                 </p>
               </td>
-              <td className="px-4 py-3">
+              <td className="px-2 py-1">
                 <span className="text-gray-500 text-xs truncate max-w-[150px] block">
                   {comment.post?.caption?.slice(0, 40) || '—'}
                 </span>
               </td>
-              <td className="px-4 py-3 text-gray-500 text-sm whitespace-nowrap">
+              <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap">
                 {new Date(comment.createdAt).toLocaleDateString()}
               </td>
-              <td className="px-4 py-3">
+              <td className="px-2 py-1">
                 <ActionButton
                   onClick={() => deleteMutation.mutate(comment.id)}
                   label="Eliminar"

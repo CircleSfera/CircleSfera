@@ -52,7 +52,7 @@ export default function Creator() {
       {/* 1. Header (Matching Admin) */}
       <header className="mb-8 flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">
+          <h1 className="text-xl font-black text-white tracking-tight">
             {t('creator.title')}
           </h1>
           <p className="text-zinc-500 mt-0.5 text-xs">
@@ -62,7 +62,7 @@ export default function Creator() {
 
         <button
           type="button"
-          className="hidden sm:flex items-center gap-2 px-6 py-2.5 bg-brand-primary text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-brand-primary/90 transition-all shadow-xl shadow-brand-primary/10"
+          className="hidden sm:flex items-center gap-2 px-6 py-1.5 bg-brand-primary text-white font-black text-xs uppercase tracking-wide rounded-xl hover:bg-brand-primary/90 transition-all shadow-xl shadow-brand-primary/10"
         >
           <Plus size={14} />
           {t('creator.new_content')}
@@ -70,7 +70,7 @@ export default function Creator() {
       </header>
 
       {/* 2. Layout Grid (Matching Admin) */}
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
+      <div className="flex flex-col lg:flex-row gap-4 items-start">
         {/* Sidebar Nav */}
         <CreatorSidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
@@ -93,7 +93,7 @@ export default function Creator() {
             <CreatorMonetizationTab onToast={addToast} />
           )}
           {activeTab === 'monetization' && (
-            <div className="p-4 md:p-6 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10">
+            <div className="p-4 md:p-4 bg-white/5 backdrop-blur-xl rounded-xl border border-white/10">
               <h2 className="text-xl font-bold text-white mb-6">
                 {t('creator.monetization_label', 'Monetization')}
               </h2>
@@ -118,7 +118,7 @@ export default function Creator() {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`w-full px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300 border backdrop-blur-xl ${
+            className={`w-full px-6 py-4 rounded-lg text-xs font-black uppercase tracking-wide shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300 border backdrop-blur-xl ${
               t.type === 'success'
                 ? 'bg-emerald-500/90 text-white border-emerald-500/20'
                 : 'bg-rose-500/90 text-white border-rose-500/20'

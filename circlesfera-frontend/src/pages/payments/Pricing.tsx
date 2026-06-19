@@ -94,7 +94,7 @@ export default function Pricing() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest text-brand-primary mb-4"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-wide text-brand-primary mb-4"
           >
             <Sparkles size={14} />
             Pricing Plans
@@ -102,7 +102,7 @@ export default function Pricing() {
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-3xl md:text-5xl font-black tracking-tighter mb-6 text-white"
+            className="text-xl md:text-3xl font-black tracking-tighter mb-6 text-white"
           >
             Choose your{' '}
             <span className="bg-clip-text text-transparent bg-linear-to-r from-brand-secondary to-brand-primary">
@@ -127,14 +127,14 @@ export default function Pricing() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 + index * 0.1 }}
               key={tier.name}
-              className={`glass-panel rounded-3xl p-8 border transition-all duration-500 flex flex-col relative group hover:-translate-y-2 ${
+              className={`glass-panel rounded-xl p-8 border transition-all duration-500 flex flex-col relative group hover:-translate-y-2 ${
                 tier.popular
                   ? 'border-brand-primary/40 bg-white/5 ring-1 ring-brand-primary/20 scale-105 z-20'
                   : 'border-white/5 hover:border-white/10'
               }`}
             >
               {tier.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-brand-primary rounded-full text-[10px] font-black tracking-widest uppercase shadow-xl shadow-brand-primary/20 text-white">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-brand-primary rounded-full text-xs font-black tracking-wide uppercase shadow-xl shadow-brand-primary/20 text-white">
                   Most Popular
                 </div>
               )}
@@ -144,7 +144,7 @@ export default function Pricing() {
                   {tier.name}
                 </h3>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-black text-white">
+                  <span className="text-2xl font-black text-white">
                     €{tier.price}
                   </span>
                   <span className="text-white/30 text-sm">/month</span>
@@ -171,7 +171,7 @@ export default function Pricing() {
                 type="button"
                 onClick={() => handleTierClick(tier.name)}
                 disabled={loadingTier !== null}
-                className={`w-full py-4 rounded-2xl font-black text-sm tracking-tighter transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2 ${
+                className={`w-full py-4 rounded-lg font-black text-sm tracking-tighter transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2 ${
                   tier.popular
                     ? 'bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue text-white shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40'
                     : 'bg-white/5 text-white hover:bg-white/10 border border-white/10 hover:border-white/20'

@@ -44,20 +44,20 @@ export default function Admin() {
   return (
     <div className="min-h-screen px-4 py-6 md:px-6 lg:px-8 max-w-[1600px] mx-auto">
       {/* Top Navigation Bar */}
-      <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-4 rounded-2xl border border-white/5 relative overflow-hidden">
+      <header className="mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3 glass-panel p-3 rounded-xl border border-white/5 relative overflow-hidden">
         {/* Glow effect */}
         <div className="absolute top-0 left-0 w-1/3 h-full bg-brand-primary/10 blur-3xl pointer-events-none" />
 
         <div className="flex items-center gap-4 relative z-10">
-          <div className="w-12 h-12 bg-brand-primary/20 rounded-xl flex items-center justify-center border border-brand-primary/30 shadow-[0_0_15px_rgba(var(--brand-primary),0.2)]">
-            <ShieldCheck size={24} className="text-brand-primary" />
+          <div className="w-9 h-9 bg-brand-primary/20 rounded-lg flex items-center justify-center border border-brand-primary/30 shadow-[0_0_15px_rgba(var(--brand-primary),0.2)]">
+            <ShieldCheck size={18} className="text-brand-primary" />
           </div>
           <div>
-            <h1 className="text-xl font-black text-white tracking-tight leading-tight">
+            <h1 className="text-lg font-black text-white tracking-tight leading-tight">
               {t('admin.panel')}
             </h1>
             <div className="flex items-center gap-2 mt-1">
-              <span className="flex items-center gap-1.5 text-xs font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full border border-green-400/20">
+              <span className="flex items-center gap-1 text-xs font-bold text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full border border-green-400/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                 Systems Operational
               </span>
@@ -98,7 +98,7 @@ export default function Admin() {
       </header>
 
       {/* Layout Grid */}
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
+      <div className="flex flex-col lg:flex-row gap-4 items-start">
         {/* Sidebar Nav */}
         <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
 

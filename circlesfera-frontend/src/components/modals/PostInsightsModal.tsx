@@ -21,6 +21,7 @@ import {
 } from 'recharts';
 import { creatorApi } from '../../services/creator.service';
 import SafeResponsiveContainer from '../common/SafeResponsiveContainer';
+import { Button } from '../ui';
 
 interface Props {
   postId: string;
@@ -63,29 +64,30 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                 <h3 className="text-white font-black text-lg leading-none">
                   {t('modals.insights.post_stats')}
                 </h3>
-                <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-1.5">
+                <p className="text-zinc-500 text-xs font-bold uppercase tracking-wide mt-1.5">
                   {t('modals.insights.realtime_metrics')}
                 </p>
               </div>
             </div>
-            <button
-              type="button"
+            <Button
               onClick={onClose}
-              className="w-10 h-10 rounded-full hover:bg-white/5 flex items-center justify-center transition-colors text-zinc-500 hover:text-white"
+              variant="ghost"
+              size="icon"
+              className="w-10 h-10 rounded-full hover:bg-white/5 text-zinc-500 hover:text-white"
             >
               <X size={20} />
-            </button>
+            </Button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4 custom-scrollbar">
             {isLoading ? (
-              <div className="space-y-8 animate-pulse">
+              <div className="space-y-4 animate-pulse">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="h-24 bg-white/5 rounded-3xl" />
+                    <div key={i} className="h-24 bg-white/5 rounded-xl" />
                   ))}
                 </div>
-                <div className="h-64 bg-white/5 rounded-3xl" />
+                <div className="h-64 bg-white/5 rounded-xl" />
               </div>
             ) : insights ? (
               <>
@@ -148,11 +150,11 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                 {/* 2. Evolution Chart */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-white font-black text-xs uppercase tracking-widest flex items-center gap-2">
+                    <h4 className="text-white font-black text-xs uppercase tracking-wide flex items-center gap-2">
                       <TrendingUp size={14} className="text-brand-primary" />
                       {t('modals.insights.views_evolution')}
                     </h4>
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                    <span className="text-xs font-bold text-zinc-500 uppercase tracking-wide">
                       {t('modals.insights.last_days')}
                     </span>
                   </div>
@@ -232,7 +234,7 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                     ) : (
                       <div className="h-full flex flex-col items-center justify-center text-zinc-600 gap-2">
                         <BarChart3 size={32} strokeWidth={1.5} />
-                        <p className="text-[10px] font-black uppercase tracking-widest">
+                        <p className="text-xs font-black uppercase tracking-wide">
                           {t('modals.insights.not_enough_data')}
                         </p>
                       </div>
@@ -241,8 +243,8 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                 </div>
 
                 {/* 3. Performance Summary */}
-                <div className="bg-brand-primary/5 rounded-4xl border border-brand-primary/10 p-6 flex items-center gap-6">
-                  <div className="w-16 h-16 rounded-2xl bg-brand-primary/20 flex items-center justify-center shrink-0">
+                <div className="bg-brand-primary/5 rounded-4xl border border-brand-primary/10 p-6 flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-lg bg-brand-primary/20 flex items-center justify-center shrink-0">
                     <Zap size={32} className="text-brand-primary" />
                   </div>
                   <div>
@@ -289,14 +291,14 @@ function StatCard({
   formatter?: (val: number) => string;
 }) {
   return (
-    <div className="glass-panel p-5 rounded-3xl border border-white/5 space-y-3">
+    <div className="glass-panel p-4 rounded-xl border border-white/5 space-y-3">
       <div
         className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center border border-white/5`}
       >
         <Icon size={16} className={color} />
       </div>
       <div>
-        <p className="text-zinc-500 text-[8px] font-black uppercase tracking-[0.2em]">
+        <p className="text-zinc-500 text-xs font-black uppercase tracking-wide">
           {label}
         </p>
         <p className="text-white font-black text-xl tracking-tight mt-0.5">

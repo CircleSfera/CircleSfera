@@ -7,6 +7,7 @@ import type { AdminPost } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import ConfirmModal from '../modals/ConfirmModal';
+import { Button } from '../ui';
 import {
   ActionButton,
   FilterDropdown,
@@ -96,18 +97,18 @@ export default function PostsTab({ onToast }: Props) {
             ]}
           />
         </div>
-        <button
-          type="button"
+        <Button
           onClick={handleExport}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-xl text-sm font-bold transition-all border border-white/10"
+          variant="outline"
+          className="text-sm font-bold text-gray-400 hover:text-white border-white/10 px-4 py-2.5"
           aria-label="Exportar publicaciones como CSV"
         >
-          <Download size={16} />
+          <Download size={16} className="mr-2" />
           Exportar CSV
-        </button>
+        </Button>
       </div>
 
-      <div className="glass-panel rounded-2xl overflow-clip border border-white/10">
+      <div className="glass-panel rounded-lg overflow-clip border border-white/10">
         <Table
           headers={[
             'Publicación',
@@ -129,7 +130,7 @@ export default function PostsTab({ onToast }: Props) {
               exit={{ opacity: 0, scale: 0.95 }}
               className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
             >
-              <td className="px-4 py-3">
+              <td className="px-2 py-1">
                 <button
                   type="button"
                   onClick={() => setPreviewPost(post)}
@@ -150,7 +151,7 @@ export default function PostsTab({ onToast }: Props) {
                   </p>
                 </button>
               </td>
-              <td className="px-4 py-3">
+              <td className="px-2 py-1">
                 <span
                   className="text-gray-300 text-sm max-w-[100px] lg:max-w-[150px] truncate block"
                   title={post.user?.profile?.username}
@@ -158,15 +159,15 @@ export default function PostsTab({ onToast }: Props) {
                   @{post.user?.profile?.username}
                 </span>
               </td>
-              <td className="px-4 py-3 text-gray-500 text-sm whitespace-nowrap">
+              <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap">
                 {new Date(post.createdAt).toLocaleDateString()}
               </td>
-              <td className="px-4 py-3">
-                <span className="px-2 py-0.5 bg-white/5 rounded text-[10px] font-black uppercase tracking-wider text-gray-400 border border-white/10">
+              <td className="px-2 py-1">
+                <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-black uppercase tracking-wider text-gray-400 border border-white/10">
                   {post.type}
                 </span>
               </td>
-              <td className="px-4 py-3">
+              <td className="px-2 py-1">
                 {post._count && (
                   <div className="text-xs text-gray-500 space-y-0.5">
                     <p>
@@ -184,8 +185,8 @@ export default function PostsTab({ onToast }: Props) {
                   </div>
                 )}
               </td>
-              <td className="px-4 py-3">
-                <div className="flex gap-1.5 items-center">
+              <td className="px-2 py-1">
+                <div className="flex gap-1 items-center">
                   <ActionButton
                     onClick={() => setPreviewPost(post)}
                     label="Ver"

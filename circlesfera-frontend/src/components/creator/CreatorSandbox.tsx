@@ -32,7 +32,7 @@ export default function CreatorSandbox({ isConnecting, onConnect }: Props) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-8 glass-panel rounded-2xl border border-brand-primary/20 bg-linear-to-br from-brand-primary/10 via-brand-secondary/5 to-transparent relative overflow-hidden"
+      className="p-8 glass-panel rounded-lg border border-brand-primary/20 bg-linear-to-br from-brand-primary/10 via-brand-secondary/5 to-transparent relative overflow-hidden"
     >
       {/* Background glow effects */}
       <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
@@ -46,7 +46,7 @@ export default function CreatorSandbox({ isConnecting, onConnect }: Props) {
             <Calculator size={24} className="text-brand-primary" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-brand-primary uppercase tracking-[0.3em]">
+            <h3 className="text-sm font-black text-brand-primary uppercase tracking-wide">
               {t('creator.sandbox.title', 'Creator Sandbox')}
             </h3>
             <p className="text-white/60 text-xs">
@@ -60,13 +60,13 @@ export default function CreatorSandbox({ isConnecting, onConnect }: Props) {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Controls Side */}
-          <div className="space-y-8">
+          <div className="space-y-4">
             {/* Subscribers Slider */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <label
                   htmlFor="subscribers"
-                  className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-widest"
+                  className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wide"
                 >
                   <Users size={16} className="text-brand-accent" />
                   {t('creator.sandbox.fans', 'Fans Suscritos')}
@@ -85,7 +85,7 @@ export default function CreatorSandbox({ isConnecting, onConnect }: Props) {
                 onChange={(e) => setSubscribers(Number(e.target.value))}
                 className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-accent"
               />
-              <div className="flex justify-between text-[10px] text-white/40 font-bold uppercase tracking-widest">
+              <div className="flex justify-between text-xs text-white/40 font-bold uppercase tracking-wide">
                 <span>10</span>
                 <span>10K</span>
               </div>
@@ -96,7 +96,7 @@ export default function CreatorSandbox({ isConnecting, onConnect }: Props) {
               <div className="flex items-center justify-between">
                 <label
                   htmlFor="price"
-                  className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-widest"
+                  className="flex items-center gap-2 text-sm font-bold text-white uppercase tracking-wide"
                 >
                   <Coins size={16} className="text-emerald-400" />
                   {t('creator.sandbox.price', 'Precio de Suscripción')}
@@ -115,7 +115,7 @@ export default function CreatorSandbox({ isConnecting, onConnect }: Props) {
                 onChange={(e) => setPrice(Number(e.target.value))}
                 className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-emerald-400"
               />
-              <div className="flex justify-between text-[10px] text-white/40 font-bold uppercase tracking-widest">
+              <div className="flex justify-between text-xs text-white/40 font-bold uppercase tracking-wide">
                 <span>$1</span>
                 <span>$100</span>
               </div>
@@ -123,12 +123,12 @@ export default function CreatorSandbox({ isConnecting, onConnect }: Props) {
           </div>
 
           {/* Results Side */}
-          <div className="bg-black/40 backdrop-blur-md rounded-2xl p-8 border border-white/5 relative">
-            <div className="absolute -top-4 -right-4 bg-brand-primary text-black text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full rotate-12 shadow-lg">
+          <div className="bg-black/40 backdrop-blur-md rounded-lg p-8 border border-white/5 relative">
+            <div className="absolute -top-4 -right-4 bg-brand-primary text-black text-xs font-black uppercase tracking-wide px-4 py-2 rounded-full rotate-12 shadow-lg">
               {t('creator.sandbox.badge', '80% Para ti')}
             </div>
 
-            <p className="text-zinc-500 text-xs font-black uppercase tracking-widest mb-2 flex items-center gap-2">
+            <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mb-2 flex items-center gap-2">
               <TrendingUp size={14} />
               {t('creator.sandbox.estimated', 'Ingresos Mensuales Estimados')}
             </p>
@@ -158,7 +158,7 @@ export default function CreatorSandbox({ isConnecting, onConnect }: Props) {
               type="button"
               disabled={isConnecting}
               onClick={onConnect}
-              className="w-full py-4 bg-white text-black font-black rounded-2xl text-xs uppercase tracking-widest hover:scale-[1.02] transition-transform disabled:opacity-50 flex items-center justify-center gap-2 shadow-xl shadow-white/10 group"
+              className="w-full py-4 bg-white text-black font-black rounded-lg text-xs uppercase tracking-wide hover:scale-[1.02] transition-transform disabled:opacity-50 flex items-center justify-center gap-2 shadow-xl shadow-white/10 group"
             >
               {isConnecting ? (
                 <Loader2 className="animate-spin" size={18} />
@@ -173,7 +173,7 @@ export default function CreatorSandbox({ isConnecting, onConnect }: Props) {
                 </>
               )}
             </button>
-            <p className="text-center mt-4 text-[10px] text-white/40 uppercase tracking-widest">
+            <p className="text-center mt-4 text-xs text-white/40 uppercase tracking-wide">
               {t(
                 'creator.sandbox.secure',
                 'Configuración segura a través de Stripe Connect',

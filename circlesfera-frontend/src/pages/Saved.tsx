@@ -43,7 +43,7 @@ export default function Saved() {
             <p className="text-gray-400">{t('collections.no_saved_desc')}</p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {posts.map((post) => (
               <PostCard key={post.id} post={post} />
             ))}

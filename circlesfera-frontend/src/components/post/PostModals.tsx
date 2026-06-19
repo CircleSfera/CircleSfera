@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Textarea } from '../ui';
 
 interface PostModalsProps {
   showDeleteModal: boolean;
@@ -33,7 +34,7 @@ export default function PostModals({
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 max-w-sm w-full mx-4 shadow-2xl">
             <h3 className="text-xl font-bold text-center mb-2">
               {t('post.modals.delete_title')}
             </h3>
@@ -66,7 +67,7 @@ export default function PostModals({
       {/* Edit Caption Modal */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 max-w-md w-full mx-4 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold">
                 {t('post.modals.edit_title')}
@@ -80,10 +81,10 @@ export default function PostModals({
               </button>
             </div>
             <form onSubmit={onEdit}>
-              <textarea
+              <Textarea
                 value={editCaption}
                 onChange={(e) => setEditCaption(e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-600 rounded-xl p-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none h-32"
+                className="resize-none h-32"
                 placeholder={t('post.modals.write_caption')}
               />
               <div className="flex gap-3 mt-4">

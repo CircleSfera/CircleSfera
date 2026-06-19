@@ -89,7 +89,7 @@ export function Skeleton({ className = '', variant = 'rect' }: SkeletonProps) {
 // Post Skeleton
 export function PostSkeleton() {
   return (
-    <div className="glass-panel-post rounded-2xl overflow-hidden mb-6">
+    <div className="glass-panel-post rounded-lg overflow-hidden mb-6">
       <div className="p-4 flex items-center gap-3">
         <Skeleton variant="circle" className="w-10 h-10" />
         <div className="space-y-2">
@@ -132,7 +132,7 @@ export function ProfileSkeleton() {
       <div className="glass-panel rounded-4xl p-6 md:p-8 mb-6 overflow-hidden relative">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-8 md:gap-10">
           <Skeleton variant="circle" className="w-24 h-24 md:w-32 md:h-32" />
-          <div className="flex-1 space-y-6 w-full text-center md:text-left">
+          <div className="flex-1 space-y-4 w-full text-center md:text-left">
             <div className="flex flex-col md:flex-row gap-4 items-center md:items-start">
               <Skeleton variant="text" className="w-48 h-8" />
               <div className="flex gap-2">

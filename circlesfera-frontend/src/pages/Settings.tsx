@@ -26,6 +26,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { PasskeySettings, TwoFactorSettings } from '../components';
 import CloseFriendsModal from '../components/modals/CloseFriendsModal';
 import UserAvatar from '../components/UserAvatar';
+import { Button, Input, Switch, Textarea } from '../components/ui';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { followsApi, profileApi, uploadApi } from '../services';
 import { paymentsApi } from '../services/payments.service';
@@ -65,18 +66,18 @@ function NotificationsSettings() {
   const { t } = useTranslation();
 
   return (
-    <div className="max-w-xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-xl space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
-        <h2 className="text-3xl font-black text-white tracking-tighter">
+        <h2 className="text-xl font-black text-white tracking-tighter">
           {t('settings.notifications_tab.title')}
         </h2>
-        <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-widest italic opacity-60">
+        <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
           {t('settings.notifications_tab.subtitle')}
         </p>
       </div>
 
-      <div className="bg-white/2 p-6 rounded-3xl border border-white/5 border-l-purple-500/40 border-l-4">
-        <div className="flex items-center justify-between gap-6">
+      <div className="bg-white/2 p-6 rounded-xl border border-white/5 border-l-purple-500/40 border-l-4">
+        <div className="flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-bold text-white tracking-tight">
               {t('settings.notifications_tab.native_alerts')}
@@ -85,7 +86,7 @@ function NotificationsSettings() {
               {t('settings.notifications_tab.native_alerts_desc')}
             </p>
             {permission === 'denied' && (
-              <p className="text-[10px] text-red-400 font-bold uppercase tracking-wider mt-2 flex items-center gap-1">
+              <p className="text-xs text-red-400 font-bold uppercase tracking-wider mt-2 flex items-center gap-1">
                 <AlertTriangle size={12} />{' '}
                 {t('settings.notifications_tab.blocked')}
               </p>
@@ -111,20 +112,20 @@ function NotificationsSettings() {
       </div>
 
       <div className="space-y-4">
-        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500 ml-1">
+        <h3 className="text-xs font-black uppercase tracking-wider text-gray-500 ml-1">
           {t('settings.notifications_tab.browser_capability')}
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="bg-white/1 p-4 rounded-2xl border border-white/5">
-            <p className="text-[9px] font-bold text-gray-600 uppercase tracking-tighter mb-1">
+          <div className="bg-white/1 p-4 rounded-lg border border-white/5">
+            <p className="text-xs font-bold text-gray-600 uppercase tracking-tighter mb-1">
               {t('settings.notifications_tab.status')}
             </p>
             <p className="text-xs font-bold text-white uppercase">
               {permission.toUpperCase()}
             </p>
           </div>
-          <div className="bg-white/1 p-4 rounded-2xl border border-white/5">
-            <p className="text-[9px] font-bold text-gray-600 uppercase tracking-tighter mb-1">
+          <div className="bg-white/1 p-4 rounded-lg border border-white/5">
+            <p className="text-xs font-bold text-gray-600 uppercase tracking-tighter mb-1">
               {t('settings.notifications_tab.pwa_support')}
             </p>
             <p className="text-xs font-bold text-white uppercase">
@@ -543,9 +544,9 @@ export default function Settings() {
     <div className="min-h-screen pb-32 pt-6">
       <div className="max-w-5xl mx-auto px-4 md:px-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-3">
           <div>
-            <h1 className="text-4xl font-extrabold text-white tracking-tight">
+            <h1 className="text-xl font-bold text-white tracking-tight">
               {t('settings.title')}
             </h1>
             <p className="text-gray-400 mt-1 font-medium italic">
@@ -557,7 +558,7 @@ export default function Settings() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleLogout}
-            className="flex items-center gap-2.5 px-5 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl border border-red-500/20 transition-all self-start md:self-auto"
+            className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/20 transition-all self-start md:self-auto"
           >
             <LogOut size={18} />
             <span className="font-bold text-sm tracking-wide">
@@ -566,16 +567,16 @@ export default function Settings() {
           </motion.button>
         </div>
 
-        <div className="glass-panel rounded-3xl overflow-hidden flex flex-col md:flex-row min-h-[600px] md:min-h-[750px] border-white/5 shadow-2xl relative">
+        <div className="glass-panel rounded-xl overflow-hidden flex flex-col md:flex-row min-h-[400px] md:min-h-[500px] border-white/5 shadow-lg relative">
           {/* Mobile Tabs / Desktop Sidebar */}
-          <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/5 bg-black/40 md:bg-white/1 shrink-0 sticky top-0 md:top-0 z-20 md:z-10 backdrop-blur-2xl md:backdrop-blur-none">
-            <div className="flex flex-row md:flex-col gap-2 md:gap-1.5 overflow-x-auto md:overflow-x-visible no-scrollbar p-3 md:p-4 sticky md:top-24 items-center md:items-stretch">
+          <div className="w-full md:w-52 border-b md:border-b-0 md:border-r border-white/5 bg-black/40 md:bg-white/1 shrink-0 sticky top-0 md:top-0 z-20 md:z-10 backdrop-blur-2xl md:backdrop-blur-none">
+            <div className="flex flex-row md:flex-col gap-2 md:gap-1 overflow-x-auto md:overflow-x-visible no-scrollbar p-3 md:p-4 sticky md:top-24 items-center md:items-stretch">
               {tabs.map((tab) => (
                 <button
                   type="button"
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex flex-row md:flex-col items-center md:items-start gap-2 md:gap-0 px-4 md:px-3.5 py-2.5 md:py-2.5 rounded-full md:rounded-xl transition-all relative group shrink-0 ${
+                  className={`flex flex-row md:flex-col items-center md:items-start gap-2 md:gap-0 px-3 py-2 rounded-lg transition-all relative group shrink-0 ${
                     activeTab === tab.id
                       ? 'bg-blue-500/10 text-white shadow-[0_0_15px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/30'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -590,12 +591,12 @@ export default function Settings() {
                           : 'group-hover:text-gray-200 transition-colors'
                       }
                     />
-                    <span className="font-bold text-[11px] tracking-widest uppercase whitespace-nowrap">
+                    <span className="font-semibold text-xs tracking-wider uppercase whitespace-nowrap">
                       {t(`settings.tabs.${tab.id}.label`)}
                     </span>
                   </div>
                   <span
-                    className={`hidden md:block text-[9px] ml-6 font-medium leading-relaxed mt-0.5 ${activeTab === tab.id ? 'text-blue-300/80' : 'text-gray-500'}`}
+                    className={`hidden md:block text-xs ml-6 font-medium leading-relaxed mt-0.5 ${activeTab === tab.id ? 'text-blue-300/80' : 'text-gray-500'}`}
                   >
                     {t(`settings.tabs.${tab.id}.desc`)}
                   </span>
@@ -611,21 +612,21 @@ export default function Settings() {
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 p-6 md:p-8">
+          <div className="flex-1 p-4 md:p-6">
             {activeTab === 'profile' && (
               <form
                 onSubmit={handleProfileSubmit}
-                className="space-y-8 max-w-xl animate-in fade-in slide-in-from-bottom-4 duration-500"
+                className="space-y-5 max-w-xl animate-in fade-in slide-in-from-bottom-4 duration-500"
               >
                 {/* Avatar Section */}
-                <div className="flex flex-col sm:flex-row items-center gap-8 bg-white/1 p-6 rounded-3xl border border-white/5 shadow-inner">
+                <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/1 p-4 rounded-lg border border-white/5 shadow-inner">
                   <button
                     type="button"
                     className="relative group cursor-pointer"
                     onClick={() => fileInputRef.current?.click()}
                     aria-label="Change profile picture"
                   >
-                    <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white/10 group-hover:border-blue-500/50 transition-all duration-300 relative bg-zinc-800">
+                    <div className="w-16 h-16 rounded-full overflow-hidden border-[3px] border-white/10 group-hover:border-blue-500/50 transition-all duration-300 relative bg-zinc-800">
                       <UserAvatar
                         src={avatarPreview || profile?.avatar || undefined}
                         thumbnailUrl={
@@ -638,9 +639,9 @@ export default function Settings() {
                         size="full"
                         className="w-full h-full object-cover flex items-center justify-center"
                       />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5">
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
                         <Camera size={20} className="text-white" />
-                        <span className="text-[10px] font-bold text-white uppercase tracking-wider">
+                        <span className="text-xs font-bold text-white uppercase tracking-wider">
                           {t('settings.profile.change_avatar')}
                         </span>
                       </div>
@@ -657,7 +658,7 @@ export default function Settings() {
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="absolute -bottom-1 -right-1 bg-green-500 text-white p-1.5 rounded-full shadow-lg border-2 border-zinc-900"
+                        className="absolute -bottom-1 -right-1 bg-green-500 text-white p-1 rounded-full shadow-lg border-2 border-zinc-900"
                       >
                         <Check size={14} strokeWidth={4} />
                       </motion.div>
@@ -672,7 +673,7 @@ export default function Settings() {
                   </button>
 
                   <div className="flex-1 text-center sm:text-left space-y-2">
-                    <h3 className="text-xl font-bold text-white tracking-tight">
+                    <h3 className="text-lg font-bold text-white tracking-tight">
                       @{profile?.username}
                     </h3>
                     <p className="text-sm text-gray-400 leading-relaxed max-w-xs">
@@ -682,7 +683,7 @@ export default function Settings() {
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="text-[11px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors bg-blue-400/5 hover:bg-blue-400/10 px-4 py-2 rounded-full border border-blue-400/10"
+                        className="text-xs font-black uppercase tracking-wide text-blue-400 hover:text-blue-300 transition-colors bg-blue-400/5 hover:bg-blue-400/10 px-4 py-2 rounded-full border border-blue-400/10"
                         disabled={avatarUploading}
                       >
                         {avatarUploading
@@ -694,37 +695,27 @@ export default function Settings() {
                 </div>
 
                 {/* Section 1: Public Identity */}
-                <div className="bg-white/2 p-5 md:p-6 rounded-3xl border border-white/5 space-y-6">
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/80 mb-2">
+                <div className="bg-white/2 p-4 rounded-xl border border-white/5 space-y-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-blue-400/80 mb-2">
                     {t('settings.profile.public_identity')}
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Username */}
-                    <div className="space-y-2">
-                      <label
-                        htmlFor="username"
-                        className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-1"
-                      >
-                        {t('settings.profile.username')}
-                      </label>
-                      <div className="relative group">
-                        <input
-                          id="username"
-                          type="text"
-                          value={username}
-                          onChange={handleUsernameChange}
-                          className={`w-full px-5 py-3.5 bg-zinc-900/50 border-2 rounded-2xl focus:ring-4 focus:ring-blue-500/10 outline-none text-white transition-all font-medium ${
-                            usernameStatus.available === true
-                              ? 'border-green-500/30'
-                              : usernameStatus.available === false
-                                ? 'border-red-500/30'
-                                : 'border-white/5 focus:border-blue-500/40 group-hover:border-white/10'
-                          }`}
-                          placeholder={t(
-                            'settings.profile.placeholders.username',
-                          )}
-                        />
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                    <Input
+                      id="username"
+                      label={t('settings.profile.username')}
+                      type="text"
+                      value={username}
+                      onChange={handleUsernameChange}
+                      placeholder={t('settings.profile.placeholders.username')}
+                      className={`${usernameStatus.available === true ? 'border-green-500/30 focus-visible:ring-green-500/50' : usernameStatus.available === false ? 'border-red-500/30' : ''}`}
+                      error={
+                        usernameStatus.available === false
+                          ? usernameStatus.message.toUpperCase()
+                          : undefined
+                      }
+                      rightElement={
+                        <>
                           {usernameStatus.checking && (
                             <Loader2
                               size={18}
@@ -739,96 +730,79 @@ export default function Settings() {
                             usernameStatus.available === false && (
                               <X size={18} className="text-red-400" />
                             )}
-                        </div>
-                      </div>
-                      {usernameStatus.message && (
-                        <p
-                          className={`text-[10px] font-bold mt-1 ml-1 tracking-wide ${usernameStatus.available ? 'text-green-400' : 'text-red-400'}`}
-                        >
+                        </>
+                      }
+                    />
+                    {usernameStatus.available === true &&
+                      usernameStatus.message && (
+                        <p className="text-xs font-bold mt-1 ml-1 tracking-wide text-green-400">
                           {usernameStatus.message.toUpperCase()}
                         </p>
                       )}
-                    </div>
 
                     {/* Name */}
-                    <div className="space-y-2">
-                      <label
-                        htmlFor="fullName"
-                        className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-1"
-                      >
-                        {t('settings.profile.display_name')}
-                      </label>
-                      <input
-                        id="fullName"
-                        type="text"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        className="w-full px-5 py-3.5 bg-zinc-900/50 border-2 border-white/5 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/40 outline-none text-white transition-all font-medium hover:border-white/10"
-                        placeholder={t('settings.profile.placeholders.name')}
-                      />
-                    </div>
+                    <Input
+                      id="fullName"
+                      label={t('settings.profile.display_name')}
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder={t('settings.profile.placeholders.name')}
+                    />
                   </div>
                 </div>
 
                 {/* Section 2: Presence & Links */}
-                <div className="bg-white/2 p-5 md:p-6 rounded-3xl border border-white/5 space-y-6">
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-400/80 mb-2">
+                <div className="bg-white/2 p-4 md:p-4 rounded-lg border border-white/5 space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-blue-400/80 mb-2">
                     {t('settings.profile.presence_links')}
                   </h3>
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {/* Bio */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-end ml-1">
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-end">
                         <label
                           htmlFor="bio"
-                          className="text-[10px] font-bold uppercase tracking-widest text-gray-500"
+                          className="block text-xs font-semibold text-gray-400 uppercase tracking-wider ml-1"
                         >
                           {t('settings.profile.bio')}
                         </label>
                         <span
-                          className={`text-[10px] font-bold ${bio.length >= 140 ? 'text-red-400' : 'text-gray-600'}`}
+                          className={`text-xs font-bold ${bio.length >= 140 ? 'text-red-400' : 'text-gray-600'}`}
                         >
                           {bio.length}/150
                         </span>
                       </div>
-                      <textarea
+                      <Textarea
                         id="bio"
                         value={bio}
                         onChange={(e) => setBio(e.target.value)}
                         rows={3}
                         maxLength={150}
-                        className="w-full px-5 py-3.5 bg-zinc-900/50 border-2 border-white/5 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/40 outline-none text-white transition-all font-medium hover:border-white/10 resize-none h-28"
                         placeholder={t('settings.profile.placeholders.bio')}
+                        className="resize-none"
                       />
                     </div>
 
                     {/* Website */}
-                    <div className="space-y-2">
-                      <label
-                        htmlFor="website"
-                        className="text-[10px] font-bold uppercase tracking-widest text-gray-500 ml-1"
-                      >
-                        {t('settings.profile.website')}
-                      </label>
-                      <input
-                        id="website"
-                        type="url"
-                        value={website}
-                        onChange={(e) => setWebsite(e.target.value)}
-                        className="w-full px-5 py-3.5 bg-zinc-900/50 border-2 border-white/5 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/40 outline-none text-white transition-all font-medium hover:border-white/10"
-                        placeholder={t('settings.profile.placeholders.website')}
-                      />
-                    </div>
+                    <Input
+                      id="website"
+                      label={t('settings.profile.website')}
+                      type="url"
+                      value={website}
+                      onChange={(e) => setWebsite(e.target.value)}
+                      placeholder={t('settings.profile.placeholders.website')}
+                    />
                   </div>
                 </div>
 
                 {/* Section 3: Professional Account (Already in cards) */}
-                <div className="bg-white/2 p-5 md:p-6 rounded-3xl border border-white/5 space-y-4">
+                <div className="bg-white/2 p-4 md:p-6 rounded-xl border border-white/5 space-y-4">
                   <div className="flex items-center justify-between ml-1">
-                    <span className="text-[11px] font-black uppercase tracking-widest text-blue-400/80">
+                    <span className="text-xs font-black uppercase tracking-wide text-blue-400/80">
                       {t('settings.profile.account_type')}
                     </span>
-                    <span className="text-[10px] font-bold text-blue-400 capitalize bg-blue-400/10 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-bold text-blue-400 capitalize bg-blue-400/10 px-2 py-0.5 rounded-full">
                       {accountType.toLowerCase()}
                     </span>
                   </div>
@@ -864,7 +838,7 @@ export default function Settings() {
                           setAccountType(typeId);
                           updateProfileMutation.mutate({ accountType: typeId });
                         }}
-                        className={`relative p-4 rounded-2xl text-left transition-all duration-300 border group overflow-hidden ${
+                        className={`relative p-4 rounded-lg text-left transition-all duration-300 border group overflow-hidden ${
                           accountType === type.id
                             ? 'bg-blue-500/10 border-blue-500/50 shadow-lg shadow-blue-500/10'
                             : 'bg-zinc-900/40 border-white/5 hover:border-white/10'
@@ -887,7 +861,7 @@ export default function Settings() {
                           )}
                         </h4>
                         <p
-                          className={`text-[8px] font-bold uppercase tracking-wider mt-0.5 ${accountType === type.id ? 'text-blue-400/80' : 'text-gray-600'}`}
+                          className={`text-xs font-bold uppercase tracking-wider mt-0.5 ${accountType === type.id ? 'text-blue-400/80' : 'text-gray-600'}`}
                         >
                           {t(
                             `settings.profile.types.${type.id.toLowerCase()}.desc`,
@@ -905,10 +879,10 @@ export default function Settings() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
-                      className="flex items-center gap-2 text-green-400 text-sm bg-green-500/10 border border-green-500/20 rounded-2xl p-4 shadow-lg shadow-green-500/5"
+                      className="flex items-center gap-2 text-green-400 text-sm bg-green-500/10 border border-green-500/20 rounded-lg p-4 shadow-lg shadow-green-500/5"
                     >
                       <Check size={18} />
-                      <span className="font-bold tracking-tight text-[10px] uppercase">
+                      <span className="font-bold tracking-tight text-xs uppercase">
                         {t('settings.profile.success')}
                       </span>
                     </motion.div>
@@ -917,75 +891,54 @@ export default function Settings() {
 
                 {/* Sticky Guard Bar (Mobile Footer) */}
                 <div className="sticky bottom-0 md:static -mx-6 md:mx-0 p-4 md:p-0 mt-8 z-30 bg-zinc-950/80 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-t border-white/5 md:border-none">
-                  <motion.button
+                  <Button
                     type="submit"
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    disabled={updateProfileMutation.isPending || !canSubmit}
-                    className="w-full bg-blue-500 hover:bg-blue-600 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale"
+                    variant="primary"
+                    disabled={!canSubmit}
+                    isLoading={updateProfileMutation.isPending}
+                    className="w-full py-4 font-black text-sm uppercase tracking-wide shadow-xl"
                   >
-                    {updateProfileMutation.isPending
-                      ? t('settings.profile.saving')
-                      : t('settings.profile.save')}
-                  </motion.button>
+                    {t('settings.profile.save')}
+                  </Button>
                 </div>
               </form>
             )}
 
             {activeTab === 'privacy' && (
-              <div className="max-w-xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="max-w-xl space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div>
-                  <h2 className="text-3xl font-black text-white tracking-tighter">
+                  <h2 className="text-xl font-black text-white tracking-tighter">
                     {t('settings.privacy.title')}
                   </h2>
-                  <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-widest italic opacity-60">
+                  <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
                     {t('settings.privacy.subtitle')}
                   </p>
                 </div>
 
-                <div className="bg-white/2 p-6 rounded-3xl border border-white/5 border-l-blue-500/40 border-l-4">
-                  <div className="flex items-center justify-between gap-6">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-bold text-white tracking-tight">
-                        {t('settings.privacy.private_account')}
-                      </h3>
-                      <p className="text-sm text-gray-400 mt-1 leading-relaxed">
-                        {t('settings.privacy.private_desc')}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handlePrivacyToggle}
-                      className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-all duration-300 focus:outline-none ring-offset-2 ring-offset-zinc-900 focus:ring-2 focus:ring-blue-500/50 ${
-                        isPrivate
-                          ? 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]'
-                          : 'bg-white/10'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
-                          isPrivate ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </div>
+                <div className="bg-white/2 p-6 rounded-xl border border-white/5 border-l-blue-500/40 border-l-4">
+                  <Switch
+                    checked={isPrivate}
+                    onChange={handlePrivacyToggle}
+                    label={t('settings.privacy.private_account')}
+                    description={t('settings.privacy.private_desc')}
+                  />
                 </div>
               </div>
             )}
 
             {activeTab === 'requests' && (
-              <div className="max-w-xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="max-w-xl space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div>
-                  <h2 className="text-3xl font-black text-white tracking-tighter">
+                  <h2 className="text-xl font-black text-white tracking-tighter">
                     {t('settings.requests.title')}
                   </h2>
-                  <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-widest italic opacity-60">
+                  <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
                     {t('settings.requests.subtitle')}
                   </p>
                 </div>
 
                 {pendingRequests.length === 0 ? (
-                  <div className="text-center py-16 bg-white/1 rounded-3xl border border-white/5 border-dashed">
+                  <div className="text-center py-16 bg-white/1 rounded-xl border border-white/5 border-dashed">
                     <UserPlus
                       size={48}
                       className="mx-auto mb-4 text-gray-700"
@@ -1000,7 +953,7 @@ export default function Settings() {
                       (user: { id: string; profile?: Profile }) => (
                         <div
                           key={user.id}
-                          className="bg-white/2 p-4 rounded-2xl border border-white/5 hover:border-white/10 transition-all"
+                          className="bg-white/2 p-4 rounded-lg border border-white/5 hover:border-white/10 transition-all"
                         >
                           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                             <Link
@@ -1019,38 +972,38 @@ export default function Settings() {
                                   {user.profile?.fullName ||
                                     user.profile?.username}
                                 </p>
-                                <p className="text-[11px] font-medium text-blue-400/60 uppercase tracking-wider">
+                                <p className="text-xs font-medium text-blue-400/60 uppercase tracking-wider">
                                   @{user.profile?.username}
                                 </p>
                               </div>
                             </Link>
                             <div className="flex gap-2 w-full sm:w-auto">
-                              <button
-                                type="button"
+                              <Button
                                 onClick={() =>
                                   user.profile?.username &&
                                   acceptRequestMutation.mutate(
                                     user.profile.username,
                                   )
                                 }
-                                disabled={acceptRequestMutation.isPending}
-                                className="flex-1 sm:flex-none px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-white bg-blue-500 hover:bg-blue-600 rounded-xl transition-all shadow-lg shadow-blue-500/10"
+                                isLoading={acceptRequestMutation.isPending}
+                                variant="primary"
+                                className="flex-1 sm:flex-none py-1.5 text-xs font-black uppercase tracking-wide px-4"
                               >
                                 {t('settings.requests.confirm')}
-                              </button>
-                              <button
-                                type="button"
+                              </Button>
+                              <Button
                                 onClick={() =>
                                   user.profile?.username &&
                                   rejectRequestMutation.mutate(
                                     user.profile.username,
                                   )
                                 }
-                                disabled={rejectRequestMutation.isPending}
-                                className="flex-1 sm:flex-none px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-400 bg-white/5 hover:bg-white/10 rounded-xl transition-all"
+                                isLoading={rejectRequestMutation.isPending}
+                                variant="ghost"
+                                className="flex-1 sm:flex-none py-1.5 text-xs font-black uppercase tracking-wide px-4"
                               >
                                 {t('settings.requests.delete')}
-                              </button>
+                              </Button>
                             </div>
                           </div>
                         </div>
@@ -1069,7 +1022,7 @@ export default function Settings() {
                   </h2>
 
                   {blockedUsers.length === 0 ? (
-                    <div className="text-center text-gray-400 py-10 border border-white/5 rounded-3xl bg-white/2">
+                    <div className="text-center text-gray-400 py-10 border border-white/5 rounded-xl bg-white/2">
                       <UserX size={48} className="mx-auto mb-4 opacity-50" />
                       <p>
                         {t('settings.mutes.blocked_empty', 'No blocked users')}
@@ -1085,7 +1038,7 @@ export default function Settings() {
                         }) => (
                           <div
                             key={user.id}
-                            className="bg-white/2 border border-white/5 flex items-center justify-between p-4 rounded-2xl"
+                            className="bg-white/2 border border-white/5 flex items-center justify-between p-4 rounded-lg"
                           >
                             <div className="flex items-center gap-4">
                               <UserAvatar
@@ -1100,21 +1053,21 @@ export default function Settings() {
                                   {user.profile?.username ||
                                     t('settings.mutes.unknown')}
                                 </p>
-                                <p className="text-[11px] font-medium text-gray-500 uppercase tracking-widest">
+                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                                   {user.profile?.fullName}
                                 </p>
                               </div>
                             </div>
-                            <button
-                              type="button"
+                            <Button
                               onClick={() =>
                                 user.profile?.username &&
                                 unblockMutation.mutate(user.profile.username)
                               }
-                              className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all"
+                              variant="outline"
+                              className="py-2 text-xs font-black uppercase tracking-wide px-4"
                             >
                               {t('settings.mutes.unblock')}
-                            </button>
+                            </Button>
                           </div>
                         ),
                       )}
@@ -1128,7 +1081,7 @@ export default function Settings() {
                   </h2>
 
                   {mutedUsers.length === 0 ? (
-                    <div className="text-center text-gray-400 py-10 border border-white/5 rounded-3xl bg-white/2">
+                    <div className="text-center text-gray-400 py-10 border border-white/5 rounded-xl bg-white/2">
                       <UserX size={48} className="mx-auto mb-4 opacity-50" />
                       <p>{t('settings.mutes.muted_empty', 'No muted users')}</p>
                     </div>
@@ -1142,7 +1095,7 @@ export default function Settings() {
                         }) => (
                           <div
                             key={user.id}
-                            className="bg-white/2 border border-white/5 flex items-center justify-between p-4 rounded-2xl"
+                            className="bg-white/2 border border-white/5 flex items-center justify-between p-4 rounded-lg"
                           >
                             <div className="flex items-center gap-4">
                               <UserAvatar
@@ -1157,21 +1110,21 @@ export default function Settings() {
                                   {user.profile?.username ||
                                     t('settings.mutes.unknown')}
                                 </p>
-                                <p className="text-[11px] font-medium text-gray-500 uppercase tracking-widest">
+                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                                   {user.profile?.fullName}
                                 </p>
                               </div>
                             </div>
-                            <button
-                              type="button"
+                            <Button
                               onClick={() =>
                                 user.profile?.username &&
                                 unmuteMutation.mutate(user.profile.username)
                               }
-                              className="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all"
+                              variant="outline"
+                              className="py-2 text-xs font-black uppercase tracking-wide px-4"
                             >
                               {t('settings.mutes.unmute', 'Unmute')}
-                            </button>
+                            </Button>
                           </div>
                         ),
                       )}
@@ -1182,18 +1135,18 @@ export default function Settings() {
             )}
 
             {activeTab === 'account' && (
-              <div className="max-w-2xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+              <div className="max-w-2xl space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
                 <div>
-                  <h2 className="text-3xl font-black text-white tracking-tighter">
+                  <h2 className="text-xl font-black text-white tracking-tighter">
                     {t('settings.account.title')}
                   </h2>
-                  <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-widest italic opacity-60">
+                  <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
                     {t('settings.account.subtitle')}
                   </p>
                 </div>
 
-                <div className="bg-blue-500/5 p-6 rounded-3xl border border-blue-500/10 hover:bg-blue-500/10 transition-colors group mb-8">
-                  <h3 className="font-bold text-blue-400 uppercase tracking-widest text-[11px] mb-2 flex items-center gap-2">
+                <div className="bg-blue-500/5 p-6 rounded-xl border border-blue-500/10 hover:bg-blue-500/10 transition-colors group mb-8">
+                  <h3 className="font-bold text-blue-400 uppercase tracking-wide text-xs mb-2 flex items-center gap-2">
                     <LogOut size={14} className="rotate-90" />
                     {t('settings.account.export.title', 'Export Data')}
                   </h3>
@@ -1203,24 +1156,19 @@ export default function Settings() {
                       'Download a copy of your data including your profile, posts, and messages. This process may take a few minutes.',
                     )}
                   </p>
-                  <button
-                    type="button"
+                  <Button
                     onClick={() => exportDataMutation.mutate()}
-                    disabled={exportDataMutation.isPending}
-                    className="px-5 py-3 bg-blue-500/10 text-blue-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-400 hover:text-white transition-all disabled:opacity-50"
+                    isLoading={exportDataMutation.isPending}
+                    variant="outline"
+                    className="px-5 py-2 text-blue-400 border-blue-500/20 hover:bg-blue-500 hover:text-white font-black text-xs uppercase tracking-wide"
                   >
-                    {exportDataMutation.isPending
-                      ? t(
-                          'settings.account.export.btn_loading',
-                          'Requesting...',
-                        )
-                      : t('settings.account.export.btn', 'Request Export')}
-                  </button>
+                    {t('settings.account.export.btn', 'Request Export')}
+                  </Button>
                 </div>
 
                 {/* Language Switcher */}
-                <div className="bg-white/2 p-6 rounded-3xl border border-white/5 mb-8">
-                  <h3 className="font-bold text-white tracking-widest text-[11px] uppercase mb-4 flex items-center gap-2">
+                <div className="bg-white/2 p-6 rounded-xl border border-white/5 mb-8">
+                  <h3 className="font-bold text-white tracking-wide text-xs uppercase mb-4 flex items-center gap-2">
                     <Globe size={14} className="text-blue-400" />{' '}
                     {t('settings.account.language')}
                   </h3>
@@ -1251,96 +1199,90 @@ export default function Settings() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-orange-500/5 p-6 rounded-3xl border border-orange-500/10 hover:bg-orange-500/10 transition-colors group">
-                    <h3 className="font-bold text-orange-400 uppercase tracking-widest text-[11px] mb-2 flex items-center gap-2">
+                  <div className="bg-orange-500/5 p-6 rounded-xl border border-orange-500/10 hover:bg-orange-500/10 transition-colors group">
+                    <h3 className="font-bold text-orange-400 uppercase tracking-wide text-xs mb-2 flex items-center gap-2">
                       <AlertTriangle size={14} />{' '}
                       {t('settings.account.disable.title')}
                     </h3>
                     <p className="text-sm text-gray-500 leading-relaxed font-medium mb-5">
                       {t('settings.account.disable.desc')}
                     </p>
-                    <button
-                      type="button"
+                    <Button
                       onClick={handleDeactivate}
-                      disabled={deactivateMutation.isPending}
-                      className="w-full px-5 py-3 bg-orange-500/10 text-orange-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-orange-400 hover:text-white transition-all disabled:opacity-50"
+                      isLoading={deactivateMutation.isPending}
+                      variant="outline"
+                      className="w-full px-5 py-2 text-orange-400 border-orange-500/20 hover:bg-orange-500 hover:border-orange-500 hover:text-white font-black text-xs uppercase tracking-wide"
                     >
-                      {deactivateMutation.isPending
-                        ? t('settings.account.disable.btn_loading')
-                        : t('settings.account.disable.btn')}
-                    </button>
+                      {t('settings.account.disable.btn')}
+                    </Button>
                   </div>
 
-                  <div className="bg-red-500/5 p-6 rounded-3xl border border-red-500/10 hover:bg-red-500/10 transition-colors group">
-                    <h3 className="font-bold text-red-400 uppercase tracking-widest text-[11px] mb-2 flex items-center gap-2">
+                  <div className="bg-red-500/5 p-6 rounded-xl border border-red-500/10 hover:bg-red-500/10 transition-colors group">
+                    <h3 className="font-bold text-red-400 uppercase tracking-wide text-xs mb-2 flex items-center gap-2">
                       <AlertTriangle size={14} />{' '}
                       {t('settings.account.delete.title')}
                     </h3>
                     <p className="text-sm text-gray-500 leading-relaxed font-medium mb-5">
                       {t('settings.account.delete.desc')}
                     </p>
-                    <button
-                      type="button"
+                    <Button
                       onClick={handleDelete}
-                      disabled={deleteAccountMutation.isPending}
-                      className="w-full px-5 py-3 bg-red-500/10 text-red-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
+                      isLoading={deleteAccountMutation.isPending}
+                      variant="danger"
+                      className="w-full px-5 py-2 font-black text-xs uppercase tracking-wide"
                     >
-                      {deleteAccountMutation.isPending
-                        ? t('settings.account.delete.btn_loading')
-                        : t('settings.account.delete.btn')}
-                    </button>
+                      {t('settings.account.delete.btn')}
+                    </Button>
                   </div>
                 </div>
               </div>
             )}
 
             {activeTab === 'billing' && (
-              <div className="max-w-2xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="max-w-2xl space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div>
-                  <h2 className="text-3xl font-black text-white tracking-tighter">
+                  <h2 className="text-xl font-black text-white tracking-tighter">
                     {t('settings.billing.title')}
                   </h2>
-                  <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-widest italic opacity-60">
+                  <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
                     {t('settings.billing.subtitle')}
                   </p>
                 </div>
 
                 <div className="glass-panel p-8 rounded-4xl border border-white/5 bg-linear-to-br from-blue-500/5 via-transparent to-transparent flex flex-col md:flex-row items-center justify-between gap-8">
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-400/80 mb-2 block">
+                    <span className="text-xs font-black uppercase tracking-wide text-blue-400/80 mb-2 block">
                       {t('settings.billing.current_plan')}
                     </span>
-                    <h3 className="text-4xl font-black text-white tracking-tighter italic uppercase">
+                    <h3 className="text-2xl font-black text-white tracking-tighter italic uppercase">
                       {profile?.user?.verificationLevel === 'BASIC'
                         ? t('settings.billing.free')
                         : profile?.user?.verificationLevel}
                     </h3>
-                    <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-2">
+                    <p className="text-gray-500 text-xs font-bold uppercase tracking-wide mt-2">
                       {profile?.user?.verificationLevel === 'BASIC'
                         ? t('settings.billing.free_desc')
                         : t('settings.billing.active_desc')}
                     </p>
                   </div>
-                  <button
-                    type="button"
+                  <Button
                     onClick={
                       profile?.user?.verificationLevel === 'BASIC'
                         ? handleUpgrade
                         : handleBillingPortal
                     }
-                    disabled={isProcessingPortal}
-                    className="px-8 py-4 bg-white text-black font-black rounded-2xl text-xs uppercase tracking-widest hover:scale-105 transition-transform shadow-xl shadow-white/5 disabled:opacity-50"
+                    isLoading={isProcessingPortal}
+                    variant="white"
+                    className="px-8 py-4 font-black text-xs uppercase tracking-wide hover:scale-105 shadow-xl shadow-white/5"
                   >
-                    {isProcessingPortal
-                      ? t('settings.billing.loading')
-                      : profile?.user?.verificationLevel === 'BASIC'
-                        ? t('settings.billing.view_plans')
-                        : t('settings.billing.manage')}
-                  </button>
+                    {profile?.user?.verificationLevel === 'BASIC'
+                      ? t('settings.billing.view_plans')
+                      : t('settings.billing.manage')}
+                  </Button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white/2 p-6 rounded-3xl border border-white/5 flex items-center gap-4">
+                  <div className="bg-white/2 p-6 rounded-xl border border-white/5 flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
                       <Shield size={20} className="text-blue-400" />
                     </div>
@@ -1348,12 +1290,12 @@ export default function Settings() {
                       <h4 className="text-white font-bold text-sm tracking-tight">
                         {t('settings.billing.verified_badge')}
                       </h4>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                      <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">
                         {t('settings.billing.verified_desc')}
                       </p>
                     </div>
                   </div>
-                  <div className="bg-white/2 p-6 rounded-3xl border border-white/5 flex items-center gap-4">
+                  <div className="bg-white/2 p-6 rounded-xl border border-white/5 flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
                       <Star size={20} className="text-purple-400" />
                     </div>
@@ -1361,7 +1303,7 @@ export default function Settings() {
                       <h4 className="text-white font-bold text-sm tracking-tight">
                         {t('settings.billing.pro_insights')}
                       </h4>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                      <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">
                         {t('settings.billing.pro_desc')}
                       </p>
                     </div>
@@ -1375,21 +1317,21 @@ export default function Settings() {
             )}
 
             {activeTab === 'security' && (
-              <div className="max-w-xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="max-w-xl space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div>
-                  <h2 className="text-3xl font-black text-white tracking-tighter">
+                  <h2 className="text-xl font-black text-white tracking-tighter">
                     {t('settings.security.title')}
                   </h2>
-                  <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-widest italic opacity-60">
+                  <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
                     {t('settings.security.subtitle')}
                   </p>
                 </div>
 
-                <div className="bg-white/2 p-6 rounded-3xl border border-white/5">
+                <div className="bg-white/2 p-6 rounded-xl border border-white/5">
                   <TwoFactorSettings />
                 </div>
 
-                <div className="bg-white/2 p-6 rounded-3xl border border-white/5">
+                <div className="bg-white/2 p-6 rounded-xl border border-white/5">
                   <PasskeySettings />
                 </div>
               </div>

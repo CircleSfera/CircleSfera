@@ -145,7 +145,7 @@ export default function StatCard({
 
       <div className="flex items-start justify-between gap-3 relative z-10">
         <div className="min-w-0">
-          <p className="text-white/40 text-[10px] font-black uppercase tracking-wider mb-0.5">
+          <p className="text-white/40 text-xs font-black uppercase tracking-wider mb-0.5">
             {label}
           </p>
           <p className="text-2xl font-black text-white tabular-nums tracking-tight">
@@ -156,7 +156,7 @@ export default function StatCard({
           {growth !== undefined && growth !== null && (
             <div
               className={clsx(
-                'flex items-center gap-1 mt-1 text-[10px] font-bold',
+                'flex items-center gap-1 mt-1 text-xs font-bold',
                 growth > 0 && 'text-emerald-400',
                 growth < 0 && 'text-rose-400',
                 growth === 0 && 'text-white/40',
@@ -172,7 +172,7 @@ export default function StatCard({
             </div>
           )}
           {subtitle && (
-            <p className="text-white/40 text-[10px] mt-0.5">{subtitle}</p>
+            <p className="text-white/40 text-xs mt-0.5">{subtitle}</p>
           )}
         </div>
         <div

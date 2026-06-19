@@ -381,14 +381,14 @@ export default function StoryViewer({
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.95, x: -100 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="relative w-full h-full md:w-auto md:h-[92vh] md:max-h-[92vh] md:aspect-9/16 flex items-center justify-center md:rounded-3xl overflow-hidden ring-1 ring-white/10 md:shadow-[0_0_50px_rgba(0,0,0,0.5)] md:mx-auto"
+            className="relative w-full h-full md:w-auto md:h-[92vh] md:max-h-[92vh] md:aspect-9/16 flex items-center justify-center md:rounded-xl overflow-hidden ring-1 ring-white/10 md:shadow-[0_0_50px_rgba(0,0,0,0.5)] md:mx-auto"
           >
             {(() => {
               const { className, style } = parseFilter(currentStory.filter);
               return currentStory.mediaType === 'video' ? (
                 <video
                   src={currentStory.url}
-                  className={`absolute inset-0 w-full h-full md:rounded-2xl shadow-2xl object-contain pointer-events-auto z-10 ${className}`}
+                  className={`absolute inset-0 w-full h-full md:rounded-lg shadow-2xl object-contain pointer-events-auto z-10 ${className}`}
                   style={style}
                   autoPlay
                   muted
@@ -404,7 +404,7 @@ export default function StoryViewer({
                   }
                   sizes="(max-width: 768px) 100vw, 500px"
                   alt="Story"
-                  className={`absolute inset-0 w-full h-full md:rounded-2xl shadow-2xl object-contain pointer-events-auto z-10 ${className}`}
+                  className={`absolute inset-0 w-full h-full md:rounded-lg shadow-2xl object-contain pointer-events-auto z-10 ${className}`}
                   style={style}
                   loading="eager"
                 />
@@ -418,7 +418,7 @@ export default function StoryViewer({
             {/* UI Overlays inside the 9:16 frame */}
 
             {/* Progress Bars */}
-            <div className="absolute top-0 left-0 right-0 z-40 flex gap-1.5 p-3 pt-safe-top">
+            <div className="absolute top-0 left-0 right-0 z-40 flex gap-1 p-3 pt-safe-top">
               {stories.map((story, idx) => (
                 <div
                   key={story.id}
@@ -452,7 +452,7 @@ export default function StoryViewer({
                   />
                 </div>
                 <div className="flex flex-col gap-0.5 justify-center">
-                  <span className="text-white font-semibold text-[15px] leading-tight drop-shadow-md flex items-center gap-1.5">
+                  <span className="text-white font-semibold text-[15px] leading-tight drop-shadow-md flex items-center gap-1">
                     {currentStory.user.profile.username}
                     <VerificationBadge
                       level={
@@ -493,7 +493,7 @@ export default function StoryViewer({
                   <div className="flex items-center gap-3">
                     <form
                       onSubmit={handleSendReply}
-                      className={`flex-1 bg-black/40 backdrop-blur-2xl border border-white/20 rounded-full px-4 py-3 flex items-center shadow-2xl transition-all focus-within:bg-black/60 ${messageSent ? 'border-green-500/50 bg-green-500/20' : ''}`}
+                      className={`flex-1 bg-black/40 backdrop-blur-2xl border border-white/20 rounded-full px-2 py-1 flex items-center shadow-2xl transition-all focus-within:bg-black/60 ${messageSent ? 'border-green-500/50 bg-green-500/20' : ''}`}
                     >
                       <input
                         type="text"
@@ -563,7 +563,7 @@ export default function StoryViewer({
                           }}
                           exit={{ opacity: 0 }}
                           transition={{ duration: 1.5, ease: 'easeOut' }}
-                          className="absolute bottom-14 right-6 text-3xl pointer-events-none drop-shadow-lg z-50"
+                          className="absolute bottom-14 right-6 text-xl pointer-events-none drop-shadow-lg z-50"
                         >
                           {p.emoji}
                         </motion.div>
@@ -632,7 +632,7 @@ export default function StoryViewer({
               className="flex items-center gap-1 bg-black/60 backdrop-blur-md rounded-full px-3 py-1.5 border border-white/20 pointer-events-auto"
             >
               <span className="text-base">{r.reaction}</span>
-              <span className="text-[11px] font-medium text-white">
+              <span className="text-xs font-medium text-white">
                 {r.user.profile.username}
               </span>
             </div>

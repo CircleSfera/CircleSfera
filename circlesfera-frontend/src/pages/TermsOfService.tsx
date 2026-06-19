@@ -70,7 +70,7 @@ export default function TermsOfService() {
 
       {/* Guest Navigation (Only if not logged in) */}
       {!isAuthenticated && (
-        <nav className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5 px-6 py-3 flex justify-between items-center backdrop-blur-xl bg-transparent">
+        <nav className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5 px-5 py-2 flex justify-between items-center backdrop-blur-xl bg-transparent">
           <Link to="/" className="flex items-center gap-2.5">
             <img
               src={logoSrc}
@@ -102,12 +102,12 @@ export default function TermsOfService() {
         <div className="flex flex-col lg:flex-row gap-12">
           {/* Sticky Navigation Sidebar */}
           <aside className="hidden lg:block w-64 shrink-0">
-            <div className="sticky top-28 space-y-6">
+            <div className="sticky top-28 space-y-4">
               <div>
-                <span className="text-brand-accent font-black text-[9px] tracking-[0.3em] uppercase mb-3 block">
+                <span className="text-brand-accent font-black text-xs tracking-wide uppercase mb-3 block">
                   Legal Repository
                 </span>
-                <h1 className="text-4xl lg:text-5xl font-black tracking-tighter uppercase leading-[0.9] drop-shadow-2xl">
+                <h1 className="text-2xl lg:text-3xl font-black tracking-tighter uppercase leading-[0.9] drop-shadow-2xl">
                   <span className="bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
                     {t('legal.terms.header_title')}
                   </span>
@@ -128,7 +128,7 @@ export default function TermsOfService() {
                         className="text-zinc-500 group-hover:text-white transition-colors"
                       />
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-white transition-colors">
+                    <span className="text-xs font-black uppercase tracking-wide text-zinc-500 group-hover:text-white transition-colors">
                       {section.title.split('. ')[1]}
                     </span>
                     <ChevronRight
@@ -139,9 +139,9 @@ export default function TermsOfService() {
                 ))}
               </nav>
 
-              <div className="p-5 glass-panel rounded-2xl border border-white/5 bg-white/1">
+              <div className="p-5 glass-panel rounded-lg border border-white/5 bg-white/1">
                 <FileText className="text-brand-accent mb-2" size={20} />
-                <p className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest leading-relaxed italic">
+                <p className="text-zinc-500 text-xs font-bold uppercase tracking-wide leading-relaxed italic">
                   Este documento rige el acceso y uso de los servicios de
                   CircleSfera. Al participar, aceptas estos términos sin
                   limitaciones.
@@ -156,14 +156,14 @@ export default function TermsOfService() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
-              className="space-y-8"
+              className="space-y-4"
             >
               {/* Mobile Header (Hidden on LG) */}
               <div className="lg:hidden mb-8 text-center pt-8">
-                <span className="text-brand-accent font-black text-[9px] tracking-[0.3em] uppercase mb-3 block">
+                <span className="text-brand-accent font-black text-xs tracking-wide uppercase mb-3 block">
                   Platform Terms
                 </span>
-                <h1 className="text-4xl font-black tracking-tighter uppercase leading-[0.9] drop-shadow-2xl">
+                <h1 className="text-2xl font-black tracking-tighter uppercase leading-[0.9] drop-shadow-2xl">
                   <span className="bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
                     {t('legal.terms.header_title')}
                   </span>
@@ -178,7 +178,7 @@ export default function TermsOfService() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-10% 0px' }}
                   transition={{ delay: index * 0.05, duration: 0.5 }}
-                  className="glass-panel p-6 md:p-8 rounded-4xl border border-white/5 relative group hover:border-brand-primary/30 hover:shadow-[0_0_40px_rgba(131,58,180,0.15)] transition-all duration-500 overflow-hidden backdrop-blur-2xl hover:-translate-y-1"
+                  className="glass-panel p-4 md:p-8 rounded-4xl border border-white/5 relative group hover:border-brand-primary/30 hover:shadow-[0_0_40px_rgba(131,58,180,0.15)] transition-all duration-500 overflow-hidden backdrop-blur-2xl hover:-translate-y-1"
                 >
                   <div
                     className={`absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none`}
@@ -212,7 +212,7 @@ export default function TermsOfService() {
                 <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center mb-4">
                   <Scale size={16} className="text-brand-accent opacity-50" />
                 </div>
-                <p className="text-zinc-500 text-[8px] uppercase font-black tracking-[0.2em] text-center italic">
+                <p className="text-zinc-500 text-xs uppercase font-black tracking-wide text-center italic">
                   Version 2.0 • SaaS Compliance Framework • CircleSfera Legal
                   Center
                 </p>

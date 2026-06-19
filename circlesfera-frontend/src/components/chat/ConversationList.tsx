@@ -211,7 +211,7 @@ export default function ConversationList() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className={`group relative flex items-center p-3 rounded-2xl transition-all duration-300 ${
+                    className={`group relative flex items-center p-3 rounded-lg transition-all duration-300 ${
                       isActive
                         ? 'bg-white/10 shadow-lg shadow-black/20'
                         : 'hover:bg-white/5 hover:scale-[1.02]'
@@ -239,7 +239,7 @@ export default function ConversationList() {
                     <div className="flex-1 min-w-0 ml-3.5">
                       <div className="flex justify-between items-center mb-0.5">
                         <span
-                          className={`truncate text-[14px] ${isActive || isUnread ? 'font-semibold text-white' : 'font-medium text-white/90'}`}
+                          className={`truncate text-xs ${isActive || isUnread ? 'font-semibold text-white' : 'font-medium text-white/90'}`}
                         >
                           {conv.name ||
                             other?.profile?.fullName ||
@@ -247,7 +247,7 @@ export default function ConversationList() {
                         </span>
                         {lastMsg && (
                           <span
-                            className={`text-[10px] font-bold ${isActive ? 'text-brand-primary drop-shadow-[0_0_5px_rgba(131,58,180,0.5)]' : 'text-gray-500'}`}
+                            className={`text-xs font-bold ${isActive ? 'text-brand-primary drop-shadow-[0_0_5px_rgba(131,58,180,0.5)]' : 'text-gray-500'}`}
                           >
                             {getTimeString(lastMsg.createdAt)}
                           </span>

@@ -24,7 +24,7 @@ export default function LayoutWrapper({
   const hideNavRoutes = ['/accounts/login', '/accounts/emailsignup'];
 
   const isAdminRoute = location.pathname.startsWith('/admin');
-  
+
   // Only show nav if authenticated AND not in hidden routes AND not in admin
   const shouldShowNav =
     showNavigation &&
@@ -93,7 +93,7 @@ export default function LayoutWrapper({
       {/* Main Content Area */}
       <main
         id="main-content"
-        className={`flex-1 w-full transition-all duration-300 ${shouldShowNav ? 'md:pl-20 xl:pl-64' : ''}`}
+        className={`flex-1 w-full transition-all duration-300 ${shouldShowNav ? 'md:pl-16 xl:pl-56' : ''}`}
       >
         {/* Top spacing for mobile to account for TopNav height */}
         {shouldShowNav && !location.pathname.startsWith('/direct') && (

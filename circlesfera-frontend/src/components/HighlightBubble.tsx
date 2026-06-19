@@ -25,7 +25,7 @@ export default function HighlightBubble({
       <motion.div
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="flex flex-col items-center gap-1.5 cursor-pointer shrink-0"
+        className="flex flex-col items-center gap-1 cursor-pointer shrink-0"
         onClick={onClick}
       >
         <div className="w-16 h-16 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center bg-white/5 hover:bg-white/10 hover:border-white/40 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all duration-300">
@@ -44,7 +44,7 @@ export default function HighlightBubble({
             />
           </svg>
         </div>
-        <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
+        <span className="text-xs font-bold text-white/40 uppercase tracking-wide">
           New
         </span>
       </motion.div>
@@ -54,7 +54,7 @@ export default function HighlightBubble({
   return (
     <Link
       to={`/stories/highlights/${id}`}
-      className="flex flex-col items-center gap-1.5 shrink-0 group"
+      className="flex flex-col items-center gap-1 shrink-0 group"
     >
       <motion.div
         whileHover={{ scale: 1.05 }}
@@ -77,7 +77,7 @@ export default function HighlightBubble({
           )}
         </div>
       </motion.div>
-      <span className="text-[10px] font-black text-white/60 group-hover:text-white truncate max-w-[72px] text-center tracking-tighter transition-colors">
+      <span className="text-xs font-black text-white/60 group-hover:text-white truncate max-w-[72px] text-center tracking-tighter transition-colors">
         {title}
       </span>
     </Link>

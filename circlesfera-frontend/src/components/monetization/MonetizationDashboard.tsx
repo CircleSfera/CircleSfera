@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
+import { Button } from '../ui';
 import ConnectStripeButton from './ConnectStripeButton';
 
 export default function MonetizationDashboard() {
@@ -65,15 +66,15 @@ export default function MonetizationDashboard() {
   const lifetimeEarnings = (monetization?.lifetimeEarningsCents || 0) / 100;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 p-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="max-w-4xl mx-auto space-y-4 p-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Earnings Card */}
-        <div className="p-8 rounded-3xl bg-linear-to-br from-brand-primary to-brand-secondary text-white shadow-xl relative overflow-hidden">
+        <div className="p-8 rounded-xl bg-linear-to-br from-brand-primary to-brand-secondary text-white shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 p-6 opacity-20">
             <WalletIcon size={160} className="-mr-12 -mt-12" />
           </div>
           <div className="relative z-10">
-            <h3 className="text-white/80 font-bold uppercase tracking-widest text-sm mb-2">
+            <h3 className="text-white/80 font-bold uppercase tracking-wide text-sm mb-2">
               {t('wallet.lifetime_earnings', 'Lifetime Earnings')}
             </h3>
             <div className="flex items-end gap-2">
@@ -92,20 +93,15 @@ export default function MonetizationDashboard() {
 
             <div className="mt-8">
               {profile?.user?.stripeConnectAccountId ? (
-                <button
-                  type="button"
+                <Button
                   onClick={handleConnectStripe}
-                  disabled={isConnecting}
-                  className="w-full py-4 bg-white text-brand-primary rounded-xl font-bold transition-all hover:bg-white/90 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg"
+                  isLoading={isConnecting}
+                  variant="secondary"
+                  className="w-full py-4 bg-white text-brand-primary border-transparent font-bold shadow-lg hover:bg-white/90"
                 >
-                  <ArrowUpRight size={20} />
-                  {isConnecting
-                    ? t('wallet.loading', 'Loading...')
-                    : t(
-                        'wallet.go_to_stripe_dashboard',
-                        'View Stripe Dashboard',
-                      )}
-                </button>
+                  <ArrowUpRight size={20} className="mr-2" />
+                  {t('wallet.go_to_stripe_dashboard', 'View Stripe Dashboard')}
+                </Button>
               ) : (
                 <div className="w-full">
                   <ConnectStripeButton />
@@ -116,7 +112,7 @@ export default function MonetizationDashboard() {
         </div>
 
         {/* Info Card */}
-        <div className="p-8 rounded-3xl modal-glass border border-white/5 relative overflow-hidden flex flex-col justify-center">
+        <div className="p-8 rounded-xl modal-glass border border-white/5 relative overflow-hidden flex flex-col justify-center">
           <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
             <Coins className="text-brand-primary" />
             {t('wallet.how_it_works', 'How Creator Economy Works')}
@@ -157,7 +153,7 @@ export default function MonetizationDashboard() {
       </div>
 
       {/* Transactions */}
-      <div className="modal-glass rounded-3xl p-6 mt-8">
+      <div className="modal-glass rounded-xl p-6 mt-8">
         <h3 className="text-xl font-bold text-white mb-6">
           {t('wallet.transaction_history', 'Transaction History')}
         </h3>
@@ -170,11 +166,11 @@ export default function MonetizationDashboard() {
             return (
               <div
                 key={tx.id}
-                className="flex items-center justify-between p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors"
+                className="flex items-center justify-between p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
               >
                 <div className="flex items-center gap-4">
                   <div
-                    className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                    className={`w-12 h-12 rounded-lg flex items-center justify-center ${
                       isIncoming
                         ? 'bg-emerald-500/20 text-emerald-500'
                         : 'bg-rose-500/20 text-rose-500'

@@ -16,6 +16,7 @@ import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { LoadingSpinner } from '../index';
 import UserAvatar from '../UserAvatar';
+import { Button } from '../ui';
 import {
   FilterDropdown,
   Pagination,
@@ -155,10 +156,10 @@ export default function PromotionsTab({ onToast }: Props) {
       </div>
 
       {/* Split Pane Layout */}
-      <div className="flex flex-1 min-h-0 gap-6">
+      <div className="flex flex-1 min-h-0 gap-4">
         {/* Left Pane: Queue */}
         <div
-          className={`w-full lg:w-1/3 flex-col glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-lg ${selectedPromoId ? 'hidden lg:flex' : 'flex'}`}
+          className={`w-full lg:w-1/3 flex-col glass-panel rounded-lg border border-white/5 overflow-hidden shadow-lg ${selectedPromoId ? 'hidden lg:flex' : 'flex'}`}
         >
           <div className="p-4 border-b border-white/5 shrink-0 bg-white/2 flex justify-between items-center">
             <h3 className="font-bold text-white text-sm flex items-center gap-2">
@@ -217,7 +218,7 @@ export default function PromotionsTab({ onToast }: Props) {
                       <p className="text-white text-sm truncate font-bold italic">
                         @{promo.user.profile.username}
                       </p>
-                      <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-bold uppercase tracking-widest mt-0.5">
+                      <div className="flex items-center gap-1 text-xs text-emerald-400 font-bold uppercase tracking-wide mt-0.5">
                         <TrendingUp size={12} />
                         {promo.reach.toLocaleString()} alcance est.
                       </div>
@@ -235,7 +236,7 @@ export default function PromotionsTab({ onToast }: Props) {
 
         {/* Right Pane: Details & Resolution */}
         <div
-          className={`flex-1 glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-lg flex-col relative ${selectedPromoId ? 'flex' : 'hidden lg:flex'}`}
+          className={`flex-1 glass-panel rounded-lg border border-white/5 overflow-hidden shadow-lg flex-col relative ${selectedPromoId ? 'flex' : 'hidden lg:flex'}`}
         >
           <AnimatePresence mode="wait">
             {selectedPromo ? (
@@ -267,7 +268,7 @@ export default function PromotionsTab({ onToast }: Props) {
                         <h3 className="text-sm font-bold text-white">
                           @{selectedPromo.user.profile.username}
                         </h3>
-                        <p className="text-[10px] text-gray-400">
+                        <p className="text-xs text-gray-400">
                           {selectedPromo.user.email}
                         </p>
                       </div>
@@ -276,8 +277,7 @@ export default function PromotionsTab({ onToast }: Props) {
                   <div className="flex items-center gap-2">
                     {selectedPromo.status === 'PENDING' && (
                       <>
-                        <button
-                          type="button"
+                        <Button
                           onClick={() => {
                             const reason = window.prompt(
                               'Motivo del rechazo (opcional):',
@@ -290,26 +290,32 @@ export default function PromotionsTab({ onToast }: Props) {
                               });
                             }
                           }}
-                          className="p-2 md:px-4 md:py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
-                          disabled={updateMutation.isPending}
+                          isLoading={updateMutation.isPending}
+                          variant="danger"
+                          className="p-2 md:px-4 md:py-2 text-sm font-bold border-red-500/20"
                         >
-                          <XCircle size={16} />{' '}
+                          <XCircle size={16} className="mr-2 hidden md:block" />{' '}
                           <span className="hidden md:inline">Rechazar</span>
-                        </button>
-                        <button
-                          type="button"
+                          <XCircle size={16} className="md:hidden" />
+                        </Button>
+                        <Button
                           onClick={() =>
                             updateMutation.mutate({
                               id: selectedPromo.id,
                               status: 'ACTIVE',
                             })
                           }
-                          disabled={updateMutation.isPending}
-                          className="p-2 md:px-4 md:py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
+                          isLoading={updateMutation.isPending}
+                          variant="success"
+                          className="p-2 md:px-4 md:py-2 text-sm font-bold border-green-500/20"
                         >
-                          <CheckCircle size={16} />{' '}
+                          <CheckCircle
+                            size={16}
+                            className="mr-2 hidden md:block"
+                          />{' '}
                           <span className="hidden md:inline">Aprobar</span>
-                        </button>
+                          <CheckCircle size={16} className="md:hidden" />
+                        </Button>
                       </>
                     )}
                     <a
@@ -326,9 +332,9 @@ export default function PromotionsTab({ onToast }: Props) {
 
                 <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
                   {/* Promo Stats Banner */}
-                  <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-2xl p-4 mb-6 grid grid-cols-2 sm:grid-cols-4 gap-4 divide-x divide-white/5">
+                  <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-lg p-4 mb-6 grid grid-cols-2 sm:grid-cols-4 gap-4 divide-x divide-white/5">
                     <div className="px-2">
-                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">
                         Presupuesto
                       </p>
                       <p className="text-lg font-black text-white">
@@ -339,7 +345,7 @@ export default function PromotionsTab({ onToast }: Props) {
                       </p>
                     </div>
                     <div className="px-4">
-                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">
                         Alcance Est.
                       </p>
                       <p className="text-lg font-black text-emerald-400 flex items-center gap-2">
@@ -348,7 +354,7 @@ export default function PromotionsTab({ onToast }: Props) {
                       </p>
                     </div>
                     <div className="px-4">
-                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">
                         Fecha Inicio
                       </p>
                       <p className="text-sm font-bold text-white">
@@ -356,7 +362,7 @@ export default function PromotionsTab({ onToast }: Props) {
                       </p>
                     </div>
                     <div className="px-4">
-                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">
                         Estado
                       </p>
                       <StatusBadge status={selectedPromo.status} />
@@ -364,9 +370,9 @@ export default function PromotionsTab({ onToast }: Props) {
                   </div>
 
                   {/* Content Preview */}
-                  <div className="w-full max-w-md bg-zinc-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+                  <div className="w-full max-w-md bg-zinc-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl">
                     <div className="p-3 bg-white/5 border-b border-white/10 flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">
+                      <span className="text-xs font-black uppercase tracking-wide text-brand-primary">
                         {selectedPromo.targetType} Promocionado
                       </span>
                     </div>

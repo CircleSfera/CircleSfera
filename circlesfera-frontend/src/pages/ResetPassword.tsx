@@ -3,6 +3,7 @@ import { AlertCircle, ArrowLeft, CheckCircle, Lock } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Button } from '../components/ui';
 import { authApi } from '../services';
 import type { ApiError } from '../types';
 
@@ -51,7 +52,7 @@ export default function ResetPassword() {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="glass-panel p-8 rounded-2xl max-w-md w-full text-center"
+          className="glass-panel p-8 rounded-lg max-w-md w-full text-center"
         >
           <div className="bg-green-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-500" />
@@ -75,7 +76,7 @@ export default function ResetPassword() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-panel p-8 rounded-2xl max-w-md w-full"
+        className="glass-panel p-8 rounded-lg max-w-md w-full"
       >
         <h1 className="text-2xl font-bold mb-2">
           {t('auth.reset_password.title')}
@@ -143,15 +144,14 @@ export default function ResetPassword() {
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
-            disabled={loading}
-            className="w-full bg-brand-primary py-3 rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50"
+            variant="primary"
+            isLoading={loading}
+            className="w-full font-bold py-3"
           >
-            {loading
-              ? t('auth.reset_password.submit_loading')
-              : t('auth.reset_password.submit')}
-          </button>
+            {t('auth.reset_password.submit')}
+          </Button>
         </form>
 
         <div className="mt-8 text-center">

@@ -87,7 +87,7 @@ function AnimatedCounter({ value, label }: { value: number; label: string }) {
       <span className="block text-white font-black text-base md:text-xl leading-none transition-all duration-300 origin-center md:origin-left group-hover:scale-110 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-brand-secondary group-hover:to-brand-primary">
         {count}
       </span>
-      <span className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest mt-1 block transition-colors duration-300 group-hover:text-brand-primary/80">
+      <span className="text-zinc-500 text-xs font-bold uppercase tracking-wide mt-1 block transition-colors duration-300 group-hover:text-brand-primary/80">
         {label}
       </span>
     </div>
@@ -290,7 +290,7 @@ export default function Profile() {
   if (isBlocked) {
     return (
       <div className="min-h-screen pt-20 text-center">
-        <div className="glass-panel inline-block p-8 rounded-2xl">
+        <div className="glass-panel inline-block p-8 rounded-lg">
           <h2 className="text-2xl font-bold text-white">
             {t('profile.blocked.title')}
           </h2>
@@ -309,12 +309,12 @@ export default function Profile() {
   ) => {
     if (!items || items.length === 0) {
       return (
-        <div className="text-center py-20">
-          <div className="w-20 h-20 border-2 border-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="text-center py-14">
+          <div className="w-14 h-14 border-2 border-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
             {icon}
           </div>
-          <h3 className="text-2xl font-bold text-white mb-2">{emptyMessage}</h3>
-          <p className="text-gray-400">{emptySubtext}</p>
+          <h3 className="text-lg font-bold text-white mb-2">{emptyMessage}</h3>
+          <p className="text-gray-400 text-sm">{emptySubtext}</p>
         </div>
       );
     }
@@ -387,7 +387,7 @@ export default function Profile() {
               />
             )}
 
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-6 pointer-events-none">
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 pointer-events-none">
               <div className="flex items-center gap-2 text-white font-bold">
                 <Heart size={20} fill="white" />
                 <span>{post._count?.likes || 0}</span>
@@ -485,7 +485,7 @@ export default function Profile() {
             <button
               type="button"
               onClick={() => setIsCreateCollectionModalOpen(true)}
-              className="aspect-4/5 rounded-2xl border-2 border-dashed border-white/20 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-colors group"
+              className="aspect-4/5 rounded-lg border-2 border-dashed border-white/20 flex flex-col items-center justify-center gap-4 hover:bg-white/5 transition-colors group"
             >
               <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
                 <Plus size={24} className="text-white" />
@@ -525,7 +525,7 @@ export default function Profile() {
       />
       <div className="max-w-3xl mx-auto px-4">
         {/* Profile Card */}
-        <div className="glass-panel rounded-3xl md:rounded-[32px] p-5 md:p-8 mb-6 overflow-hidden relative border border-white/5 shadow-2xl backdrop-blur-2xl">
+        <div className="glass-panel rounded-xl md:rounded-[32px] p-5 md:p-8 mb-6 overflow-hidden relative border border-white/5 shadow-2xl backdrop-blur-2xl">
           {/* Background Accent Gradient (Parallax Effect) */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -555,7 +555,7 @@ export default function Profile() {
                 {isMe && (
                   <Link
                     to="/accounts/edit"
-                    className="absolute -bottom-0.5 -right-0.5 p-1.5 bg-zinc-900 border border-white/10 rounded-full text-white hover:bg-zinc-800 transition-colors shadow-xl opacity-0 hover:opacity-100 group-hover:opacity-100 duration-300 z-20"
+                    className="absolute -bottom-0.5 -right-0.5 p-1 bg-zinc-900 border border-white/10 rounded-full text-white hover:bg-zinc-800 transition-colors shadow-xl opacity-0 hover:opacity-100 group-hover:opacity-100 duration-300 z-20"
                   >
                     <Plus size={12} />
                   </Link>
@@ -568,7 +568,7 @@ export default function Profile() {
                   {/* Identity */}
                   <div className="space-y-0.5">
                     <div className="flex items-center justify-center md:justify-start gap-2.5">
-                      <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
+                      <h1 className="text-2xl md:text-xl font-black tracking-tight text-white">
                         {profile.data.fullName}
                       </h1>
                       <VerificationBadge
@@ -584,7 +584,7 @@ export default function Profile() {
                   </div>
 
                   {/* Stats */}
-                  <div className="flex items-center justify-center md:justify-start gap-6 md:gap-10">
+                  <div className="flex items-center justify-center md:justify-start gap-4 md:gap-10">
                     <AnimatedCounter
                       value={profile.data.user?._count?.posts || 0}
                       label={t('profile.stats.posts')}
@@ -616,7 +616,7 @@ export default function Profile() {
                     <>
                       <Link
                         to="/accounts/edit"
-                        className="px-6 py-2 bg-white text-black hover:bg-zinc-200 rounded-lg font-black transition-all duration-300 flex items-center justify-center text-[10px] uppercase tracking-widest shadow-lg hover:shadow-white/20 hover:scale-105 active:scale-95"
+                        className="px-6 py-2 bg-white text-black hover:bg-zinc-200 rounded-lg font-black transition-all duration-300 flex items-center justify-center text-xs uppercase tracking-wide shadow-lg hover:shadow-white/20 hover:scale-105 active:scale-95"
                       >
                         {t('profile.actions.edit_profile')}
                       </Link>
@@ -630,7 +630,7 @@ export default function Profile() {
                       <button
                         type="button"
                         onClick={() => setCreatorMode(!isCreatorModeActive)}
-                        className={`px-3 py-2 rounded-lg border transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1.5 text-[10px] uppercase font-black tracking-widest
+                        className={`px-2 py-1 rounded-lg border transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1 text-xs uppercase font-black tracking-wide
                           ${
                             isCreatorModeActive
                               ? 'bg-brand-primary text-white border-brand-primary/50 shadow-brand-primary/20'
@@ -661,7 +661,7 @@ export default function Profile() {
                           type="button"
                           onClick={() => subscribeMutation.mutate()}
                           disabled={subscribeMutation.isPending}
-                          className="px-4 py-2 bg-linear-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white rounded-lg font-black text-[10px] uppercase tracking-widest transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1 disabled:opacity-50"
+                          className="px-4 py-2 bg-linear-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white rounded-lg font-black text-xs uppercase tracking-wide transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1 disabled:opacity-50"
                         >
                           <Star size={14} fill="currentColor" />
                           {t('profile.actions.subscribe')}
@@ -681,7 +681,7 @@ export default function Profile() {
                         type="button"
                         onClick={handleMessageClick}
                         disabled={isCreatingChat}
-                        className="px-6 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 font-black text-[10px] uppercase tracking-widest transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] disabled:opacity-50"
+                        className="px-6 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 font-black text-xs uppercase tracking-wide transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] disabled:opacity-50"
                       >
                         {isCreatingChat
                           ? t('profile.actions.opening')
@@ -704,14 +704,14 @@ export default function Profile() {
                                 setShowMenu(false);
                                 setShowReportModal(true);
                               }}
-                              className="w-full text-left px-4 py-3 text-red-400 hover:bg-white/5 flex items-center justify-between font-bold text-[10px] uppercase tracking-wider"
+                              className="w-full text-left px-2 py-1 text-red-400 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider"
                             >
                               {t('profile.actions.report_profile')}
                               <Flag size={14} />
                             </button>
                             <button
                               type="button"
-                              className="w-full text-left px-4 py-3 text-red-400 hover:bg-white/5 flex items-center justify-between font-bold text-[10px] uppercase tracking-wider border-t border-white/5"
+                              className="w-full text-left px-2 py-1 text-red-400 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider border-t border-white/5"
                               onClick={() => {
                                 setShowMenu(false);
                                 setShowBlockModal(true);
@@ -775,7 +775,7 @@ export default function Profile() {
                   profile.data.inviteCode && (
                     <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-xl max-w-sm mx-auto md:mx-0 flex items-center justify-between gap-3 backdrop-blur-md">
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">
                           {t('profile.invite.title')}
                         </span>
                         <span className="font-mono text-brand-primary font-bold tracking-wider text-sm">
@@ -804,14 +804,14 @@ export default function Profile() {
                   <>
                     <Link
                       to="/accounts/edit"
-                      className="flex-1 px-4 py-3 bg-white text-black hover:bg-zinc-200 rounded-xl font-black transition-all flex items-center justify-center text-[10px] uppercase tracking-widest shadow-lg shadow-white/5"
+                      className="flex-1 px-2 py-1 bg-white text-black hover:bg-zinc-200 rounded-xl font-black transition-all flex items-center justify-center text-xs uppercase tracking-wide shadow-lg shadow-white/5"
                     >
                       {t('profile.actions.edit_profile')}
                     </Link>
                     <button
                       type="button"
                       onClick={() => setCreatorMode(!isCreatorModeActive)}
-                      className={`flex-1 px-4 py-3 rounded-xl border transition-all flex items-center justify-center gap-1.5 text-[10px] uppercase font-black tracking-widest shadow-lg
+                      className={`flex-1 px-2 py-1 rounded-xl border transition-all flex items-center justify-center gap-1 text-xs uppercase font-black tracking-wide shadow-lg
                         ${
                           isCreatorModeActive
                             ? 'bg-brand-primary text-white border-brand-primary/50 shadow-brand-primary/20'
@@ -827,7 +827,7 @@ export default function Profile() {
                     <FollowButton username={profile.data.username} />
                     <button
                       type="button"
-                      className="flex-1 px-5 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 font-black text-[10px] uppercase tracking-widest transition-all"
+                      className="flex-1 px-5 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 font-black text-xs uppercase tracking-wide transition-all"
                     >
                       {t('profile.actions.message')}
                     </button>
@@ -841,7 +841,7 @@ export default function Profile() {
         {/* Story Highlights */}
         {((highlights?.data && highlights.data.length > 0) || isMe) && (
           <div className="px-2 md:px-4 mb-10 overflow-hidden">
-            <div className="flex items-center gap-6 overflow-x-auto pb-4 no-scrollbar scroll-smooth">
+            <div className="flex items-center gap-4 overflow-x-auto pb-4 no-scrollbar scroll-smooth">
               {isMe && (
                 <HighlightBubble
                   id="new"
@@ -895,11 +895,11 @@ export default function Profile() {
 
           {/* Tabs */}
           {canView && (
-            <div className="flex justify-center gap-2 md:gap-4 mb-6 p-1.5 bg-black/40 backdrop-blur-xl rounded-2xl border border-white/5 w-fit mx-auto">
+            <div className="flex justify-center gap-2 md:gap-4 mb-6 p-1 bg-black/40 backdrop-blur-xl rounded-lg border border-white/5 w-fit mx-auto">
               <button
                 type="button"
                 onClick={() => setActiveTab('posts')}
-                className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[11px] font-black tracking-[0.2em] transition-all relative z-10 ${
+                className={`flex items-center gap-2.5 px-5 py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
                   activeTab === 'posts'
                     ? 'text-white'
                     : 'text-zinc-500 hover:text-zinc-300'
@@ -920,7 +920,7 @@ export default function Profile() {
               <button
                 type="button"
                 onClick={() => setActiveTab('frames')}
-                className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[11px] font-black tracking-[0.2em] transition-all relative z-10 ${
+                className={`flex items-center gap-2.5 px-5 py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
                   activeTab === 'frames'
                     ? 'text-white'
                     : 'text-zinc-500 hover:text-zinc-300'
@@ -942,7 +942,7 @@ export default function Profile() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('saved')}
-                  className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[11px] font-black tracking-[0.2em] transition-all relative z-10 ${
+                  className={`flex items-center gap-2.5 px-5 py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
                     activeTab === 'saved'
                       ? 'text-white'
                       : 'text-zinc-500 hover:text-zinc-300'
@@ -968,7 +968,7 @@ export default function Profile() {
               <button
                 type="button"
                 onClick={() => setActiveTab('tagged')}
-                className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-[11px] font-black tracking-[0.2em] transition-all relative z-10 ${
+                className={`flex items-center gap-2.5 px-5 py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
                   activeTab === 'tagged'
                     ? 'text-white'
                     : 'text-zinc-500 hover:text-zinc-300'
@@ -1053,7 +1053,7 @@ export default function Profile() {
               <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl">
                 <Shield size={40} className="text-zinc-600" />
               </div>
-              <h3 className="text-3xl font-black text-white mb-4 tracking-tight">
+              <h3 className="text-xl font-black text-white mb-4 tracking-tight">
                 {t('profile.private.title')}
               </h3>
               <p className="text-zinc-500 max-w-xs mx-auto leading-relaxed font-medium">

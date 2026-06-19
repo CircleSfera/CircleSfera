@@ -82,11 +82,11 @@ export default function BottomNav() {
   return (
     <nav
       aria-label="Mobile navigation"
-      className="flex md:hidden fixed bottom-0 left-0 right-0 border-t border-white/10 bg-black/80 backdrop-blur-3xl z-50"
+      className="flex md:hidden fixed bottom-0 left-0 right-0 border-t border-white/10 bg-black/80 backdrop-blur-2xl z-50"
     >
       {/* Subtle Top Inner Glow */}
       <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
-      <div className="flex items-center justify-between w-full px-4 py-4 pb-safe relative z-10">
+      <div className="flex items-center justify-between w-full px-4 py-3 pb-safe relative z-10">
         {navItems.map((item) => {
           const isActive =
             item.label === t('nav.profile')
@@ -105,11 +105,11 @@ export default function BottomNav() {
               }`}
               whileTap={{ scale: 0.9 }}
             >
-              <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+              <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
 
               {/* Notification Badge */}
               {item.badge > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center text-[9px] font-bold text-white bg-red-500 rounded-full px-1 shadow-lg shadow-red-500/50 animate-pulse">
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center text-xs font-bold text-white bg-red-500 rounded-full px-1 shadow-lg shadow-red-500/50 animate-pulse">
                   {item.badge > 99 ? '99+' : item.badge}
                 </span>
               )}
@@ -122,7 +122,7 @@ export default function BottomNav() {
                 type="button"
                 key={item.label}
                 onClick={item.onClick}
-                className="p-1.5 relative focus:outline-none"
+                className="p-1 relative focus:outline-none"
                 aria-label={item.label}
               >
                 {content}
@@ -134,7 +134,7 @@ export default function BottomNav() {
             <Link
               key={item.label}
               to={item.to!}
-              className="p-1.5 relative focus:outline-none"
+              className="p-1 relative focus:outline-none"
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
             >

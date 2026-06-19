@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { likesApi } from '../services';
+import { Button } from './ui';
 
 interface LikeButtonProps {
   postId: string;
@@ -35,16 +36,17 @@ export default function LikeButton({ postId, onToggle }: LikeButtonProps) {
   const liked = isLiked !== null ? isLiked : data?.data.liked || false;
 
   return (
-    <button
-      type="button"
+    <Button
       onClick={handleLike}
-      className="transition"
+      variant="ghost"
+      size="icon"
+      className="transition-transform hover:scale-110 active:scale-95 bg-transparent border-none"
       aria-label={liked ? 'Unlike post' : 'Like post'}
     >
       {liked ? (
         <svg
           aria-hidden="true"
-          className="w-6 h-6 text-red-500 fill-current"
+          className="w-5 h-5 text-red-500 fill-current"
           viewBox="0 0 24 24"
         >
           <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
@@ -52,7 +54,7 @@ export default function LikeButton({ postId, onToggle }: LikeButtonProps) {
       ) : (
         <svg
           aria-hidden="true"
-          className="w-6 h-6 text-gray-700 hover:text-red-500"
+          className="w-5 h-5 text-gray-400 hover:text-red-500 transition-colors"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -65,6 +67,6 @@ export default function LikeButton({ postId, onToggle }: LikeButtonProps) {
           />
         </svg>
       )}
-    </button>
+    </Button>
   );
 }

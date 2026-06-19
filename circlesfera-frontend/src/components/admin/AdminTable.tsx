@@ -7,6 +7,7 @@ import {
   Clock,
   Ghost,
 } from 'lucide-react';
+import { Button, Input, Select } from '../ui';
 
 // ─── Table ──────────────────────────────────────────────────────────
 
@@ -35,7 +36,7 @@ export function Table({
                 <th
                   key={typeof h === 'string' ? h : idx}
                   className={clsx(
-                    'px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500 whitespace-normal',
+                    'px-2 py-1 text-xs font-black uppercase tracking-wide text-gray-500 whitespace-normal',
                     columnWidths?.[idx],
                   )}
                 >
@@ -66,7 +67,7 @@ export function Table({
                     animate={{ opacity: 1, y: 0 }}
                     className="flex flex-col items-center gap-4 text-gray-500"
                   >
-                    <div className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center text-gray-600">
+                    <div className="w-16 h-16 rounded-xl bg-white/5 flex items-center justify-center text-gray-600">
                       <Ghost size={32} />
                     </div>
                     <div className="text-center">
@@ -115,7 +116,7 @@ export function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider',
+        'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider',
         `text-${color}-400 bg-${color}-400/10 border border-${color}-400/20`,
       )}
     >
@@ -146,37 +147,34 @@ export function ActionButton({
   iconOnly = false,
   loading = false,
 }: ActionButtonProps) {
-  const styles: Record<string, string> = {
-    success:
-      'bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white',
-    danger: 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white',
-    warning:
-      'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500 hover:text-white',
-    primary:
-      'bg-brand-primary/10 text-brand-primary hover:bg-brand-primary hover:text-white',
-    ghost: 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white',
+  // Map ActionButton variants to Button variants
+  const variantMap: Record<string, any> = {
+    success: 'success',
+    danger: 'danger',
+    warning: 'warning',
+    primary: 'primary',
+    ghost: 'ghost',
   };
 
   return (
-    <button
-      type="button"
+    <Button
       onClick={onClick}
-      disabled={disabled || loading}
+      disabled={disabled}
+      isLoading={loading}
+      variant={variantMap[variant] || 'ghost'}
+      size={iconOnly ? 'icon' : 'sm'}
       title={label}
       aria-label={label}
       className={clsx(
-        'rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap active:scale-95',
-        iconOnly ? 'p-2' : 'px-3 py-1.5',
-        styles[variant],
+        'font-bold text-xs whitespace-nowrap',
+        iconOnly ? 'w-8 h-8' : '',
       )}
     >
-      {loading ? (
-        <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-      ) : (
-        Icon && <Icon size={14} />
+      {!loading && Icon && (
+        <Icon size={14} className={iconOnly ? '' : 'mr-1'} />
       )}
       {!iconOnly && (!loading ? label : 'Cargando...')}
-    </button>
+    </Button>
   );
 }
 
@@ -209,24 +207,26 @@ export function Pagination({ meta, onPageChange }: PaginationProps) {
         de <span className="text-white font-bold">{meta.total}</span>
       </p>
       <div className="flex gap-2">
-        <button
-          type="button"
-          aria-label="Página anterior"
-          disabled={meta.page <= 1}
+        <Button
           onClick={() => onPageChange(meta.page - 1)}
-          className="p-2 bg-white/5 rounded-lg text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:text-gray-400 transition-colors"
+          disabled={meta.page <= 1}
+          variant="secondary"
+          size="icon"
+          aria-label="Página anterior"
+          className="w-8 h-8"
         >
           <ChevronLeft size={18} />
-        </button>
-        <button
-          type="button"
-          aria-label="Página siguiente"
-          disabled={meta.page >= meta.totalPages}
+        </Button>
+        <Button
           onClick={() => onPageChange(meta.page + 1)}
-          className="p-2 bg-white/5 rounded-lg text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:text-gray-400 transition-colors"
+          disabled={meta.page >= meta.totalPages}
+          variant="secondary"
+          size="icon"
+          aria-label="Página siguiente"
+          className="w-8 h-8"
         >
           <ChevronRight size={18} />
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -248,23 +248,19 @@ export function FilterDropdown({
   onChange,
 }: FilterDropdownProps) {
   return (
-    <div className="relative">
-      <label htmlFor="admin-filter-select" className="sr-only">
-        {label}
-      </label>
-      <select
-        id="admin-filter-select"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-white/5 border border-white/10 rounded-xl py-2 px-4 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all text-white min-w-[140px]"
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value} className="bg-[#1a1a2e]">
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </div>
+    <Select
+      id="admin-filter-select"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="min-w-[140px]"
+      aria-label={label}
+    >
+      {options.map((opt) => (
+        <option key={opt.value} value={opt.value} className="bg-[#1a1a2e]">
+          {opt.label}
+        </option>
+      ))}
+    </Select>
   );
 }
 
@@ -282,29 +278,29 @@ export function SearchInput({
   placeholder,
 }: SearchInputProps) {
   return (
-    <div className="relative max-w-md">
-      <svg
-        aria-hidden="true"
-        className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-        />
-      </svg>
-      <input
-        type="text"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary transition-colors"
-      />
-    </div>
+    <Input
+      type="text"
+      placeholder={placeholder}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="max-w-md"
+      icon={
+        <svg
+          aria-hidden="true"
+          className="text-gray-500 w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
+        </svg>
+      }
+    />
   );
 }
 
@@ -323,7 +319,7 @@ export function ToastContainer({ toasts }: { toasts: Toast[] }) {
         <div
           key={toast.id}
           className={clsx(
-            'px-6 py-4 rounded-2xl text-[13px] font-black tracking-wide shadow-2xl animate-in slide-in-from-right-10 duration-500 backdrop-blur-2xl relative overflow-hidden border border-white/10 group',
+            'px-6 py-4 rounded-lg text-[13px] font-black tracking-wide shadow-2xl animate-in slide-in-from-right-10 duration-500 backdrop-blur-2xl relative overflow-hidden border border-white/10 group',
             toast.type === 'success' && 'bg-green-500/10 text-white',
             toast.type === 'error' && 'bg-red-500/10 text-white',
             toast.type === 'info' && 'bg-white/5 text-white',

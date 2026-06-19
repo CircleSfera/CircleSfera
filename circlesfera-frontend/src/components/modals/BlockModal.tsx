@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ban, X } from 'lucide-react';
 import { followsApi } from '../../services';
+import { Button } from '../ui';
 
 interface BlockModalProps {
   isOpen: boolean;
@@ -34,13 +35,14 @@ export default function BlockModal({
             <Ban className="text-red-500" size={20} />
             Block {username}?
           </h2>
-          <button
-            type="button"
+          <Button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            variant="ghost"
+            size="icon"
+            className="text-gray-400 hover:text-white"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         <div className="p-6 text-center">
@@ -50,21 +52,21 @@ export default function BlockModal({
           </p>
 
           <div className="flex gap-3">
-            <button
-              type="button"
+            <Button
               onClick={onClose}
-              className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-xl transition-colors"
+              variant="secondary"
+              className="flex-1 py-3"
             >
               Cancel
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               onClick={() => blockMutation.mutate()}
-              disabled={blockMutation.isPending}
-              className="flex-1 py-3 px-4 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
+              isLoading={blockMutation.isPending}
+              variant="danger"
+              className="flex-1 py-3"
             >
-              {blockMutation.isPending ? 'Blocking...' : 'Block'}
-            </button>
+              Block
+            </Button>
           </div>
         </div>
       </div>

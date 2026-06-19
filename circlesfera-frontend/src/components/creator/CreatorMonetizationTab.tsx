@@ -109,7 +109,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="animate-spin text-brand-primary" size={40} />
-        <p className="text-zinc-500 font-bold uppercase tracking-widest text-[10px]">
+        <p className="text-zinc-500 font-bold uppercase tracking-wide text-xs">
           {t('creator.monetization.loading_plans')}
         </p>
       </div>
@@ -123,24 +123,24 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-8 glass-panel rounded-2xl border border-white/5 bg-linear-to-br from-emerald-500/10 via-transparent to-transparent relative overflow-hidden"
+          className="p-8 glass-panel rounded-lg border border-white/5 bg-linear-to-br from-emerald-500/10 via-transparent to-transparent relative overflow-hidden"
         >
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
                 <Wallet size={20} className="text-emerald-400" />
               </div>
-              <h3 className="text-sm font-black text-white uppercase tracking-[0.3em] italic">
+              <h3 className="text-sm font-black text-white uppercase tracking-wide italic">
                 Ganancias Directas (Stripe)
               </h3>
             </div>
 
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
               <div>
-                <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-2">
+                <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mb-2">
                   Ingresos Totales (Lifetime)
                 </p>
-                <h2 className="text-4xl font-bold text-white tracking-tight uppercase">
+                <h2 className="text-2xl font-bold text-white tracking-tight uppercase">
                   $
                   {(
                     (monetizationStatus?.lifetimeEarningsCents || 0) / 100
@@ -152,7 +152,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                 type="button"
                 disabled={dashboardMutation.isPending}
                 onClick={() => dashboardMutation.mutate()}
-                className="px-8 py-4 bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 font-black rounded-2xl text-xs uppercase tracking-widest hover:bg-emerald-500/30 transition-all disabled:opacity-50 flex items-center gap-2"
+                className="px-8 py-4 bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 font-black rounded-lg text-xs uppercase tracking-wide hover:bg-emerald-500/30 transition-all disabled:opacity-50 flex items-center gap-2"
               >
                 {dashboardMutation.isPending ? (
                   <Loader2 className="animate-spin" size={16} />
@@ -181,24 +181,24 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="p-8 glass-panel rounded-2xl border border-white/5 bg-linear-to-br from-brand-primary/10 via-transparent to-transparent relative overflow-hidden"
+        className="p-8 glass-panel rounded-lg border border-white/5 bg-linear-to-br from-brand-primary/10 via-transparent to-transparent relative overflow-hidden"
       >
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl bg-brand-primary/20 flex items-center justify-center">
               <Zap size={20} className="text-brand-primary" />
             </div>
-            <h3 className="text-sm font-black text-white uppercase tracking-[0.3em] italic">
+            <h3 className="text-sm font-black text-white uppercase tracking-wide italic">
               {t('creator.monetization.subscription_status')}
             </h3>
           </div>
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div>
-              <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-2">
+              <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mb-2">
                 {t('creator.monetization.current_plan')}
               </p>
-              <h2 className="text-3xl font-bold text-white tracking-tight uppercase">
+              <h2 className="text-xl font-bold text-white tracking-tight uppercase">
                 {currentLevel === 'BASIC' ? 'Free Experience' : currentLevel}
               </h2>
             </div>
@@ -215,7 +215,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                   portalMutation.mutate();
                 }
               }}
-              className="px-8 py-4 bg-white text-black font-black rounded-2xl text-xs uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50"
+              className="px-8 py-4 bg-white text-black font-black rounded-lg text-xs uppercase tracking-wide hover:scale-105 transition-transform disabled:opacity-50"
             >
               {portalMutation.isPending ? (
                 <Loader2 className="animate-spin" size={16} />
@@ -231,7 +231,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {plans?.map((plan) => {
           const displayName = plan.name === 'Premium' ? 'Verified' : plan.name;
           const active = isTierActive(plan.name);
@@ -240,7 +240,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
               key={plan.id}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className={`p-6 glass-panel rounded-2xl border ${
+              className={`p-6 glass-panel rounded-lg border ${
                 active
                   ? 'border-brand-primary/40 bg-brand-primary/5 shadow-xl shadow-brand-primary/10'
                   : 'border-white/5 hover:border-white/20 hover:bg-white/5'
@@ -251,7 +251,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                   {getTierIcon(plan.name)}
                 </div>
                 {active && (
-                  <span className="px-3 py-1 rounded-full bg-brand-primary text-[8px] font-black uppercase tracking-widest text-white shadow-lg shadow-brand-primary/20">
+                  <span className="px-3 py-1 rounded-full bg-brand-primary text-xs font-black uppercase tracking-wide text-white shadow-lg shadow-brand-primary/20">
                     {t('creator.monetization.active')}
                   </span>
                 )}
@@ -266,7 +266,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                     {plan.price}
                     {plan.currency === 'EUR' ? '€' : plan.currency}
                   </span>
-                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                  <span className="text-xs font-bold text-zinc-500 uppercase tracking-wide">
                     {plan.interval === 'month'
                       ? t('creator.monetization.per_month')
                       : t('creator.monetization.per_year')}
@@ -278,7 +278,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                 {plan.features.map((feature: string) => (
                   <li
                     key={feature}
-                    className="flex items-center gap-2.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wide"
+                    className="flex items-center gap-2.5 text-xs font-bold text-zinc-500 uppercase tracking-wide"
                   >
                     <CheckCircle2 size={14} className="text-brand-primary" />
                     {feature.replace(/_/g, ' ')}
@@ -291,7 +291,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                   type="button"
                   disabled={checkoutMutation.isPending}
                   onClick={() => checkoutMutation.mutate(plan.id)}
-                  className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-white text-[10px] font-black uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all disabled:opacity-50"
+                  className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-black uppercase tracking-wide hover:bg-white hover:text-black transition-all disabled:opacity-50"
                 >
                   {checkoutMutation.isPending ? (
                     <Loader2 className="animate-spin mx-auto" size={14} />
@@ -306,30 +306,30 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="p-6 glass-panel rounded-2xl border border-white/5 relative overflow-hidden group">
+        <div className="p-6 glass-panel rounded-lg border border-white/5 relative overflow-hidden group">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
               <TrendingUp size={20} className="text-indigo-400" />
             </div>
-            <h3 className="text-white font-black uppercase text-xs tracking-widest">
+            <h3 className="text-white font-black uppercase text-xs tracking-wide">
               {t('creator.monetization.growth_analytics')}
             </h3>
           </div>
-          <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest leading-relaxed italic">
+          <p className="text-zinc-500 text-xs font-bold uppercase tracking-wide leading-relaxed italic">
             {t('creator.monetization.growth_desc')}
           </p>
         </div>
 
-        <div className="p-6 glass-panel rounded-2xl border border-white/5 relative overflow-hidden group">
+        <div className="p-6 glass-panel rounded-lg border border-white/5 relative overflow-hidden group">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
               <Users size={20} className="text-emerald-400" />
             </div>
-            <h3 className="text-white font-black uppercase text-xs tracking-widest">
+            <h3 className="text-white font-black uppercase text-xs tracking-wide">
               {t('creator.monetization.vip_community')}
             </h3>
           </div>
-          <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest leading-relaxed italic">
+          <p className="text-zinc-500 text-xs font-bold uppercase tracking-wide leading-relaxed italic">
             {t('creator.monetization.vip_desc')}
           </p>
         </div>

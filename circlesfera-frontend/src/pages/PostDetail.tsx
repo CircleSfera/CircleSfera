@@ -60,7 +60,7 @@ export default function PostDetail() {
         <PostCard post={post.data} />
 
         {/* Comments Section */}
-        <div className="md:mt-4 md:glass-panel-post md:rounded-2xl p-4 bg-black/50 border-t border-white/5 md:border-none">
+        <div className="md:mt-4 md:glass-panel-post md:rounded-lg p-4 bg-black/50 border-t border-white/5 md:border-none">
           <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
             <span>{t('post.detail.comments')}</span>
             <span className="text-sm font-normal text-gray-400">

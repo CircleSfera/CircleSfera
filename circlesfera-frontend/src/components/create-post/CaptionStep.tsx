@@ -152,7 +152,7 @@ export default function CaptionStep({
             mode === 'POST'
               ? 'max-w-[280px] aspect-4/5'
               : 'max-w-[220px] aspect-9/16'
-          } bg-black rounded-2xl border border-white/6 overflow-hidden shadow-2xl shadow-black/60 z-10`}
+          } bg-black rounded-lg border border-white/6 overflow-hidden shadow-2xl shadow-black/60 z-10`}
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         >
           <Carousel
@@ -193,7 +193,7 @@ export default function CaptionStep({
         {/* Caption Input */}
         <div className="px-5 pb-5 relative">
           <div
-            className={`relative rounded-2xl transition-all duration-300 border border-white/5 ${
+            className={`relative rounded-lg transition-all duration-300 border border-white/5 ${
               isFocused
                 ? 'ring-1 ring-white/10 bg-white/5 border-white/10'
                 : 'bg-white/3'
@@ -222,7 +222,7 @@ export default function CaptionStep({
             <div className="flex items-center gap-3">
               {hashtagCount > 0 && (
                 <motion.div
-                  className="flex items-center gap-1 text-[10px] text-white/25 font-medium"
+                  className="flex items-center gap-1 text-xs text-white/25 font-medium"
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                 >
@@ -237,7 +237,7 @@ export default function CaptionStep({
               <AnimatePresence>
                 {charCount > 0 && (
                   <motion.div
-                    className="flex items-center gap-1.5"
+                    className="flex items-center gap-1"
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
@@ -281,7 +281,7 @@ export default function CaptionStep({
                     </svg>
 
                     <span
-                      className={`text-[10px] font-bold tabular-nums transition-colors ${
+                      className={`text-xs font-bold tabular-nums transition-colors ${
                         isOverLimit
                           ? 'text-red-400'
                           : isNearLimit
@@ -302,7 +302,7 @@ export default function CaptionStep({
         <div className="h-px bg-white/4 mx-5" />
 
         {/* Action Items */}
-        <div className="flex-1 overflow-y-auto px-3 py-2">
+        <div className="flex-1 overflow-y-auto px-2 py-1">
           {actionItems.map((item) => {
             const Icon = item.icon;
             return (

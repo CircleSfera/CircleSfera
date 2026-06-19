@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
+import { Button } from '../ui';
 
 interface Props {
   isOpen: boolean;
@@ -77,13 +78,14 @@ export default function AdminDrawer({
                   <p className="text-sm text-gray-400 mt-0.5">{subtitle}</p>
                 )}
               </div>
-              <button
-                type="button"
+              <Button
                 onClick={onClose}
-                className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
+                variant="secondary"
+                size="icon"
+                className="text-gray-400 hover:text-white border-transparent"
               >
                 <X size={20} />
-              </button>
+              </Button>
             </div>
 
             {/* Content (Scrollable) */}

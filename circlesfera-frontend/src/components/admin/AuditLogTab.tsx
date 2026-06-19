@@ -41,8 +41,8 @@ export default function AuditLogTab() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="glass-panel rounded-2xl overflow-clip border border-white/10">
+    <div className="space-y-4">
+      <div className="glass-panel rounded-lg overflow-clip border border-white/10">
         <Table
           headers={['Fecha', 'Admin', 'Acción', 'Tipo', 'Target ID']}
           loading={isLoading}
@@ -53,15 +53,15 @@ export default function AuditLogTab() {
               key={log.id}
               className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
             >
-              <td className="px-4 py-3 text-gray-400 text-sm whitespace-nowrap">
+              <td className="px-2 py-1 text-gray-400 text-sm whitespace-nowrap">
                 {new Date(log.createdAt).toLocaleString()}
               </td>
-              <td className="px-4 py-3">
+              <td className="px-2 py-1">
                 <span className="text-brand-primary font-bold text-sm">
                   @{log.adminUsername}
                 </span>
               </td>
-              <td className="px-4 py-3">
+              <td className="px-2 py-1">
                 <div className="flex items-center gap-2">
                   <Activity
                     size={14}
@@ -74,12 +74,12 @@ export default function AuditLogTab() {
                   </span>
                 </div>
               </td>
-              <td className="px-4 py-3">
-                <span className="px-2 py-0.5 bg-white/5 rounded text-[10px] font-black uppercase tracking-wider text-gray-400 border border-white/10">
+              <td className="px-2 py-1">
+                <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-black uppercase tracking-wider text-gray-400 border border-white/10">
                   {log.targetType}
                 </span>
               </td>
-              <td className="px-4 py-3 text-gray-600 text-xs font-mono">
+              <td className="px-2 py-1 text-gray-600 text-xs font-mono">
                 {log.targetId.slice(0, 12)}...
               </td>
             </tr>

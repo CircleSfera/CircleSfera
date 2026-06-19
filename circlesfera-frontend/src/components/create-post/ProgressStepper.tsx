@@ -95,7 +95,7 @@ export default function ProgressStepper({
             </motion.div>
             <span
               className={`
-                text-[9px] font-bold uppercase tracking-[0.12em] mt-1.5 transition-colors duration-300
+                text-xs font-bold uppercase tracking-[0.12em] mt-1.5 transition-colors duration-300
                 ${isCurrent ? 'text-white' : isCompleted ? 'text-white/40' : 'text-white/15'}
               `}
             >

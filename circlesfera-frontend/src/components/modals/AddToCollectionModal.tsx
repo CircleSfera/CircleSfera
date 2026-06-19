@@ -3,6 +3,7 @@ import { Check, Plus, X } from 'lucide-react';
 import { useState } from 'react';
 import { bookmarksApi, collectionsApi } from '../../services';
 import { LoadingSpinner } from '../LoadingStates';
+import { Button } from '../ui';
 
 interface AddToCollectionModalProps {
   isOpen: boolean;
@@ -60,16 +61,17 @@ export default function AddToCollectionModal({
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#1c1c1c] w-full max-w-sm rounded-2xl border border-white/10 overflow-hidden animate-in fade-in zoom-in duration-200">
+      <div className="bg-[#1c1c1c] w-full max-w-sm rounded-lg border border-white/10 overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">Save to Collection</h2>
-          <button
-            type="button"
+          <Button
             onClick={onClose}
-            className="p-1 hover:bg-white/10 rounded-full transition-colors text-white"
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/10 rounded-full"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         <div className="max-h-80 overflow-y-auto p-2">
@@ -97,30 +99,25 @@ export default function AddToCollectionModal({
                     value={newCollectionName}
                     onChange={(e) => setNewCollectionName(e.target.value)}
                     placeholder="Collection Name"
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors mb-2"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-2 py-1 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors mb-2"
                   />
                   <div className="flex gap-2">
-                    <button
-                      type="button"
+                    <Button
                       onClick={() => setIsCreating(false)}
-                      className="flex-1 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-semibold transition-colors"
+                      variant="secondary"
+                      className="flex-1 py-2 font-semibold"
                     >
                       Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="submit"
-                      disabled={
-                        !newCollectionName.trim() ||
-                        createAndAddMutation.isPending
-                      }
-                      className="flex-1 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+                      disabled={!newCollectionName.trim()}
+                      isLoading={createAndAddMutation.isPending}
+                      variant="primary"
+                      className="flex-1 py-2 font-semibold"
                     >
-                      {createAndAddMutation.isPending ? (
-                        <LoadingSpinner size="sm" />
-                      ) : (
-                        'Create'
-                      )}
-                    </button>
+                      Create
+                    </Button>
                   </div>
                 </form>
               )}

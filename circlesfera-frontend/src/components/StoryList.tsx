@@ -60,8 +60,8 @@ export default function StoryList() {
   };
 
   return (
-    <div className="glass-panel rounded-2xl p-4 mb-6 overflow-hidden">
-      <div className="flex gap-4 overflow-x-auto no-scrollbar py-1">
+    <div className="glass-panel rounded-lg p-3 mb-4 overflow-hidden">
+      <div className="flex gap-3 overflow-x-auto no-scrollbar py-1">
         {/* Your Story / Add Story */}
         {(() => {
           const myStoriesIndex = groupedStories.findIndex(
@@ -83,7 +83,7 @@ export default function StoryList() {
                 className="flex flex-col items-center gap-2 shrink-0 group focus:outline-none"
               >
                 <div
-                  className={`w-16 h-16 p-0.5 rounded-full ${ringColorClass} flex items-center justify-center transform transition-transform duration-300 group-hover:scale-105`}
+                  className={`w-12 h-12 p-0.5 rounded-full ${ringColorClass} flex items-center justify-center transform transition-transform duration-300 group-hover:scale-105`}
                 >
                   <div className="w-full h-full bg-black rounded-full p-0.5 relative group-hover:opacity-90 transition-opacity flex items-center justify-center">
                     <UserAvatar
@@ -112,7 +112,7 @@ export default function StoryList() {
               className="flex flex-col items-center gap-2 shrink-0 group"
             >
               <div className="relative transform transition-transform duration-300 group-hover:scale-105">
-                <div className="w-16 h-16 rounded-full p-0.5 bg-transparent flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full p-0.5 bg-transparent flex items-center justify-center">
                   {profile?.avatar ? (
                     <div className="relative w-full h-full">
                       <UserAvatar
@@ -175,7 +175,7 @@ export default function StoryList() {
                 className="flex flex-col items-center gap-2 shrink-0 group focus:outline-none"
               >
                 <div
-                  className={`w-16 h-16 p-0.5 rounded-full ${ringColorClass} flex items-center justify-center transform transition-transform duration-300 group-hover:scale-105`}
+                  className={`w-12 h-12 p-0.5 rounded-full ${ringColorClass} flex items-center justify-center transform transition-transform duration-300 group-hover:scale-105`}
                 >
                   <div className="w-full h-full bg-black rounded-full p-0.5 group-hover:opacity-90 transition-opacity flex items-center justify-center">
                     <UserAvatar

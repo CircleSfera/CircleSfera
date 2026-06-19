@@ -36,12 +36,12 @@ export const SuggestionsList: React.FC = () => {
   return (
     <div className="py-6 my-2">
       <div className="flex justify-between items-center px-4 mb-4">
-        <span className="font-black text-zinc-500 text-[10px] uppercase tracking-[0.2em]">
+        <span className="font-black text-zinc-500 text-xs uppercase tracking-wide">
           {t('suggestions.title')}
         </span>
         <button
           type="button"
-          className="text-[10px] font-black uppercase tracking-wider text-brand-primary hover:text-brand-secondary transition-colors"
+          className="text-xs font-black uppercase tracking-wider text-brand-primary hover:text-brand-secondary transition-colors"
         >
           {t('suggestions.see_all')}
         </button>
@@ -51,7 +51,7 @@ export const SuggestionsList: React.FC = () => {
           ? ['s1', 's2', 's3', 's4', 's5'].map((id) => (
               <div
                 key={id}
-                className="shrink-0 w-[140px] h-[200px] glass-panel rounded-2xl animate-pulse"
+                className="shrink-0 w-[140px] h-[200px] glass-panel rounded-lg animate-pulse"
               />
             ))
           : users.map((user) => (

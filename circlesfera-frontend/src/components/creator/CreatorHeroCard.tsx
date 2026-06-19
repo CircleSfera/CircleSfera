@@ -27,7 +27,7 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-hidden group rounded-2xl border border-white/5 glass-panel"
+      className="relative overflow-hidden group rounded-lg border border-white/5 glass-panel"
     >
       {/* ─── Mesh Gradient Background ──────────────────────────────── */}
       <div className="absolute inset-0 pointer-events-none">
@@ -66,20 +66,20 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
       <div className="relative z-10 p-6 md:p-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mt-2">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-brand-primary font-bold text-[10px] uppercase tracking-widest mb-3">
+            <div className="flex items-center gap-2 text-brand-primary font-bold text-xs uppercase tracking-wide mb-3">
               <div className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse" />
               Live Evolution
             </div>
-            <h2 className="text-white text-4xl md:text-5xl font-black tracking-tight leading-none">
+            <h2 className="text-white text-2xl md:text-3xl font-black tracking-tight leading-none">
               {stats?.followerCount.toLocaleString() || '0'}
             </h2>
             <div className="flex items-center gap-2">
-              <p className="text-zinc-400 font-bold text-sm uppercase tracking-widest">
+              <p className="text-zinc-400 font-bold text-sm uppercase tracking-wide">
                 Total Followers
               </p>
               {stats?.followerGrowth !== undefined && (
                 <div
-                  className={`flex items-center gap-1 px-2 py-0.5 border rounded-lg text-[10px] font-black ${
+                  className={`flex items-center gap-1 px-2 py-0.5 border rounded-lg text-xs font-black ${
                     stats.followerGrowth >= 0
                       ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                       : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
@@ -98,7 +98,7 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
 
           <div className="grid grid-cols-2 gap-4 md:gap-8 bg-white/5 backdrop-blur-md p-5 rounded-xl border border-white/5">
             <div>
-              <p className="text-zinc-500 text-[9px] font-black uppercase tracking-widest mb-1 italic">
+              <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mb-1 italic">
                 Engagement
               </p>
               <div className="flex items-center gap-2">
@@ -109,7 +109,7 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
               </div>
             </div>
             <div>
-              <p className="text-zinc-500 text-[9px] font-black uppercase tracking-widest mb-1 italic">
+              <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mb-1 italic">
                 Total Reach
               </p>
               <div className="flex items-center gap-2">

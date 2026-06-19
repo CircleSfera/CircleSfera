@@ -178,7 +178,7 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
       </div>
 
       {/* Right Sidebar Actions */}
-      <div className="absolute bottom-0 right-0 w-16 pb-6 flex flex-col items-center justify-end gap-6 z-20 pointer-events-auto">
+      <div className="absolute bottom-0 right-0 w-16 pb-6 flex flex-col items-center justify-end gap-4 z-20 pointer-events-auto">
         <div className="flex flex-col items-center gap-1 group">
           <LikeButton
             postId={post.id}
@@ -216,7 +216,7 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
           className="transition-transform active:scale-90 flex flex-col items-center gap-1 group"
         >
           <Bookmark size={26} className="text-white drop-shadow-lg" />
-          <span className="text-white font-semibold text-[10px] drop-shadow-md">
+          <span className="text-white font-semibold text-xs drop-shadow-md">
             Save
           </span>
         </button>

@@ -138,7 +138,7 @@ const AdjustmentSlider = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
     >
-      <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.12em]">
+      <div className="flex justify-between text-xs font-bold uppercase tracking-[0.12em]">
         <span className="text-white/30">{label}</span>
         <span className={isModified ? 'text-blue-400' : 'text-white/20'}>
           {value}
@@ -343,7 +343,7 @@ export default function PhotoEditor({
   return (
     <div className="flex flex-col h-full bg-black text-white">
       {/* Header */}
-      <div className="flex justify-between items-center px-4 py-3 border-b border-white/6 bg-black z-10">
+      <div className="flex justify-between items-center px-2 py-1 border-b border-white/6 bg-black z-10">
         <button
           type="button"
           onClick={onCancel}
@@ -499,10 +499,10 @@ export default function PhotoEditor({
                     type="button"
                     key={filter.name}
                     onClick={() => setSelectedFilter(filter)}
-                    className="flex flex-col items-center gap-1.5 group min-w-[64px] snap-start"
+                    className="flex flex-col items-center gap-1 group min-w-[64px] snap-start"
                   >
                     <div
-                      className={`w-[56px] h-[56px] rounded-2xl overflow-hidden border-2 transition-all duration-200 ${
+                      className={`w-[56px] h-[56px] rounded-lg overflow-hidden border-2 transition-all duration-200 ${
                         selectedFilter.name === filter.name
                           ? 'border-blue-500 scale-105 shadow-lg shadow-blue-500/20'
                           : 'border-transparent opacity-60 group-hover:opacity-100'
@@ -515,7 +515,7 @@ export default function PhotoEditor({
                       />
                     </div>
                     <span
-                      className={`text-[9px] uppercase font-bold tracking-wider ${
+                      className={`text-xs uppercase font-bold tracking-wider ${
                         selectedFilter.name === filter.name
                           ? 'text-blue-400'
                           : 'text-white/30'
@@ -587,7 +587,7 @@ export default function PhotoEditor({
                     s)
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] w-8">
+                    <span className="text-xs w-8">
                       {videoData.startTime.toFixed(1)}s
                     </span>
                     <input
@@ -622,7 +622,7 @@ export default function PhotoEditor({
                       }}
                       className="flex-1 h-1 bg-red-500/30 rounded-lg appearance-none cursor-pointer accent-red-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-red-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
                     />
-                    <span className="text-[10px] w-8 text-right">
+                    <span className="text-xs w-8 text-right">
                       {videoData.endTime.toFixed(1)}s
                     </span>
                   </div>
@@ -668,7 +668,7 @@ export default function PhotoEditor({
                   </button>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-[10px] font-bold text-white/40 uppercase">
+                  <span className="text-xs font-bold text-white/40 uppercase">
                     Rotación
                   </span>
                   <input
@@ -679,7 +679,7 @@ export default function PhotoEditor({
                     onChange={(e) => setRotation(Number(e.target.value))}
                     className="flex-1 h-1 bg-white/6 rounded-lg appearance-none cursor-pointer accent-blue-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
                   />
-                  <span className="text-[10px] font-bold text-blue-400 w-8">
+                  <span className="text-xs font-bold text-blue-400 w-8">
                     {rotation}°
                   </span>
                 </div>
@@ -814,7 +814,7 @@ export default function PhotoEditor({
                         type="button"
                         key={adj.key}
                         onClick={() => setActiveAdjustment(adj.key)}
-                        className={`px-3.5 py-2 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap rounded-lg transition-all ${
+                        className={`px-3.5 py-2 text-xs font-bold uppercase tracking-wider whitespace-nowrap rounded-lg transition-all ${
                           isActive
                             ? 'text-white bg-white/6'
                             : isModified
@@ -834,7 +834,7 @@ export default function PhotoEditor({
                     <button
                       type="button"
                       onClick={() => setAdjustments(DEFAULT_ADJUSTMENTS)}
-                      className="px-3.5 py-2 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap 
+                      className="px-3.5 py-2 text-xs font-bold uppercase tracking-wider whitespace-nowrap 
                                  text-red-400/60 hover:text-red-400 ml-auto flex items-center gap-1 transition-colors"
                     >
                       <RotateCcw size={10} /> Reset
@@ -857,7 +857,7 @@ export default function PhotoEditor({
               }`}
             >
               <Sparkles size={20} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">
+              <span className="text-xs font-bold uppercase tracking-wider">
                 Filters
               </span>
             </button>
@@ -871,7 +871,7 @@ export default function PhotoEditor({
               }`}
             >
               <SlidersHorizontal size={20} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">
+              <span className="text-xs font-bold uppercase tracking-wider">
                 Adjust
               </span>
             </button>
@@ -886,7 +886,7 @@ export default function PhotoEditor({
                 }`}
               >
                 <Crop size={20} />
-                <span className="text-[10px] font-bold uppercase tracking-wider">
+                <span className="text-xs font-bold uppercase tracking-wider">
                   Crop
                 </span>
               </button>
@@ -903,7 +903,7 @@ export default function PhotoEditor({
                 }`}
               >
                 <Crop size={20} />
-                <span className="text-[10px] font-bold uppercase tracking-wider">
+                <span className="text-xs font-bold uppercase tracking-wider">
                   Trim
                 </span>
               </button>
@@ -923,7 +923,7 @@ export default function PhotoEditor({
                 }`}
               >
                 <Sparkles size={20} />
-                <span className="text-[10px] font-bold uppercase tracking-wider">
+                <span className="text-xs font-bold uppercase tracking-wider">
                   Overlay
                 </span>
               </button>

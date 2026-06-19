@@ -585,8 +585,8 @@ export default function ChatWindow() {
       return t('chat.people_typing', { count: typingIds.length });
     } else {
       return (
-        <div className="flex items-center gap-1.5 opacity-80 mt-0.5">
-          <span className="text-[11px] text-brand-primary font-bold tracking-wider">
+        <div className="flex items-center gap-1 opacity-80 mt-0.5">
+          <span className="text-xs text-brand-primary font-bold tracking-wider">
             {t('chat.typing')}
           </span>
           <div className="flex items-center gap-0.5 pt-1">
@@ -651,7 +651,7 @@ export default function ChatWindow() {
       </div>
 
       {/* Details Header */}
-      <div className="px-4 md:px-6 pt-[calc(1.2rem+env(safe-area-inset-top,0px))] pb-4 flex items-center justify-between bg-black/20 backdrop-blur-3xl border-b border-white/10 relative z-30 shrink-0 shadow-2xl w-full">
+      <div className="px-4 md:px-6 pt-[calc(1.2rem+env(safe-area-inset-top,0px))] pb-3 flex items-center justify-between bg-black/20 backdrop-blur-2xl border-b border-white/10 relative z-30 shrink-0 shadow-2xl w-full">
         <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1 mr-4">
           <Link
             to="/direct/inbox"
@@ -670,7 +670,7 @@ export default function ChatWindow() {
               }
             >
               {chatInfo.isGroup ? (
-                <div className="w-11 h-11 md:w-12 md:h-12 shrink-0 rounded-full bg-white/10 flex items-center justify-center overflow-hidden">
+                <div className="w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-full bg-white/10 flex items-center justify-center overflow-hidden">
                   <div className="grid grid-cols-2 gap-0.5 w-full h-full">
                     {conversation.participants
                       .slice(0, 4)
@@ -692,7 +692,7 @@ export default function ChatWindow() {
               ) : (
                 <div className="relative shrink-0">
                   <UserAvatar
-                    className="w-11 h-11 md:w-12 md:h-12 transition-all hover:opacity-90 shadow-md shadow-black/20"
+                    className="w-9 h-9 md:w-10 md:h-10 transition-all hover:opacity-90 shadow-md shadow-black/20"
                     src={chatInfo.avatar || undefined}
                     thumbnailUrl={chatInfo.thumbnailUrl || undefined}
                     standardUrl={chatInfo.standardUrl || undefined}
@@ -706,11 +706,11 @@ export default function ChatWindow() {
                 </div>
               )}
 
-              <div className="flex flex-col justify-center gap-1 min-w-0 flex-1">
-                <div className="font-bold text-white leading-tight text-[16px] md:text-[18px] group-hover:text-gray-200 transition-colors tracking-tight wrap-break-word">
+              <div className="flex flex-col justify-center gap-0.5 min-w-0 flex-1">
+                <div className="font-bold text-white leading-tight text-xs md:text-[15px] group-hover:text-gray-200 transition-colors tracking-tight wrap-break-word">
                   {chatInfo.name}
                 </div>
-                <div className="text-[12px] md:text-[13px] font-semibold flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 text-white/50">
+                <div className="text-xs md:text-[12px] font-semibold flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 text-white/50">
                   {!chatInfo.isGroup && chatInfo.username && (
                     <span className="break-all hover:text-white/80 transition-colors">
                       @{chatInfo.username}
@@ -725,7 +725,7 @@ export default function ChatWindow() {
             </button>
           ) : (
             <div className="flex items-center gap-4 animate-pulse min-w-0 flex-1">
-              <div className="w-11 h-11 md:w-12 md:h-12 shrink-0 rounded-full bg-white/10"></div>
+              <div className="w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-full bg-white/10"></div>
               <div className="space-y-2 flex-1 min-w-0">
                 <div className="h-4 w-32 max-w-full bg-white/10 rounded"></div>
                 <div className="h-3 w-16 bg-white/10 rounded"></div>
@@ -805,7 +805,7 @@ export default function ChatWindow() {
                   initial={{ opacity: 0, scale: 0.95, y: -10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                  className="absolute right-0 top-full mt-2 w-56 bg-[#262626] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 backdrop-blur-3xl"
+                  className="absolute right-0 top-full mt-2 w-56 bg-[#262626] border border-white/10 rounded-lg shadow-2xl overflow-hidden z-50 backdrop-blur-2xl"
                 >
                   <button
                     type="button"
@@ -814,7 +814,7 @@ export default function ChatWindow() {
                       setShowMenu(false);
                       confirmDelete('me');
                     }}
-                    className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-3 font-medium"
+                    className="w-full text-left px-2 py-1 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-3 font-medium"
                   >
                     <Trash2 size={16} />
                     {t('chat.delete_for_me', {
@@ -828,7 +828,7 @@ export default function ChatWindow() {
                       setShowMenu(false);
                       confirmDelete('both');
                     }}
-                    className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-3 font-medium border-t border-white/10"
+                    className="w-full text-left px-2 py-1 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-3 font-medium border-t border-white/10"
                   >
                     <Trash2 size={16} />
                     {t('chat.delete_for_everyone', {
@@ -908,7 +908,7 @@ export default function ChatWindow() {
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               className="flex justify-start my-2 ml-2"
             >
-              <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 rounded-bl-sm">
+              <div className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 rounded-bl-sm">
                 {getTypingText()}
               </div>
             </motion.div>
@@ -922,7 +922,7 @@ export default function ChatWindow() {
             animate={{ opacity: 1, y: 0 }}
             className="flex justify-end p-2"
           >
-            <div className="bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2 text-xs text-white/50 animate-pulse border border-white/5">
+            <div className="bg-white/10 backdrop-blur-md rounded-lg px-4 py-2 text-xs text-white/50 animate-pulse border border-white/5">
               {t('chat.uploading_attachment')}
             </div>
           </motion.div>
@@ -954,7 +954,7 @@ export default function ChatWindow() {
               <button
                 type="button"
                 onClick={cancelReply}
-                className="p-1.5 bg-black/40 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors border border-white/10"
+                className="p-1 bg-black/40 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors border border-white/10"
               >
                 <X size={14} strokeWidth={2.5} />
               </button>
@@ -985,7 +985,7 @@ export default function ChatWindow() {
                   setEditingMessage(null);
                   setInput('');
                 }}
-                className="p-1.5 bg-black/40 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors border border-white/10"
+                className="p-1 bg-black/40 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors border border-white/10"
               >
                 <X size={14} strokeWidth={2.5} />
               </button>
@@ -1002,7 +1002,7 @@ export default function ChatWindow() {
           ) : (
             <form
               onSubmit={sendMessage}
-              className={`flex items-end gap-1.5 glass-panel p-1.5 rounded-[32px] border border-white/10 shadow-2xl shadow-black/50 focus-within:border-brand-primary/50 focus-within:shadow-[0_0_20px_rgba(131,58,180,0.2)] transition-all duration-300 ${replyTo ? 'rounded-t-[10px] border-t-0' : ''}`}
+              className={`flex items-end gap-1 glass-panel p-1 rounded-[32px] border border-white/10 shadow-2xl shadow-black/50 focus-within:border-brand-primary/50 focus-within:shadow-[0_0_20px_rgba(131,58,180,0.2)] transition-all duration-300 ${replyTo ? 'rounded-t-[10px] border-t-0' : ''}`}
             >
               <input
                 type="file"
@@ -1035,7 +1035,7 @@ export default function ChatWindow() {
                   }
                 }}
                 rows={1}
-                className="flex-1 bg-transparent border-none py-3.5 px-2 text-white placeholder-white/40 focus:ring-0 text-[15px] resize-none overflow-hidden custom-scrollbar max-h-[120px] min-h-[44px]"
+                className="flex-1 bg-transparent border-none py-1.5 px-2 text-white placeholder-white/40 focus:ring-0 text-[15px] resize-none overflow-hidden custom-scrollbar max-h-[120px] min-h-[44px]"
                 placeholder={t('chat.type_message')}
               />
 

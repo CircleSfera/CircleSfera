@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../services';
+import { Button } from '../ui';
 
 interface TipModalProps {
   isOpen: boolean;
@@ -63,13 +64,14 @@ export default function TipModal({
           >
             <div className="relative pt-8 pb-4 px-6 text-center border-b border-white/5">
               <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-emerald-400 via-brand-primary to-teal-500 opacity-80" />
-              <button
-                type="button"
+              <Button
                 onClick={onClose}
-                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-white/5"
+                variant="ghost"
+                size="icon"
+                className="absolute top-4 right-4 text-gray-400 hover:text-white rounded-full hover:bg-white/5"
               >
                 <X size={20} />
-              </button>
+              </Button>
 
               <div className="w-16 h-16 mx-auto bg-emerald-500/10 rounded-full flex items-center justify-center mb-4">
                 <Gift className="w-8 h-8 text-emerald-500" />
@@ -92,7 +94,7 @@ export default function TipModal({
                     key={amount}
                     type="button"
                     onClick={() => setSelectedAmount(amount)}
-                    className={`flex flex-col items-center justify-center py-4 rounded-2xl border transition-all ${
+                    className={`flex flex-col items-center justify-center py-4 rounded-lg border transition-all ${
                       selectedAmount === amount
                         ? 'border-emerald-500 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
                         : 'border-white/10 bg-white/5 hover:bg-white/10'
@@ -107,21 +109,16 @@ export default function TipModal({
                 ))}
               </div>
 
-              <button
-                type="button"
+              <Button
                 onClick={handleTip}
-                disabled={!selectedAmount || isSubmitting}
-                className="w-full py-4 bg-linear-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                disabled={!selectedAmount}
+                isLoading={isSubmitting}
+                variant="primary"
+                className="w-full py-4 bg-linear-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 border-transparent font-bold shadow-lg active:scale-[0.98]"
               >
-                {isSubmitting ? (
-                  t('wallet.processing')
-                ) : (
-                  <>
-                    <Heart size={18} fill="currentColor" />{' '}
-                    {t('wallet.send_tip')}
-                  </>
-                )}
-              </button>
+                <Heart size={18} fill="currentColor" className="mr-2" />
+                {t('wallet.send_tip')}
+              </Button>
             </div>
           </motion.div>
         </motion.div>

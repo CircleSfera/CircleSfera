@@ -15,6 +15,7 @@ import type { AdminReport } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { LoadingSpinner } from '../index';
+import { Button } from '../ui';
 import { FilterDropdown, Pagination, SearchInput } from './AdminTable';
 
 function timeAgo(date: string | Date): string {
@@ -100,10 +101,10 @@ export default function ReportsTab({ onToast }: Props) {
         />
       </div>
 
-      <div className="flex flex-1 min-h-0 gap-6">
+      <div className="flex flex-1 min-h-0 gap-4">
         {/* Left Pane: Queue */}
         <div
-          className={`w-full lg:w-1/3 flex-col glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-lg ${selectedReportId ? 'hidden lg:flex' : 'flex'}`}
+          className={`w-full lg:w-1/3 flex-col glass-panel rounded-lg border border-white/5 overflow-hidden shadow-lg ${selectedReportId ? 'hidden lg:flex' : 'flex'}`}
         >
           <div className="p-4 border-b border-white/5 shrink-0 bg-white/2">
             <h3 className="font-bold text-white flex items-center gap-2">
@@ -137,7 +138,7 @@ export default function ReportsTab({ onToast }: Props) {
                   }`}
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">
+                    <span className="text-xs font-black uppercase tracking-wide text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">
                       {report.reason}
                     </span>
                     <span className="text-xs text-gray-500">
@@ -162,7 +163,7 @@ export default function ReportsTab({ onToast }: Props) {
                       <p className="text-white text-xs font-bold truncate">
                         @{report.targetContent?.author || 'Desconocido'}
                       </p>
-                      <p className="text-zinc-500 text-[10px] truncate">
+                      <p className="text-zinc-500 text-xs truncate">
                         {report.targetType}
                       </p>
                     </div>
@@ -179,7 +180,7 @@ export default function ReportsTab({ onToast }: Props) {
 
         {/* Right Pane: Details & Resolution */}
         <div
-          className={`flex-1 glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-lg flex-col relative ${selectedReportId ? 'flex' : 'hidden lg:flex'}`}
+          className={`flex-1 glass-panel rounded-lg border border-white/5 overflow-hidden shadow-lg flex-col relative ${selectedReportId ? 'flex' : 'hidden lg:flex'}`}
         >
           <AnimatePresence mode="wait">
             {selectedReport ? (
@@ -212,21 +213,20 @@ export default function ReportsTab({ onToast }: Props) {
                   </div>
                   {selectedReport.status === 'pending' && (
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
+                      <Button
                         onClick={() =>
                           updateMutation.mutate({
                             id: selectedReport.id,
                             status: 'DISMISSED',
                           })
                         }
-                        disabled={updateMutation.isPending}
-                        className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-sm font-bold flex items-center gap-2 transition-colors border border-white/5"
+                        isLoading={updateMutation.isPending}
+                        variant="secondary"
+                        className="text-sm font-bold border-white/5 px-4 py-2"
                       >
-                        <X size={16} /> Ignorar (D)
-                      </button>
-                      <button
-                        type="button"
+                        <X size={16} className="mr-2" /> Ignorar (D)
+                      </Button>
+                      <Button
                         onClick={() => {
                           if (
                             window.confirm(
@@ -253,20 +253,22 @@ export default function ReportsTab({ onToast }: Props) {
                               );
                           }
                         }}
-                        disabled={updateMutation.isPending}
-                        className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors border border-red-500/30"
+                        isLoading={updateMutation.isPending}
+                        variant="danger"
+                        className="text-sm font-bold border-red-500/30 px-4 py-2"
                       >
-                        <Trash2 size={16} /> Eliminar Contenido (E)
-                      </button>
+                        <Trash2 size={16} className="mr-2" /> Eliminar Contenido
+                        (E)
+                      </Button>
                     </div>
                   )}
                 </div>
 
                 {/* Content Viewer */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 flex gap-6">
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-6 flex gap-4">
                   {/* Visual Preview */}
                   <div className="w-1/2 flex flex-col gap-4">
-                    <div className="bg-black/50 rounded-2xl border border-white/10 flex-1 min-h-[300px] flex items-center justify-center overflow-hidden relative">
+                    <div className="bg-black/50 rounded-lg border border-white/10 flex-1 min-h-[300px] flex items-center justify-center overflow-hidden relative">
                       {selectedReport.targetContent?.thumbnail ? (
                         <img
                           src={selectedReport.targetContent.thumbnail}
@@ -290,16 +292,16 @@ export default function ReportsTab({ onToast }: Props) {
                   </div>
 
                   {/* Metadata */}
-                  <div className="w-1/2 space-y-6">
+                  <div className="w-1/2 space-y-4">
                     <div className="p-4 bg-white/2 rounded-xl border border-white/5">
-                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
+                      <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-1">
                         Motivo del Reporte
                       </p>
                       <p className="text-red-400 font-bold text-lg mb-4">
                         {selectedReport.reason}
                       </p>
 
-                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
+                      <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-1">
                         Reportado por
                       </p>
                       {selectedReport.details?.includes(
@@ -319,7 +321,7 @@ export default function ReportsTab({ onToast }: Props) {
 
                     {selectedReport.details && (
                       <div className="p-4 bg-white/2 rounded-xl border border-white/5">
-                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">
+                        <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-2">
                           Detalles Adicionales
                         </p>
                         <div className="text-sm text-gray-400 whitespace-pre-wrap">
@@ -332,7 +334,7 @@ export default function ReportsTab({ onToast }: Props) {
                     )}
 
                     <div className="p-4 bg-white/2 rounded-xl border border-white/5">
-                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">
+                      <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-2">
                         Estado Actual
                       </p>
                       <span

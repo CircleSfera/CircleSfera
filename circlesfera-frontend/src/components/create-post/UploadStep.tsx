@@ -148,7 +148,7 @@ export default function UploadStep({
       {/* biome-ignore lint/a11y/noStaticElementInteractions: Main drop zone container */}
       <div
         ref={dropRef}
-        className="flex-1 flex flex-col items-center justify-center px-6 pb-28 pt-4 gap-6 relative z-10"
+        className="flex-1 flex flex-col items-center justify-center px-6 pb-28 pt-4 gap-4 relative z-10"
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
@@ -158,7 +158,7 @@ export default function UploadStep({
         {/* Drop Zone Visual */}
         <motion.div
           className={`
-            relative w-full max-w-[320px] aspect-4/5 rounded-3xl
+            relative w-full max-w-[320px] aspect-4/5 rounded-xl
             flex flex-col items-center justify-center gap-5
             border-2 border-dashed transition-colors duration-300 cursor-pointer
             ${
@@ -280,7 +280,7 @@ export default function UploadStep({
           {/* Drag overlay shimmer effect */}
           {isDragging && (
             <motion.div
-              className="absolute inset-0 rounded-3xl pointer-events-none"
+              className="absolute inset-0 rounded-xl pointer-events-none"
               style={{
                 background:
                   'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 50%, rgba(255,255,255,0.03) 100%)',
@@ -298,7 +298,7 @@ export default function UploadStep({
             <motion.button
               type="button"
               onClick={onTextStory}
-              className="flex items-center gap-3 px-5 py-3 rounded-2xl
+              className="flex items-center gap-3 px-5 py-3 rounded-lg
                          bg-white/4 border border-white/8
                          hover:bg-white/7 hover:border-white/15
                          transition-all duration-300 group"
@@ -314,7 +314,7 @@ export default function UploadStep({
                 <p className="text-sm font-bold text-white/90 group-hover:text-white transition-colors">
                   {t('createPost.upload.create_text_story')}
                 </p>
-                <p className="text-[10px] text-white/30 font-medium">
+                <p className="text-xs text-white/30 font-medium">
                   {t('createPost.upload.create_text_story_desc')}
                 </p>
               </div>
@@ -336,7 +336,7 @@ export default function UploadStep({
       {/* Mode Switcher — Premium Pill Design */}
       <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-neutral-900/95 via-neutral-900/80 to-transparent z-20">
         <div className="flex justify-center">
-          <div className="flex bg-white/4 backdrop-blur-xl rounded-2xl p-1 border border-white/6 shadow-2xl">
+          <div className="flex bg-white/4 backdrop-blur-xl rounded-lg p-1 border border-white/6 shadow-2xl">
             {(['POST', 'STORY', 'FRAME'] as const).map((m) => {
               const cfg = MODE_CONFIG[m];
               const Icon = cfg.icon;

@@ -32,7 +32,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Filters */}
       <div className="flex gap-2">
         {['', 'POST', 'FRAME'].map((t) => (
@@ -56,20 +56,20 @@ export default function CreatorPostsTab({ onPromote }: Props) {
 
       {/* Posts Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           {['s1', 's2', 's3', 's4', 's5', 's6'].map((id) => (
             <div
               key={id}
-              className="glass-panel rounded-2xl h-48 md:h-64 animate-pulse bg-white/5"
+              className="glass-panel rounded-lg h-48 md:h-64 animate-pulse bg-white/5"
             />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-4">
           {data?.data?.map((post) => (
             <div
               key={post.id}
-              className="glass-panel rounded-3xl border border-white/5 overflow-hidden hover:border-white/10 hover:bg-white/5 transition-all group/card flex flex-col"
+              className="glass-panel rounded-xl border border-white/5 overflow-hidden hover:border-white/10 hover:bg-white/5 transition-all group/card flex flex-col"
             >
               {/* Thumbnail */}
               <div className="aspect-4/5 bg-white/5 relative overflow-hidden shrink-0">
@@ -89,7 +89,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                   </div>
                 )}
                 {/* Type badge */}
-                <span className="absolute top-3 left-3 px-2 py-0.5 bg-black/60 backdrop-blur rounded text-[8px] font-black uppercase text-white tracking-widest border border-white/5">
+                <span className="absolute top-3 left-3 px-2 py-0.5 bg-black/60 backdrop-blur rounded text-xs font-black uppercase text-white tracking-wide border border-white/5">
                   {post.type}
                 </span>
               </div>
@@ -102,7 +102,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                   </p>
 
                   <div className="space-y-2 mb-4">
-                    <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest text-zinc-500 italic">
+                    <div className="flex items-center justify-between text-xs font-black uppercase tracking-wide text-zinc-500 italic">
                       <span>Rendimiento</span>
                       <span
                         className={
@@ -137,12 +137,12 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 text-[10px] font-black">
-                    <span className="flex items-center gap-1.5 text-zinc-400">
+                  <div className="flex items-center gap-4 text-xs font-black">
+                    <span className="flex items-center gap-1 text-zinc-400">
                       <Heart size={12} className="text-pink-500/60" />{' '}
                       {post._count.likes.toLocaleString()}
                     </span>
-                    <span className="flex items-center gap-1.5 text-zinc-400">
+                    <span className="flex items-center gap-1 text-zinc-400">
                       <MessageCircle size={12} className="text-blue-500/60" />{' '}
                       {post._count.comments.toLocaleString()}
                     </span>
@@ -156,7 +156,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                   <button
                     type="button"
                     onClick={() => setInsightsPostId(post.id)}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-brand-primary/10 text-brand-primary text-[10px] font-black rounded-xl hover:bg-brand-primary/20 transition-all uppercase tracking-widest border border-brand-primary/20 group/btn"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-brand-primary/10 text-brand-primary text-xs font-black rounded-xl hover:bg-brand-primary/20 transition-all uppercase tracking-wide border border-brand-primary/20 group/btn"
                   >
                     <BarChart3
                       size={12}
@@ -167,7 +167,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                   <button
                     type="button"
                     onClick={() => onPromote(post)}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white/5 text-white text-[10px] font-black rounded-xl hover:bg-white/10 transition-all uppercase tracking-widest border border-white/10 group/btn"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white/5 text-white text-xs font-black rounded-xl hover:bg-white/10 transition-all uppercase tracking-wide border border-white/10 group/btn"
                   >
                     <Megaphone
                       size={12}

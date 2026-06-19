@@ -5,7 +5,7 @@ import { useDebounce } from '../../hooks/useDebounce';
 import type { WhitelistEntry } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
-import { LoadingSpinner } from '../index';
+import { Button, Input, Select } from '../ui';
 import AdminDrawer from './AdminDrawer';
 import {
   ActionButton,
@@ -70,7 +70,7 @@ export default function WhitelistTab() {
         </div>
       </div>
 
-      <div className="glass-panel rounded-2xl overflow-clip border border-white/10">
+      <div className="glass-panel rounded-lg overflow-clip border border-white/10">
         <Table
           headers={['Nombre', 'Email', 'Estado', 'Fecha', 'Acciones']}
           loading={isLoading}
@@ -87,7 +87,7 @@ export default function WhitelistTab() {
                   {entry.name || 'Sin nombre'}
                 </div>
               </td>
-              <td className="px-4 py-3 text-gray-400 text-xs">
+              <td className="px-2 py-1 text-gray-400 text-xs">
                 <div className="flex items-center gap-2">
                   <Mail size={13} className="text-gray-500" />
                   {entry.email}
@@ -96,13 +96,13 @@ export default function WhitelistTab() {
               <td className="px-4 py-4">
                 <StatusBadge status={entry.status} />
               </td>
-              <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
+              <td className="px-2 py-1 text-gray-500 text-xs whitespace-nowrap">
                 <div className="flex items-center gap-2">
                   <Calendar size={13} className="text-gray-500" />
                   {new Date(entry.createdAt).toLocaleDateString()}
                 </div>
               </td>
-              <td className="px-4 py-3 whitespace-nowrap">
+              <td className="px-2 py-1 whitespace-nowrap">
                 <div className="flex items-center gap-2">
                   <ActionButton
                     variant="ghost"
@@ -145,21 +145,20 @@ export default function WhitelistTab() {
                 },
               });
             }}
-            className="space-y-6"
+            className="space-y-4"
           >
             <div className="space-y-1.5">
               <label
                 htmlFor="whitelist-name"
-                className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
+                className="text-xs font-black uppercase tracking-wide text-gray-500 ml-1"
               >
                 Nombre
               </label>
-              <input
+              <Input
                 id="whitelist-name"
                 name="name"
                 type="text"
                 defaultValue={editingEntry.name || ''}
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
                 required
               />
             </div>
@@ -167,16 +166,15 @@ export default function WhitelistTab() {
             <div className="space-y-1.5">
               <label
                 htmlFor="whitelist-email"
-                className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
+                className="text-xs font-black uppercase tracking-wide text-gray-500 ml-1"
               >
                 Email
               </label>
-              <input
+              <Input
                 id="whitelist-email"
                 name="email"
                 type="email"
                 defaultValue={editingEntry.email}
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
                 required
                 autoComplete="email"
               />
@@ -185,15 +183,14 @@ export default function WhitelistTab() {
             <div className="space-y-1.5">
               <label
                 htmlFor="whitelist-status"
-                className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
+                className="text-xs font-black uppercase tracking-wide text-gray-500 ml-1"
               >
                 Estado
               </label>
-              <select
+              <Select
                 id="whitelist-status"
                 name="status"
                 defaultValue={editingEntry.status}
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors appearance-none cursor-pointer"
               >
                 <option value="VALID" className="bg-[#1a1a2e]">
                   VALID
@@ -201,31 +198,25 @@ export default function WhitelistTab() {
                 <option value="REGISTERED" className="bg-[#1a1a2e]">
                   REGISTERED
                 </option>
-              </select>
+              </Select>
             </div>
 
             <div className="pt-4 flex gap-3">
-              <button
-                type="button"
+              <Button
                 onClick={() => setEditingEntry(null)}
-                className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 text-gray-300 font-bold rounded-xl transition-all"
+                variant="secondary"
+                className="flex-1 py-3 font-bold bg-white/5 border-transparent text-gray-300"
               >
                 Cancelar
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
-                disabled={updateMutation.isPending}
-                className="flex-1 py-3 px-4 bg-brand-primary hover:bg-brand-primary/80 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-brand-primary/20 transition-all flex items-center justify-center gap-2"
+                isLoading={updateMutation.isPending}
+                variant="primary"
+                className="flex-1 py-3 font-bold shadow-lg shadow-brand-primary/20"
               >
-                {updateMutation.isPending ? (
-                  <LoadingSpinner size="sm" />
-                ) : (
-                  <>
-                    <Save size={18} />
-                    Guardar
-                  </>
-                )}
-              </button>
+                <Save size={18} className="mr-2" /> Guardar
+              </Button>
             </div>
           </form>
         )}

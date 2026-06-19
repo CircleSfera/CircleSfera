@@ -18,7 +18,7 @@ export default function TopNav() {
     profile?.username && location.pathname === `/${profile.username}`;
 
   return (
-    <div className="flex md:hidden sticky top-0 left-0 right-0 pt-[env(safe-area-inset-top)] border-b border-white/5 bg-transparent backdrop-blur-2xl z-50 items-center justify-between px-4 h-[calc(4rem+env(safe-area-inset-top))]">
+    <div className="flex md:hidden sticky top-0 left-0 right-0 pt-[env(safe-area-inset-top)] border-b border-white/5 bg-transparent backdrop-blur-2xl z-50 items-center justify-between px-3 h-[calc(3.5rem+env(safe-area-inset-top))]">
       {/* Left: Create Button */}
       <div className="flex-1 flex justify-start">
         <button
@@ -27,7 +27,7 @@ export default function TopNav() {
           className="p-2 text-white hover:bg-white/10 rounded-xl transition-colors focus:outline-none"
           aria-label="Crear publicación"
         >
-          <PlusSquare size={26} strokeWidth={2} />
+          <PlusSquare size={22} strokeWidth={2} />
         </button>
       </div>
 
@@ -36,9 +36,9 @@ export default function TopNav() {
         <img
           src={logoSrc}
           alt="CircleSfera"
-          className="h-8 w-auto object-contain"
+          className="h-6 w-auto object-contain"
         />
-        <span className="text-xl font-black tracking-tighter text-white">
+        <span className="text-lg font-black tracking-tighter text-white">
           CircleSfera
         </span>
       </Link>
@@ -51,7 +51,7 @@ export default function TopNav() {
             className="p-2 text-white hover:bg-white/10 rounded-xl transition-colors focus:outline-none"
             aria-label="Ajustes"
           >
-            <Menu size={28} strokeWidth={2} />
+            <Menu size={24} strokeWidth={2} />
           </Link>
         ) : (
           <Link
@@ -63,9 +63,9 @@ export default function TopNav() {
               whileTap={{ scale: 0.9 }}
               className="text-white hover:text-gray-300 transition-colors"
             >
-              <MessageCircle size={26} />
+              <MessageCircle size={22} />
               {unreadMessagesCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold text-white bg-red-500 rounded-full px-1 shadow-lg shadow-red-500/50">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center text-xs font-bold text-white bg-red-500 rounded-full px-1 shadow-lg shadow-red-500/50">
                   {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
                 </span>
               )}

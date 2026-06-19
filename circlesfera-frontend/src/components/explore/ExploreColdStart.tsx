@@ -32,13 +32,13 @@ export default function ExploreColdStart({
       className="max-w-3xl mx-auto py-12 px-4 flex flex-col items-center text-center space-y-12"
     >
       {/* Educational Hero */}
-      <div className="space-y-6 max-w-xl">
-        <div className="w-20 h-20 bg-brand-primary/10 rounded-3xl mx-auto flex items-center justify-center border border-brand-primary/20 shadow-2xl shadow-brand-primary/20 mb-8 relative">
+      <div className="space-y-4 max-w-xl">
+        <div className="w-20 h-20 bg-brand-primary/10 rounded-xl mx-auto flex items-center justify-center border border-brand-primary/20 shadow-2xl shadow-brand-primary/20 mb-8 relative">
           <div className="absolute inset-0 bg-brand-primary/20 blur-2xl rounded-full" />
           <Sparkles className="text-brand-primary w-10 h-10 relative z-10" />
         </div>
 
-        <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight">
+        <h2 className="text-xl md:text-2xl font-black text-white tracking-tight leading-tight">
           {activeTab === 'foryou'
             ? 'Descubre tu propio espacio'
             : 'Las tendencias te esperan'}
@@ -55,7 +55,7 @@ export default function ExploreColdStart({
             <button
               type="button"
               onClick={() => setActiveTab('trending')}
-              className="px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-bold transition-all flex items-center gap-3 active:scale-95 border border-white/5"
+              className="px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold transition-all flex items-center gap-3 active:scale-95 border border-white/5"
             >
               <TrendingUp size={20} />
               Ver Tendencias Globales
@@ -69,7 +69,7 @@ export default function ExploreColdStart({
                 document.getElementById('desktop-create-btn');
               if (sidebarToggle) sidebarToggle.click();
             }}
-            className="px-8 py-4 bg-brand-primary hover:bg-brand-primary/90 text-white rounded-2xl font-bold transition-all flex items-center gap-3 shadow-lg shadow-brand-primary/30 active:scale-95"
+            className="px-8 py-4 bg-brand-primary hover:bg-brand-primary/90 text-white rounded-lg font-bold transition-all flex items-center gap-3 shadow-lg shadow-brand-primary/30 active:scale-95"
           >
             <Sparkles size={20} />
             Publicar Ahora
@@ -91,7 +91,7 @@ export default function ExploreColdStart({
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-48 glass-panel rounded-2xl border border-white/5 animate-pulse"
+                className="h-48 glass-panel rounded-lg border border-white/5 animate-pulse"
               />
             ))}
           </div>
@@ -100,7 +100,7 @@ export default function ExploreColdStart({
             {suggestedUsers.map((user: any) => (
               <div
                 key={user.id}
-                className="glass-panel p-6 rounded-2xl border border-white/5 hover:bg-white/5 transition-colors flex flex-col items-center text-center group"
+                className="glass-panel p-4 rounded-lg border border-white/5 hover:bg-white/5 transition-colors flex flex-col items-center text-center group"
               >
                 <Link to={`/${user.username}`} className="mb-4 relative">
                   <UserAvatar
@@ -129,7 +129,7 @@ export default function ExploreColdStart({
                 </p>
                 <button
                   type="button"
-                  className="w-full py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-wide rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                   <UserPlus size={14} />
                   Seguir
@@ -138,7 +138,7 @@ export default function ExploreColdStart({
             ))}
           </div>
         ) : (
-          <div className="py-12 bg-white/5 rounded-3xl border border-dashed border-white/10">
+          <div className="py-12 bg-white/5 rounded-xl border border-dashed border-white/10">
             <p className="text-zinc-500 font-medium">
               No hay sugerencias en este momento.
             </p>

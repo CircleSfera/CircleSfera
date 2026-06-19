@@ -100,7 +100,7 @@ export default function Explore() {
         title={t('explore.page_title')}
         description={t('explore.page_desc')}
       />
-      <h1 className="text-3xl font-black mb-6">{t('explore.heading')}</h1>
+      <h1 className="text-xl font-black mb-6">{t('explore.heading')}</h1>
 
       {/* Search Input */}
       <div className="relative mb-12 max-w-2xl mx-auto group">
@@ -162,24 +162,24 @@ export default function Explore() {
                       size={24}
                     />
                     {t('explore.smart_search')}
-                    <span className="text-[10px] bg-brand-primary/20 text-brand-primary px-2 py-0.5 rounded-full uppercase tracking-widest font-black ml-2">
+                    <span className="text-xs bg-brand-primary/20 text-brand-primary px-2 py-0.5 rounded-full uppercase tracking-wide font-black ml-2">
                       {t('explore.beta_ai')}
                     </span>
                   </h2>
                   {isSearching ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {[1, 2, 3].map((id) => (
                         <PostSkeleton key={id} />
                       ))}
                     </div>
                   ) : searchResults?.semanticPosts &&
                     searchResults.semanticPosts.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4">
                       {searchResults.semanticPosts.map((post: Post) => (
                         <div key={post.id} className="relative group">
                           <PostCard post={post} />
                           <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                            <div className="bg-brand-primary/90 text-white text-[10px] font-bold px-2 py-1 rounded-lg backdrop-blur-sm shadow-xl flex items-center gap-1">
+                            <div className="bg-brand-primary/90 text-white text-xs font-bold px-2 py-1 rounded-lg backdrop-blur-sm shadow-xl flex items-center gap-1">
                               <Sparkles size={10} />
                               {t('explore.conceptual_match')}
                             </div>
@@ -235,7 +235,7 @@ export default function Explore() {
                             </div>
                             {user.followedByFriends &&
                               user.followedByFriends.length > 0 && (
-                                <div className="text-[9px] font-bold text-brand-primary uppercase tracking-tighter mt-0.5 truncate opacity-80">
+                                <div className="text-xs font-bold text-brand-primary uppercase tracking-tighter mt-0.5 truncate opacity-80">
                                   {t('explore.followed_by')}{' '}
                                   {user.followedByFriends[0]}
                                   {user.mutualCount && user.mutualCount > 1
@@ -341,7 +341,7 @@ export default function Explore() {
               </button>
             ))}
             {(!searchHistory || searchHistory.length === 0) && (
-              <div className="text-center py-8 text-gray-600 bg-white/5 rounded-2xl border border-dashed border-white/10">
+              <div className="text-center py-8 text-gray-600 bg-white/5 rounded-lg border border-dashed border-white/10">
                 {t('explore.no_recent_searches')}
               </div>
             )}
@@ -354,7 +354,7 @@ export default function Explore() {
             <button
               type="button"
               onClick={() => setActiveTab('foryou')}
-              className={`pb-4 px-4 font-bold text-sm uppercase tracking-widest transition-colors relative ${
+              className={`pb-4 px-4 font-bold text-sm uppercase tracking-wide transition-colors relative ${
                 activeTab === 'foryou'
                   ? 'text-white'
                   : 'text-zinc-500 hover:text-white'
@@ -368,7 +368,7 @@ export default function Explore() {
             <button
               type="button"
               onClick={() => setActiveTab('trending')}
-              className={`pb-4 px-4 font-bold text-sm uppercase tracking-widest transition-colors relative ${
+              className={`pb-4 px-4 font-bold text-sm uppercase tracking-wide transition-colors relative ${
                 activeTab === 'trending'
                   ? 'text-white'
                   : 'text-zinc-500 hover:text-white'
@@ -382,7 +382,7 @@ export default function Explore() {
           </div>
 
           {isLoadingExplore ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((id) => (
                 <div key={id} className="break-inside-avoid mb-6">
                   <PostSkeleton />
@@ -391,7 +391,7 @@ export default function Explore() {
             </div>
           ) : explorePosts?.data && explorePosts.data.length > 0 ? (
             /* Masonry Grid using CSS columns */
-            <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
+            <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
               {explorePosts.data.map((post: Post) => (
                 <div key={post.id} className="break-inside-avoid mb-6">
                   <PostCard post={post} />

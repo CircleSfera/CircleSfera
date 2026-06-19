@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { Post } from '../../types';
 import LikeButton from '../LikeButton';
+import { Button } from '../ui';
 
 interface PostActionsProps {
   post: Post;
@@ -25,8 +26,8 @@ export default function PostActions({
 }: PostActionsProps) {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-4">
+    <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center gap-3">
         <LikeButton postId={post.id} onToggle={onLikeToggle} />
         <Link
           to={`/p/${post.id}`}
@@ -35,7 +36,7 @@ export default function PostActions({
         >
           <svg
             aria-hidden="true"
-            className="w-6 h-6"
+            className="w-5 h-5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -48,28 +49,31 @@ export default function PostActions({
             />
           </svg>
         </Link>
-        <button
-          type="button"
+        <Button
           onClick={onShare}
-          className="hover:scale-110 active:scale-95 transition-all text-white/60 hover:text-white"
+          variant="ghost"
+          size="icon"
+          className="hover:scale-110 active:scale-95 text-white/60 hover:text-white bg-transparent border-none"
           aria-label={t('post.actions.share')}
         >
-          <Send className="w-6 h-6" />
-        </button>
-        <button
-          type="button"
+          <Send className="w-5 h-5" />
+        </Button>
+        <Button
           onClick={onTip}
-          className="hover:scale-110 active:scale-95 transition-all text-yellow-500 hover:text-yellow-400 drop-shadow-[0_0_5px_rgba(234,179,8,0.5)]"
+          variant="ghost"
+          size="icon"
+          className="hover:scale-110 active:scale-95 text-yellow-500 hover:text-yellow-400 drop-shadow-[0_0_5px_rgba(234,179,8,0.5)] bg-transparent border-none"
           aria-label={t('post.actions.tip')}
         >
-          <Gift className="w-6 h-6" />
-        </button>
+          <Gift className="w-5 h-5" />
+        </Button>
       </div>
-      <button
-        type="button"
+      <Button
         onClick={onToggleBookmark}
-        className="hover:scale-110 active:scale-95 transition-all"
-        disabled={isBookmarkPending}
+        isLoading={isBookmarkPending}
+        variant="ghost"
+        size="icon"
+        className="hover:scale-110 active:scale-95 bg-transparent border-none"
         aria-label={
           isBookmarked
             ? t('post.actions.remove_bookmark')
@@ -77,10 +81,10 @@ export default function PostActions({
         }
       >
         <Bookmark
-          size={24}
+          size={20}
           className={`transition-all ${isBookmarked ? 'text-white fill-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]' : 'text-white/60 hover:text-white'}`}
         />
-      </button>
+      </Button>
     </div>
   );
 }

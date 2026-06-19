@@ -21,7 +21,7 @@ export default function CreatorAnalyticsTab() {
 
   if (isLoading) {
     return (
-      <div className="p-6 bg-[#090909] rounded-3xl border border-white/5 animate-pulse min-h-[400px]">
+      <div className="p-6 bg-[#090909] rounded-xl border border-white/5 animate-pulse min-h-[400px]">
         <div className="h-6 w-48 bg-white/10 rounded-md mb-8" />
         <div className="h-[300px] bg-white/5 rounded-xl" />
       </div>
@@ -29,8 +29,8 @@ export default function CreatorAnalyticsTab() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="p-6 bg-[#090909] rounded-3xl border border-white/5 relative overflow-hidden">
+    <div className="space-y-4">
+      <div className="p-6 bg-[#090909] rounded-xl border border-white/5 relative overflow-hidden">
         {/* Glow effect */}
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-brand-primary/10 blur-[100px] rounded-full pointer-events-none" />
 

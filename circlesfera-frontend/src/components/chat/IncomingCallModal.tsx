@@ -70,13 +70,13 @@ export const IncomingCallModal: React.FC = () => {
           <h2 className="text-xl font-bold text-white mb-2">
             {remoteUser.profile.fullName || remoteUser.profile.username}
           </h2>
-          <p className="text-white/60 mb-10 animate-pulse text-[13px] uppercase tracking-widest font-bold">
+          <p className="text-white/60 mb-10 animate-pulse text-[13px] uppercase tracking-wide font-bold">
             {callType === 'video'
               ? t('chat.incoming_video_call')
               : t('chat.incoming_audio_call')}
           </p>
 
-          <div className="flex gap-6 w-full justify-center">
+          <div className="flex gap-4 w-full justify-center">
             {/* Decline Button */}
             <button
               type="button"
@@ -86,7 +86,7 @@ export const IncomingCallModal: React.FC = () => {
               <div className="w-16 h-16 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center group-hover:bg-red-500 group-hover:text-white transition-all duration-300">
                 <X size={28} />
               </div>
-              <span className="text-[10px] uppercase tracking-wider font-bold text-gray-500 group-hover:text-red-400 transition-colors">
+              <span className="text-xs uppercase tracking-wider font-bold text-gray-500 group-hover:text-red-400 transition-colors">
                 {t('chat.decline')}
               </span>
             </button>
@@ -100,7 +100,7 @@ export const IncomingCallModal: React.FC = () => {
               <div className="w-16 h-16 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center group-hover:bg-green-500 group-hover:text-white transition-all duration-300 shadow-[0_0_20px_rgba(34,197,94,0.3)]">
                 <Check size={28} />
               </div>
-              <span className="text-[10px] uppercase tracking-wider font-bold text-gray-500 group-hover:text-green-400 transition-colors">
+              <span className="text-xs uppercase tracking-wider font-bold text-gray-500 group-hover:text-green-400 transition-colors">
                 {t('chat.accept')}
               </span>
             </button>

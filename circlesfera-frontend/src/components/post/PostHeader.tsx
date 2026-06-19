@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { Post } from '../../types';
 import UserAvatar from '../UserAvatar';
+import { Button } from '../ui';
 import type { VerificationLevel } from '../VerificationBadge';
 import VerificationBadge from '../VerificationBadge';
 
@@ -19,7 +20,7 @@ export default function PostHeader({
 }: PostHeaderProps) {
   const { t } = useTranslation();
   return (
-    <div className="p-3 flex items-center gap-3 border-b border-white/5">
+    <div className="p-2 flex items-center gap-2 border-b border-white/5">
       <Link to={`/${post.user.profile.username}`} className="relative">
         <div className="absolute -inset-0.5 bg-linear-to-tr from-purple-500 to-blue-500 rounded-full opacity-70 blur-sm"></div>
         <UserAvatar
@@ -27,7 +28,7 @@ export default function PostHeader({
           thumbnailUrl={post.user.profile.thumbnailUrl}
           standardUrl={post.user.profile.standardUrl}
           alt={post.user.profile.username}
-          className="relative w-8 h-8 rounded-full object-cover border border-white/20"
+          className="relative w-7 h-7 rounded-full object-cover border border-white/20"
         />
       </Link>
       <Link
@@ -41,13 +42,13 @@ export default function PostHeader({
           />
         </div>
         <div className="flex items-center gap-2">
-          <div className="text-[10px] tracking-wider font-medium text-gray-500">
+          <div className="text-xs tracking-wider font-medium text-gray-500">
             @{post.user.profile.username}
           </div>
           {post.isPromoted && (
             <>
               <span className="text-gray-600">·</span>
-              <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">
+              <span className="text-xs font-black uppercase tracking-wide text-brand-primary">
                 {t('post.header.promoted')}
               </span>
             </>
@@ -55,14 +56,15 @@ export default function PostHeader({
         </div>
       </Link>
 
-      <button
-        type="button"
+      <Button
         ref={menuButtonRef}
         onClick={onMenuToggle}
-        className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+        variant="ghost"
+        size="icon"
+        className="text-gray-400 hover:bg-white/10 rounded-full"
       >
-        <MoreHorizontal size={20} className="text-gray-400" />
-      </button>
+        <MoreHorizontal size={20} />
+      </Button>
     </div>
   );
 }

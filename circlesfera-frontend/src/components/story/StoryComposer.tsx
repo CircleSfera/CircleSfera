@@ -507,7 +507,7 @@ function DraggableStoryElement({
           setTextStyle(el.textStyle || 'box');
         }
       }}
-      className={`absolute cursor-move touch-none border-2 rounded-2xl p-1 transition-colors ${
+      className={`absolute cursor-move touch-none border-2 rounded-lg p-1 transition-colors ${
         isSelected ? 'border-white/50' : 'border-transparent'
       }`}
     >
@@ -802,7 +802,7 @@ export default function StoryComposer({
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col font-sans">
       {/* ─── Header ─── */}
-      <div className="relative flex items-center justify-between px-4 py-3 z-30 bg-linear-to-b from-black/70 to-transparent">
+      <div className="relative flex items-center justify-between px-2 py-1 z-30 bg-linear-to-b from-black/70 to-transparent">
         <button
           type="button"
           onClick={onClose}
@@ -811,7 +811,7 @@ export default function StoryComposer({
           <X size={22} />
         </button>
 
-        <div className="flex gap-1.5">
+        <div className="flex gap-1">
           <button
             type="button"
             onClick={undo}
@@ -922,7 +922,7 @@ export default function StoryComposer({
 
           {!backgroundUrl && !bgStyle && (
             <div className="w-full h-full flex flex-col items-center justify-center text-gray-500 gap-4">
-              <div className="w-20 h-20 rounded-3xl bg-white/4 flex items-center justify-center border border-white/6">
+              <div className="w-20 h-20 rounded-xl bg-white/4 flex items-center justify-center border border-white/6">
                 <ImageIcon size={36} className="text-gray-600" />
               </div>
               <p className="text-sm font-medium text-white/20">
@@ -986,7 +986,7 @@ export default function StoryComposer({
                       <Smile size={14} />
                     )}
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30">
+                  <span className="text-xs font-black uppercase tracking-[0.15em] text-white/30">
                     Edit {selectedElement.type}
                   </span>
                 </div>
@@ -995,7 +995,7 @@ export default function StoryComposer({
                     type="button"
                     onClick={() => duplicateElement(selectedElementId)}
                     title="Duplicate"
-                    className="p-1.5 bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
+                    className="p-1 bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
                   >
                     <Copy size={13} />
                   </button>
@@ -1003,7 +1003,7 @@ export default function StoryComposer({
                     type="button"
                     onClick={() => moveElementLayer(selectedElementId, 'up')}
                     title="Bring forward"
-                    className="p-1.5 bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
+                    className="p-1 bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
                   >
                     <ChevronUp size={13} />
                   </button>
@@ -1011,7 +1011,7 @@ export default function StoryComposer({
                     type="button"
                     onClick={() => moveElementLayer(selectedElementId, 'down')}
                     title="Send backward"
-                    className="p-1.5 bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
+                    className="p-1 bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
                   >
                     <ChevronDown size={13} />
                   </button>
@@ -1020,21 +1020,21 @@ export default function StoryComposer({
                     onClick={() =>
                       updateElement(selectedElementId, { x: 0, y: 0 })
                     }
-                    className="text-[10px] bg-white/4 hover:bg-white/8 px-2.5 py-1.5 rounded-lg border border-white/6 transition-all font-bold text-white/50 hover:text-white/80 flex items-center gap-1"
+                    className="text-xs bg-white/4 hover:bg-white/8 px-2.5 py-1.5 rounded-lg border border-white/6 transition-all font-bold text-white/50 hover:text-white/80 flex items-center gap-1"
                   >
                     <Move size={10} /> Center
                   </button>
                   <button
                     type="button"
                     onClick={() => removeElement(selectedElementId)}
-                    className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/15 transition-all"
+                    className="p-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/15 transition-all"
                   >
                     <Trash2 size={13} />
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedElementId(null)}
-                    className="p-1.5 hover:bg-white/5 rounded-lg text-white/30 hover:text-white/60 transition-all"
+                    className="p-1 hover:bg-white/5 rounded-lg text-white/30 hover:text-white/60 transition-all"
                   >
                     <X size={16} />
                   </button>
@@ -1056,7 +1056,7 @@ export default function StoryComposer({
                     type="button"
                     key={id}
                     onClick={() => setPanelTab(id)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${
+                    className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
                       panelTab === id
                         ? 'bg-white/8 text-white'
                         : 'text-white/25 hover:text-white/50'
@@ -1080,12 +1080,12 @@ export default function StoryComposer({
                         content: e.target.value,
                       });
                     }}
-                    className="w-full bg-white/5 text-white px-4 py-3 rounded-xl outline-none border border-white/10 focus:border-blue-500/50 transition-all font-medium text-base resize-none overflow-hidden"
+                    className="w-full bg-white/5 text-white px-2 py-1 rounded-xl outline-none border border-white/10 focus:border-blue-500/50 transition-all font-medium text-base resize-none overflow-hidden"
                     placeholder="Type your text..."
                   />
 
                   {/* Font Selector */}
-                  <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                  <div className="flex gap-1 overflow-x-auto no-scrollbar pb-0.5">
                     {FONTS.map((font) => (
                       <button
                         type="button"
@@ -1096,7 +1096,7 @@ export default function StoryComposer({
                             fontFamily: font.name,
                           });
                         }}
-                        className={`px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all shrink-0 border ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 border ${
                           (selectedElement.fontFamily || 'Outfit') === font.name
                             ? 'bg-white text-black border-white'
                             : 'text-white/40 hover:text-white/70 border-white/6 hover:border-white/15 bg-white/3'
@@ -1121,7 +1121,7 @@ export default function StoryComposer({
                               textStyle: s.id,
                             });
                           }}
-                          className={`px-2.5 py-1.5 rounded-md text-[10px] font-bold capitalize transition-all whitespace-nowrap ${
+                          className={`px-2.5 py-1.5 rounded-md text-xs font-bold capitalize transition-all whitespace-nowrap ${
                             textStyle === s.id
                               ? 'bg-white text-black'
                               : 'text-white/30 hover:text-white/60'
@@ -1172,10 +1172,10 @@ export default function StoryComposer({
 
                   {/* Gradient Text Presets */}
                   <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-bold text-white/20 uppercase tracking-wider shrink-0">
+                    <span className="text-xs font-bold text-white/20 uppercase tracking-wider shrink-0">
                       Gradient
                     </span>
-                    <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+                    <div className="flex gap-1 overflow-x-auto no-scrollbar">
                       <button
                         type="button"
                         onClick={() =>
@@ -1183,7 +1183,7 @@ export default function StoryComposer({
                             gradientColors: undefined,
                           })
                         }
-                        className={`w-7 h-7 rounded-full border-2 shrink-0 flex items-center justify-center text-[9px] font-bold transition-all ${
+                        className={`w-7 h-7 rounded-full border-2 shrink-0 flex items-center justify-center text-xs font-bold transition-all ${
                           !selectedElement.gradientColors
                             ? 'border-white bg-white/10 text-white'
                             : 'border-white/10 text-white/30'
@@ -1343,7 +1343,7 @@ export default function StoryComposer({
                       // biome-ignore lint/a11y/useSemanticElements: Layer item is not a button to avoid nested interactive elements
                       <div
                         key={el.id}
-                        className={`flex items-center gap-3 p-3 rounded-2xl transition-all group ${
+                        className={`flex items-center gap-3 p-3 rounded-lg transition-all group ${
                           selectedElementId === el.id
                             ? 'bg-white/8 border border-white/15'
                             : 'hover:bg-white/4 border border-transparent'
@@ -1412,7 +1412,7 @@ export default function StoryComposer({
                     );
                   })}
                   {elements.length === 0 && (
-                    <p className="text-center text-[11px] text-white/15 py-6">
+                    <p className="text-center text-xs text-white/15 py-6">
                       No elements yet
                     </p>
                   )}
@@ -1432,13 +1432,13 @@ export default function StoryComposer({
               className="p-4 space-y-3"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black text-white/25 uppercase tracking-[0.15em]">
+                <span className="text-xs font-black text-white/25 uppercase tracking-[0.15em]">
                   Backgrounds
                 </span>
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="text-[10px] bg-white/4 hover:bg-white/8 px-3 py-1.5 rounded-lg border border-white/6 flex items-center gap-1.5 transition-all font-bold text-white/50 hover:text-white/80"
+                  className="text-xs bg-white/4 hover:bg-white/8 px-3 py-1.5 rounded-lg border border-white/6 flex items-center gap-1 transition-all font-bold text-white/50 hover:text-white/80"
                 >
                   <ImageIcon size={12} /> Upload
                 </button>
@@ -1514,7 +1514,7 @@ export default function StoryComposer({
                   rows={1}
                   onChange={(e) => setTextInput(e.target.value)}
                   placeholder="Capture some magic..."
-                  className="flex-1 bg-white/5 text-white px-4 py-3 rounded-xl outline-none border border-white/10 focus:border-blue-500/50 transition-all font-medium resize-none overflow-hidden"
+                  className="flex-1 bg-white/5 text-white px-2 py-1 rounded-xl outline-none border border-white/10 focus:border-blue-500/50 transition-all font-medium resize-none overflow-hidden"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
@@ -1533,13 +1533,13 @@ export default function StoryComposer({
                 </motion.button>
               </div>
 
-              <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+              <div className="flex gap-1 overflow-x-auto no-scrollbar pb-0.5">
                 {FONTS.map((font) => (
                   <button
                     type="button"
                     key={font.name}
                     onClick={() => setTextFont(font.name)}
-                    className={`px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all shrink-0 border ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0 border ${
                       textFont === font.name
                         ? 'bg-white text-black border-white'
                         : 'text-white/40 hover:text-white/70 border-white/6 hover:border-white/15 bg-white/3'
@@ -1558,7 +1558,7 @@ export default function StoryComposer({
                       type="button"
                       key={s.id}
                       onClick={() => setTextStyle(s.id)}
-                      className={`px-2.5 py-1.5 rounded-md text-[10px] font-bold capitalize transition-all whitespace-nowrap ${
+                      className={`px-2.5 py-1.5 rounded-md text-xs font-bold capitalize transition-all whitespace-nowrap ${
                         textStyle === s.id
                           ? 'bg-white text-black'
                           : 'text-white/30 hover:text-white/60'
@@ -1607,7 +1607,7 @@ export default function StoryComposer({
                     type="button"
                     key={cat.label}
                     onClick={() => setActiveStickerCategory(idx)}
-                    className={`px-3 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all ${
+                    className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
                       activeStickerCategory === idx
                         ? 'bg-white/10 text-white border border-white/10'
                         : 'text-white/25 hover:text-white/50'
@@ -1623,7 +1623,7 @@ export default function StoryComposer({
                     type="button"
                     key={s}
                     onClick={() => addSticker(s)}
-                    className="text-3xl p-2 rounded-xl hover:bg-white/5 transition-colors flex items-center justify-center"
+                    className="text-xl p-2 rounded-xl hover:bg-white/5 transition-colors flex items-center justify-center"
                     whileHover={{ scale: 1.15, rotate: 5 }}
                     whileTap={{ scale: 0.9 }}
                   >
@@ -1644,7 +1644,7 @@ export default function StoryComposer({
               transition={{ duration: 0.25 }}
               className="p-4 space-y-3"
             >
-              <span className="text-[10px] font-black text-white/25 uppercase tracking-[0.15em]">
+              <span className="text-xs font-black text-white/25 uppercase tracking-[0.15em]">
                 Templates
               </span>
               <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
@@ -1653,7 +1653,7 @@ export default function StoryComposer({
                     type="button"
                     key={tmpl.name}
                     onClick={() => applyTemplate(tmpl)}
-                    className="shrink-0 w-20 flex flex-col items-center gap-1.5 group"
+                    className="shrink-0 w-20 flex flex-col items-center gap-1 group"
                   >
                     <div
                       className="w-16 h-24 rounded-xl border-2 border-white/8 group-hover:border-white/25 transition-all overflow-hidden"
@@ -1663,7 +1663,7 @@ export default function StoryComposer({
                           : { backgroundColor: tmpl.bg }
                       }
                     >
-                      <div className="w-full h-full flex items-center justify-center text-white/60 text-[8px] font-bold">
+                      <div className="w-full h-full flex items-center justify-center text-white/60 text-xs font-bold">
                         {tmpl.elements[0]?.type === 'sticker' ? (
                           <span className="text-2xl">
                             {tmpl.elements[0].content}
@@ -1673,7 +1673,7 @@ export default function StoryComposer({
                         )}
                       </div>
                     </div>
-                    <span className="text-[9px] font-bold text-white/30 group-hover:text-white/60 transition-colors">
+                    <span className="text-xs font-bold text-white/30 group-hover:text-white/60 transition-colors">
                       {tmpl.name}
                     </span>
                   </button>
@@ -1691,7 +1691,7 @@ export default function StoryComposer({
               exit={{ opacity: 0 }}
               className="py-4 flex justify-center"
             >
-              <div className="flex items-center gap-2 text-[10px] text-white/15 font-medium">
+              <div className="flex items-center gap-2 text-xs text-white/15 font-medium">
                 <Layers size={12} />
                 <span>
                   {elements.length} element{elements.length !== 1 ? 's' : ''}
@@ -1802,7 +1802,7 @@ function SliderControl({
           size={12}
           className="text-white/20 group-hover:text-blue-400 transition-colors duration-300"
         />
-        <span className="text-[10px] font-black uppercase tracking-[0.15em] text-white/25 truncate group-hover:text-white/60 transition-colors duration-300">
+        <span className="text-xs font-black uppercase tracking-[0.15em] text-white/25 truncate group-hover:text-white/60 transition-colors duration-300">
           {label}
         </span>
       </div>
@@ -1819,7 +1819,7 @@ function SliderControl({
         />
       </div>
       <div className="w-14 shrink-0 text-right">
-        <span className="inline-block px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-[10px] font-mono font-bold text-blue-400">
+        <span className="inline-block px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-xs font-mono font-bold text-blue-400">
           {format ? format(value) : value}
           {unit}
         </span>

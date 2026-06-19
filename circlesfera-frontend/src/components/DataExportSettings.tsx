@@ -42,7 +42,7 @@ export function DataExportSettings() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
           <FileArchive size={20} className="text-blue-400" />
@@ -62,7 +62,7 @@ export function DataExportSettings() {
           type="button"
           onClick={() => exportDataMutation.mutate()}
           disabled={exportDataMutation.isPending}
-          className="px-5 py-2.5 bg-blue-500/10 text-blue-400 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-500/20 transition-colors flex items-center gap-2 whitespace-nowrap"
+          className="px-5 py-2.5 bg-blue-500/10 text-blue-400 rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-blue-500/20 transition-colors flex items-center gap-2 whitespace-nowrap"
         >
           {exportDataMutation.isPending ? (
             <Loader2 size={16} className="animate-spin" />
@@ -78,9 +78,9 @@ export function DataExportSettings() {
           <Loader2 size={24} className="animate-spin text-gray-500" />
         </div>
       ) : exports.length > 0 ? (
-        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+        <div className="bg-white/5 border border-white/10 rounded-lg overflow-hidden">
           <div className="px-5 py-3 border-b border-white/10 bg-white/2">
-            <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+            <h4 className="text-xs font-bold uppercase tracking-wide text-gray-400">
               {t('settings.account.export.history', 'Export History')}
             </h4>
           </div>
@@ -109,7 +109,7 @@ export function DataExportSettings() {
                         minute: '2-digit',
                       })}
                     </p>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-1">
                       {exp.status}
                     </p>
                   </div>

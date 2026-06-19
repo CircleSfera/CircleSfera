@@ -18,7 +18,7 @@ export default function CollectionCard({
       onClick={onClick}
       className="cursor-pointer group relative aspect-square w-full appearance-none bg-transparent border-none p-0 text-left"
     >
-      <div className="absolute inset-0 bg-white/5 rounded-2xl border border-white/10 overflow-hidden transition-transform duration-300 group-hover:scale-95">
+      <div className="absolute inset-0 bg-white/5 rounded-lg border border-white/10 overflow-hidden transition-transform duration-300 group-hover:scale-95">
         {collection.coverUrl ? (
           <img
             src={collection.coverUrl}

@@ -90,7 +90,7 @@ export function TwoFactorSettings() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
           {is2FAEnabled ? (
@@ -125,7 +125,7 @@ export function TwoFactorSettings() {
           type="button"
           onClick={() => generateMutation.mutate()}
           disabled={generateMutation.isPending}
-          className="px-5 py-2.5 bg-blue-500/10 text-blue-400 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-500/20 transition-colors flex items-center gap-2"
+          className="px-5 py-2.5 bg-blue-500/10 text-blue-400 rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-blue-500/20 transition-colors flex items-center gap-2"
         >
           {generateMutation.isPending ? (
             <Loader2 size={16} className="animate-spin" />
@@ -137,7 +137,7 @@ export function TwoFactorSettings() {
       )}
 
       {qrCodeDataUrl && !is2FAEnabled && (
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
+        <div className="bg-white/5 border border-white/10 rounded-lg p-6 space-y-4">
           <p className="text-sm text-gray-300 font-medium">
             {t(
               'settings.security.2fa.instructions',
@@ -157,14 +157,14 @@ export function TwoFactorSettings() {
                 setVerificationCode(e.target.value.replace(/\D/g, ''))
               }
               placeholder="000000"
-              className="flex-1 bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white text-center tracking-[0.5em] font-mono focus:border-blue-500/50 outline-none"
+              className="flex-1 bg-zinc-900/50 border border-white/10 rounded-xl px-2 py-1 text-white text-center tracking-[0.5em] font-mono focus:border-blue-500/50 outline-none"
             />
             <button
               type="submit"
               disabled={
                 verificationCode.length !== 6 || enableMutation.isPending
               }
-              className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl disabled:opacity-50 transition-colors"
+              className="px-5 py-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl disabled:opacity-50 transition-colors"
             >
               {enableMutation.isPending ? (
                 <Loader2 size={20} className="animate-spin" />
@@ -192,7 +192,7 @@ export function TwoFactorSettings() {
             }
           }}
           disabled={disableMutation.isPending}
-          className="px-5 py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-500 hover:text-white transition-colors"
+          className="px-5 py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-red-500 hover:text-white transition-colors"
         >
           {disableMutation.isPending
             ? t('settings.security.2fa.disabling', 'Disabling...')
