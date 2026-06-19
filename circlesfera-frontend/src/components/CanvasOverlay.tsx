@@ -12,6 +12,8 @@ interface CanvasOverlayProps {
   brushColor: string;
   brushSize: number;
   stageRef?: React.RefObject<any>;
+  selectedOverlayId?: string | null;
+  onSelectOverlay?: (id: string | null) => void;
 }
 
 // Separate component for images to use the useImage hook
@@ -146,9 +148,32 @@ export default function CanvasOverlay({
   brushColor,
   brushSize,
   stageRef,
+  selectedOverlayId,
+  onSelectOverlay,
 }: CanvasOverlayProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
+  
+  const selectedId = selectedOverlayId !== undefined ? selectedOverlayId : internalSelectedId;
+  const setSelectedId = onSelectOverlay || setInternalSelectedId;
+
   const isDrawing = useRef(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't delete if they are typing in an input field somewhere else
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        if (selectedId) {
+          onChange(overlays.filter(o => o.id !== selectedId));
+          setSelectedId(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedId, overlays, onChange, setSelectedId]);
 
   const checkDeselect = (e: any) => {
     const clickedOnEmpty = e.target === e.target.getStage();

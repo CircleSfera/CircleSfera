@@ -421,8 +421,11 @@ export default function EditsStudio() {
                         </div>
                         <button
                           type="button"
-                          onClick={(e) => deleteProject(e, project.id)}
-                          className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-red-500/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-all"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            deleteProject(e, project.id);
+                          }}
+                          className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-red-500/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-all z-20"
                         >
                           <Trash2 size={14} />
                         </button>
