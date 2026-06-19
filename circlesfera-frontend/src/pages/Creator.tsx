@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import CreatorAnalyticsTab from '../components/creator/CreatorAnalyticsTab';
 import CreatorDashboard from '../components/creator/CreatorDashboard';
 import CreatorMonetizationTab from '../components/creator/CreatorMonetizationTab';
@@ -12,6 +13,7 @@ import CreatorSidebar from '../components/creator/CreatorSidebar';
 import CreatorStoriesTab from '../components/creator/CreatorStoriesTab';
 import PromoteModal from '../components/creator/PromoteModal';
 import MonetizationDashboard from '../components/monetization/MonetizationDashboard';
+import { Button } from '../components/ui';
 import type {
   CreatorChartDay,
   CreatorPost,
@@ -51,7 +53,17 @@ export default function Creator() {
     <div className="px-4 py-6 md:px-6 lg:px-8 max-w-6xl mx-auto">
       {/* 1. Header (Matching Admin) */}
       <header className="mb-8 flex items-end justify-between">
-        <div>
+        <div className="flex flex-col gap-1">
+          <Link
+            to="/"
+            className="lg:hidden flex w-fit items-center gap-2 text-xs font-bold text-zinc-500 hover:text-white transition-colors group mb-2"
+          >
+            <ArrowLeft
+              size={12}
+              className="group-hover:-translate-x-1 transition-transform"
+            />
+            Volver a la App
+          </Link>
           <h1 className="text-xl font-black text-white tracking-tight">
             {t('creator.title')}
           </h1>
@@ -60,13 +72,14 @@ export default function Creator() {
           </p>
         </div>
 
-        <button
-          type="button"
-          className="hidden sm:flex items-center gap-2 px-6 py-1.5 bg-brand-primary text-white font-black text-xs uppercase tracking-wide rounded-xl hover:bg-brand-primary/90 transition-all shadow-xl shadow-brand-primary/10"
+        <Button
+          variant="primary"
+          size="sm"
+          className="hidden sm:flex"
         >
-          <Plus size={14} />
+          <Plus size={14} className="mr-2" />
           {t('creator.new_content')}
-        </button>
+        </Button>
       </header>
 
       {/* 2. Layout Grid (Matching Admin) */}

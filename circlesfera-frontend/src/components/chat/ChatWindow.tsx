@@ -948,7 +948,9 @@ export default function ChatWindow() {
                   </span>
                 </div>
                 <span className="text-gray-400 line-clamp-1 text-xs mt-0.5">
-                  {replyTo.content || t('chat.attachment')}
+                  {replyTo.content?.includes('"ciphertext"')
+                    ? `🔒 ${t('chat.secure_message', 'Mensaje seguro')}`
+                    : replyTo.content || t('chat.attachment')}
                 </span>
               </div>
               <button

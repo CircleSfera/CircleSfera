@@ -17,6 +17,7 @@ import { monetizationApi } from '../../services/monetization.service';
 import { paymentsApi } from '../../services/payments.service';
 import { useAuthStore } from '../../stores/authStore';
 import type { PlatformPlanDto } from '../../types';
+import { Button } from '../ui';
 import CreatorSandbox from './CreatorSandbox';
 
 interface Props {
@@ -148,21 +149,16 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                 </h2>
               </div>
 
-              <button
-                type="button"
+              <Button
+                variant="secondary"
                 disabled={dashboardMutation.isPending}
                 onClick={() => dashboardMutation.mutate()}
-                className="px-8 py-4 bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 font-black rounded-lg text-xs uppercase tracking-wide hover:bg-emerald-500/30 transition-all disabled:opacity-50 flex items-center gap-2"
+                isLoading={dashboardMutation.isPending}
+                className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 hover:bg-emerald-500/30"
               >
-                {dashboardMutation.isPending ? (
-                  <Loader2 className="animate-spin" size={16} />
-                ) : (
-                  <>
-                    Ver Express Dashboard
-                    <ExternalLink size={14} />
-                  </>
-                )}
-              </button>
+                Ver Express Dashboard
+                <ExternalLink size={14} className="ml-2" />
+              </Button>
             </div>
           </div>
 
@@ -202,9 +198,10 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                 {currentLevel === 'BASIC' ? 'Free Experience' : currentLevel}
               </h2>
             </div>
-            <button
-              type="button"
+            <Button
+              variant="primary"
               disabled={portalMutation.isPending}
+              isLoading={portalMutation.isPending}
               onClick={() => {
                 if (currentLevel === 'BASIC') {
                   onToast(
@@ -215,14 +212,10 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                   portalMutation.mutate();
                 }
               }}
-              className="px-8 py-4 bg-white text-black font-black rounded-lg text-xs uppercase tracking-wide hover:scale-105 transition-transform disabled:opacity-50"
+              className="px-8 bg-white text-black hover:bg-white/90"
             >
-              {portalMutation.isPending ? (
-                <Loader2 className="animate-spin" size={16} />
-              ) : (
-                t('creator.monetization.manage_subscription')
-              )}
-            </button>
+              {t('creator.monetization.manage_subscription')}
+            </Button>
           </div>
         </div>
 
@@ -287,18 +280,15 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
               </ul>
 
               {!active && (
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
                   disabled={checkoutMutation.isPending}
+                  isLoading={checkoutMutation.isPending}
                   onClick={() => checkoutMutation.mutate(plan.id)}
-                  className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-black uppercase tracking-wide hover:bg-white hover:text-black transition-all disabled:opacity-50"
+                  className="w-full bg-white/5 border-white/10 hover:bg-white hover:text-black"
                 >
-                  {checkoutMutation.isPending ? (
-                    <Loader2 className="animate-spin mx-auto" size={14} />
-                  ) : (
-                    t('creator.monetization.upgrade_now')
-                  )}
-                </button>
+                  {t('creator.monetization.upgrade_now')}
+                </Button>
               )}
             </motion.div>
           );

@@ -3,6 +3,7 @@ import { Calendar, DollarSign, Megaphone, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
+import { Button } from '../ui';
 
 const BUDGET_OPTIONS = [
   { value: 5, label: '€5', duration: 3 },
@@ -52,13 +53,13 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
             <Megaphone size={20} className="text-brand-primary" />
             <h2 className="text-white font-black text-lg">Promocionar</h2>
           </div>
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="p-1 hover:bg-white/10 rounded-lg transition-colors"
           >
             <X size={18} className="text-gray-400" />
-          </button>
+          </Button>
         </div>
 
         {/* Content Preview */}
@@ -137,20 +138,14 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
 
         {/* Action */}
         <div className="p-5 pt-0">
-          <button
-            type="button"
+          <Button
+            variant="primary"
             onClick={() => mutation.mutate()}
-            disabled={mutation.isPending}
-            className="w-full py-3 px-4 bg-brand-primary text-white font-black rounded-xl hover:bg-brand-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            isLoading={mutation.isPending}
+            className="w-full"
           >
-            {mutation.isPending ? (
-              <span className="animate-pulse">Procesando...</span>
-            ) : (
-              <>
-                <Megaphone size={16} /> Promocionar por {selected.label}
-              </>
-            )}
-          </button>
+            <Megaphone size={16} className="mr-2" /> Promocionar por {selected.label}
+          </Button>
           <p className="text-center text-gray-600 text-xs mt-2">
             Al promocionar, aceptas nuestras condiciones de uso y publicidad.
           </p>

@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   DollarSign,
   Image as ImageIcon,
-  Loader2,
   Megaphone,
   Plus,
   RefreshCw,
@@ -21,6 +20,7 @@ import type {
 } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse } from '../../types';
+import { Button } from '../ui';
 
 // ─── Helpers ────────────────────────────────────────────────────
 
@@ -123,13 +123,13 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
               </p>
             </div>
           </div>
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="p-3 hover:bg-white/5 rounded-lg transition-all group"
           >
-            <X size={20} className="text-zinc-500 group-hover:text-white" />
-          </button>
+            <X size={20} className="text-zinc-500 hover:text-white" />
+          </Button>
         </div>
 
         {/* Content */}
@@ -201,13 +201,14 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
                     {selectedPost?.caption ||
                       t('creator.promotions.selected_post')}
                   </p>
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setStep('select')}
-                    className="text-xs font-black uppercase tracking-wide text-brand-primary hover:text-white transition-colors"
+                    className="text-brand-primary hover:text-white mt-1 px-0"
                   >
                     {t('creator.promotions.change_post')}
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -263,24 +264,18 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
         {/* Footer */}
         {step === 'configure' && (
           <div className="p-8 border-t border-white/5 bg-black/40">
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              size="lg"
+              className="w-full rounded-full font-black uppercase tracking-wide shadow-2xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-100"
               onClick={() => createMutation.mutate()}
-              disabled={createMutation.isPending}
-              className="w-full py-5 bg-brand-primary text-white rounded-4xl font-black text-sm uppercase tracking-wide shadow-2xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-100 transition-all disabled:opacity-50"
+              isLoading={createMutation.isPending}
             >
-              {createMutation.isPending ? (
-                <span className="flex items-center justify-center gap-3">
-                  <Loader2 size={18} className="animate-spin" />{' '}
-                  {t('creator.promotions.processing')}
-                </span>
-              ) : (
-                t('creator.promotions.boost_total', {
-                  currency: '€',
-                  total: budget * duration,
-                })
-              )}
-            </button>
+              {t('creator.promotions.boost_total', {
+                currency: '€',
+                total: budget * duration,
+              })}
+            </Button>
           </div>
         )}
       </motion.div>
@@ -348,14 +343,14 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             {t('creator.promotions.marketing')}
           </p>
         </div>
-        <button
-          type="button"
+        <Button
+          variant="secondary"
           onClick={() => setShowNewPromo(true)}
-          className="flex items-center justify-center gap-3 px-8 py-4 bg-white text-black rounded-lg font-black text-xs uppercase tracking-wide shadow-2xl shadow-white/5 hover:scale-[1.03] transition-all"
+          className="shadow-2xl hover:scale-[1.03] transition-transform"
         >
-          <Plus size={16} />
+          <Plus size={16} className="mr-2" />
           {t('creator.promotions.new_campaign')}
-        </button>
+        </Button>
       </div>
 
       {isLoading ? (
@@ -378,13 +373,13 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
           <p className="text-zinc-500 text-sm max-w-sm mx-auto mb-10 leading-relaxed">
             {t('creator.promotions.boost_desc')}
           </p>
-          <button
-            type="button"
+          <Button
+            variant="primary"
             onClick={() => setShowNewPromo(true)}
-            className="px-10 py-4 bg-brand-primary text-white rounded-lg font-black text-xs uppercase tracking-wide shadow-xl shadow-brand-primary/20"
+            className="shadow-xl shadow-brand-primary/20 px-10"
           >
             {t('creator.promotions.create_first')}
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="space-y-16">
@@ -488,33 +483,31 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                         <div className="shrink-0 flex items-center md:justify-end">
                           {confirmCancel === promo.id ? (
                             <div className="flex items-center gap-2 w-full md:w-auto">
-                              <button
-                                type="button"
+                              <Button
+                                variant="danger"
                                 onClick={() => cancelMutation.mutate(promo.id)}
-                                disabled={cancelMutation.isPending}
-                                className="flex-1 md:flex-none px-5 py-2 bg-rose-500 text-white text-xs font-black uppercase tracking-wide rounded-xl hover:bg-rose-600 transition disabled:opacity-40"
+                                isLoading={cancelMutation.isPending}
+                                className="flex-1 md:flex-none"
                               >
-                                {cancelMutation.isPending
-                                  ? t('creator.promotions.processing')
-                                  : t('creator.promotions.confirm')}
-                              </button>
-                              <button
-                                type="button"
+                                {t('creator.promotions.confirm')}
+                              </Button>
+                              <Button
+                                variant="ghost"
                                 onClick={() => setConfirmCancel(null)}
-                                className="px-5 py-2 bg-white/5 text-zinc-500 text-xs font-black uppercase tracking-wide rounded-xl hover:bg-white/10 transition"
                               >
                                 {t('creator.promotions.no')}
-                              </button>
+                              </Button>
                             </div>
                           ) : (
-                            <button
-                              type="button"
+                            <Button
+                              variant="danger"
+                              size="sm"
                               onClick={() => setConfirmCancel(promo.id)}
-                              className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2 bg-white/5 text-zinc-500 hover:text-rose-400 hover:bg-rose-400/10 text-xs font-black uppercase tracking-wide rounded-xl transition-all border border-transparent hover:border-rose-400/20"
+                              className="w-full md:w-auto bg-white/5 text-zinc-500 hover:text-rose-400 hover:bg-rose-400/10 border-transparent hover:border-rose-400/20"
                             >
-                              <XCircle size={14} />{' '}
+                              <XCircle size={14} className="mr-2" />
                               {t('creator.promotions.stop')}
-                            </button>
+                            </Button>
                           )}
                         </div>
                       </div>
@@ -568,13 +561,14 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                         </span>
                       </div>
                     </div>
-                    <button
-                      type="button"
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => handleRepeat(promo)}
-                      className="p-3 bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white rounded-xl transition-all border border-white/5"
+                      className="text-zinc-400 hover:text-white border-white/5"
                     >
                       <RefreshCw size={14} />
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>

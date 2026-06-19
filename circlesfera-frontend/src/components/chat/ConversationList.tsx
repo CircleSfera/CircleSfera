@@ -316,5 +316,14 @@ function renderMessageContent(msg: Message, t: any) {
   if (msg.mediaType === 'audio') return t('chat.sent_voice');
   if (msg.mediaType === 'image') return t('chat.sent_image');
   if (msg.url) return t('chat.sent_attachment');
+
+  if (
+    msg.content &&
+    typeof msg.content === 'string' &&
+    msg.content.includes('"ciphertext"')
+  ) {
+    return `🔒 ${t('chat.secure_message', 'Mensaje seguro')}`;
+  }
+
   return msg.content;
 }

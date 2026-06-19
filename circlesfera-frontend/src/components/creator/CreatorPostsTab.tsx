@@ -13,6 +13,7 @@ import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse } from '../../types';
 import PostInsightsModal from '../modals/PostInsightsModal';
+import { Button } from '../ui';
 
 interface Props {
   onPromote: (post: CreatorPost) => void;
@@ -36,21 +37,17 @@ export default function CreatorPostsTab({ onPromote }: Props) {
       {/* Filters */}
       <div className="flex gap-2">
         {['', 'POST', 'FRAME'].map((t) => (
-          <button
+          <Button
             key={t}
-            type="button"
+            variant={typeFilter === t ? 'primary' : 'ghost'}
+            size="sm"
             onClick={() => {
               setTypeFilter(t);
               setPage(1);
             }}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              typeFilter === t
-                ? 'bg-brand-primary text-white'
-                : 'bg-white/5 text-gray-400 hover:bg-white/10'
-            }`}
           >
             {t === '' ? 'Todos' : t === 'POST' ? 'Posts' : 'Frames'}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -153,28 +150,28 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
                     onClick={() => setInsightsPostId(post.id)}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-brand-primary/10 text-brand-primary text-xs font-black rounded-xl hover:bg-brand-primary/20 transition-all uppercase tracking-wide border border-brand-primary/20 group/btn"
+                    className="flex-1 bg-brand-primary/10 text-brand-primary border-brand-primary/20 hover:bg-brand-primary/20 group/btn"
                   >
                     <BarChart3
                       size={12}
-                      className="group-hover:scale-110 transition-transform"
+                      className="group-hover:scale-110 transition-transform mr-2"
                     />
                     Insights
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button
+                    variant="secondary"
                     onClick={() => onPromote(post)}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-white/5 text-white text-xs font-black rounded-xl hover:bg-white/10 transition-all uppercase tracking-wide border border-white/10 group/btn"
+                    className="flex-1 bg-white/5 text-white border-white/10 hover:bg-white/10 group/btn"
                   >
                     <Megaphone
                       size={12}
-                      className="group-hover:rotate-12 transition-transform"
+                      className="group-hover:rotate-12 transition-transform mr-2"
                     />
                     Boost
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

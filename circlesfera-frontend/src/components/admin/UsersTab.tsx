@@ -261,9 +261,9 @@ export default function UsersTab({ onToast }: Props) {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
+              className="hover:bg-white/[0.07] even:bg-white/2 transition-colors border-b border-white/5 last:border-0"
             >
-              <td className="px-2 py-1" data-label="Usuario">
+              <td className="px-2 py-2" data-label="Usuario">
                 <div className="flex items-center gap-2">
                   <UserAvatar
                     src={user.profile?.avatar || undefined}
@@ -294,12 +294,12 @@ export default function UsersTab({ onToast }: Props) {
                 </div>
               </td>
               <td
-                className="px-2 py-1 text-gray-400 text-sm"
+                className="px-2 py-2 text-gray-400 text-sm"
                 data-label="Email"
               >
                 {user.email}
               </td>
-              <td className="px-2 py-1 text-right" data-label="Rol">
+              <td className="px-2 py-2 text-right" data-label="Rol">
                 {user.role === 'ADMIN' ? (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded text-xs font-black uppercase border border-brand-primary/20">
                     <ShieldCheck size={10} />
@@ -310,22 +310,22 @@ export default function UsersTab({ onToast }: Props) {
                 )}
               </td>
               <td
-                className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap"
+                className="px-2 py-2 text-gray-500 text-sm whitespace-nowrap"
                 data-label="Unido el"
               >
                 {new Date(user.createdAt).toLocaleDateString()}
               </td>
               <td
-                className="px-2 py-1 text-gray-400 text-sm font-bold md:text-center"
+                className="px-2 py-2 text-gray-400 text-sm font-bold md:text-center"
                 data-label="Posts"
               >
                 {user.postCount}
               </td>
-              <td className="px-2 py-1" data-label="Estado">
+              <td className="px-2 py-2" data-label="Estado">
                 <StatusBadge status={user.isActive ? 'active' : 'banned'} />
               </td>
-              <td className="px-2 py-1" data-label="Acciones">
-                <div className="flex gap-1 items-center">
+              <td className="px-2 py-2" data-label="Acciones">
+                <div className="flex gap-1.5 items-center">
                   <ActionButton
                     onClick={() => setPreviewUserId(user.id)}
                     label="Ver Detalle"
