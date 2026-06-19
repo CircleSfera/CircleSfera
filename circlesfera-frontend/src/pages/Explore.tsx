@@ -3,6 +3,7 @@ import { Clock, X as CloseIcon, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import SEO from '../components/common/SEO';
+import ExploreColdStart from '../components/explore/ExploreColdStart';
 import { PostSkeleton } from '../components/LoadingStates';
 import PostCard from '../components/PostCard';
 import UserAvatar from '../components/UserAvatar';
@@ -398,9 +399,10 @@ export default function Explore() {
               ))}
             </div>
           ) : (
-            <div className="text-center text-gray-500 py-20">
-              <p>{t('explore.discover_content')}</p>
-            </div>
+            <ExploreColdStart
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
           )}
         </div>
       )}
