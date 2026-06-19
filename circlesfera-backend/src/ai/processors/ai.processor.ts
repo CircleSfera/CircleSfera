@@ -145,11 +145,92 @@ export class AIProcessor extends WorkerHost {
     }
 
     try {
+      // Vector Firewall: Pre-check using existing ModerationSignatures
+      if (text && text.trim().length > 0) {
+        this.logger.log('Checking Vector Firewall...');
+        const embedding = await this.aiService.generateEmbedding(text);
+
+        // Find if this text is similar to any known bad signature
+        // Using cosine distance operator `<=>`. A distance < 0.1 means similarity > 0.9.
+        const matches = await this.prisma.$queryRaw<any[]>`
+          SELECT id, category, 1 - (vector <=> ${JSON.stringify(embedding)}::vector) as similarity
+          FROM moderation_signatures
+          WHERE 1 - (vector <=> ${JSON.stringify(embedding)}::vector) > 0.90
+          LIMIT 1;
+        `;
+
+        if (matches && matches.length > 0) {
+          const match = matches[0];
+          this.logger.warn(
+            `Vector Firewall triggered! Similarity: ${match.similarity} to category: ${match.category}`,
+          );
+
+          const aiAssessment = `[AI Vector Firewall]: Auto-hidden due to high similarity (${Math.round(match.similarity * 100)}%) with known abusive content (Category: ${match.category}).`;
+
+          const updateData = {
+            moderationStatus: ModerationStatus.HIDDEN,
+            moderationNote: aiAssessment,
+          };
+
+          if (targetType === 'POST') {
+            await this.prisma.post.update({
+              where: { id: targetId },
+              data: updateData,
+            });
+          } else if (targetType === 'STORY') {
+            await this.prisma.story.update({
+              where: { id: targetId },
+              data: updateData,
+            });
+          } else if (targetType === 'COMMENT') {
+            await this.prisma.comment.update({
+              where: { id: targetId },
+              data: updateData,
+            });
+          }
+
+          const adminUser = await this.prisma.user.findFirst({
+            where: { role: 'ADMIN' },
+            select: { id: true },
+          });
+          if (adminUser) {
+            await this.prisma.report.create({
+              data: {
+                reporterId: adminUser.id,
+                targetType,
+                targetId,
+                reason: 'OTHER',
+                details: aiAssessment,
+              },
+            });
+          }
+
+          return; // EXIT EARLY! DO NOT CALL OPENAI
+        }
+      }
+
+      // If Vector Firewall passes, proceed to OpenAI
       const mod = await this.aiService.moderateContent(text || '', mediaUrls);
       if (mod.flagged) {
         const flags = Object.entries(mod.categories)
           .filter(([, isFlagged]) => isFlagged)
           .map(([key]) => key);
+
+        // Save this new bad signature to the firewall for future blocking
+        if (text && text.trim().length > 0) {
+          try {
+            const badEmbedding = await this.aiService.generateEmbedding(text);
+            await this.prisma.$executeRaw`
+              INSERT INTO moderation_signatures (id, category, vector)
+              VALUES (gen_random_uuid(), ${flags[0] || 'unknown'}, ${JSON.stringify(badEmbedding)}::vector)
+            `;
+            this.logger.log(
+              `Added new moderation signature to Vector Firewall for category: ${flags[0]}`,
+            );
+          } catch (err) {
+            this.logger.error('Failed to save moderation signature', err);
+          }
+        }
 
         const aiAssessment = `[AI Automated Flag]: This content was flagged for: ${flags.join(', ')}`;
 
@@ -207,11 +288,26 @@ export class AIProcessor extends WorkerHost {
             },
           });
           this.logger.warn(
-            `AI automatically set ${targetType} ${targetId} to ${status} for ${flags.join(', ')}`,
+            `;
+          AI;
+          automatically;
+          set;
+          $;
+          targetType;
+          $;
+          targetId;
+          to;
+          $;
+          status;
+          for ${flags.join(', ')}`,
           );
         } else {
           this.logger.error(
-            `Cannot create AI report for ${targetId}: No ADMIN user found.`,
+            `Cannot create
+          AI;
+          report;
+          for ${targetId}
+          : No ADMIN user found.`,
           );
         }
       }
