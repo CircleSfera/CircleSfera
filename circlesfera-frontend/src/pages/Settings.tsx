@@ -76,7 +76,7 @@ function NotificationsSettings() {
         </p>
       </div>
 
-      <div className="bg-white/2 p-6 rounded-xl border border-white/5 border-l-purple-500/40 border-l-4">
+      <div className="bg-white/2 p-4 rounded-xl border border-white/5 border-l-purple-500/40 border-l-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-bold text-white tracking-tight">
@@ -612,7 +612,7 @@ export default function Settings() {
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 p-4 md:p-6">
+          <div className="flex-1 p-4 md:p-4">
             {activeTab === 'profile' && (
               <form
                 onSubmit={handleProfileSubmit}
@@ -763,7 +763,7 @@ export default function Settings() {
                       <div className="flex justify-between items-end">
                         <label
                           htmlFor="bio"
-                          className="block text-xs font-semibold text-gray-400 uppercase tracking-wider ml-1"
+                          className="block text-sm font-medium text-gray-400 mb-1"
                         >
                           {t('settings.profile.bio')}
                         </label>
@@ -797,7 +797,7 @@ export default function Settings() {
                 </div>
 
                 {/* Section 3: Professional Account (Already in cards) */}
-                <div className="bg-white/2 p-4 md:p-6 rounded-xl border border-white/5 space-y-4">
+                <div className="bg-white/2 p-4 md:p-4 rounded-xl border border-white/5 space-y-4">
                   <div className="flex items-center justify-between ml-1">
                     <span className="text-xs font-black uppercase tracking-wide text-blue-400/80">
                       {t('settings.profile.account_type')}
@@ -915,7 +915,7 @@ export default function Settings() {
                   </p>
                 </div>
 
-                <div className="bg-white/2 p-6 rounded-xl border border-white/5 border-l-blue-500/40 border-l-4">
+                <div className="bg-white/2 p-4 rounded-xl border border-white/5 border-l-blue-500/40 border-l-4">
                   <Switch
                     checked={isPrivate}
                     onChange={handlePrivacyToggle}
@@ -1145,7 +1145,7 @@ export default function Settings() {
                   </p>
                 </div>
 
-                <div className="bg-blue-500/5 p-6 rounded-xl border border-blue-500/10 hover:bg-blue-500/10 transition-colors group mb-8">
+                <div className="bg-blue-500/5 p-4 rounded-xl border border-blue-500/10 hover:bg-blue-500/10 transition-colors group mb-8">
                   <h3 className="font-bold text-blue-400 uppercase tracking-wide text-xs mb-2 flex items-center gap-2">
                     <LogOut size={14} className="rotate-90" />
                     {t('settings.account.export.title', 'Export Data')}
@@ -1167,7 +1167,7 @@ export default function Settings() {
                 </div>
 
                 {/* Language Switcher */}
-                <div className="bg-white/2 p-6 rounded-xl border border-white/5 mb-8">
+                <div className="bg-white/2 p-4 rounded-xl border border-white/5 mb-8">
                   <h3 className="font-bold text-white tracking-wide text-xs uppercase mb-4 flex items-center gap-2">
                     <Globe size={14} className="text-blue-400" />{' '}
                     {t('settings.account.language')}
@@ -1199,7 +1199,7 @@ export default function Settings() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-orange-500/5 p-6 rounded-xl border border-orange-500/10 hover:bg-orange-500/10 transition-colors group">
+                  <div className="bg-orange-500/5 p-4 rounded-xl border border-orange-500/10 hover:bg-orange-500/10 transition-colors group">
                     <h3 className="font-bold text-orange-400 uppercase tracking-wide text-xs mb-2 flex items-center gap-2">
                       <AlertTriangle size={14} />{' '}
                       {t('settings.account.disable.title')}
@@ -1217,7 +1217,7 @@ export default function Settings() {
                     </Button>
                   </div>
 
-                  <div className="bg-red-500/5 p-6 rounded-xl border border-red-500/10 hover:bg-red-500/10 transition-colors group">
+                  <div className="bg-red-500/5 p-4 rounded-xl border border-red-500/10 hover:bg-red-500/10 transition-colors group">
                     <h3 className="font-bold text-red-400 uppercase tracking-wide text-xs mb-2 flex items-center gap-2">
                       <AlertTriangle size={14} />{' '}
                       {t('settings.account.delete.title')}
@@ -1249,7 +1249,7 @@ export default function Settings() {
                   </p>
                 </div>
 
-                <div className="glass-panel p-8 rounded-4xl border border-white/5 bg-linear-to-br from-blue-500/5 via-transparent to-transparent flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="glass-panel p-6 rounded-xl border border-white/5 bg-linear-to-br from-blue-500/5 via-transparent to-transparent flex flex-col md:flex-row items-center justify-between gap-6">
                   <div>
                     <span className="text-xs font-black uppercase tracking-wide text-blue-400/80 mb-2 block">
                       {t('settings.billing.current_plan')}
@@ -1282,7 +1282,7 @@ export default function Settings() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white/2 p-6 rounded-xl border border-white/5 flex items-center gap-4">
+                  <div className="bg-white/2 p-4 rounded-xl border border-white/5 flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
                       <Shield size={20} className="text-blue-400" />
                     </div>
@@ -1295,7 +1295,7 @@ export default function Settings() {
                       </p>
                     </div>
                   </div>
-                  <div className="bg-white/2 p-6 rounded-xl border border-white/5 flex items-center gap-4">
+                  <div className="bg-white/2 p-4 rounded-xl border border-white/5 flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
                       <Star size={20} className="text-purple-400" />
                     </div>
@@ -1327,11 +1327,11 @@ export default function Settings() {
                   </p>
                 </div>
 
-                <div className="bg-white/2 p-6 rounded-xl border border-white/5">
+                <div className="bg-white/2 p-4 rounded-xl border border-white/5">
                   <TwoFactorSettings />
                 </div>
 
-                <div className="bg-white/2 p-6 rounded-xl border border-white/5">
+                <div className="bg-white/2 p-4 rounded-xl border border-white/5">
                   <PasskeySettings />
                 </div>
               </div>

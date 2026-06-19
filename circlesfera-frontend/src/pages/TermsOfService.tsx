@@ -178,7 +178,7 @@ export default function TermsOfService() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-10% 0px' }}
                   transition={{ delay: index * 0.05, duration: 0.5 }}
-                  className="glass-panel p-4 md:p-8 rounded-4xl border border-white/5 relative group hover:border-brand-primary/30 hover:shadow-[0_0_40px_rgba(131,58,180,0.15)] transition-all duration-500 overflow-hidden backdrop-blur-2xl hover:-translate-y-1"
+                  className="glass-panel p-4 md:p-8 rounded-xl border border-white/5 relative group hover:border-brand-primary/30 hover:shadow-[0_0_40px_rgba(131,58,180,0.15)] transition-all duration-500 overflow-hidden backdrop-blur-2xl hover:-translate-y-1"
                 >
                   <div
                     className={`absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none`}

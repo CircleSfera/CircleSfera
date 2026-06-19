@@ -403,7 +403,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                     <motion.div
                       layout
                       key={promo.id}
-                      className="glass-panel p-4 md:p-8 rounded-4xl border border-white/5 hover:border-white/10 transition-all group"
+                      className="glass-panel p-4 md:p-8 rounded-xl border border-white/5 hover:border-white/10 transition-all group"
                     >
                       <div className="flex flex-col lg:flex-row gap-8">
                         {/* Visual Preview */}
