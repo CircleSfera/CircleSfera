@@ -320,9 +320,6 @@ export default memo(function MessageBubble({
                 : 'left-[calc(100%+0.5rem)]'
             }`}
           >
-            <span className="text-[10px] text-gray-500 tabular-nums font-mono px-1">
-              {timeString}
-            </span>
             <div
               className={`flex bg-zinc-900/80 rounded-2xl p-1 shadow-2xl border border-white/10 backdrop-blur-xl ${isMe ? 'flex-row-reverse' : ''}`}
             >
