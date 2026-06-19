@@ -1293,3 +1293,13 @@ enum TicketStatus {
   RESOLVED
   CLOSED
 }
+
+// AI Auto-Moderation Vector Firewall
+model ModerationSignature {
+  id        String   @id @default(uuid())
+  vector    Unsupported("vector(1536)")
+  category  String   // e.g., "hate", "sexual", "spam"
+  createdAt DateTime @default(now())
+
+  @@map("moderation_signatures")
+}

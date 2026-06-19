@@ -1,7 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
-  ArrowRight,
   Award,
   CheckCircle2,
   ExternalLink,
@@ -18,6 +17,7 @@ import { monetizationApi } from '../../services/monetization.service';
 import { paymentsApi } from '../../services/payments.service';
 import { useAuthStore } from '../../stores/authStore';
 import type { PlatformPlanDto } from '../../types';
+import CreatorSandbox from './CreatorSandbox';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
@@ -118,36 +118,36 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
 
   return (
     <div className="space-y-12 pb-20">
-      {/* 1. Direct Earnings (Stripe Connect) */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="p-8 glass-panel rounded-2xl border border-white/5 bg-linear-to-br from-emerald-500/10 via-transparent to-transparent relative overflow-hidden"
-      >
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-              <Wallet size={20} className="text-emerald-400" />
-            </div>
-            <h3 className="text-sm font-black text-white uppercase tracking-[0.3em] italic">
-              Ganancias Directas (Stripe)
-            </h3>
-          </div>
-
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-            <div>
-              <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-2">
-                Ingresos Totales (Lifetime)
-              </p>
-              <h2 className="text-4xl font-bold text-white tracking-tight uppercase">
-                $
-                {(
-                  (monetizationStatus?.lifetimeEarningsCents || 0) / 100
-                ).toFixed(2)}
-              </h2>
+      {/* 1. Direct Earnings (Stripe Connect) OR Creator Sandbox */}
+      {monetizationStatus?.hasStripeAccount ? (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-8 glass-panel rounded-2xl border border-white/5 bg-linear-to-br from-emerald-500/10 via-transparent to-transparent relative overflow-hidden"
+        >
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                <Wallet size={20} className="text-emerald-400" />
+              </div>
+              <h3 className="text-sm font-black text-white uppercase tracking-[0.3em] italic">
+                Ganancias Directas (Stripe)
+              </h3>
             </div>
 
-            {monetizationStatus?.hasStripeAccount ? (
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+              <div>
+                <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mb-2">
+                  Ingresos Totales (Lifetime)
+                </p>
+                <h2 className="text-4xl font-bold text-white tracking-tight uppercase">
+                  $
+                  {(
+                    (monetizationStatus?.lifetimeEarningsCents || 0) / 100
+                  ).toFixed(2)}
+                </h2>
+              </div>
+
               <button
                 type="button"
                 disabled={dashboardMutation.isPending}
@@ -163,30 +163,19 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                   </>
                 )}
               </button>
-            ) : (
-              <button
-                type="button"
-                disabled={connectMutation.isPending}
-                onClick={() => connectMutation.mutate()}
-                className="px-8 py-4 bg-white text-black font-black rounded-2xl text-xs uppercase tracking-widest hover:scale-105 transition-transform disabled:opacity-50 flex items-center gap-2 shadow-xl shadow-white/10"
-              >
-                {connectMutation.isPending ? (
-                  <Loader2 className="animate-spin" size={16} />
-                ) : (
-                  <>
-                    Conectar con Stripe
-                    <ArrowRight size={14} />
-                  </>
-                )}
-              </button>
-            )}
+            </div>
           </div>
-        </div>
 
-        <div className="absolute top-0 right-0 p-10 opacity-5">
-          <Wallet size={200} className="text-emerald-400" />
-        </div>
-      </motion.div>
+          <div className="absolute top-0 right-0 p-10 opacity-5">
+            <Wallet size={200} className="text-emerald-400" />
+          </div>
+        </motion.div>
+      ) : (
+        <CreatorSandbox
+          isConnecting={connectMutation.isPending}
+          onConnect={() => connectMutation.mutate()}
+        />
+      )}
 
       {/* 2. Platform Subscriptions */}
       <motion.div

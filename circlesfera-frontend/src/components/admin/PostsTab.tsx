@@ -151,7 +151,10 @@ export default function PostsTab({ onToast }: Props) {
                 </button>
               </td>
               <td className="px-4 py-3">
-                <span className="text-gray-300 text-sm max-w-[100px] lg:max-w-[150px] truncate block" title={post.user?.profile?.username}>
+                <span
+                  className="text-gray-300 text-sm max-w-[100px] lg:max-w-[150px] truncate block"
+                  title={post.user?.profile?.username}
+                >
                   @{post.user?.profile?.username}
                 </span>
               </td>

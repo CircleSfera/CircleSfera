@@ -18,6 +18,7 @@ import {
   Shield,
   Star,
   UserSquare2,
+  Wand2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -46,6 +47,7 @@ import {
   profileApi,
   storiesApi,
 } from '../services';
+import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
 import type {
   Collection,
@@ -132,6 +134,7 @@ export default function Profile() {
   const navigate = useNavigate();
 
   const openCreateMenu = useUIStore((state) => state.openCreateMenu);
+  const { isCreatorModeActive, setCreatorMode } = useAuthStore();
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ['profile', username],
@@ -626,6 +629,24 @@ export default function Profile() {
                       </button>
                       <button
                         type="button"
+                        onClick={() => setCreatorMode(!isCreatorModeActive)}
+                        className={`px-3 py-2 rounded-lg border transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1.5 text-[10px] uppercase font-black tracking-widest
+                          ${
+                            isCreatorModeActive
+                              ? 'bg-brand-primary text-white border-brand-primary/50 shadow-brand-primary/20'
+                              : 'bg-white/5 text-gray-400 hover:text-white border-white/5 hover:bg-white/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]'
+                          }`}
+                        title={
+                          isCreatorModeActive
+                            ? 'Exit Creator Mode'
+                            : 'Enter Creator Mode'
+                        }
+                      >
+                        <Wand2 size={16} />
+                        {isCreatorModeActive ? 'Creator' : 'Consumer'}
+                      </button>
+                      <button
+                        type="button"
                         className="p-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]"
                       >
                         <Settings size={18} />
@@ -780,12 +801,27 @@ export default function Profile() {
               {/* Mobile Only Action Buttons */}
               <div className="flex md:hidden items-center gap-2 pt-2">
                 {isMe ? (
-                  <Link
-                    to="/accounts/edit"
-                    className="flex-1 px-6 py-3 bg-white text-black hover:bg-zinc-200 rounded-xl font-black transition-all flex items-center justify-center text-[10px] uppercase tracking-widest shadow-lg shadow-white/5"
-                  >
-                    {t('profile.actions.edit_profile')}
-                  </Link>
+                  <>
+                    <Link
+                      to="/accounts/edit"
+                      className="flex-1 px-4 py-3 bg-white text-black hover:bg-zinc-200 rounded-xl font-black transition-all flex items-center justify-center text-[10px] uppercase tracking-widest shadow-lg shadow-white/5"
+                    >
+                      {t('profile.actions.edit_profile')}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setCreatorMode(!isCreatorModeActive)}
+                      className={`flex-1 px-4 py-3 rounded-xl border transition-all flex items-center justify-center gap-1.5 text-[10px] uppercase font-black tracking-widest shadow-lg
+                        ${
+                          isCreatorModeActive
+                            ? 'bg-brand-primary text-white border-brand-primary/50 shadow-brand-primary/20'
+                            : 'bg-white/5 text-gray-400 border-white/5'
+                        }`}
+                    >
+                      <Wand2 size={14} />
+                      {isCreatorModeActive ? 'Creator' : 'Consumer'}
+                    </button>
+                  </>
                 ) : (
                   <div className="flex-1 flex gap-2">
                     <FollowButton username={profile.data.username} />

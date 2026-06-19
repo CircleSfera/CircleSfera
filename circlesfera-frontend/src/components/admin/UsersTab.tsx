@@ -244,9 +244,9 @@ export default function UsersTab({ onToast }: Props) {
           columnWidths={[
             'w-auto', // Usuario
             'w-auto', // Email
-            'w-[8%] whitespace-nowrap',  // Rol
+            'w-[8%] whitespace-nowrap', // Rol
             'w-[10%] whitespace-nowrap', // Unido el
-            'w-[8%] whitespace-nowrap',  // Posts
+            'w-[8%] whitespace-nowrap', // Posts
             'w-[10%] whitespace-nowrap', // Estado
             'w-[160px] whitespace-nowrap', // Acciones
           ]}
@@ -292,7 +292,10 @@ export default function UsersTab({ onToast }: Props) {
                   </div>
                 </div>
               </td>
-              <td className="px-4 py-3 text-gray-400 text-sm" data-label="Email">
+              <td
+                className="px-4 py-3 text-gray-400 text-sm"
+                data-label="Email"
+              >
                 {user.email}
               </td>
               <td className="px-4 py-3 text-right" data-label="Rol">
@@ -305,10 +308,16 @@ export default function UsersTab({ onToast }: Props) {
                   <span className="text-gray-500 text-xs">User</span>
                 )}
               </td>
-              <td className="px-4 py-3 text-gray-500 text-sm whitespace-nowrap" data-label="Unido el">
+              <td
+                className="px-4 py-3 text-gray-500 text-sm whitespace-nowrap"
+                data-label="Unido el"
+              >
                 {new Date(user.createdAt).toLocaleDateString()}
               </td>
-              <td className="px-4 py-3 text-gray-400 text-sm font-bold md:text-center" data-label="Posts">
+              <td
+                className="px-4 py-3 text-gray-400 text-sm font-bold md:text-center"
+                data-label="Posts"
+              >
                 {user.postCount}
               </td>
               <td className="px-4 py-3" data-label="Estado">

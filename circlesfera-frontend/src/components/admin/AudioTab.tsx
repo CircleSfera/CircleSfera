@@ -182,12 +182,18 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                     <Music size={16} className="text-zinc-500" />
                   )}
                 </div>
-                <div className="font-medium text-sm break-all" title={track.title}>
+                <div
+                  className="font-medium text-sm break-all"
+                  title={track.title}
+                >
                   {track.title}
                 </div>
               </div>
             </td>
-            <td className="px-4 py-3 text-sm text-zinc-400" data-label="Artista">
+            <td
+              className="px-4 py-3 text-sm text-zinc-400"
+              data-label="Artista"
+            >
               <div className="break-all" title={track.artist}>
                 {track.artist}
               </div>
@@ -198,7 +204,10 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                 {formatDuration(track.duration)}
               </div>
             </td>
-            <td className="px-4 py-3 text-sm text-zinc-500" data-label="Subido el">
+            <td
+              className="px-4 py-3 text-sm text-zinc-500"
+              data-label="Subido el"
+            >
               {new Date(track.createdAt).toLocaleDateString()}
             </td>
             <td className="px-4 py-3">

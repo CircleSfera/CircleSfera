@@ -18,7 +18,13 @@ interface TableProps {
   isEmpty: boolean;
 }
 
-export function Table({ headers, columnWidths, children, loading, isEmpty }: TableProps) {
+export function Table({
+  headers,
+  columnWidths,
+  children,
+  loading,
+  isEmpty,
+}: TableProps) {
   return (
     <div className="relative w-full">
       <div className="w-full pb-2 overflow-x-auto no-scrollbar">
@@ -29,8 +35,8 @@ export function Table({ headers, columnWidths, children, loading, isEmpty }: Tab
                 <th
                   key={typeof h === 'string' ? h : idx}
                   className={clsx(
-                    "px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500 whitespace-normal",
-                    columnWidths?.[idx]
+                    'px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500 whitespace-normal',
+                    columnWidths?.[idx],
                   )}
                 >
                   {h}

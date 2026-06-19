@@ -156,7 +156,7 @@ const AdjustmentSlider = ({
           max={max}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full h-1 bg-white/6 rounded-lg appearance-none cursor-pointer accent-blue-500"
+          className="w-full h-1 bg-white/6 rounded-lg appearance-none cursor-pointer accent-blue-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
         />
       </div>
     </motion.div>
@@ -492,14 +492,14 @@ export default function PhotoEditor({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
-                className="flex overflow-x-auto items-center gap-3 px-4 no-scrollbar"
+                className="flex overflow-x-auto items-center gap-3 px-4 no-scrollbar snap-x touch-pan-x"
               >
                 {FILTERS.map((filter) => (
                   <button
                     type="button"
                     key={filter.name}
                     onClick={() => setSelectedFilter(filter)}
-                    className="flex flex-col items-center gap-1.5 group min-w-[64px]"
+                    className="flex flex-col items-center gap-1.5 group min-w-[64px] snap-start"
                   >
                     <div
                       className={`w-[56px] h-[56px] rounded-2xl overflow-hidden border-2 transition-all duration-200 ${
@@ -604,7 +604,7 @@ export default function PhotoEditor({
                             videoRef.current.currentTime = val;
                         }
                       }}
-                      className="flex-1 h-1 bg-blue-500/30 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                      className="flex-1 h-1 bg-blue-500/30 rounded-lg appearance-none cursor-pointer accent-blue-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
                     />
                     <input
                       type="range"
@@ -620,7 +620,7 @@ export default function PhotoEditor({
                             videoRef.current.currentTime = val - 0.1;
                         }
                       }}
-                      className="flex-1 h-1 bg-red-500/30 rounded-lg appearance-none cursor-pointer accent-red-500"
+                      className="flex-1 h-1 bg-red-500/30 rounded-lg appearance-none cursor-pointer accent-red-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-red-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
                     />
                     <span className="text-[10px] w-8 text-right">
                       {videoData.endTime.toFixed(1)}s
@@ -641,28 +641,28 @@ export default function PhotoEditor({
                   <button
                     type="button"
                     onClick={() => setAspect(undefined)}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg ${!aspect ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/60'}`}
+                    className={`flex-1 py-3 text-xs font-bold rounded-lg ${!aspect ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/60'}`}
                   >
                     Libre
                   </button>
                   <button
                     type="button"
                     onClick={() => setAspect(1)}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg ${aspect === 1 ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/60'}`}
+                    className={`flex-1 py-3 text-xs font-bold rounded-lg ${aspect === 1 ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/60'}`}
                   >
                     1:1
                   </button>
                   <button
                     type="button"
                     onClick={() => setAspect(4 / 5)}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg ${aspect === 4 / 5 ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/60'}`}
+                    className={`flex-1 py-3 text-xs font-bold rounded-lg ${aspect === 4 / 5 ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/60'}`}
                   >
                     4:5
                   </button>
                   <button
                     type="button"
                     onClick={() => setAspect(16 / 9)}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg ${aspect === 16 / 9 ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/60'}`}
+                    className={`flex-1 py-3 text-xs font-bold rounded-lg ${aspect === 16 / 9 ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/60'}`}
                   >
                     16:9
                   </button>
@@ -677,7 +677,7 @@ export default function PhotoEditor({
                     max={180}
                     value={rotation}
                     onChange={(e) => setRotation(Number(e.target.value))}
-                    className="flex-1 h-1 bg-white/6 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                    className="flex-1 h-1 bg-white/6 rounded-lg appearance-none cursor-pointer accent-blue-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
                   />
                   <span className="text-[10px] font-bold text-blue-400 w-8">
                     {rotation}°
@@ -783,7 +783,7 @@ export default function PhotoEditor({
                       max={20}
                       value={brushSize}
                       onChange={(e) => setBrushSize(Number(e.target.value))}
-                      className="flex-1 h-1 bg-white/6 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                      className="flex-1 h-1 bg-white/6 rounded-lg appearance-none cursor-pointer accent-blue-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
                     />
                   </div>
                 )}
@@ -846,44 +846,49 @@ export default function PhotoEditor({
           </AnimatePresence>
 
           {/* Main Tabs */}
-          <div className="flex h-11">
+          <div className="flex w-full items-stretch justify-between px-2 pb-2">
             <button
               type="button"
               onClick={() => setActiveTab('FILTERS')}
-              className={`flex-1 flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-wider transition-all ${
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all rounded-xl ${
                 activeTab === 'FILTERS'
-                  ? 'text-white bg-white/3'
-                  : 'text-white/25 hover:text-white/40'
+                  ? 'text-white bg-white/10'
+                  : 'text-white/40 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Sparkles size={13} />
-              Filters
+              <Sparkles size={20} />
+              <span className="text-[10px] font-bold uppercase tracking-wider">
+                Filters
+              </span>
             </button>
-            <div className="w-px bg-white/4" />
             <button
               type="button"
               onClick={() => setActiveTab('ADJUST')}
-              className={`flex-1 flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-wider transition-all ${
+              className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all rounded-xl ${
                 activeTab === 'ADJUST'
-                  ? 'text-white bg-white/3'
-                  : 'text-white/25 hover:text-white/40'
+                  ? 'text-white bg-white/10'
+                  : 'text-white/40 hover:text-white hover:bg-white/5'
               }`}
             >
-              <SlidersHorizontal size={13} />
-              Adjust
+              <SlidersHorizontal size={20} />
+              <span className="text-[10px] font-bold uppercase tracking-wider">
+                Adjust
+              </span>
             </button>
-            <div className="w-px bg-white/4" />
             {!isVideo && (
               <button
                 type="button"
                 onClick={() => setActiveTab('CROP')}
-                className={`p-3 rounded-xl transition-all ${
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all rounded-xl ${
                   activeTab === 'CROP'
-                    ? 'bg-blue-500/20 text-blue-400'
-                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                    ? 'text-blue-400 bg-blue-500/20'
+                    : 'text-white/40 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <Crop size={24} />
+                <Crop size={20} />
+                <span className="text-[10px] font-bold uppercase tracking-wider">
+                  Crop
+                </span>
               </button>
             )}
 
@@ -891,13 +896,16 @@ export default function PhotoEditor({
               <button
                 type="button"
                 onClick={() => setActiveTab('TRIM')}
-                className={`p-3 rounded-xl transition-all ${
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all rounded-xl ${
                   activeTab === 'TRIM'
-                    ? 'bg-blue-500/20 text-blue-400'
-                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                    ? 'text-blue-400 bg-blue-500/20'
+                    : 'text-white/40 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <Crop size={24} />
+                <Crop size={20} />
+                <span className="text-[10px] font-bold uppercase tracking-wider">
+                  Trim
+                </span>
               </button>
             )}
 
@@ -908,13 +916,16 @@ export default function PhotoEditor({
                   setActiveTab('OVERLAY');
                   setDrawMode(false);
                 }}
-                className={`p-3 rounded-xl transition-all ${
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all rounded-xl ${
                   activeTab === 'OVERLAY'
-                    ? 'bg-blue-500/20 text-blue-400'
-                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                    ? 'text-blue-400 bg-blue-500/20'
+                    : 'text-white/40 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <Sparkles size={24} />
+                <Sparkles size={20} />
+                <span className="text-[10px] font-bold uppercase tracking-wider">
+                  Overlay
+                </span>
               </button>
             )}
           </div>
