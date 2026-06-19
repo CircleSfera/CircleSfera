@@ -6,6 +6,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   X,
+  Trash2,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Cropper from 'react-easy-crop';
@@ -207,6 +208,7 @@ export default function PhotoEditor({
   const [overlays, setOverlays] = useState<OverlayElement[]>(
     initialState?.overlays || [],
   );
+  const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null);
 
   const [drawMode, setDrawMode] = useState(false);
   const [brushColor, setBrushColor] = useState('#ffffff');
@@ -467,6 +469,8 @@ export default function PhotoEditor({
                   drawMode={drawMode}
                   brushColor={brushColor}
                   brushSize={brushSize}
+                  selectedOverlayId={selectedOverlayId}
+                  onSelectOverlay={setSelectedOverlayId}
                 />
               </div>
             </>
@@ -717,10 +721,22 @@ export default function PhotoEditor({
                         },
                       ]);
                     }}
-                    className="px-4 py-2 text-xs font-bold rounded-lg bg-white/5 text-white/60 hover:text-white transition-all"
+                     className="px-4 py-2 text-xs font-bold rounded-lg bg-white/5 text-white/60 hover:text-white transition-all"
                   >
                     + Texto
                   </button>
+                  {selectedOverlayId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOverlays(overlays.filter(o => o.id !== selectedOverlayId));
+                        setSelectedOverlayId(null);
+                      }}
+                      className="px-4 py-2 text-xs font-bold rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center gap-1"
+                    >
+                      <Trash2 size={14} /> Eliminar
+                    </button>
+                  )}
                 </div>
                 <div className="flex gap-2 justify-center">
                   {['🔥', '❤️', '✨', '😂', '😎'].map((emoji) => (
