@@ -12,22 +12,26 @@ import {
 
 interface TableProps {
   headers: (string | React.ReactNode)[];
+  columnWidths?: string[];
   children: React.ReactNode;
   loading: boolean;
   isEmpty: boolean;
 }
 
-export function Table({ headers, children, loading, isEmpty }: TableProps) {
+export function Table({ headers, columnWidths, children, loading, isEmpty }: TableProps) {
   return (
-    <div className="relative">
-      <div className="w-full pb-2">
-        <table className="admin-table-responsive w-full text-left border-collapse">
+    <div className="relative w-full">
+      <div className="w-full pb-2 overflow-x-auto no-scrollbar">
+        <table className="admin-table-responsive w-full text-left border-collapse md:min-w-[900px]">
           <thead className="bg-white/5 border-b border-white/10">
             <tr>
               {headers.map((h, idx) => (
                 <th
                   key={typeof h === 'string' ? h : idx}
-                  className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500 whitespace-normal"
+                  className={clsx(
+                    "px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500 whitespace-normal",
+                    columnWidths?.[idx]
+                  )}
                 >
                   {h}
                 </th>

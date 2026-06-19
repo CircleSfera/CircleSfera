@@ -241,6 +241,15 @@ export default function UsersTab({ onToast }: Props) {
             'Estado',
             'Acciones',
           ]}
+          columnWidths={[
+            'w-auto', // Usuario
+            'w-auto', // Email
+            'w-[8%] whitespace-nowrap',  // Rol
+            'w-[10%] whitespace-nowrap', // Unido el
+            'w-[8%] whitespace-nowrap',  // Posts
+            'w-[10%] whitespace-nowrap', // Estado
+            'w-[160px] whitespace-nowrap', // Acciones
+          ]}
           loading={isLoading}
           isEmpty={!data || data.data.length === 0}
         >

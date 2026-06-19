@@ -230,11 +230,6 @@ body {
 
 .admin-table-responsive {
   width: 100%;
-  table-layout: fixed;
-}
-.admin-table-responsive td, .admin-table-responsive th {
-  overflow-wrap: anywhere;
-  word-break: break-word;
 }
 /* Override Tailwind's px-4 with higher specificity */
 table.admin-table-responsive tbody td, table.admin-table-responsive thead th {
