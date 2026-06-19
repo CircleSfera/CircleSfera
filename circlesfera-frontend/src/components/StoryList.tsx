@@ -61,7 +61,7 @@ export default function StoryList() {
 
   return (
     <div className="glass-panel rounded-2xl p-4 mb-6 overflow-hidden">
-      <div className="flex gap-4 overflow-x-auto scrollbar-hide py-1">
+      <div className="flex gap-4 overflow-x-auto no-scrollbar py-1">
         {/* Your Story / Add Story */}
         {(() => {
           const myStoriesIndex = groupedStories.findIndex(

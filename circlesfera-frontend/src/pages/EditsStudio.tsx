@@ -306,7 +306,7 @@ export default function EditsStudio() {
 
         {/* Carousel UI */}
         {selectedFiles.length > 1 && (
-          <div className="h-[90px] bg-zinc-950 border-t border-white/10 flex items-center px-4 gap-3 overflow-x-auto shrink-0 pb-safe">
+          <div className="h-[90px] bg-zinc-950 border-t border-white/10 flex items-center px-4 gap-3 overflow-x-auto no-scrollbar shrink-0 pb-safe">
             {selectedFiles.map((file, i) => (
               <button
                 type="button"
