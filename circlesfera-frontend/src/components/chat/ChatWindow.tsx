@@ -628,14 +628,6 @@ export default function ChatWindow() {
 
   return (
     <div className="flex flex-col h-dvh bg-[#050505] relative overflow-hidden">
-      {showMenu && (
-        <button
-          type="button"
-          className="fixed inset-0 z-40 bg-transparent cursor-default border-none p-0 w-full h-full"
-          onClick={() => setShowMenu(false)}
-          aria-label="Cerrar menú"
-        />
-      )}
       {/* Background Accent Mesh */}
       <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[50%] bg-blue-500/15 blur-[120px] rounded-full mix-blend-screen" />
@@ -772,13 +764,21 @@ export default function ChatWindow() {
             </>
           )}
           <div className="relative ml-1">
+            {showMenu && (
+              <button
+                type="button"
+                className="fixed inset-0 z-40 bg-transparent cursor-default border-none p-0 w-screen h-screen"
+                onClick={() => setShowMenu(false)}
+                aria-label="Cerrar menú"
+              />
+            )}
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowMenu(!showMenu);
               }}
-              className="hover:text-white text-white/60 transition-all p-2.5 rounded-full hover:bg-white/10 active:bg-white/20"
+              className="hover:text-white text-white/60 transition-all p-2.5 rounded-full hover:bg-white/10 active:bg-white/20 relative z-50"
             >
               <MoreVertical size={22} strokeWidth={2} />
             </button>
