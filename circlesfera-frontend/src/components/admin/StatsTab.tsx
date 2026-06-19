@@ -32,7 +32,7 @@ import StatCard from './StatCard';
 export default function StatsTab() {
   const { data: stats, isLoading } = useQuery<EnhancedStats>({
     queryKey: ['admin', 'stats', 'enhanced'],
-    queryFn: () => adminApi.getEnhancedStats().then((res) => res.data),
+    queryFn: () => adminApi.getEnhancedStats(),
     refetchInterval: 30_000,
   });
 
