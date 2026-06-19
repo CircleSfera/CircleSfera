@@ -72,11 +72,7 @@ export default function Creator() {
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          size="sm"
-          className="hidden sm:flex"
-        >
+        <Button variant="primary" size="sm" className="hidden sm:flex">
           <Plus size={14} className="mr-2" />
           {t('creator.new_content')}
         </Button>

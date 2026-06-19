@@ -123,11 +123,7 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
               </p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-          >
+          <Button variant="ghost" size="icon" onClick={onClose}>
             <X size={20} className="text-zinc-500 hover:text-white" />
           </Button>
         </div>

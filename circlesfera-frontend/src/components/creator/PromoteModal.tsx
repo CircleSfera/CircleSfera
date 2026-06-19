@@ -53,11 +53,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
             <Megaphone size={20} className="text-brand-primary" />
             <h2 className="text-white font-black text-lg">Promocionar</h2>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-          >
+          <Button variant="ghost" size="icon" onClick={onClose}>
             <X size={18} className="text-gray-400" />
           </Button>
         </div>
@@ -144,7 +140,8 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
             isLoading={mutation.isPending}
             className="w-full"
           >
-            <Megaphone size={16} className="mr-2" /> Promocionar por {selected.label}
+            <Megaphone size={16} className="mr-2" /> Promocionar por{' '}
+            {selected.label}
           </Button>
           <p className="text-center text-gray-600 text-xs mt-2">
             Al promocionar, aceptas nuestras condiciones de uso y publicidad.
