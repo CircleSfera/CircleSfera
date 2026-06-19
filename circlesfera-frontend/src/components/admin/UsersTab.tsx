@@ -283,7 +283,7 @@ export default function UsersTab({ onToast }: Props) {
                   </div>
                 </div>
               </td>
-              <td className="px-4 py-3 text-gray-400 text-sm">{user.email}</td>
+              <td className="px-4 py-3 text-gray-400 text-sm max-w-[150px] lg:max-w-[200px] xl:max-w-[300px] truncate" title={user.email}>{user.email}</td>
               <td className="px-4 py-3">
                 {user.role === 'ADMIN' ? (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded text-[10px] font-black uppercase border border-brand-primary/20">
