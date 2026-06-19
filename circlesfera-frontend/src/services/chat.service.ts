@@ -32,11 +32,16 @@ export const chatApi = {
   deleteConversation: (id: string, mode: 'me' | 'both' = 'both') =>
     apiClient.delete(`/chat/conversations/${id}?mode=${mode}`),
 
-  editMessage: (id: string, content: string, e2eKeys?: Record<string, string>) =>
-    apiClient.put<Message>(`/chat/messages/${id}`, { content, e2eKeys }),
+  editMessage: (
+    id: string,
+    content: string,
+    e2eKeys?: Record<string, string>,
+  ) => apiClient.put<Message>(`/chat/messages/${id}`, { content, e2eKeys }),
 
   deleteMessage: (id: string) =>
-    apiClient.delete<{ success: boolean; message: Message }>(`/chat/messages/${id}`),
+    apiClient.delete<{ success: boolean; message: Message }>(
+      `/chat/messages/${id}`,
+    ),
 
   getPublicKey: (userId: string) =>
     apiClient.get<{ publicKey: string }>(`/users/${userId}/e2e-key`),

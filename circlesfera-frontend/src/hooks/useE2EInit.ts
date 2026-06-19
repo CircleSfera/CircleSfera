@@ -28,10 +28,14 @@ export function useE2EInit() {
 
         // Generate new RSA-OAEP keys
         const keyPair = await E2EService.generateKeyPair();
-        
+
         // Export to Base64
-        const publicKeyB64 = await E2EService.exportPublicKey(keyPair.publicKey);
-        const privateKeyB64 = await E2EService.exportPrivateKey(keyPair.privateKey);
+        const publicKeyB64 = await E2EService.exportPublicKey(
+          keyPair.publicKey,
+        );
+        const privateKeyB64 = await E2EService.exportPrivateKey(
+          keyPair.privateKey,
+        );
 
         // Store locally (Warning: if cache is cleared, these are lost)
         localStorage.setItem('e2e_public_key', publicKeyB64);
@@ -44,9 +48,8 @@ export function useE2EInit() {
         // or just let the backend store a blank encrypted key for now.
         await apiClient.put('/users/me/e2e-keys', {
           publicKey: publicKeyB64,
-          privateKeyEncrypted: 'mock_encrypted_private_key', 
+          privateKeyEncrypted: 'mock_encrypted_private_key',
         });
-
       } catch (error) {
         console.error('Failed to initialize E2E keys', error);
       }

@@ -136,7 +136,9 @@ export default function UserVerificationTab({
       {/* Split Pane Layout */}
       <div className="flex flex-1 min-h-0 gap-6">
         {/* Left Pane: Queue */}
-        <div className={`w-full lg:w-1/3 flex-col glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-lg ${selectedUserId ? 'hidden lg:flex' : 'flex'}`}>
+        <div
+          className={`w-full lg:w-1/3 flex-col glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-lg ${selectedUserId ? 'hidden lg:flex' : 'flex'}`}
+        >
           <div className="p-4 border-b border-white/5 shrink-0 bg-white/2">
             <h3 className="font-bold text-white flex items-center gap-2">
               <ShieldAlert size={16} className="text-brand-primary" />
@@ -231,7 +233,9 @@ export default function UserVerificationTab({
         </div>
 
         {/* Right Pane: Details & Actions */}
-        <div className={`flex-1 glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-lg flex-col relative ${selectedUserId ? 'flex' : 'hidden lg:flex'}`}>
+        <div
+          className={`flex-1 glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-lg flex-col relative ${selectedUserId ? 'flex' : 'hidden lg:flex'}`}
+        >
           <AnimatePresence mode="wait">
             {selectedUser ? (
               <motion.div
@@ -245,7 +249,7 @@ export default function UserVerificationTab({
                 {/* Header Action Bar */}
                 <div className="p-4 border-b border-white/5 bg-white/2 flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-4">
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setSelectedUserId(null)}
                       className="lg:hidden p-2 -ml-2 text-gray-400 hover:text-white"

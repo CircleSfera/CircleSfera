@@ -71,8 +71,19 @@ export default function Admin() {
           {/* Global Search Mock */}
           <div className="relative hidden lg:block">
             <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <svg aria-hidden="true" className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg
+                aria-hidden="true"
+                className="w-4 h-4 text-gray-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
             </div>
             <input
@@ -117,7 +128,9 @@ export default function Admin() {
               {activeTab === 'promotions' && (
                 <PromotionsTab onToast={addToast} />
               )}
-              {activeTab === 'verification' && <UserVerificationTab onToast={addToast} />}
+              {activeTab === 'verification' && (
+                <UserVerificationTab onToast={addToast} />
+              )}
               {activeTab === 'newsletter' && (
                 <NewsletterTab onToast={addToast} />
               )}
