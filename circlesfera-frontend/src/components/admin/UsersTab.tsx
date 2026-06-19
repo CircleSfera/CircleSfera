@@ -262,13 +262,13 @@ export default function UsersTab({ onToast }: Props) {
                     alt={user.profile?.username || 'user'}
                     size="sm"
                   />
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <a
                         href={`/${user.profile?.username || ''}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-white font-bold text-sm hover:text-brand-primary transition-colors"
+                        className="text-white font-bold text-sm hover:text-brand-primary transition-colors truncate"
                       >
                         @{user.profile?.username || 'user'}
                       </a>
@@ -277,13 +277,17 @@ export default function UsersTab({ onToast }: Props) {
                         size={14}
                       />
                     </div>
-                    <p className="text-gray-500 text-[10px]">
+                    <p className="text-gray-500 text-[10px] truncate">
                       {user.profile?.fullName || ''}
                     </p>
                   </div>
                 </div>
               </td>
-              <td className="px-4 py-3 text-gray-400 text-sm max-w-[150px] lg:max-w-[200px] xl:max-w-[300px] truncate" title={user.email}>{user.email}</td>
+              <td className="px-4 py-3 text-gray-400 text-sm">
+                <div className="max-w-[120px] lg:max-w-[180px] xl:max-w-[250px] truncate" title={user.email}>
+                  {user.email}
+                </div>
+              </td>
               <td className="px-4 py-3">
                 {user.role === 'ADMIN' ? (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded text-[10px] font-black uppercase border border-brand-primary/20">

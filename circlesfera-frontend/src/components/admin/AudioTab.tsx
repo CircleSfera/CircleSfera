@@ -182,12 +182,16 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                     <Music size={16} className="text-zinc-500" />
                   )}
                 </div>
-                <span className="font-medium text-sm truncate max-w-[200px]" title={track.title}>
+                <div className="font-medium text-sm max-w-[120px] lg:max-w-[180px] truncate" title={track.title}>
                   {track.title}
-                </span>
+                </div>
               </div>
             </td>
-            <td className="px-4 py-3 text-sm text-zinc-400 max-w-[150px] lg:max-w-[200px] truncate" title={track.artist}>{track.artist}</td>
+            <td className="px-4 py-3 text-sm text-zinc-400">
+              <div className="max-w-[120px] lg:max-w-[180px] truncate" title={track.artist}>
+                {track.artist}
+              </div>
+            </td>
             <td className="px-4 py-3">
               <div className="flex items-center gap-1.5 text-sm text-zinc-400">
                 <Clock size={12} />

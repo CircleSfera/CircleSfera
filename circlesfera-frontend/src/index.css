@@ -228,6 +228,20 @@ body {
 
 /* ─── Responsive Admin Tables ─── */
 
+.admin-table-responsive {
+  width: 100%;
+  table-layout: auto;
+}
+.admin-table-responsive td, .admin-table-responsive th {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+/* Override Tailwind's px-4 with higher specificity */
+table.admin-table-responsive tbody td, table.admin-table-responsive thead th {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
 @media (max-width: 767px) {
   .admin-table-responsive {
     display: block;

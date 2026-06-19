@@ -59,7 +59,7 @@ export default function CommentsTab({ onToast }: Props) {
               className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
             >
               <td className="px-4 py-3">
-                <span className="text-white text-sm font-medium">
+                <span className="text-white text-sm font-medium max-w-[100px] lg:max-w-[150px] truncate block" title={comment.user?.profile?.username}>
                   @{comment.user?.profile?.username || 'unknown'}
                 </span>
               </td>
