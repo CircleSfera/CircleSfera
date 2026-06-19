@@ -312,10 +312,7 @@ export class SlackService {
     try {
       const user = await this.prisma.user.findFirst({
         where: {
-          OR: [
-            { email: searchTerm },
-            { profile: { username: searchTerm } }
-          ],
+          OR: [{ email: searchTerm }, { profile: { username: searchTerm } }],
         },
         include: {
           profile: true,
@@ -377,7 +374,10 @@ export class SlackService {
             ? [
                 {
                   type: 'section',
-                  text: { type: 'mrkdwn', text: `*Último Post:*\n${user.posts[0].caption || '(Sin texto)'}` },
+                  text: {
+                    type: 'mrkdwn',
+                    text: `*Último Post:*\n${user.posts[0].caption || '(Sin texto)'}`,
+                  },
                 },
               ]
             : []),
@@ -406,9 +406,16 @@ export class SlackService {
       const pendingReports = await this.prisma.report.count({
         where: { status: 'PENDING' },
       });
-      const newCreatorSubscriptions = await this.prisma.creatorSubscription.count({ where: { createdAt: { gte: yesterday } } });
-      const newPlatformSubscriptions = await this.prisma.platformSubscription.count({ where: { createdAt: { gte: yesterday } } });
-      const newSubscriptions = newCreatorSubscriptions + newPlatformSubscriptions;
+      const newCreatorSubscriptions =
+        await this.prisma.creatorSubscription.count({
+          where: { createdAt: { gte: yesterday } },
+        });
+      const newPlatformSubscriptions =
+        await this.prisma.platformSubscription.count({
+          where: { createdAt: { gte: yesterday } },
+        });
+      const newSubscriptions =
+        newCreatorSubscriptions + newPlatformSubscriptions;
 
       const metrics = { newUsers, newPosts, pendingReports, newSubscriptions };
       const aiSummary = await this.aiService.generateMorningBriefing(metrics);
@@ -518,7 +525,9 @@ export class SlackService {
       } else if (actionId === 'moderate_ai') {
         let contentToAnalyze = '';
         if (report.targetType === 'POST') {
-          const post = await this.prisma.post.findUnique({ where: { id: report.targetId } });
+          const post = await this.prisma.post.findUnique({
+            where: { id: report.targetId },
+          });
           contentToAnalyze = post?.caption || '';
         } else if (report.targetType === 'COMMENT') {
           const comment = await this.prisma.comment.findUnique({
