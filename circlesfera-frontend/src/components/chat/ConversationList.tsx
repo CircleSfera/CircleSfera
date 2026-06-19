@@ -3,18 +3,26 @@ import { ChevronLeft, Edit, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
 import type { Conversation, Message, Participant } from '../../types';
-import { logger } from '../../utils/logger';
+
 import UserAvatar from '../UserAvatar';
 import NewChatModal from './NewChatModal';
 
 export default function ConversationList() {
   const { id: activeId } = useParams();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const { data: conversations = [], isLoading: loading } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: async () => {
+      const res = await apiClient.get('/chat/conversations');
+      return res.data as Conversation[];
+    },
+  });
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const { profile: me } = useAuthStore();
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,18 +31,11 @@ export default function ConversationList() {
   const { socket, userStatuses } = useSocketStore();
 
   useEffect(() => {
-    apiClient
-      .get('/chat/conversations')
-      .then((res) => setConversations(res.data))
-      .catch((err) => logger.error(err))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
     if (!socket) return;
 
     const handleNewMessage = (msg: Message) => {
-      setConversations((prev) => {
+      queryClient.setQueryData<Conversation[]>(['conversations'], (prev) => {
+        if (!prev) return prev;
         const existingIdx = prev.findIndex((c) => c.id === msg.conversationId);
         if (existingIdx !== -1) {
           // Move to top and update message
@@ -57,9 +58,7 @@ export default function ConversationList() {
           return [conv, ...updated];
         } else {
           // New conversation - fetch to get full details including participants
-          apiClient
-            .get('/chat/conversations')
-            .then((res) => setConversations(res.data));
+          queryClient.invalidateQueries({ queryKey: ['conversations'] });
           return prev;
         }
       });
@@ -70,7 +69,10 @@ export default function ConversationList() {
     }: {
       conversationId: string;
     }) => {
-      setConversations((prev) => prev.filter((c) => c.id !== conversationId));
+      queryClient.setQueryData<Conversation[]>(['conversations'], (prev) => {
+        if (!prev) return prev;
+        return prev.filter((c) => c.id !== conversationId);
+      });
     };
 
     socket.on('receiveMessage', handleNewMessage);
@@ -80,7 +82,7 @@ export default function ConversationList() {
       socket.off('receiveMessage', handleNewMessage);
       socket.off('conversationDeleted', handleConversationDeleted);
     };
-  }, [socket]);
+  }, [socket, queryClient]);
 
   const filteredConversations = conversations.filter((c) => {
     if (!searchQuery) return true;
