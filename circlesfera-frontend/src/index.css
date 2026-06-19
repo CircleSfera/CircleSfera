@@ -226,66 +226,6 @@ body {
   scrollbar-width: none;
 }
 
-/* ─── Responsive Admin Tables ─── */
-
-.admin-table-responsive {
-  width: 100%;
-}
-/* Override Tailwind's px-4 with higher specificity */
-.admin-table-responsive tbody td,
-.admin-table-responsive thead th {
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-}
-
-@media (max-width: 767px) {
-  .admin-table-responsive {
-    display: block;
-    width: 100%;
-  }
-  .admin-table-responsive thead {
-    display: none;
-  }
-  .admin-table-responsive tbody {
-    display: block;
-    width: 100%;
-  }
-  .admin-table-responsive tr {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 1rem;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 0.75rem;
-    padding: 0.5rem;
-  }
-  .admin-table-responsive tbody td {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    padding: 0.75rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    text-align: right;
-  }
-  .admin-table-responsive tbody td::before {
-    content: attr(data-label);
-    font-weight: 800;
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: rgba(255, 255, 255, 0.4);
-    margin-right: 1rem;
-    text-align: left;
-    flex-shrink: 0;
-  }
-  .admin-table-responsive tbody td:last-child {
-    border-bottom: none;
-    display: flex;
-    justify-content: space-between;
-  }
-}
-
 /* ─── Animation Utilities ─── */
 
 .animation-delay-2000 {

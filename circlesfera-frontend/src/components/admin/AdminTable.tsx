@@ -29,7 +29,7 @@ export function Table({
   return (
     <div className="relative w-full">
       <div className="w-full pb-2 overflow-x-auto no-scrollbar">
-        <table className="admin-table-responsive w-full text-left border-collapse md:min-w-[900px]">
+        <table className="w-full text-left border-collapse min-w-[800px]">
           <thead className="bg-white/5 border-b border-white/10">
             <tr>
               {headers.map((h, idx) => (
