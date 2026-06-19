@@ -20,7 +20,7 @@ interface TableProps {
 export function Table({ headers, children, loading, isEmpty }: TableProps) {
   return (
     <div className="relative">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto no-scrollbar pb-2">
         <table className="w-full text-left border-collapse min-w-[600px] md:min-w-0">
           <thead className="bg-white/5 border-b border-white/10">
             <tr>
