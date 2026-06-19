@@ -253,7 +253,7 @@ export default function UsersTab({ onToast }: Props) {
               exit={{ opacity: 0, scale: 0.95 }}
               className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
             >
-              <td className="px-4 py-3">
+              <td className="px-4 py-3" data-label="Usuario">
                 <div className="flex items-center gap-2">
                   <UserAvatar
                     src={user.profile?.avatar || undefined}
@@ -268,7 +268,7 @@ export default function UsersTab({ onToast }: Props) {
                         href={`/${user.profile?.username || ''}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-white font-bold text-sm hover:text-brand-primary transition-colors truncate"
+                        className="text-white font-bold text-sm hover:text-brand-primary transition-colors"
                       >
                         @{user.profile?.username || 'user'}
                       </a>
@@ -277,18 +277,16 @@ export default function UsersTab({ onToast }: Props) {
                         size={14}
                       />
                     </div>
-                    <p className="text-gray-500 text-[10px] truncate">
+                    <p className="text-gray-500 text-[10px]">
                       {user.profile?.fullName || ''}
                     </p>
                   </div>
                 </div>
               </td>
-              <td className="px-4 py-3 text-gray-400 text-sm">
-                <div className="max-w-[120px] lg:max-w-[180px] xl:max-w-[250px] truncate" title={user.email}>
-                  {user.email}
-                </div>
+              <td className="px-4 py-3 text-gray-400 text-sm" data-label="Email">
+                {user.email}
               </td>
-              <td className="px-4 py-3">
+              <td className="px-4 py-3 text-right" data-label="Rol">
                 {user.role === 'ADMIN' ? (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded text-[10px] font-black uppercase border border-brand-primary/20">
                     <ShieldCheck size={10} />
@@ -298,16 +296,16 @@ export default function UsersTab({ onToast }: Props) {
                   <span className="text-gray-500 text-xs">User</span>
                 )}
               </td>
-              <td className="px-4 py-3 text-gray-500 text-sm whitespace-nowrap">
+              <td className="px-4 py-3 text-gray-500 text-sm whitespace-nowrap" data-label="Unido el">
                 {new Date(user.createdAt).toLocaleDateString()}
               </td>
-              <td className="px-4 py-3 text-gray-400 text-sm font-bold text-center">
+              <td className="px-4 py-3 text-gray-400 text-sm font-bold md:text-center" data-label="Posts">
                 {user.postCount}
               </td>
-              <td className="px-4 py-3">
+              <td className="px-4 py-3" data-label="Estado">
                 <StatusBadge status={user.isActive ? 'active' : 'banned'} />
               </td>
-              <td className="px-4 py-3">
+              <td className="px-4 py-3" data-label="Acciones">
                 <div className="flex gap-1.5 items-center">
                   <ActionButton
                     onClick={() => setPreviewUserId(user.id)}
