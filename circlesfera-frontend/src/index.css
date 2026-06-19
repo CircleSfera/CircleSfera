@@ -230,7 +230,7 @@ body {
 
 .admin-table-responsive {
   width: 100%;
-  table-layout: auto;
+  table-layout: fixed;
 }
 .admin-table-responsive td, .admin-table-responsive th {
   overflow-wrap: anywhere;
