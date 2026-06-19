@@ -147,7 +147,7 @@ export default function MonetizationTab() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Tier Distribution Chart (Linear) */}
-        <div className="glass-panel rounded-4xl border border-white/5 p-8 bg-linear-to-br from-brand-secondary/5 to-transparent">
+        <div className="glass-panel rounded-xl border border-white/5 p-8 bg-linear-to-br from-brand-secondary/5 to-transparent">
           <div className="flex items-center gap-4 mb-10">
             <div className="w-16 h-16 rounded-lg bg-brand-secondary/10 flex items-center justify-center border border-brand-secondary/20">
               <PieChart size={32} className="text-brand-secondary" />
@@ -248,7 +248,7 @@ export default function MonetizationTab() {
 
         {/* System Integrity & Insights */}
         <div className="flex flex-col gap-8">
-          <div className="glass-panel rounded-4xl border border-white/5 p-8 grow bg-linear-to-bl from-brand-primary/5 to-transparent flex flex-col justify-center">
+          <div className="glass-panel rounded-xl border border-white/5 p-8 grow bg-linear-to-bl from-brand-primary/5 to-transparent flex flex-col justify-center">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 rounded-lg bg-brand-primary/10 flex items-center justify-center">
                 <TrendingUp size={24} className="text-brand-primary" />
@@ -277,7 +277,7 @@ export default function MonetizationTab() {
             </div>
           </div>
 
-          <div className="p-8 glass-panel rounded-4xl border border-brand-primary/10 bg-brand-primary/2">
+          <div className="p-8 glass-panel rounded-xl border border-brand-primary/10 bg-brand-primary/2">
             <div className="flex items-start gap-4">
               <ShieldCheck
                 className="text-brand-primary shrink-0 mt-1"

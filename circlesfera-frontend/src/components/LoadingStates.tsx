@@ -129,7 +129,7 @@ export function StorySkeleton() {
 export function ProfileSkeleton() {
   return (
     <div className="max-w-4xl mx-auto px-4">
-      <div className="glass-panel rounded-4xl p-6 md:p-8 mb-6 overflow-hidden relative">
+      <div className="glass-panel rounded-xl p-6 md:p-8 mb-6 overflow-hidden relative">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-8 md:gap-10">
           <Skeleton variant="circle" className="w-24 h-24 md:w-32 md:h-32" />
           <div className="flex-1 space-y-4 w-full text-center md:text-left">

@@ -135,7 +135,7 @@ export default function CreatorStoriesTab() {
 
       {/* Empty state & Pagination cleanup... */}
       {!isLoading && !data?.data?.length && (
-        <div className="text-center py-24 glass-panel rounded-4xl border border-dashed border-white/5">
+        <div className="text-center py-24 glass-panel rounded-xl border border-dashed border-white/5">
           <div className="p-6 bg-white/5 rounded-full w-fit mx-auto mb-6">
             <Clock size={48} className="text-zinc-700" />
           </div>

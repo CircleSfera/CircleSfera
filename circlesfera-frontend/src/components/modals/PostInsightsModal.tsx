@@ -159,7 +159,7 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                     </span>
                   </div>
 
-                  <div className="h-64 w-full bg-black/40 rounded-4xl border border-white/5 p-6">
+                  <div className="h-64 w-full bg-black/40 rounded-xl border border-white/5 p-6">
                     {insights.chart.length > 0 ? (
                       <SafeResponsiveContainer width="100%" height="100%">
                         <AreaChart
@@ -243,7 +243,7 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                 </div>
 
                 {/* 3. Performance Summary */}
-                <div className="bg-brand-primary/5 rounded-4xl border border-brand-primary/10 p-6 flex items-center gap-4">
+                <div className="bg-brand-primary/5 rounded-xl border border-brand-primary/10 p-6 flex items-center gap-4">
                   <div className="w-16 h-16 rounded-lg bg-brand-primary/20 flex items-center justify-center shrink-0">
                     <Zap size={32} className="text-brand-primary" />
                   </div>
