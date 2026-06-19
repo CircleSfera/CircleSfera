@@ -237,7 +237,7 @@ export default memo(function MessageBubble({
             )}
 
             {/* Text Content */}
-            {msg.content && (
+            {(msg.content || msg.isDeleted) && (
               <div className="relative">
                 <span className={`break-all whitespace-pre-wrap ${msg.isDeleted ? 'opacity-70 italic' : ''}`}>
                   {msg.isDeleted ? (
