@@ -16,6 +16,7 @@ import type { PaginatedResponse } from '../../types';
 import { LoadingSpinner } from '../index';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
+import { Button } from '../ui';
 import {
   ActionButton,
   FilterDropdown,
@@ -191,7 +192,7 @@ export default function ModerationTab({ onToast }: Props) {
             initial={{ opacity: 0, height: 0, marginBottom: 0 }}
             animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
             exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-            className="flex items-center gap-2 p-2 bg-white/5 border border-white/10 rounded-2xl shrink-0"
+            className="flex items-center gap-2 p-2 bg-white/5 border border-white/10 rounded-lg shrink-0"
           >
             <span className="px-3 text-sm font-bold text-white">
               {selectedIds.size} seleccionados
@@ -225,10 +226,10 @@ export default function ModerationTab({ onToast }: Props) {
       </AnimatePresence>
 
       {/* Split Pane Layout */}
-      <div className="flex flex-1 min-h-0 gap-6">
+      <div className="flex flex-1 min-h-0 gap-4">
         {/* Left Pane: Queue */}
         <div
-          className={`w-full lg:w-1/3 flex-col glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-lg ${selectedItemId ? 'hidden lg:flex' : 'flex'}`}
+          className={`w-full lg:w-1/3 flex-col glass-panel rounded-lg border border-white/5 overflow-hidden shadow-lg ${selectedItemId ? 'hidden lg:flex' : 'flex'}`}
         >
           <div className="p-4 border-b border-white/5 shrink-0 bg-white/2 flex items-center gap-3">
             <input
@@ -285,7 +286,7 @@ export default function ModerationTab({ onToast }: Props) {
 
                   <div className="min-w-0 flex-1">
                     <div className="flex justify-between items-start mb-1">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">
+                      <span className="text-xs font-black uppercase tracking-wide text-amber-500">
                         {item.type}
                       </span>
                       <span className="text-xs text-gray-500">
@@ -295,7 +296,7 @@ export default function ModerationTab({ onToast }: Props) {
                     <p className="text-white text-sm truncate font-bold">
                       {item.caption || '(Sin texto)'}
                     </p>
-                    <p className="text-[10px] text-red-400 mt-1 truncate">
+                    <p className="text-xs text-red-400 mt-1 truncate">
                       {item.moderationNote?.replace(
                         '[AI Automated Flag]: ',
                         '',
@@ -314,7 +315,7 @@ export default function ModerationTab({ onToast }: Props) {
 
         {/* Right Pane: Details & Resolution */}
         <div
-          className={`flex-1 glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-lg flex-col relative ${selectedItemId ? 'flex' : 'hidden lg:flex'}`}
+          className={`flex-1 glass-panel rounded-lg border border-white/5 overflow-hidden shadow-lg flex-col relative ${selectedItemId ? 'flex' : 'hidden lg:flex'}`}
         >
           <AnimatePresence mode="wait">
             {selectedItem ? (
@@ -346,15 +347,14 @@ export default function ModerationTab({ onToast }: Props) {
                         <h3 className="text-sm font-bold text-white">
                           @{selectedItem.user?.profile?.username}
                         </h3>
-                        <p className="text-[10px] text-gray-400">
+                        <p className="text-xs text-gray-400">
                           {new Date(selectedItem.createdAt).toLocaleString()}
                         </p>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
+                    <Button
                       onClick={() =>
                         moderationMutation.mutate({
                           id: selectedItem.id,
@@ -363,14 +363,15 @@ export default function ModerationTab({ onToast }: Props) {
                           note: 'Aprobado (Falso Positivo)',
                         })
                       }
-                      disabled={moderationMutation.isPending}
-                      className="p-2 md:px-4 md:py-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
+                      isLoading={moderationMutation.isPending}
+                      variant="success"
+                      className="p-2 md:px-4 md:py-2 text-sm font-bold border-green-500/20"
                     >
-                      <CheckCircle size={16} />{' '}
+                      <CheckCircle size={16} className="mr-2 hidden md:block" />{' '}
                       <span className="hidden md:inline">Aprobar (Seguro)</span>
-                    </button>
-                    <button
-                      type="button"
+                      <CheckCircle size={16} className="md:hidden" />
+                    </Button>
+                    <Button
                       onClick={() =>
                         setActionItem({
                           id: selectedItem.id,
@@ -378,17 +379,19 @@ export default function ModerationTab({ onToast }: Props) {
                           status: 'REMOVED',
                         })
                       }
-                      className="p-2 md:px-4 md:py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
+                      variant="danger"
+                      className="p-2 md:px-4 md:py-2 text-sm font-bold border-red-500/20"
                     >
-                      <Trash2 size={16} />{' '}
+                      <Trash2 size={16} className="mr-2 hidden md:block" />{' '}
                       <span className="hidden md:inline">Eliminar</span>
-                    </button>
+                      <Trash2 size={16} className="md:hidden" />
+                    </Button>
                   </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
                   {/* AI Warning Box */}
-                  <div className="w-full max-w-2xl p-4 bg-red-500/10 border border-red-500/20 rounded-2xl mb-6 flex items-start gap-4">
+                  <div className="w-full max-w-2xl p-4 bg-red-500/10 border border-red-500/20 rounded-lg mb-6 flex items-start gap-4">
                     <ShieldAlert
                       className="text-red-500 shrink-0 mt-1"
                       size={24}
@@ -405,7 +408,7 @@ export default function ModerationTab({ onToast }: Props) {
                   </div>
 
                   {/* Content Preview */}
-                  <div className="w-full max-w-md bg-zinc-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+                  <div className="w-full max-w-md bg-zinc-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl">
                     {/* Media */}
                     {selectedItem.media && selectedItem.media.length > 0 && (
                       <div className="relative aspect-4/5 bg-black">

@@ -16,6 +16,7 @@ import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { UserAvatar } from '../index';
 import ConfirmModal from '../modals/ConfirmModal';
+import { Button } from '../ui';
 import VerificationBadge, {
   type VerificationLevel,
 } from '../VerificationBadge';
@@ -219,18 +220,18 @@ export default function UsersTab({ onToast }: Props) {
             ]}
           />
         </div>
-        <button
-          type="button"
+        <Button
           onClick={handleExport}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-xl text-sm font-bold transition-all border border-white/10"
+          variant="outline"
+          className="text-sm font-bold text-gray-400 hover:text-white border-white/10 px-4 py-2.5"
           aria-label="Exportar usuarios como CSV"
         >
-          <Download size={16} />
+          <Download size={16} className="mr-2" />
           Exportar CSV
-        </button>
+        </Button>
       </div>
 
-      <div className="glass-panel rounded-2xl overflow-clip border border-white/10">
+      <div className="glass-panel rounded-lg overflow-clip border border-white/10">
         <Table
           headers={[
             'Usuario',
@@ -262,7 +263,7 @@ export default function UsersTab({ onToast }: Props) {
               exit={{ opacity: 0, scale: 0.95 }}
               className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
             >
-              <td className="px-4 py-3" data-label="Usuario">
+              <td className="px-2 py-1" data-label="Usuario">
                 <div className="flex items-center gap-2">
                   <UserAvatar
                     src={user.profile?.avatar || undefined}
@@ -272,7 +273,7 @@ export default function UsersTab({ onToast }: Props) {
                     size="sm"
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
                       <a
                         href={`/${user.profile?.username || ''}`}
                         target="_blank"
@@ -286,21 +287,21 @@ export default function UsersTab({ onToast }: Props) {
                         size={14}
                       />
                     </div>
-                    <p className="text-gray-500 text-[10px]">
+                    <p className="text-gray-500 text-xs">
                       {user.profile?.fullName || ''}
                     </p>
                   </div>
                 </div>
               </td>
               <td
-                className="px-4 py-3 text-gray-400 text-sm"
+                className="px-2 py-1 text-gray-400 text-sm"
                 data-label="Email"
               >
                 {user.email}
               </td>
-              <td className="px-4 py-3 text-right" data-label="Rol">
+              <td className="px-2 py-1 text-right" data-label="Rol">
                 {user.role === 'ADMIN' ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded text-[10px] font-black uppercase border border-brand-primary/20">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded text-xs font-black uppercase border border-brand-primary/20">
                     <ShieldCheck size={10} />
                     Admin
                   </span>
@@ -309,22 +310,22 @@ export default function UsersTab({ onToast }: Props) {
                 )}
               </td>
               <td
-                className="px-4 py-3 text-gray-500 text-sm whitespace-nowrap"
+                className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap"
                 data-label="Unido el"
               >
                 {new Date(user.createdAt).toLocaleDateString()}
               </td>
               <td
-                className="px-4 py-3 text-gray-400 text-sm font-bold md:text-center"
+                className="px-2 py-1 text-gray-400 text-sm font-bold md:text-center"
                 data-label="Posts"
               >
                 {user.postCount}
               </td>
-              <td className="px-4 py-3" data-label="Estado">
+              <td className="px-2 py-1" data-label="Estado">
                 <StatusBadge status={user.isActive ? 'active' : 'banned'} />
               </td>
-              <td className="px-4 py-3" data-label="Acciones">
-                <div className="flex gap-1.5 items-center">
+              <td className="px-2 py-1" data-label="Acciones">
+                <div className="flex gap-1 items-center">
                   <ActionButton
                     onClick={() => setPreviewUserId(user.id)}
                     label="Ver Detalle"

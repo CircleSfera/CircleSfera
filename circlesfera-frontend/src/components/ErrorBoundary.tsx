@@ -47,8 +47,8 @@ export default class ErrorBoundary extends Component<Props, State> {
 
       return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white px-6">
-          <div className="glass-panel rounded-2xl p-8 max-w-md text-center space-y-4">
-            <div className="text-4xl">😵</div>
+          <div className="glass-panel rounded-lg p-8 max-w-md text-center space-y-4">
+            <div className="text-2xl">😵</div>
             <h2 className="text-xl font-semibold">Something went wrong</h2>
             <p className="text-sm text-white/60">
               An unexpected error occurred. Please try refreshing the page.

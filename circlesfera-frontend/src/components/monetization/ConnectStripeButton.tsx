@@ -3,6 +3,7 @@ import { ExternalLink, ShieldCheck } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../services';
+import { Button } from '../ui';
 
 export default function ConnectStripeButton() {
   const { t } = useTranslation();
@@ -31,7 +32,7 @@ export default function ConnectStripeButton() {
   });
 
   return (
-    <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-2xl p-6 text-center">
+    <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-lg p-6 text-center">
       <ShieldCheck className="w-12 h-12 text-brand-primary mx-auto mb-4" />
       <h3 className="text-white font-bold text-lg mb-2">
         {t(
@@ -45,17 +46,15 @@ export default function ConnectStripeButton() {
           'To withdraw your earnings, you must securely verify your identity and link a bank account through Stripe Connect.',
         )}
       </p>
-      <button
-        type="button"
+      <Button
         onClick={() => connectMutation.mutate()}
-        disabled={connectMutation.isPending}
-        className="bg-[#635BFF] hover:bg-[#5249ea] text-white px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 w-full transition-colors disabled:opacity-50"
+        isLoading={connectMutation.isPending}
+        variant="primary"
+        className="w-full bg-[#635BFF] hover:bg-[#5249ea] border-transparent px-5 py-2 font-bold shadow-none"
       >
-        <ExternalLink size={18} />
-        {connectMutation.isPending
-          ? t('monetization.connecting', 'Connecting...')
-          : t('monetization.connect_with_stripe', 'Connect with Stripe')}
-      </button>
+        <ExternalLink size={18} className="mr-2" />
+        {t('monetization.connect_with_stripe', 'Connect with Stripe')}
+      </Button>
     </div>
   );
 }

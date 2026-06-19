@@ -20,7 +20,7 @@ export default function MonetizationSubScreen({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-neutral-900 border border-white/10 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+      <div className="bg-neutral-900 border border-white/10 w-full max-w-md rounded-lg overflow-hidden shadow-2xl flex flex-col">
         <div className="p-4 border-b border-white/10 flex items-center gap-4">
           <button
             type="button"
@@ -47,7 +47,7 @@ export default function MonetizationSubScreen({
             {t('createPost.caption.monetization', 'Monetization')}
           </h2>
         </div>
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <div className="font-medium text-white flex items-center gap-2">

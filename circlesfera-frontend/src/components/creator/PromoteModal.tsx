@@ -45,7 +45,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="glass-panel rounded-3xl border border-white/10 w-full max-w-md overflow-hidden">
+      <div className="glass-panel rounded-xl border border-white/10 w-full max-w-md overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-white/5">
           <div className="flex items-center gap-2">
@@ -55,7 +55,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+            className="p-1 hover:bg-white/10 rounded-lg transition-colors"
           >
             <X size={18} className="text-gray-400" />
           </button>
@@ -107,7 +107,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
                 }`}
               >
                 <span className="block text-lg font-black">{opt.label}</span>
-                <span className="block text-[10px] mt-0.5">
+                <span className="block text-xs mt-0.5">
                   {opt.duration} días
                 </span>
               </button>
@@ -119,13 +119,13 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
         <div className="px-5 pb-5">
           <div className="bg-white/5 rounded-xl p-4 space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-1.5 text-gray-400">
+              <span className="flex items-center gap-1 text-gray-400">
                 <DollarSign size={14} /> Presupuesto
               </span>
               <span className="text-white font-bold">{selected.label}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-1.5 text-gray-400">
+              <span className="flex items-center gap-1 text-gray-400">
                 <Calendar size={14} /> Duración
               </span>
               <span className="text-white font-bold">
@@ -151,7 +151,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
               </>
             )}
           </button>
-          <p className="text-center text-gray-600 text-[10px] mt-2">
+          <p className="text-center text-gray-600 text-xs mt-2">
             Al promocionar, aceptas nuestras condiciones de uso y publicidad.
           </p>
         </div>

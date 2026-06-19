@@ -63,7 +63,7 @@ export default function ExploreLanding() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-panel border border-white/10 mb-8 shadow-lg"
           >
             <Compass size={16} className="text-brand-primary" />
-            <span className="text-xs font-bold uppercase tracking-widest text-white/80">
+            <span className="text-xs font-bold uppercase tracking-wide text-white/80">
               {t('explore.landing.the_platform')}
             </span>
           </motion.div>
@@ -72,7 +72,7 @@ export default function ExploreLanding() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tighter mb-5 leading-tight"
+            className="text-xl md:text-2xl lg:text-3xl font-black tracking-tighter mb-5 leading-tight"
           >
             {t('explore.landing.discover_new')}{' '}
             <br className="hidden md:block" />
@@ -101,7 +101,7 @@ export default function ExploreLanding() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-50px' }}
                 transition={{ delay: index * 0.1, duration: 0.5 }}
-                className="glass-panel p-5 md:p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-all duration-500 group relative overflow-hidden"
+                className="glass-panel p-4 md:p-6 rounded-lg border border-white/5 hover:border-white/10 transition-all duration-500 group relative overflow-hidden"
               >
                 {/* Subtle gradient hover effect */}
                 <div
@@ -133,7 +133,7 @@ export default function ExploreLanding() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
-            className="glass-panel rounded-3xl p-8 border border-white/10 relative overflow-hidden"
+            className="glass-panel rounded-xl p-8 border border-white/10 relative overflow-hidden"
           >
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] from-brand-primary/10 via-transparent to-transparent opacity-50"></div>
 
@@ -142,7 +142,7 @@ export default function ExploreLanding() {
                 <Users size={24} className="text-brand-secondary" />
               </div>
 
-              <h2 className="text-2xl md:text-3xl font-black tracking-tighter mb-4">
+              <h2 className="text-2xl md:text-xl font-black tracking-tighter mb-4">
                 {t('explore.landing.join_title')}
               </h2>
 
@@ -153,13 +153,13 @@ export default function ExploreLanding() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <Link
                   to="/accounts/emailsignup"
-                  className="px-6 py-3 bg-white text-black font-black text-xs uppercase tracking-widest rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)]"
+                  className="px-5 py-2 bg-white text-black font-black text-xs uppercase tracking-wide rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)]"
                 >
                   {t('explore.landing.create_account')}
                 </Link>
                 <Link
                   to="/pricing"
-                  className="px-6 py-3 glass-panel text-white font-bold text-xs uppercase tracking-widest rounded-full hover:bg-white/10 transition-all border border-white/10"
+                  className="px-5 py-2 glass-panel text-white font-bold text-xs uppercase tracking-wide rounded-full hover:bg-white/10 transition-all border border-white/10"
                 >
                   {t('explore.landing.view_monetization')}
                 </Link>
@@ -184,7 +184,7 @@ export default function ExploreLanding() {
             </p>
           </div>
           <div>
-            <h4 className="text-white/80 font-bold uppercase tracking-widest text-[10px] mb-5">
+            <h4 className="text-white/80 font-bold uppercase tracking-wide text-xs mb-5">
               {t('common.footer.platform')}
             </h4>
             <ul className="space-y-3">
@@ -223,7 +223,7 @@ export default function ExploreLanding() {
             </ul>
           </div>
           <div>
-            <h4 className="text-white/80 font-bold uppercase tracking-widest text-[10px] mb-5">
+            <h4 className="text-white/80 font-bold uppercase tracking-wide text-xs mb-5">
               {t('common.footer.legal')}
             </h4>
             <ul className="space-y-3">

@@ -125,7 +125,7 @@ export default memo(function PostCard({ post }: PostCardProps) {
 
   return (
     <>
-      <div className="glass-panel-post rounded-2xl overflow-hidden mb-4">
+      <div className="glass-panel-post rounded-lg overflow-hidden mb-2">
         <PostHeader
           post={post}
           menuButtonRef={menuButtonRef}

@@ -2,6 +2,7 @@ import { Loader2, Sparkles, Trash2 } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { parseFilter } from '../../utils/styleUtils';
+import { Textarea } from '../ui';
 
 interface AccessibilitySubScreenProps {
   mediaFiles: Array<{ url: string; file: File; type: string; filter?: string }>;
@@ -62,7 +63,7 @@ export default function AccessibilitySubScreen({
               <h2 className="font-black text-xl tracking-tighter text-white italic uppercase">
                 {t('createPost.accessibility.title')}
               </h2>
-              <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">
+              <p className="text-zinc-500 text-xs font-bold uppercase tracking-wide">
                 {t('createPost.accessibility.subtitle')}
               </p>
             </div>
@@ -70,20 +71,20 @@ export default function AccessibilitySubScreen({
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-2 rounded-full bg-white text-black font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-transform"
+            className="px-6 py-2 rounded-full bg-white text-black font-black text-xs uppercase tracking-wide hover:scale-105 transition-transform"
           >
             {t('createPost.accessibility.done')}
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-8 space-y-10">
-          <div className="p-4 rounded-2xl bg-brand-primary/5 border border-brand-primary/10">
+          <div className="p-4 rounded-lg bg-brand-primary/5 border border-brand-primary/10">
             <p className="text-zinc-400 text-xs font-medium leading-relaxed italic">
               {t('createPost.accessibility.info')}
             </p>
           </div>
 
-          <div className="space-y-8">
+          <div className="space-y-4">
             {mediaFiles.map((item, idx) => {
               const { className, style } = parseFilter(item.filter);
               const isGenerating = generatingIdx === idx;
@@ -91,9 +92,9 @@ export default function AccessibilitySubScreen({
               return (
                 <div
                   key={item.url}
-                  className="group flex flex-col sm:flex-row gap-6 p-4 rounded-3xl bg-white/5 border border-white/5 hover:border-white/10 transition-all"
+                  className="group flex flex-col sm:flex-row gap-4 p-4 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-all"
                 >
-                  <div className="w-full sm:w-24 h-24 rounded-2xl overflow-hidden shrink-0 border border-white/10 relative shadow-2xl">
+                  <div className="w-full sm:w-24 h-24 rounded-lg overflow-hidden shrink-0 border border-white/10 relative shadow-2xl">
                     {item.type === 'video' ? (
                       <video
                         src={item.url}
@@ -124,7 +125,7 @@ export default function AccessibilitySubScreen({
 
                   <div className="flex-1 space-y-4">
                     <div className="relative">
-                      <textarea
+                      <Textarea
                         rows={3}
                         value={altTextMap[idx] || ''}
                         onChange={(e) =>
@@ -134,7 +135,7 @@ export default function AccessibilitySubScreen({
                           }))
                         }
                         placeholder={t('createPost.accessibility.placeholder')}
-                        className="w-full bg-neutral-950/50 border border-white/5 rounded-2xl p-4 text-xs font-medium text-white placeholder-zinc-600 focus:outline-none focus:border-brand-primary/50 transition-all resize-none"
+                        className="resize-none"
                       />
 
                       {item.type === 'image' && (
@@ -153,7 +154,7 @@ export default function AccessibilitySubScreen({
                           ) : (
                             <Sparkles size={12} />
                           )}
-                          <span className="text-[9px] font-black uppercase tracking-widest">
+                          <span className="text-xs font-black uppercase tracking-wide">
                             {isGenerating
                               ? t('createPost.accessibility.generating')
                               : t('createPost.accessibility.magic_ai')}

@@ -1,9 +1,10 @@
 import { startAuthentication } from '@simplewebauthn/browser';
 import { useMutation } from '@tanstack/react-query';
-import { Fingerprint, Loader2 } from 'lucide-react';
+import { Fingerprint } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
+import { Button } from '../components/ui';
 import LayoutWrapper from '../layouts/LayoutWrapper';
 import { authApi, passkeyApi, profileApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
@@ -87,7 +88,7 @@ export default function Login() {
   return (
     <LayoutWrapper showNavigation={false}>
       <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="modal-glass p-8 rounded-[32px] w-full max-w-md relative overflow-hidden group border border-white/5 shadow-2xl backdrop-blur-2xl">
+        <div className="modal-glass p-4 rounded-xl w-full max-w-sm relative overflow-hidden group border border-white/5 shadow-2xl backdrop-blur-2xl">
           {/* Brand Accent Line */}
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue opacity-90" />
 
@@ -95,10 +96,10 @@ export default function Login() {
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-primary/20 rounded-full blur-3xl group-hover:bg-brand-primary/30 transition-colors duration-700"></div>
           <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-brand-secondary/20 rounded-full blur-3xl group-hover:bg-brand-secondary/30 transition-colors duration-700"></div>
 
-          <h1 className="text-4xl md:text-5xl font-black text-center mb-2 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
+          <h1 className="text-xl md:text-2xl font-black text-center mb-2 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
             {t('auth.login.title')}
           </h1>
-          <p className="text-gray-500 text-center font-bold mb-6 tracking-wide uppercase text-[11px]">
+          <p className="text-gray-500 text-center font-bold mb-6 tracking-wide uppercase text-xs">
             {t('auth.login.welcome')}
           </p>
 
@@ -106,7 +107,7 @@ export default function Login() {
             <div>
               <label
                 htmlFor="identifier"
-                className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 px-1"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
               >
                 {t('auth.login.identifier_label')}
               </label>
@@ -116,7 +117,7 @@ export default function Login() {
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 required
-                className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-brand-primary/50 transition-all text-white placeholder-gray-600 outline-none text-base shadow-[0_0_15px_rgba(255,255,255,0.02)]"
+                className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-brand-primary/50 transition-all text-white placeholder-gray-600 outline-none text-base shadow-[0_0_15px_rgba(255,255,255,0.02)]"
                 placeholder={t('auth.login.identifier_placeholder')}
                 autoComplete="username"
               />
@@ -125,7 +126,7 @@ export default function Login() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 px-1"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
               >
                 {t('auth.login.password_label')}
               </label>
@@ -135,7 +136,7 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-brand-primary/50 transition-all text-white placeholder-gray-600 outline-none text-base shadow-[0_0_15px_rgba(255,255,255,0.02)]"
+                className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-brand-primary/50 transition-all text-white placeholder-gray-600 outline-none text-base shadow-[0_0_15px_rgba(255,255,255,0.02)]"
                 placeholder={t('auth.login.password_placeholder')}
                 autoComplete="current-password"
               />
@@ -177,7 +178,7 @@ export default function Login() {
                 <div>
                   <label
                     htmlFor="twoFactorCode"
-                    className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 px-1"
+                    className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
                   >
                     {t('auth.login.2fa_code', 'Authentication Code')}
                   </label>
@@ -195,7 +196,7 @@ export default function Login() {
                         });
                       }
                     }}
-                    className="w-full px-4 py-3.5 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-brand-primary/50 transition-all text-white placeholder-gray-600 outline-none text-base tracking-[0.5em] font-mono text-center shadow-[0_0_15px_rgba(255,255,255,0.02)]"
+                    className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-brand-primary/50 transition-all text-white placeholder-gray-600 outline-none text-base tracking-[0.5em] font-mono text-center shadow-[0_0_15px_rgba(255,255,255,0.02)]"
                     placeholder="000000"
                     autoComplete="one-time-code"
                   />
@@ -209,50 +210,45 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => loginMutation.reset()}
-                  className="w-full text-xs text-gray-500 hover:text-white transition-colors uppercase tracking-widest font-bold pt-2"
+                  className="w-full text-xs text-gray-500 hover:text-white transition-colors uppercase tracking-wide font-bold pt-2"
                 >
                   {t('auth.login.back_to_login', 'Back')}
                 </button>
               </div>
             ) : (
               <div className="space-y-3 pt-2">
-                <button
+                <Button
                   type="submit"
                   data-testid="login-submit-button"
+                  variant="white"
+                  isLoading={loginMutation.isPending}
                   disabled={loginMutation.isPending || passkeyLoading}
-                  className="w-full bg-white text-black py-3.5 rounded-2xl font-black text-xs md:text-sm tracking-widest uppercase hover:bg-zinc-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-white/20 hover:shadow-white/40"
+                  className="w-full font-black text-xs md:text-sm tracking-wide uppercase py-1.5"
                 >
-                  {loginMutation.isPending
-                    ? t('auth.login.sign_in_loading')
-                    : t('auth.login.sign_in')}
-                </button>
+                  {t('auth.login.sign_in')}
+                </Button>
 
                 <div className="relative flex items-center gap-4 py-2">
                   <div className="flex-1 h-px bg-white/5"></div>
-                  <span className="text-[9px] font-black text-gray-600 uppercase tracking-[0.2em]">
+                  <span className="text-xs font-black text-gray-600 uppercase tracking-wide">
                     {t('auth.login.or')}
                   </span>
                   <div className="flex-1 h-px bg-white/5"></div>
                 </div>
 
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={handlePasskeyLogin}
+                  isLoading={passkeyLoading}
                   disabled={loginMutation.isPending || passkeyLoading}
-                  className="w-full flex items-center justify-center gap-3 bg-white/5 border border-white/10 text-white py-3.5 rounded-2xl font-bold text-xs md:text-sm hover:bg-white/10 hover:border-brand-primary/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+                  className="w-full flex items-center justify-center gap-3 py-1.5 font-bold text-xs md:text-sm hover:border-brand-primary/30 group"
                 >
-                  {passkeyLoading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>{t('auth.login.passkey_loading')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Fingerprint className="w-5 h-5 text-brand-primary group-hover:scale-110 transition-transform" />
-                      <span>{t('auth.login.passkey_btn')}</span>
-                    </>
+                  {!passkeyLoading && (
+                    <Fingerprint className="w-5 h-5 text-brand-primary group-hover:scale-110 transition-transform" />
                   )}
-                </button>
+                  {t('auth.login.passkey_btn')}
+                </Button>
               </div>
             )}
           </form>

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { highlightsApi, storiesApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
 import type { Story } from '../../types';
+import { Button } from '../ui';
 
 interface CreateHighlightModalProps {
   isOpen: boolean;
@@ -88,13 +89,14 @@ export default function CreateHighlightModal({
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <div className="flex items-center gap-2">
             {step === 2 && (
-              <button
-                type="button"
+              <Button
                 onClick={() => setStep(1)}
+                variant="ghost"
+                size="icon"
                 className="text-white hover:text-gray-300"
               >
                 <ChevronLeft size={24} />
-              </button>
+              </Button>
             )}
             <h2 className="text-lg font-bold text-white">
               {step === 1
@@ -102,13 +104,14 @@ export default function CreateHighlightModal({
                 : t('modals.highlight.title_and_cover')}
             </h2>
           </div>
-          <button
-            type="button"
+          <Button
             onClick={handleClose}
+            variant="ghost"
+            size="icon"
             className="text-gray-400 hover:text-white"
           >
             <X size={24} />
-          </button>
+          </Button>
         </div>
 
         {/* Content */}
@@ -161,7 +164,7 @@ export default function CreateHighlightModal({
               )}
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-6 py-8">
+            <div className="flex flex-col items-center gap-4 py-8">
               {/* Cover Preview */}
               <button
                 type="button"
@@ -218,25 +221,24 @@ export default function CreateHighlightModal({
         {/* Footer */}
         <div className="p-4 border-t border-white/10 flex justify-end">
           {step === 1 ? (
-            <button
-              type="button"
+            <Button
               onClick={() => setStep(2)}
               disabled={selectedStoryIds.length === 0}
-              className="bg-white text-black font-semibold px-6 py-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
+              variant="primary"
+              className="px-6 py-2 font-semibold"
             >
               {t('modals.highlight.next')}
-            </button>
+            </Button>
           ) : (
-            <button
-              type="button"
+            <Button
               onClick={handleCreate}
-              disabled={!title.trim() || createHighlightMutation.isPending}
-              className="bg-white text-black font-semibold px-6 py-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors flex items-center gap-2"
+              disabled={!title.trim()}
+              isLoading={createHighlightMutation.isPending}
+              variant="primary"
+              className="px-6 py-2 font-semibold"
             >
-              {createHighlightMutation.isPending
-                ? t('modals.highlight.creating')
-                : t('modals.highlight.done')}
-            </button>
+              {t('modals.highlight.done')}
+            </Button>
           )}
         </div>
       </div>

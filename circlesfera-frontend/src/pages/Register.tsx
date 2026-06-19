@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Button } from '../components/ui';
 import LayoutWrapper from '../layouts/LayoutWrapper';
 import { authApi, profileApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
@@ -52,8 +53,8 @@ export default function Register() {
 
   return (
     <LayoutWrapper showNavigation={false}>
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="modal-glass p-8 rounded-[32px] w-full max-w-sm relative overflow-hidden group">
+      <div className="min-h-screen flex items-center justify-center py-2.5">
+        <div className="modal-glass p-4 rounded-xl w-full max-w-sm relative overflow-hidden group">
           {/* Brand Accent Line */}
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-linear-to-r from-brand-primary via-brand-secondary to-brand-accent opacity-90" />
 
@@ -61,10 +62,10 @@ export default function Register() {
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-primary/20 rounded-full blur-3xl group-hover:bg-brand-primary/30 transition-colors duration-700"></div>
           <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-brand-secondary/20 rounded-full blur-3xl group-hover:bg-brand-secondary/30 transition-colors duration-700"></div>
 
-          <h1 className="text-4xl font-black text-center mb-2 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-white via-white to-white/40">
+          <h1 className="text-xl font-black text-center mb-2 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-white via-white to-white/40">
             {t('auth.register.title')}
           </h1>
-          <p className="text-gray-500 text-center font-medium mb-6 tracking-wide uppercase text-[10px]">
+          <p className="text-gray-500 text-center font-medium mb-6 tracking-wide uppercase text-xs">
             {t('auth.register.subtitle')}
           </p>
 
@@ -72,7 +73,7 @@ export default function Register() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 px-1"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
               >
                 {t('auth.register.email_label')}
               </label>
@@ -82,7 +83,7 @@ export default function Register() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
+                className="w-full px-2 py-1 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
                 placeholder={t('auth.register.email_placeholder')}
                 autoComplete="email"
               />
@@ -92,7 +93,7 @@ export default function Register() {
               <div>
                 <label
                   htmlFor="username"
-                  className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 px-1"
+                  className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
                 >
                   {t('auth.register.username_label')}
                 </label>
@@ -102,7 +103,7 @@ export default function Register() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
+                  className="w-full px-2 py-1 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
                   placeholder={t('auth.register.username_placeholder')}
                   autoComplete="username"
                 />
@@ -111,7 +112,7 @@ export default function Register() {
               <div>
                 <label
                   htmlFor="fullName"
-                  className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 px-1"
+                  className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
                 >
                   {t('auth.register.fullname_label')}
                 </label>
@@ -120,7 +121,7 @@ export default function Register() {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
+                  className="w-full px-2 py-1 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
                   placeholder={t('auth.register.fullname_placeholder')}
                   autoComplete="name"
                 />
@@ -130,7 +131,7 @@ export default function Register() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 px-1"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
               >
                 {t('auth.register.password_label')}
               </label>
@@ -141,7 +142,7 @@ export default function Register() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
+                className="w-full px-2 py-1 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
                 placeholder={t('auth.register.password_placeholder')}
                 autoComplete="new-password"
               />
@@ -150,7 +151,7 @@ export default function Register() {
             <div>
               <label
                 htmlFor="inviteCode"
-                className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 px-1"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
               >
                 {t('auth.register.invite_label')}{' '}
                 <span className="text-gray-600 font-normal lowercase tracking-normal">
@@ -162,7 +163,7 @@ export default function Register() {
                 type="text"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
+                className="w-full px-2 py-1 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
                 placeholder={t('auth.register.invite_placeholder')}
               />
             </div>
@@ -177,15 +178,14 @@ export default function Register() {
               </div>
             )}
 
-            <button
+            <Button
               type="submit"
-              disabled={registerMutation.isPending}
-              className="w-full bg-white text-black py-3 rounded-2xl font-black text-[15px] tracking-wide uppercase hover:bg-zinc-200 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_8px_30px_rgb(255,255,255,0.1)] mt-2"
+              variant="white"
+              isLoading={registerMutation.isPending}
+              className="w-full font-black text-xs tracking-wide uppercase mt-2 py-1.5"
             >
-              {registerMutation.isPending
-                ? t('auth.register.sign_up_loading')
-                : t('auth.register.sign_up')}
-            </button>
+              {t('auth.register.sign_up')}
+            </Button>
           </form>
 
           <p className="mt-6 text-center text-gray-600 text-sm font-medium">

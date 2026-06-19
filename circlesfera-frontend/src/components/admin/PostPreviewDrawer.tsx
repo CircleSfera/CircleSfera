@@ -14,9 +14,9 @@ export default function PostPreviewDrawer({ post, onClose }: Props) {
       onClose={onClose}
       title="Vista previa de publicación"
     >
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* User Info */}
-        <div className="flex items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/10">
+        <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
           <UserAvatar
             src={post.user?.profile?.avatar}
             alt={post.user?.profile?.username || 'User'}
@@ -25,7 +25,7 @@ export default function PostPreviewDrawer({ post, onClose }: Props) {
             <span className="text-white font-bold text-sm tracking-tight">
               @{post.user?.profile?.username || 'unknown'}
             </span>
-            <span className="text-[10px] text-gray-400 uppercase tracking-widest font-medium">
+            <span className="text-xs text-gray-400 uppercase tracking-wide font-medium">
               {new Date(post.createdAt).toLocaleString()}
             </span>
           </div>
@@ -33,7 +33,7 @@ export default function PostPreviewDrawer({ post, onClose }: Props) {
 
         {/* Content Media */}
         {post.media && post.media.length > 0 && (
-          <div className="bg-black rounded-2xl overflow-hidden border border-white/10 relative">
+          <div className="bg-black rounded-lg overflow-hidden border border-white/10 relative">
             <div className="aspect-4/5 w-full flex items-center justify-center">
               {post.media[0].type === 'video' ? (
                 <video
@@ -61,7 +61,7 @@ export default function PostPreviewDrawer({ post, onClose }: Props) {
 
         {/* Caption */}
         {post.caption && (
-          <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+          <div className="p-4 bg-white/5 rounded-lg border border-white/10">
             <p className="text-white text-sm whitespace-pre-wrap leading-relaxed">
               {post.caption}
             </p>
@@ -71,19 +71,19 @@ export default function PostPreviewDrawer({ post, onClose }: Props) {
         {/* Stats */}
         {post._count && (
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 bg-white/5 border border-white/10 rounded-2xl flex flex-col items-center justify-center">
+            <div className="p-4 bg-white/5 border border-white/10 rounded-lg flex flex-col items-center justify-center">
               <span className="text-2xl font-black text-white">
                 {post._count.likes}
               </span>
-              <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">
+              <span className="text-xs uppercase tracking-wide text-gray-500 font-bold mt-1">
                 Likes
               </span>
             </div>
-            <div className="p-4 bg-white/5 border border-white/10 rounded-2xl flex flex-col items-center justify-center">
+            <div className="p-4 bg-white/5 border border-white/10 rounded-lg flex flex-col items-center justify-center">
               <span className="text-2xl font-black text-white">
                 {post._count.comments}
               </span>
-              <span className="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">
+              <span className="text-xs uppercase tracking-wide text-gray-500 font-bold mt-1">
                 Comentarios
               </span>
             </div>

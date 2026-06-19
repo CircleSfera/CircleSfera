@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { reportsApi } from '../../services';
 import { logger } from '../../utils/logger';
+import { Button, Textarea } from '../ui';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -85,13 +86,14 @@ export default function ReportModal({
                     {t('report.title')}
                   </h3>
                 </div>
-                <button
-                  type="button"
+                <Button
                   onClick={onClose}
-                  className="p-2 text-gray-500 hover:text-white transition-colors rounded-full hover:bg-white/5"
+                  variant="ghost"
+                  size="icon"
+                  className="text-gray-500 hover:text-white rounded-full hover:bg-white/5"
                 >
                   <X size={20} />
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -139,24 +141,25 @@ export default function ReportModal({
                     >
                       {t('report.additional_details')}
                     </label>
-                    <textarea
+                    <Textarea
                       id="report-details"
                       value={details}
                       onChange={(e) => setDetails(e.target.value)}
                       placeholder={t('report.placeholder')}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-red-500 min-h-[100px] resize-none"
+                      className="min-h-[100px] resize-none"
                     />
                   </div>
                 )}
 
-                <button
-                  type="button"
+                <Button
                   onClick={handleSubmit}
-                  disabled={!reason || isSubmitting}
-                  className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-[0.98]"
+                  disabled={!reason}
+                  isLoading={isSubmitting}
+                  variant="danger"
+                  className="w-full font-bold py-3 text-base"
                 >
-                  {isSubmitting ? t('report.submitting') : t('report.submit')}
-                </button>
+                  {t('report.submit')}
+                </Button>
               </div>
             )}
           </motion.div>

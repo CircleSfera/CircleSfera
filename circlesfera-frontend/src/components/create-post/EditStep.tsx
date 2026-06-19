@@ -58,7 +58,7 @@ export default function EditStep({
 
         <motion.div
           layout
-          className={`relative w-auto h-full max-h-full max-w-full flex items-center justify-center overflow-hidden rounded-2xl shadow-2xl shadow-black/50 border border-white/6 ${config.ratio}`}
+          className={`relative w-auto h-full max-h-full max-w-full flex items-center justify-center overflow-hidden rounded-lg shadow-2xl shadow-black/50 border border-white/6 ${config.ratio}`}
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         >
           <Carousel
@@ -84,7 +84,7 @@ export default function EditStep({
 
             {/* Edit Button */}
             <motion.div
-              className="relative z-10 flex items-center gap-3 bg-white/10 backdrop-blur-xl border border-white/15 px-5 py-3 rounded-2xl
+              className="relative z-10 flex items-center gap-3 bg-white/10 backdrop-blur-xl border border-white/15 px-5 py-3 rounded-lg
                          shadow-xl shadow-black/30 group-hover:bg-white/15 transition-all duration-300"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -96,7 +96,7 @@ export default function EditStep({
                 <p className="text-sm font-bold text-white">
                   {t('createPost.edit.edit_media')}
                 </p>
-                <p className="text-[10px] text-white/50 font-medium">
+                <p className="text-xs text-white/50 font-medium">
                   {t('createPost.edit.filters_adjustments')}
                 </p>
               </div>
@@ -104,13 +104,13 @@ export default function EditStep({
           </button>
 
           {/* Aspect Ratio Badge */}
-          <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 text-[10px] font-bold text-white/60 uppercase tracking-wider pointer-events-none">
+          <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 text-xs font-bold text-white/60 uppercase tracking-wider pointer-events-none">
             {mode === 'POST' ? '1:1' : '9:16'}
           </div>
 
           {/* File count badge */}
           {mediaFiles.length > 1 && (
-            <div className="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 text-[10px] font-bold text-white/60 pointer-events-none">
+            <div className="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-black/50 backdrop-blur-md border border-white/10 text-xs font-bold text-white/60 pointer-events-none">
               {t('createPost.edit.n_files', { count: mediaFiles.length })}
             </div>
           )}
@@ -129,7 +129,7 @@ export default function EditStep({
                 type="button"
                 key={m}
                 onClick={() => setMode(m)}
-                className="relative px-4 py-2 rounded-[10px] flex items-center gap-1.5 transition-all duration-200"
+                className="relative px-4 py-2 rounded-[10px] flex items-center gap-1 transition-all duration-200"
               >
                 {isActive && (
                   <motion.div
@@ -144,7 +144,7 @@ export default function EditStep({
                   strokeWidth={2}
                 />
                 <span
-                  className={`relative z-10 text-[11px] font-bold tracking-wide transition-colors ${
+                  className={`relative z-10 text-xs font-bold tracking-wide transition-colors ${
                     isActive ? 'text-white' : 'text-white/25'
                   }`}
                 >
@@ -215,7 +215,7 @@ export default function EditStep({
                     e.stopPropagation();
                     handleRemoveFile(idx);
                   }}
-                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500/90 backdrop-blur-sm rounded-full
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500/90 backdrop-blur-sm rounded-full
                              flex items-center justify-center text-white
                              opacity-0 group-hover:opacity-100 transition-all duration-200
                              hover:bg-red-500 hover:scale-110 active:scale-95 z-10
@@ -225,7 +225,7 @@ export default function EditStep({
                 </button>
 
                 {/* Position indicator */}
-                <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 text-[8px] font-bold text-white/20">
+                <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 text-xs font-bold text-white/20">
                   {idx + 1}
                 </div>
               </motion.div>

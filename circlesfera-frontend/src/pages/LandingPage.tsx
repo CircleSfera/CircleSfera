@@ -26,7 +26,7 @@ const LandingPage = () => {
 
       <div className="w-full flex-1 block relative z-10 pb-16">
         {/* Navigation */}
-        <nav className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5 px-6 py-3 flex justify-between items-center backdrop-blur-xl bg-transparent">
+        <nav className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5 px-5 py-2 flex justify-between items-center backdrop-blur-xl bg-transparent">
           <div className="flex items-center gap-2.5">
             <img
               src={logoSrc}
@@ -60,12 +60,12 @@ const LandingPage = () => {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-secondary opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-secondary"></span>
             </span>
-            <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/80">
+            <span className="text-xs font-bold tracking-wide uppercase text-white/80">
               {t('landing.hero.badge')}
             </span>
           </div>
 
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter mb-6 leading-[0.9] drop-shadow-2xl">
+          <h1 className="text-2xl md:text-3xl lg:text-6xl font-black tracking-tighter mb-6 leading-[0.9] drop-shadow-2xl">
             {t('landing.hero.title_part1')} <br className="hidden md:block" />
             <span className="bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
               {t('landing.hero.title_part2')}
@@ -79,7 +79,7 @@ const LandingPage = () => {
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <Link
               to="/accounts/emailsignup"
-              className="group relative px-6 py-3 bg-white text-black font-bold text-sm rounded-full transition-all hover:shadow-[0_0_30px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95"
+              className="group relative px-5 py-2 bg-white text-black font-bold text-sm rounded-full transition-all hover:shadow-[0_0_30px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95"
             >
               <span className="flex items-center justify-center gap-2">
                 {t('landing.hero.get_started')}
@@ -88,38 +88,38 @@ const LandingPage = () => {
             </Link>
             <Link
               to="/explore"
-              className="px-6 py-3 glass-panel rounded-full text-white text-sm font-bold hover:bg-white/10 transition-all hover:scale-105 active:scale-95 border border-white/5"
+              className="px-5 py-2 glass-panel rounded-full text-white text-sm font-bold hover:bg-white/10 transition-all hover:scale-105 active:scale-95 border border-white/5"
             >
               {t('landing.hero.explore_demo')}
             </Link>
           </div>
 
           {/* Dynamic Mockup Section */}
-          <div className="mt-14 relative w-full max-w-3xl aspect-video glass-panel rounded-2xl border border-white/5 shadow-2xl overflow-hidden group">
+          <div className="mt-14 relative w-full max-w-3xl aspect-video glass-panel rounded-lg border border-white/5 shadow-2xl overflow-hidden group">
             <div className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-black z-10"></div>
 
             {/* Animated Grid simulating feed */}
             <div className="absolute inset-0 flex items-center justify-center opacity-30 group-hover:opacity-100 transition-opacity duration-1000">
               <div className="grid grid-cols-4 gap-4 p-6 w-full h-full transform group-hover:scale-105 transition-transform duration-1000 ease-out">
                 <div className="col-span-1 space-y-4 pt-8">
-                  <div className="glass-panel h-44 rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
-                  <div className="glass-panel h-56 rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
+                  <div className="glass-panel h-44 rounded-lg w-full bg-white/5 border-white/10 shadow-lg"></div>
+                  <div className="glass-panel h-56 rounded-lg w-full bg-white/5 border-white/10 shadow-lg"></div>
                 </div>
-                <div className="col-span-1 space-y-6">
-                  <div className="glass-panel h-full rounded-2xl w-full border border-brand-primary/30 shadow-[0_0_40px_rgba(131,58,180,0.15)] bg-linear-to-b from-brand-primary/10 to-transparent">
+                <div className="col-span-1 space-y-4">
+                  <div className="glass-panel h-full rounded-lg w-full border border-brand-primary/30 shadow-[0_0_40px_rgba(131,58,180,0.15)] bg-linear-to-b from-brand-primary/10 to-transparent">
                     <div className="p-4 flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-white/10 animate-pulse"></div>
                       <div className="h-3 w-24 bg-white/10 rounded-full"></div>
                     </div>
                   </div>
                 </div>
-                <div className="col-span-1 space-y-6 pt-20">
-                  <div className="glass-panel h-64 rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
-                  <div className="glass-panel h-32 rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
+                <div className="col-span-1 space-y-4 pt-20">
+                  <div className="glass-panel h-64 rounded-lg w-full bg-white/5 border-white/10 shadow-lg"></div>
+                  <div className="glass-panel h-32 rounded-lg w-full bg-white/5 border-white/10 shadow-lg"></div>
                 </div>
-                <div className="col-span-1 space-y-6 pt-6">
-                  <div className="glass-panel h-52 rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
-                  <div className="glass-panel h-full rounded-2xl w-full bg-white/5 border-white/10 shadow-lg"></div>
+                <div className="col-span-1 space-y-4 pt-6">
+                  <div className="glass-panel h-52 rounded-lg w-full bg-white/5 border-white/10 shadow-lg"></div>
+                  <div className="glass-panel h-full rounded-lg w-full bg-white/5 border-white/10 shadow-lg"></div>
                 </div>
               </div>
             </div>
@@ -169,14 +169,14 @@ const LandingPage = () => {
         <section className="py-16 relative">
           <div className="max-w-5xl mx-auto px-6">
             <div className="text-center mb-10">
-              <h2 className="text-2xl md:text-3xl font-bold mb-3 tracking-tight">
+              <h2 className="text-2xl md:text-xl font-bold mb-3 tracking-tight">
                 {t('landing.features.title')}
               </h2>
               <p className="text-sm text-white/30 max-w-md mx-auto font-light italic">
                 {t('landing.features.subtitle')}
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FeatureCard
                 icon={<Camera className="w-6 h-6 text-brand-secondary" />}
                 title={t('landing.features.items.capture.title')}
@@ -200,10 +200,10 @@ const LandingPage = () => {
         <section className="py-16 relative bg-white/1">
           <div className="max-w-2xl mx-auto px-6">
             <div className="text-center mb-10">
-              <span className="text-brand-accent font-bold text-[10px] tracking-[0.3em] uppercase mb-2 block opacity-60">
+              <span className="text-brand-accent font-bold text-xs tracking-wide uppercase mb-2 block opacity-60">
                 {t('landing.faq.badge')}
               </span>
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+              <h2 className="text-2xl md:text-xl font-bold tracking-tight">
                 {t('landing.faq.title')}
               </h2>
             </div>
@@ -232,7 +232,7 @@ const LandingPage = () => {
         <section className="py-16 relative overflow-hidden">
           <div className="absolute inset-0 bg-linear-to-b from-transparent to-brand-primary/10 pointer-events-none"></div>
           <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
-            <h2 className="text-2xl md:text-4xl font-bold mb-4 tracking-tight">
+            <h2 className="text-2xl md:text-2xl font-bold mb-4 tracking-tight">
               {t('landing.cta.title')}
             </h2>
             <p className="text-base text-white/40 mb-8 max-w-md mx-auto font-light">
@@ -270,7 +270,7 @@ const LandingPage = () => {
             </p>
           </div>
           <div>
-            <h4 className="text-white/80 font-bold uppercase tracking-widest text-[10px] mb-5">
+            <h4 className="text-white/80 font-bold uppercase tracking-wide text-xs mb-5">
               {t('landing.footer.platform')}
             </h4>
             <ul className="space-y-3">
@@ -309,7 +309,7 @@ const LandingPage = () => {
             </ul>
           </div>
           <div>
-            <h4 className="text-white/80 font-bold uppercase tracking-widest text-[10px] mb-5">
+            <h4 className="text-white/80 font-bold uppercase tracking-wide text-xs mb-5">
               {t('landing.footer.legal')}
             </h4>
             <ul className="space-y-3">
@@ -360,7 +360,7 @@ const FeatureCard = ({
   title: string;
   description: string;
 }) => (
-  <div className="glass-panel p-6 rounded-2xl border border-white/5 hover:border-brand-primary/20 transition-all duration-500 group hover:-translate-y-1 hover:bg-white/5 backdrop-blur-2xl">
+  <div className="glass-panel p-4 rounded-lg border border-white/5 hover:border-brand-primary/20 transition-all duration-500 group hover:-translate-y-1 hover:bg-white/5 backdrop-blur-2xl">
     <div className="w-11 h-11 rounded-lg bg-white/5 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500 group-hover:bg-brand-primary/20">
       {icon}
     </div>
@@ -443,17 +443,17 @@ const InteractiveFeatures = () => {
   return (
     <section className="py-16 w-full max-w-5xl mx-auto px-6">
       <div className="text-center mb-10">
-        <span className="text-brand-primary font-bold text-[10px] tracking-[0.3em] uppercase mb-2 block opacity-60">
+        <span className="text-brand-primary font-bold text-xs tracking-wide uppercase mb-2 block opacity-60">
           {t('landing.interactive.badge')}
         </span>
-        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+        <h2 className="text-2xl md:text-xl font-bold tracking-tight">
           {t('landing.interactive.title')}
         </h2>
       </div>
-      <div className="w-full glass-panel rounded-2xl p-1.5 border border-white/5 max-w-4xl mx-auto flex flex-col lg:flex-row overflow-hidden min-h-[380px] shadow-2xl">
+      <div className="w-full glass-panel rounded-lg p-1 border border-white/5 max-w-4xl mx-auto flex flex-col lg:flex-row overflow-hidden min-h-[380px] shadow-2xl">
         {/* Sidebar / Tabs */}
         <div className="w-full lg:w-1/3 p-4 flex flex-col gap-3 border-b lg:border-b-0 lg:border-r border-white/5 relative z-20">
-          <h3 className="font-bold mb-2 text-white/30 uppercase tracking-[0.3em] text-[10px]">
+          <h3 className="font-bold mb-2 text-white/30 uppercase tracking-wide text-xs">
             {t('landing.interactive.tabs_header')}
           </h3>
           {tabs.map((tab) => (
@@ -502,7 +502,7 @@ const InteractiveFeatures = () => {
                   <Shield className="w-6 h-6 text-white" />
                 )}
               </div>
-              <h2 className="text-3xl md:text-4xl font-black mb-4 tracking-tighter leading-none">
+              <h2 className="text-xl md:text-2xl font-black mb-4 tracking-tighter leading-none">
                 {tab.title}
               </h2>
               <p className="text-base text-white/40 leading-relaxed font-light italic">

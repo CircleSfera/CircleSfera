@@ -21,7 +21,7 @@ export default function HashtagsTab() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-wrap gap-4 items-center">
         <SearchInput
           value={search}
@@ -33,7 +33,7 @@ export default function HashtagsTab() {
         />
       </div>
 
-      <div className="glass-panel rounded-2xl overflow-clip border border-white/10">
+      <div className="glass-panel rounded-lg overflow-clip border border-white/10">
         <Table
           headers={['#', 'Hashtag', 'Posts', 'Creado']}
           loading={isLoading}
@@ -44,10 +44,10 @@ export default function HashtagsTab() {
               key={tag.id}
               className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
             >
-              <td className="px-4 py-3 text-gray-600 text-sm font-bold">
+              <td className="px-2 py-1 text-gray-600 text-sm font-bold">
                 {(page - 1) * 20 + i + 1}
               </td>
-              <td className="px-4 py-3">
+              <td className="px-2 py-1">
                 <div className="flex items-center gap-2">
                   <Hash size={14} className="text-brand-primary" />
                   <span className="text-white font-bold text-sm">
@@ -55,12 +55,12 @@ export default function HashtagsTab() {
                   </span>
                 </div>
               </td>
-              <td className="px-4 py-3">
+              <td className="px-2 py-1">
                 <span className="text-brand-primary font-black text-lg">
                   {tag.postCount}
                 </span>
               </td>
-              <td className="px-4 py-3 text-gray-500 text-sm whitespace-nowrap">
+              <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap">
                 {new Date(tag.createdAt).toLocaleDateString()}
               </td>
             </tr>

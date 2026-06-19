@@ -117,7 +117,7 @@ export const CallOverlay: React.FC = () => {
               <track kind="captions" />
             </video>
           ) : (
-            <div className="flex flex-col items-center gap-6">
+            <div className="flex flex-col items-center gap-4">
               <div className="w-48 h-48 rounded-full overflow-hidden border-4 border-white/10 p-2 shadow-2xl">
                 <img
                   src={remoteUser?.profile.avatar || '/default-avatar.png'}
@@ -126,7 +126,7 @@ export const CallOverlay: React.FC = () => {
                 />
               </div>
               <div className="text-center">
-                <h2 className="text-3xl font-bold text-white mb-2">
+                <h2 className="text-xl font-bold text-white mb-2">
                   {remoteUser?.profile.fullName || remoteUser?.profile.username}
                 </h2>
                 <p className="text-brand-primary animate-pulse font-medium">
@@ -144,7 +144,7 @@ export const CallOverlay: React.FC = () => {
               dragElastic={0.2}
               whileDrag={{ scale: 1.05, cursor: 'grabbing' }}
               dragMomentum={true}
-              className="absolute top-8 right-8 w-40 md:w-56 aspect-3/4 bg-zinc-900 rounded-2xl overflow-hidden border border-white/20 shadow-2xl shadow-black z-10 cursor-grab ring-2 ring-black/50"
+              className="absolute top-8 right-8 w-40 md:w-56 aspect-3/4 bg-zinc-900 rounded-lg overflow-hidden border border-white/20 shadow-2xl shadow-black z-10 cursor-grab ring-2 ring-black/50"
             >
               <video
                 ref={localVideoRef}
@@ -164,7 +164,7 @@ export const CallOverlay: React.FC = () => {
           )}
 
           {/* Bottom Floating Controls */}
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-6 px-8 py-4 glass-panel rounded-[32px] border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.5)] z-20">
+          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-4 px-8 py-4 glass-panel rounded-[32px] border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.5)] z-20">
             {/* Audio Toggle */}
             <button
               type="button"

@@ -63,7 +63,7 @@ export default function MusicPicker({ onSelect, onClose }: MusicPickerProps) {
 
   return (
     <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-zinc-900 border border-white/10 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh]">
+      <div className="bg-zinc-900 border border-white/10 w-full max-w-md rounded-lg overflow-hidden shadow-2xl flex flex-col max-h-[80vh]">
         {/* Header */}
         <div className="p-4 border-b border-white/5 flex items-center justify-between bg-zinc-900/50 backdrop-blur-md sticky top-0 z-10">
           <h3 className="text-lg font-bold">Añadir música</h3>
@@ -103,7 +103,7 @@ export default function MusicPicker({ onSelect, onClose }: MusicPickerProps) {
           ) : tracks && tracks.length > 0 ? (
             <div className="space-y-1">
               {!searchQuery && (
-                <p className="px-3 py-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                <p className="px-2 py-1 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                   Tendencias
                 </p>
               )}

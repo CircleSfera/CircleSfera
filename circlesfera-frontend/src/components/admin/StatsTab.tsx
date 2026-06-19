@@ -48,11 +48,11 @@ export default function StatsTab() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'].map((id) => (
           <div
             key={id}
-            className="glass-panel p-6 rounded-2xl h-32 animate-pulse bg-white/5"
+            className="glass-panel p-4 rounded-lg h-32 animate-pulse bg-white/5"
           />
         ))}
       </div>
@@ -60,9 +60,9 @@ export default function StatsTab() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* Primary Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Usuarios Totales"
           value={stats?.users || 0}
@@ -96,7 +96,7 @@ export default function StatsTab() {
       </div>
 
       {/* Secondary Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Usuarios Activos Hoy"
           value={stats?.activeUsersToday || 0}
@@ -135,9 +135,9 @@ export default function StatsTab() {
       </div>
 
       {/* Activity Chart + Top Users */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Chart */}
-        <div className="lg:col-span-2 glass-panel rounded-2xl border border-white/5 p-6">
+        <div className="lg:col-span-2 glass-panel rounded-lg border border-white/5 p-6">
           <div className="flex items-center gap-2 mb-6">
             <BarChart3 size={18} className="text-brand-primary" />
             <h3 className="text-white font-bold text-sm">
@@ -208,7 +208,7 @@ export default function StatsTab() {
         </div>
 
         {/* Top Users */}
-        <div className="glass-panel rounded-2xl border border-white/5 p-6">
+        <div className="glass-panel rounded-lg border border-white/5 p-6">
           <div className="flex items-center gap-2 mb-6">
             <UserCheck size={18} className="text-brand-primary" />
             <h3 className="text-white font-bold text-sm">Top Engagement</h3>
@@ -264,7 +264,7 @@ export default function StatsTab() {
 
       {/* Recent Activity */}
       {stats?.recentActivity && stats.recentActivity.length > 0 && (
-        <div className="glass-panel rounded-2xl border border-white/5 overflow-hidden">
+        <div className="glass-panel rounded-lg border border-white/5 overflow-hidden">
           <div className="px-6 py-4 border-b border-white/5 flex items-center gap-2">
             <BarChart3 size={18} className="text-brand-primary" />
             <h3 className="text-white font-bold text-sm">
@@ -275,7 +275,7 @@ export default function StatsTab() {
             {stats.recentActivity.map((log) => (
               <div
                 key={log.id}
-                className="px-6 py-3 flex items-center justify-between hover:bg-white/5 transition-colors"
+                className="px-5 py-2 flex items-center justify-between hover:bg-white/5 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center">

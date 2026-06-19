@@ -60,7 +60,7 @@ export default function VerifyEmail() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex flex-col items-center gap-6"
+                className="flex flex-col items-center gap-4"
               >
                 <div className="relative">
                   <div className="absolute inset-0 bg-brand-primary/20 blur-xl rounded-full" />
@@ -84,7 +84,7 @@ export default function VerifyEmail() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center gap-6 w-full"
+                className="flex flex-col items-center gap-4 w-full"
               >
                 <div className="relative">
                   <div className="absolute inset-0 bg-green-500/20 blur-xl rounded-full" />
@@ -97,7 +97,7 @@ export default function VerifyEmail() {
                   <h1 className="text-2xl font-black mb-2 tracking-tighter text-white">
                     {t('auth.verify.success_title')}
                   </h1>
-                  <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-2xl mb-6">
+                  <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg mb-6">
                     <p className="text-green-400 text-sm font-medium">
                       {message}
                     </p>
@@ -107,7 +107,7 @@ export default function VerifyEmail() {
                   </p>
                   <Link
                     to="/accounts/login"
-                    className="w-full block bg-white text-black py-4 rounded-2xl font-black text-[15px] tracking-wide uppercase hover:bg-zinc-200 active:scale-[0.98] transition-all shadow-[0_8px_30px_rgb(255,255,255,0.1)]"
+                    className="w-full block bg-white text-black py-4 rounded-lg font-black text-[15px] tracking-wide uppercase hover:bg-zinc-200 active:scale-[0.98] transition-all shadow-[0_8px_30px_rgb(255,255,255,0.1)]"
                   >
                     Enter CircleSfera
                   </Link>
@@ -119,7 +119,7 @@ export default function VerifyEmail() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center gap-6 w-full"
+                className="flex flex-col items-center gap-4 w-full"
               >
                 <div className="relative">
                   <div className="absolute inset-0 bg-red-500/20 blur-xl rounded-full" />
@@ -132,7 +132,7 @@ export default function VerifyEmail() {
                   <h1 className="text-2xl font-black mb-2 tracking-tighter text-white">
                     {t('auth.verify.error_title')}
                   </h1>
-                  <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl mb-8">
+                  <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg mb-8">
                     <p className="text-red-400 text-sm font-medium">
                       {message}
                     </p>
@@ -140,7 +140,7 @@ export default function VerifyEmail() {
 
                   <Link
                     to="/accounts/emailsignup"
-                    className="w-full block bg-white text-black py-4 rounded-2xl font-black text-[15px] tracking-wide uppercase hover:bg-zinc-200 active:scale-[0.98] transition-all shadow-[0_8px_30px_rgb(255,255,255,0.1)]"
+                    className="w-full block bg-white text-black py-4 rounded-lg font-black text-[15px] tracking-wide uppercase hover:bg-zinc-200 active:scale-[0.98] transition-all shadow-[0_8px_30px_rgb(255,255,255,0.1)]"
                   >
                     Return to Registration
                   </Link>

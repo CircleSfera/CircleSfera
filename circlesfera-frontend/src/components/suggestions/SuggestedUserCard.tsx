@@ -40,7 +40,7 @@ export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({
   if (isFollowing) return null; // Hide after following? or show "Following"
 
   return (
-    <div className="flex flex-col items-center min-w-[140px] p-5 glass-panel rounded-2xl group/card hover:bg-white/5 transition-all duration-300">
+    <div className="flex flex-col items-center min-w-[140px] p-5 glass-panel rounded-lg group/card hover:bg-white/5 transition-all duration-300">
       <Link to={`/${user.username}`} className="flex flex-col items-center">
         <div className="w-16 h-16 rounded-full p-0.5 bg-linear-to-tr from-brand-primary via-brand-secondary to-brand-accent mb-3 group-hover/card:shadow-[0_0_15px_rgba(131,58,180,0.3)] transition-all duration-300">
           <div className="w-full h-full rounded-full border-2 border-black overflow-hidden bg-zinc-900">
@@ -76,7 +76,7 @@ export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({
             size={12}
           />
         </span>
-        <span className="text-[10px] text-zinc-500 font-bold tracking-wider truncate w-full text-center mb-4">
+        <span className="text-xs text-zinc-500 font-bold tracking-wider truncate w-full text-center mb-4">
           {user.fullName || t('suggestions.suggested')}
         </span>
       </Link>
@@ -84,7 +84,7 @@ export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({
         type="button"
         onClick={handleFollow}
         disabled={loading}
-        className="w-full py-1.5 bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white text-[10px] font-black tracking-wider rounded-lg px-4 disabled:opacity-50 transition-all active:scale-95 border border-brand-primary/20 hover:border-transparent"
+        className="w-full py-1.5 bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white text-xs font-black tracking-wider rounded-lg px-4 disabled:opacity-50 transition-all active:scale-95 border border-brand-primary/20 hover:border-transparent"
       >
         {loading ? '...' : t('suggestions.follow')}
       </button>

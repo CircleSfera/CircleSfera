@@ -102,7 +102,7 @@ export const PasskeySettings: React.FC = () => {
   };
 
   return (
-    <div className="p-6 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xl overflow-hidden transition-all hover:shadow-2xl hover:border-blue-500/30 group">
+    <div className="p-6 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-xl overflow-hidden transition-all hover:shadow-2xl hover:border-blue-500/30 group">
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl group-hover:scale-110 transition-transform duration-300">
@@ -120,7 +120,7 @@ export const PasskeySettings: React.FC = () => {
         <Shield className="w-6 h-6 text-zinc-400 dark:text-zinc-600 opacity-50 group-hover:rotate-12 transition-transform" />
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700">
           <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed italic">
             {t('settings.passkey_settings.desc')}

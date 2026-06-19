@@ -338,7 +338,7 @@ export default function EditsStudio() {
             <button
               type="button"
               onClick={handleApplyToAll}
-              className="ml-auto flex items-center justify-center gap-2 bg-zinc-800 text-white px-3 py-2 rounded-lg hover:bg-zinc-700 transition-colors shrink-0"
+              className="ml-auto flex items-center justify-center gap-2 bg-zinc-800 text-white px-2 py-1 rounded-lg hover:bg-zinc-700 transition-colors shrink-0"
               title="Apply filters to all"
             >
               <ImagePlus size={18} />
@@ -367,13 +367,13 @@ export default function EditsStudio() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Workspace Area */}
-        <div className="flex flex-col gap-6 lg:col-span-2">
+        <div className="flex flex-col gap-4 lg:col-span-2">
           {!editedFile ? (
             <>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="aspect-video w-full bg-zinc-900/50 border-2 border-dashed border-white/10 rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-zinc-800/50 hover:border-white/20 transition-all group"
+                className="aspect-video w-full bg-zinc-900/50 border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-zinc-800/50 hover:border-white/20 transition-all group"
               >
                 <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
                   <ImagePlus
@@ -407,7 +407,7 @@ export default function EditsStudio() {
                           }
                         }}
                         onClick={() => openProject(project)}
-                        className="group relative aspect-4/5 bg-zinc-900 rounded-2xl overflow-hidden cursor-pointer hover:ring-2 ring-brand-primary transition-all"
+                        className="group relative aspect-4/5 bg-zinc-900 rounded-lg overflow-hidden cursor-pointer hover:ring-2 ring-brand-primary transition-all"
                       >
                         <img
                           src={project.mediaUrl}
@@ -436,7 +436,7 @@ export default function EditsStudio() {
               )}
             </>
           ) : (
-            <div className="aspect-4/5 md:aspect-square bg-zinc-900 rounded-3xl overflow-hidden relative group">
+            <div className="aspect-4/5 md:aspect-square bg-zinc-900 rounded-xl overflow-hidden relative group">
               <img
                 src={URL.createObjectURL(editedFile)}
                 alt="Edited output"
@@ -465,7 +465,7 @@ export default function EditsStudio() {
 
         {/* Actions / Export Area */}
         <div className="flex flex-col gap-4">
-          <div className="glass-panel p-6 rounded-3xl border border-white/5">
+          <div className="glass-panel p-4 rounded-xl border border-white/5">
             <h3 className="text-white font-bold text-lg mb-2">Exportar</h3>
             <p className="text-white/50 text-sm mb-6">
               Descarga tu imagen con calidad profesional o publícala

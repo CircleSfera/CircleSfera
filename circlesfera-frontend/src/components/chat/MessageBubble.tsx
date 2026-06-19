@@ -142,7 +142,7 @@ export default memo(function MessageBubble({
           <div
             className={`mb-1 text-xs text-gray-300/80 bg-white/5 border-l-2 border-purple-500 pl-3 py-1.5 pr-2 rounded-r-lg cursor-pointer hover:bg-white/10 transition-colors truncate backdrop-blur-sm self-stretch max-w-xs`}
           >
-            <div className="font-semibold text-purple-400 text-[10px] mb-0.5">
+            <div className="font-semibold text-purple-400 text-xs mb-0.5">
               {t('chat.replying_to_user', {
                 username:
                   msg.replyTo?.sender?.profile?.username || t('chat.user'),
@@ -160,7 +160,7 @@ export default memo(function MessageBubble({
 
         <div className="relative group/msg">
           <div
-            className={`px-5 py-3 text-[15px] leading-relaxed relative transition-all duration-300 ${
+            className={`px-5 py-2 text-[15px] leading-relaxed relative transition-all duration-300 ${
               isMe
                 ? `bg-linear-to-br from-brand-primary to-brand-secondary text-white shadow-xl shadow-brand-primary/20 ${isSeq ? 'rounded-[24px]' : 'rounded-[24px] rounded-tr-[4px]'}`
                 : `glass-panel border border-white/10 text-white shadow-xl shadow-black/40 ${isSeq ? 'rounded-[24px]' : 'rounded-[24px] rounded-tl-[4px]'}`
@@ -202,11 +202,11 @@ export default memo(function MessageBubble({
                 </div>
                 <div className="flex flex-col gap-1 py-1">
                   {!isMe && (
-                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded-full w-fit">
+                    <span className="text-xs font-bold text-white/40 uppercase tracking-wide bg-white/5 px-2 py-0.5 rounded-full w-fit">
                       {t('chat.replied_to_story')}
                     </span>
                   )}
-                  <p className="text-[11px] text-white/60 line-clamp-2 italic pr-4">
+                  <p className="text-xs text-white/60 line-clamp-2 italic pr-4">
                     {msg.story?.mediaType === 'video'
                       ? t('chat.watch_video_again')
                       : t('chat.view_original_story')}
@@ -271,11 +271,11 @@ export default memo(function MessageBubble({
             )}
 
             <div
-              className={`absolute bottom-1 right-2.5 flex items-center gap-1.5 pl-2 text-[10px] ${isMe ? 'text-white/80' : 'text-gray-400'}`}
+              className={`absolute bottom-1 right-2.5 flex items-center gap-1 pl-2 text-xs ${isMe ? 'text-white/80' : 'text-gray-400'}`}
             >
-              <span className="tabular-nums font-mono leading-none tracking-widest opacity-80 flex items-center gap-1">
+              <span className="tabular-nums font-mono leading-none tracking-wide opacity-80 flex items-center gap-1">
                 {msg.isEdited && !msg.isDeleted && (
-                  <span className="text-[9px] lowercase">(editado)</span>
+                  <span className="text-xs lowercase">(editado)</span>
                 )}
                 {timeString}
               </span>
@@ -340,12 +340,12 @@ export default memo(function MessageBubble({
             }`}
           >
             <div
-              className={`flex bg-zinc-900/80 rounded-2xl p-1 shadow-2xl border border-white/10 backdrop-blur-xl ${isMe ? 'flex-row-reverse' : ''}`}
+              className={`flex bg-zinc-900/80 rounded-lg p-1 shadow-2xl border border-white/10 backdrop-blur-xl ${isMe ? 'flex-row-reverse' : ''}`}
             >
               <button
                 type="button"
                 onClick={() => onReply(msg)}
-                className="p-1.5 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
+                className="p-1 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
                 title="Reply"
               >
                 <Reply size={14} />
@@ -353,7 +353,7 @@ export default memo(function MessageBubble({
               <div className="relative group/emojis">
                 <button
                   type="button"
-                  className="p-1.5 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
+                  className="p-1 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
                   title="React"
                 >
                   <Smile size={14} />
@@ -369,7 +369,7 @@ export default memo(function MessageBubble({
                         whileTap={{ scale: 0.9 }}
                         key={emoji}
                         onClick={() => onReact(msg.id!, emoji)}
-                        className="p-1.5 hover:bg-white/10 rounded-full transition-all text-xl leading-none"
+                        className="p-1 hover:bg-white/10 rounded-full transition-all text-xl leading-none"
                       >
                         {emoji}
                       </motion.button>
@@ -382,7 +382,7 @@ export default memo(function MessageBubble({
                 <button
                   type="button"
                   onClick={() => onEdit(msg, decryptedText)}
-                  className="p-1.5 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
+                  className="p-1 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
                   title="Edit"
                 >
                   <svg
@@ -407,7 +407,7 @@ export default memo(function MessageBubble({
                 <button
                   type="button"
                   onClick={() => onDelete(msg.id!)}
-                  className="p-1.5 hover:bg-white/10 rounded-full text-gray-400 hover:text-red-400 transition-colors"
+                  className="p-1 hover:bg-white/10 rounded-full text-gray-400 hover:text-red-400 transition-colors"
                   title="Delete"
                 >
                   <Trash2 size={14} />
@@ -441,7 +441,7 @@ export default memo(function MessageBubble({
                       whileHover={{ scale: 1.15 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => onReact(msg.id!, emoji)}
-                      className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-semibold backdrop-blur-xl transition-all shadow-xl ${
+                      className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold backdrop-blur-xl transition-all shadow-xl ${
                         hasReacted
                           ? 'bg-blue-600 border-blue-400 text-white shadow-blue-500/30'
                           : 'bg-[#262626] border-white/20 text-white shadow-black/50'

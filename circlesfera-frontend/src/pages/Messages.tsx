@@ -17,10 +17,10 @@ export default function Messages() {
   return (
     <div className="h-full md:h-[calc(100vh-80px)] md:mt-8 px-0 md:px-4 max-w-6xl mx-auto overflow-hidden bg-transparent">
       <SEO title="Mensajes" />
-      <div className="flex h-full md:glass-panel bg-transparent md:rounded-3xl overflow-hidden border-b md:border border-white/5 md:border-white/10">
+      <div className="flex h-full md:glass-panel bg-transparent md:rounded-lg overflow-hidden border-b md:border border-white/5 md:border-white/10">
         {/* Conversation List - Smart visibility on mobile */}
         <div
-          className={`w-full lg:w-80 border-r border-white/10 bg-zinc-950/20 backdrop-blur-3xl ${id ? 'hidden lg:block' : 'block'}`}
+          className={`w-full lg:w-80 border-r border-white/10 bg-zinc-950/20 backdrop-blur-2xl ${id ? 'hidden lg:block' : 'block'}`}
         >
           <ConversationList />
         </div>

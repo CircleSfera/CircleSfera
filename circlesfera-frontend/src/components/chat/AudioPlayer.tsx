@@ -89,7 +89,7 @@ export default function AudioPlayer({ src }: AudioPlayerProps) {
           onChange={handleSeek}
           className="w-full h-1 bg-neutral-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
         />
-        <div className="flex justify-between text-[10px] text-gray-400 font-medium px-0.5">
+        <div className="flex justify-between text-xs text-gray-400 font-medium px-0.5">
           <span>{formatTime(currentTime)}</span>
           <span>{formatTime(duration)}</span>
         </div>
@@ -98,7 +98,7 @@ export default function AudioPlayer({ src }: AudioPlayerProps) {
       <button
         type="button"
         onClick={changeSpeed}
-        className="px-2 py-1 rounded-md text-[10px] font-bold bg-white/10 text-white hover:bg-white/20 transition-colors shrink-0 w-8 text-center"
+        className="px-2 py-1 rounded-md text-xs font-bold bg-white/10 text-white hover:bg-white/20 transition-colors shrink-0 w-8 text-center"
       >
         {speed}x
       </button>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { AdminAudio } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import ConfirmModal from '../modals/ConfirmModal';
+import { Button } from '../ui';
 import AdminDrawer from './AdminDrawer';
 import { ActionButton, Pagination, SearchInput, Table } from './AdminTable';
 
@@ -128,7 +129,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
   const meta = data?.meta;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -137,18 +138,18 @@ export default function AudioTab({ onToast }: AudioTabProps) {
             Gestiona las pistas de audio disponibles para stories y posts
           </p>
         </div>
-        <button
-          type="button"
+        <Button
           onClick={() => {
             setEditingTrack(null);
             setForm(EMPTY_FORM);
             setShowForm(true);
           }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-brand-primary hover:bg-brand-primary/80 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-brand-primary/20"
+          variant="primary"
+          className="text-sm font-bold shadow-lg shadow-brand-primary/20 px-5 py-2.5"
         >
-          <Plus size={16} />
+          <Plus size={16} className="mr-2" />
           Añadir pista
-        </button>
+        </Button>
       </div>
 
       {/* Search */}
@@ -169,7 +170,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
             key={track.id}
             className="border-b border-white/5 hover:bg-white/2 transition-colors"
           >
-            <td className="px-4 py-3">
+            <td className="px-2 py-1">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0 overflow-hidden">
                   {track.thumbnailUrl ? (
@@ -191,26 +192,26 @@ export default function AudioTab({ onToast }: AudioTabProps) {
               </div>
             </td>
             <td
-              className="px-4 py-3 text-sm text-zinc-400"
+              className="px-2 py-1 text-sm text-zinc-400"
               data-label="Artista"
             >
               <div className="break-all" title={track.artist}>
                 {track.artist}
               </div>
             </td>
-            <td className="px-4 py-3">
-              <div className="flex items-center gap-1.5 text-sm text-zinc-400">
+            <td className="px-2 py-1">
+              <div className="flex items-center gap-1 text-sm text-zinc-400">
                 <Clock size={12} />
                 {formatDuration(track.duration)}
               </div>
             </td>
             <td
-              className="px-4 py-3 text-sm text-zinc-500"
+              className="px-2 py-1 text-sm text-zinc-500"
               data-label="Subido el"
             >
               {new Date(track.createdAt).toLocaleDateString()}
             </td>
-            <td className="px-4 py-3">
+            <td className="px-2 py-1">
               <div className="flex items-center gap-1">
                 <ActionButton
                   icon={Pencil}
@@ -241,11 +242,11 @@ export default function AudioTab({ onToast }: AudioTabProps) {
         onClose={closeForm}
         title={editingTrack ? 'Editar pista de audio' : 'Añadir pista de audio'}
       >
-        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-1.5">
             <label
               htmlFor="audio-title"
-              className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
+              className="text-xs font-black uppercase tracking-wide text-gray-500 ml-1"
             >
               Título *
             </label>
@@ -263,7 +264,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
           <div className="space-y-1.5">
             <label
               htmlFor="audio-artist"
-              className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
+              className="text-xs font-black uppercase tracking-wide text-gray-500 ml-1"
             >
               Artista *
             </label>
@@ -281,7 +282,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
           <div className="space-y-1.5">
             <label
               htmlFor="audio-url"
-              className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
+              className="text-xs font-black uppercase tracking-wide text-gray-500 ml-1"
             >
               URL del audio *
             </label>
@@ -299,7 +300,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
           <div className="space-y-1.5">
             <label
               htmlFor="audio-thumbnail"
-              className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
+              className="text-xs font-black uppercase tracking-wide text-gray-500 ml-1"
             >
               Thumbnail URL
             </label>
@@ -318,7 +319,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
           <div className="space-y-1.5">
             <label
               htmlFor="audio-duration"
-              className="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1"
+              className="text-xs font-black uppercase tracking-wide text-gray-500 ml-1"
             >
               Duración (seg) *
             </label>
@@ -340,26 +341,21 @@ export default function AudioTab({ onToast }: AudioTabProps) {
           </div>
 
           <div className="pt-4 flex gap-3">
-            <button
-              type="button"
+            <Button
               onClick={closeForm}
-              className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 text-gray-300 font-bold rounded-xl transition-all"
+              variant="secondary"
+              className="flex-1 py-3 font-bold bg-white/5 border-transparent text-gray-300"
             >
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={isSaving}
-              className="flex-1 py-3 px-4 bg-brand-primary hover:bg-brand-primary/80 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-brand-primary/20 transition-all"
+              isLoading={isSaving}
+              variant="primary"
+              className="flex-1 py-3 font-bold shadow-lg shadow-brand-primary/20"
             >
-              {isSaving
-                ? editingTrack
-                  ? 'Guardando...'
-                  : 'Añadiendo...'
-                : editingTrack
-                  ? 'Guardar cambios'
-                  : 'Añadir pista'}
-            </button>
+              {editingTrack ? 'Guardar cambios' : 'Añadir pista'}
+            </Button>
           </div>
         </form>
       </AdminDrawer>

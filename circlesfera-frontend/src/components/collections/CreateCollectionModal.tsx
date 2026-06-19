@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { collectionsApi } from '../../services';
-import { LoadingSpinner } from '../LoadingStates';
+import { Button } from '../ui';
 
 interface CreateCollectionModalProps {
   isOpen: boolean;
@@ -37,18 +37,19 @@ export default function CreateCollectionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#1c1c1c] w-full max-w-sm rounded-2xl border border-white/10 overflow-hidden animate-in fade-in zoom-in duration-200">
+      <div className="bg-[#1c1c1c] w-full max-w-sm rounded-lg border border-white/10 overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">
             {t('collections.new_collection')}
           </h2>
-          <button
-            type="button"
+          <Button
             onClick={onClose}
-            className="p-1 hover:bg-white/10 rounded-full transition-colors text-white"
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/10 rounded-full"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -65,17 +66,19 @@ export default function CreateCollectionModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t('collections.placeholder_name')}
-              className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition-colors"
+              className="w-full bg-black/40 border border-white/10 rounded-xl px-2 py-1 text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition-colors"
             />
           </div>
 
-          <button
+          <Button
             type="submit"
-            disabled={!name.trim() || mutation.isPending}
-            className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            disabled={!name.trim()}
+            isLoading={mutation.isPending}
+            variant="primary"
+            className="w-full py-3 bg-white text-black font-bold hover:bg-gray-200 border-transparent"
           >
-            {mutation.isPending ? <LoadingSpinner /> : t('collections.create')}
-          </button>
+            {t('collections.create')}
+          </Button>
         </form>
       </div>
     </div>

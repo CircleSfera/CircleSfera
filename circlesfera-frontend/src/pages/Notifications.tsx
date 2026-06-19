@@ -157,7 +157,7 @@ export default function Notifications() {
           notifs.map((notif) => (
             <div
               key={notif.id}
-              className={`group relative flex items-center gap-4 transition-colors p-4 md:px-0 ${!notif.read ? 'bg-white/5' : 'hover:bg-white/5'}`}
+              className={`group relative flex items-center gap-3 transition-colors p-3 md:px-0 ${!notif.read ? 'bg-white/5' : 'hover:bg-white/5'}`}
             >
               {/* Visual Unread Indicator */}
               {!notif.read && (
@@ -178,7 +178,7 @@ export default function Notifications() {
                       notif.sender?.profile.username ||
                       t('notifications.unknown_user')
                     }
-                    size="md"
+                    size="sm"
                   />
                   <div
                     className={`absolute -right-1 -bottom-1 w-5 h-5 rounded-full border-2 border-[#0A0A0A] flex items-center justify-center text-white ${getIconBg(notif.type)}`}
@@ -189,7 +189,7 @@ export default function Notifications() {
               </div>
 
               <div className="flex-1">
-                <p className="text-[15px] leading-snug">
+                <p className="text-sm leading-snug">
                   <Link
                     to={`/${notif.sender?.profile.username}`}
                     className="font-bold text-white hover:text-brand-primary/90 transition-colors"
@@ -238,7 +238,7 @@ export default function Notifications() {
                   to={`/p/${notif.postId}`}
                   className="shrink-0 group-hover:scale-105 transition-transform"
                 >
-                  <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center overflow-hidden border border-white/5">
+                  <div className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center overflow-hidden border border-white/5">
                     <Star size={18} className="text-white/30" />
                   </div>
                 </Link>

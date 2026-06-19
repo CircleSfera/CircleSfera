@@ -50,7 +50,7 @@ function SectionHeader({
         <button
           type="button"
           onClick={onSeeAll}
-          className="text-zinc-500 hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest flex items-center gap-1 group"
+          className="text-zinc-500 hover:text-white transition-colors text-xs font-black uppercase tracking-wide flex items-center gap-1 group"
         >
           {seeAllLabel || t('creator.dashboard.see_all')}
           <ChevronRight
@@ -110,21 +110,21 @@ export default function CreatorDashboard({
         />
 
         {postsLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {['sk-1', 'sk-2', 'sk-3', 'sk-4'].map((id) => (
               <div
                 key={id}
-                className="h-32 rounded-3xl bg-white/5 animate-pulse"
+                className="h-32 rounded-xl bg-white/5 animate-pulse"
               />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {recentPosts?.data.map((post) => (
               <motion.div
                 whileHover={{ scale: 1.01 }}
                 key={post.id}
-                className="glass-panel p-4 rounded-2xl border border-white/5 flex items-center gap-5 hover:bg-white/5 transition-all cursor-pointer group/card"
+                className="glass-panel p-4 rounded-lg border border-white/5 flex items-center gap-5 hover:bg-white/5 transition-all cursor-pointer group/card"
                 onClick={() => setInsightsPostId(post.id)}
               >
                 <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-zinc-900 border border-white/5 text-zinc-800 flex items-center justify-center relative">
@@ -157,14 +157,14 @@ export default function CreatorDashboard({
                     <p className="text-white font-bold text-sm truncate">
                       {post.caption || t('creator.dashboard.untitled_post')}
                     </p>
-                    <span className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">
+                    <span className="text-zinc-500 text-xs font-black uppercase tracking-wide">
                       {post.type}
                     </span>
                   </div>
 
                   {/* Premium Performance Bar */}
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-zinc-500 italic">
+                    <div className="flex items-center justify-between text-xs font-black uppercase tracking-wide text-zinc-500 italic">
                       <span>{t('creator.dashboard.performance')}</span>
                       <span className="text-brand-primary">
                         {t('creator.dashboard.vs_avg', {
@@ -193,7 +193,7 @@ export default function CreatorDashboard({
       {/* 2. Quick Strategy & Tools */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Tool Cards */}
-        <section className="lg:col-span-2 space-y-6">
+        <section className="lg:col-span-2 space-y-4">
           <SectionHeader
             title={t('creator.dashboard.studio_management')}
             icon={BarChart3}
@@ -202,7 +202,7 @@ export default function CreatorDashboard({
             <button
               type="button"
               onClick={() => onNavigate('finance')}
-              className="glass-panel p-5 rounded-2xl border border-white/5 flex flex-col gap-4 hover:bg-white/5 transition-all text-left group"
+              className="glass-panel p-4 rounded-lg border border-white/5 flex flex-col gap-4 hover:bg-white/5 transition-all text-left group"
             >
               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-white/10 transition-colors">
                 <DollarSign size={20} className="text-zinc-300" />
@@ -220,7 +220,7 @@ export default function CreatorDashboard({
             <button
               type="button"
               onClick={() => onNavigate('ads')}
-              className="glass-panel p-5 rounded-2xl border border-white/5 flex flex-col gap-4 hover:bg-white/5 transition-all text-left group"
+              className="glass-panel p-4 rounded-lg border border-white/5 flex flex-col gap-4 hover:bg-white/5 transition-all text-left group"
             >
               <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-white/10 transition-colors">
                 <Megaphone size={20} className="text-zinc-300" />
@@ -238,9 +238,9 @@ export default function CreatorDashboard({
         </section>
 
         {/* Mini Audiencia Insights */}
-        <section className="space-y-6">
+        <section className="space-y-4">
           <SectionHeader title={t('creator.dashboard.audience')} icon={Users} />
-          <div className="glass-panel p-6 rounded-2xl border border-white/5 flex flex-col items-center text-center">
+          <div className="glass-panel p-4 rounded-lg border border-white/5 flex flex-col items-center text-center">
             <div
               className="relative w-32 h-32 mb-6"
               role="img"
@@ -282,7 +282,7 @@ export default function CreatorDashboard({
                 <span className="text-white font-black text-xl leading-none">
                   {stats?.insights.retentionRate || 0}%
                 </span>
-                <span className="text-zinc-500 text-[8px] font-black uppercase tracking-tighter">
+                <span className="text-zinc-500 text-xs font-black uppercase tracking-tighter">
                   {t('creator.dashboard.retention')}
                 </span>
               </div>
@@ -292,7 +292,7 @@ export default function CreatorDashboard({
                 day: stats?.insights.bestDayToPost,
               })}
             </p>
-            <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest">
+            <p className="text-zinc-500 text-xs font-bold uppercase tracking-wide">
               {t('creator.dashboard.most_active_hour', {
                 hour: stats?.insights.bestHourToPost,
               })}

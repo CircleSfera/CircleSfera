@@ -23,25 +23,25 @@ export default function CreatorStoriesTab() {
   const isExpired = (expiresAt: string) => new Date(expiresAt) < new Date();
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-4 pb-10">
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-4">
           {['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10'].map(
             (id) => (
               <div
                 key={id}
-                className="aspect-9/16 rounded-3xl animate-pulse bg-zinc-900 border border-white/5"
+                className="aspect-9/16 rounded-xl animate-pulse bg-zinc-900 border border-white/5"
               />
             ),
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-4">
           {data?.data?.map((story) => (
             <motion.div
               layout
               key={story.id}
-              className="relative aspect-9/16 rounded-3xl overflow-hidden border border-white/5 hover:border-brand-primary/30 transition-all group cursor-pointer"
+              className="relative aspect-9/16 rounded-xl overflow-hidden border border-white/5 hover:border-brand-primary/30 transition-all group cursor-pointer"
             >
               {/* Media */}
               {story.mediaType === 'video' ? (
@@ -72,17 +72,17 @@ export default function CreatorStoriesTab() {
               {/* Top Bar: Status */}
               <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
                 {isExpired(story.expiresAt) ? (
-                  <span className="px-2.5 py-1 bg-zinc-900/80 backdrop-blur-xl border border-white/5 rounded-lg text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                  <span className="px-2.5 py-1 bg-zinc-900/80 backdrop-blur-xl border border-white/5 rounded-lg text-xs font-black uppercase tracking-wide text-zinc-500">
                     Expirada
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1.5 px-2.5 py-1 bg-brand-primary text-white backdrop-blur-xl rounded-lg text-[9px] font-black uppercase tracking-widest shadow-lg shadow-brand-primary/20">
+                  <span className="flex items-center gap-1 px-2.5 py-1 bg-brand-primary text-white backdrop-blur-xl rounded-lg text-xs font-black uppercase tracking-wide shadow-lg shadow-brand-primary/20">
                     <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
                     Activa
                   </span>
                 )}
 
-                <div className="p-1.5 bg-black/40 backdrop-blur-md rounded-lg border border-white/5">
+                <div className="p-1 bg-black/40 backdrop-blur-md rounded-lg border border-white/5">
                   <Clock size={12} className="text-white/60" />
                 </div>
               </div>
@@ -90,16 +90,16 @@ export default function CreatorStoriesTab() {
               {/* Bottom Metrics Bar */}
               <div className="absolute bottom-4 left-4 right-4 space-y-3">
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5">
-                    <div className="p-1.5 bg-white/10 backdrop-blur-md rounded-lg border border-white/5">
+                  <div className="flex items-center gap-1">
+                    <div className="p-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/5">
                       <Eye size={12} className="text-white" />
                     </div>
                     <span className="text-white font-black text-xs tracking-tight">
                       {story._count.views.toLocaleString()}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="p-1.5 bg-pink-500/20 backdrop-blur-md rounded-lg border border-pink-500/20">
+                  <div className="flex items-center gap-1">
+                    <div className="p-1 bg-pink-500/20 backdrop-blur-md rounded-lg border border-pink-500/20">
                       <Heart size={12} className="text-pink-400" />
                     </div>
                     <span className="text-white font-black text-xs tracking-tight">

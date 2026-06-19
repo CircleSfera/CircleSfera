@@ -31,8 +31,8 @@ export default function StoriesTab({ onToast }: Props) {
   const isExpired = (expiresAt: string) => new Date(expiresAt) < new Date();
 
   return (
-    <div className="space-y-6">
-      <div className="glass-panel rounded-2xl overflow-clip border border-white/10">
+    <div className="space-y-4">
+      <div className="glass-panel rounded-lg overflow-clip border border-white/10">
         <Table
           headers={[
             'Preview',
@@ -51,7 +51,7 @@ export default function StoriesTab({ onToast }: Props) {
               key={story.id}
               className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
             >
-              <td className="px-4 py-3">
+              <td className="px-2 py-1">
                 <div className="w-10 h-10 rounded-lg bg-white/5 overflow-hidden">
                   {story.mediaType === 'video' ? (
                     <video
@@ -68,17 +68,17 @@ export default function StoriesTab({ onToast }: Props) {
                   )}
                 </div>
               </td>
-              <td className="px-4 py-3">
+              <td className="px-2 py-1">
                 <span className="text-white font-medium text-sm">
                   @{story.user?.profile?.username || 'unknown'}
                 </span>
               </td>
-              <td className="px-4 py-3">
-                <span className="px-2 py-0.5 bg-white/5 rounded text-[10px] font-black uppercase tracking-wider text-gray-400 border border-white/10">
+              <td className="px-2 py-1">
+                <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-black uppercase tracking-wider text-gray-400 border border-white/10">
                   {story.mediaType}
                 </span>
               </td>
-              <td className="px-4 py-3">
+              <td className="px-2 py-1">
                 {isExpired(story.expiresAt) ? (
                   <span className="text-gray-500 text-xs font-bold flex items-center gap-1">
                     <Clock size={10} /> Expirada
@@ -89,17 +89,17 @@ export default function StoriesTab({ onToast }: Props) {
                   </span>
                 )}
               </td>
-              <td className="px-4 py-3">
+              <td className="px-2 py-1">
                 <span className="flex items-center gap-1 text-gray-400 text-sm">
                   <Eye size={12} /> {story._count?.views || 0}
                 </span>
               </td>
-              <td className="px-4 py-3">
+              <td className="px-2 py-1">
                 <span className="flex items-center gap-1 text-pink-400 text-sm">
                   <Heart size={12} /> {story._count?.reactions || 0}
                 </span>
               </td>
-              <td className="px-4 py-3">
+              <td className="px-2 py-1">
                 <ActionButton
                   onClick={() => deleteMutation.mutate(story.id)}
                   label="Eliminar"

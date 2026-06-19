@@ -8,6 +8,7 @@ import { api, closeFriendsApi } from '../../services';
 import type { UserWithProfile } from '../../types';
 import { logger } from '../../utils/logger';
 import UserAvatar from '../UserAvatar';
+import { Button } from '../ui';
 
 export default function CloseFriendsModal({
   onClose,
@@ -79,13 +80,14 @@ export default function CloseFriendsModal({
             </div>
             {t('settings.close_friends_modal.title')}
           </h2>
-          <button
-            type="button"
+          <Button
             onClick={onClose}
+            variant="ghost"
+            size="icon"
             className="text-gray-400 hover:text-white"
           >
             <X size={24} />
-          </button>
+          </Button>
         </div>
 
         <div className="p-4 border-b border-white/10">
@@ -163,13 +165,13 @@ export default function CloseFriendsModal({
         </div>
 
         <div className="p-4 border-t border-white/10">
-          <button
-            type="button"
+          <Button
             onClick={onClose}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg font-semibold transition"
+            variant="primary"
+            className="w-full py-3 font-semibold bg-blue-500 hover:bg-blue-600"
           >
             {t('settings.close_friends_modal.done')}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

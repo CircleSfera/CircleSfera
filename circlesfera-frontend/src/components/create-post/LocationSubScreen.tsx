@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { MapPin, Navigation, Search, X } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Input } from '../ui';
 
 interface LocationSubScreenProps {
   onClose: () => void;
@@ -59,22 +60,18 @@ export default function LocationSubScreen({
 
         <div className="p-4 relative z-10">
           <div className="relative">
-            <Search
-              size={18}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40"
-            />
-            <input
+            <Input
               type="text"
               placeholder={t('createPost.location.search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/10 transition-all duration-300"
+              icon={<Search size={18} className="text-white/40" />}
             />
           </div>
 
           <button
             type="button"
-            className="w-full mt-4 flex items-center gap-3 px-4 py-3 rounded-2xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 transition-all"
+            className="w-full mt-4 flex items-center gap-3 px-2 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 transition-all"
           >
             <Navigation size={18} />
             <span className="text-sm font-semibold">
@@ -95,7 +92,7 @@ export default function LocationSubScreen({
                   type="button"
                   key={loc}
                   onClick={() => onSelect(loc)}
-                  className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-200 group ${
+                  className={`w-full flex items-center gap-4 px-2 py-1.5 rounded-lg transition-all duration-200 group ${
                     isSelected ? 'bg-white/10' : 'hover:bg-white/5'
                   }`}
                 >

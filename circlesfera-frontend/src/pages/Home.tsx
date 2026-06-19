@@ -25,7 +25,7 @@ export default function Home() {
     <div className="min-h-screen pt-4 md:pt-8 pb-32">
       <SEO title={t('feed.home_title')} />
       {/* Header Title - Hidden on mobile as TopNav replaces it */}
-      <h1 className="hidden md:block text-4xl md:text-5xl font-black text-center mb-8 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
+      <h1 className="hidden md:block text-2xl md:text-3xl font-black text-center mb-8 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
         {t('feed.brand_name')}
       </h1>
 
@@ -58,7 +58,7 @@ export default function Home() {
 
         {/* Stories Section */}
         {isLoading ? (
-          <div className="glass-panel rounded-2xl p-4 mb-6 flex gap-4 overflow-hidden">
+          <div className="glass-panel rounded-lg p-4 mb-6 flex gap-4 overflow-hidden">
             {['s1', 's2', 's3', 's4', 's5', 's6'].map((id) => (
               <StorySkeleton key={id} />
             ))}
@@ -69,9 +69,9 @@ export default function Home() {
 
         <SuggestionsList />
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {!isAuthenticated && activeTab === 'following' ? (
-            <div className="text-center py-12 glass-panel rounded-2xl p-8">
+            <div className="text-center py-12 glass-panel rounded-lg p-8">
               <p className="text-gray-400">
                 {t(
                   'feed.login_required',
@@ -82,7 +82,7 @@ export default function Home() {
           ) : isLoading ? (
             ['p1', 'p2', 'p3'].map((id) => <PostSkeleton key={id} />)
           ) : data?.data.data.length === 0 ? (
-            <div className="text-center py-12 glass-panel rounded-2xl p-8">
+            <div className="text-center py-12 glass-panel rounded-lg p-8">
               <p className="text-gray-400">{t('feed.no_posts')}</p>
             </div>
           ) : (

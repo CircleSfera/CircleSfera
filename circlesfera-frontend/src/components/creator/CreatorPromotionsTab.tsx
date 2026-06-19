@@ -109,7 +109,7 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-8 border-b border-white/5">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-brand-primary/10 rounded-2xl border border-brand-primary/20">
+            <div className="p-3 bg-brand-primary/10 rounded-lg border border-brand-primary/20">
               <Megaphone size={24} className="text-brand-primary" />
             </div>
             <div>
@@ -118,7 +118,7 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
                   ? t('creator.promotions.select_content')
                   : t('creator.promotions.configure_reach')}
               </h3>
-              <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mt-1">
+              <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mt-1">
                 {t('creator.promotions.boost_best')}
               </p>
             </div>
@@ -126,7 +126,7 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
           <button
             type="button"
             onClick={onClose}
-            className="p-3 hover:bg-white/5 rounded-2xl transition-all group"
+            className="p-3 hover:bg-white/5 rounded-lg transition-all group"
           >
             <X size={20} className="text-zinc-500 group-hover:text-white" />
           </button>
@@ -141,7 +141,7 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
                   (id) => (
                     <div
                       key={id}
-                      className="aspect-4/5 rounded-2xl bg-white/5 animate-pulse"
+                      className="aspect-4/5 rounded-lg bg-white/5 animate-pulse"
                     />
                   ),
                 )
@@ -154,7 +154,7 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
                       setSelectedPost(post);
                       setStep('configure');
                     }}
-                    className="relative aspect-9/16 rounded-3xl overflow-hidden border border-white/5 hover:border-brand-primary/30 transition-all group cursor-pointer"
+                    className="relative aspect-9/16 rounded-xl overflow-hidden border border-white/5 hover:border-brand-primary/30 transition-all group cursor-pointer"
                   >
                     {post.media?.[0]?.url ? (
                       <img
@@ -169,7 +169,7 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
                     )}
                     <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-60" />
                     <div className="absolute bottom-3 left-3 right-3 text-left">
-                      <p className="text-white text-[10px] font-bold truncate">
+                      <p className="text-white text-xs font-bold truncate">
                         {post.caption || t('creator.promotions.untitled')}
                       </p>
                     </div>
@@ -184,8 +184,8 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
           ) : (
             <div className="space-y-10">
               {/* Selected post preview */}
-              <div className="flex items-center gap-5 p-5 rounded-3xl bg-white/5 border border-white/5">
-                <div className="w-16 h-16 rounded-2xl bg-zinc-900 overflow-hidden shrink-0 border border-white/5">
+              <div className="flex items-center gap-5 p-5 rounded-xl bg-white/5 border border-white/5">
+                <div className="w-16 h-16 rounded-lg bg-zinc-900 overflow-hidden shrink-0 border border-white/5">
                   {selectedPost?.media?.[0]?.url ? (
                     <img
                       src={selectedPost.media[0].url}
@@ -204,7 +204,7 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
                   <button
                     type="button"
                     onClick={() => setStep('select')}
-                    className="text-[10px] font-black uppercase tracking-widest text-brand-primary hover:text-white transition-colors"
+                    className="text-xs font-black uppercase tracking-wide text-brand-primary hover:text-white transition-colors"
                   >
                     {t('creator.promotions.change_post')}
                   </button>
@@ -213,7 +213,7 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
 
               {/* Budget */}
               <fieldset className="space-y-4 border-none p-0 m-0">
-                <legend className="block text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4">
+                <legend className="block text-xs font-black uppercase tracking-wide text-zinc-500 mb-4">
                   {t('creator.promotions.daily_budget', { currency: 'EUR' })}
                 </legend>
                 <div className="grid grid-cols-4 gap-3">
@@ -222,7 +222,7 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
                       key={v}
                       type="button"
                       onClick={() => setBudget(v)}
-                      className={`py-4 rounded-2xl text-xs font-black transition-all border ${
+                      className={`py-4 rounded-lg text-xs font-black transition-all border ${
                         budget === v
                           ? 'bg-white text-black border-white shadow-xl shadow-white/5'
                           : 'bg-white/5 text-zinc-500 border-white/5 hover:bg-white/10'
@@ -236,7 +236,7 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
 
               {/* Duration */}
               <fieldset className="space-y-4 border-none p-0 m-0">
-                <legend className="block text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4">
+                <legend className="block text-xs font-black uppercase tracking-wide text-zinc-500 mb-4">
                   {t('creator.promotions.campaign_duration')}
                 </legend>
                 <div className="grid grid-cols-4 gap-3">
@@ -245,7 +245,7 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
                       key={d}
                       type="button"
                       onClick={() => setDuration(d)}
-                      className={`py-4 rounded-2xl text-xs font-black transition-all border ${
+                      className={`py-4 rounded-lg text-xs font-black transition-all border ${
                         duration === d
                           ? 'bg-brand-primary text-white border-brand-primary shadow-xl shadow-brand-primary/20'
                           : 'bg-white/5 text-zinc-500 border-white/5 hover:bg-white/10'
@@ -267,7 +267,7 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
               type="button"
               onClick={() => createMutation.mutate()}
               disabled={createMutation.isPending}
-              className="w-full py-5 bg-brand-primary text-white rounded-4xl font-black text-sm uppercase tracking-widest shadow-2xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-100 transition-all disabled:opacity-50"
+              className="w-full py-5 bg-brand-primary text-white rounded-4xl font-black text-sm uppercase tracking-wide shadow-2xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-100 transition-all disabled:opacity-50"
             >
               {createMutation.isPending ? (
                 <span className="flex items-center justify-center gap-3">
@@ -339,19 +339,19 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
   return (
     <div className="space-y-12 pb-20">
       {/* Header + Action */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h3 className="text-white font-black text-2xl uppercase tracking-tight">
             {t('creator.promotions.center')}
           </h3>
-          <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] mt-1 italic">
+          <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mt-1 italic">
             {t('creator.promotions.marketing')}
           </p>
         </div>
         <button
           type="button"
           onClick={() => setShowNewPromo(true)}
-          className="flex items-center justify-center gap-3 px-8 py-4 bg-white text-black rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-white/5 hover:scale-[1.03] transition-all"
+          className="flex items-center justify-center gap-3 px-8 py-4 bg-white text-black rounded-lg font-black text-xs uppercase tracking-wide shadow-2xl shadow-white/5 hover:scale-[1.03] transition-all"
         >
           <Plus size={16} />
           {t('creator.promotions.new_campaign')}
@@ -359,16 +359,16 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
       </div>
 
       {isLoading ? (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {['load-promo-1', 'load-promo-2', 'load-promo-3'].map((id) => (
             <div
               key={id}
-              className="aspect-9/16 rounded-3xl animate-pulse bg-zinc-900 border border-white/5"
+              className="aspect-9/16 rounded-xl animate-pulse bg-zinc-900 border border-white/5"
             />
           ))}
         </div>
       ) : !data?.data?.length ? (
-        <div className="text-center py-20 glass-panel rounded-2xl border border-dashed border-white/5">
+        <div className="text-center py-20 glass-panel rounded-lg border border-dashed border-white/5">
           <div className="inline-flex p-6 rounded-full bg-brand-primary/5 mb-6">
             <TrendingUp size={48} className="text-brand-primary/40" />
           </div>
@@ -381,7 +381,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
           <button
             type="button"
             onClick={() => setShowNewPromo(true)}
-            className="px-10 py-4 bg-brand-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-brand-primary/20"
+            className="px-10 py-4 bg-brand-primary text-white rounded-lg font-black text-xs uppercase tracking-wide shadow-xl shadow-brand-primary/20"
           >
             {t('creator.promotions.create_first')}
           </button>
@@ -390,16 +390,16 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
         <div className="space-y-16">
           {/* Active Campaigns */}
           {activePromos.length > 0 && (
-            <div className="space-y-8">
+            <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                <h4 className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em]">
+                <h4 className="text-emerald-400 text-xs font-black uppercase tracking-wide">
                   {t('creator.promotions.in_progress', {
                     count: activePromos.length,
                   })}
                 </h4>
               </div>
-              <div className="grid grid-cols-1 gap-6">
+              <div className="grid grid-cols-1 gap-4">
                 {activePromos.map((promo) => {
                   const pct = computeProgress(promo.startDate, promo.endDate);
                   const daysLeft = computeDaysLeft(promo.endDate);
@@ -408,11 +408,11 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                     <motion.div
                       layout
                       key={promo.id}
-                      className="glass-panel p-6 md:p-8 rounded-4xl border border-white/5 hover:border-white/10 transition-all group"
+                      className="glass-panel p-4 md:p-8 rounded-4xl border border-white/5 hover:border-white/10 transition-all group"
                     >
                       <div className="flex flex-col lg:flex-row gap-8">
                         {/* Visual Preview */}
-                        <div className="w-full lg:w-32 lg:h-32 rounded-3xl bg-zinc-900 overflow-hidden shrink-0 border border-white/5 shadow-xl">
+                        <div className="w-full lg:w-32 lg:h-32 rounded-xl bg-zinc-900 overflow-hidden shrink-0 border border-white/5 shadow-xl">
                           {promo.target?.thumbnail ? (
                             <img
                               src={promo.target.thumbnail}
@@ -425,7 +425,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                         </div>
 
                         {/* Core Data */}
-                        <div className="flex-1 space-y-6">
+                        <div className="flex-1 space-y-4">
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
                               <p className="text-white font-black text-lg tracking-tight mb-1">
@@ -434,7 +434,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                                     type: promo.targetType,
                                   })}
                               </p>
-                              <p className="text-zinc-500 text-[9px] font-black uppercase tracking-widest">
+                              <p className="text-zinc-500 text-xs font-black uppercase tracking-wide">
                                 {t('creator.promotions.started_on', {
                                   date: formatDate(promo.startDate),
                                 })}
@@ -443,7 +443,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
 
                             <div className="flex items-center gap-3">
                               <div className="text-right">
-                                <p className="text-zinc-500 text-[8px] font-black uppercase tracking-widest mb-1 italic text-right">
+                                <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mb-1 italic text-right">
                                   {t('creator.promotions.investment')}
                                 </p>
                                 <p className="text-white font-black text-xl italic leading-none">
@@ -452,7 +452,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                               </div>
                               <div className="w-px h-8 bg-white/5" />
                               <div className="text-right">
-                                <p className="text-zinc-500 text-[8px] font-black uppercase tracking-widest mb-1 italic text-right">
+                                <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mb-1 italic text-right">
                                   {t('creator.promotions.total_reach')}
                                 </p>
                                 <p className="text-brand-primary font-black text-xl italic leading-none">
@@ -465,7 +465,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                           {/* Dynamic Progress */}
                           <div className="space-y-3">
                             <div className="flex justify-between items-end">
-                              <span className="text-zinc-400 text-[10px] font-black uppercase tracking-widest">
+                              <span className="text-zinc-400 text-xs font-black uppercase tracking-wide">
                                 {t('creator.promotions.plan_execution')}
                               </span>
                               <span className="text-white text-xs font-black italic">
@@ -492,7 +492,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                                 type="button"
                                 onClick={() => cancelMutation.mutate(promo.id)}
                                 disabled={cancelMutation.isPending}
-                                className="flex-1 md:flex-none px-6 py-3 bg-rose-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-rose-600 transition disabled:opacity-40"
+                                className="flex-1 md:flex-none px-5 py-2 bg-rose-500 text-white text-xs font-black uppercase tracking-wide rounded-xl hover:bg-rose-600 transition disabled:opacity-40"
                               >
                                 {cancelMutation.isPending
                                   ? t('creator.promotions.processing')
@@ -501,7 +501,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                               <button
                                 type="button"
                                 onClick={() => setConfirmCancel(null)}
-                                className="px-6 py-3 bg-white/5 text-zinc-500 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-white/10 transition"
+                                className="px-5 py-2 bg-white/5 text-zinc-500 text-xs font-black uppercase tracking-wide rounded-xl hover:bg-white/10 transition"
                               >
                                 {t('creator.promotions.no')}
                               </button>
@@ -510,7 +510,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                             <button
                               type="button"
                               onClick={() => setConfirmCancel(promo.id)}
-                              className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-white/5 text-zinc-500 hover:text-rose-400 hover:bg-rose-400/10 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border border-transparent hover:border-rose-400/20"
+                              className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2 bg-white/5 text-zinc-500 hover:text-rose-400 hover:bg-rose-400/10 text-xs font-black uppercase tracking-wide rounded-xl transition-all border border-transparent hover:border-rose-400/20"
                             >
                               <XCircle size={14} />{' '}
                               {t('creator.promotions.stop')}
@@ -527,8 +527,8 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
 
           {/* Completed History */}
           {completedPromos.length > 0 && (
-            <div className="space-y-8 pt-8 border-t border-white/5">
-              <h4 className="text-zinc-600 text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-3">
+            <div className="space-y-4 pt-8 border-t border-white/5">
+              <h4 className="text-zinc-600 text-xs font-black uppercase tracking-wide flex items-center gap-3">
                 <CheckCircle2 size={12} />
                 {t('creator.promotions.completed_history', {
                   count: completedPromos.length,
@@ -538,9 +538,9 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                 {completedPromos.map((promo) => (
                   <div
                     key={promo.id}
-                    className="glass-panel p-5 rounded-3xl border border-white/5 opacity-60 hover:opacity-100 transition-all flex items-center gap-5 group"
+                    className="glass-panel p-4 rounded-xl border border-white/5 opacity-60 hover:opacity-100 transition-all flex items-center gap-5 group"
                   >
-                    <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-white/5 overflow-hidden shrink-0 grayscale group-hover:grayscale-0 transition-all duration-700">
+                    <div className="w-16 h-16 rounded-lg bg-zinc-900 border border-white/5 overflow-hidden shrink-0 grayscale group-hover:grayscale-0 transition-all duration-700">
                       {promo.target?.thumbnail ? (
                         <img
                           src={promo.target.thumbnail}
@@ -556,7 +556,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                         {promo.target?.caption ||
                           t('creator.promotions.completed_campaign')}
                       </p>
-                      <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                      <div className="flex items-center gap-3 text-xs font-black uppercase tracking-wide text-zinc-500">
                         <span className="flex items-center gap-1">
                           <Zap size={10} className="text-brand-primary" />{' '}
                           {promo.reach.toLocaleString()}{' '}

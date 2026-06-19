@@ -3,6 +3,7 @@ import { ArrowLeft, CheckCircle, Mail } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { Button } from '../components/ui';
 import { authApi } from '../services';
 import type { ApiError } from '../types';
 
@@ -37,15 +38,15 @@ export default function ForgotPassword() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-panel p-8 rounded-2xl max-w-md w-full text-center"
+          className="glass-panel p-4 rounded-lg max-w-md w-full text-center"
         >
-          <div className="bg-green-500/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-10 h-10 text-green-500" />
+          <div className="bg-green-500/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-8 h-8 text-green-500" />
           </div>
           <h1 className="text-2xl font-bold mb-4">
             {t('auth.forgot_password.success_title')}
           </h1>
-          <p className="text-gray-400 mb-8">
+          <p className="text-gray-400 mb-5">
             {t('auth.forgot_password.success_desc1')} <strong>{email}</strong>
             {t('auth.forgot_password.success_desc2')}
           </p>
@@ -65,7 +66,7 @@ export default function ForgotPassword() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-panel p-8 rounded-2xl max-w-md w-full"
+        className="glass-panel p-4 rounded-lg max-w-md w-full"
       >
         <Link
           to="/accounts/login"
@@ -77,11 +78,11 @@ export default function ForgotPassword() {
         <h1 className="text-2xl font-bold mb-2">
           {t('auth.forgot_password.title')}
         </h1>
-        <p className="text-gray-400 mb-8 text-sm">
+        <p className="text-gray-400 mb-5 text-sm">
           {t('auth.forgot_password.subtitle')}
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <label
               htmlFor="email"
@@ -109,15 +110,14 @@ export default function ForgotPassword() {
 
           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
-          <button
+          <Button
             type="submit"
-            disabled={loading}
-            className="w-full bg-brand-primary py-3 rounded-xl font-bold hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            variant="primary"
+            isLoading={loading}
+            className="w-full font-bold py-2.5"
           >
-            {loading
-              ? t('auth.forgot_password.submit_loading')
-              : t('auth.forgot_password.submit')}
-          </button>
+            {t('auth.forgot_password.submit')}
+          </Button>
         </form>
       </motion.div>
     </div>

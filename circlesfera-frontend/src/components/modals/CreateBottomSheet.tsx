@@ -146,7 +146,7 @@ export default function CreateBottomSheet() {
                     type="button"
                     key={item.id}
                     onClick={item.action}
-                    className="flex items-center gap-4 py-4 px-2 hover:bg-white/5 rounded-2xl transition-colors text-left group"
+                    className="flex items-center gap-4 py-4 px-2 hover:bg-white/5 rounded-lg transition-colors text-left group"
                   >
                     <item.icon
                       size={28}
@@ -157,7 +157,7 @@ export default function CreateBottomSheet() {
                       {item.label}
                     </span>
                     {item.badge && (
-                      <span className="bg-blue-600 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
+                      <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                         {item.badge}
                       </span>
                     )}

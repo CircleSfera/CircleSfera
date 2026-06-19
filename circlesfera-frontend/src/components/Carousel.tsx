@@ -194,7 +194,7 @@ export default function Carousel({
 
       {/* Dots */}
       <div
-        className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 shadow-sm z-30"
+        className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1 shadow-sm z-30"
         role="tablist"
       >
         {media.map((item, i) => (

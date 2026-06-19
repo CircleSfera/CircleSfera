@@ -14,6 +14,7 @@ import { useState } from 'react';
 import { adminApi } from '../../services/admin.service';
 import { LoadingSpinner } from '../index';
 import UserAvatar from '../UserAvatar';
+import { Button, Select } from '../ui';
 import VerificationBadge, {
   type VerificationLevel,
 } from '../VerificationBadge';
@@ -110,7 +111,7 @@ export default function UserVerificationTab({
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)] space-y-6">
+    <div className="flex flex-col h-[calc(100vh-12rem)] space-y-4">
       {/* Header & Controls */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
         <div>
@@ -134,10 +135,10 @@ export default function UserVerificationTab({
       </div>
 
       {/* Split Pane Layout */}
-      <div className="flex flex-1 min-h-0 gap-6">
+      <div className="flex flex-1 min-h-0 gap-4">
         {/* Left Pane: Queue */}
         <div
-          className={`w-full lg:w-1/3 flex-col glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-lg ${selectedUserId ? 'hidden lg:flex' : 'flex'}`}
+          className={`w-full lg:w-1/3 flex-col glass-panel rounded-lg border border-white/5 overflow-hidden shadow-lg ${selectedUserId ? 'hidden lg:flex' : 'flex'}`}
         >
           <div className="p-4 border-b border-white/5 shrink-0 bg-white/2">
             <h3 className="font-bold text-white flex items-center gap-2">
@@ -180,7 +181,7 @@ export default function UserVerificationTab({
                   >
                     <div className="flex justify-between items-start mb-2">
                       <span
-                        className={`text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${
+                        className={`text-xs font-black uppercase tracking-wide px-1.5 py-0.5 rounded ${
                           isVerified
                             ? 'text-green-400 bg-green-400/10'
                             : isPending
@@ -207,7 +208,7 @@ export default function UserVerificationTab({
                         size="sm"
                       />
                       <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1">
                           <p className="text-white text-sm font-bold truncate">
                             @{user.profile?.username || 'Desconocido'}
                           </p>
@@ -216,7 +217,7 @@ export default function UserVerificationTab({
                             size={14}
                           />
                         </div>
-                        <p className="text-zinc-500 text-[10px] truncate uppercase tracking-widest font-black">
+                        <p className="text-zinc-500 text-xs truncate uppercase tracking-wide font-black">
                           {user.accountType}
                         </p>
                       </div>
@@ -234,7 +235,7 @@ export default function UserVerificationTab({
 
         {/* Right Pane: Details & Actions */}
         <div
-          className={`flex-1 glass-panel rounded-2xl border border-white/5 overflow-hidden shadow-lg flex-col relative ${selectedUserId ? 'flex' : 'hidden lg:flex'}`}
+          className={`flex-1 glass-panel rounded-lg border border-white/5 overflow-hidden shadow-lg flex-col relative ${selectedUserId ? 'flex' : 'hidden lg:flex'}`}
         >
           <AnimatePresence mode="wait">
             {selectedUser ? (
@@ -284,28 +285,28 @@ export default function UserVerificationTab({
                   </div>
                   <div className="flex items-center gap-2">
                     {hasChanges && (
-                      <button
-                        type="button"
+                      <Button
                         onClick={handleSave}
-                        disabled={updateVerificationMutation.isPending}
-                        className="px-4 py-2 bg-brand-primary hover:bg-brand-primary-light text-white rounded-xl text-sm font-bold flex items-center gap-2 transition-colors shadow-lg shadow-brand-primary/20"
+                        isLoading={updateVerificationMutation.isPending}
+                        variant="primary"
+                        className="text-sm font-bold shadow-lg shadow-brand-primary/20"
                       >
-                        <Check size={16} /> Guardar Cambios
-                      </button>
+                        <Check size={16} className="mr-2" /> Guardar Cambios
+                      </Button>
                     )}
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
                   {/* Stripe Identity KYC Status Card */}
                   <div>
-                    <h4 className="text-white font-black text-sm uppercase tracking-widest mb-4">
+                    <h4 className="text-white font-black text-sm uppercase tracking-wide mb-4">
                       Estado de Stripe Identity (KYC)
                     </h4>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {selectedUser.identityVerifiedAt ? (
-                        <div className="p-6 bg-green-500/10 border border-green-500/20 rounded-2xl flex flex-col items-center justify-center text-center">
+                        <div className="p-6 bg-green-500/10 border border-green-500/20 rounded-lg flex flex-col items-center justify-center text-center">
                           <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mb-4">
                             <CheckCircle2 size={32} />
                           </div>
@@ -321,7 +322,7 @@ export default function UserVerificationTab({
                           </p>
                         </div>
                       ) : selectedUser.stripeIdentitySessionId ? (
-                        <div className="p-6 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl flex flex-col items-center justify-center text-center">
+                        <div className="p-6 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex flex-col items-center justify-center text-center">
                           <div className="w-16 h-16 bg-yellow-500/20 text-yellow-400 rounded-full flex items-center justify-center mb-4">
                             <Clock size={32} />
                           </div>
@@ -334,7 +335,7 @@ export default function UserVerificationTab({
                           </p>
                         </div>
                       ) : (
-                        <div className="p-6 bg-white/5 border border-white/10 rounded-2xl flex flex-col items-center justify-center text-center">
+                        <div className="p-6 bg-white/5 border border-white/10 rounded-lg flex flex-col items-center justify-center text-center">
                           <div className="w-16 h-16 bg-white/10 text-gray-400 rounded-full flex items-center justify-center mb-4">
                             <UserX size={32} />
                           </div>
@@ -348,9 +349,9 @@ export default function UserVerificationTab({
                         </div>
                       )}
 
-                      <div className="p-6 bg-white/2 border border-white/5 rounded-2xl flex flex-col justify-between">
+                      <div className="p-6 bg-white/2 border border-white/5 rounded-lg flex flex-col justify-between">
                         <div>
-                          <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">
+                          <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-1">
                             Session ID
                           </p>
                           <p className="text-white text-xs font-mono break-all bg-black/50 p-2 rounded-lg border border-white/10">
@@ -361,8 +362,7 @@ export default function UserVerificationTab({
                         {(selectedUser.identityVerifiedAt ||
                           selectedUser.stripeIdentitySessionId) && (
                           <div className="mt-6">
-                            <button
-                              type="button"
+                            <Button
                               onClick={() => {
                                 if (
                                   window.confirm(
@@ -372,13 +372,14 @@ export default function UserVerificationTab({
                                   revokeKycMutation.mutate(selectedUser.id);
                                 }
                               }}
-                              disabled={revokeKycMutation.isPending}
-                              className="w-full px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors border border-red-500/30"
+                              isLoading={revokeKycMutation.isPending}
+                              variant="danger"
+                              className="w-full text-sm font-bold border-red-500/30"
                             >
-                              <RefreshCw size={16} /> Revocar Verificación y
-                              Forzar KYC
-                            </button>
-                            <p className="text-[10px] text-gray-500 text-center mt-2">
+                              <RefreshCw size={16} className="mr-2" /> Revocar
+                              Verificación y Forzar KYC
+                            </Button>
+                            <p className="text-xs text-gray-500 text-center mt-2">
                               Esto borrará el registro de validación y la sesión
                               actual.
                             </p>
@@ -390,56 +391,46 @@ export default function UserVerificationTab({
 
                   {/* Profile Level Controls */}
                   <div>
-                    <h4 className="text-white font-black text-sm uppercase tracking-widest mb-4">
+                    <h4 className="text-white font-black text-sm uppercase tracking-wide mb-4">
                       Control de Nivel y Permisos
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="p-4 bg-white/2 rounded-xl border border-white/5 space-y-2">
-                        <label className="flex flex-col gap-2">
-                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                            Nivel de Verificación de Perfil
-                          </span>
-                          <select
-                            value={draftLevel || 'BASIC'}
-                            onChange={(e) =>
-                              setDraftLevel(e.target.value as VerificationLevel)
-                            }
-                            className="w-full bg-zinc-900 border border-white/10 rounded-lg text-sm font-bold py-2 px-3 text-white focus:outline-hidden focus:ring-1 focus:ring-brand-primary cursor-pointer hover:border-brand-primary/50 transition-colors"
-                          >
-                            <option value="BASIC">Standard</option>
-                            <option value="VERIFIED">
-                              Verificado (Blue Check)
-                            </option>
-                            <option value="BUSINESS">
-                              Business (Gold Check)
-                            </option>
-                            <option value="ELITE">
-                              Elite Creator (Red Check)
-                            </option>
-                          </select>
-                        </label>
-                        <p className="text-[10px] text-gray-500 mt-2">
+                        <Select
+                          label="Nivel de Verificación de Perfil"
+                          value={draftLevel || 'BASIC'}
+                          onChange={(e) =>
+                            setDraftLevel(e.target.value as VerificationLevel)
+                          }
+                        >
+                          <option value="BASIC">Standard</option>
+                          <option value="VERIFIED">
+                            Verificado (Blue Check)
+                          </option>
+                          <option value="BUSINESS">
+                            Business (Gold Check)
+                          </option>
+                          <option value="ELITE">
+                            Elite Creator (Red Check)
+                          </option>
+                        </Select>
+                        <p className="text-xs text-gray-500 mt-2">
                           Define el distintivo (badge) público que se muestra en
                           el perfil del usuario.
                         </p>
                       </div>
 
                       <div className="p-4 bg-white/2 rounded-xl border border-white/5 space-y-2">
-                        <label className="flex flex-col gap-2">
-                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                            Tipo de Cuenta
-                          </span>
-                          <select
-                            value={draftType || 'PERSONAL'}
-                            onChange={(e) => setDraftType(e.target.value)}
-                            className="w-full bg-zinc-900 border border-white/10 rounded-lg text-sm font-bold py-2 px-3 text-white focus:outline-hidden focus:ring-1 focus:ring-brand-primary cursor-pointer hover:border-brand-primary/50 transition-colors"
-                          >
-                            <option value="PERSONAL">Cuenta Personal</option>
-                            <option value="CREATOR">Cuenta de Creador</option>
-                            <option value="BUSINESS">Cuenta de Empresa</option>
-                          </select>
-                        </label>
-                        <p className="text-[10px] text-gray-500 mt-2">
+                        <Select
+                          label="Tipo de Cuenta"
+                          value={draftType || 'PERSONAL'}
+                          onChange={(e) => setDraftType(e.target.value)}
+                        >
+                          <option value="PERSONAL">Cuenta Personal</option>
+                          <option value="CREATOR">Cuenta de Creador</option>
+                          <option value="BUSINESS">Cuenta de Empresa</option>
+                        </Select>
+                        <p className="text-xs text-gray-500 mt-2">
                           Define las herramientas (analytics, monetización) a
                           las que tiene acceso el usuario.
                         </p>

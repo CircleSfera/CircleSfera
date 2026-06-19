@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { followsApi } from '../services';
+import { Button } from './ui';
 
 interface FollowButtonProps {
   username: string;
@@ -39,21 +40,21 @@ export default function FollowButton({ username }: FollowButtonProps) {
     return 'Follow';
   };
 
-  const getButtonClass = () => {
+  const getButtonVariant = () => {
     if (status === 'ACCEPTED' || status === 'PENDING') {
-      return 'bg-gray-200 text-gray-800 hover:bg-gray-300';
+      return 'secondary';
     }
-    return 'bg-linear-to-r from-brand-primary to-brand-secondary text-white hover:from-brand-secondary hover:to-brand-primary active:scale-[0.98]';
+    return 'primary';
   };
 
   return (
-    <button
-      type="button"
+    <Button
       onClick={() => followMutation.mutate()}
-      disabled={followMutation.isPending}
-      className={`px-6 py-2 rounded-lg font-semibold transition disabled:opacity-50 ${getButtonClass()}`}
+      isLoading={followMutation.isPending}
+      variant={getButtonVariant()}
+      className="px-6 py-2 font-semibold"
     >
-      {followMutation.isPending ? 'Loading...' : getButtonText()}
-    </button>
+      {getButtonText()}
+    </Button>
   );
 }

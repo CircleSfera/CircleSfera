@@ -137,7 +137,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
 
         {/* Search & Selection Area */}
         <div className="px-6 py-4 border-b border-white/5 shrink-0 bg-black/10">
-          <div className="flex flex-wrap gap-2 items-center min-h-[48px] bg-black/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 focus-within:border-brand-primary/50 focus-within:shadow-[0_0_15px_rgba(131,58,180,0.15)] transition-all">
+          <div className="flex flex-wrap gap-2 items-center min-h-[48px] bg-black/20 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 focus-within:border-brand-primary/50 focus-within:shadow-[0_0_15px_rgba(131,58,180,0.15)] transition-all">
             <span className="text-white/60 font-medium text-[15px] mr-1">
               {t('chat.to')}
             </span>
@@ -152,7 +152,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
                   exit={{ scale: 0.8, opacity: 0 }}
                   key={u.id}
                   onClick={() => handleUserToggle(u)}
-                  className="bg-brand-primary text-white px-3 py-1 rounded-full text-[13px] font-semibold flex items-center gap-1.5 hover:opacity-90 transition-opacity shadow-lg shadow-brand-primary/20"
+                  className="bg-brand-primary text-white px-3 py-1 rounded-full text-[13px] font-semibold flex items-center gap-1 hover:opacity-90 transition-opacity shadow-lg shadow-brand-primary/20"
                 >
                   {u.username}
                   <X size={12} />
@@ -181,7 +181,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
               exit={{ height: 0, opacity: 0 }}
               className="px-6 py-2 border-b border-white/5 shrink-0 overflow-hidden"
             >
-              <div className="flex items-center bg-black/20 backdrop-blur-md rounded-2xl px-4 py-3 border border-white/10 focus-within:border-brand-primary/50 focus-within:shadow-[0_0_15px_rgba(131,58,180,0.15)] transition-all">
+              <div className="flex items-center bg-black/20 backdrop-blur-md rounded-lg px-2 py-1 border border-white/10 focus-within:border-brand-primary/50 focus-within:shadow-[0_0_15px_rgba(131,58,180,0.15)] transition-all">
                 <div className="bg-white/10 p-2 rounded-xl mr-3">
                   <Users size={16} className="text-white/70" />
                 </div>
@@ -213,7 +213,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-gray-500/50 space-y-2">
-                <p className="text-xs uppercase tracking-widest font-bold">
+                <p className="text-xs uppercase tracking-wide font-bold">
                   {t('chat.no_following')}
                 </p>
               </div>
@@ -221,7 +221,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
           ) : (
             <>
               {!debouncedSearch && (
-                <div className="px-4 py-3 text-[11px] font-black text-white/40 uppercase tracking-[0.15em] sticky top-0 bg-transparent backdrop-blur-xl z-10">
+                <div className="px-2 py-1 text-xs font-black text-white/40 uppercase tracking-[0.15em] sticky top-0 bg-transparent backdrop-blur-xl z-10">
                   {t('chat.suggested')}
                 </div>
               )}
@@ -239,7 +239,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
                       onClick={() => handleUserToggle(profile)}
                       whileHover={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all group"
+                      className="w-full flex items-center justify-between px-2 py-1 rounded-lg transition-all group"
                     >
                       <div className="flex items-center gap-4">
                         <UserAvatar
