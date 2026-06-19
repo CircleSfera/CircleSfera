@@ -24,13 +24,15 @@ export default function LayoutWrapper({
   const hideNavRoutes = ['/accounts/login', '/accounts/emailsignup'];
 
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const isCreatorRoute = location.pathname.startsWith('/creator');
 
-  // Only show nav if authenticated AND not in hidden routes AND not in admin
+  // Only show nav if authenticated AND not in hidden routes AND not in admin/creator
   const shouldShowNav =
     showNavigation &&
     isAuthenticated &&
     !hideNavRoutes.includes(location.pathname) &&
-    !isAdminRoute;
+    !isAdminRoute &&
+    !isCreatorRoute;
 
   useEffect(() => {
     if (isAuthenticated) {

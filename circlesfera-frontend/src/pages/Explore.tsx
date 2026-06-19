@@ -103,7 +103,7 @@ export default function Explore() {
       <h1 className="text-xl font-black mb-6">{t('explore.heading')}</h1>
 
       {/* Search Input */}
-      <div className="relative mb-12 max-w-2xl mx-auto group">
+      <div className="relative mb-8 max-w-2xl mx-auto group">
         {/* Brand Accent Line for Search */}
         <div className="absolute -top-px left-8 right-8 h-px bg-linear-to-r from-transparent via-brand-primary to-transparent opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
 

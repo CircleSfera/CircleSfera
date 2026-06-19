@@ -29,7 +29,7 @@ export default function ExploreColdStart({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-3xl mx-auto py-12 px-4 flex flex-col items-center text-center space-y-12"
+      className="max-w-3xl mx-auto py-4 px-4 flex flex-col items-center text-center space-y-8"
     >
       {/* Educational Hero */}
       <div className="space-y-4 max-w-xl">

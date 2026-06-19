@@ -202,10 +202,10 @@ export default function CreatorDashboard({
             <button
               type="button"
               onClick={() => onNavigate('finance')}
-              className="glass-panel p-4 rounded-lg border border-white/5 flex flex-col gap-4 hover:bg-white/5 transition-all text-left group"
+              className="glass-panel p-5 rounded-xl border border-white/10 bg-white/2 flex flex-col gap-4 hover:bg-white/10 hover:border-white/20 transition-all text-left group"
             >
-              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-white/10 transition-colors">
-                <DollarSign size={20} className="text-zinc-300" />
+              <div className="w-12 h-12 rounded-xl bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20 group-hover:scale-110 transition-transform">
+                <DollarSign size={24} className="text-brand-primary" />
               </div>
               <div>
                 <h4 className="text-white font-bold text-lg mb-1 tracking-tight">
@@ -220,10 +220,10 @@ export default function CreatorDashboard({
             <button
               type="button"
               onClick={() => onNavigate('ads')}
-              className="glass-panel p-4 rounded-lg border border-white/5 flex flex-col gap-4 hover:bg-white/5 transition-all text-left group"
+              className="glass-panel p-5 rounded-xl border border-white/10 bg-white/2 flex flex-col gap-4 hover:bg-white/10 hover:border-white/20 transition-all text-left group"
             >
-              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-white/10 transition-colors">
-                <Megaphone size={20} className="text-zinc-300" />
+              <div className="w-12 h-12 rounded-xl bg-brand-secondary/10 flex items-center justify-center border border-brand-secondary/20 group-hover:scale-110 transition-transform">
+                <Megaphone size={24} className="text-brand-secondary" />
               </div>
               <div>
                 <h4 className="text-white font-bold text-lg mb-1 tracking-tight">
@@ -240,7 +240,7 @@ export default function CreatorDashboard({
         {/* Mini Audiencia Insights */}
         <section className="space-y-4">
           <SectionHeader title={t('creator.dashboard.audience')} icon={Users} />
-          <div className="glass-panel p-4 rounded-lg border border-white/5 flex flex-col items-center text-center">
+          <div className="glass-panel p-5 rounded-xl border border-white/10 bg-white/2 flex flex-col items-center text-center">
             <div
               className="relative w-32 h-32 mb-6"
               role="img"
