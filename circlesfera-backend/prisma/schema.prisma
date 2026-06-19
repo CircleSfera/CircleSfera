@@ -738,6 +738,7 @@ model Notification {
   @@index([recipientId, read, createdAt])
   @@index([recipientId])
   @@index([createdAt])
+  @@index([targetType, targetId])
   @@map("notifications")
 }
 
@@ -766,6 +767,7 @@ model Conversation {
   messages     Message[]
   participants Participant[]
 
+  @@index([updatedAt])
   @@map("conversations")
 }
 

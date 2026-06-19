@@ -184,7 +184,7 @@ export default function Sidebar() {
                 key={item.label}
                 onClick={item.onClick}
                 aria-label={item.label}
-                className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all duration-200 group ${
+                className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all duration-200 group active:scale-95 ${
                   isActive
                     ? 'bg-linear-to-r from-brand-primary/30 to-brand-secondary/20 text-white font-bold shadow-[0_0_25px_rgba(131,58,180,0.2)] border border-white/15'
                     : 'text-gray-400 hover:bg-white/5 hover:text-white'
@@ -201,7 +201,7 @@ export default function Sidebar() {
               to={item.to!}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
-              className={`flex items-center gap-4 p-3 rounded-xl transition-all duration-200 group ${
+              className={`flex items-center gap-4 p-3 rounded-xl transition-all duration-200 group active:scale-95 ${
                 isActive
                   ? 'bg-linear-to-r from-brand-primary/30 to-brand-secondary/20 text-white font-bold shadow-[0_0_25px_rgba(131,58,180,0.2)] border border-white/15'
                   : 'text-gray-400 hover:bg-white/5 hover:text-white'
@@ -218,7 +218,7 @@ export default function Sidebar() {
         <Link
           to="/pricing"
           aria-label="Premium"
-          className="flex items-center gap-4 p-3 rounded-xl text-amber-400 hover:bg-amber-400/10 hover:text-amber-300 transition-all duration-200 group relative overflow-hidden"
+          className="flex items-center gap-4 p-3 rounded-xl text-amber-400 hover:bg-amber-400/10 hover:text-amber-300 transition-all duration-200 group relative overflow-hidden active:scale-95"
         >
           <div className="absolute inset-0 bg-linear-to-r from-amber-400/0 via-amber-400/5 to-amber-400/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
           <Sparkles
@@ -233,7 +233,7 @@ export default function Sidebar() {
         <Link
           to="/accounts/edit"
           aria-label="Settings"
-          className="flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-all duration-200"
+          className="flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-all duration-200 active:scale-95"
         >
           <Settings size={26} />
           <span className="hidden xl:block text-md">{t('nav.settings')}</span>
@@ -244,7 +244,7 @@ export default function Sidebar() {
           type="button"
           onClick={logout}
           aria-label="Log out"
-          className="w-full flex items-center gap-4 p-3 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200"
+          className="w-full flex items-center gap-4 p-3 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 active:scale-95"
         >
           <LogOut size={26} />
           <span className="hidden xl:block text-md">{t('nav.log_out')}</span>
