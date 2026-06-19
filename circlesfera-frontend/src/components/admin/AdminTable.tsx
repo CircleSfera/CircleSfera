@@ -20,14 +20,14 @@ interface TableProps {
 export function Table({ headers, children, loading, isEmpty }: TableProps) {
   return (
     <div className="relative">
-      <div className="overflow-x-auto no-scrollbar pb-2">
-        <table className="w-full text-left border-collapse min-w-[600px] md:min-w-0">
+      <div className="w-full pb-2">
+        <table className="admin-table-responsive w-full text-left border-collapse">
           <thead className="bg-white/5 border-b border-white/10">
             <tr>
               {headers.map((h, idx) => (
                 <th
                   key={typeof h === 'string' ? h : idx}
-                  className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500 whitespace-nowrap"
+                  className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500 whitespace-normal"
                 >
                   {h}
                 </th>

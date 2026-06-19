@@ -226,6 +226,43 @@ body {
   scrollbar-width: none;
 }
 
+/* ─── Responsive Admin Tables ─── */
+
+@media (max-width: 767px) {
+  .admin-table-responsive {
+    display: block;
+    width: 100%;
+  }
+  .admin-table-responsive thead {
+    display: none;
+  }
+  .admin-table-responsive tbody {
+    display: block;
+    width: 100%;
+  }
+  .admin-table-responsive tr {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 0.75rem;
+    padding: 0.5rem;
+  }
+  .admin-table-responsive td {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    text-align: left;
+  }
+  .admin-table-responsive td:last-child {
+    border-bottom: none;
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
 /* ─── Animation Utilities ─── */
 
 .animation-delay-2000 {
