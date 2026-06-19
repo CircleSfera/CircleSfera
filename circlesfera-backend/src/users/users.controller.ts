@@ -17,6 +17,7 @@ import {
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { DataExportService } from './data-export.service.js';
+import { UpdateE2EKeysDto } from './dto/update-e2e-keys.dto.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
 import { UsersService } from './users.service.js';
 
@@ -106,12 +107,12 @@ export class UsersController {
   @Put('me/e2e-keys')
   async uploadE2EKeys(
     @CurrentUser() user: CurrentUserData,
-    @Body() body: { publicKey: string; privateKeyEncrypted: string },
+    @Body() dto: UpdateE2EKeysDto,
   ) {
     return this.usersService.updateE2EKeys(
       user.userId,
-      body.publicKey,
-      body.privateKeyEncrypted,
+      dto.publicKey,
+      dto.privateKeyEncrypted,
     );
   }
 
