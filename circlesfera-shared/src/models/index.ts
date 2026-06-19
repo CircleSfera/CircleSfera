@@ -183,6 +183,8 @@ export interface Message {
   replyToId?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
+  isDeleted?: boolean;
+  isEdited?: boolean;
   sender?: {
     id: string;
     profile: Profile;

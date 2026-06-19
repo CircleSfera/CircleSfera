@@ -16,6 +16,7 @@ interface MessageBubbleProps {
   onReply: (msg: Message) => void;
   onReact: (messageId: string, emoji: string) => void;
   onDelete?: (messageId: string) => void;
+  onEdit?: (msg: Message, decryptedText: string) => void;
   isRead?: boolean;
   currentUserId?: string;
 }
@@ -33,6 +34,7 @@ export default memo(function MessageBubble({
   onReply,
   onReact,
   onDelete,
+  onEdit,
   isRead,
   currentUserId,
 }: MessageBubbleProps) {
@@ -237,12 +239,14 @@ export default memo(function MessageBubble({
             {/* Text Content */}
             {msg.content && (
               <div className="relative">
-                <span className="break-all whitespace-pre-wrap">
-                  {isDecrypting ? (
-                <span className="opacity-50 italic">Descifrando...</span>
-              ) : (
-                decryptedText
-              )}
+                <span className={`break-all whitespace-pre-wrap ${msg.isDeleted ? 'opacity-70 italic' : ''}`}>
+                  {msg.isDeleted ? (
+                    <>🚫 {t('chat.message_deleted', { defaultValue: 'Este mensaje fue eliminado' })}</>
+                  ) : isDecrypting ? (
+                    <span className="opacity-50 italic">Descifrando...</span>
+                  ) : (
+                    decryptedText
+                  )}
                 </span>
                 <span className="inline-block w-16 h-4" />{' '}
                 {/* Spacer for absolute timestamp */}
@@ -252,7 +256,8 @@ export default memo(function MessageBubble({
             <div
               className={`absolute bottom-1 right-2.5 flex items-center gap-1.5 pl-2 text-[10px] ${isMe ? 'text-white/80' : 'text-gray-400'}`}
             >
-              <span className="tabular-nums font-mono leading-none tracking-widest opacity-80">
+              <span className="tabular-nums font-mono leading-none tracking-widest opacity-80 flex items-center gap-1">
+                {msg.isEdited && !msg.isDeleted && <span className="text-[9px] lowercase">(editado)</span>}
                 {timeString}
               </span>
               {isMe && (
@@ -357,7 +362,21 @@ export default memo(function MessageBubble({
                 </div>
               </div>
 
-              {isMe && onDelete && (
+              {isMe && !msg.isDeleted && onEdit && (
+                <button
+                  type="button"
+                  onClick={() => onEdit(msg, decryptedText)}
+                  className="p-1.5 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
+                  title="Edit"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="Edit">
+                    <title>Edit</title>
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
+              )}
+              {isMe && !msg.isDeleted && onDelete && (
                 <button
                   type="button"
                   onClick={() => onDelete(msg.id!)}

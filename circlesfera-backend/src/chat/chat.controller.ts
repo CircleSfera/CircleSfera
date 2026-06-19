@@ -111,4 +111,28 @@ export class ChatController {
   ) {
     return this.chatService.deleteConversation(id, req.user.userId, mode);
   }
+
+  /** Edit a message. */
+  @Put('messages/:id')
+  async editMessage(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { content: string; e2eKeys?: any },
+  ) {
+    return this.chatService.editMessage(
+      req.user.userId,
+      id,
+      body.content,
+      body.e2eKeys,
+    );
+  }
+
+  /** Delete a message. */
+  @Delete('messages/:id')
+  async deleteMessage(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.chatService.deleteMessage(req.user.userId, id);
+  }
 }

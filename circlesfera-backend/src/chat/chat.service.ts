@@ -6,7 +6,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import type { Message, MessageReaction } from '@prisma/client';
+import { type Message, type MessageReaction, Prisma } from '@prisma/client';
+import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
 
@@ -19,6 +20,7 @@ export class ChatService {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(ModuleRef) private moduleRef: ModuleRef,
+    @Inject(CryptoService) private cryptoService: CryptoService,
   ) {}
 
   private get gateway(): AppGateway {
@@ -160,10 +162,10 @@ export class ChatService {
           participants: {
             include: {
               user: {
-                select: { e2ePublicKey: true }
-              }
-            }
-          }
+                select: { e2ePublicKey: true },
+              },
+            },
+          },
         },
       });
 
@@ -188,10 +190,10 @@ export class ChatService {
           participants: {
             include: {
               user: {
-                select: { e2ePublicKey: true }
-              }
-            }
-          }
+                select: { e2ePublicKey: true },
+              },
+            },
+          },
         },
       });
 
@@ -358,11 +360,18 @@ export class ChatService {
       },
     });
 
-    // Decrypt the last message for each conversation
-    // DEPRECATED for E2EE: We no longer decrypt on the server.
-    // The client handles decryption.
+    // Decrypt the last message for backwards compatibility (legacy messages without e2eKeys)
+    const decryptedConversations = conversations.map((conv) => {
+      if (conv.messages?.length > 0) {
+        const lastMsg = conv.messages[0];
+        if (!lastMsg.e2eKeys && lastMsg.content?.includes(':')) {
+          lastMsg.content = this.cryptoService.decrypt(lastMsg.content);
+        }
+      }
+      return conv;
+    });
 
-    return conversations;
+    return decryptedConversations;
   }
 
   /**
@@ -468,10 +477,13 @@ export class ChatService {
       },
     });
 
-    // Decrypt messages
-    // DEPRECATED for E2EE: We no longer decrypt on the server.
-    // The client handles decryption.
-    return messages as any;
+    // Decrypt legacy messages for backwards compatibility
+    return messages.map((m) => {
+      if (!m.e2eKeys && m.content?.includes(':')) {
+        m.content = this.cryptoService.decrypt(m.content);
+      }
+      return m;
+    }) as any;
   }
 
   /**
@@ -538,8 +550,6 @@ export class ChatService {
       );
     }
 
-
-
     if (mode === 'me') {
       // Soft delete for this user only
       await this.prisma.participant.update({
@@ -572,5 +582,98 @@ export class ChatService {
       where: { id: conversationId },
     });
     return { success: true, mode: 'both' };
+  }
+
+  /**
+   * Edit a message. Only the sender can edit their own message.
+   */
+  async editMessage(
+    userId: string,
+    messageId: string,
+    newContent: string,
+    newE2eKeys?: any,
+  ) {
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      include: { conversation: { include: { participants: true } } },
+    });
+
+    if (!message) throw new NotFoundException('Message not found');
+    if (message.senderId !== userId) {
+      throw new ForbiddenException('You can only edit your own messages');
+    }
+    if (message.isDeleted) {
+      throw new BadRequestException('Cannot edit a deleted message');
+    }
+
+    const updated = await this.prisma.message.update({
+      where: { id: messageId },
+      data: {
+        content: newContent,
+        e2eKeys: newE2eKeys || message.e2eKeys,
+        isEdited: true,
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            profile: { select: { username: true, avatar: true } },
+          },
+        },
+      },
+    });
+
+    // Emit to all participants
+    message.conversation.participants.forEach((p: any) => {
+      this.gateway.server
+        .to(`user:${p.userId}`)
+        .emit('message_edited', updated);
+    });
+
+    return updated;
+  }
+
+  /**
+   * Delete a message. Only the sender can delete their own message.
+   */
+  async deleteMessage(userId: string, messageId: string) {
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      include: { conversation: { include: { participants: true } } },
+    });
+
+    if (!message) throw new NotFoundException('Message not found');
+    if (message.senderId !== userId) {
+      throw new ForbiddenException('You can only delete your own messages');
+    }
+
+    // Soft delete: clear content and keys, set isDeleted
+    const updated = await this.prisma.message.update({
+      where: { id: messageId },
+      data: {
+        content: '',
+        e2eKeys: Prisma.DbNull,
+        isDeleted: true,
+        url: null,
+        mediaType: null,
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            profile: { select: { username: true, avatar: true } },
+          },
+        },
+      },
+    });
+
+    // Emit to all participants
+    message.conversation.participants.forEach((p: any) => {
+      this.gateway.server
+        .to(`user:${p.userId}`)
+        .emit('message_deleted', { messageId });
+    });
+
+    return { success: true, message: updated };
   }
 }
