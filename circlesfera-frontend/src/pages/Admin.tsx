@@ -17,6 +17,7 @@ import {
   ReportsTab,
   StatsTab,
   StoriesTab,
+  SystemHealthTab,
   ToastContainer,
   UsersTab,
   UserVerificationTab,
@@ -134,6 +135,7 @@ export default function Admin() {
               {activeTab === 'newsletter' && (
                 <NewsletterTab onToast={addToast} />
               )}
+              {activeTab === 'system-health' && <SystemHealthTab />}
             </motion.div>
           </AnimatePresence>
         </div>

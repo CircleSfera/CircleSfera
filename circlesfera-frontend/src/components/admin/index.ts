@@ -24,6 +24,7 @@ export { default as ReportsTab } from './ReportsTab';
 export { default as StatCard } from './StatCard';
 export { default as StatsTab } from './StatsTab';
 export { default as StoriesTab } from './StoriesTab';
+export { default as SystemHealthTab } from './SystemHealthTab';
 export { default as UsersTab } from './UsersTab';
 export { default as UserVerificationTab } from './UserVerificationTab';
 export { default as WhitelistTab } from './WhitelistTab';

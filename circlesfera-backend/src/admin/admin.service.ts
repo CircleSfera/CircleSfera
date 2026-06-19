@@ -1,3 +1,4 @@
+import { InjectQueue } from '@nestjs/bullmq';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   BadRequestException,
@@ -11,6 +12,7 @@ import {
   type Prisma,
   PromotionStatus,
 } from '@prisma/client';
+import { Queue } from 'bullmq';
 import type { Cache } from 'cache-manager';
 
 import { EmailService } from '../email/email.service.js';
@@ -52,6 +54,8 @@ export class AdminService {
     @Inject(NotificationsService)
     private readonly notificationsService: NotificationsService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    @InjectQueue('ai-processing') private readonly aiQueue: Queue,
+    @InjectQueue('analytics-processing') private readonly analyticsQueue: Queue,
   ) {}
 
   // ─── Audit Log Helper ─────────────────────────────────────────────
@@ -264,6 +268,55 @@ export class AdminService {
       recipients: activeUsers.length,
       sent: successfulSent,
       failed: failedSent,
+    };
+  }
+
+  // ─── System Health ────────────────────────────────────────────────
+
+  async getSystemHealth() {
+    // 1. Database Status
+    let dbStatus = 'OFFLINE';
+    let dbLatency = 0;
+    try {
+      const start = Date.now();
+      await this.prisma.$queryRaw`SELECT 1`;
+      dbLatency = Date.now() - start;
+      dbStatus = 'ONLINE';
+    } catch (e) {
+      console.error('Database health check failed:', e);
+    }
+
+    // 2. Queue Status
+    const [aiCounts, analyticsCounts] = await Promise.all([
+      this.aiQueue.getJobCounts('wait', 'active', 'failed', 'completed'),
+      this.analyticsQueue.getJobCounts('wait', 'active', 'failed', 'completed'),
+    ]);
+
+    // 3. Webhook Health
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [failedWebhooks, processedWebhooks] = await Promise.all([
+      this.prisma.webhookEvent.count({
+        where: { createdAt: { gte: oneDayAgo }, status: 'FAILED' },
+      }),
+      this.prisma.webhookEvent.count({
+        where: { createdAt: { gte: oneDayAgo }, status: 'PROCESSED' },
+      }),
+    ]);
+
+    return {
+      timestamp: new Date().toISOString(),
+      database: {
+        status: dbStatus,
+        latencyMs: dbLatency,
+      },
+      queues: {
+        ai: aiCounts,
+        analytics: analyticsCounts,
+      },
+      webhooks: {
+        failed24h: failedWebhooks,
+        processed24h: processedWebhooks,
+      },
     };
   }
 

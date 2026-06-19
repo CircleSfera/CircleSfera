@@ -1,6 +1,7 @@
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
 import {
+  Activity,
   ArrowLeft,
   ChevronRight,
   Clock,
@@ -38,7 +39,8 @@ export type AdminTab =
   | 'monetization'
   | 'promotions'
   | 'moderation'
-  | 'newsletter';
+  | 'newsletter'
+  | 'system-health';
 
 interface SearchGroup {
   label: string;
@@ -82,6 +84,7 @@ const GROUPS: SearchGroup[] = [
     label: 'Sistema',
     icon: Settings,
     items: [
+      { id: 'system-health', label: 'Estado', icon: Activity },
       { id: 'reports', label: 'Reportes', icon: Flag },
       { id: 'audit', label: 'Audit Log', icon: ScrollText },
     ],

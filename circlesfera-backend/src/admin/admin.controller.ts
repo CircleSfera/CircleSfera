@@ -59,6 +59,13 @@ export class AdminController {
     return this.adminService.getEnhancedStats();
   }
 
+  /** System health metrics (Database, AI Queues, Stripe Webhooks). */
+  @Get('health')
+  @HttpCode(HttpStatus.OK)
+  async getSystemHealth() {
+    return this.adminService.getSystemHealth();
+  }
+
   /** Send a broadcast email to all active users. */
   @Post('broadcast')
   async sendBroadcast(@Body() dto: BroadcastEmailDto, @Req() req: AuthRequest) {
