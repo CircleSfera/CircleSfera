@@ -8,6 +8,7 @@ import {
   Search,
   Shield,
   User,
+  Wand2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
@@ -18,7 +19,7 @@ import { useUIStore } from '../../stores/uiStore';
 export default function BottomNav() {
   const location = useLocation();
   const path = location.pathname;
-  const { profile } = useAuthStore();
+  const { profile, isCreatorModeActive } = useAuthStore();
   const unreadCount = useNotificationsStore((state) => state.unreadCount);
   const openCreateMenu = useUIStore((state) => state.openCreateMenu);
   const { t } = useTranslation();
@@ -28,8 +29,7 @@ export default function BottomNav() {
   // Check if current path is the user's profile
   const isProfileActive = profile?.username && path === `/${profile.username}`;
 
-  // Mobile nav items - expanded to include Notifications & Creator Studio
-  const navItems = [
+  const consumerNavItems = [
     { icon: Home, label: t('nav.home'), to: '/', badge: 0 },
     { icon: Search, label: t('nav.search'), to: '/explore', badge: 0 },
     {
@@ -40,33 +40,43 @@ export default function BottomNav() {
     },
     { icon: Clapperboard, label: t('nav.frames'), to: '/frames', badge: 0 },
     {
-      icon: BarChart3,
-      label: t('nav.creator_studio'),
-      to: '/creator',
-      badge: 0,
-      roles: ['CREATOR', 'BUSINESS'],
-    },
-    {
       icon: Heart,
       label: t('nav.notifications'),
       to: '/activity',
       badge: unreadCount,
     },
-    {
-      icon: Shield,
-      label: 'Admin',
-      to: '/admin',
-      badge: 0,
-      adminOnly: true,
-    },
+    { icon: Shield, label: 'Admin', to: '/admin', badge: 0, adminOnly: true },
     { icon: User, label: t('nav.profile'), to: profileUrl, badge: 0 },
-  ].filter((item) => {
+  ];
+
+  const creatorNavItems = [
+    { icon: Home, label: t('nav.home'), to: '/', badge: 0 },
+    { icon: Wand2, label: 'Studio', to: '/edits', badge: 0 },
+    {
+      icon: PlusSquare,
+      label: t('nav.create'),
+      onClick: openCreateMenu,
+      badge: 0,
+    },
+    {
+      icon: BarChart3,
+      label: t('nav.creator_studio'),
+      to: '/creator',
+      badge: 0,
+    },
+    { icon: Shield, label: 'Admin', to: '/admin', badge: 0, adminOnly: true },
+    { icon: User, label: t('nav.profile'), to: profileUrl, badge: 0 },
+  ];
+
+  const currentNavItems = isCreatorModeActive
+    ? creatorNavItems
+    : consumerNavItems;
+
+  const navItems = currentNavItems.filter((item) => {
     if ('adminOnly' in item && item.adminOnly) {
       return profile?.user?.role === 'ADMIN';
     }
-    return (
-      !item.roles || item.roles.includes(profile?.accountType || 'PERSONAL')
-    );
+    return true;
   });
 
   return (

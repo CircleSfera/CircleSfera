@@ -24,9 +24,30 @@ export interface AuditLogEntry {
   action: string;
   targetType: string;
   targetId: string;
-  details: string | null;
+  details: string;
   createdAt: string;
   adminUsername: string;
+}
+
+export interface SystemHealthResponse {
+  timestamp: string;
+  database: {
+    status: 'ONLINE' | 'OFFLINE';
+    latencyMs: number;
+  };
+  queues: {
+    ai: { wait: number; active: number; failed: number; completed: number };
+    analytics: {
+      wait: number;
+      active: number;
+      failed: number;
+      completed: number;
+    };
+  };
+  webhooks: {
+    failed24h: number;
+    processed24h: number;
+  };
 }
 
 export interface AdminUser {
@@ -209,10 +230,22 @@ export interface WhitelistEntry {
 }
 
 export const adminApi = {
-  // Stats
-  getStats: () => apiClient.get<AdminStats>('admin/stats'),
+  getStats: async (): Promise<AdminStats> => {
+    const { data } = await apiClient.get<AdminStats>('/admin/stats');
+    return data;
+  },
 
-  getEnhancedStats: () => apiClient.get<EnhancedStats>('admin/stats/enhanced'),
+  getEnhancedStats: async (): Promise<EnhancedStats> => {
+    const { data } = await apiClient.get<EnhancedStats>(
+      '/admin/stats/enhanced',
+    );
+    return data;
+  },
+
+  getSystemHealth: async (): Promise<SystemHealthResponse> => {
+    const { data } = await apiClient.get<SystemHealthResponse>('/admin/health');
+    return data;
+  },
 
   getActivityChart: () =>
     apiClient.get<ActivityChartDay[]>('admin/stats/activity-chart'),

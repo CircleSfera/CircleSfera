@@ -12,6 +12,8 @@ import type { ProfileWithUser } from '../types';
 interface AuthState {
   profile: ProfileWithUser | null;
   isAuthenticated: boolean;
+  isCreatorModeActive: boolean;
+  setCreatorMode: (active: boolean) => void;
   setAuthenticated: () => void;
   setProfile: (profile: ProfileWithUser) => void;
   logout: () => void;
@@ -22,12 +24,15 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       profile: null,
       isAuthenticated: false,
+      isCreatorModeActive: false,
+      setCreatorMode: (active) => set({ isCreatorModeActive: active }),
       setAuthenticated: () => set({ isAuthenticated: true }),
       setProfile: (profile) => set({ profile }),
       logout: () => {
         set({
           profile: null,
           isAuthenticated: false,
+          isCreatorModeActive: false,
         });
       },
     }),
@@ -36,6 +41,7 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         profile: state.profile,
         isAuthenticated: state.isAuthenticated,
+        isCreatorModeActive: state.isCreatorModeActive,
       }),
     },
   ),

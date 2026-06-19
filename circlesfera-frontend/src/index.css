@@ -232,7 +232,8 @@ body {
   width: 100%;
 }
 /* Override Tailwind's px-4 with higher specificity */
-.admin-table-responsive tbody td, .admin-table-responsive thead th {
+.admin-table-responsive tbody td,
+.admin-table-responsive thead th {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
 }
@@ -472,5 +473,30 @@ input[type="range"]::-moz-range-progress {
 @keyframes shimmer {
   100% {
     transform: translateX(100%);
+  }
+}
+
+/* ─── Performance & Accessibility (Audit Fixes) ─── */
+
+/* Mobile Performance: Disable heavy backdrop filters on small devices */
+@media (max-width: 768px) {
+  .glass-panel,
+  .glass-panel-post,
+  .modal-glass {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(20, 20, 25, 0.95);
+  }
+}
+
+/* Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  :root [class],
+  :root [class]::before,
+  :root [class]::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 }
