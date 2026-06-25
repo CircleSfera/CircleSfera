@@ -581,8 +581,14 @@ export default function StoryComposer({
 
   useEffect(() => {
     if (initialMedia) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setBackgroundUrl(e.target.result as string);
+        }
+      };
+      reader.readAsDataURL(initialMedia);
       setBackground(initialMedia);
-      setBackgroundUrl(URL.createObjectURL(initialMedia));
     }
   }, [initialMedia]);
 
@@ -907,7 +913,7 @@ export default function StoryComposer({
               <video
                 src={backgroundUrl}
                 crossOrigin={
-                  backgroundUrl.startsWith('blob:') ? undefined : 'anonymous'
+                  backgroundUrl.startsWith('blob:') || backgroundUrl.startsWith('data:') ? undefined : 'anonymous'
                 }
                 className="w-full h-full object-cover"
                 autoPlay
@@ -925,7 +931,7 @@ export default function StoryComposer({
               <img
                 src={backgroundUrl}
                 crossOrigin={
-                  backgroundUrl.startsWith('blob:') ? undefined : 'anonymous'
+                  backgroundUrl.startsWith('blob:') || backgroundUrl.startsWith('data:') ? undefined : 'anonymous'
                 }
                 className="w-full h-full object-cover"
                 alt="Background"
