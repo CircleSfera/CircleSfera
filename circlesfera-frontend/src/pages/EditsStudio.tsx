@@ -439,7 +439,7 @@ export default function EditsStudio() {
                           alt="Draft"
                           className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
                         />
-                        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-end p-4">
                           <span className="text-xs font-bold text-white uppercase">
                             Continuar Edición
                           </span>
@@ -450,7 +450,7 @@ export default function EditsStudio() {
                             e.preventDefault();
                             deleteProject(e, project.id);
                           }}
-                          className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-red-500/80 rounded-full text-white opacity-0 group-hover:opacity-100 transition-all z-20"
+                          className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-red-500/80 rounded-full text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all z-20"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -467,7 +467,7 @@ export default function EditsStudio() {
                 alt="Edited output"
                 className="w-full h-full object-contain"
               />
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+              <div className="absolute inset-0 bg-black/50 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
                 <button
                   type="button"
                   onClick={() => setEditedFile(null)}
