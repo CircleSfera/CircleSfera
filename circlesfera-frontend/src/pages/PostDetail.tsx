@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import CommentList from '../components/CommentList';
+import SEO from '../components/common/SEO';
 import PostCard from '../components/PostCard';
 import { commentsApi, postsApi } from '../services';
 
@@ -32,6 +33,14 @@ export default function PostDetail() {
 
   return (
     <div className="min-h-screen pb-24 md:pt-6">
+      <SEO
+        title={`Post de @${post.data.user?.profile?.username || 'Usuario'}`}
+        description={
+          post.data.caption || 'Mira esta publicación en CircleSfera'
+        }
+        ogImage={post.data.media?.[0]?.url || undefined}
+        ogType="article"
+      />
       <div className="w-full md:max-w-lg mx-auto">
         {/* Sticky Header (Mobile Only) */}
         <div className="md:hidden sticky top-0 z-50 bg-transparent backdrop-blur-xl border-b border-white/10 flex items-center justify-between p-4 pt-[calc(1rem+env(safe-area-inset-top))]">
