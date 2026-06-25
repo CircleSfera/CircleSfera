@@ -420,40 +420,36 @@ export default function EditsStudio() {
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {projects.map((project) => (
-                      // biome-ignore lint/a11y/useSemanticElements: container has nested button
-                      <div
-                        key={project.id}
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            openProject(project);
-                          }
-                        }}
-                        onClick={() => openProject(project)}
-                        className="group relative aspect-4/5 bg-zinc-900 rounded-lg overflow-hidden cursor-pointer hover:ring-2 ring-brand-primary transition-all"
-                      >
-                        <img
-                          src={project.mediaUrl}
-                          alt="Draft"
-                          className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                        />
-                        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-end p-4">
-                          <span className="text-xs font-bold text-white uppercase">
-                            Continuar Edición
-                          </span>
-                        </div>
+                      <div key={project.id} className="flex flex-col gap-2">
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            deleteProject(e, project.id);
-                          }}
-                          className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-red-500/80 rounded-full text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all z-20"
+                          onClick={() => openProject(project)}
+                          className="group relative aspect-4/5 bg-zinc-900 rounded-lg overflow-hidden cursor-pointer hover:ring-2 ring-brand-primary transition-all block w-full text-left p-0 border-none"
                         >
-                          <Trash2 size={14} />
+                          <img
+                            src={project.mediaUrl}
+                            alt="Draft"
+                            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                          />
+                          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 md:group-hover:opacity-100 transition-opacity flex items-end p-4">
+                            <span className="text-xs font-bold text-white uppercase">
+                              Continuar Edición
+                            </span>
+                          </div>
                         </button>
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-xs text-white/50">
+                            Borrador
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => deleteProject(e, project.id)}
+                            className="p-1.5 text-white/40 hover:bg-red-500/20 hover:text-red-500 rounded-md transition-colors"
+                            aria-label="Eliminar borrador"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
