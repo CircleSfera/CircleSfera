@@ -29,6 +29,7 @@ export default function EditsStudio() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [projects, setProjects] = useState<EditProject[]>([]);
   const [activeProject, setActiveProject] = useState<EditProject | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { processFiles } = useMediaProcessing();
@@ -184,6 +185,7 @@ export default function EditsStudio() {
   // Debounced auto-save
   useEffect(() => {
     if (!activeProject?.state) return;
+    setIsSaving(true);
 
     const timer = setTimeout(async () => {
       try {
@@ -193,6 +195,8 @@ export default function EditsStudio() {
         );
       } catch (err) {
         console.error('Auto-save failed', err);
+      } finally {
+        setIsSaving(false);
       }
     }, 1000);
 
@@ -291,6 +295,12 @@ export default function EditsStudio() {
 
     return (
       <div className="fixed inset-0 z-100 bg-black flex flex-col">
+        {isSaving && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-60 bg-black/80 backdrop-blur border border-white/10 px-3 py-1 rounded-full text-xs font-bold text-white flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-ping" />
+            Guardando...
+          </div>
+        )}
         {isProcessing && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
             <div className="text-white font-bold animate-pulse">

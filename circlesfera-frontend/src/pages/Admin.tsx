@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { ShieldCheck } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { Search, ShieldCheck } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { Toast } from '../components/admin';
 import {
   AdminSidebar,
@@ -24,13 +25,35 @@ import {
   WhitelistTab,
 } from '../components/admin';
 import type { AdminTab as Tab } from '../components/admin/AdminSidebar';
+import { CommandPalette } from '../components/admin/CommandPalette';
 import { useAuthStore } from '../stores/authStore';
 
 // Removed old TABS constant as it's now handled by AdminSidebar
 
 export default function Admin() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<Tab>('analytics');
+  const { tab } = useParams<{ tab: string }>();
+  const navigate = useNavigate();
+  const activeTab = (tab as Tab) || 'analytics';
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleTabChange = useCallback(
+    (newTab: Tab) => {
+      navigate(`/admin/${newTab}`);
+    },
+    [navigate],
+  );
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const addToast = useCallback((message: string, type: 'success' | 'error') => {
@@ -69,29 +92,21 @@ export default function Admin() {
         </div>
 
         <div className="flex items-center gap-4 relative z-10">
-          {/* Global Search Mock */}
+          {/* Global Search Trigger */}
           <div className="relative hidden lg:block">
-            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <svg
-                aria-hidden="true"
-                className="w-4 h-4 text-gray-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-            <input
-              type="text"
-              placeholder="Buscar usuarios, reportes (Cmd+K)..."
-              className="bg-black/50 border border-white/10 text-white text-sm rounded-xl pl-9 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-primary/50 w-64 transition-all focus:w-80"
-            />
+            <button
+              type="button"
+              onClick={() => setIsCommandPaletteOpen(true)}
+              className="flex items-center justify-between bg-black/50 border border-white/10 text-gray-400 text-sm rounded-xl pl-3 pr-2 py-2 hover:bg-white/5 hover:border-white/20 transition-all w-64"
+            >
+              <div className="flex items-center">
+                <Search size={16} className="mr-2 text-gray-500" />
+                <span>Buscar usuarios, reportes...</span>
+              </div>
+              <span className="text-[10px] font-bold border border-white/10 bg-white/5 rounded px-1.5 py-0.5">
+                ⌘K
+              </span>
+            </button>
           </div>
           <AdminBadge />
         </div>
@@ -100,7 +115,7 @@ export default function Admin() {
       {/* Layout Grid */}
       <div className="flex flex-col lg:flex-row gap-4 items-start">
         {/* Sidebar Nav */}
-        <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
         {/* Tab Content Area */}
         <div className="flex-1 w-full lg:min-w-0">
@@ -143,6 +158,12 @@ export default function Admin() {
 
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} />
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+      />
     </div>
   );
 }

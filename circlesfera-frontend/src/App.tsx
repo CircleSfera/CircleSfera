@@ -241,6 +241,10 @@ function App() {
 
           <Route
             path="/admin"
+            element={<Navigate to="/admin/analytics" replace />}
+          />
+          <Route
+            path="/admin/:tab"
             element={
               <AdminGuard>
                 <Admin />
@@ -281,6 +285,10 @@ function App() {
           {/* Creator Studio */}
           <Route
             path="/creator"
+            element={<Navigate to="/creator/overview" replace />}
+          />
+          <Route
+            path="/creator/:tab"
             element={
               <AuthGuard>
                 <Creator />

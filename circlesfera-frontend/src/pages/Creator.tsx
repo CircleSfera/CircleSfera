@@ -1,18 +1,36 @@
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Plus } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { lazy, Suspense, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
-import CreatorAnalyticsTab from '../components/creator/CreatorAnalyticsTab';
-import CreatorDashboard from '../components/creator/CreatorDashboard';
-import CreatorMonetizationTab from '../components/creator/CreatorMonetizationTab';
-import CreatorPostsTab from '../components/creator/CreatorPostsTab';
-import CreatorPromotionsTab from '../components/creator/CreatorPromotionsTab';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+
+const CreatorAnalyticsTab = lazy(
+  () => import('../components/creator/CreatorAnalyticsTab'),
+);
+const CreatorDashboard = lazy(
+  () => import('../components/creator/CreatorDashboard'),
+);
+const CreatorMonetizationTab = lazy(
+  () => import('../components/creator/CreatorMonetizationTab'),
+);
+const CreatorPostsTab = lazy(
+  () => import('../components/creator/CreatorPostsTab'),
+);
+const CreatorPromotionsTab = lazy(
+  () => import('../components/creator/CreatorPromotionsTab'),
+);
+
 import type { CreatorTab } from '../components/creator/CreatorSidebar';
 import CreatorSidebar from '../components/creator/CreatorSidebar';
-import CreatorStoriesTab from '../components/creator/CreatorStoriesTab';
-import PromoteModal from '../components/creator/PromoteModal';
-import MonetizationDashboard from '../components/monetization/MonetizationDashboard';
+
+const CreatorStoriesTab = lazy(
+  () => import('../components/creator/CreatorStoriesTab'),
+);
+const PromoteModal = lazy(() => import('../components/creator/PromoteModal'));
+const MonetizationDashboard = lazy(
+  () => import('../components/monetization/MonetizationDashboard'),
+);
+
 import { Button } from '../components/ui';
 import type {
   CreatorChartDay,
@@ -22,7 +40,16 @@ import type {
 import { creatorApi } from '../services/creator.service';
 
 export default function Creator() {
-  const [activeTab, setActiveTab] = useState<CreatorTab>('overview');
+  const { tab } = useParams<{ tab: string }>();
+  const navigate = useNavigate();
+  const activeTab = (tab as CreatorTab) || 'overview';
+
+  const handleTabChange = useCallback(
+    (newTab: CreatorTab) => {
+      navigate(`/creator/${newTab}`);
+    },
+    [navigate],
+  );
   const [promotePost, setPromotePost] = useState<CreatorPost | null>(null);
   const [toasts, setToasts] = useState<
     { id: string; message: string; type: string }[]
@@ -81,46 +108,59 @@ export default function Creator() {
       {/* 2. Layout Grid (Matching Admin) */}
       <div className="flex flex-col lg:flex-row gap-4 items-start">
         {/* Sidebar Nav */}
-        <CreatorSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <CreatorSidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
         {/* Tab Content Area */}
         <main className="flex-1 w-full lg:min-w-0 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          {activeTab === 'overview' && (
-            <CreatorDashboard
-              onPromote={(post) => setPromotePost(post)}
-              onNavigate={(t) => setActiveTab(t as CreatorTab)}
-              stats={stats}
-              chartData={chartData}
-            />
-          )}
-          {activeTab === 'analytics' && <CreatorAnalyticsTab />}
-          {activeTab === 'content' && (
-            <CreatorPostsTab onPromote={(post) => setPromotePost(post)} />
-          )}
-          {activeTab === 'stories' && <CreatorStoriesTab />}
-          {activeTab === 'finance' && (
-            <CreatorMonetizationTab onToast={addToast} />
-          )}
-          {activeTab === 'monetization' && (
-            <div className="p-4 md:p-4 bg-white/5 backdrop-blur-xl rounded-xl border border-white/10">
-              <h2 className="text-xl font-bold text-white mb-6">
-                {t('creator.monetization_label', 'Monetization')}
-              </h2>
-              <MonetizationDashboard />
-            </div>
-          )}
-          {activeTab === 'ads' && <CreatorPromotionsTab onToast={addToast} />}
+          <Suspense
+            fallback={
+              <div className="flex flex-col items-center justify-center p-20 opacity-50">
+                <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin mb-4" />
+                <div className="text-sm font-bold text-gray-400">
+                  Cargando módulo...
+                </div>
+              </div>
+            }
+          >
+            {activeTab === 'overview' && (
+              <CreatorDashboard
+                onPromote={(post) => setPromotePost(post)}
+                onNavigate={(t) => handleTabChange(t as CreatorTab)}
+                stats={stats}
+                chartData={chartData}
+              />
+            )}
+            {activeTab === 'analytics' && <CreatorAnalyticsTab />}
+            {activeTab === 'content' && (
+              <CreatorPostsTab onPromote={(post) => setPromotePost(post)} />
+            )}
+            {activeTab === 'stories' && <CreatorStoriesTab />}
+            {activeTab === 'finance' && (
+              <CreatorMonetizationTab onToast={addToast} />
+            )}
+            {activeTab === 'monetization' && (
+              <div className="p-4 md:p-4 bg-white/5 backdrop-blur-xl rounded-xl border border-white/10">
+                <h2 className="text-xl font-bold text-white mb-6">
+                  {t('creator.monetization_label', 'Monetization')}
+                </h2>
+                <MonetizationDashboard />
+              </div>
+            )}
+            {activeTab === 'ads' && <CreatorPromotionsTab onToast={addToast} />}
+          </Suspense>
         </main>
       </div>
 
       {/* Modals & Overlays */}
-      {promotePost && (
-        <PromoteModal
-          post={promotePost}
-          onClose={() => setPromotePost(null)}
-          onToast={addToast}
-        />
-      )}
+      <Suspense fallback={null}>
+        {promotePost && (
+          <PromoteModal
+            post={promotePost}
+            onClose={() => setPromotePost(null)}
+            onToast={addToast}
+          />
+        )}
+      </Suspense>
 
       {/* Toast System */}
       <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3 w-full max-w-sm px-6">
