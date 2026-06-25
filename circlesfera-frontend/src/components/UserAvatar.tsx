@@ -1,5 +1,5 @@
-import { memo } from 'react';
-import { sanitizeUrl } from '../utils/apiUtils';
+import { memo, useState } from 'react';
+import { getBlurFallbackUrl, sanitizeUrl } from '../utils/apiUtils';
 import VerificationBadge, { type VerificationLevel } from './VerificationBadge';
 
 interface UserAvatarProps {
@@ -48,8 +48,12 @@ export default memo(function UserAvatar({
   isOnline,
   verificationLevel,
 }: UserAvatarProps) {
+  const [isLoaded, setIsLoaded] = useState(false);
+
   const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(alt)}&background=random&color=fff&bold=true`;
   const sanitizedSrc = sanitizeUrl(src);
+  const blurUrl =
+    getBlurFallbackUrl(sanitizedSrc) || getBlurFallbackUrl(thumbnailUrl);
 
   const innerContent = (
     <>
@@ -62,6 +66,21 @@ export default memo(function UserAvatar({
       <div
         className={`relative w-full h-full rounded-full overflow-hidden bg-zinc-900 border-2 ${hasStory ? 'border-black' : 'border-white/5'} shadow-inner`}
       >
+        {/* Blurhash / Fallback Image */}
+        {!isLoaded && blurUrl && (
+          <img
+            src={blurUrl}
+            alt="loading"
+            className="absolute inset-0 w-full h-full object-cover scale-110 blur-sm"
+          />
+        )}
+
+        {/* Shimmer Skeleton (If no Blurhash available) */}
+        {!isLoaded && !blurUrl && (
+          <div className="absolute inset-0 w-full h-full bg-zinc-800 animate-pulse" />
+        )}
+
+        {/* Main Image */}
         <img
           src={sanitizedSrc || defaultAvatar}
           srcSet={
@@ -77,9 +96,10 @@ export default memo(function UserAvatar({
                 : '64px'
           }
           alt={alt}
-          className="w-full h-full object-cover"
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
           loading="lazy"
           decoding="async"
+          onLoad={() => setIsLoaded(true)}
           onError={(e) => {
             (e.target as HTMLImageElement).src = defaultAvatar;
             (e.target as HTMLImageElement).srcset = '';

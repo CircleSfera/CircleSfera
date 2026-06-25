@@ -50,9 +50,21 @@ export function sanitizeUrl(
   );
 
   // 2. If it's a relative /uploads path, prepend the backend baseUrl
-  if (processed.startsWith('/uploads')) {
-    return `${baseUrl}${processed}`;
-  }
+  // 3. Absolute URLs pass through
+  return /^https?:\/\//i.test(processed) ? processed : `${baseUrl}${processed}`;
+}
 
-  return processed;
+/**
+ * Generates an ultra-low resolution blurred URL for Cloudinary images.
+ * If the image is not from Cloudinary, returns undefined.
+ */
+export function getBlurFallbackUrl(
+  url: string | null | undefined,
+): string | undefined {
+  if (!url) return undefined;
+  if (url.includes('res.cloudinary.com')) {
+    // Inject Cloudinary transformations for a tiny, blurred image
+    return url.replace('/upload/', '/upload/w_10,e_blur:1000,q_1,f_auto/');
+  }
+  return undefined;
 }
