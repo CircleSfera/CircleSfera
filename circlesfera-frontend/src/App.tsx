@@ -9,6 +9,7 @@ import SelectChat from './components/chat/SelectChat';
 import ScrollToTop from './components/common/ScrollToTop';
 import CreateBottomSheet from './components/modals/CreateBottomSheet';
 import { GlobalCallContainer } from './components/navigation/GlobalCallContainer';
+import { GlobalE2EContainer } from './components/navigation/GlobalE2EContainer';
 import LayoutWrapper from './layouts/LayoutWrapper';
 
 const Admin = lazy(() => import('./pages/Admin'));
@@ -71,6 +72,7 @@ function App() {
     <LayoutWrapper>
       <ScrollToTop />
       <GlobalCallContainer />
+      <GlobalE2EContainer />
       <CreateBottomSheet />
       <Suspense
         fallback={

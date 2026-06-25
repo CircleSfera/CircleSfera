@@ -116,6 +116,12 @@ export class UsersController {
     );
   }
 
+  /** E2EE: Get the current user's own keys for device syncing. */
+  @Get('me/e2e-keys')
+  async getMyE2EKeys(@CurrentUser() user: CurrentUserData) {
+    return this.usersService.getE2EMyKeys(user.userId);
+  }
+
   /** E2EE: Get public key of a user. */
   @Get(':id/e2e-key')
   async getE2EPublicKey(@Param('id') id: string) {

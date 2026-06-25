@@ -161,4 +161,62 @@ export const E2EService = {
     }
     return bytes.buffer;
   },
+
+  // --- Key Escrow (Password based encryption for Private Key) ---
+
+  /**
+   * Derive a 256-bit AES-GCM key from a user password and a static salt.
+   * We use PBKDF2 with 100,000 iterations.
+   */
+  async deriveKeyFromPassword(
+    password: string,
+    salt: string = 'circlesfera_e2e_salt',
+  ): Promise<CryptoKey> {
+    const enc = new TextEncoder();
+    const keyMaterial = await window.crypto.subtle.importKey(
+      'raw',
+      enc.encode(password),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveKey'],
+    );
+    return window.crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: enc.encode(salt),
+        iterations: 100000,
+        hash: 'SHA-256',
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt'],
+    );
+  },
+
+  /**
+   * Encrypt the exported private key (Base64) using the derived AES key.
+   * Returns a payload containing IV and Ciphertext.
+   */
+  async encryptPrivateKeyWithPassword(
+    privateKeyB64: string,
+    password: string,
+  ): Promise<string> {
+    const aesKey = await this.deriveKeyFromPassword(password);
+    const { ciphertext, iv } = await this.encryptMessage(privateKeyB64, aesKey);
+    // Combine IV and Ciphertext into a single Base64 string for storage
+    return btoa(JSON.stringify({ iv, ciphertext }));
+  },
+
+  /**
+   * Decrypt the stored private key payload using the user password.
+   */
+  async decryptPrivateKeyWithPassword(
+    encryptedPayloadB64: string,
+    password: string,
+  ): Promise<string> {
+    const aesKey = await this.deriveKeyFromPassword(password);
+    const payload = JSON.parse(atob(encryptedPayloadB64));
+    return this.decryptMessage(payload.ciphertext, payload.iv, aesKey);
+  },
 };
