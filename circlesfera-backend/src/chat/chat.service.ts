@@ -3,9 +3,11 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { type Message, type MessageReaction, Prisma } from '@prisma/client';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -17,6 +19,8 @@ import { AppGateway } from '../socket/app.gateway.js';
  */
 @Injectable()
 export class ChatService {
+  private readonly logger = new Logger(ChatService.name);
+
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(ModuleRef) private moduleRef: ModuleRef,
@@ -675,5 +679,25 @@ export class ChatService {
     });
 
     return { success: true, message: updated };
+  }
+
+  /**
+   * Cron job to physically delete expired messages (GDPR/Disappearing messages).
+   * Runs every hour.
+   */
+  @Cron(CronExpression.EVERY_HOUR)
+  async cleanupExpiredMessages() {
+    try {
+      const deleted = await this.prisma.message.deleteMany({
+        where: {
+          expiresAt: { lt: new Date() },
+        },
+      });
+      if (deleted.count > 0) {
+        this.logger.log(`Cleaned up ${deleted.count} expired messages.`);
+      }
+    } catch (error) {
+      this.logger.error('Failed to clean up expired messages', error);
+    }
   }
 }

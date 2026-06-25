@@ -1,14 +1,18 @@
 import {
   Injectable,
+  Logger,
   HttpException as NestHttpException,
   NotFoundException,
 } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateEditDto } from './dto/create-edit.dto.js';
 import { UpdateEditDto } from './dto/update-edit.dto.js';
 
 @Injectable()
 export class EditsService {
+  private readonly logger = new Logger(EditsService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async create(userId: string, createEditDto: CreateEditDto) {
@@ -77,5 +81,26 @@ export class EditsService {
     });
 
     return { success: true };
+  }
+
+  /**
+   * Cron job to physically delete edit drafts that haven't been touched in 30 days.
+   * Runs every day at midnight.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async cleanupAbandonedDrafts() {
+    try {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const deleted = await this.prisma.editProject.deleteMany({
+        where: {
+          updatedAt: { lt: thirtyDaysAgo },
+        },
+      });
+      if (deleted.count > 0) {
+        this.logger.log(`Cleaned up ${deleted.count} abandoned edit drafts.`);
+      }
+    } catch (error) {
+      this.logger.error('Failed to clean up abandoned drafts', error);
+    }
   }
 }
