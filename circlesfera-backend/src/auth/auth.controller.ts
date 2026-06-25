@@ -9,6 +9,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import {
   ACCESS_TOKEN_COOKIE,
@@ -33,6 +34,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 
 /** Handles authentication endpoints: register, login, token refresh, logout, email verification, and password reset. */
 @Controller('auth')
+@UseGuards(ThrottlerGuard)
 export class AuthController {
   constructor(@Inject(AuthService) private readonly authService: AuthService) {}
 
@@ -50,6 +52,7 @@ export class AuthController {
 
   /** Register a new user and return JWT tokens as HTTP-only cookies. */
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute
   async register(
     @Body() dto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
@@ -71,6 +74,7 @@ export class AuthController {
   /** Authenticate with email/username and password. Sets tokens as HTTP-only cookies. */
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
