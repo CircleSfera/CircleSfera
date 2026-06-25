@@ -1,15 +1,16 @@
 import { useEffect, useRef } from 'react';
 import { apiClient } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
-import { E2EService } from '../utils/e2e';
+import { useE2EStore } from '../stores/e2eStore';
 
 /**
  * Hook to initialize E2EE keys when the user logs in.
- * Checks localStorage for the private key. If not found, generates a new pair
- * and uploads the public key to the backend.
+ * Checks localStorage for the private key and validates with backend.
  */
 export function useE2EInit() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const setStatus = useE2EStore((state) => state.setStatus);
+  const setEncryptedPayload = useE2EStore((state) => state.setEncryptedPayload);
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -21,40 +22,39 @@ export function useE2EInit() {
         const storedPrivateKey = localStorage.getItem('e2e_private_key');
         const storedPublicKey = localStorage.getItem('e2e_public_key');
 
+        // Check what the backend has
+        const res = await apiClient.get<{
+          publicKey: string | null;
+          privateKeyEncrypted: string | null;
+        }>('/users/me/e2e-keys');
+
+        const { publicKey, privateKeyEncrypted } = res.data;
+
         if (storedPrivateKey && storedPublicKey) {
-          // Keys exist, nothing to do.
+          // We have keys locally. Do we need to upload them?
+          if (!publicKey) {
+            setStatus('NEEDS_SETUP');
+          } else {
+            setStatus('READY');
+          }
           return;
         }
 
-        // Generate new RSA-OAEP keys
-        const keyPair = await E2EService.generateKeyPair();
-
-        // Export to Base64
-        const publicKeyB64 = await E2EService.exportPublicKey(
-          keyPair.publicKey,
-        );
-        const privateKeyB64 = await E2EService.exportPrivateKey(
-          keyPair.privateKey,
-        );
-
-        // Store locally (Warning: if cache is cleared, these are lost)
-        localStorage.setItem('e2e_public_key', publicKeyB64);
-        localStorage.setItem('e2e_private_key', privateKeyB64);
-
-        // Upload to backend
-        // Note: For simplicity in this implementation, we are sending the private key
-        // unencrypted to backend for recovery? No, the plan says we shouldn't send the raw private key.
-        // But since we skipped deriving a password, we will just send a mock encrypted string,
-        // or just let the backend store a blank encrypted key for now.
-        await apiClient.put('/users/me/e2e-keys', {
-          publicKey: publicKeyB64,
-          privateKeyEncrypted: 'mock_encrypted_private_key',
-        });
+        if (publicKey && privateKeyEncrypted) {
+          // Backend has keys, but we don't. We need to recover them.
+          setEncryptedPayload(privateKeyEncrypted);
+          setStatus('NEEDS_RECOVERY');
+        } else {
+          // Neither we nor the backend have keys.
+          setStatus('NEEDS_SETUP');
+        }
       } catch (error) {
         console.error('Failed to initialize E2E keys', error);
+        // Fallback to avoid breaking app if endpoint fails
+        setStatus('READY'); 
       }
     };
 
     initKeys();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, setStatus, setEncryptedPayload]);
 }

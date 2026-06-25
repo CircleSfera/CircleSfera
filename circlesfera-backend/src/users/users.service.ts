@@ -268,4 +268,21 @@ export class UsersService {
     }
     return { publicKey: user.e2ePublicKey };
   }
+
+  /**
+   * E2EE: Get the user's own keys (public and encrypted private key) for syncing to a new device.
+   */
+  async getE2EMyKeys(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { e2ePublicKey: true, e2ePrivateKeyEncrypted: true },
+    });
+    if (!user) {
+      throw new Error('User not found');
+    }
+    return {
+      publicKey: user.e2ePublicKey,
+      privateKeyEncrypted: user.e2ePrivateKeyEncrypted,
+    };
+  }
 }
