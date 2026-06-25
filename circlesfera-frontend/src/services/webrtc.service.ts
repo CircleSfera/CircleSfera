@@ -7,6 +7,7 @@ class WebRTCService {
   private pc: RTCPeerConnection | null = null;
   private localStream: MediaStream | null = null;
   private screenStream: MediaStream | null = null;
+  private iceCandidateQueue: RTCIceCandidateInit[] = [];
   private rtcConfig: RTCConfiguration = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
@@ -90,6 +91,7 @@ class WebRTCService {
       });
 
       await this.pc.setRemoteDescription(new RTCSessionDescription(offer));
+      this.processIceCandidateQueue();
       const answer = await this.pc.createAnswer();
       await this.pc.setLocalDescription(answer);
 
@@ -113,14 +115,34 @@ class WebRTCService {
   async handleAnswer(answer: RTCSessionDescriptionInit) {
     if (!this.pc) return;
     await this.pc.setRemoteDescription(new RTCSessionDescription(answer));
+    this.processIceCandidateQueue();
   }
 
   async addIceCandidate(candidate: RTCIceCandidateInit) {
     if (!this.pc) return;
+    if (!this.pc.remoteDescription?.type) {
+      logger.log('Queuing ICE candidate (waiting for remote description)');
+      this.iceCandidateQueue.push(candidate);
+      return;
+    }
     try {
       await this.pc.addIceCandidate(new RTCIceCandidate(candidate));
     } catch (e) {
       logger.error('Error adding ICE candidate', e);
+    }
+  }
+
+  private async processIceCandidateQueue() {
+    if (this.iceCandidateQueue.length > 0) {
+      logger.log(`Processing ${this.iceCandidateQueue.length} queued ICE candidates`);
+      for (const candidate of this.iceCandidateQueue) {
+        try {
+          await this.pc?.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (e) {
+          logger.error('Error adding queued ICE candidate', e);
+        }
+      }
+      this.iceCandidateQueue = [];
     }
   }
 
@@ -137,8 +159,17 @@ class WebRTCService {
     };
 
     this.pc.ontrack = (event) => {
-      if (event.streams?.[0]) {
-        useCallStore.getState().setRemoteStream(event.streams[0]);
+      const stream = event.streams?.[0];
+      if (stream) {
+        // Clone the stream to force a new object reference in Zustand/React
+        // so that adding a second track (e.g. video) triggers a UI update.
+        const updatedStream = new MediaStream(stream.getTracks());
+        useCallStore.getState().setRemoteStream(updatedStream);
+      } else {
+        // Fallback if event.streams is empty
+        const currentStream = useCallStore.getState().remoteStream || new MediaStream();
+        currentStream.addTrack(event.track);
+        useCallStore.getState().setRemoteStream(new MediaStream(currentStream.getTracks()));
       }
     };
 
@@ -222,6 +253,7 @@ class WebRTCService {
     });
     this.localStream = null;
     this.screenStream = null;
+    this.iceCandidateQueue = [];
   }
 }
 

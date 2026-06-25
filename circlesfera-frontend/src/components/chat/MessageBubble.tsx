@@ -67,13 +67,18 @@ export default memo(function MessageBubble({
           }
 
           const privateKey = await E2EService.importPrivateKey(privateKeyStr);
-          const wrappedAesKey = msg.e2eKeys![currentUserId];
+          
+          const parsedKeys = typeof msg.e2eKeys === 'string' ? JSON.parse(msg.e2eKeys as any) : msg.e2eKeys;
+          const wrappedAesKey = parsedKeys![currentUserId];
           const aesKey = await E2EService.unwrapSymmetricKey(
             wrappedAesKey,
             privateKey,
           );
 
-          const payload = JSON.parse(msg.content);
+          const payload = typeof msg.content === 'string' && msg.content.startsWith('{') 
+            ? JSON.parse(msg.content) 
+            : msg.content;
+            
           const text = await E2EService.decryptMessage(
             payload.ciphertext,
             payload.iv,
@@ -85,7 +90,7 @@ export default memo(function MessageBubble({
             setIsDecrypting(false);
           }
         } catch (err) {
-          console.error('Error decrypting message', err);
+          console.error('Error decrypting message:', err);
           if (isMounted) {
             setDecryptedText('🔒 Error al descifrar el mensaje');
             setIsDecrypting(false);

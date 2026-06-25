@@ -43,22 +43,7 @@ export const CallOverlay: React.FC = () => {
     }
   }, [status]);
 
-  useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
-    }
-  }, [localStream]);
 
-  useEffect(() => {
-    if (remoteStream) {
-      if (remoteVideoRef.current && callType === 'video') {
-        remoteVideoRef.current.srcObject = remoteStream;
-      }
-      if (remoteAudioRef.current) {
-        remoteAudioRef.current.srcObject = remoteStream;
-      }
-    }
-  }, [remoteStream, callType]);
 
   const toggleMute = () => {
     if (localStream) {
@@ -94,12 +79,21 @@ export const CallOverlay: React.FC = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black flex flex-col md:flex-row overflow-hidden"
+        className="fixed inset-0 z-9999 bg-black flex flex-col md:flex-row overflow-hidden"
       >
         <audio ref={ringtoneRef} src="/ringtone.mp3" loop preload="auto">
           <track kind="captions" />
         </audio>
-        <audio ref={remoteAudioRef} autoPlay playsInline>
+        <audio
+          ref={(el) => {
+            remoteAudioRef.current = el;
+            if (el && remoteStream && callType === 'audio') {
+              el.srcObject = remoteStream;
+            }
+          }}
+          autoPlay
+          playsInline
+        >
           <track kind="captions" />
         </audio>
         {/* Main Background (Remote Video or Avatar) */}
@@ -109,7 +103,12 @@ export const CallOverlay: React.FC = () => {
         >
           {callType === 'video' && remoteStream ? (
             <video
-              ref={remoteVideoRef}
+              ref={(el) => {
+                remoteVideoRef.current = el;
+                if (el && remoteStream) {
+                  el.srcObject = remoteStream;
+                }
+              }}
               autoPlay
               playsInline
               className="w-full h-full object-cover"
@@ -147,11 +146,16 @@ export const CallOverlay: React.FC = () => {
               className="absolute top-8 right-8 w-40 md:w-56 aspect-3/4 bg-zinc-900 rounded-lg overflow-hidden border border-white/20 shadow-2xl shadow-black z-10 cursor-grab ring-2 ring-black/50"
             >
               <video
-                ref={localVideoRef}
+                ref={(el) => {
+                  localVideoRef.current = el;
+                  if (el && localStream) {
+                    el.srcObject = localStream;
+                  }
+                }}
                 autoPlay
                 playsInline
                 muted
-                className={`w-full h-full object-cover mirror ${isVideoOff ? 'hidden' : ''}`}
+                className={`w-full h-full object-cover scale-x-[-1] ${isVideoOff ? 'hidden' : ''}`}
               >
                 <track kind="captions" />
               </video>

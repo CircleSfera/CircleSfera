@@ -580,6 +580,13 @@ export default function StoryComposer({
   const addAreaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
+    if (initialMedia) {
+      setBackground(initialMedia);
+      setBackgroundUrl(URL.createObjectURL(initialMedia));
+    }
+  }, [initialMedia]);
+
+  useEffect(() => {
     const resize = (el: HTMLTextAreaElement | null) => {
       if (!el) return;
       el.style.height = 'auto';
@@ -896,21 +903,41 @@ export default function StoryComposer({
           }}
         >
           {backgroundUrl && (
-            <img
-              src={backgroundUrl}
-              crossOrigin={
-                backgroundUrl.startsWith('blob:') ? undefined : 'anonymous'
-              }
-              className="w-full h-full object-cover"
-              alt="Background"
-              onLoad={() => logger.log('Background image loaded in editor')}
-              style={{
-                filter:
-                  bgBlur > 0 || bgDarken > 0
-                    ? `blur(${bgBlur}px) brightness(${100 - bgDarken}%)`
-                    : undefined,
-              }}
-            />
+            background?.type.startsWith('video/') ? (
+              <video
+                src={backgroundUrl}
+                crossOrigin={
+                  backgroundUrl.startsWith('blob:') ? undefined : 'anonymous'
+                }
+                className="w-full h-full object-cover"
+                autoPlay
+                loop
+                muted
+                playsInline
+                style={{
+                  filter:
+                    bgBlur > 0 || bgDarken > 0
+                      ? `blur(${bgBlur}px) brightness(${100 - bgDarken}%)`
+                      : undefined,
+                }}
+              />
+            ) : (
+              <img
+                src={backgroundUrl}
+                crossOrigin={
+                  backgroundUrl.startsWith('blob:') ? undefined : 'anonymous'
+                }
+                className="w-full h-full object-cover"
+                alt="Background"
+                onLoad={() => logger.log('Background image loaded in editor')}
+                style={{
+                  filter:
+                    bgBlur > 0 || bgDarken > 0
+                      ? `blur(${bgBlur}px) brightness(${100 - bgDarken}%)`
+                      : undefined,
+                }}
+              />
+            )
           )}
           {/* Darken overlay */}
           {bgDarken > 0 && !backgroundUrl && (

@@ -91,7 +91,7 @@ export default function StoryList() {
                       thumbnailUrl={profile?.thumbnailUrl}
                       standardUrl={profile?.standardUrl}
                       alt="Your story"
-                      size="lg"
+                      size="full"
                       hasStory={false}
                       verificationLevel={profile?.verificationLevel as any}
                     />
@@ -120,7 +120,7 @@ export default function StoryList() {
                         thumbnailUrl={profile.thumbnailUrl}
                         standardUrl={profile.standardUrl}
                         alt="Your story"
-                        size="lg"
+                        size="full"
                         verificationLevel={profile?.verificationLevel as any}
                         className="border border-white/10"
                       />
@@ -183,7 +183,7 @@ export default function StoryList() {
                       thumbnailUrl={group.user.profile.thumbnailUrl}
                       standardUrl={group.user.profile.standardUrl}
                       alt={group.user.profile.username}
-                      size="lg"
+                      size="full"
                       hasStory={false}
                       verificationLevel={group.user.verificationLevel as any}
                     />
