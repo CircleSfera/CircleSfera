@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Download } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   Area,
@@ -10,6 +11,7 @@ import {
 } from 'recharts';
 import type { CreatorChartDay } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
+import { exportToCSV } from '../../utils/exportUtils';
 import SafeResponsiveContainer from '../common/SafeResponsiveContainer';
 
 export default function CreatorAnalyticsTab() {
@@ -34,9 +36,21 @@ export default function CreatorAnalyticsTab() {
         {/* Glow effect */}
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-brand-primary/10 blur-[100px] rounded-full pointer-events-none" />
 
-        <h2 className="text-xl font-black text-white mb-8 tracking-tight">
-          {t('creator.analytics.audience_evolution')}
-        </h2>
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-xl font-black text-white tracking-tight">
+            {t('creator.analytics.audience_evolution')}
+          </h2>
+          {chartData && chartData.length > 0 && (
+            <button
+              type="button"
+              onClick={() => exportToCSV('analytics_report.csv', chartData)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-bold text-gray-300 transition-colors"
+            >
+              <Download size={14} />
+              Exportar CSV
+            </button>
+          )}
+        </div>
 
         <div className="h-[300px] w-full">
           {chartData && chartData.length > 0 ? (
