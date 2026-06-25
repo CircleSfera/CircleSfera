@@ -9,10 +9,10 @@ test.describe('Authentication Flow', () => {
   }) => {
     await page.goto('/auth/login');
 
-    const emailInput = page.locator('input[type="email"]');
+    const emailInput = page.locator('#identifier');
     await expect(emailInput).toBeVisible();
 
-    const passwordInput = page.locator('input[type="password"]');
+    const passwordInput = page.locator('#password');
     await expect(passwordInput).toBeVisible();
 
     const submitButton = page.locator('button[type="submit"]');
@@ -22,14 +22,12 @@ test.describe('Authentication Flow', () => {
   test('should show error for invalid credentials', async ({ page }) => {
     await page.goto('/auth/login');
 
-    await page
-      .locator('input[type="email"]')
-      .fill('invalid_user@circlesfera.com');
-    await page.locator('input[type="password"]').fill('wrongpassword');
+    await page.locator('#identifier').fill('invalid_user@circlesfera.com');
+    await page.locator('#password').fill('wrongpassword');
     await page.locator('button[type="submit"]').click();
 
     // Expect some toast or error message (assumes react-hot-toast)
-    const errorMessage = page.locator('.go3958317564'); // generic toast class, or just wait for text
+    page.locator('.go3958317564'); // generic toast class, or just wait for text
     await expect(page.getByText(/inválid|incorrect|error/i)).toBeVisible({
       timeout: 5000,
     });

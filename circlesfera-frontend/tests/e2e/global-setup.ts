@@ -12,8 +12,8 @@ async function globalSetup(config: FullConfig) {
     await page.goto(`${baseURL}/auth/login`);
 
     // Fill in credentials for the seeded user
-    await page.locator('input[type="email"]').fill('easyfeliu@gmail.com');
-    await page.locator('input[type="password"]').fill('password123');
+    await page.locator('#identifier').fill('easyfeliu@gmail.com');
+    await page.locator('#password').fill('password123');
 
     // Submit the form
     await page.locator('button[type="submit"]').click();
