@@ -203,11 +203,12 @@ describe('ChatService', () => {
       // Should emit to A and B
       expect(mockTo).toHaveBeenCalledWith('user:userA');
       expect(mockTo).toHaveBeenCalledWith('user:userB');
-      expect(mockEmit).toHaveBeenCalledWith('receiveMessage', {
+      expect(mockEmit).toHaveBeenCalledWith('receiveMessage', expect.objectContaining({
         id: 'msg-1',
         content: 'Hi Bob',
         tempId: 'temp-xyz123',
-      });
+        sender: { profile: { username: 'userA' } },
+      }));
     });
 
     it('should use existing conversationId and send message correctly', async () => {
