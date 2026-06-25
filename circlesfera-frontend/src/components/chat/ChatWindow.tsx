@@ -470,14 +470,16 @@ export default function ChatWindow() {
     const tempId =
       Date.now().toString() + Math.random().toString(36).substring(2, 9);
 
+    const currentUserId = profile?.userId || profile?.user?.id || profile?.id || '';
+
     const tempMsg: Message = {
       id: tempId,
       content: input, // We keep plaintext locally for immediate display
       conversationId: id,
-      senderId: profile.id,
+      senderId: currentUserId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      sender: { id: profile.id, profile: profile },
+      sender: { id: currentUserId, profile: profile },
       replyToId: replyTo?.id,
       replyTo: replyTo
         ? {
@@ -519,11 +521,13 @@ export default function ChatWindow() {
         }
 
         if (Object.keys(keysMap).length > 0) {
+          const currentUserId = profile?.userId || profile?.user?.id || profile?.id || '';
+          
           // Add my own public key so I can read my own messages later (if I have one)
           const myPubB64 = localStorage.getItem('e2e_public_key');
-          if (myPubB64 && !keysMap[profile.id]) {
+          if (myPubB64 && currentUserId) {
             try {
-              keysMap[profile.id] = await E2EService.importPublicKey(myPubB64);
+              keysMap[currentUserId] = await E2EService.importPublicKey(myPubB64);
             } catch {
               // Ignore errors fetching my own key
             }

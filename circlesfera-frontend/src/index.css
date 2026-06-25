@@ -170,6 +170,14 @@ body {
   background-color: black;
   color: white;
   overflow-x: hidden;
+  /* Prevent pull-to-refresh and double-tap zoom by default */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
+img, video {
+  /* Allow natural gestures on media elements */
+  touch-action: auto;
 }
 
 /* ─── Glass Panels ─── */

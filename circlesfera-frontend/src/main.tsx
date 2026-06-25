@@ -11,6 +11,27 @@ import ErrorBoundary from './components/ErrorBoundary.tsx';
 
 initSentry();
 
+// Prevent pinch-zoom on mobile devices except for images and videos
+document.addEventListener(
+  'touchmove',
+  (e: TouchEvent) => {
+    if (e.touches.length > 1) {
+      const target = e.target as HTMLElement;
+      if (target.tagName !== 'IMG' && target.tagName !== 'VIDEO') {
+        e.preventDefault();
+      }
+    }
+  },
+  { passive: false },
+);
+
+document.addEventListener('gesturestart', (e: Event) => {
+  const target = e.target as HTMLElement;
+  if (target.tagName !== 'IMG' && target.tagName !== 'VIDEO') {
+    e.preventDefault();
+  }
+});
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
