@@ -1,11 +1,18 @@
 import { Clock, Download, ImagePlus, PlusSquare, Trash2 } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import SEO from '../components/common/SEO';
-import PhotoEditor, {
-  type CropData,
-  type VideoData,
-} from '../components/PhotoEditor';
+import type { CropData, VideoData } from '../components/PhotoEditor';
+
+const PhotoEditor = lazy(() => import('../components/PhotoEditor'));
+
 import { useMediaProcessing } from '../hooks/useMediaProcessing';
 import { useMediaUpload } from '../hooks/useMediaUpload';
 import {
@@ -14,8 +21,6 @@ import {
   editsService,
 } from '../services/edits.service';
 import { useUIStore } from '../stores/uiStore';
-import { exportEditedImage } from '../utils/imageExport';
-import { exportEditedVideo } from '../utils/videoExport';
 
 export default function EditsStudio() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -205,6 +210,7 @@ export default function EditsStudio() {
     try {
       let finalFile: File;
       if (file.type.startsWith('video')) {
+        const { exportEditedVideo } = await import('../utils/videoExport');
         finalFile = await exportEditedVideo(
           file,
           filterString,
@@ -212,6 +218,7 @@ export default function EditsStudio() {
           overlayDataUrl,
         );
       } else {
+        const { exportEditedImage } = await import('../utils/imageExport');
         finalFile = await exportEditedImage(
           file,
           filterString,
@@ -292,16 +299,24 @@ export default function EditsStudio() {
           </div>
         )}
         <div className="flex-1 min-h-0 relative">
-          <PhotoEditor
-            key={currentIndex}
-            image={selectedFiles[currentIndex]}
-            initialState={activeState}
-            onStateChange={handleStateChange}
-            onSave={handleSaveEdit}
-            onCancel={() => {
-              setSelectedFiles([]);
-            }}
-          />
+          <Suspense
+            fallback={
+              <div className="absolute inset-0 flex items-center justify-center text-white/50 animate-pulse">
+                Cargando Editor...
+              </div>
+            }
+          >
+            <PhotoEditor
+              key={currentIndex}
+              image={selectedFiles[currentIndex]}
+              initialState={activeState}
+              onStateChange={handleStateChange}
+              onSave={handleSaveEdit}
+              onCancel={() => {
+                setSelectedFiles([]);
+              }}
+            />
+          </Suspense>
         </div>
 
         {/* Carousel UI */}

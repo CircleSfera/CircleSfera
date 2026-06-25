@@ -85,4 +85,41 @@ export class NotificationsCronService {
       `Digest push job completed for ${recipientIds.length} users.`,
     );
   }
+
+  /**
+   * Runs every day at midnight to clean up old notifications
+   * and free up database space.
+   */
+  @Cron('0 0 * * *')
+  async cleanupOldNotifications() {
+    this.logger.log('Starting old notifications cleanup job...');
+
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+
+    try {
+      // 1. Delete read notifications older than 30 days
+      const readDeleted = await this.prisma.notification.deleteMany({
+        where: {
+          read: true,
+          createdAt: { lt: thirtyDaysAgo },
+        },
+      });
+
+      // 2. Delete ALL notifications older than 90 days (even if unread)
+      const allDeleted = await this.prisma.notification.deleteMany({
+        where: {
+          createdAt: { lt: ninetyDaysAgo },
+        },
+      });
+
+      if (readDeleted.count > 0 || allDeleted.count > 0) {
+        this.logger.log(
+          `Cleaned up ${readDeleted.count} read notifications (>30d) and ${allDeleted.count} old notifications (>90d).`,
+        );
+      }
+    } catch (error) {
+      this.logger.error('Failed to clean up old notifications', error);
+    }
+  }
 }

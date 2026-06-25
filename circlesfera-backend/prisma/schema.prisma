@@ -144,7 +144,7 @@ model User {
   supportTickets SupportTicket[]
 
   // Edit Projects (Drafts)
-  editProjects     EditProject[]
+  editProjects EditProject[]
 
   @@index([isOnline])
   @@index([verificationToken])
@@ -284,6 +284,7 @@ model Post {
   @@index([createdAt])
   @@index([visibility])
   @@index([contentRating])
+  @@index([moderationStatus, visibility, createdAt(sort: Desc)])
   @@map("posts")
 }
 
@@ -393,8 +394,8 @@ model Story {
   notifications Notification[]
 
   // Premium Content
-  isPremium   Boolean @default(false)
-  priceCents  Int     @default(0)
+  isPremium  Boolean @default(false)
+  priceCents Int     @default(0)
 
   @@index([userId, expiresAt])
   @@index([userId, createdAt])
@@ -589,6 +590,7 @@ model Follow {
   @@index([followerId, status])
   @@index([followerId])
   @@index([followingId])
+  @@index([followingId, status])
   @@map("follows")
 }
 
@@ -830,6 +832,7 @@ model Message {
   @@index([storyId])
   @@index([replyToId])
   @@index([createdAt])
+  @@index([conversationId, createdAt(sort: Desc)])
   @@map("messages")
 }
 
@@ -1273,15 +1276,15 @@ enum PayoutStatus {
 
 // Support Tickets
 model SupportTicket {
-  id        String   @id @default(uuid())
+  id        String       @id @default(uuid())
   userId    String?
   email     String
   subject   String
   message   String
   status    TicketStatus @default(OPEN)
   reply     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
@@ -1298,10 +1301,10 @@ enum TicketStatus {
 
 // AI Auto-Moderation Vector Firewall
 model ModerationSignature {
-  id        String   @id @default(uuid())
+  id        String                      @id @default(uuid())
   vector    Unsupported("vector(1536)")
-  category  String   // e.g., "hate", "sexual", "spam"
-  createdAt DateTime @default(now())
+  category  String // e.g., "hate", "sexual", "spam"
+  createdAt DateTime                    @default(now())
 
   @@map("moderation_signatures")
 }

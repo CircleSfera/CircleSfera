@@ -9,9 +9,7 @@ import type {
   CreateStoryDto,
   StoryElement,
 } from '../types';
-import { exportEditedImage } from '../utils/imageExport';
 import { logger } from '../utils/logger';
-import { exportEditedVideo } from '../utils/videoExport';
 import { useMediaProcessing } from './useMediaProcessing';
 import { useMediaUpload } from './useMediaUpload';
 
@@ -229,6 +227,7 @@ export function useCreatePost() {
         try {
           let exportedFile: File;
           if (m.type === 'video') {
+            const { exportEditedVideo } = await import('../utils/videoExport');
             exportedFile = await exportEditedVideo(
               m.file,
               m.filter || '',
@@ -236,6 +235,7 @@ export function useCreatePost() {
               m.overlayDataUrl,
             );
           } else {
+            const { exportEditedImage } = await import('../utils/imageExport');
             exportedFile = await exportEditedImage(
               m.file,
               m.filter || '',

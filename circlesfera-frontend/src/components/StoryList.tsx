@@ -80,7 +80,7 @@ export default function StoryList() {
               <button
                 type="button"
                 onClick={() => handleStoryClick(myStoriesIndex)}
-                className="flex flex-col items-center gap-2 shrink-0 group focus:outline-none"
+                className="flex flex-col items-center gap-2 shrink-0 group focus:outline-none w-16"
               >
                 <div
                   className={`w-12 h-12 p-0.5 rounded-full ${ringColorClass} flex items-center justify-center transform transition-transform duration-300 group-hover:scale-105`}
@@ -109,7 +109,7 @@ export default function StoryList() {
           return (
             <Link
               to="/create?mode=story"
-              className="flex flex-col items-center gap-2 shrink-0 group"
+              className="flex flex-col items-center gap-2 shrink-0 group w-16"
             >
               <div className="relative transform transition-transform duration-300 group-hover:scale-105">
                 <div className="w-12 h-12 rounded-full p-0.5 bg-transparent flex items-center justify-center">
@@ -172,7 +172,7 @@ export default function StoryList() {
                 type="button"
                 key={group.user.id}
                 onClick={() => handleStoryClick(group.originalIndex)}
-                className="flex flex-col items-center gap-2 shrink-0 group focus:outline-none"
+                className="flex flex-col items-center gap-2 shrink-0 group focus:outline-none w-16"
               >
                 <div
                   className={`w-12 h-12 p-0.5 rounded-full ${ringColorClass} flex items-center justify-center transform transition-transform duration-300 group-hover:scale-105`}
