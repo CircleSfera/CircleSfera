@@ -8,6 +8,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { PushService } from '../push/push.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
 import { ChatService } from './chat.service.js';
 
@@ -58,6 +59,10 @@ describe('ChatService', () => {
     }),
   };
 
+  const mockPushService = {
+    sendNotification: vi.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -65,6 +70,7 @@ describe('ChatService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: ModuleRef, useValue: mockModuleRef },
         { provide: CryptoService, useValue: mockCryptoService },
+        { provide: PushService, useValue: mockPushService },
       ],
     }).compile();
 
@@ -179,6 +185,7 @@ describe('ChatService', () => {
       mockPrismaService.message.create.mockResolvedValueOnce({
         id: 'msg-1',
         content: 'Hi Bob',
+        sender: { profile: { username: 'userA' } },
       });
 
       const result = await service.sendMessage(
@@ -212,6 +219,7 @@ describe('ChatService', () => {
       mockPrismaService.message.create.mockResolvedValueOnce({
         id: 'msg-2',
         content: 'ping',
+        sender: { profile: { username: 'userA' } },
       });
 
       const result = await service.sendMessage(
