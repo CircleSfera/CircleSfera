@@ -11,6 +11,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { type Message, type MessageReaction, Prisma } from '@prisma/client';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { PushService } from '../push/push.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
 
 /**
@@ -25,6 +26,7 @@ export class ChatService {
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(ModuleRef) private moduleRef: ModuleRef,
     @Inject(CryptoService) private cryptoService: CryptoService,
+    @Inject(PushService) private pushService: PushService,
   ) {}
 
   private get gateway(): AppGateway {
@@ -295,6 +297,21 @@ export class ChatService {
       this.gateway.server
         .to(`user:${p.userId}`)
         .emit('receiveMessage', { ...message, tempId });
+
+      if (p.userId !== senderId) {
+        this.pushService
+          .sendNotification(p.userId, {
+            title: `Nuevo mensaje cifrado`,
+            body: `Has recibido un mensaje de @${message.sender.profile?.username || 'Alguien'}`,
+            data: { url: `/chat/${conversation.id}`, type: 'chat' },
+          })
+          .catch((err) =>
+            this.logger.error(
+              'Failed sending push notification for chat message',
+              err,
+            ),
+          );
+      }
     });
 
     return message;

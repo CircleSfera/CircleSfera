@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { PushModule } from '../push/push.module.js';
 import { SocketModule } from '../socket/socket.module.js';
 import { ChatController } from './chat.controller.js';
 import { ChatService } from './chat.service.js';
@@ -10,6 +11,7 @@ import { ChatService } from './chat.service.js';
 @Module({
   imports: [
     PrismaModule,
+    PushModule,
     ConfigModule,
     forwardRef(() => SocketModule),
     JwtModule.registerAsync({
