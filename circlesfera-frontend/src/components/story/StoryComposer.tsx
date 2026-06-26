@@ -581,14 +581,8 @@ export default function StoryComposer({
 
   useEffect(() => {
     if (initialMedia) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          setBackgroundUrl(e.target.result as string);
-        }
-      };
-      reader.readAsDataURL(initialMedia);
       setBackground(initialMedia);
+      setBackgroundUrl(URL.createObjectURL(initialMedia));
     }
   }, [initialMedia]);
 

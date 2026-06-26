@@ -79,21 +79,23 @@ export default function Frames() {
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="h-[calc(100dvh-64px)] md:h-[calc(100dvh-80px)] w-full md:max-w-[450px] mx-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
-      style={{ scrollBehavior: 'smooth' }}
-    >
-      {frames.map((frame, index) => (
-        <div key={frame.id} className="h-full w-full snap-start relative">
-          <FrameItem post={frame} isActive={index === activeFrameIndex} />
-        </div>
-      ))}
-      {isFetchingNextPage && (
-        <div className="h-full w-full snap-start flex items-center justify-center">
-          <LoadingSpinner size="md" />
-        </div>
-      )}
+    <div className="h-[calc(100dvh-64px)] md:h-[calc(100dvh-80px)] w-full flex items-center justify-center bg-[#0a0a0a]">
+      <div
+        ref={containerRef}
+        className="h-full md:h-[calc(100dvh-120px)] w-full md:max-w-[400px] md:rounded-[16px] mx-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide bg-black relative md:shadow-[0_0_40px_rgba(0,0,0,0.5)] md:border md:border-white/10"
+        style={{ scrollBehavior: 'smooth' }}
+      >
+        {frames.map((frame, index) => (
+          <div key={frame.id} className="h-full w-full snap-start relative">
+            <FrameItem post={frame} isActive={index === activeFrameIndex} />
+          </div>
+        ))}
+        {isFetchingNextPage && (
+          <div className="h-full w-full snap-start flex items-center justify-center">
+            <LoadingSpinner size="md" />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

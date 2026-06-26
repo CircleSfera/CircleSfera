@@ -1,19 +1,51 @@
 import { AlertTriangle, KeyRound } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { apiClient } from '../../services/api';
 import { useE2EStore } from '../../stores/e2eStore';
+import { useSocketStore } from '../../stores/socketStore';
 import { E2EService } from '../../utils/e2e';
 import { Button } from '../ui';
 
 export default function E2ERecoveryModal() {
-  const setStatus = useE2EStore((state) => state.setStatus);
-  const encryptedPrivateKeyPayload = useE2EStore(
-    (state) => state.encryptedPrivateKeyPayload,
-  );
+  const { status, setStatus, setSyncKeyPair, encryptedPrivateKeyPayload } =
+    useE2EStore();
+  const socket = useSocketStore((state) => state.socket);
 
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [hasAttemptedSync, setHasAttemptedSync] = useState(false);
+
+  useEffect(() => {
+    if (status === 'NEEDS_RECOVERY' && !hasAttemptedSync && socket?.connected) {
+      setHasAttemptedSync(true);
+      setStatus('SYNCING');
+
+      const initiateSync = async () => {
+        try {
+          const keyPair = await E2EService.generateKeyPair();
+          setSyncKeyPair(keyPair);
+
+          const publicKeyB64 = await E2EService.exportPublicKey(
+            keyPair.publicKey,
+          );
+          socket.emit('e2e:request_sync', { syncPublicKey: publicKeyB64 });
+
+          // Timeout to fallback if no other devices answer
+          setTimeout(() => {
+            if (useE2EStore.getState().status === 'SYNCING') {
+              setStatus('NEEDS_RECOVERY');
+            }
+          }, 5000);
+        } catch (err) {
+          console.error('Error initiating sync', err);
+          setStatus('NEEDS_RECOVERY');
+        }
+      };
+
+      initiateSync();
+    }
+  }, [status, hasAttemptedSync, socket, setStatus, setSyncKeyPair]);
 
   const handleRecover = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +95,25 @@ export default function E2ERecoveryModal() {
     // Si olvidaron la contraseña, generamos unas claves nuevas desde cero (Setup)
     setStatus('NEEDS_SETUP');
   };
+
+  if (status === 'SYNCING') {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-md p-6 text-center shadow-2xl">
+          <div className="flex justify-center mb-6 mt-4">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">
+            Sincronizando claves...
+          </h2>
+          <p className="text-gray-400 text-sm mb-4">
+            Buscando otros dispositivos activos para restaurar tus chats
+            automáticamente.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
