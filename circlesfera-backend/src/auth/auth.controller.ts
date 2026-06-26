@@ -52,7 +52,7 @@ export class AuthController {
 
   /** Register a new user and return JWT tokens as HTTP-only cookies. */
   @Post('register')
-  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute
+  @Throttle({ short: { limit: 5, ttl: 60000 } }) // 5 requests per minute
   async register(
     @Body() dto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
@@ -74,7 +74,7 @@ export class AuthController {
   /** Authenticate with email/username and password. Sets tokens as HTTP-only cookies. */
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute
+  @Throttle({ short: { limit: 5, ttl: 60000 } }) // 5 requests per minute
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,

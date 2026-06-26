@@ -1,5 +1,6 @@
 import { startAuthentication } from '@simplewebauthn/browser';
 import { useMutation } from '@tanstack/react-query';
+import axios from 'axios';
 import { Fingerprint } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -85,6 +86,11 @@ export default function Login() {
     loginMutation.mutate({ identifier, password });
   };
 
+  const errorMessage = axios.isAxiosError(loginMutation.error) 
+    ? loginMutation.error.response?.data?.message 
+    : undefined;
+  const is2FARequired = errorMessage === '2FA_REQUIRED';
+
   return (
     <LayoutWrapper showNavigation={false}>
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -152,17 +158,9 @@ export default function Login() {
               </Link>
             </div>
 
-            {loginMutation.isError &&
-              !(
-                (loginMutation.error as any)?.response?.data?.message ===
-                '2FA_REQUIRED'
-              ) && (
+            {loginMutation.isError && !is2FARequired && (
                 <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
-                  {(
-                    loginMutation.error as {
-                      response?: { data?: { message?: string } };
-                    }
-                  )?.response?.data?.message || t('auth.login.default_error')}
+                  {errorMessage || t('auth.login.default_error')}
                 </div>
               )}
 
@@ -172,8 +170,7 @@ export default function Login() {
               </div>
             )}
 
-            {(loginMutation.error as any)?.response?.data?.message ===
-            '2FA_REQUIRED' ? (
+            {is2FARequired ? (
               <div className="space-y-4 animate-in fade-in">
                 <div>
                   <label

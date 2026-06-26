@@ -46,8 +46,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       where: { id: payload.sub },
     });
 
-    if (!user) {
-      throw new UnauthorizedException();
+    if (!user?.isActive) {
+      throw new UnauthorizedException('User not found or account deactivated');
     }
 
     const role = (user as { role?: string }).role || 'USER';

@@ -196,6 +196,11 @@ export class AuthService {
       },
     });
 
+    // Revoke all existing sessions to prevent hijack persistence
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId: user.id },
+    });
+
     return { message: 'Password reset successfully' };
   }
 
@@ -276,7 +281,15 @@ export class AuthService {
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('Account is deactivated');
+      if (user.deletedAt && user.deletedAt > new Date()) {
+        // Auto-restore account if logged in during GDPR grace period
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { isActive: true, deletedAt: null },
+        });
+      } else {
+        throw new UnauthorizedException('Account is deactivated');
+      }
     }
 
     if (user.isTwoFactorEnabled) {
@@ -317,7 +330,15 @@ export class AuthService {
     });
 
     if (!user?.isActive) {
-      throw new UnauthorizedException('User not found or inactive');
+      if (user?.deletedAt && user.deletedAt > new Date()) {
+        // Auto-restore account if logged in during GDPR grace period
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { isActive: true, deletedAt: null },
+        });
+      } else {
+        throw new UnauthorizedException('User not found or inactive');
+      }
     }
 
     return this.generateTokens(user.id, user.email);
