@@ -54,7 +54,7 @@ export class PaymentsController {
 
   @Post('webhook')
   @HttpCode(HttpStatus.OK)
-  async handleWebhook(@Req() req: Request, @Body() body: Buffer) {
+  async handleWebhook(@Req() req: Request) {
     const sig = req.headers['stripe-signature'] as string | undefined;
 
     if (!sig) {
@@ -62,7 +62,11 @@ export class PaymentsController {
     }
 
     try {
-      const event = this.paymentsService.constructEvent(body, sig);
+      const rawBody = (req as any).rawBody;
+      if (!rawBody) {
+        return { received: false, error: 'rawBody not found' };
+      }
+      const event = this.paymentsService.constructEvent(rawBody, sig);
       await this.paymentsService.processWebhookEvent(event);
       return { received: true };
     } catch (err: unknown) {
