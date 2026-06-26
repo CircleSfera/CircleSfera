@@ -150,10 +150,18 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // --- Chat Actions (Typing, Reactions, etc.) ---
   @SubscribeMessage('typing_start')
-  handleTypingStart(
+  async handleTypingStart(
     @MessageBody() payload: { conversationId: string; recipientId: string },
     @ConnectedSocket() client: SocketWithAuth,
   ) {
+    const isParticipant = await this.prisma.participant.findFirst({
+      where: {
+        conversationId: payload.conversationId,
+        userId: client.data.user.sub,
+      },
+    });
+    if (!isParticipant) return;
+
     this.server.to(`user:${payload.recipientId}`).emit('user_typing', {
       userId: client.data.user.sub,
       conversationId: payload.conversationId,
@@ -161,9 +169,18 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('typing_stop')
-  handleTypingStop(
+  async handleTypingStop(
     @MessageBody() payload: { conversationId: string; recipientId: string },
+    @ConnectedSocket() client: SocketWithAuth,
   ) {
+    const isParticipant = await this.prisma.participant.findFirst({
+      where: {
+        conversationId: payload.conversationId,
+        userId: client.data.user.sub,
+      },
+    });
+    if (!isParticipant) return;
+
     this.server.to(`user:${payload.recipientId}`).emit('user_stopped_typing', {
       conversationId: payload.conversationId,
     });
@@ -205,10 +222,18 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('mark_read')
-  handleMarkRead(
+  async handleMarkRead(
     @MessageBody() payload: { conversationId: string; recipientId: string },
     @ConnectedSocket() client: SocketWithAuth,
   ) {
+    const isParticipant = await this.prisma.participant.findFirst({
+      where: {
+        conversationId: payload.conversationId,
+        userId: client.data.user.sub,
+      },
+    });
+    if (!isParticipant) return;
+
     this.server.to(`user:${payload.recipientId}`).emit('messages_read', {
       conversationId: payload.conversationId,
       userId: client.data.user.sub,
@@ -258,6 +283,23 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: SocketWithAuth,
   ) {
     const callerId = client.data.user.sub;
+
+    // Security: Only allow calling if they have an active 1-on-1 conversation
+    const conversation = await this.prisma.conversation.findFirst({
+      where: {
+        isGroup: false,
+        AND: [
+          { participants: { some: { userId: callerId } } },
+          { participants: { some: { userId: payload.recipientId } } },
+        ],
+      },
+    });
+
+    if (!conversation) {
+      this.logger.warn(`Call blocked: No active conversation between ${callerId} and ${payload.recipientId}`);
+      return;
+    }
+
     const caller = await this.prisma.user.findUnique({
       where: { id: callerId },
       select: {

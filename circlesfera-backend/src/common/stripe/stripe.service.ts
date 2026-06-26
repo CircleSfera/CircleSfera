@@ -10,7 +10,7 @@ export class StripeService implements OnModuleInit {
   constructor(@Inject(ConfigService) private configService: ConfigService) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY') || '';
     this.stripe = new Stripe(secretKey, {
-      apiVersion: '2025-01-27.acacia' as any,
+      apiVersion: '2026-03-25.dahlia',
     });
   }
 
