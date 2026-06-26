@@ -86,7 +86,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: -20 }}
           transition={{ duration: 0.15 }}
-          className="relative w-full max-w-lg bg-[#111] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+          className="relative w-full max-w-lg bg-surface-elevated border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
         >
           <div className="flex items-center px-4 py-3 border-b border-white/10">
             <Search size={20} className="text-gray-400 mr-3" />

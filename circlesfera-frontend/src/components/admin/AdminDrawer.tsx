@@ -66,7 +66,7 @@ export default function AdminDrawer({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className={`fixed inset-y-0 right-0 z-50 w-full ${widthClasses[width]} bg-[#0a0a0a] border-l border-white/10 shadow-2xl flex flex-col`}
+            className={`fixed inset-y-0 right-0 z-50 w-full ${widthClasses[width]} bg-surface-elevated border-l border-white/10 shadow-2xl flex flex-col`}
           >
             {/* Header */}
             <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between shrink-0 bg-white/2">
