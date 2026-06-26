@@ -6,9 +6,9 @@ import { AIService } from '../ai/ai.service.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { UploadsService } from '../uploads/uploads.service.js';
 import type { CreatePostDto } from './dto/create-post.dto.js';
 import { PostsService } from './posts.service.js';
-import { UploadsService } from '../uploads/uploads.service.js';
 
 describe('PostsService', () => {
   let service: PostsService;
@@ -132,7 +132,7 @@ describe('PostsService', () => {
         _count: { likes: 0, comments: 0 },
       });
 
-      const result = await service.create(userId, dto);
+      const _result = await service.create(userId, dto);
 
       expect(mockTx.post.create).toHaveBeenCalled();
       expect(mockPrismaService.hashtag.upsert).toHaveBeenCalledWith(
