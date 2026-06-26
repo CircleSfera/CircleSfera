@@ -76,9 +76,10 @@ export class PushService {
             },
             JSON.stringify(payload),
           );
-        } catch (error: any) {
+        } catch (error: unknown) {
           // If subscription is expired or invalid, remove it
-          if (error.statusCode === 404 || error.statusCode === 410) {
+          const statusCode = (error as { statusCode?: number }).statusCode;
+          if (statusCode === 404 || statusCode === 410) {
             await this.unsubscribe(sub.endpoint);
             this.logger.log(
               `Removed expired push subscription: ${sub.endpoint}`,
