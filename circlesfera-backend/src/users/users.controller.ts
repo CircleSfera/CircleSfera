@@ -78,9 +78,9 @@ export class UsersController {
   /** DELETE /users/me: Scheduled account deletion (GDPR). */
   @Delete('me')
   async deleteMe(@CurrentUser() user: CurrentUserData) {
-    await this.usersService.deleteUser(user.userId);
-    const scheduledDeletionAt = new Date();
-    scheduledDeletionAt.setDate(scheduledDeletionAt.getDate() + 30);
+    const scheduledDeletionAt = await this.usersService.scheduleDeletion(
+      user.userId,
+    );
     return {
       success: true,
       message: 'Account scheduled for deletion',

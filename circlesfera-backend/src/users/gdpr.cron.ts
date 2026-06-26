@@ -77,4 +77,30 @@ export class GdprCron {
       this.logger.error('Failed to purge expired data exports', error);
     }
   }
+
+  @Cron(CronExpression.EVERY_DAY_AT_4AM)
+  async cleanExpiredAccounts() {
+    this.logger.log('Starting daily purge of expired Accounts...');
+    try {
+      const expiredUsers = await this.prisma.user.findMany({
+        where: {
+          deletedAt: {
+            lt: new Date(),
+          },
+        },
+      });
+
+      let deletedCount = 0;
+      for (const user of expiredUsers) {
+        await this.prisma.user.delete({
+          where: { id: user.id },
+        });
+        deletedCount++;
+      }
+
+      this.logger.log(`Purged ${deletedCount} expired user accounts.`);
+    } catch (error) {
+      this.logger.error('Failed to purge expired accounts', error);
+    }
+  }
 }
