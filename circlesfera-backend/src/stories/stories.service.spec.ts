@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateStoryDto } from './dto/create-story.dto.js';
 import { StoriesService } from './stories.service.js';
+import { UploadsService } from '../uploads/uploads.service.js';
 
 describe('StoriesService', () => {
   let service: StoriesService;
@@ -12,7 +13,9 @@ describe('StoriesService', () => {
     story: {
       create: vi.fn(),
       findMany: vi.fn(),
+      findFirst: vi.fn(),
       deleteMany: vi.fn(),
+      delete: vi.fn(),
     },
     follow: {
       findMany: vi.fn(),
@@ -48,6 +51,7 @@ describe('StoriesService', () => {
         StoriesService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: 'BullQueue_ai-processing', useValue: { add: vi.fn() } },
+        { provide: UploadsService, useValue: { deleteFile: vi.fn() } },
       ],
     }).compile();
 
@@ -141,10 +145,14 @@ describe('StoriesService', () => {
   });
 
   describe('delete', () => {
-    it('should call deleteMany with correct filters', async () => {
+    it('should call delete with correct filters', async () => {
+      mockPrismaService.story.findFirst.mockResolvedValueOnce({
+        id: 'story-1',
+        userId: 'user-1',
+      });
       await service.delete('story-1', 'user-1');
-      expect(mockPrismaService.story.deleteMany).toHaveBeenCalledWith({
-        where: { id: 'story-1', userId: 'user-1' },
+      expect(mockPrismaService.story.delete).toHaveBeenCalledWith({
+        where: { id: 'story-1' },
       });
     });
     describe('findByUser', () => {

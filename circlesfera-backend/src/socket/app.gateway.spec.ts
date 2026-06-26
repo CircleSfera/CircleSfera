@@ -30,6 +30,9 @@ describe('AppGateway', () => {
     user: {
       update: vi.fn(),
     },
+    participant: {
+      findFirst: vi.fn(),
+    },
   };
 
   const mockChatService = {
@@ -164,9 +167,11 @@ describe('AppGateway', () => {
       },
     } as unknown as SocketWithAuth;
 
-    it('should handle typing_start', () => {
+    it('should handle typing_start', async () => {
       const payload = { conversationId: 'conv-1', recipientId: 'recipient-1' };
-      gateway.handleTypingStart(payload, mockClient);
+      mockPrismaService.participant.findFirst.mockResolvedValue({ id: 'part-1' });
+
+      await gateway.handleTypingStart(payload, mockClient);
 
       expect(mockServer.to).toHaveBeenCalledWith('user:recipient-1');
       expect(mockServer.emit).toHaveBeenCalledWith('user_typing', {

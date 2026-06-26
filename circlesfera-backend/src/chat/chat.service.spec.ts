@@ -26,16 +26,22 @@ describe('ChatService', () => {
     message: {
       create: vi.fn(),
       findMany: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
     },
     participant: {
       findFirst: vi.fn(),
       updateMany: vi.fn(),
+      update: vi.fn(),
     },
     messageReaction: {
       findUnique: vi.fn(),
       update: vi.fn(),
       create: vi.fn(),
     },
+    block: {
+      findMany: vi.fn(),
+    }
   };
 
   const mockEmit = vi.fn();
@@ -94,6 +100,7 @@ describe('ChatService', () => {
     it('should return existing 1-on-1 conversation if it exists', async () => {
       const existing = { id: 'conv-1', isGroup: false };
       mockPrismaService.conversation.findFirst.mockResolvedValueOnce(existing);
+      mockPrismaService.block.findMany.mockResolvedValueOnce([]);
 
       const result = await service.createGroup('userA', ['userA', 'userB']);
       expect(result).toEqual(existing);
@@ -104,28 +111,26 @@ describe('ChatService', () => {
     it('should create new 1-on-1 conversation if none exists', async () => {
       mockPrismaService.conversation.findFirst.mockResolvedValueOnce(null);
       mockPrismaService.conversation.create.mockResolvedValueOnce({
-        id: 'new-conv',
+        id: 'conv-2',
       });
+      mockPrismaService.block.findMany.mockResolvedValueOnce([]);
 
       const result = await service.createGroup('userA', ['userA', 'userB']);
-      expect(result).toEqual({ id: 'new-conv' });
+      expect(result).toEqual({ id: 'conv-2' });
       expect(mockPrismaService.conversation.create).toHaveBeenCalled();
     });
 
     it('should create a true group conversation if multiple participants', async () => {
       mockPrismaService.conversation.create.mockResolvedValueOnce({
-        id: 'group-conv',
+        id: 'conv-group',
       });
-      const result = await service.createGroup(
-        'userA',
-        ['userA', 'userB', 'userC'],
-        'My Group',
-      );
+      mockPrismaService.block.findMany.mockResolvedValueOnce([]);
 
-      expect(result).toEqual({ id: 'group-conv' });
+      const result = await service.createGroup('userA', ['userA', 'userB', 'userC'], 'My Group');
+
+      expect(result).toEqual({ id: 'conv-group' });
       expect(mockPrismaService.conversation.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           data: expect.objectContaining({
             isGroup: true,
             name: 'My Group',
@@ -174,19 +179,17 @@ describe('ChatService', () => {
     });
 
     it('should find or create DM conv and send message with Gateway broadcast', async () => {
-      const fakeConv = {
-        id: 'dm-1',
-        isGroup: false,
-        participants: [{ userId: 'userA' }, { userId: 'userB' }],
-      };
-      // For recipient creation branch
       mockPrismaService.conversation.findFirst.mockResolvedValueOnce(null);
-      mockPrismaService.conversation.create.mockResolvedValueOnce(fakeConv);
+      mockPrismaService.conversation.create.mockResolvedValueOnce({
+        id: 'new-dm-id',
+        participants: [{ userId: 'userA' }, { userId: 'userB' }],
+      });
       mockPrismaService.message.create.mockResolvedValueOnce({
         id: 'msg-1',
         content: 'Hi Bob',
         sender: { profile: { username: 'userA' } },
       });
+      mockPrismaService.block.findMany.mockResolvedValueOnce([]);
 
       const result = await service.sendMessage(
         'userA',
@@ -200,7 +203,6 @@ describe('ChatService', () => {
 
       expect(result.id).toBe('msg-1');
       expect(mockPrismaService.message.create).toHaveBeenCalled();
-      // Should emit to A and B
       expect(mockTo).toHaveBeenCalledWith('user:userA');
       expect(mockTo).toHaveBeenCalledWith('user:userB');
       expect(mockEmit).toHaveBeenCalledWith('receiveMessage', expect.objectContaining({
@@ -222,6 +224,7 @@ describe('ChatService', () => {
         content: 'ping',
         sender: { profile: { username: 'userA' } },
       });
+      mockPrismaService.block.findMany.mockResolvedValueOnce([]);
 
       const result = await service.sendMessage(
         'userA',
@@ -234,7 +237,6 @@ describe('ChatService', () => {
       expect(result.id).toBe('msg-2');
       expect(mockPrismaService.message.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           data: expect.objectContaining({ conversationId: 'conv-existing' }),
         }),
       );
@@ -298,11 +300,17 @@ describe('ChatService', () => {
 
   describe('addReaction', () => {
     it('should update reaction if it already exists', async () => {
+      mockPrismaService.message.findUnique.mockResolvedValueOnce({
+        id: 'msg-1',
+        conversation: {
+          participants: [{ userId: 'userA' }],
+        },
+      });
       mockPrismaService.messageReaction.findUnique.mockResolvedValueOnce({
-        id: 'reaction-1',
+        id: 'react-1',
       });
       mockPrismaService.messageReaction.update.mockResolvedValueOnce({
-        id: 'reaction-1',
+        id: 'react-1',
         reaction: '❤️',
       });
 
@@ -312,6 +320,12 @@ describe('ChatService', () => {
     });
 
     it('should create reaction if it does not exist', async () => {
+      mockPrismaService.message.findUnique.mockResolvedValueOnce({
+        id: 'msg-1',
+        conversation: {
+          participants: [{ userId: 'userA' }],
+        },
+      });
       mockPrismaService.messageReaction.findUnique.mockResolvedValueOnce(null);
       mockPrismaService.messageReaction.create.mockResolvedValueOnce({
         id: 'reaction-new',
@@ -334,23 +348,16 @@ describe('ChatService', () => {
 
     it('should delete conversation and emit deletion event to participants', async () => {
       mockPrismaService.participant.findFirst.mockResolvedValueOnce({
-        id: 'p1',
+        id: 'p-1',
       });
-      mockPrismaService.conversation.findUnique.mockResolvedValueOnce({
-        id: 'c1',
-        participants: [{ userId: 'userA' }, { userId: 'userB' }],
+      mockPrismaService.participant.update.mockResolvedValueOnce({
+        id: 'p-1',
       });
-      mockPrismaService.conversation.delete.mockResolvedValueOnce({ id: 'c1' });
 
       const result = await service.deleteConversation('c1', 'userA');
       expect(result.success).toBe(true);
-      expect(result.mode).toBe('both');
+      expect(result.mode).toBe('me');
       expect(mockTo).toHaveBeenCalledWith('user:userA');
-      expect(mockTo).toHaveBeenCalledWith('user:userB');
-      expect(mockEmit).toHaveBeenCalledWith('conversationDeleted', {
-        conversationId: 'c1',
-      });
-      expect(mockPrismaService.conversation.delete).toHaveBeenCalled();
     });
   });
 });

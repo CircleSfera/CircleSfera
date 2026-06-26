@@ -37,15 +37,6 @@ describe('UsersService', () => {
 
   describe('getSuggestions', () => {
     it('should return user suggestions excluding follows and blocks', async () => {
-      mockPrismaService.follow.findMany.mockResolvedValueOnce([
-        { followingId: 'f1' },
-      ]); // following
-      mockPrismaService.follow.findMany.mockResolvedValueOnce([
-        { followingId: 'p1' },
-      ]); // pending
-      mockPrismaService.block.findMany.mockResolvedValue([
-        { blockerId: 'b1', blockedId: '1' },
-      ]);
       const mockSuggestions = [
         {
           id: 's1',
@@ -59,14 +50,12 @@ describe('UsersService', () => {
       const result = await service.getSuggestions('1', limit);
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('s1');
-      const expectedNotIn = ['1', 'f1', 'p1', 'b1', '1'];
-      // Fixed lint issues by using explicit types for mock call arguments
+      
       const lastCallArgs = vi.mocked(mockPrismaService.user.findMany).mock
-        .calls[0][0] as {
-        where: { id: { notIn: string[] } };
-        take: number;
-      };
-      expect(lastCallArgs.where.id.notIn).toEqual(expectedNotIn);
+        .calls[0][0] as any;
+      expect(lastCallArgs.where.followers.none.followerId).toBe('1');
+      expect(lastCallArgs.where.blocking.none.blockedId).toBe('1');
+      expect(lastCallArgs.where.blockedBy.none.blockerId).toBe('1');
       expect(lastCallArgs.take).toBe(limit);
     });
   });
