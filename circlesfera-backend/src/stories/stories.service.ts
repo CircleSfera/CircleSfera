@@ -11,6 +11,7 @@ import {
 } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { UploadsService } from '../uploads/uploads.service.js';
 import { CreateStoryDto } from './dto/create-story.dto.js';
 
 export type StoryReactionWithUser = StoryReaction & {
@@ -30,6 +31,7 @@ export class StoriesService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
+    @Inject(UploadsService) private readonly uploadsService: UploadsService,
   ) {}
 
   /**
@@ -99,6 +101,7 @@ export class StoriesService {
     } else {
       // If no userId (guest), only public user stories
       whereClause.user = { settings: { privacyLevel: Visibility.PUBLIC } };
+      whereClause.isCloseFriendsOnly = false;
     }
 
     const stories = await this.prisma.story.findMany({
@@ -130,7 +133,7 @@ export class StoriesService {
       const { views, ...storyData } = s;
       return {
         ...storyData,
-        isViewed: userId ? (views as any[])?.length > 0 : false,
+        isViewed: userId ? (views as unknown[])?.length > 0 : false,
       };
     });
 
@@ -231,7 +234,7 @@ export class StoriesService {
       const { views, ...storyData } = s;
       return {
         ...storyData,
-        isViewed: currentUserId ? (views as any[]).length > 0 : false,
+        isViewed: currentUserId ? (views as unknown[]).length > 0 : false,
       };
     });
   }
@@ -268,12 +271,19 @@ export class StoriesService {
    * @param userId - The requesting user's ID
    */
   async delete(id: string, userId: string): Promise<void> {
-    await this.prisma.story.deleteMany({
-      where: {
-        id,
-        userId,
-      },
+    const story = await this.prisma.story.findFirst({
+      where: { id, userId },
     });
+
+    if (story) {
+      if (story.url) await this.uploadsService.deleteFile(story.url).catch(e => console.error(e));
+      if (story.standardUrl) await this.uploadsService.deleteFile(story.standardUrl).catch(e => console.error(e));
+      if (story.thumbnailUrl) await this.uploadsService.deleteFile(story.thumbnailUrl).catch(e => console.error(e));
+      
+      await this.prisma.story.delete({
+        where: { id: story.id },
+      });
+    }
   }
 
   /**
@@ -388,6 +398,16 @@ export class StoriesService {
   @Cron(CronExpression.EVERY_HOUR)
   async cleanupExpiredStories() {
     try {
+      const expiredStories = await this.prisma.story.findMany({
+        where: { expiresAt: { lt: new Date() } },
+      });
+
+      for (const story of expiredStories) {
+        if (story.url) await this.uploadsService.deleteFile(story.url).catch(e => console.error(e));
+        if (story.standardUrl) await this.uploadsService.deleteFile(story.standardUrl).catch(e => console.error(e));
+        if (story.thumbnailUrl) await this.uploadsService.deleteFile(story.thumbnailUrl).catch(e => console.error(e));
+      }
+
       const deleted = await this.prisma.story.deleteMany({
         where: {
           expiresAt: { lt: new Date() },
