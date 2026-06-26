@@ -2,9 +2,9 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import type { Story } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { UploadsService } from '../uploads/uploads.service.js';
 import type { CreateStoryDto } from './dto/create-story.dto.js';
 import { StoriesService } from './stories.service.js';
-import { UploadsService } from '../uploads/uploads.service.js';
 
 describe('StoriesService', () => {
   let service: StoriesService;
