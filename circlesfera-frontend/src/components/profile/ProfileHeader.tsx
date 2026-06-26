@@ -235,7 +235,7 @@ export default function ProfileHeader({
                   {profile.data.accountType === 'CREATOR' && (
                     <button
                       type="button"
-                      onClick={() => subscribeMutation.mutate(undefined as any)}
+                      onClick={() => subscribeMutation.mutate(undefined)}
                       disabled={subscribeMutation.isPending}
                       className="px-4 py-2 bg-linear-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white rounded-lg font-black text-xs uppercase tracking-wide transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1 disabled:opacity-50"
                     >
@@ -276,7 +276,7 @@ export default function ProfileHeader({
                     </button>
 
                     {showMenu && (
-                      <div className="absolute top-full mt-2 right-0 bg-[#161616] border border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-[180px] z-60 backdrop-blur-xl animate-in fade-in zoom-in-95">
+                      <div className="absolute top-full mt-2 right-0 bg-surface-raised border border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-[180px] z-60 backdrop-blur-xl animate-in fade-in zoom-in-95">
                         <button
                           type="button"
                           onClick={() => {

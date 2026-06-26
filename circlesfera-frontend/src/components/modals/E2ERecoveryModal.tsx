@@ -76,7 +76,7 @@ export default function E2ERecoveryModal() {
       localStorage.setItem('e2e_private_key', privateKeyB64);
 
       setStatus('READY');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setError('Contraseña incorrecta o error al descifrar.');
     } finally {

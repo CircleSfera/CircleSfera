@@ -74,14 +74,17 @@ export class FeedService {
       if (targetVectorStr) {
         // Hybrid Query WITH AI Vector
         postsRaw = await this.prisma.$queryRaw`
-          WITH social_graph AS (
+          WITH social_graph_raw AS (
             SELECT "followingId", 1.5 AS weight
             FROM "follows"
             WHERE "followerId" = ${userId} AND "status" = 'ACCEPTED'
-            UNION
+            UNION ALL
             SELECT "friendId" AS "followingId", 2.0 AS weight
             FROM "close_friends"
             WHERE "userId" = ${userId}
+          ),
+          social_graph AS (
+            SELECT "followingId", MAX(weight) as weight FROM social_graph_raw GROUP BY "followingId"
           )
           SELECT 
             p.id,
@@ -110,6 +113,8 @@ export class FeedService {
             AND p."userId" != ${userId}
             AND p.id NOT IN (SELECT "postId" FROM "likes" WHERE "userId" = ${userId})
             AND p."userId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${userId})
+            AND p."userId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${userId})
+            AND p."userId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${userId})
             
           ORDER BY final_score DESC
           LIMIT ${limit}
@@ -118,14 +123,17 @@ export class FeedService {
       } else {
         // Hybrid Query WITHOUT AI Vector (User has no likes yet)
         postsRaw = await this.prisma.$queryRaw`
-          WITH social_graph AS (
+          WITH social_graph_raw AS (
             SELECT "followingId", 1.5 AS weight
             FROM "follows"
             WHERE "followerId" = ${userId} AND "status" = 'ACCEPTED'
-            UNION
+            UNION ALL
             SELECT "friendId" AS "followingId", 2.0 AS weight
             FROM "close_friends"
             WHERE "userId" = ${userId}
+          ),
+          social_graph AS (
+            SELECT "followingId", MAX(weight) as weight FROM social_graph_raw GROUP BY "followingId"
           )
           SELECT 
             p.id,
@@ -148,6 +156,8 @@ export class FeedService {
             AND p."moderationStatus" = 'VISIBLE'
             AND p."userId" != ${userId}
             AND p."userId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${userId})
+            AND p."userId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${userId})
+            AND p."userId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${userId})
             
           ORDER BY final_score DESC
           LIMIT ${limit}

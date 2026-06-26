@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Gift, Heart, X } from 'lucide-react';
 import { useState } from 'react';
@@ -41,8 +42,14 @@ export default function TipModal({
       if (response.data?.url) {
         window.location.href = response.data.url;
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || t('wallet.error_send_tip'));
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        toast.error(
+          error.response?.data?.message || t('wallet.error_send_tip'),
+        );
+      } else {
+        toast.error(t('wallet.error_send_tip'));
+      }
       setIsSubmitting(false);
     }
   };

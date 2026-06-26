@@ -9,6 +9,9 @@ import {
 } from '@nestjs/common';
 import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { ConnectStripeDto } from './dto/connect-stripe.dto.js';
+import { SendTipDto } from './dto/send-tip.dto.js';
+import { UnlockPostDto } from './dto/unlock-post.dto.js';
 import { MonetizationService } from './monetization.service.js';
 
 interface AuthRequest extends Request {
@@ -40,10 +43,7 @@ export class MonetizationController {
 
   @Post('connect')
   @UseGuards(IdentityVerifiedGuard)
-  async connectStripe(
-    @Req() req: AuthRequest,
-    @Body() body: { returnUrl: string; refreshUrl: string },
-  ) {
+  async connectStripe(@Req() req: AuthRequest, @Body() body: ConnectStripeDto) {
     return this.monetizationService.onboardConnectAccount(
       req.user.userId,
       body.returnUrl,
@@ -53,16 +53,7 @@ export class MonetizationController {
 
   @Post('tip')
   @UseGuards(IdentityVerifiedGuard)
-  async sendTip(
-    @Req() req: AuthRequest,
-    @Body() body: {
-      receiverId: string;
-      amountCents: number;
-      returnUrl: string;
-      postId?: string;
-      idempotencyKey?: string;
-    },
-  ) {
+  async sendTip(@Req() req: AuthRequest, @Body() body: SendTipDto) {
     return this.monetizationService.createTipSession(
       req.user.userId,
       body.receiverId,
@@ -75,14 +66,7 @@ export class MonetizationController {
 
   @Post('unlock')
   @UseGuards(IdentityVerifiedGuard)
-  async unlockPost(
-    @Req() req: AuthRequest,
-    @Body() body: {
-      postId: string;
-      returnUrl: string;
-      idempotencyKey?: string;
-    },
-  ) {
+  async unlockPost(@Req() req: AuthRequest, @Body() body: UnlockPostDto) {
     return this.monetizationService.createPostUnlockSession(
       req.user.userId,
       body.postId,

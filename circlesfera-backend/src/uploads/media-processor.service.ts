@@ -70,7 +70,7 @@ export class MediaProcessorService {
     quality: number,
   ): Promise<{ buffer: Buffer; mimetype: string }> {
     try {
-      const sharpInstance = sharp(buffer);
+      const sharpInstance = sharp(buffer, { limitInputPixels: 8192 ** 2 });
       const processor = sharpInstance
         .resize({ width, withoutEnlargement: true, fit: 'inside' })
         .rotate(); // Handle EXIF orientation
@@ -83,7 +83,7 @@ export class MediaProcessorService {
       return { buffer: processedBuffer, mimetype: 'image/avif' };
     } catch {
       // Fallback to WebP
-      const webpBuffer = await sharp(buffer)
+      const webpBuffer = await sharp(buffer, { limitInputPixels: 8192 ** 2 })
         .resize({ width, withoutEnlargement: true })
         .webp({ quality })
         .toBuffer();
@@ -96,7 +96,9 @@ export class MediaProcessorService {
    * Specifically convert to AVIF if requested (for future-proofing).
    */
   async toAvif(buffer: Buffer): Promise<Buffer> {
-    const result = await sharp(buffer).avif({ quality: 65 }).toBuffer();
+    const result = await sharp(buffer, { limitInputPixels: 8192 ** 2 })
+      .avif({ quality: 65 })
+      .toBuffer();
     return result;
   }
 }

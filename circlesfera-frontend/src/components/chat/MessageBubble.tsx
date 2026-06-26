@@ -449,7 +449,7 @@ export default memo(function MessageBubble({
                       className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold backdrop-blur-xl transition-all shadow-xl ${
                         hasReacted
                           ? 'bg-blue-600 border-blue-400 text-white shadow-blue-500/30'
-                          : 'bg-[#262626] border-white/20 text-white shadow-black/50'
+                          : 'bg-surface-high border-white/20 text-white shadow-black/50'
                       } border`}
                     >
                       <span>{emoji}</span>

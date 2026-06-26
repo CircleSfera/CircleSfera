@@ -7,8 +7,8 @@ export const authApi = {
 
   login: (data: LoginDto) => apiClient.post<AuthResponse>('/auth/login', data),
 
-  logout: (refreshToken: string) =>
-    apiClient.post('/auth/logout', { refreshToken }),
+  logout: (refreshToken?: string) =>
+    apiClient.post('/auth/logout', refreshToken ? { refreshToken } : {}),
 
   verifyEmail: (token: string) =>
     apiClient.post('/auth/verify-email', { token }),

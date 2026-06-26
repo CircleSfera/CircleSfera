@@ -51,8 +51,8 @@ export default function E2ESetupModal() {
 
       // 5. Complete
       setStatus('READY');
-    } catch (err: any) {
-      setError(err.message || 'Error al configurar el cifrado.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al configurar el cifrado.');
     } finally {
       setIsSubmitting(false);
     }

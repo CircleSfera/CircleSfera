@@ -138,31 +138,61 @@ export default function CreateBottomSheet() {
               </h2>
             </div>
 
-            {/* Menu Items */}
-            <div className="overflow-y-auto overscroll-contain px-4 py-2 pb-safe">
-              <div className="flex flex-col">
-                {menuItems.map((item) => (
-                  <button
-                    type="button"
-                    key={item.id}
-                    onClick={item.action}
-                    className="flex items-center gap-4 py-4 px-2 hover:bg-white/5 rounded-lg transition-colors text-left group"
-                  >
-                    <item.icon
-                      size={28}
-                      className="text-white/90"
-                      strokeWidth={1.5}
-                    />
-                    <span className="flex-1 text-[17px] font-medium text-white">
-                      {item.label}
-                    </span>
-                    {item.badge && (
-                      <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                        {item.badge}
+            {/* Menu Items (Action Cards Grid) */}
+            <div className="overflow-y-auto overscroll-contain px-4 py-6 pb-safe">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {menuItems.map((item) => {
+                  // Determine specific card styling based on item.id
+                  let bgGlow = 'bg-white/5';
+                  let iconColor = 'text-white/90';
+                  let borderHover = 'hover:border-white/20';
+
+                  if (item.id === 'post') {
+                    bgGlow = 'bg-linear-to-br from-brand-primary/20 to-purple-600/10';
+                    iconColor = 'text-purple-400';
+                    borderHover = 'hover:border-purple-500/50';
+                  } else if (item.id === 'story') {
+                    bgGlow = 'bg-linear-to-br from-pink-500/20 to-orange-500/10';
+                    iconColor = 'text-pink-400';
+                    borderHover = 'hover:border-pink-500/50';
+                  } else if (item.id === 'frame') {
+                    bgGlow = 'bg-linear-to-br from-blue-500/20 to-cyan-500/10';
+                    iconColor = 'text-blue-400';
+                    borderHover = 'hover:border-blue-500/50';
+                  } else if (item.id === 'edits') {
+                    bgGlow = 'bg-linear-to-br from-emerald-500/20 to-teal-500/10';
+                    iconColor = 'text-emerald-400';
+                    borderHover = 'hover:border-emerald-500/50';
+                  }
+
+                  return (
+                    <button
+                      type="button"
+                      key={item.id}
+                      onClick={item.action}
+                      className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border border-white/5 transition-all duration-300 group hover:bg-white/10 active:scale-95 ${bgGlow} ${borderHover}`}
+                    >
+                      <div className="relative">
+                        <div className={`absolute -inset-2 bg-current opacity-20 blur-xl rounded-full transition-opacity group-hover:opacity-40 ${iconColor}`} />
+                        <item.icon
+                          size={32}
+                          className={`relative z-10 transition-transform group-hover:scale-110 ${iconColor}`}
+                          strokeWidth={1.5}
+                        />
+                      </div>
+                      
+                      <span className="text-[15px] font-semibold text-white mt-1">
+                        {item.label}
                       </span>
-                    )}
-                  </button>
-                ))}
+                      
+                      {item.badge && (
+                        <span className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(37,99,235,0.5)]">
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </motion.div>

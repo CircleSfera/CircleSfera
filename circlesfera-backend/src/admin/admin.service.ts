@@ -448,12 +448,10 @@ export class AdminService {
       verificationLevel?: string;
       accountType?: string;
       isActive?: boolean;
-      role?: string;
     },
   ) {
     const updateData: Record<string, string | boolean | undefined> = {
       isActive: data.isActive,
-      role: data.role,
     };
 
     if (data.verificationLevel) {
@@ -1321,7 +1319,7 @@ export class AdminService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.PromotionWhereInput = {};
-    if (status) where.status = status as any;
+    if (status) where.status = status as PromotionStatus;
     if (search) {
       where.user = {
         OR: [
@@ -1394,7 +1392,7 @@ export class AdminService {
 
     const updated = await this.prisma.promotion.update({
       where: { id: promotionId },
-      data: { status: status as any },
+      data: { status: status as PromotionStatus },
     });
 
     await this.logAction(

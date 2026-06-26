@@ -72,7 +72,7 @@ export default function CloseFriendsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-[#262626] w-full max-w-md rounded-xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh] border border-white/10">
+      <div className="bg-surface-high w-full max-w-md rounded-xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh] border border-white/10">
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
@@ -101,7 +101,7 @@ export default function CloseFriendsModal({
               placeholder={t('settings.close_friends_modal.search')}
               value={searchTerm}
               onChange={handleSearch}
-              className="w-full bg-[#363636] border-none rounded-lg py-2 pl-10 text-white placeholder-gray-500 focus:ring-0"
+              className="w-full bg-surface-high border-none rounded-lg py-2 pl-10 text-white placeholder-gray-500 focus:ring-0"
             />
           </div>
         </div>

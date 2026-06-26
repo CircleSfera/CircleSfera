@@ -218,7 +218,7 @@ export default function Explore() {
                             standardUrl={user.profile.standardUrl}
                             alt={user.profile.username}
                             size="md"
-                            verificationLevel={user.verificationLevel as any}
+                            verificationLevel={user.verificationLevel as VerificationLevel}
                           />
                           <div className="min-w-0">
                             <div className="font-bold truncate flex items-center gap-1">

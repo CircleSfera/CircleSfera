@@ -42,7 +42,8 @@ export class SlackGuard implements CanActivate {
 
     // rawBody is attached by NestFactory.create({ rawBody: true })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rawBody = (req as any).rawBody as Buffer;
+    const rawBody = (req as { rawBody?: Buffer }).rawBody;
+    if (!rawBody) return false;
     if (!rawBody) {
       this.logger.error('Raw body not available for signature verification');
       throw new UnauthorizedException(

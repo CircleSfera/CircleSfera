@@ -45,7 +45,7 @@ self.addEventListener('message', async (e: MessageEvent) => {
       default:
         throw new Error(`Unknown job type: ${type}`);
     }
-  } catch (error: any) {
-    self.postMessage({ jobId, status: 'error', error: error.message });
+  } catch (error: unknown) {
+    self.postMessage({ jobId, status: 'error', error: error instanceof Error ? error.message : 'Unknown error' });
   }
 });

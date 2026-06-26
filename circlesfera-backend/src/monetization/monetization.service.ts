@@ -252,10 +252,10 @@ export class MonetizationService {
         refreshUrl,
       );
       return { url: link.url };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Stripe Connect Onboarding Error:', error);
       throw new BadRequestException(
-        error.message || 'Failed to connect with Stripe',
+        error instanceof Error ? error.message : 'Failed to connect with Stripe',
       );
     }
   }

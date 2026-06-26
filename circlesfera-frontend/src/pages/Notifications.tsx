@@ -181,7 +181,7 @@ export default function Notifications() {
                     size="sm"
                   />
                   <div
-                    className={`absolute -right-1 -bottom-1 w-5 h-5 rounded-full border-2 border-[#0A0A0A] flex items-center justify-center text-white ${getIconBg(notif.type)}`}
+                    className={`absolute -right-1 -bottom-1 w-5 h-5 rounded-full border-2 border-surface-elevated flex items-center justify-center text-white ${getIconBg(notif.type)}`}
                   >
                     {getIcon(notif.type)}
                   </div>

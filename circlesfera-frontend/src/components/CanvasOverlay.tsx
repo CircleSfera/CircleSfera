@@ -16,15 +16,20 @@ interface CanvasOverlayProps {
   onSelectOverlay?: (id: string | null) => void;
 }
 
-// Separate component for images to use the useImage hook
 const URLImage = ({
   image,
   shapeProps,
   isSelected,
   onSelect,
   onChange,
-}: any) => {
-  const [img] = useImage(image.src);
+}: {
+  image: OverlayElement;
+  shapeProps: OverlayElement;
+  isSelected: boolean;
+  onSelect: () => void;
+  onChange: (attrs: OverlayElement) => void;
+}) => {
+  const [img] = useImage(image.src || '');
   const shapeRef = useRef<any>(null);
   const trRef = useRef<any>(null);
 
@@ -83,7 +88,12 @@ const URLImage = ({
   );
 };
 
-const TextNode = ({ shapeProps, isSelected, onSelect, onChange }: any) => {
+const TextNode = ({ shapeProps, isSelected, onSelect, onChange }: {
+  shapeProps: OverlayElement;
+  isSelected: boolean;
+  onSelect: () => void;
+  onChange: (attrs: OverlayElement) => void;
+}) => {
   const shapeRef = useRef<any>(null);
   const trRef = useRef<any>(null);
 
@@ -181,6 +191,7 @@ export default function CanvasOverlay({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedId, overlays, onChange, setSelectedId]);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const checkDeselect = (e: any) => {
     const clickedOnEmpty = e.target === e.target.getStage();
     if (clickedOnEmpty) {
@@ -188,6 +199,7 @@ export default function CanvasOverlay({
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleMouseDown = (e: any) => {
     if (!drawMode) return;
     isDrawing.current = true;
@@ -207,6 +219,7 @@ export default function CanvasOverlay({
     ]);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleMouseMove = (e: any) => {
     if (!drawMode || !isDrawing.current) return;
     const stage = e.target.getStage();
@@ -281,6 +294,7 @@ export default function CanvasOverlay({
             return (
               <URLImage
                 key={overlay.id}
+                image={overlay}
                 shapeProps={overlay}
                 isSelected={overlay.id === selectedId}
                 onSelect={() => !drawMode && setSelectedId(overlay.id)}

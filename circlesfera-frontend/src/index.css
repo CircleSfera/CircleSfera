@@ -6,6 +6,11 @@
   --color-brand-accent: var(--brand-accent);
   --color-brand-blue: var(--brand-blue);
 
+  --color-surface-base: var(--surface-base);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-high: var(--surface-high);
+
   --animate-heart-pop: heart-pop 0.8s ease-out forwards;
   --animate-marquee: marquee 40s linear infinite;
   --animate-gradient-x: gradient-x 15s ease infinite;
@@ -139,6 +144,12 @@
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-surface: rgba(255, 255, 255, 0.03);
   --glass-highlight: rgba(255, 255, 255, 0.1);
+
+  /* Semantic Surfaces */
+  --surface-base: #030303;
+  --surface-elevated: #0a0a0a;
+  --surface-raised: #1c1c1c;
+  --surface-high: #262626;
 
   /* Brand Palette */
   --brand-primary: #833ab4; /* Deep Purple */

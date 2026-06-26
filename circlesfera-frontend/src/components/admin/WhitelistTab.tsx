@@ -192,10 +192,10 @@ export default function WhitelistTab() {
                 name="status"
                 defaultValue={editingEntry.status}
               >
-                <option value="VALID" className="bg-[#1a1a2e]">
+                <option value="VALID" className="bg-surface-raised">
                   VALID
                 </option>
-                <option value="REGISTERED" className="bg-[#1a1a2e]">
+                <option value="REGISTERED" className="bg-surface-raised">
                   REGISTERED
                 </option>
               </Select>

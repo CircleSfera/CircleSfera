@@ -1,4 +1,5 @@
 import {
+  Inject,
   Injectable,
   Logger,
   HttpException as NestHttpException,
@@ -6,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { UploadsService } from '../uploads/uploads.service.js';
 import { CreateEditDto } from './dto/create-edit.dto.js';
 import { UpdateEditDto } from './dto/update-edit.dto.js';
 
@@ -13,7 +15,10 @@ import { UpdateEditDto } from './dto/update-edit.dto.js';
 export class EditsService {
   private readonly logger = new Logger(EditsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(UploadsService) private readonly uploadsService: UploadsService,
+  ) {}
 
   async create(userId: string, createEditDto: CreateEditDto) {
     try {
@@ -31,9 +36,9 @@ export class EditsService {
           state: createEditDto.state,
         },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new NestHttpException(
-        `Debug Error: ${error?.message || String(error)}`,
+        `Debug Error: ${error instanceof Error ? error.message : String(error)}`,
         500,
       );
     }
@@ -76,6 +81,11 @@ export class EditsService {
   async remove(userId: string, id: string) {
     const edit = await this.findOne(userId, id);
 
+    if (edit.mediaUrl)
+      await this.uploadsService
+        .deleteFile(edit.mediaUrl)
+        .catch((e) => console.error(e));
+
     await this.prisma.editProject.delete({
       where: { id: edit.id },
     });
@@ -91,6 +101,18 @@ export class EditsService {
   async cleanupAbandonedDrafts() {
     try {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+      const draftsToDelete = await this.prisma.editProject.findMany({
+        where: { updatedAt: { lt: thirtyDaysAgo } },
+      });
+
+      for (const draft of draftsToDelete) {
+        if (draft.mediaUrl)
+          await this.uploadsService
+            .deleteFile(draft.mediaUrl)
+            .catch((e) => console.error(e));
+      }
+
       const deleted = await this.prisma.editProject.deleteMany({
         where: {
           updatedAt: { lt: thirtyDaysAgo },

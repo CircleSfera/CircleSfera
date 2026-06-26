@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -6,6 +7,7 @@ import {
   Wallet as WalletIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -13,6 +15,29 @@ import { api } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
 import { Button } from '../ui';
 import ConnectStripeButton from './ConnectStripeButton';
+
+interface Transaction {
+  id: string;
+  type: string;
+  amountCents: number;
+  receiverId: string;
+  createdAt: string;
+  sender?: { username: string };
+  receiver?: { username: string };
+  description?: string;
+  amount?: number;
+}
+
+interface MonetizationData {
+  userId: string;
+  stripeAccountId: string | null;
+  stripeChargesEnabled: boolean;
+  stripeDetailsSubmitted: boolean;
+  walletBalanceCents: number;
+  pendingBalanceCents: number;
+  totalEarnedCents: number;
+  lifetimeEarningsCents: number;
+}
 
 export default function MonetizationDashboard() {
   const { t } = useTranslation();
@@ -30,15 +55,15 @@ export default function MonetizationDashboard() {
     }
   }, [searchParams, setSearchParams, t]);
 
-  const { data: monetization } = useQuery({
+  const { data: monetization } = useQuery<MonetizationData>({
     queryKey: ['monetization'],
-    queryFn: () => api.get('/monetization').then((r: any) => r.data),
+    queryFn: () => api.get('/monetization').then((r) => r.data),
   });
 
-  const { data: transactions } = useQuery({
+  const { data: transactions } = useQuery<Transaction[]>({
     queryKey: ['monetization-transactions'],
     queryFn: () =>
-      api.get('/monetization/transactions').then((r: any) => r.data.data),
+      api.get('/monetization/transactions').then((r) => r.data.data),
   });
 
   const handleConnectStripe = async () => {
@@ -53,11 +78,17 @@ export default function MonetizationDashboard() {
       if (response.data?.url) {
         window.location.href = response.data.url;
       }
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message ||
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        toast.error(
+          error.response?.data?.message ||
+            t('wallet.error_connect_stripe', 'Error connecting Stripe'),
+        );
+      } else {
+        toast.error(
           t('wallet.error_connect_stripe', 'Error connecting Stripe'),
-      );
+        );
+      }
     } finally {
       setIsConnecting(false);
     }
@@ -158,7 +189,7 @@ export default function MonetizationDashboard() {
           {t('wallet.transaction_history', 'Transaction History')}
         </h3>
         <div className="space-y-4">
-          {transactions?.map((tx: any) => {
+          {transactions?.map((tx) => {
             const isIncoming = tx.receiverId === monetization?.userId;
             const isPurchase =
               tx.type.includes('UNLOCK') || tx.type.includes('SUBSCRIPTION');

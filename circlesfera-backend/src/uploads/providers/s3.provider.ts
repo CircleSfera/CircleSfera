@@ -68,9 +68,9 @@ export class S3Provider implements StorageProvider {
         url,
         type,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       this.logger.error(`S3 Upload Error for ${key}:`, error);
-      throw new Error(`Failed to upload to S3: ${error.message}`);
+      throw new Error(`Failed to upload to S3: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

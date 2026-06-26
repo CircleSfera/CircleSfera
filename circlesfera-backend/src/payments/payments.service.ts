@@ -66,7 +66,10 @@ export class PaymentsService {
 
     if (!plan) throw new NotFoundException('Plan not found');
 
-    if (process.env.PAYMENT_MODE === 'SIMULATOR') {
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      process.env.PAYMENT_MODE === 'SIMULATOR'
+    ) {
       const newAccountType =
         plan.name === 'Elite Creator'
           ? AccountType.CREATOR
@@ -217,7 +220,7 @@ export class PaymentsService {
           await this.prisma.promotion.update({
             where: { id: promotionId },
             data: {
-              status: 'PENDING', // Now confirmed as paid
+              status: 'ACTIVE', // Now confirmed as paid
             },
           });
 

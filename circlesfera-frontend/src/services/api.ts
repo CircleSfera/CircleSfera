@@ -72,39 +72,6 @@ class ApiClient {
           this.csrfToken = null;
         }
 
-        // --- GLOBAL MEDIA SANITIZER ---
-        console.log('CircleSfera: Global URL Sanitizer v3 Active');
-        // Prepend API_URL to relative /uploads paths and normalize legacy localhost URLs
-        const sanitize = (obj: unknown): unknown => {
-          if (!obj || typeof obj !== 'object') {
-            if (typeof obj === 'string') {
-              // 1. Normalize legacy hardcoded localhost:3000 URLs to just /uploads
-              const processed = obj.replace(
-                /^https?:\/\/localhost:3000\/uploads/,
-                '/uploads',
-              );
-
-              // 2. If it's a relative /uploads path, prepend the current API_URL
-              if (processed.startsWith('/uploads')) {
-                // Ensure we don't double prepend if API_URL also contains /uploads (unlikely but safe)
-                const baseUrl = API_URL.replace(/\/api\/v1\/?$/, '');
-                return `${baseUrl}${processed}`;
-              }
-              return processed;
-            }
-            return obj;
-          }
-          if (Array.isArray(obj)) return obj.map(sanitize);
-          const record = obj as Record<string, unknown>;
-          const newObj: Record<string, unknown> = {};
-          for (const key in record) {
-            newObj[key] = sanitize(record[key]);
-          }
-          return newObj;
-        };
-
-        response.data = sanitize(response.data);
-        // ------------------------------
 
         return response;
       },

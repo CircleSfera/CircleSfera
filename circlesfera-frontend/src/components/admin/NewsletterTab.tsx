@@ -97,7 +97,7 @@ export default function NewsletterTab({
         {showPreview ? (
           <div className="bg-black border border-white/10 rounded-lg overflow-hidden max-w-2xl mx-auto shadow-2xl">
             {/* Mock Email UI */}
-            <div className="bg-[#0a0a0a] px-6 py-4 border-b border-white/5 flex items-center gap-3">
+            <div className="bg-surface-elevated px-6 py-4 border-b border-white/5 flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center">
                 <span className="text-brand-primary font-black text-xs">
                   CS

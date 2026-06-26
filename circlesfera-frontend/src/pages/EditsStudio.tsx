@@ -1,4 +1,4 @@
-import { Clock, Download, ImagePlus, PlusSquare, Trash2 } from 'lucide-react';
+import { Clock, Download, ImagePlus, PlusSquare, Trash2, Wand2 } from 'lucide-react';
 import React, {
   lazy,
   Suspense,
@@ -35,7 +35,7 @@ export default function EditsStudio() {
   const { processFiles } = useMediaProcessing();
   const { uploadFiles } = useMediaUpload();
   const navigate = useNavigate();
-  const openCreateMenu = useUIStore((state) => state.openCreateMenu);
+  const { setEditedMediaForPost } = useUIStore();
 
   const loadProjects = useCallback(async () => {
     try {
@@ -255,15 +255,9 @@ export default function EditsStudio() {
   };
 
   const handleCreatePost = () => {
-    // We could pass the file to the create post flow somehow.
-    // For now, prompt the user to download it and use the regular flow, or
-    // ideally we'd pass it via state. But since useCreatePost uses local state,
-    // we can just tell them to download it.
-    handleDownload();
-    navigate('/');
-    setTimeout(() => {
-      openCreateMenu();
-    }, 500);
+    if (!editedFile) return;
+    setEditedMediaForPost(editedFile);
+    navigate('/create');
   };
 
   const handleApplyToAll = () => {
@@ -376,75 +370,89 @@ export default function EditsStudio() {
   }
 
   return (
-    <div className="min-h-screen pb-20 md:pb-0 pt-16 md:pt-20 px-4 md:px-8 max-w-4xl mx-auto">
+    <div className="min-h-dvh pb-20 md:pb-0 pt-16 md:pt-20 px-4 lg:px-8 max-w-7xl mx-auto relative w-full overflow-hidden">
       <SEO title="Edits Studio | CircleSfera" />
 
-      <div className="flex items-center justify-between mb-8">
+      {/* Immersive background glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-brand-primary/20 rounded-full blur-[120px] opacity-40 pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[100px] opacity-30 pointer-events-none" />
+
+      <div className="relative flex items-center justify-between mb-8 z-10">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
+          <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
             Edits Studio
           </h1>
-          <p className="text-white/50 text-sm mt-1">
+          <p className="text-white/50 text-base mt-2">
             Herramientas profesionales para creadores
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Workspace Area */}
-        <div className="flex flex-col gap-4 lg:col-span-2">
+        <div className="flex flex-col gap-6 lg:col-span-2">
           {!editedFile ? (
             <>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="aspect-video w-full bg-zinc-900/50 border-2 border-dashed border-white/10 rounded-xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-zinc-800/50 hover:border-white/20 transition-all group"
+                className="relative aspect-video lg:aspect-21/9 w-full rounded-[32px] flex flex-col items-center justify-center gap-6 cursor-pointer overflow-hidden group transition-all duration-500 hover:scale-[1.01]"
               >
-                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <ImagePlus
-                    size={32}
-                    className="text-white/40 group-hover:text-white/80"
-                  />
+                {/* Glassmorphism Background */}
+                <div className="absolute inset-0 bg-white/5 backdrop-blur-xl border border-white/10 group-hover:bg-white/10 transition-colors" />
+                
+                {/* Glowing border effect */}
+                <div className="absolute inset-0 rounded-[32px] bg-linear-to-r from-brand-primary via-purple-500 to-pink-500 opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500" />
+                
+                <div className="relative w-20 h-20 rounded-full bg-linear-to-br from-brand-primary to-purple-600 p-[2px] shadow-[0_0_40px_rgba(131,58,180,0.3)] group-hover:shadow-[0_0_60px_rgba(131,58,180,0.5)] transition-all duration-500 group-hover:-translate-y-2">
+                  <div className="w-full h-full bg-black rounded-full flex items-center justify-center backdrop-blur-md">
+                    <ImagePlus
+                      size={32}
+                      className="text-white group-hover:scale-110 transition-transform duration-500"
+                    />
+                  </div>
                 </div>
-                <p className="text-white/60 font-medium">Sube una foto nueva</p>
+                <div className="relative text-center">
+                  <h3 className="text-xl font-bold text-white mb-1">Arrastra tu arte aquí</h3>
+                  <p className="text-white/50 font-medium">o haz clic para explorar tus archivos</p>
+                </div>
               </button>
 
               {/* Drafts Gallery */}
               {projects.length > 0 && (
-                <div className="mt-4">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Clock size={18} className="text-white/60" />
-                    <h3 className="text-white font-bold text-lg">
+                <div className="mt-8">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 rounded-lg bg-white/5 border border-white/10">
+                      <Clock size={20} className="text-white/80" />
+                    </div>
+                    <h3 className="text-white font-bold text-xl tracking-tight">
                       Tus Borradores
                     </h3>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="flex overflow-x-auto gap-4 pb-6 snap-x snap-mandatory no-scrollbar">
                     {projects.map((project) => (
-                      <div key={project.id} className="flex flex-col gap-2">
+                      <div key={project.id} className="relative flex-none w-[280px] snap-center group">
                         <button
                           type="button"
                           onClick={() => openProject(project)}
-                          className="group relative aspect-4/5 bg-zinc-900 rounded-lg overflow-hidden cursor-pointer hover:ring-2 ring-brand-primary transition-all block w-full text-left p-0 border-none"
+                          className="relative aspect-4/5 w-full bg-zinc-900 rounded-2xl overflow-hidden cursor-pointer hover:ring-2 ring-brand-primary/50 transition-all block text-left p-0 border border-white/10 shadow-2xl group-hover:-translate-y-2 duration-300"
                         >
                           <img
                             src={project.mediaUrl}
                             alt="Draft"
-                            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                            className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
                           />
-                          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 md:group-hover:opacity-100 transition-opacity flex items-end p-4">
-                            <span className="text-xs font-bold text-white uppercase">
-                              Continuar Edición
+                          <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-transparent opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-sm">
+                            <span className="px-6 py-3 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full text-sm font-bold text-white transition-colors flex items-center gap-2">
+                              <Wand2 size={16} /> Continuar Edición
                             </span>
                           </div>
                         </button>
-                        <div className="flex items-center justify-between px-1">
-                          <span className="text-xs text-white/50">
-                            Borrador
-                          </span>
+                        <div className="absolute top-3 right-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                           <button
                             type="button"
                             onClick={(e) => deleteProject(e, project.id)}
-                            className="p-1.5 text-white/40 hover:bg-red-500/20 hover:text-red-500 rounded-md transition-colors"
+                            className="p-2 bg-black/60 backdrop-blur-md border border-white/10 hover:bg-red-500 hover:border-red-500 text-white/70 hover:text-white rounded-full transition-all shadow-xl"
                             aria-label="Eliminar borrador"
                           >
                             <Trash2 size={16} />
@@ -457,17 +465,17 @@ export default function EditsStudio() {
               )}
             </>
           ) : (
-            <div className="aspect-4/5 md:aspect-square bg-zinc-900 rounded-xl overflow-hidden relative group">
+            <div className="aspect-4/5 md:aspect-square bg-zinc-900 rounded-[32px] overflow-hidden relative group border border-white/10 shadow-2xl">
               <img
                 src={URL.createObjectURL(editedFile)}
                 alt="Edited output"
                 className="w-full h-full object-contain"
               />
-              <div className="absolute inset-0 bg-black/50 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
+              <div className="absolute inset-0 bg-black/50 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4 backdrop-blur-sm">
                 <button
                   type="button"
                   onClick={() => setEditedFile(null)}
-                  className="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-full text-white font-medium backdrop-blur-md transition-colors"
+                  className="px-8 py-3 bg-white/10 hover:bg-white/20 rounded-full text-white font-bold backdrop-blur-md transition-colors border border-white/20 shadow-xl"
                 >
                   Descartar
                 </button>
@@ -486,33 +494,41 @@ export default function EditsStudio() {
 
         {/* Actions / Export Area */}
         <div className="flex flex-col gap-4">
-          <div className="glass-panel p-4 rounded-xl border border-white/5">
-            <h3 className="text-white font-bold text-lg mb-2">Exportar</h3>
-            <p className="text-white/50 text-sm mb-6">
-              Descarga tu imagen con calidad profesional o publícala
-              directamente en CircleSfera.
-            </p>
+          <div className="relative p-6 rounded-[32px] border border-white/10 bg-white/5 backdrop-blur-2xl overflow-hidden shadow-2xl">
+            {/* Inner subtle glow */}
+            <div className="absolute inset-0 bg-linear-to-br from-brand-primary/10 to-transparent opacity-50 pointer-events-none" />
+            
+            <div className="relative">
+              <h3 className="text-white font-bold text-2xl mb-3 flex items-center gap-3">
+                <Wand2 size={24} className="text-brand-primary" />
+                Exportar
+              </h3>
+              <p className="text-white/50 text-base mb-8 leading-relaxed">
+                Descarga tu imagen con calidad profesional o publícala directamente en CircleSfera de forma instantánea.
+              </p>
 
-            <div className="flex flex-col gap-3">
-              <button
-                type="button"
-                disabled={!editedFile}
-                onClick={handleDownload}
-                className="w-full flex items-center justify-center gap-3 py-3.5 bg-brand-primary text-white font-bold rounded-xl hover:bg-brand-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Download size={20} />
-                Guardar en el dispositivo
-              </button>
+              <div className="flex flex-col gap-4">
+                <button
+                  type="button"
+                  disabled={!editedFile}
+                  onClick={handleCreatePost}
+                  className="w-full relative group overflow-hidden flex items-center justify-center gap-3 py-4 bg-brand-primary text-white font-bold rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed shadow-[0_0_30px_rgba(131,58,180,0.3)]"
+                >
+                  <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+                  <PlusSquare size={22} />
+                  Crear publicación
+                </button>
 
-              <button
-                type="button"
-                disabled={!editedFile}
-                onClick={handleCreatePost}
-                className="w-full flex items-center justify-center gap-3 py-3.5 bg-white/10 text-white font-bold rounded-xl hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <PlusSquare size={20} />
-                Crear publicación
-              </button>
+                <button
+                  type="button"
+                  disabled={!editedFile}
+                  onClick={handleDownload}
+                  className="w-full flex items-center justify-center gap-3 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-2xl hover:bg-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Download size={22} className="text-white/70" />
+                  Guardar en el dispositivo
+                </button>
+              </div>
             </div>
           </div>
         </div>

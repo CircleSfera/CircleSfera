@@ -6,7 +6,7 @@ export default function SelectChat() {
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col items-center justify-center h-full text-white/50 bg-[#050505] relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center h-full text-white/50 bg-surface-elevated relative overflow-hidden">
       {/* Background Accent Mesh */}
       <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-[50%] h-[50%] bg-brand-primary/10 blur-[120px] rounded-full mix-blend-screen" />

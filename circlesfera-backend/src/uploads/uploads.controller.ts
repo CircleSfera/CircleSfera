@@ -10,6 +10,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { UploadedFile } from './interfaces/uploaded-file.interface.js';
 import { UploadsService } from './uploads.service.js';
@@ -21,19 +22,20 @@ export class UploadsController {
 
   constructor(private readonly uploadsService: UploadsService) {}
 
-  /** Upload a file (image or video, max 10 MB). Returns the public URL and type. */
+  /** Upload a file (image or video, max 50 MB). Returns the public URL and type. */
   @Post()
   @UseGuards(JwtAuthGuard)
+  @Throttle({ short: { limit: 5, ttl: 60000 } })
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: 500 * 1024 * 1024 }, // 500MB limit at Multer level
+      limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit at Multer level
     }),
   )
   async uploadFile(
     @UploadedFileDecorator(
       new ParseFilePipe({
         validators: [
-          new MaxFileSizeValidator({ maxSize: 500 * 1024 * 1024 }), // 500MB
+          new MaxFileSizeValidator({ maxSize: 50 * 1024 * 1024 }), // 50MB
           new FileTypeValidator({
             fileType:
               /(jpg|jpeg|png|gif|webp|heic|heif|mp4|mov|quicktime|webm|mp3|wav|m4a)$/,

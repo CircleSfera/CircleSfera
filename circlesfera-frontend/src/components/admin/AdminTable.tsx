@@ -256,7 +256,7 @@ export function FilterDropdown({
       aria-label={label}
     >
       {options.map((opt) => (
-        <option key={opt.value} value={opt.value} className="bg-[#1a1a2e]">
+        <option key={opt.value} value={opt.value} className="bg-surface-raised">
           {opt.label}
         </option>
       ))}

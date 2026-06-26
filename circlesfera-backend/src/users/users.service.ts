@@ -18,59 +18,24 @@ export class UsersService {
    * @param limit - Maximum suggestions to return (default 10)
    */
   async getSuggestions(userId: string, limit = 10) {
-    // 1. Get IDs of users currently followed by the current user
-    const following = await this.prisma.follow.findMany({
-      where: {
-        followerId: userId,
-        status: 'ACCEPTED', // Only exclude accepted follows? Or pending too?
-      },
-      select: {
-        followingId: true,
-      },
-    });
-
-    const followingIds = following.map((f) => f.followingId);
-
-    // 2. Get IDs of users pending (optional, maybe we suggest them until accepted?)
-    // Let's exclude pending too to avoid re-requesting
-    const pending = await this.prisma.follow.findMany({
-      where: {
-        followerId: userId,
-        status: 'PENDING',
-      },
-      select: {
-        followingId: true,
-      },
-    });
-
-    const pendingIds = pending.map((p) => p.followingId);
-
-    // 3. Get IDs of blocked users (both directions)
-    const blocks = await this.prisma.block.findMany({
-      where: {
-        OR: [{ blockerId: userId }, { blockedId: userId }],
-      },
-      select: {
-        blockerId: true,
-        blockedId: true,
-      },
-    });
-
-    const blockedIds = blocks.flatMap((b) => [b.blockerId, b.blockedId]);
-
-    // 4. Combine all excluded IDs (self + following + pending + blocked)
-    const excludedIds = [userId, ...followingIds, ...pendingIds, ...blockedIds];
-
-    // 5. Fetch popular users not in excluded list
-    // Improve this later with "Mutual Friends" logic if feasible
+    // 1. Fetch popular users using a single optimized query with relational filters (NOT EXISTS in SQL)
+    // This avoids pulling massive arrays into application memory.
     const suggestions = await this.prisma.user.findMany({
       where: {
-        id: {
-          notIn: excludedIds,
-        },
+        id: { not: userId }, // Exclude self
         isActive: true, // Only active users
-        profile: {
-          isNot: null, // Ensure they have a profile
+        profile: { isNot: null }, // Ensure they have a profile
+        // Exclude users already followed or with pending requests
+        followers: {
+          none: { followerId: userId },
+        },
+        // Exclude users blocking the current user
+        blocking: {
+          none: { blockedId: userId },
+        },
+        // Exclude users blocked by the current user
+        blockedBy: {
+          none: { blockerId: userId },
         },
       },
       take: limit,
@@ -169,9 +134,25 @@ export class UsersService {
 
     if (!user) throw new Error('User not found');
 
-    // Clean up sensitive fields before export
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, refreshTokens, ...safeData } = user;
+    // Use an explicit allowlist approach for GDPR data export
+    // to prevent accidental leakage of sensitive fields (e2e keys, 2FA secrets, etc.)
+    const safeData = {
+      id: user.id,
+      email: user.email,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      isActive: user.isActive,
+      role: user.role,
+      verificationLevel: user.verificationLevel,
+      accountType: user.accountType,
+      profile: user.profile,
+      posts: user.posts,
+      followers: user.followers,
+      following: user.following,
+      comments: user.comments,
+      bookmarks: user.bookmarks,
+    };
+    
     return safeData as Record<string, unknown>;
   }
 
@@ -190,6 +171,26 @@ export class UsersService {
         where: { id: userId },
       });
     });
+  }
+
+  /**
+   * Schedule user account for deletion after 30 days.
+   * @param userId - The user ID
+   * @returns The scheduled deletion date
+   */
+  async scheduleDeletion(userId: string) {
+    const scheduledDeletionAt = new Date();
+    scheduledDeletionAt.setDate(scheduledDeletionAt.getDate() + 30);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isActive: false,
+        deletedAt: scheduledDeletionAt,
+      },
+    });
+
+    return scheduledDeletionAt;
   }
 
   /**

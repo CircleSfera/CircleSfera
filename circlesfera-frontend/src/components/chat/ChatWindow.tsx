@@ -56,7 +56,7 @@ export default function ChatWindow() {
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const handleAudioSend = async (audioBlob: Blob) => {
@@ -358,7 +358,7 @@ export default function ChatWindow() {
 
   const chatInfo = getChatInfo();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
 
     if (!socket || !id || !profile) return;
@@ -647,7 +647,7 @@ export default function ChatWindow() {
   };
 
   return (
-    <div className="flex flex-col h-dvh bg-[#050505] relative overflow-hidden">
+    <div className="flex flex-col h-dvh bg-surface-elevated relative overflow-hidden">
       {/* Background Accent Mesh */}
       <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[50%] bg-blue-500/15 blur-[120px] rounded-full mix-blend-screen" />
@@ -809,7 +809,7 @@ export default function ChatWindow() {
                   initial={{ opacity: 0, scale: 0.95, y: -10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                  className="absolute right-0 top-full mt-2 w-56 bg-[#262626] border border-white/10 rounded-lg shadow-2xl overflow-hidden z-50 backdrop-blur-2xl"
+                  className="absolute right-0 top-full mt-2 w-56 bg-surface-high border border-white/10 rounded-lg shadow-2xl overflow-hidden z-50 backdrop-blur-2xl"
                 >
                   <button
                     type="button"
@@ -1027,17 +1027,17 @@ export default function ChatWindow() {
               </button>
 
               <textarea
-                ref={inputRef as any}
+                ref={inputRef}
                 value={input}
                 onChange={(e) => {
-                  handleInputChange(e as any);
+                  handleInputChange(e);
                   e.target.style.height = 'auto';
                   e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    if (input.trim()) sendMessage(e as any);
+                    if (input.trim()) sendMessage(e as unknown as React.FormEvent);
                   }
                 }}
                 rows={1}

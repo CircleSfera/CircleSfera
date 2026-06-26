@@ -325,7 +325,7 @@ export default function CommentList({ postId, comments }: CommentListProps) {
 
       <form
         onSubmit={handleSubmit}
-        className="mt-6 pt-4 border-t border-white/10 sticky bottom-0 bg-[#000000]/80 backdrop-blur-md p-4 -mx-4 rounded-b-2xl"
+        className="mt-6 pt-4 border-t border-white/10 sticky bottom-0 bg-black/80 backdrop-blur-md p-4 -mx-4 rounded-b-2xl"
       >
         {replyingTo && (
           <div className="flex items-center justify-between bg-white/5 px-2 py-1 rounded-lg mb-2 text-sm border border-white/10">

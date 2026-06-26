@@ -9,7 +9,6 @@ import {
   Param,
   Post,
   Put,
-  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -102,14 +101,13 @@ export class ChatController {
     return { success: true };
   }
 
-  /** Delete a conversation (participant only). */
+  /** Delete a conversation (participant only). Soft-delete for self. */
   @Delete('conversations/:id')
   async deleteConversation(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Query('mode') mode?: 'me' | 'both',
   ) {
-    return this.chatService.deleteConversation(id, req.user.userId, mode);
+    return this.chatService.deleteConversation(id, req.user.userId);
   }
 
   /** Edit a message. */

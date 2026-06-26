@@ -79,7 +79,7 @@ export default function Frames() {
   }
 
   return (
-    <div className="h-[calc(100dvh-64px)] md:h-[calc(100dvh-80px)] w-full flex items-center justify-center bg-[#0a0a0a]">
+    <div className="h-[calc(100dvh-64px)] md:h-[calc(100dvh-80px)] w-full flex items-center justify-center bg-surface-elevated">
       <div
         ref={containerRef}
         className="h-full md:h-[calc(100dvh-120px)] w-full md:max-w-[400px] md:rounded-[16px] mx-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide bg-black relative md:shadow-[0_0_40px_rgba(0,0,0,0.5)] md:border md:border-white/10"
