@@ -8,6 +8,7 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreatePostDto } from './dto/create-post.dto.js';
 import { PostsService } from './posts.service.js';
+import { UploadsService } from '../uploads/uploads.service.js';
 
 describe('PostsService', () => {
   let service: PostsService;
@@ -16,6 +17,7 @@ describe('PostsService', () => {
     $transaction: vi.fn(),
     post: {
       findUnique: vi.fn(),
+      findUniqueOrThrow: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
       count: vi.fn(),
@@ -36,7 +38,7 @@ describe('PostsService', () => {
       create: vi.fn(),
     },
     hashtag: {
-      upsert: vi.fn(),
+      upsert: vi.fn().mockResolvedValue({ id: 'hash-1', name: 'world' }),
     },
     postHashtag: {
       create: vi.fn(),
@@ -67,6 +69,10 @@ describe('PostsService', () => {
     add: vi.fn(),
   };
 
+  const mockUploadsService = {
+    deleteFile: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -76,6 +82,7 @@ describe('PostsService', () => {
         { provide: AIService, useValue: mockAIService },
         { provide: 'BullQueue_ai-processing', useValue: mockQueue },
         { provide: AnalyticsService, useValue: { trackEvent: vi.fn() } },
+        { provide: UploadsService, useValue: mockUploadsService },
       ],
     }).compile();
 
@@ -117,12 +124,25 @@ describe('PostsService', () => {
       mockPrismaService.profile.findMany.mockResolvedValue([
         { userId: 'user-2' },
       ]);
-      await service.create(userId, dto);
+      mockPrismaService.post.findUniqueOrThrow.mockResolvedValueOnce({
+        id: 'post-1',
+        caption: 'Hello #world @user2',
+        media: [],
+        author: { profile: { username: 'user1' } },
+        _count: { likes: 0, comments: 0 },
+      });
+
+      const result = await service.create(userId, dto);
 
       expect(mockTx.post.create).toHaveBeenCalled();
-      expect(mockTx.hashtag.upsert).toHaveBeenCalledWith(
+      expect(mockPrismaService.hashtag.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { tag: 'world' },
+        }),
+      );
+      expect(mockPrismaService.postHashtag.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { postId: 'post-1', hashtagId: 'hash-1' },
         }),
       );
 
@@ -163,6 +183,14 @@ describe('PostsService', () => {
         ): Promise<unknown> =>
           callback(mockTx as unknown as Partial<PrismaService>),
       );
+
+      mockPrismaService.post.findUniqueOrThrow.mockResolvedValueOnce({
+        id: 'post-multi',
+        caption: 'Multi media post',
+        media: [{ id: 'm1' }, { id: 'm2' }],
+        author: { profile: { username: 'user1' } },
+        _count: { likes: 0, comments: 0 },
+      });
 
       await service.create(userId, dto);
 
