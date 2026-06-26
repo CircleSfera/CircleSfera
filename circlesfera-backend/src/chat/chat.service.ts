@@ -51,6 +51,19 @@ export class ChatService {
       );
     }
 
+    const blocks = await this.prisma.block.findMany({
+      where: {
+        OR: [
+          { blockerId: userId, blockedId: { in: uniqueParticipantIds } },
+          { blockedId: userId, blockerId: { in: uniqueParticipantIds } },
+        ],
+      },
+    });
+
+    if (blocks.length > 0) {
+      throw new ForbiddenException('Cannot create a conversation with blocked users');
+    }
+
     // If only 1 other participant and no group name, treat as 1-on-1
     if (uniqueParticipantIds.length === 1 && !name) {
       const recipientId = uniqueParticipantIds[0];
@@ -218,6 +231,23 @@ export class ChatService {
       throw new BadRequestException(
         'Either conversationId or recipientId is required',
       );
+    }
+
+    const participantIds = conversation.participants
+      .map((p: any) => p.userId)
+      .filter((id: string) => id !== senderId);
+
+    const blocks = await this.prisma.block.findMany({
+      where: {
+        OR: [
+          { blockerId: senderId, blockedId: { in: participantIds } },
+          { blockedId: senderId, blockerId: { in: participantIds } },
+        ],
+      },
+    });
+
+    if (blocks.length > 0) {
+      throw new ForbiddenException('Cannot send message: Blocked by a participant or you blocked them');
     }
 
     // 2. Create message (content is already E2EE encrypted by the client)
@@ -402,7 +432,7 @@ export class ChatService {
     const conversations = await this.getConversations(userId);
     let unreadCount = 0;
 
-    for (const conv of conversations as any[]) {
+    for (const conv of conversations as { messages?: any[], participants: any[] }[]) {
       const lastMsg = conv.messages?.[0];
       if (!lastMsg) continue;
 
@@ -520,6 +550,27 @@ export class ChatService {
     userId: string,
     reaction: string,
   ): Promise<MessageReaction> {
+    // 1. Verify message exists and user is a participant
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      include: {
+        conversation: {
+          include: { participants: true },
+        },
+      },
+    });
+
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+
+    const isParticipant = message.conversation.participants.some(
+      (p) => p.userId === userId,
+    );
+
+    if (!isParticipant) {
+      throw new ForbiddenException('Not a participant in this conversation');
+    }
     // Check if reaction exists
     const existing = await this.prisma.messageReaction.findUnique({
       where: {
@@ -556,7 +607,6 @@ export class ChatService {
   async deleteConversation(
     conversationId: string,
     userId: string,
-    mode: 'me' | 'both' = 'both',
   ) {
     const isParticipant = await this.prisma.participant.findFirst({
       where: {
@@ -571,38 +621,18 @@ export class ChatService {
       );
     }
 
-    if (mode === 'me') {
-      // Soft delete for this user only
-      await this.prisma.participant.update({
-        where: { id: isParticipant.id },
-        data: { deletedAt: new Date() },
-      });
-      // Emit only to the user who deleted it
-      this.gateway.server
-        .to(`user:${userId}`)
-        .emit('conversationDeleted', { conversationId });
-      return { success: true, mode: 'me' };
-    }
-
-    // Emit deletion event to all participants
-    const conversation = await this.prisma.conversation.findUnique({
-      where: { id: conversationId },
-      include: { participants: true },
+    // Soft delete for this user only
+    await this.prisma.participant.update({
+      where: { id: isParticipant.id },
+      data: { deletedAt: new Date() },
     });
-
-    if (conversation) {
-      conversation.participants.forEach((p: any) => {
-        this.gateway.server
-          .to(`user:${p.userId}`)
-          .emit('conversationDeleted', { conversationId });
-      });
-    }
-
-    // mode === 'both' -> Delete conversation entirely (cascades to participants and messages)
-    await this.prisma.conversation.delete({
-      where: { id: conversationId },
-    });
-    return { success: true, mode: 'both' };
+    
+    // Emit only to the user who deleted it
+    this.gateway.server
+      .to(`user:${userId}`)
+      .emit('conversationDeleted', { conversationId });
+      
+    return { success: true, mode: 'me' };
   }
 
   /**

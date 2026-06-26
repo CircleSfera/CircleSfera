@@ -129,7 +129,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
             type="button"
             onClick={handleCreateChat}
             disabled={selectedUsers.length === 0 || isCreating}
-            className="text-[#3797f0] font-semibold hover:text-blue-400 disabled:opacity-50 text-sm transition-colors px-2 py-1"
+            className="text-brand-blue font-semibold hover:text-blue-400 disabled:opacity-50 text-sm transition-colors px-2 py-1"
           >
             {isCreating ? t('chat.creating') : t('chat.chat')}
           </button>
