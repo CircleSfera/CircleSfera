@@ -291,7 +291,7 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
         </button>
 
         {/* Spinning Music Record */}
-        <div className="mt-2 w-10 h-10 rounded-[8px] bg-[#1c1c1c] border-2 border-white/20 overflow-hidden flex items-center justify-center shadow-lg relative shrink-0">
+        <div className="mt-2 w-10 h-10 rounded-[8px] bg-surface-raised border-2 border-white/20 overflow-hidden flex items-center justify-center shadow-lg relative shrink-0">
           <img
             src={post.user.profile.avatar || '#noimage'}
             alt="Audio"

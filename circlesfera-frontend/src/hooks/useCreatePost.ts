@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { CropData, VideoData } from '../components/PhotoEditor';
 import { api, storiesApi } from '../services';
@@ -66,6 +66,24 @@ export function useCreatePost() {
   const [tagsMap, setTagsMap] = useState<Record<number, PostTagData[]>>({});
   const [isPremium, setIsPremium] = useState(false);
   const [price, setPrice] = useState<number>(0);
+
+  // Read seamless transfer state from UI Store
+  useEffect(() => {
+    import('../stores/uiStore').then(({ useUIStore }) => {
+      const state = useUIStore.getState();
+      if (state.editedMediaForPost) {
+        const file = state.editedMediaForPost;
+        const newFile: MediaFile = {
+          file,
+          url: URL.createObjectURL(file),
+          type: file.type.startsWith('video') ? 'video' : 'image',
+        };
+        setMediaFiles([newFile]);
+        setStep('caption');
+        state.setEditedMediaForPost(null);
+      }
+    });
+  }, []);
 
   // Story Specific Persistence
   const [storyElements, setStoryElements] = useState<StoryElement[]>([]);

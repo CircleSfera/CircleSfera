@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { useState } from 'react';
 import { apiClient } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
@@ -28,12 +29,16 @@ export const Support: React.FC = () => {
       setStatus('success');
       setSubject('');
       setMessage('');
-    } catch (error: any) {
+    } catch (error: unknown) {
       setStatus('error');
-      setErrorMessage(
-        error.response?.data?.message ||
-          'Error al enviar el ticket. Inténtalo de nuevo.',
-      );
+      if (axios.isAxiosError(error)) {
+        setErrorMessage(
+          error.response?.data?.message ||
+            'Error al enviar el ticket. Inténtalo de nuevo.',
+        );
+      } else {
+        setErrorMessage('Error al enviar el ticket. Inténtalo de nuevo.');
+      }
     }
   };
 

@@ -7,6 +7,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useStoryStore } from '../stores/storyStore';
 import type { Story } from '../types';
 import UserAvatar from './UserAvatar';
+import type { VerificationLevel } from './VerificationBadge';
 
 interface GroupedStories {
   user: Story['user'];
@@ -93,7 +94,7 @@ export default function StoryList() {
                       alt="Your story"
                       size="full"
                       hasStory={false}
-                      verificationLevel={profile?.verificationLevel as any}
+                      verificationLevel={profile?.verificationLevel as VerificationLevel}
                     />
                   </div>
                 </div>
@@ -121,11 +122,11 @@ export default function StoryList() {
                         standardUrl={profile.standardUrl}
                         alt="Your story"
                         size="full"
-                        verificationLevel={profile?.verificationLevel as any}
+                        verificationLevel={profile?.verificationLevel as VerificationLevel}
                         className="border border-white/10"
                       />
                       <div className="absolute bottom-0 right-0">
-                        <div className="w-5 h-5 rounded-full bg-blue-500 border-[1.5px] border-black flex items-center justify-center">
+                        <div className="w-5 h-5 rounded-full bg-blue-500 drop-shadow-sm flex items-center justify-center">
                           <Plus
                             size={12}
                             className="text-white"
@@ -185,7 +186,7 @@ export default function StoryList() {
                       alt={group.user.profile.username}
                       size="full"
                       hasStory={false}
-                      verificationLevel={group.user.verificationLevel as any}
+                      verificationLevel={group.user.verificationLevel as VerificationLevel}
                     />
                   </div>
                 </div>

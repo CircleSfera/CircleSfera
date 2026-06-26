@@ -37,7 +37,7 @@ export default function CreateCollectionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#1c1c1c] w-full max-w-sm rounded-lg border border-white/10 overflow-hidden animate-in fade-in zoom-in duration-200">
+      <div className="bg-surface-raised w-full max-w-sm rounded-lg border border-white/10 overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="p-4 border-b border-white/10 flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">
             {t('collections.new_collection')}

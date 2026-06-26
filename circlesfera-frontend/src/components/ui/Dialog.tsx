@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 export interface DialogProps {
   isOpen: boolean;
@@ -18,7 +19,7 @@ export function Dialog({
   className = '',
   maxWidth = 'md',
 }: DialogProps) {
-  const overlayRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useFocusTrap<HTMLDivElement>(isOpen);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -57,11 +58,14 @@ export function Dialog({
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
     >
       <div
-        className={`w-full ${maxWidthClasses[maxWidth]} bg-[#111] border border-white/10 rounded-xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 ${className}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? 'dialog-title' : undefined}
+        className={`w-full ${maxWidthClasses[maxWidth]} bg-surface-elevated border border-white/10 rounded-xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 ${className}`}
       >
         {title && (
           <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
-            <h2 className="text-lg font-bold text-white tracking-tight">
+            <h2 id="dialog-title" className="text-lg font-bold text-white tracking-tight">
               {title}
             </h2>
             <button

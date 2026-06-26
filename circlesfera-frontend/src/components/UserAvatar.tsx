@@ -109,7 +109,7 @@ export default memo(function UserAvatar({
 
       {verificationLevel && verificationLevel !== 'BASIC' && (
         <div
-          className={`absolute top-0 right-0 ${statusSizeClasses[size]} bg-black rounded-full flex items-center justify-center p-[2px]`}
+          className={`absolute top-0 right-0 ${statusSizeClasses[size]} rounded-full flex items-center justify-center drop-shadow-sm`}
         >
           <VerificationBadge
             level={verificationLevel}
@@ -124,7 +124,7 @@ export default memo(function UserAvatar({
             absolute bottom-0 right-0
             ${statusSizeClasses[size]}
             bg-green-500
-            border-2 border-[#1c1c1c] rounded-full
+            border-2 border-surface-raised rounded-full
             z-10
           `}
         />

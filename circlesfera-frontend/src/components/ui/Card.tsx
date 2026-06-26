@@ -8,7 +8,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
   ({ className = '', variant = 'glass', children, ...props }, ref) => {
     const baseStyles = 'rounded-xl overflow-hidden';
     const variants = {
-      default: 'bg-[#111] border border-white/10',
+      default: 'bg-surface-elevated border border-white/10',
       glass: 'glass-panel border border-white/5',
       ghost: 'bg-transparent',
     };

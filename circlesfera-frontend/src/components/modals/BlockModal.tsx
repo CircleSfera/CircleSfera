@@ -29,7 +29,7 @@ export default function BlockModal({
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-[#262626] w-full max-w-md rounded-xl border border-white/10 shadow-2xl overflow-hidden scale-in-center animate-in zoom-in-95 duration-200">
+      <div className="bg-surface-high w-full max-w-md rounded-xl border border-white/10 shadow-2xl overflow-hidden scale-in-center animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <Ban className="text-red-500" size={20} />

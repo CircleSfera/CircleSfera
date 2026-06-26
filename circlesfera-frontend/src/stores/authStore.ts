@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { authApi } from '../services/auth.service';
 import type { ProfileWithUser } from '../types';
 
 /**
@@ -16,7 +17,7 @@ interface AuthState {
   setCreatorMode: (active: boolean) => void;
   setAuthenticated: () => void;
   setProfile: (profile: ProfileWithUser) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -28,7 +29,28 @@ export const useAuthStore = create<AuthState>()(
       setCreatorMode: (active) => set({ isCreatorModeActive: active }),
       setAuthenticated: () => set({ isAuthenticated: true }),
       setProfile: (profile) => set({ profile }),
-      logout: () => {
+      logout: async () => {
+        try {
+          // 1. Tell backend to revoke session cookies
+          await authApi.logout();
+        } catch (error) {
+          console.error('Failed to logout from backend', error);
+        }
+
+        // 2. Purge E2E Private Keys to prevent XSS leakage
+        localStorage.removeItem('e2e_private_key');
+        localStorage.removeItem('e2e_public_key');
+
+        // 3. Clear Service Worker API cache to prevent cross-account data bleed
+        if ('caches' in window) {
+          try {
+            await caches.delete('api-cache');
+          } catch (e) {
+            console.error('Failed to clear api-cache', e);
+          }
+        }
+
+        // 4. Reset local Zustand state
         set({
           profile: null,
           isAuthenticated: false,
