@@ -219,4 +219,38 @@ export const E2EService = {
     const payload = JSON.parse(atob(encryptedPayloadB64));
     return this.decryptMessage(payload.ciphertext, payload.iv, aesKey);
   },
+
+  // --- Multi-Device Synchronization ---
+
+  /**
+   * Device A: Generates a payload to send the master private key to Device B.
+   * Encrypts the master private key with a random AES key, then wraps the AES key
+   * using Device B's temporary public key.
+   */
+  async generateSyncPayload(
+    masterPrivateKeyB64: string,
+    syncPublicKeyB64: string,
+  ): Promise<{ wrappedAesKey: string; ciphertext: string; iv: string }> {
+    const aesKey = await this.generateSymmetricKey();
+    const { ciphertext, iv } = await this.encryptMessage(masterPrivateKeyB64, aesKey);
+    
+    const syncPublicKey = await this.importPublicKey(syncPublicKeyB64);
+    const wrappedAesKey = await this.wrapSymmetricKey(aesKey, syncPublicKey);
+    
+    return { wrappedAesKey, ciphertext, iv };
+  },
+
+  /**
+   * Device B: Decrypts the sync payload received from Device A.
+   * Unwraps the AES key using its temporary private key, then decrypts the master private key.
+   */
+  async decryptSyncPayload(
+    wrappedAesKey: string,
+    ciphertext: string,
+    iv: string,
+    syncPrivateKey: CryptoKey,
+  ): Promise<string> {
+    const aesKey = await this.unwrapSymmetricKey(wrappedAesKey, syncPrivateKey);
+    return this.decryptMessage(ciphertext, iv, aesKey);
+  },
 };

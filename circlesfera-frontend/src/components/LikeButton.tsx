@@ -6,9 +6,10 @@ import { Button } from './ui';
 interface LikeButtonProps {
   postId: string;
   onToggle?: (liked: boolean) => void;
+  iconClassName?: string;
 }
 
-export default function LikeButton({ postId, onToggle }: LikeButtonProps) {
+export default function LikeButton({ postId, onToggle, iconClassName = "w-5 h-5" }: LikeButtonProps) {
   const queryClient = useQueryClient();
   const [isLiked, setIsLiked] = useState<boolean | null>(null);
 
@@ -46,7 +47,7 @@ export default function LikeButton({ postId, onToggle }: LikeButtonProps) {
       {liked ? (
         <svg
           aria-hidden="true"
-          className="w-5 h-5 text-red-500 fill-current"
+          className={`${iconClassName} text-red-500 fill-current`}
           viewBox="0 0 24 24"
         >
           <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
@@ -54,7 +55,7 @@ export default function LikeButton({ postId, onToggle }: LikeButtonProps) {
       ) : (
         <svg
           aria-hidden="true"
-          className="w-5 h-5 text-gray-400 hover:text-red-500 transition-colors"
+          className={`${iconClassName} text-white transition-colors drop-shadow-lg`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

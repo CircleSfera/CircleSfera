@@ -216,6 +216,40 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
+  // --- E2EE Multi-device Synchronization ---
+
+  @SubscribeMessage('e2e:request_sync')
+  handleE2ERequestSync(
+    @MessageBody() payload: { syncPublicKey: string },
+    @ConnectedSocket() client: SocketWithAuth,
+  ) {
+    // Broadcast to all OTHER devices belonging to this user
+    client.broadcast
+      .to(`user:${client.data.user.sub}`)
+      .emit('e2e:sync_requested', {
+        syncPublicKey: payload.syncPublicKey,
+        requesterSocketId: client.id,
+      });
+  }
+
+  @SubscribeMessage('e2e:sync_response')
+  handleE2ESyncResponse(
+    @MessageBody()
+    payload: {
+      targetSocketId: string;
+      wrappedAesKey: string;
+      ciphertext: string;
+      iv: string;
+    },
+  ) {
+    // Send the encrypted payload directly to the requesting socket
+    this.server.to(payload.targetSocketId).emit('e2e:sync_response', {
+      wrappedAesKey: payload.wrappedAesKey,
+      ciphertext: payload.ciphertext,
+      iv: payload.iv,
+    });
+  }
+
   // --- WebRTC VOIP Signaling ---
 
   @SubscribeMessage('call:invite')
