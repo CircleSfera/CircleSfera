@@ -28,7 +28,7 @@ export class SearchService {
    * Uses vector similarity to find content that matches the concept of the query,
    * even if exact keywords aren't present.
    */
-  async semanticSearchPosts(query: string, limit = 10): Promise<any[]> {
+  async semanticSearchPosts(query: string, limit = 10, userId?: string): Promise<any[]> {
     if (!query || query.length < 3) return [];
 
     const cacheKey = `search:semantic:${query.toLowerCase().replace(/\s/g, '_')}:${limit}`;
@@ -40,16 +40,33 @@ export class SearchService {
       const queryEmbedding = await this.aiService.generateEmbedding(query);
 
       // 2. Find similar posts using pgvector (Cosine distance)
-      const matches: any[] = await this.prisma.$queryRaw`
-        SELECT p.id,
-               (p.embedding <=> ${queryEmbedding}::vector) as distance
-        FROM "Post" p
-        WHERE p.visibility = 'PUBLIC'
-          AND p."moderationStatus" = 'VISIBLE'
-          AND p.embedding IS NOT NULL
-        ORDER BY distance ASC
-        LIMIT ${limit}
-      `;
+      let matches: any[];
+      
+      if (userId) {
+        matches = await this.prisma.$queryRaw`
+          SELECT p.id,
+                 (p.embedding <=> ${queryEmbedding}::vector) as distance
+          FROM "posts" p
+          WHERE p.visibility = 'PUBLIC'
+            AND p."moderationStatus" = 'VISIBLE'
+            AND p.embedding IS NOT NULL
+            AND p."userId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${userId}) 
+            AND p."userId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${userId})
+          ORDER BY distance ASC
+          LIMIT ${limit}
+        `;
+      } else {
+        matches = await this.prisma.$queryRaw`
+          SELECT p.id,
+                 (p.embedding <=> ${queryEmbedding}::vector) as distance
+          FROM "posts" p
+          WHERE p.visibility = 'PUBLIC'
+            AND p."moderationStatus" = 'VISIBLE'
+            AND p.embedding IS NOT NULL
+          ORDER BY distance ASC
+          LIMIT ${limit}
+        `;
+      }
 
       // Guard against undefined matches
       if (!matches || matches.length === 0) return [];
@@ -122,7 +139,7 @@ export class SearchService {
           postCount: 'desc',
         },
       }),
-      this.semanticSearchPosts(sanitizedQuery, 3), // Get top 3 semantic matches for combined view
+      this.semanticSearchPosts(sanitizedQuery, 3, userId), // Get top 3 semantic matches for combined view
     ]);
 
     const result: SearchResponse = {

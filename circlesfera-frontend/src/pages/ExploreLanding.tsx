@@ -45,7 +45,7 @@ export default function ExploreLanding() {
 
   return (
     <div
-      className={`min-h-dvh flex flex-col relative overflow-hidden bg-[#030303] text-white font-sans selection:bg-brand-primary/30 ${!isAuthenticated ? 'pt-24' : ''}`}
+      className={`min-h-dvh flex flex-col relative overflow-hidden bg-surface-base text-white font-sans selection:bg-brand-primary/30 ${!isAuthenticated ? 'pt-24' : ''}`}
     >
       <SEO
         title={t('explore.landing.title')}
