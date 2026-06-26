@@ -20,10 +20,8 @@ const NotificationType = $Enums.NotificationType;
 
 import { Queue } from 'bullmq';
 import { AnalyticsService } from '../analytics/analytics.service.js';
-import {
-  createPaginatedResult,
-  type PaginationDto,
-} from '../common/dto/pagination.dto.js';
+import { createPaginatedResult, type PaginationDto } from '../common/dto/pagination.dto.js';
+import { UploadsService } from '../uploads/uploads.service.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
 
@@ -40,6 +38,8 @@ export class PostsService {
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
     @Inject(AnalyticsService)
     private readonly analyticsService: AnalyticsService,
+    @Inject(UploadsService)
+    private readonly uploadsService: UploadsService,
   ) {}
 
   /**
@@ -64,7 +64,7 @@ export class PostsService {
       ? [...new Set(mentions.map((m) => m.trim().slice(1)))]
       : [];
 
-    const post = await this.prisma.$transaction(
+    const createdPost = await this.prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
         const post = await tx.post.create({
           data: {
@@ -88,21 +88,6 @@ export class PostsService {
                   }
                 : undefined,
           },
-          include: {
-            user: {
-              include: {
-                profile: true,
-              },
-            },
-            media: true, // Include the new relation
-            tags: true, // Include tags
-            _count: {
-              select: {
-                likes: true,
-                comments: true,
-              },
-            },
-          },
         });
 
         // Create PostMedia entries
@@ -120,34 +105,47 @@ export class PostsService {
             })),
           });
         }
-        if (uniqueTags.length > 0) {
-          for (const tag of uniqueTags) {
-            const hashtag = await tx.hashtag.upsert({
-              where: { tag },
-              create: { tag, postCount: 1 },
-              update: { postCount: { increment: 1 } },
-            });
-
-            await tx.postHashtag.create({
-              data: {
-                postId: post.id,
-                hashtagId: hashtag.id,
-              },
-            });
-          }
-        }
-
-        // Fetch complete post with relations before returning
-        return tx.post.findUniqueOrThrow({
-          where: { id: post.id },
-          include: {
-            media: true,
-            hashtags: { include: { hashtag: true } },
-            user: { include: { profile: true } },
-          },
-        });
+        
+        return post;
       },
     );
+
+    // Process hashtags outside the critical transaction path to avoid locking
+    if (uniqueTags.length > 0) {
+      await Promise.all(
+        uniqueTags.map(async (tag) => {
+          const hashtag = await this.prisma.hashtag.upsert({
+            where: { tag },
+            create: { tag, postCount: 1 },
+            update: { postCount: { increment: 1 } },
+          });
+
+          await this.prisma.postHashtag.create({
+            data: {
+              postId: createdPost.id,
+              hashtagId: hashtag.id,
+            },
+          });
+        })
+      );
+    }
+
+    // Fetch complete post with relations before returning
+    const post = await this.prisma.post.findUniqueOrThrow({
+      where: { id: createdPost.id },
+      include: {
+        media: true,
+        hashtags: { include: { hashtag: true } },
+        tags: true,
+        user: { include: { profile: true } },
+        _count: {
+          select: {
+            likes: true,
+            comments: true,
+          },
+        },
+      },
+    });
 
     // Generate and store embedding for the post in the background
     await this.aiQueue.add('generate-embedding', {
@@ -680,7 +678,10 @@ export class PostsService {
    * @throws ForbiddenException if user is not the author
    */
   async remove(id: string, userId: string) {
-    const post = await this.prisma.post.findUnique({ where: { id } });
+    const post = await this.prisma.post.findUnique({ 
+      where: { id },
+      include: { media: true }
+    });
 
     if (!post) {
       throw new NotFoundException('Post not found');
@@ -688,6 +689,15 @@ export class PostsService {
 
     if (post.userId !== userId) {
       throw new ForbiddenException('You can only delete your own posts');
+    }
+
+    // Delete associated media files from cloud storage
+    if (post.media && post.media.length > 0) {
+      for (const m of post.media) {
+        if (m.url) await this.uploadsService.deleteFile(m.url).catch(e => console.error(e));
+        if (m.standardUrl) await this.uploadsService.deleteFile(m.standardUrl).catch(e => console.error(e));
+        if (m.thumbnailUrl) await this.uploadsService.deleteFile(m.thumbnailUrl).catch(e => console.error(e));
+      }
     }
 
     await this.prisma.post.delete({ where: { id } });
@@ -699,10 +709,23 @@ export class PostsService {
    * @throws NotFoundException if post not found
    */
   async adminRemove(id: string) {
-    const post = await this.prisma.post.findUnique({ where: { id } });
+    const post = await this.prisma.post.findUnique({ 
+      where: { id },
+      include: { media: true }
+    });
     if (!post) {
       throw new NotFoundException('Post not found');
     }
+
+    // Delete associated media files from cloud storage
+    if (post.media && post.media.length > 0) {
+      for (const m of post.media) {
+        if (m.url) await this.uploadsService.deleteFile(m.url).catch(e => console.error(e));
+        if (m.standardUrl) await this.uploadsService.deleteFile(m.standardUrl).catch(e => console.error(e));
+        if (m.thumbnailUrl) await this.uploadsService.deleteFile(m.thumbnailUrl).catch(e => console.error(e));
+      }
+    }
+
     await this.prisma.post.delete({ where: { id } });
   }
 
