@@ -1,22 +1,35 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
-import { PrismaService } from '../prisma/prisma.service.js';
-import { PushService } from '../push/push.service.js';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Inject, Logger } from '@nestjs/common';
+import type { Job } from 'bullmq';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { PushService } from '../../push/push.service.js';
 
-@Injectable()
-export class NotificationsCronService {
-  private readonly logger = new Logger(NotificationsCronService.name);
+@Processor('notifications-processing')
+export class NotificationsProcessor extends WorkerHost {
+  private readonly logger = new Logger(NotificationsProcessor.name);
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(PushService) private readonly pushService: PushService,
-  ) {}
+  ) {
+    super();
+  }
+
+  async process(job: Job<any, any, string>): Promise<any> {
+    switch (job.name) {
+      case 'send-digest-push':
+        return this.sendDigestPushNotifications();
+      case 'cleanup-old-notifications':
+        return this.cleanupOldNotifications();
+      default:
+        this.logger.warn(`Unknown job name: ${job.name}`);
+    }
+  }
 
   /**
-   * Runs every 15 minutes to aggregate and send a single digest
+   * Runs every 15 minutes via BullMQ to aggregate and send a single digest
    * push notification to users with recent unread batchable notifications.
    */
-  @Cron('*/15 * * * *')
   async sendDigestPushNotifications() {
     this.logger.log('Starting digest push notification job...');
 
@@ -87,10 +100,9 @@ export class NotificationsCronService {
   }
 
   /**
-   * Runs every day at midnight to clean up old notifications
+   * Runs every day at midnight via BullMQ to clean up old notifications
    * and free up database space.
    */
-  @Cron('0 0 * * *')
   async cleanupOldNotifications() {
     this.logger.log('Starting old notifications cleanup job...');
 
