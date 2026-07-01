@@ -112,6 +112,53 @@ export const E2EService = {
     return decoder.decode(decrypted);
   },
 
+  /** Export AES Key to Base64 (Raw) */
+  async exportSymmetricKey(key: CryptoKey): Promise<string> {
+    const exported = await window.crypto.subtle.exportKey('raw', key);
+    return this.bufferToBase64(exported);
+  },
+
+  /** Import AES Key from Base64 (Raw) */
+  async importSymmetricKey(base64Key: string): Promise<CryptoKey> {
+    const buffer = this.base64ToBuffer(base64Key);
+    return window.crypto.subtle.importKey('raw', buffer, this.ALGO_SYM, true, [
+      'encrypt',
+      'decrypt',
+    ]);
+  },
+
+  /** Encrypt File (ArrayBuffer) using AES-GCM */
+  async encryptFile(
+    buffer: ArrayBuffer,
+    aesKey: CryptoKey,
+  ): Promise<{ ciphertext: Blob; iv: string }> {
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const encrypted = await window.crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      aesKey,
+      buffer,
+    );
+    return {
+      ciphertext: new Blob([encrypted]),
+      iv: this.bufferToBase64(iv.buffer),
+    };
+  },
+
+  /** Decrypt File (ArrayBuffer) using AES-GCM */
+  async decryptFile(
+    buffer: ArrayBuffer,
+    ivBase64: string,
+    aesKey: CryptoKey,
+  ): Promise<Blob> {
+    const iv = new Uint8Array(this.base64ToBuffer(ivBase64));
+    const decrypted = await window.crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      aesKey,
+      buffer,
+    );
+    return new Blob([decrypted]);
+  },
+
   /** Wrap (Encrypt) AES key with recipient's RSA Public Key */
   async wrapSymmetricKey(
     aesKey: CryptoKey,
@@ -232,11 +279,14 @@ export const E2EService = {
     syncPublicKeyB64: string,
   ): Promise<{ wrappedAesKey: string; ciphertext: string; iv: string }> {
     const aesKey = await this.generateSymmetricKey();
-    const { ciphertext, iv } = await this.encryptMessage(masterPrivateKeyB64, aesKey);
-    
+    const { ciphertext, iv } = await this.encryptMessage(
+      masterPrivateKeyB64,
+      aesKey,
+    );
+
     const syncPublicKey = await this.importPublicKey(syncPublicKeyB64);
     const wrappedAesKey = await this.wrapSymmetricKey(aesKey, syncPublicKey);
-    
+
     return { wrappedAesKey, ciphertext, iv };
   },
 

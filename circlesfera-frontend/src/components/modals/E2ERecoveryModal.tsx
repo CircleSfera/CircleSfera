@@ -10,6 +10,7 @@ export default function E2ERecoveryModal() {
   const { status, setStatus, setSyncKeyPair, encryptedPrivateKeyPayload } =
     useE2EStore();
   const socket = useSocketStore((state) => state.socket);
+  const isConnected = useSocketStore((state) => state.isConnected);
 
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -17,7 +18,7 @@ export default function E2ERecoveryModal() {
   const [hasAttemptedSync, setHasAttemptedSync] = useState(false);
 
   useEffect(() => {
-    if (status === 'NEEDS_RECOVERY' && !hasAttemptedSync && socket?.connected) {
+    if (status === 'NEEDS_RECOVERY' && !hasAttemptedSync && isConnected) {
       setHasAttemptedSync(true);
       setStatus('SYNCING');
 
@@ -29,14 +30,14 @@ export default function E2ERecoveryModal() {
           const publicKeyB64 = await E2EService.exportPublicKey(
             keyPair.publicKey,
           );
-          socket.emit('e2e:request_sync', { syncPublicKey: publicKeyB64 });
+          socket?.emit('e2e:request_sync', { syncPublicKey: publicKeyB64 });
 
-          // Timeout to fallback if no other devices answer
+          // Timeout to fallback if no other devices answer (60s)
           setTimeout(() => {
             if (useE2EStore.getState().status === 'SYNCING') {
               setStatus('NEEDS_RECOVERY');
             }
-          }, 5000);
+          }, 60000);
         } catch (err) {
           console.error('Error initiating sync', err);
           setStatus('NEEDS_RECOVERY');
@@ -45,7 +46,14 @@ export default function E2ERecoveryModal() {
 
       initiateSync();
     }
-  }, [status, hasAttemptedSync, socket, setStatus, setSyncKeyPair]);
+  }, [
+    status,
+    hasAttemptedSync,
+    socket,
+    isConnected,
+    setStatus,
+    setSyncKeyPair,
+  ]);
 
   const handleRecover = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,10 +114,17 @@ export default function E2ERecoveryModal() {
           <h2 className="text-xl font-bold text-white mb-2">
             Sincronizando claves...
           </h2>
-          <p className="text-gray-400 text-sm mb-4">
-            Buscando otros dispositivos activos para restaurar tus chats
-            automáticamente.
+          <p className="text-gray-400 text-sm mb-6">
+            Por favor, abre CircleSfera en tu otro dispositivo (móvil o PC) y <strong>aprueba la solicitud de transferencia</strong>. Tienes 60 segundos.
           </p>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setStatus('NEEDS_RECOVERY')}
+            className="w-full py-2.5 text-gray-400 hover:text-white"
+          >
+            Usar contraseña de respaldo en su lugar
+          </Button>
         </div>
       </div>
     );
