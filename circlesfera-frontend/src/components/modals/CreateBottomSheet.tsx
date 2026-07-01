@@ -2,10 +2,10 @@ import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import {
   Clapperboard,
   Grid,
-  Heart,
   PlusCircle,
   Radio,
   Star,
+  Users,
   Wand2,
 } from 'lucide-react';
 import { useEffect } from 'react';
@@ -53,9 +53,9 @@ export default function CreateBottomSheet() {
       action: () => handleNavigation('/create?mode=frame'),
     },
     {
-      id: 'edits',
+      id: 'studio',
       icon: Wand2,
-      label: t('create_menu.edits', 'Edits'),
+      label: t('create_menu.studio', 'Studio'),
       badge: t('create_menu.new', 'Nuevo'),
       action: () => handleNavigation('/edits'),
     },
@@ -84,10 +84,10 @@ export default function CreateBottomSheet() {
       action: () => handleNavigation('/create'),
     },
     {
-      id: 'fundraiser',
-      icon: Heart,
-      label: t('create_menu.fundraiser', 'Recaudación de fondos'),
-      action: () => handleNavigation('/create'),
+      id: 'circle',
+      icon: Users,
+      label: t('create_menu.circle', 'Círculo'),
+      action: () => handleNavigation('/create?mode=circle'),
     },
   ];
 
@@ -159,10 +159,14 @@ export default function CreateBottomSheet() {
                     bgGlow = 'bg-linear-to-br from-blue-500/20 to-cyan-500/10';
                     iconColor = 'text-blue-400';
                     borderHover = 'hover:border-blue-500/50';
-                  } else if (item.id === 'edits') {
+                  } else if (item.id === 'studio') {
                     bgGlow = 'bg-linear-to-br from-emerald-500/20 to-teal-500/10';
                     iconColor = 'text-emerald-400';
                     borderHover = 'hover:border-emerald-500/50';
+                  } else if (item.id === 'circle') {
+                    bgGlow = 'bg-linear-to-br from-amber-500/20 to-orange-600/10';
+                    iconColor = 'text-amber-400';
+                    borderHover = 'hover:border-amber-500/50';
                   }
 
                   return (

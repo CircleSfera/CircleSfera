@@ -24,17 +24,17 @@ export default function VerificationBadge({
     BASIC: { icon: null, color: '', tooltip: '' },
     VERIFIED: {
       icon: BadgeCheck,
-      color: 'text-blue-400',
+      color: 'fill-blue-400',
       tooltip: 'Cuenta Verificada',
     },
     BUSINESS: {
       icon: ShieldCheck,
-      color: 'text-gray-400',
+      color: 'fill-gray-400',
       tooltip: 'Empresa Oficial',
     },
     ELITE: {
       icon: BadgeCheck,
-      color: 'text-yellow-400',
+      color: 'fill-yellow-400',
       tooltip: 'Creador Elite',
     },
   };
@@ -55,7 +55,7 @@ export default function VerificationBadge({
       <Icon 
         size={size} 
         className={clsx(
-          config.color.replace('text-', 'fill-'), 
+          config.color, 
           'text-white drop-shadow-sm'
         )} 
       />

@@ -32,6 +32,15 @@ export const chatApi = {
   deleteConversation: (id: string, mode: 'me' | 'both' = 'both') =>
     apiClient.delete(`/chat/conversations/${id}?mode=${mode}`),
 
+  updateGroup: (id: string, data: { name?: string; avatarUrl?: string }) =>
+    apiClient.put<Conversation>(`/chat/conversations/${id}/group`, data),
+
+  removeParticipant: (id: string, userId: string) =>
+    apiClient.delete<Conversation>(`/chat/conversations/${id}/participants/${userId}`),
+
+  leaveGroup: (id: string) =>
+    apiClient.delete<{ success: boolean }>(`/chat/conversations/${id}/leave`),
+
   editMessage: (
     id: string,
     content: string,

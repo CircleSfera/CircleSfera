@@ -87,6 +87,7 @@ export interface PostMediaItem {
   altText?: string;
 }
 export type Participant = Omit<IParticipant, 'user'> & {
+  isAdmin?: boolean;
   user?: {
     id: string;
     isOnline?: boolean;
@@ -95,6 +96,7 @@ export type Participant = Omit<IParticipant, 'user'> & {
   };
 };
 export type Conversation = Omit<IConversation, 'messages' | 'participants'> & {
+  avatarUrl?: string | null;
   messages: Message[];
   participants: Participant[];
 };

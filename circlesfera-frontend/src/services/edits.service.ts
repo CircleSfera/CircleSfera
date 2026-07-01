@@ -1,3 +1,4 @@
+import type { StudioProject } from '../types/studio';
 import { apiClient } from './api';
 
 export interface OverlayElement {
@@ -51,6 +52,10 @@ export type EditProjectState =
   | {
       version: 2;
       items: EditProjectBatchItem[];
+    }
+  | {
+      version: 3;
+      studio: StudioProject;
     };
 
 export interface EditProject {
