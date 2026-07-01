@@ -41,7 +41,7 @@ describe('ChatService', () => {
     },
     block: {
       findMany: vi.fn(),
-    }
+    },
   };
 
   const mockEmit = vi.fn();
@@ -126,7 +126,11 @@ describe('ChatService', () => {
       });
       mockPrismaService.block.findMany.mockResolvedValueOnce([]);
 
-      const result = await service.createGroup('userA', ['userA', 'userB', 'userC'], 'My Group');
+      const result = await service.createGroup(
+        'userA',
+        ['userA', 'userB', 'userC'],
+        'My Group',
+      );
 
       expect(result).toEqual({ id: 'conv-group' });
       expect(mockPrismaService.conversation.create).toHaveBeenCalledWith(
@@ -205,12 +209,15 @@ describe('ChatService', () => {
       expect(mockPrismaService.message.create).toHaveBeenCalled();
       expect(mockTo).toHaveBeenCalledWith('user:userA');
       expect(mockTo).toHaveBeenCalledWith('user:userB');
-      expect(mockEmit).toHaveBeenCalledWith('receiveMessage', expect.objectContaining({
-        id: 'msg-1',
-        content: 'Hi Bob',
-        tempId: 'temp-xyz123',
-        sender: { profile: { username: 'userA' } },
-      }));
+      expect(mockEmit).toHaveBeenCalledWith(
+        'receiveMessage',
+        expect.objectContaining({
+          id: 'msg-1',
+          content: 'Hi Bob',
+          tempId: 'temp-xyz123',
+          sender: { profile: { username: 'userA' } },
+        }),
+      );
     });
 
     it('should use existing conversationId and send message correctly', async () => {

@@ -110,6 +110,44 @@ export class ChatController {
     return this.chatService.deleteConversation(id, req.user.userId);
   }
 
+  /** Update group details (Admins only) */
+  @Put('conversations/:id/group')
+  async updateGroup(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: { name?: string; avatarUrl?: string },
+  ) {
+    return this.chatService.updateGroup(
+      req.user.userId,
+      id,
+      body.name,
+      body.avatarUrl,
+    );
+  }
+
+  /** Remove a participant from the group (Admins only) */
+  @Delete('conversations/:id/participants/:userId')
+  async removeParticipant(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Param('userId') targetUserId: string,
+  ) {
+    return this.chatService.removeParticipant(
+      req.user.userId,
+      id,
+      targetUserId,
+    );
+  }
+
+  /** Leave a group */
+  @Delete('conversations/:id/leave')
+  async leaveGroup(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.chatService.leaveGroup(req.user.userId, id);
+  }
+
   /** Edit a message. */
   @Put('messages/:id')
   async editMessage(

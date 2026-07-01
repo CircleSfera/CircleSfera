@@ -7,7 +7,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { type Message, type MessageReaction, Prisma } from '@prisma/client';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -61,7 +60,9 @@ export class ChatService {
     });
 
     if (blocks.length > 0) {
-      throw new ForbiddenException('Cannot create a conversation with blocked users');
+      throw new ForbiddenException(
+        'Cannot create a conversation with blocked users',
+      );
     }
 
     // If only 1 other participant and no group name, treat as 1-on-1
@@ -126,7 +127,10 @@ export class ChatService {
         isGroup: true,
         name,
         participants: {
-          create: allParticipantIds.map((id) => ({ userId: id })),
+          create: allParticipantIds.map((id) => ({
+            userId: id,
+            isAdmin: id === userId, // The creator is the admin
+          })),
         },
       },
       include: {
@@ -144,6 +148,154 @@ export class ChatService {
     });
 
     return conversation;
+  }
+
+  /**
+   * Update a group's name and avatar. Only admins can do this.
+   */
+  async updateGroup(
+    userId: string,
+    conversationId: string,
+    name?: string,
+    avatarUrl?: string,
+  ) {
+    const participant = await this.prisma.participant.findFirst({
+      where: { conversationId, userId },
+    });
+
+    if (!participant?.isAdmin) {
+      throw new ForbiddenException(
+        'Only group admins can update the group details',
+      );
+    }
+
+    const data: any = {};
+    if (name !== undefined) data.name = name;
+    if (avatarUrl !== undefined) data.avatarUrl = avatarUrl;
+
+    const updated = await this.prisma.conversation.update({
+      where: { id: conversationId },
+      data,
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: { id: true, profile: true },
+            },
+          },
+        },
+      },
+    });
+
+    // Notify participants
+    updated?.participants?.forEach((p: any) => {
+      this.gateway.server
+        .to(`user:${p.userId}`)
+        .emit('conversation_updated', updated);
+    });
+
+    return updated;
+  }
+
+  /**
+   * Remove a participant from the group. Only admins can do this.
+   */
+  async removeParticipant(
+    userId: string,
+    conversationId: string,
+    targetUserId: string,
+  ) {
+    const admin = await this.prisma.participant.findFirst({
+      where: { conversationId, userId },
+    });
+
+    if (!admin?.isAdmin) {
+      throw new ForbiddenException('Only group admins can remove participants');
+    }
+
+    const targetParticipant = await this.prisma.participant.findFirst({
+      where: { conversationId, userId: targetUserId },
+    });
+
+    if (!targetParticipant) {
+      throw new NotFoundException('Participant not found');
+    }
+
+    await this.prisma.participant.delete({
+      where: { id: targetParticipant.id },
+    });
+
+    const updated = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: { id: true, profile: true },
+            },
+          },
+        },
+      },
+    });
+
+    // Notify everyone including the removed user
+    if (updated) {
+      [...(updated.participants || []), targetParticipant].forEach((p: any) => {
+        this.gateway.server
+          .to(`user:${p.userId}`)
+          .emit('conversation_updated', updated);
+      });
+    }
+
+    return updated;
+  }
+
+  /**
+   * Leave a group conversation.
+   */
+  async leaveGroup(userId: string, conversationId: string) {
+    const participant = await this.prisma.participant.findFirst({
+      where: { conversationId, userId },
+    });
+
+    if (!participant) {
+      throw new ForbiddenException(
+        'You are not a participant in this conversation',
+      );
+    }
+
+    await this.prisma.participant.delete({
+      where: { id: participant.id },
+    });
+
+    const updated = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: { id: true, profile: true },
+            },
+          },
+        },
+      },
+    });
+
+    // If no participants left, we might delete the conversation, but for now we leave it.
+    if (updated) {
+      updated?.participants?.forEach((p: any) => {
+        this.gateway.server
+          .to(`user:${p.userId}`)
+          .emit('conversation_updated', updated);
+      });
+    }
+
+    // Notify the user who left
+    this.gateway.server
+      .to(`user:${userId}`)
+      .emit('conversationDeleted', { conversationId });
+
+    return { success: true };
   }
 
   /**
@@ -247,7 +399,9 @@ export class ChatService {
     });
 
     if (blocks.length > 0) {
-      throw new ForbiddenException('Cannot send message: Blocked by a participant or you blocked them');
+      throw new ForbiddenException(
+        'Cannot send message: Blocked by a participant or you blocked them',
+      );
     }
 
     // 2. Create message (content is already E2EE encrypted by the client)
@@ -432,7 +586,10 @@ export class ChatService {
     const conversations = await this.getConversations(userId);
     let unreadCount = 0;
 
-    for (const conv of conversations as { messages?: any[], participants: any[] }[]) {
+    for (const conv of conversations as {
+      messages?: any[];
+      participants: any[];
+    }[]) {
       const lastMsg = conv.messages?.[0];
       if (!lastMsg) continue;
 
@@ -604,10 +761,7 @@ export class ChatService {
    * @throws NotFoundException if conversation not found
    * @throws ForbiddenException if user is not a participant
    */
-  async deleteConversation(
-    conversationId: string,
-    userId: string,
-  ) {
+  async deleteConversation(conversationId: string, userId: string) {
     const isParticipant = await this.prisma.participant.findFirst({
       where: {
         conversationId,
@@ -626,12 +780,12 @@ export class ChatService {
       where: { id: isParticipant.id },
       data: { deletedAt: new Date() },
     });
-    
+
     // Emit only to the user who deleted it
     this.gateway.server
       .to(`user:${userId}`)
       .emit('conversationDeleted', { conversationId });
-      
+
     return { success: true, mode: 'me' };
   }
 
@@ -730,9 +884,8 @@ export class ChatService {
 
   /**
    * Cron job to physically delete expired messages (GDPR/Disappearing messages).
-   * Runs every hour.
+   * Runs every hour via BullMQ.
    */
-  @Cron(CronExpression.EVERY_HOUR)
   async cleanupExpiredMessages() {
     try {
       const deleted = await this.prisma.message.deleteMany({

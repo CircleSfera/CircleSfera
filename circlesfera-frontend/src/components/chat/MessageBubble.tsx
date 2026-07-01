@@ -50,6 +50,9 @@ export default memo(function MessageBubble({
   const [decryptedText, setDecryptedText] = useState<string>(
     msg.e2eKeys ? '' : msg.content,
   );
+  const [mediaUrl, setMediaUrl] = useState<string | undefined>(
+    msg.e2eKeys ? undefined : msg.url,
+  );
   const [isDecrypting, setIsDecrypting] = useState<boolean>(!!msg.e2eKeys);
 
   useEffect(() => {
@@ -67,41 +70,81 @@ export default memo(function MessageBubble({
           }
 
           const privateKey = await E2EService.importPrivateKey(privateKeyStr);
-          
-          const parsedKeys = typeof msg.e2eKeys === 'string' ? JSON.parse(msg.e2eKeys as any) : msg.e2eKeys;
+
+          const parsedKeys =
+            typeof msg.e2eKeys === 'string'
+              ? JSON.parse(msg.e2eKeys as any)
+              : msg.e2eKeys;
           const wrappedAesKey = parsedKeys![currentUserId];
           const aesKey = await E2EService.unwrapSymmetricKey(
             wrappedAesKey,
             privateKey,
           );
 
-          const payload = typeof msg.content === 'string' && msg.content.startsWith('{') 
-            ? JSON.parse(msg.content) 
-            : msg.content;
-            
+          const payload =
+            typeof msg.content === 'string' && msg.content.startsWith('{')
+              ? JSON.parse(msg.content)
+              : msg.content;
+
           const text = await E2EService.decryptMessage(
             payload.ciphertext,
             payload.iv,
             aesKey,
           );
 
+          let parsedText = text;
+          let fileKeyRaw = '';
+          let fileIv = '';
+
+          try {
+            const mediaPayload = JSON.parse(text);
+            if (mediaPayload.fileKey && mediaPayload.text) {
+              parsedText = mediaPayload.text;
+              fileKeyRaw = mediaPayload.fileKey;
+              fileIv = mediaPayload.fileIv;
+            }
+          } catch (_e) {
+            // normal text message, not JSON
+          }
+
           if (isMounted) {
-            setDecryptedText(text);
+            setDecryptedText(parsedText);
+
+            // If it's a file, fetch and decrypt it
+            if (fileKeyRaw && msg.url) {
+              try {
+                const res = await fetch(msg.url);
+                const arrayBuffer = await res.arrayBuffer();
+                const fileAesKey =
+                  await E2EService.importSymmetricKey(fileKeyRaw);
+                const blob = await E2EService.decryptFile(
+                  arrayBuffer,
+                  fileIv,
+                  fileAesKey,
+                );
+                setMediaUrl(URL.createObjectURL(blob));
+              } catch (fileErr) {
+                console.error('Error decrypting file:', fileErr);
+              }
+            }
+
             setIsDecrypting(false);
           }
         } catch (err) {
           console.error('Error decrypting message:', err);
           if (isMounted) {
-            setDecryptedText('🔒 Error al descifrar el mensaje');
+            setDecryptedText('🔒 Mensaje cifrado con una clave anterior');
             setIsDecrypting(false);
           }
         }
       };
       decrypt();
     } else if (msg.e2eKeys) {
-      // It has E2E keys, but not for this user?
+      // It has E2E keys, but not for this user (because they didn't have a public key when it was sent)
       if (isMounted) {
-        setDecryptedText('🔒 Mensaje cifrado (No tienes acceso)');
+        setDecryptedText(
+          '🔒 Configura tu privacidad E2E para leer futuros mensajes.',
+        );
         setIsDecrypting(false);
       }
     } else {
@@ -221,13 +264,13 @@ export default memo(function MessageBubble({
             )}
 
             {/* Media Content */}
-            {msg.mediaType === 'audio' && msg.url ? (
-              <AudioPlayer src={msg.url} created={false} />
+            {msg.mediaType === 'audio' && mediaUrl ? (
+              <AudioPlayer src={mediaUrl} created={false} />
             ) : (
-              msg.url && (
+              mediaUrl && (
                 <div className="mb-2 -mx-2 -mt-2 overflow-hidden rounded-t-[18px]">
                   <img
-                    src={msg.thumbnailUrl || msg.standardUrl || msg.url}
+                    src={msg.thumbnailUrl || msg.standardUrl || mediaUrl}
                     srcSet={
                       msg.thumbnailUrl && msg.standardUrl
                         ? `${msg.thumbnailUrl} 300w, ${msg.standardUrl} 600w`
