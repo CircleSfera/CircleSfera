@@ -1,13 +1,18 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Inject, Logger } from '@nestjs/common';
+import { forwardRef, Inject, Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { AnalyticsService } from '../analytics.service.js';
 
 @Processor('analytics-processing')
 export class AnalyticsProcessor extends WorkerHost {
   private readonly logger = new Logger(AnalyticsProcessor.name);
 
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => AnalyticsService))
+    private readonly analyticsService: AnalyticsService,
+  ) {
     super();
   }
 
@@ -15,6 +20,8 @@ export class AnalyticsProcessor extends WorkerHost {
     switch (job.name) {
       case 'update-performance-score':
         return this.handleUpdatePerformanceScore(job.data);
+      case 'daily-aggregation':
+        return this.analyticsService.handleDailyAggregation();
       default:
         this.logger.warn(`Unknown job name: ${job.name}`);
     }

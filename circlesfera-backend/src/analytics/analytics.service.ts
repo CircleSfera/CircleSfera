@@ -1,5 +1,4 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { format, startOfDay, subDays } from 'date-fns';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -11,9 +10,8 @@ export class AnalyticsService {
 
   /**
    * Automated task to aggregate stats for all active creators.
-   * Runs every day at midnight.
+   * Runs every day at midnight via BullMQ.
    */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleDailyAggregation() {
     this.logger.log('Starting daily analytics aggregation...');
     try {
@@ -101,6 +99,9 @@ export class AnalyticsService {
    * Retrieves aggregated statistics for a creator's dashboard.
    */
   async getCreatorDashboard(userId: string, days = 30) {
+    // 0. Force live sync of today's metrics before querying
+    await this.performDailyAggregation(userId);
+
     const startDate = subDays(startOfDay(new Date()), days);
 
     // 1. Get daily metrics
