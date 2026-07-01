@@ -152,7 +152,7 @@ export class UsersService {
       comments: user.comments,
       bookmarks: user.bookmarks,
     };
-    
+
     return safeData as Record<string, unknown>;
   }
 

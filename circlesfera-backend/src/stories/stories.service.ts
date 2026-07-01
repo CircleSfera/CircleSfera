@@ -1,6 +1,5 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   type Prisma,
   type Profile,
@@ -276,10 +275,19 @@ export class StoriesService {
     });
 
     if (story) {
-      if (story.url) await this.uploadsService.deleteFile(story.url).catch(e => console.error(e));
-      if (story.standardUrl) await this.uploadsService.deleteFile(story.standardUrl).catch(e => console.error(e));
-      if (story.thumbnailUrl) await this.uploadsService.deleteFile(story.thumbnailUrl).catch(e => console.error(e));
-      
+      if (story.url)
+        await this.uploadsService
+          .deleteFile(story.url)
+          .catch((e) => console.error(e));
+      if (story.standardUrl)
+        await this.uploadsService
+          .deleteFile(story.standardUrl)
+          .catch((e) => console.error(e));
+      if (story.thumbnailUrl)
+        await this.uploadsService
+          .deleteFile(story.thumbnailUrl)
+          .catch((e) => console.error(e));
+
       await this.prisma.story.delete({
         where: { id: story.id },
       });
@@ -393,24 +401,37 @@ export class StoriesService {
   }
 
   /**
-   * Cron job to physically delete expired stories every hour to free up database space.
+   * Job to physically delete expired stories every hour to free up database space.
+   * Executed via BullMQ.
    */
-  @Cron(CronExpression.EVERY_HOUR)
   async cleanupExpiredStories() {
     try {
       const expiredStories = await this.prisma.story.findMany({
-        where: { expiresAt: { lt: new Date() } },
+        where: {
+          expiresAt: { lt: new Date() },
+          highlightStories: { none: {} },
+        },
       });
 
       for (const story of expiredStories) {
-        if (story.url) await this.uploadsService.deleteFile(story.url).catch(e => console.error(e));
-        if (story.standardUrl) await this.uploadsService.deleteFile(story.standardUrl).catch(e => console.error(e));
-        if (story.thumbnailUrl) await this.uploadsService.deleteFile(story.thumbnailUrl).catch(e => console.error(e));
+        if (story.url)
+          await this.uploadsService
+            .deleteFile(story.url)
+            .catch((e) => console.error(e));
+        if (story.standardUrl)
+          await this.uploadsService
+            .deleteFile(story.standardUrl)
+            .catch((e) => console.error(e));
+        if (story.thumbnailUrl)
+          await this.uploadsService
+            .deleteFile(story.thumbnailUrl)
+            .catch((e) => console.error(e));
       }
 
       const deleted = await this.prisma.story.deleteMany({
         where: {
           expiresAt: { lt: new Date() },
+          highlightStories: { none: {} },
         },
       });
       if (deleted.count > 0) {

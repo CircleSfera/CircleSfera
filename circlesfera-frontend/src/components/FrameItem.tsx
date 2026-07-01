@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Bookmark,
   Heart,
@@ -8,15 +8,23 @@ import {
   Pause,
   Play,
   Share2,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { followsApi } from '../services';
+import { bookmarksApi, followsApi, postsApi } from '../services';
 import { creatorApi } from '../services/creator.service';
 import { useAuthStore } from '../stores/authStore';
+import { useFrameStore } from '../stores/frameStore';
 import type { Post } from '../types';
 import { logger } from '../utils/logger';
 import LikeButton from './LikeButton';
+import ConfirmModal from './modals/ConfirmModal';
+import FrameCommentsModal from './modals/FrameCommentsModal';
+import ReportModal from './modals/ReportModal';
+import SharePostModal from './modals/SharePostModal';
+import PostMenu from './post/PostMenu';
 import RichText from './RichText';
 
 interface FrameItemProps {
@@ -32,6 +40,7 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
   const [showHeartAnim, setShowHeartAnim] = useState(false);
   const [likesCount, setLikesCount] = useState(post._count?.likes || 0);
   const { profile } = useAuthStore();
+  const { isMuted, toggleMute, setMuted } = useFrameStore();
   const queryClient = useQueryClient();
   const { pathname } = useLocation();
 
@@ -39,6 +48,66 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
     null,
   );
   const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+
+  // Progress bar state
+  const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  const { data: bookmarkData } = useQuery({
+    queryKey: ['bookmark', post.id],
+    queryFn: () => bookmarksApi.check(post.id),
+  });
+  const isBookmarked = bookmarkData?.data?.bookmarked ?? false;
+
+  const toggleBookmarkMutation = useMutation({
+    mutationFn: () => bookmarksApi.toggle(post.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookmark', post.id] });
+      queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => postsApi.delete(post.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['frames'] });
+    },
+  });
+
+  // Calculate menu position when showing
+  useEffect(() => {
+    if (showMenu && menuButtonRef.current) {
+      const rect = menuButtonRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
+    }
+  }, [showMenu]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        menuButtonRef.current &&
+        !menuButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Scroll on route change
   useEffect(() => {
@@ -47,9 +116,13 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
 
   useEffect(() => {
     if (isActive && videoRef.current) {
+      // Sync global mute state
+      videoRef.current.muted = isMuted;
       videoRef.current.currentTime = 0;
       videoRef.current.play().catch(() => {
         logger.log('Autoplay blocked');
+        // If autoplay is blocked because of audio, we could force mute it
+        setMuted(true);
       });
       lastUpdateRef.current = Date.now();
       lastTimeRef.current = 0;
@@ -61,11 +134,52 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
         watchTimeRef.current = 0;
       }
     }
-  }, [isActive, post.id]);
+  }, [isActive, post.id, isMuted, setMuted]);
+
+  // Keyboard controls for active frame
+  useEffect(() => {
+    if (!isActive) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in an input
+      if (
+        document.activeElement?.tagName === 'INPUT' ||
+        document.activeElement?.tagName === 'TEXTAREA'
+      ) {
+        return;
+      }
+
+      if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        if (videoRef.current) {
+          if (videoRef.current.paused) {
+            videoRef.current.play();
+            setShowPlayAnim('play');
+          } else {
+            videoRef.current.pause();
+            setShowPlayAnim('pause');
+          }
+          setTimeout(() => setShowPlayAnim(null), 800);
+        }
+      } else if (e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        toggleMute();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isActive, toggleMute]);
 
   const handleTimeUpdate = () => {
     if (!videoRef.current) return;
     const current = videoRef.current.currentTime;
+
+    // Update progress bar
+    if (videoRef.current.duration) {
+      setProgress((current / videoRef.current.duration) * 100);
+      setDuration(videoRef.current.duration);
+    }
 
     // Detect loop
     if (current < lastTimeRef.current - 1) {
@@ -87,6 +201,13 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
       creatorApi.trackFrameWatch(post.id, watchTimeRef.current);
       watchTimeRef.current = 0;
     }
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!videoRef.current || !duration) return;
+    const newTime = (Number(e.target.value) / 100) * duration;
+    videoRef.current.currentTime = newTime;
+    setProgress(Number(e.target.value));
   };
 
   const followMutation = useMutation({
@@ -124,15 +245,15 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
   const handleDoubleTap = () => {
     setShowHeartAnim(true);
     setTimeout(() => setShowHeartAnim(false), 1000);
+    // Optionally trigger like API if not already liked
   };
 
   const isOwner = profile?.userId === post.userId;
-
   const videoMedia = post.media?.find((m) => m.type === 'video') ||
     post.media?.[0] || { url: '' };
 
   return (
-    <div className="w-full h-full bg-black relative flex items-center justify-center snap-start md:rounded-[16px] overflow-hidden">
+    <div className="w-full h-full bg-black relative flex items-center justify-center snap-start md:rounded-[20px] overflow-hidden group">
       {/* Video Area */}
       <button
         type="button"
@@ -143,11 +264,12 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
         <video
           ref={videoRef}
           src={videoMedia.url}
-          className="w-full h-full object-cover md:rounded-[16px]"
+          className="w-full h-dvh md:h-full object-cover md:rounded-[20px]"
           loop
           playsInline
-          muted={false}
+          muted={isMuted}
           onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
         >
           <track kind="captions" />
         </video>
@@ -156,8 +278,8 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
         {showHeartAnim && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
             <Heart
-              size={100}
-              className="fill-red-500 text-red-500 opacity-0 animate-heart-pop drop-shadow-[0_0_20px_rgba(255,0,0,0.5)]"
+              size={120}
+              className="fill-red-500 text-red-500 opacity-0 animate-heart-pop drop-shadow-[0_0_25px_rgba(255,0,0,0.6)]"
             />
           </div>
         )}
@@ -176,12 +298,25 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
         )}
       </button>
 
+      {/* Top Controls (Mute/Unmute) */}
+      <div className="absolute top-4 right-4 z-30 pointer-events-auto">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleMute();
+          }}
+          className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+        >
+          {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+        </button>
+      </div>
+
       {/* Overlay Gradients */}
-      <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-linear-to-t from-black/90 via-black/40 to-transparent pointer-events-none z-10" />
-      <div className="absolute top-0 left-0 right-0 h-32 bg-linear-to-b from-black/50 to-transparent pointer-events-none z-10" />
+      <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-linear-to-t from-black/90 via-black/40 to-transparent pointer-events-none z-10" />
 
       {/* Main Info Area (Bottom) */}
-      <div className="absolute bottom-0 left-0 right-14 pb-4 px-4 flex flex-col justify-end z-20 pointer-events-none">
+      <div className="absolute bottom-4 md:bottom-6 left-0 right-16 px-4 flex flex-col justify-end z-20 pointer-events-none">
         {/* User Info Row */}
         <div className="flex items-center gap-2.5 mb-2.5 pointer-events-auto">
           <Link
@@ -191,12 +326,12 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
             <img
               src={post.user.profile.avatar || '#noimage'}
               alt={post.user.profile.username}
-              className="w-9 h-9 rounded-full object-cover border border-white/20 shadow-md"
+              className="w-10 h-10 rounded-full object-cover border border-white/20 shadow-md"
             />
           </Link>
           <Link
             to={`/${post.user.profile.username}`}
-            className="font-semibold text-[15px] text-white drop-shadow-md hover:opacity-80 transition-opacity"
+            className="font-bold text-[15px] text-white drop-shadow-md hover:underline transition-all"
           >
             {post.user.profile.username}
           </Link>
@@ -225,7 +360,7 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
               <button
                 type="button"
                 onClick={() => setIsCaptionExpanded(!isCaptionExpanded)}
-                className="text-white/70 text-xs font-semibold mt-1 drop-shadow-md"
+                className="text-white/80 font-bold text-xs mt-1 drop-shadow-md hover:text-white"
               >
                 {isCaptionExpanded ? 'menos' : 'más'}
               </button>
@@ -237,7 +372,7 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
         <div className="flex items-center gap-2 pointer-events-auto text-white drop-shadow-md">
           <Music size={14} className="shrink-0" />
           <div className="overflow-hidden whitespace-nowrap w-48 relative mask-[linear-gradient(to_right,white_80%,transparent)]">
-            <div className="animate-marquee inline-block text-[13px]">
+            <div className="animate-marquee inline-block text-[13px] font-medium">
               {post.user.profile.username} • Audio original
             </div>
           </div>
@@ -245,11 +380,11 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
       </div>
 
       {/* Right Sidebar Actions */}
-      <div className="absolute bottom-4 right-2 w-14 flex flex-col items-center justify-end gap-5 z-20 pointer-events-auto">
+      <div className="absolute bottom-6 right-2 w-14 flex flex-col items-center justify-end gap-6 z-20 pointer-events-auto">
         <div className="flex flex-col items-center gap-1 group">
           <LikeButton
             postId={post.id}
-            iconClassName="w-7 h-7 drop-shadow-lg"
+            iconClassName="w-9 h-9 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] transition-transform hover:scale-110 active:scale-90"
             onToggle={(newLiked) => {
               setLikesCount((prev) => (newLiked ? prev + 1 : prev - 1));
             }}
@@ -259,46 +394,131 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
           </span>
         </div>
 
-        <Link
-          to={`/p/${post.id}`}
-          className="flex flex-col items-center gap-1 group transition-transform active:scale-90"
+        <button
+          type="button"
+          onClick={() => setIsCommentsOpen(true)}
+          className="flex flex-col items-center gap-1 group transition-transform active:scale-90 hover:scale-110"
         >
-          <MessageCircle size={28} className="text-white drop-shadow-lg" />
+          <MessageCircle
+            size={32}
+            className="text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] fill-white/20"
+          />
           <span className="text-white font-semibold text-[13px] drop-shadow-md">
             {post._count?.comments || 0}
           </span>
-        </Link>
-
-        <button
-          type="button"
-          className="flex flex-col items-center gap-1 transition-transform active:scale-90"
-        >
-          <Share2 size={28} className="text-white drop-shadow-lg" />
         </button>
 
         <button
           type="button"
-          className="flex flex-col items-center gap-1 transition-transform active:scale-90"
+          onClick={() => setShowShareModal(true)}
+          className="flex flex-col items-center gap-1 transition-transform active:scale-90 hover:scale-110"
         >
-          <Bookmark size={26} className="text-white drop-shadow-lg" />
+          <Share2
+            size={30}
+            className="text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+          />
         </button>
 
         <button
           type="button"
-          className="flex flex-col items-center gap-1 transition-transform active:scale-90"
+          onClick={() => toggleBookmarkMutation.mutate()}
+          className="flex flex-col items-center gap-1 transition-transform active:scale-90 hover:scale-110"
         >
-          <MoreHorizontal size={24} className="text-white drop-shadow-lg" />
+          <Bookmark
+            size={28}
+            className={`${isBookmarked ? 'text-brand-primary fill-brand-primary' : 'text-white'} drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]`}
+          />
+        </button>
+
+        <button
+          type="button"
+          ref={menuButtonRef}
+          onClick={() => setShowMenu(!showMenu)}
+          className="flex flex-col items-center gap-1 transition-transform active:scale-90 hover:scale-110 relative"
+        >
+          <MoreHorizontal
+            size={26}
+            className="text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+          />
         </button>
 
         {/* Spinning Music Record */}
-        <div className="mt-2 w-10 h-10 rounded-[8px] bg-surface-raised border-2 border-white/20 overflow-hidden flex items-center justify-center shadow-lg relative shrink-0">
+        <div className="mt-2 w-11 h-11 rounded-full bg-zinc-900 border-8 border-zinc-800 overflow-hidden flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] relative shrink-0 animate-[spin_4s_linear_infinite]">
           <img
             src={post.user.profile.avatar || '#noimage'}
             alt="Audio"
-            className="w-6 h-6 rounded-full object-cover animate-[spin_4s_linear_infinite]"
+            className="w-full h-full object-cover"
           />
         </div>
       </div>
+
+      {/* Scrubber / Progress Bar */}
+      <div className="absolute bottom-0 left-0 right-0 h-1.5 z-30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-auto">
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={progress}
+          onChange={handleSeek}
+          className="w-full absolute inset-0 opacity-0 cursor-pointer z-40"
+        />
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
+          <div
+            className="h-full bg-white relative"
+            style={{ width: `${progress}%` }}
+          >
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white rounded-full shadow-md scale-0 group-hover:scale-100 transition-transform" />
+          </div>
+        </div>
+      </div>
+
+      {/* Comments Drawer */}
+      {/* Modals and Options */}
+      <FrameCommentsModal
+        isOpen={isCommentsOpen}
+        onClose={() => setIsCommentsOpen(false)}
+        postId={post.id}
+      />
+      <SharePostModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        post={post}
+      />
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        targetType="POST"
+        targetId={post.id}
+      />
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={() => deleteMutation.mutate()}
+        title="Eliminar Frame"
+        message="¿Estás seguro de que quieres eliminar este frame? Esta acción no se puede deshacer."
+        confirmText={deleteMutation.isPending ? 'Eliminando...' : 'Eliminar'}
+        cancelText="Cancelar"
+        isDestructive={true}
+      />
+      <PostMenu
+        showMenu={showMenu}
+        menuRef={menuRef}
+        menuPosition={menuPosition}
+        isOwner={isOwner}
+        onEdit={() => setShowMenu(false)} // Edit not fully supported in frames view yet
+        onDelete={() => {
+          setShowMenu(false);
+          setShowDeleteModal(true);
+        }}
+        onReport={() => {
+          setShowMenu(false);
+          setShowReportModal(true);
+        }}
+        onAddToCollection={() => {
+          setShowMenu(false);
+          toggleBookmarkMutation.mutate();
+        }}
+      />
     </div>
   );
 }

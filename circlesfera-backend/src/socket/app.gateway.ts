@@ -296,7 +296,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
 
     if (!conversation) {
-      this.logger.warn(`Call blocked: No active conversation between ${callerId} and ${payload.recipientId}`);
+      this.logger.warn(
+        `Call blocked: No active conversation between ${callerId} and ${payload.recipientId}`,
+      );
       return;
     }
 

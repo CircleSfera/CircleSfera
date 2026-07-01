@@ -24,6 +24,7 @@ import { E2EService } from '../../utils/e2e';
 import { logger } from '../../utils/logger';
 import UserAvatar from '../UserAvatar';
 import AudioRecorder from './AudioRecorder';
+import GroupDetailsModal from './GroupDetailsModal';
 import MessageBubble from './MessageBubble';
 
 export default function ChatWindow() {
@@ -53,6 +54,8 @@ export default function ChatWindow() {
     text: string;
   } | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [showGroupDetails, setShowGroupDetails] = useState(false);
+  const [showE2EWarning, setShowE2EWarning] = useState(false);
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -63,18 +66,64 @@ export default function ChatWindow() {
     setIsRecording(false);
     setIsUploading(true);
     try {
-      const file = new File([audioBlob], 'voice-message.webm', {
-        type: 'audio/webm',
+      // 1. Generate AES key for the file
+      const fileAesKey = await E2EService.generateSymmetricKey();
+      const arrayBuffer = await audioBlob.arrayBuffer();
+
+      // 2. Encrypt the file blob
+      const { ciphertext, iv: fileIv } = await E2EService.encryptFile(
+        arrayBuffer,
+        fileAesKey,
+      );
+
+      // 3. Upload the encrypted blob
+      const file = new File([ciphertext], 'voice-message.webm.enc', {
+        type: 'application/octet-stream',
       });
       const formData = new FormData();
       formData.append('file', file);
       const uploadRes = await uploadApi.upload(formData);
 
+      // 4. Export the AES key
+      const fileKeyRaw = await E2EService.exportSymmetricKey(fileAesKey);
+
+      // 5. Build the E2E media payload
+      const mediaPayload = {
+        text: '🎤 Voice Message',
+        originalName: 'voice-message.webm',
+        originalType: 'audio/webm',
+        fileKey: fileKeyRaw,
+        fileIv,
+      };
+
+      // 6. Encrypt the JSON payload for all participants
+      const { finalContent, e2eKeys } = await encryptPayloadForParticipants(
+        JSON.stringify(mediaPayload),
+      );
+
+      const tempId =
+        Date.now().toString() + Math.random().toString(36).substring(2, 9);
+
+      const tempMsg: Message = {
+        id: tempId,
+        content: JSON.stringify(mediaPayload), // plaintext locally
+        conversationId: id || '',
+        senderId: profile?.userId || profile?.id || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        url: uploadRes.data.url,
+        mediaType: 'audio', // UI fallback
+        reactions: [],
+      };
+      setMessages((prev) => [...prev, tempMsg]);
+
       await apiClient.post('/chat/messages', {
         conversationId: id,
-        content: '🎤 Voice Message', // Placeholder content for validation
+        content: finalContent,
         url: uploadRes.data.url,
         mediaType: 'audio',
+        tempId,
+        e2eKeys,
       });
     } catch (err) {
       logger.error('Audio upload failed', err);
@@ -148,6 +197,26 @@ export default function ChatWindow() {
       const conv = res.data.find((c: Conversation) => c.id === id);
       if (conv) {
         setConversation(conv);
+
+        // Check if any participants are missing E2E keys
+        if (conv.participants) {
+          const expectedParticipants = conv.participants.filter(
+            (p: Participant) => p.userId !== (profile?.userId || profile?.id),
+          ).length;
+          const participantsWithKeys = conv.participants.filter(
+            (p: Participant) =>
+              p.user?.e2ePublicKey &&
+              p.userId !== (profile?.userId || profile?.id),
+          ).length;
+          if (
+            expectedParticipants > 0 &&
+            participantsWithKeys < expectedParticipants
+          ) {
+            setShowE2EWarning(true);
+          } else {
+            setShowE2EWarning(false);
+          }
+        }
 
         // Use the chatApi to persist the read status in the database
         chatApi
@@ -439,21 +508,127 @@ export default function ChatWindow() {
     }
   };
 
+  const encryptPayloadForParticipants = async (payloadStr: string) => {
+    let finalContent = payloadStr;
+    let e2eKeys: Record<string, string> | undefined;
+
+    const keysMap: Record<string, CryptoKey> = {};
+
+    if (conversation?.participants) {
+      for (const p of conversation.participants) {
+        const pubKey = p.user?.e2ePublicKey;
+        if (pubKey) {
+          try {
+            keysMap[p.userId] = await E2EService.importPublicKey(pubKey);
+          } catch {
+            console.warn('Invalid public key for user', p.userId);
+          }
+        }
+      }
+    }
+
+    if (Object.keys(keysMap).length > 0) {
+      const currentUserId =
+        profile?.userId || profile?.user?.id || profile?.id || '';
+
+      const myPubB64 = localStorage.getItem('e2e_public_key');
+      if (myPubB64 && currentUserId) {
+        try {
+          keysMap[currentUserId] = await E2EService.importPublicKey(myPubB64);
+        } catch {}
+      }
+
+      const aesKey = await E2EService.generateSymmetricKey();
+      const encrypted = await E2EService.encryptMessage(payloadStr, aesKey);
+      finalContent = JSON.stringify(encrypted);
+
+      e2eKeys = {};
+      for (const [pid, pubKey] of Object.entries(keysMap)) {
+        e2eKeys[pid] = await E2EService.wrapSymmetricKey(aesKey, pubKey);
+      }
+    }
+
+    return {
+      finalContent,
+      e2eKeys,
+      keysMapLength: Object.keys(keysMap).length,
+    };
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !id) return;
+    if (!file || !id || !profile) return;
+
+    if (file.size > 50 * 1024 * 1024) {
+      alert(
+        t('chat.file_too_large') ||
+          'Para garantizar el cifrado E2E, los archivos no pueden superar los 50 MB.',
+      );
+      return;
+    }
 
     setIsUploading(true);
     try {
+      // 1. Generate AES key for the file
+      const fileAesKey = await E2EService.generateSymmetricKey();
+      const arrayBuffer = await file.arrayBuffer();
+
+      // 2. Encrypt the file blob
+      const { ciphertext, iv: fileIv } = await E2EService.encryptFile(
+        arrayBuffer,
+        fileAesKey,
+      );
+
+      // 3. Upload the encrypted blob
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append(
+        'file',
+        new File([ciphertext], `${file.name}.enc`, {
+          type: 'application/octet-stream',
+        }),
+      );
       const uploadRes = await uploadApi.upload(formData);
+
+      // 4. Export the AES key
+      const fileKeyRaw = await E2EService.exportSymmetricKey(fileAesKey);
+
+      // 5. Build the E2E media payload
+      const mediaPayload = {
+        text: t('chat.sent_image'),
+        originalName: file.name,
+        originalType: file.type,
+        fileKey: fileKeyRaw,
+        fileIv,
+      };
+
+      // 6. Encrypt the JSON payload for all participants
+      const { finalContent, e2eKeys } = await encryptPayloadForParticipants(
+        JSON.stringify(mediaPayload),
+      );
+
+      const tempId =
+        Date.now().toString() + Math.random().toString(36).substring(2, 9);
+
+      const tempMsg: Message = {
+        id: tempId,
+        content: JSON.stringify(mediaPayload), // plaintext locally
+        conversationId: id,
+        senderId: profile?.userId || profile?.id || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        url: uploadRes.data.url,
+        mediaType: 'image', // UI fallback
+        reactions: [],
+      };
+      setMessages((prev) => [...prev, tempMsg]);
 
       await apiClient.post('/chat/messages', {
         conversationId: id,
-        content: t('chat.sent_image'),
+        content: finalContent,
         url: uploadRes.data.url,
         mediaType: 'image',
+        tempId,
+        e2eKeys,
       });
     } catch (err) {
       logger.error('Upload failed', err);
@@ -470,7 +645,8 @@ export default function ChatWindow() {
     const tempId =
       Date.now().toString() + Math.random().toString(36).substring(2, 9);
 
-    const currentUserId = profile?.userId || profile?.user?.id || profile?.id || '';
+    const currentUserId =
+      profile?.userId || profile?.user?.id || profile?.id || '';
 
     const tempMsg: Message = {
       id: tempId,
@@ -501,46 +677,20 @@ export default function ChatWindow() {
 
     const doSend = async () => {
       try {
-        let finalContent = input;
-        let e2eKeys: Record<string, string> | undefined;
+        // Check for missing public keys warning
+        const expectedParticipants =
+          conversation?.participants?.filter(
+            (p) => p.userId !== (profile?.userId || profile?.id),
+          )?.length || 0;
+        const { finalContent, e2eKeys, keysMapLength } =
+          await encryptPayloadForParticipants(input);
 
-        // Try to encrypt if participants have E2E keys
-        const keysMap: Record<string, CryptoKey> = {};
-
-        if (conversation?.participants) {
-          for (const p of conversation.participants) {
-            const pubKey = p.user?.e2ePublicKey;
-            if (pubKey) {
-              try {
-                keysMap[p.userId] = await E2EService.importPublicKey(pubKey);
-              } catch {
-                console.warn('Invalid public key for user', p.userId);
-              }
-            }
-          }
-        }
-
-        if (Object.keys(keysMap).length > 0) {
-          const currentUserId = profile?.userId || profile?.user?.id || profile?.id || '';
-          
-          // Add my own public key so I can read my own messages later (if I have one)
-          const myPubB64 = localStorage.getItem('e2e_public_key');
-          if (myPubB64 && currentUserId) {
-            try {
-              keysMap[currentUserId] = await E2EService.importPublicKey(myPubB64);
-            } catch {
-              // Ignore errors fetching my own key
-            }
-          }
-
-          const aesKey = await E2EService.generateSymmetricKey();
-          const encrypted = await E2EService.encryptMessage(input, aesKey);
-          finalContent = JSON.stringify(encrypted);
-
-          e2eKeys = {};
-          for (const [pid, pubKey] of Object.entries(keysMap)) {
-            e2eKeys[pid] = await E2EService.wrapSymmetricKey(aesKey, pubKey);
-          }
+        // keysMapLength includes current user, so subtract 1 for the comparison
+        if (keysMapLength > 0 && keysMapLength - 1 < expectedParticipants) {
+          // Warning logic can be handled later or UI can show a toast.
+          console.warn(
+            'Cifrado parcial: Faltan llaves públicas de algunos usuarios.',
+          );
         }
 
         if (editingMessage) {
@@ -646,6 +796,41 @@ export default function ChatWindow() {
     return null;
   };
 
+  const handleUpdateGroup = async (data: {
+    name?: string;
+    avatarUrl?: string;
+  }) => {
+    if (!id) return;
+    try {
+      const res = await chatApi.updateGroup(id, data);
+      setConversation(res.data);
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    } catch (err) {
+      logger.error('Failed to update group', err);
+    }
+  };
+
+  const handleRemoveParticipant = async (userId: string) => {
+    if (!id) return;
+    try {
+      const res = await chatApi.removeParticipant(id, userId);
+      setConversation(res.data);
+    } catch (err) {
+      logger.error('Failed to remove participant', err);
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!id) return;
+    try {
+      await chatApi.leaveGroup(id);
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      navigate('/direct/inbox');
+    } catch (err) {
+      logger.error('Failed to leave group', err);
+    }
+  };
+
   return (
     <div className="flex flex-col h-dvh bg-surface-elevated relative overflow-hidden">
       {/* Background Accent Mesh */}
@@ -668,30 +853,38 @@ export default function ChatWindow() {
               type="button"
               className="flex items-center gap-3 md:gap-4 cursor-pointer group min-w-0 flex-1 appearance-none bg-transparent border-none p-0 text-left"
               onClick={() =>
-                !chatInfo.isGroup &&
-                chatInfo.username &&
-                navigate(`/${chatInfo.username}`)
+                chatInfo.isGroup
+                  ? setShowGroupDetails(true)
+                  : chatInfo.username && navigate(`/${chatInfo.username}`)
               }
             >
               {chatInfo.isGroup ? (
                 <div className="w-9 h-9 md:w-10 md:h-10 shrink-0 rounded-full bg-white/10 flex items-center justify-center overflow-hidden">
-                  <div className="grid grid-cols-2 gap-0.5 w-full h-full">
-                    {conversation.participants
-                      .slice(0, 4)
-                      .map((p: Participant) => (
-                        <img
-                          key={p.id}
-                          src={
-                            p.user?.profile.thumbnailUrl ||
-                            p.user?.profile.avatar ||
-                            '/default-avatar.png'
-                          }
-                          className="w-full h-full object-cover"
-                          alt={p.user?.profile.username || 'User'}
-                          loading="lazy"
-                        />
-                      ))}
-                  </div>
+                  {conversation.avatarUrl ? (
+                    <img
+                      src={conversation.avatarUrl}
+                      alt="Group"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="grid grid-cols-2 gap-0.5 w-full h-full">
+                      {conversation.participants
+                        .slice(0, 4)
+                        .map((p: Participant) => (
+                          <img
+                            key={p.id}
+                            src={
+                              p.user?.profile.thumbnailUrl ||
+                              p.user?.profile.avatar ||
+                              '/default-avatar.png'
+                            }
+                            className="w-full h-full object-cover"
+                            alt={p.user?.profile.username || 'User'}
+                            loading="lazy"
+                          />
+                        ))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="relative shrink-0">
@@ -857,6 +1050,19 @@ export default function ChatWindow() {
             <span className="text-sm font-medium text-white/50">
               {t('chat.loading_history')}
             </span>
+          </div>
+        )}
+        {showE2EWarning && (
+          <div className="mx-4 my-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-yellow-200 text-sm flex items-start gap-3 backdrop-blur-md">
+            <span className="mt-0.5">⚠️</span>
+            <div>
+              <p className="font-semibold mb-1">Cifrado parcial</p>
+              <p className="opacity-90 leading-tight">
+                Hay participantes en este chat que aún no han configurado su
+                privacidad E2E. Tus mensajes se enviarán, pero ellos no podrán
+                leerlos hasta que configuren su cuenta.
+              </p>
+            </div>
           </div>
         )}
 
@@ -1037,7 +1243,8 @@ export default function ChatWindow() {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    if (input.trim()) sendMessage(e as unknown as React.FormEvent);
+                    if (input.trim())
+                      sendMessage(e as unknown as React.FormEvent);
                   }
                 }}
                 rows={1}
@@ -1080,6 +1287,15 @@ export default function ChatWindow() {
       </div>
 
       {/* Modal deleted, options moved directly to dropdown menu */}
+      {showGroupDetails && conversation && (
+        <GroupDetailsModal
+          conversation={conversation}
+          onClose={() => setShowGroupDetails(false)}
+          onUpdate={handleUpdateGroup}
+          onRemoveParticipant={handleRemoveParticipant}
+          onLeaveGroup={handleLeaveGroup}
+        />
+      )}
     </div>
   );
 }

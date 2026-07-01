@@ -157,7 +157,7 @@ export default function Notifications() {
           notifs.map((notif) => (
             <div
               key={notif.id}
-              className={`group relative flex items-center gap-3 transition-colors p-3 md:px-0 ${!notif.read ? 'bg-white/5' : 'hover:bg-white/5'}`}
+              className={`group relative flex items-center gap-4 transition-all duration-200 p-3 md:p-4 rounded-2xl cursor-pointer ${!notif.read ? 'bg-white/8' : 'hover:bg-white/4'}`}
             >
               {/* Visual Unread Indicator */}
               {!notif.read && (

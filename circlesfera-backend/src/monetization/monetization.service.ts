@@ -255,7 +255,9 @@ export class MonetizationService {
     } catch (error: unknown) {
       console.error('Stripe Connect Onboarding Error:', error);
       throw new BadRequestException(
-        error instanceof Error ? error.message : 'Failed to connect with Stripe',
+        error instanceof Error
+          ? error.message
+          : 'Failed to connect with Stripe',
       );
     }
   }

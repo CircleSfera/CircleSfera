@@ -1,16 +1,31 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Logger } from '@nestjs/common';
+import type { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-@Injectable()
-export class GdprCron {
-  private readonly logger = new Logger(GdprCron.name);
+@Processor('users-processing')
+export class GdprProcessor extends WorkerHost {
+  private readonly logger = new Logger(GdprProcessor.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
-  @Cron(CronExpression.EVERY_DAY_AT_2AM)
+  async process(job: Job<any, any, string>): Promise<any> {
+    switch (job.name) {
+      case 'clean-expired-search-history':
+        return this.cleanExpiredSearchHistory();
+      case 'clean-expired-data-exports':
+        return this.cleanExpiredDataExports();
+      case 'clean-expired-accounts':
+        return this.cleanExpiredAccounts();
+      default:
+        this.logger.warn(`Unknown job name: ${job.name}`);
+    }
+  }
+
   async cleanExpiredSearchHistory() {
     this.logger.log('Starting daily purge of expired SearchHistory...');
     try {
@@ -27,7 +42,6 @@ export class GdprCron {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async cleanExpiredDataExports() {
     this.logger.log('Starting daily purge of expired Data Exports...');
     try {
@@ -78,7 +92,6 @@ export class GdprCron {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_4AM)
   async cleanExpiredAccounts() {
     this.logger.log('Starting daily purge of expired Accounts...');
     try {

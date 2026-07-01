@@ -50,7 +50,7 @@ describe('UsersService', () => {
       const result = await service.getSuggestions('1', limit);
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('s1');
-      
+
       const lastCallArgs = vi.mocked(mockPrismaService.user.findMany).mock
         .calls[0][0] as any;
       expect(lastCallArgs.where.followers.none.followerId).toBe('1');

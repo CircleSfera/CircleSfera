@@ -5,7 +5,6 @@ import {
   HttpException as NestHttpException,
   NotFoundException,
 } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { CreateEditDto } from './dto/create-edit.dto.js';
@@ -95,9 +94,8 @@ export class EditsService {
 
   /**
    * Cron job to physically delete edit drafts that haven't been touched in 30 days.
-   * Runs every day at midnight.
+   * Runs every day at midnight via BullMQ.
    */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async cleanupAbandonedDrafts() {
     try {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
