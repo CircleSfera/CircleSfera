@@ -8,7 +8,13 @@ import { PostsController } from './posts.controller.js';
 import { PostsService } from './posts.service.js';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule, AIModule, AnalyticsModule, UploadsModule],
+  imports: [
+    PrismaModule,
+    NotificationsModule,
+    AIModule,
+    AnalyticsModule,
+    UploadsModule,
+  ],
   controllers: [PostsController],
   providers: [PostsService],
   exports: [PostsService],

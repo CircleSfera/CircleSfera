@@ -20,7 +20,10 @@ const NotificationType = $Enums.NotificationType;
 
 import { Queue } from 'bullmq';
 import { AnalyticsService } from '../analytics/analytics.service.js';
-import { createPaginatedResult, type PaginationDto } from '../common/dto/pagination.dto.js';
+import {
+  createPaginatedResult,
+  type PaginationDto,
+} from '../common/dto/pagination.dto.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
@@ -105,7 +108,7 @@ export class PostsService {
             })),
           });
         }
-        
+
         return post;
       },
     );
@@ -126,7 +129,7 @@ export class PostsService {
               hashtagId: hashtag.id,
             },
           });
-        })
+        }),
       );
     }
 
@@ -678,9 +681,9 @@ export class PostsService {
    * @throws ForbiddenException if user is not the author
    */
   async remove(id: string, userId: string) {
-    const post = await this.prisma.post.findUnique({ 
+    const post = await this.prisma.post.findUnique({
       where: { id },
-      include: { media: true }
+      include: { media: true },
     });
 
     if (!post) {
@@ -694,9 +697,18 @@ export class PostsService {
     // Delete associated media files from cloud storage
     if (post.media && post.media.length > 0) {
       for (const m of post.media) {
-        if (m.url) await this.uploadsService.deleteFile(m.url).catch(e => console.error(e));
-        if (m.standardUrl) await this.uploadsService.deleteFile(m.standardUrl).catch(e => console.error(e));
-        if (m.thumbnailUrl) await this.uploadsService.deleteFile(m.thumbnailUrl).catch(e => console.error(e));
+        if (m.url)
+          await this.uploadsService
+            .deleteFile(m.url)
+            .catch((e) => console.error(e));
+        if (m.standardUrl)
+          await this.uploadsService
+            .deleteFile(m.standardUrl)
+            .catch((e) => console.error(e));
+        if (m.thumbnailUrl)
+          await this.uploadsService
+            .deleteFile(m.thumbnailUrl)
+            .catch((e) => console.error(e));
       }
     }
 
@@ -709,9 +721,9 @@ export class PostsService {
    * @throws NotFoundException if post not found
    */
   async adminRemove(id: string) {
-    const post = await this.prisma.post.findUnique({ 
+    const post = await this.prisma.post.findUnique({
       where: { id },
-      include: { media: true }
+      include: { media: true },
     });
     if (!post) {
       throw new NotFoundException('Post not found');
@@ -720,9 +732,18 @@ export class PostsService {
     // Delete associated media files from cloud storage
     if (post.media && post.media.length > 0) {
       for (const m of post.media) {
-        if (m.url) await this.uploadsService.deleteFile(m.url).catch(e => console.error(e));
-        if (m.standardUrl) await this.uploadsService.deleteFile(m.standardUrl).catch(e => console.error(e));
-        if (m.thumbnailUrl) await this.uploadsService.deleteFile(m.thumbnailUrl).catch(e => console.error(e));
+        if (m.url)
+          await this.uploadsService
+            .deleteFile(m.url)
+            .catch((e) => console.error(e));
+        if (m.standardUrl)
+          await this.uploadsService
+            .deleteFile(m.standardUrl)
+            .catch((e) => console.error(e));
+        if (m.thumbnailUrl)
+          await this.uploadsService
+            .deleteFile(m.thumbnailUrl)
+            .catch((e) => console.error(e));
       }
     }
 
