@@ -169,7 +169,9 @@ describe('AppGateway', () => {
 
     it('should handle typing_start', async () => {
       const payload = { conversationId: 'conv-1', recipientId: 'recipient-1' };
-      mockPrismaService.participant.findFirst.mockResolvedValue({ id: 'part-1' });
+      mockPrismaService.participant.findFirst.mockResolvedValue({
+        id: 'part-1',
+      });
 
       await gateway.handleTypingStart(payload, mockClient);
 

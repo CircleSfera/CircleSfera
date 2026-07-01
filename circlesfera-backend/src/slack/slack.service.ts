@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Cron } from '@nestjs/schedule';
 import { SupportTicket } from '@prisma/client';
 import axios from 'axios';
 import { AIService } from '../ai/ai.service.js';
@@ -389,7 +388,7 @@ export class SlackService {
     }
   }
 
-  @Cron('0 8 * * *') // Runs every day at 08:00 AM UTC
+  // Runs every day at 08:00 AM UTC via BullMQ
   async sendDailyMorningBriefing(): Promise<void> {
     if (!this.alertsWebhookUrl) return;
 

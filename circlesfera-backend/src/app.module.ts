@@ -7,7 +7,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
-import { ScheduleModule } from '@nestjs/schedule';
+
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { SentryModule } from '@sentry/nestjs/setup';
@@ -74,7 +74,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
         redact: ['req.headers.cookie', 'req.headers.authorization'],
       },
     }),
-    ScheduleModule.forRoot(),
+
     RedisCacheModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
