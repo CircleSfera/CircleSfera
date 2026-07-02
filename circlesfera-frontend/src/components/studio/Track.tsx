@@ -1,3 +1,4 @@
+import { Image, Music, Type, Video } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useStudioStore } from '../../stores/studioStore';
 import type { Clip, Track } from '../../types/studio';
@@ -9,11 +10,32 @@ interface TrackItemProps {
 export default function TrackItem({ track }: TrackItemProps) {
   const { zoom } = useStudioStore();
 
+  const getTrackIcon = () => {
+    switch (track.type) {
+      case 'video':
+        return <Video size={14} className="text-blue-400" />;
+      case 'audio':
+        return <Music size={14} className="text-purple-400" />;
+      case 'text':
+        return <Type size={14} className="text-amber-400" />;
+      default:
+        return <Image size={14} className="text-teal-400" />;
+    }
+  };
+
   return (
-    <div className="relative h-16 w-full bg-white/5 rounded-md border border-white/5">
-      {track.clips.map((clip) => (
-        <ClipItem key={clip.id} clip={clip} zoom={zoom} />
-      ))}
+    <div className="relative h-16 w-full bg-white/2 rounded-lg border border-white/5 flex items-center group">
+      {/* Sticky Track Header */}
+      <div className="sticky left-4 z-20 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-md border border-white/10 opacity-50 group-hover:opacity-100 transition-opacity">
+        {getTrackIcon()}
+        <span className="text-xs font-medium text-white/70">{track.name}</span>
+      </div>
+
+      <div className="absolute inset-0">
+        {track.clips.map((clip) => (
+          <ClipItem key={clip.id} clip={clip} zoom={zoom} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -115,17 +137,30 @@ function ClipItem({ clip, zoom }: ClipItemProps) {
   const left = clip.startAt * zoom;
 
   let bgClass = 'bg-zinc-700';
-  if (clip.type === 'video') bgClass = 'bg-blue-600/80';
-  if (clip.type === 'image') bgClass = 'bg-teal-600/80';
-  if (clip.type === 'audio') bgClass = 'bg-purple-600/80';
-  if (clip.type === 'text') bgClass = 'bg-amber-600/80';
+  let icon = null;
+  
+  if (clip.type === 'video') {
+    bgClass = 'bg-gradient-to-r from-blue-600 to-blue-500';
+    icon = <Video size={12} className="shrink-0" />;
+  } else if (clip.type === 'image') {
+    bgClass = 'bg-gradient-to-r from-teal-500 to-cyan-500';
+    icon = <Image size={12} className="shrink-0" />;
+  } else if (clip.type === 'audio') {
+    bgClass = 'bg-gradient-to-r from-purple-600 to-violet-500';
+    icon = <Music size={12} className="shrink-0" />;
+  } else if (clip.type === 'text') {
+    bgClass = 'bg-gradient-to-r from-amber-500 to-orange-500';
+    icon = <Type size={12} className="shrink-0" />;
+  }
 
   return (
     <button
       type="button"
       onPointerDown={handleDragStart}
-      className={`absolute top-0 bottom-0 rounded-md overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing transition-colors border-2 ${
-        isSelected ? 'border-white z-10' : 'border-transparent'
+      className={`absolute top-1 bottom-1 rounded-lg overflow-hidden flex items-center cursor-grab active:cursor-grabbing transition-all border shadow-sm ${
+        isSelected 
+          ? 'border-white z-10 ring-2 ring-white/20 scale-[1.02] brightness-110' 
+          : 'border-white/10 hover:brightness-110'
       } ${bgClass}`}
       style={{
         width: `${width}px`,
@@ -133,17 +168,20 @@ function ClipItem({ clip, zoom }: ClipItemProps) {
         touchAction: 'none', // Prevent scrolling while dragging
       }}
     >
-      <span className="text-[10px] font-bold text-white truncate px-4 select-none pointer-events-none">
-        {clip.type === 'text' ? (clip as any).content : clip.type}
-      </span>
+      <div className="flex items-center gap-1.5 px-3 w-full h-full text-white pointer-events-none">
+        {icon}
+        <span className="text-[11px] font-medium truncate select-none drop-shadow-md">
+          {clip.type === 'text' ? (clip as any).content : clip.type.charAt(0).toUpperCase() + clip.type.slice(1)}
+        </span>
+      </div>
 
       {/* Left Trim Handle */}
       {isSelected && (
         <div
           onPointerDown={(e) => handleTrimStart(e, 'left')}
-          className="absolute left-0 top-0 bottom-0 w-4 bg-white/30 cursor-ew-resize hover:bg-white/50 touch-none flex items-center justify-center"
+          className="absolute left-0 top-0 bottom-0 w-4 bg-black/20 hover:bg-black/40 backdrop-blur-sm cursor-ew-resize touch-none flex items-center justify-center border-r border-white/20 transition-colors"
         >
-          <div className="w-0.5 h-4 bg-white rounded-full" />
+          <div className="w-0.5 h-3 bg-white rounded-full shadow-sm" />
         </div>
       )}
 
@@ -151,9 +189,9 @@ function ClipItem({ clip, zoom }: ClipItemProps) {
       {isSelected && (
         <div
           onPointerDown={(e) => handleTrimStart(e, 'right')}
-          className="absolute right-0 top-0 bottom-0 w-4 bg-white/30 cursor-ew-resize hover:bg-white/50 touch-none flex items-center justify-center"
+          className="absolute right-0 top-0 bottom-0 w-4 bg-black/20 hover:bg-black/40 backdrop-blur-sm cursor-ew-resize touch-none flex items-center justify-center border-l border-white/20 transition-colors"
         >
-          <div className="w-0.5 h-4 bg-white rounded-full" />
+          <div className="w-0.5 h-3 bg-white rounded-full shadow-sm" />
         </div>
       )}
     </button>
