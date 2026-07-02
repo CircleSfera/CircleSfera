@@ -29,12 +29,12 @@ describe('authStore', () => {
     expect(useAuthStore.getState().profile).toEqual(mockProfile);
   });
 
-  it('should clear state on logout', () => {
+  it('should clear state on logout', async () => {
     useAuthStore.getState().setAuthenticated();
     const mockProfile = { id: '1', username: 'testuser' } as unknown as Profile;
     useAuthStore.getState().setProfile(mockProfile);
 
-    useAuthStore.getState().logout();
+    await useAuthStore.getState().logout();
 
     const state = useAuthStore.getState();
     expect(state.profile).toBeNull();

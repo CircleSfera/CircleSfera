@@ -86,8 +86,9 @@ export default function Login() {
     loginMutation.mutate({ identifier, password });
   };
 
-  const errorMessage = axios.isAxiosError(loginMutation.error)
-    ? loginMutation.error.response?.data?.message
+  const err = loginMutation.error as any;
+  const errorMessage = err
+    ? (err.response?.data?.message || err.message)
     : undefined;
   const is2FARequired = errorMessage === '2FA_REQUIRED';
 
