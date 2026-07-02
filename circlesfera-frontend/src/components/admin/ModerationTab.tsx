@@ -104,7 +104,7 @@ export default function ModerationTab({ onToast }: Props) {
         const item = items.find((i) => i.id === id);
         if (!item) return Promise.resolve();
         return adminApi.updateModerationStatus(
-          item.type as "POST" | "STORY" | "COMMENT",
+          item.type as 'POST' | 'STORY' | 'COMMENT',
           id,
           status,
           note,
@@ -358,7 +358,10 @@ export default function ModerationTab({ onToast }: Props) {
                       onClick={() =>
                         moderationMutation.mutate({
                           id: selectedItem.id,
-                          type: selectedItem.type as "POST" | "STORY" | "COMMENT",
+                          type: selectedItem.type as
+                            | 'POST'
+                            | 'STORY'
+                            | 'COMMENT',
                           status: 'VISIBLE',
                           note: 'Aprobado (Falso Positivo)',
                         })
