@@ -15,6 +15,7 @@ import {
 import { Queue } from 'bullmq';
 import type { Cache } from 'cache-manager';
 
+import { AIService } from '../ai/ai.service.js';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -56,6 +57,7 @@ export class AdminService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
     @InjectQueue('analytics-processing') private readonly analyticsQueue: Queue,
+    @Inject(AIService) private readonly aiService: AIService,
   ) {}
 
   // ─── Audit Log Helper ─────────────────────────────────────────────
@@ -1420,5 +1422,70 @@ export class AdminService {
     });
 
     return updated;
+  }
+
+  // ─── AI Vector Firewall Management ────────────────────────────────
+
+  async getFirewallSignatures(page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+    
+    const [signatures, total] = await Promise.all([
+      this.prisma.$queryRaw<any[]>`
+        SELECT id, category, "textPreview", "createdAt"
+        FROM moderation_signatures
+        ORDER BY "createdAt" DESC
+        LIMIT ${limit} OFFSET ${skip}
+      `,
+      this.prisma.moderationSignature.count(),
+    ]);
+
+    return {
+      data: signatures,
+      meta: {
+        total: Number(total),
+        page,
+        limit,
+        totalPages: Math.ceil(Number(total) / limit),
+      },
+    };
+  }
+
+  async addFirewallSignature(adminId: string, text: string, category: string) {
+    if (!text || text.trim().length === 0) {
+      throw new BadRequestException('Text cannot be empty');
+    }
+
+    const embedding = await this.aiService.generateEmbedding(text);
+    
+    await this.prisma.$executeRaw`
+      INSERT INTO moderation_signatures (id, category, vector, "textPreview")
+      VALUES (gen_random_uuid(), ${category}, ${JSON.stringify(embedding)}::vector, ${text.substring(0, 500)})
+    `;
+
+    await this.logAction(
+      adminId,
+      AdminAction.MANUAL_OVERRIDE,
+      'firewall',
+      'new_rule',
+      `Added firewall rule for category: ${category}`,
+    );
+
+    return { success: true };
+  }
+
+  async deleteFirewallSignature(adminId: string, id: string) {
+    await this.prisma.moderationSignature.delete({
+      where: { id },
+    });
+
+    await this.logAction(
+      adminId,
+      AdminAction.MANUAL_OVERRIDE,
+      'firewall',
+      id,
+      `Deleted firewall rule`,
+    );
+
+    return { success: true };
   }
 }

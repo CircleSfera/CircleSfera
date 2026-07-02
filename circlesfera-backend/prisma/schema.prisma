@@ -932,6 +932,7 @@ enum ReportReason {
   HATE_SPEECH
   IMPERSONATION
   CSAM
+  SCAM
   OTHER
 }
 
@@ -1303,10 +1304,11 @@ enum TicketStatus {
 
 // AI Auto-Moderation Vector Firewall
 model ModerationSignature {
-  id        String                      @id @default(uuid())
-  vector    Unsupported("vector(1536)")
-  category  String // e.g., "hate", "sexual", "spam"
-  createdAt DateTime                    @default(now())
+  id          String                      @id @default(uuid())
+  vector      Unsupported("vector(1536)")
+  category    String // e.g., "hate", "sexual", "spam", "scam"
+  textPreview String? // The source text that generated this vector
+  createdAt   DateTime                    @default(now())
 
   @@map("moderation_signatures")
 }

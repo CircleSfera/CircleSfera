@@ -39,6 +39,7 @@ export type AdminTab =
   | 'monetization'
   | 'promotions'
   | 'moderation'
+  | 'firewall'
   | 'newsletter'
   | 'system-health';
 
@@ -67,6 +68,7 @@ const GROUPS: SearchGroup[] = [
     items: [
       { id: 'users', label: 'Usuarios', icon: Users },
       { id: 'moderation', label: 'Cola AI', icon: ShieldAlert },
+      { id: 'firewall', label: 'Escudo AI', icon: ShieldCheck },
       { id: 'posts', label: 'Publicaciones', icon: ImageIcon },
       { id: 'stories', label: 'Historias', icon: Clock },
       { id: 'comments', label: 'Comentarios', icon: MessageCircle },

@@ -9,6 +9,7 @@ import {
   AudioTab,
   AuditLogTab,
   CommentsTab,
+  FirewallTab,
   HashtagsTab,
   ModerationTab,
   MonetizationTab,
@@ -139,6 +140,9 @@ export default function Admin() {
               {activeTab === 'audit' && <AuditLogTab />}
               {activeTab === 'moderation' && (
                 <ModerationTab onToast={addToast} />
+              )}
+              {activeTab === 'firewall' && (
+                <FirewallTab onToast={addToast} />
               )}
               {activeTab === 'monetization' && <MonetizationTab />}
               {activeTab === 'promotions' && (

@@ -229,6 +229,13 @@ export interface WhitelistEntry {
   updatedAt: string;
 }
 
+export interface FirewallSignature {
+  id: string;
+  category: string;
+  textPreview: string | null;
+  createdAt: string;
+}
+
 export const adminApi = {
   getStats: async (): Promise<AdminStats> => {
     const { data } = await apiClient.get<AdminStats>('/admin/stats');
@@ -414,4 +421,16 @@ export const adminApi = {
     status: 'VISIBLE' | 'HIDDEN' | 'REMOVED',
     note?: string,
   ) => apiClient.patch(`admin/moderation/${type}/${id}`, { status, note }),
+
+  // Firewall
+  getFirewallSignatures: (page = 1, limit = 20) =>
+    apiClient.get<PaginatedResponse<FirewallSignature>>('admin/firewall', {
+      params: { page, limit },
+    }),
+
+  addFirewallSignature: (text: string, category: string) =>
+    apiClient.post('admin/firewall', { text, category }),
+
+  deleteFirewallSignature: (id: string) =>
+    apiClient.delete(`admin/firewall/${id}`),
 };
