@@ -8,9 +8,17 @@ import PaywallOverlay from '../monetization/PaywallOverlay';
 
 interface PostMediaProps {
   post: Post;
+  className?: string;
+  aspectRatio?: string;
+  objectFit?: 'cover' | 'contain';
 }
 
-export default function PostMedia({ post }: PostMediaProps) {
+export default function PostMedia({
+  post,
+  className = '',
+  aspectRatio = 'aspect-4/5',
+  objectFit = 'cover',
+}: PostMediaProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
@@ -44,10 +52,11 @@ export default function PostMedia({ post }: PostMediaProps) {
       ? post.priceCents / 100
       : post.price || 0;
     return (
-      <div className="relative aspect-4/5 bg-black overflow-hidden group">
+      <div className={`relative bg-black overflow-hidden group ${aspectRatio} ${className}`}>
         <Carousel
           media={post.media}
-          aspectRatio="aspect-4/5"
+          aspectRatio={aspectRatio}
+          objectFit={objectFit}
           isLocked={post.isLocked}
         />
         {post.isLocked && (

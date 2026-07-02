@@ -22,9 +22,11 @@ const PromoteModal = lazy(() => import('./creator/PromoteModal'));
 
 interface PostCardProps {
   post: Post;
+  isDetailMode?: boolean;
+  renderComments?: (props?: any) => React.ReactNode;
 }
 
-export default memo(function PostCard({ post }: PostCardProps) {
+export default memo(function PostCard({ post, isDetailMode, renderComments }: PostCardProps) {
   const queryClient = useQueryClient();
   const { profile } = useAuthStore();
 
@@ -155,11 +157,57 @@ export default memo(function PostCard({ post }: PostCardProps) {
 
   if (isDeleted) return null;
 
+  const actionsNode = (
+    <PostActions
+      post={post}
+      isBookmarked={isBookmarked}
+      onToggleBookmark={() => toggleBookmarkMutation.mutate()}
+      isBookmarkPending={toggleBookmarkMutation.isPending}
+      onLikeToggle={(newLiked) => {
+        setLikesCount((prev) => (newLiked ? prev + 1 : prev - 1));
+      }}
+      onShare={() => setShowShareModal(true)}
+      onTip={() => setShowTipModal(true)}
+    />
+  );
+
+  const statsNode = <PostContent post={post} likesCount={likesCount} hideCaption />;
+  const captionNode = <PostContent post={post} likesCount={likesCount} hideStats />;
+
   return (
     <>
+      {/* Desktop Split View (Instagram Style) */}
       <div
         ref={postRef}
-        className="glass-panel-post rounded-lg overflow-hidden mb-2"
+        className={isDetailMode ? "hidden md:flex flex-row md:h-[calc(100vh-80px)] md:max-h-[850px] md:max-w-5xl md:mx-auto bg-black/40 backdrop-blur-3xl md:border md:border-white/10 md:rounded-3xl overflow-hidden mb-4 shadow-[0_0_50px_rgba(0,0,0,0.5)]" : "hidden"}
+      >
+        <div className="flex flex-col flex-1 bg-black/20 justify-center items-center border-r border-white/10 relative">
+          <PostMedia post={post} aspectRatio="aspect-auto" className="w-full h-full" objectFit="contain" />
+        </div>
+        
+        <div className="flex flex-col w-[350px] lg:w-[400px] shrink-0 bg-transparent">
+          <PostHeader
+            post={post}
+            menuButtonRef={menuButtonRef}
+            onMenuToggle={() => setShowMenu(!showMenu)}
+          />
+
+          {renderComments?.({
+            isDetailMode: true,
+            captionComponent: <div className="pb-2 border-b border-white/5">{captionNode}</div>,
+            actionsComponent: (
+              <>
+                {actionsNode}
+                <div className="mt-1">{statsNode}</div>
+              </>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Mobile or Feed Layout */}
+      <div
+        className={isDetailMode ? "md:hidden bg-black/40 backdrop-blur-3xl rounded-3xl mx-2 mb-2 overflow-hidden shadow-2xl border border-white/10" : "glass-panel-post rounded-lg overflow-hidden mb-2"}
       >
         <PostHeader
           post={post}
@@ -167,23 +215,23 @@ export default memo(function PostCard({ post }: PostCardProps) {
           onMenuToggle={() => setShowMenu(!showMenu)}
         />
 
-        <PostMedia post={post} />
+        <PostMedia 
+          post={post} 
+          aspectRatio={isDetailMode ? 'aspect-auto' : 'aspect-4/5'} 
+          className={isDetailMode ? 'max-h-[75vh]' : ''} 
+          objectFit={isDetailMode ? 'contain' : 'cover'} 
+        />
 
         <div className="p-3">
-          <PostActions
-            post={post}
-            isBookmarked={isBookmarked}
-            onToggleBookmark={() => toggleBookmarkMutation.mutate()}
-            isBookmarkPending={toggleBookmarkMutation.isPending}
-            onLikeToggle={(newLiked) => {
-              setLikesCount((prev) => (newLiked ? prev + 1 : prev - 1));
-            }}
-            onShare={() => setShowShareModal(true)}
-            onTip={() => setShowTipModal(true)}
-          />
-
+          {actionsNode}
           <PostContent post={post} likesCount={likesCount} />
         </div>
+
+        {isDetailMode && renderComments && (
+          <div className="p-4 border-t border-white/5">
+            {renderComments?.()}
+          </div>
+        )}
       </div>
 
       {/* Overlays & Modals */}

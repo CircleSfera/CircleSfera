@@ -32,7 +32,19 @@ export default function PostDetail() {
   }
 
   return (
-    <div className="min-h-screen pb-24 md:pt-6">
+    <div className="min-h-screen pb-24 md:pt-6 md:flex md:items-center relative">
+      {/* Cinematic Background */}
+      <div className="fixed inset-0 z-[-1] pointer-events-none overflow-hidden bg-black">
+        {post.data.media?.[0]?.url && (
+          <img 
+            src={post.data.media[0].url} 
+            alt="" 
+            className="w-full h-full object-cover opacity-50 blur-[100px] scale-125 saturate-150"
+          />
+        )}
+        <div className="absolute inset-0 bg-black/40" />
+      </div>
+
       <SEO
         title={`Post de @${post.data.user?.profile?.username || 'Usuario'}`}
         description={
@@ -41,9 +53,9 @@ export default function PostDetail() {
         ogImage={post.data.media?.[0]?.url || undefined}
         ogType="article"
       />
-      <div className="w-full md:max-w-lg mx-auto">
+      <div className="w-full mx-auto md:px-4 relative z-10">
         {/* Sticky Header (Mobile Only) */}
-        <div className="md:hidden sticky top-0 z-50 bg-transparent backdrop-blur-xl border-b border-white/10 flex items-center justify-between p-4 pt-[calc(1rem+env(safe-area-inset-top))]">
+        <div className="md:hidden sticky top-0 z-50 bg-transparent backdrop-blur-xl border-b border-white/10 flex items-center justify-between p-4 pt-[calc(1rem+env(safe-area-inset-top))] mb-2">
           <Link
             to="/"
             className="p-1 -ml-1 text-white hover:bg-white/10 rounded-full transition-colors"
@@ -57,29 +69,38 @@ export default function PostDetail() {
         </div>
 
         {/* Back Button (Desktop) */}
-        <Link
-          to="/"
-          className="hidden md:inline-flex items-center gap-2 text-gray-400 hover:text-white mb-4 transition-colors text-sm px-4"
-        >
-          <ArrowLeft size={18} />
-          <span>{t('post.detail.back_to_feed')}</span>
-        </Link>
-
-        {/* Post Card */}
-        <PostCard post={post.data} />
-
-        {/* Comments Section */}
-        <div className="md:mt-4 md:glass-panel-post md:rounded-lg p-4 bg-black/50 border-t border-white/5 md:border-none">
-          <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2">
-            <span>{t('post.detail.comments')}</span>
-            <span className="text-sm font-normal text-gray-400">
-              ({comments?.data.data.length || 0})
-            </span>
-          </h2>
-          {id && (
-            <CommentList postId={id} comments={comments?.data.data || []} />
-          )}
+        <div className="max-w-5xl mx-auto mb-4 hidden md:block">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm px-4 md:px-0"
+          >
+            <ArrowLeft size={18} />
+            <span>{t('post.detail.back_to_feed')}</span>
+          </Link>
         </div>
+
+        {/* Post Card in Detail Mode */}
+        <PostCard 
+          post={post.data} 
+          isDetailMode={true} 
+          renderComments={(props) => (
+            <div className={props?.isDetailMode ? "h-full flex flex-col min-h-0" : "flex flex-col h-full"}>
+              {!props?.isDetailMode && (
+                <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2 shrink-0 px-2">
+                  <span>{t('post.detail.comments')}</span>
+                  <span className="text-sm font-normal text-gray-400">
+                    ({comments?.data.data.length || 0})
+                  </span>
+                </h2>
+              )}
+              {id && (
+                <div className="flex-1 pb-4 min-h-0">
+                  <CommentList postId={id} comments={comments?.data.data || []} {...props} />
+                </div>
+              )}
+            </div>
+          )}
+        />
       </div>
     </div>
   );
