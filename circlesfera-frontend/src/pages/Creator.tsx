@@ -3,6 +3,16 @@ import { ArrowLeft, Plus } from 'lucide-react';
 import { lazy, Suspense, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import CreatorSidebar from '../components/creator/CreatorSidebar';
+import type { CreatorTab } from '../components/creator/CreatorSidebar';
+import { Button } from '../components/ui';
+import { creatorApi } from '../services/creator.service';
+import type {
+  CreatorChartDay,
+  CreatorPost,
+  CreatorStats,
+} from '../services/creator.service';
+import { useUIStore } from '../stores/uiStore';
 
 const CreatorAnalyticsTab = lazy(
   () => import('../components/creator/CreatorAnalyticsTab'),
@@ -19,10 +29,6 @@ const CreatorPostsTab = lazy(
 const CreatorPromotionsTab = lazy(
   () => import('../components/creator/CreatorPromotionsTab'),
 );
-
-import type { CreatorTab } from '../components/creator/CreatorSidebar';
-import CreatorSidebar from '../components/creator/CreatorSidebar';
-
 const CreatorStoriesTab = lazy(
   () => import('../components/creator/CreatorStoriesTab'),
 );
@@ -30,15 +36,6 @@ const PromoteModal = lazy(() => import('../components/creator/PromoteModal'));
 const MonetizationDashboard = lazy(
   () => import('../components/monetization/MonetizationDashboard'),
 );
-
-import { Button } from '../components/ui';
-import { useUIStore } from '../stores/uiStore';
-import type {
-  CreatorChartDay,
-  CreatorPost,
-  CreatorStats,
-} from '../services/creator.service';
-import { creatorApi } from '../services/creator.service';
 
 export default function Creator() {
   const { tab } = useParams<{ tab: string }>();
