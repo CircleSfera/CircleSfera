@@ -3,6 +3,7 @@ import { Calendar, DollarSign, Megaphone, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
+import type { Post } from '../../types';
 import { Button } from '../ui';
 
 const BUDGET_OPTIONS = [
@@ -13,7 +14,7 @@ const BUDGET_OPTIONS = [
 ];
 
 interface Props {
-  post: CreatorPost;
+  post: CreatorPost | Post;
   onClose: () => void;
   onToast: (msg: string, type: 'success' | 'error') => void;
 }
@@ -26,7 +27,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
   const mutation = useMutation({
     mutationFn: () =>
       creatorApi.createPromotion({
-        targetType: post.type.toLowerCase(),
+        targetType: (post.type || 'POST').toLowerCase(),
         targetId: post.id,
         budget: selected.value,
         durationDays: selected.duration,

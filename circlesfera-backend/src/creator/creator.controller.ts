@@ -123,6 +123,12 @@ export class CreatorController {
     ) as Promise<unknown>;
   }
 
+  /** Record a view for a promotion to deduct budget and increase reach. */
+  @Post('promotions/:id/view')
+  async recordPromotionView(@Param('id') id: string) {
+    return this.creatorService.recordPromotionView(id);
+  }
+
   /** Cancel a promotion. */
   @Delete('promotions/:id')
   async cancelPromotion(@Req() req: AuthRequest, @Param('id') id: string) {
