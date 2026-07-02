@@ -1,5 +1,6 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
+import { AIModule } from '../ai/ai.module.js';
 import { AudioModule } from '../audio/audio.module.js';
 import { EmailModule } from '../email/email.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
@@ -11,6 +12,7 @@ import { AdminService } from './admin.service.js';
   imports: [
     PrismaModule,
     AudioModule,
+    AIModule,
     EmailModule,
     NotificationsModule,
     BullModule.registerQueue(
