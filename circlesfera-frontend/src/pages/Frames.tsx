@@ -113,7 +113,7 @@ export default function Frames() {
     activeFrame?.media?.[0]?.thumbnailUrl || activeFrame?.media?.[0]?.url;
 
   return (
-    <div className="h-dvh md:h-screen w-full flex items-center justify-center bg-black relative overflow-hidden">
+    <div className="h-dvh md:h-screen w-full flex flex-col items-start md:justify-center md:items-center bg-black relative overflow-hidden">
       {/* Dynamic blurred background for desktop */}
       <div className="hidden md:block absolute inset-0 z-0">
         {blurredBgImage && (
