@@ -421,4 +421,36 @@ export class AdminController {
       note,
     );
   }
+  // ─── AI Vector Firewall ───────────────────────────────────────────
+
+  /** Get paginated AI Vector Firewall signatures */
+  @Get('firewall')
+  async getFirewallSignatures(@Query() query: AdminQueryDto) {
+    return this.adminService.getFirewallSignatures(
+      query.page ?? 1,
+      query.limit ?? 20,
+    );
+  }
+
+  /** Add a new signature to the AI Vector Firewall */
+  @Post('firewall')
+  async addFirewallSignature(
+    @Body() body: { text: string; category: string },
+    @Req() req: AuthRequest,
+  ) {
+    return this.adminService.addFirewallSignature(
+      req.user.userId,
+      body.text,
+      body.category,
+    );
+  }
+
+  /** Delete a signature from the AI Vector Firewall */
+  @Delete('firewall/:id')
+  async deleteFirewallSignature(
+    @Param('id') id: string,
+    @Req() req: AuthRequest,
+  ) {
+    return this.adminService.deleteFirewallSignature(req.user.userId, id);
+  }
 }

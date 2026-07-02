@@ -221,8 +221,8 @@ export class AIProcessor extends WorkerHost {
           try {
             const badEmbedding = await this.aiService.generateEmbedding(text);
             await this.prisma.$executeRaw`
-              INSERT INTO moderation_signatures (id, category, vector)
-              VALUES (gen_random_uuid(), ${flags[0] || 'unknown'}, ${JSON.stringify(badEmbedding)}::vector)
+              INSERT INTO moderation_signatures (id, category, vector, "textPreview")
+              VALUES (gen_random_uuid(), ${flags[0] || 'unknown'}, ${JSON.stringify(badEmbedding)}::vector, ${text.substring(0, 500)})
             `;
             this.logger.log(
               `Added new moderation signature to Vector Firewall for category: ${flags[0]}`,
