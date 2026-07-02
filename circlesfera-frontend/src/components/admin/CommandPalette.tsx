@@ -1,7 +1,9 @@
+import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, FileText, Search, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { adminApi } from '../../services';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -40,33 +42,53 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  const { data: usersData } = useQuery({
+    queryKey: ['adminSearchUsers', query],
+    queryFn: () => adminApi.getUsers(1, 5, query).then((res) => res.data.data),
+    enabled: isOpen && query.trim().length > 1,
+  });
 
-  const mockResults = [
-    {
-      id: '1',
-      title: 'Usuario: @johndoe',
-      icon: <User size={16} />,
-      tab: 'users',
-    },
-    {
-      id: '2',
-      title: 'Reporte: Spam masivo',
-      icon: <AlertTriangle size={16} />,
-      tab: 'reports',
-    },
-    {
-      id: '3',
-      title: 'Post: #109283',
-      icon: <FileText size={16} />,
-      tab: 'posts',
-    },
-  ].filter((r) => r.title.toLowerCase().includes(query.toLowerCase()));
+  if (!isOpen) return null;
 
   const handleSelect = (tab: string) => {
     navigate(`/admin/${tab}`);
     onClose();
   };
+
+  const results = [
+    // Static navigation shortcuts
+    {
+      id: 'nav-users',
+      title: 'Ir a pestaña: Usuarios',
+      icon: <User size={16} />,
+      action: () => handleSelect('users'),
+    },
+    {
+      id: 'nav-reports',
+      title: 'Ir a pestaña: Reportes',
+      icon: <AlertTriangle size={16} />,
+      action: () => handleSelect('reports'),
+    },
+    {
+      id: 'nav-posts',
+      title: 'Ir a pestaña: Publicaciones',
+      icon: <FileText size={16} />,
+      action: () => handleSelect('posts'),
+    },
+    // Dynamic user search results
+    ...(usersData || []).map((u) => ({
+      id: `user-${u.id}`,
+      title: `Usuario: @${u.profile?.username || 'sin_nombre'} (${u.profile?.fullName || u.email})`,
+      icon: <User size={16} className="text-brand-primary" />,
+      action: () => {
+        navigate(`/admin/users?id=${u.id}`);
+        onClose();
+      },
+    })),
+  ].filter((r) => {
+    if (!query) return r.id.startsWith('nav-');
+    return r.title.toLowerCase().includes(query.toLowerCase());
+  });
 
   return (
     <AnimatePresence>
@@ -107,17 +129,17 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           </div>
 
           <div className="max-h-[60vh] overflow-y-auto p-2">
-            {query.length > 0 && mockResults.length === 0 ? (
+            {query.length > 0 && results.length === 0 ? (
               <div className="p-4 text-center text-gray-500 text-sm">
                 No se encontraron resultados para "{query}"
               </div>
             ) : (
               <div className="space-y-1">
-                {mockResults.map((result) => (
+                {results.map((result) => (
                   <button
                     type="button"
                     key={result.id}
-                    onClick={() => handleSelect(result.tab)}
+                    onClick={result.action}
                     className="w-full flex items-center px-3 py-3 rounded-xl hover:bg-brand-primary/10 hover:text-brand-primary text-gray-300 transition-colors group text-left"
                   >
                     <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center mr-3 group-hover:bg-brand-primary/20 group-hover:text-brand-primary">

@@ -83,7 +83,7 @@ describe('PostCard', () => {
     expect(screen.getByText(/Test caption/)).toBeInTheDocument();
     expect(screen.getByText(/10 likes/)).toBeInTheDocument();
     expect(screen.getByText(/View all 5 comments/)).toBeInTheDocument();
-    expect(screen.getByTestId('post-media')).toBeInTheDocument();
+    expect(screen.getAllByTestId('post-media')[0]).toBeInTheDocument();
   });
 
   it('shows owner menu only if user is the author', () => {

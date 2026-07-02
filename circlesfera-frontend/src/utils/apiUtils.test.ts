@@ -1,14 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { sanitizeUrl } from './apiUtils';
 
-// Mock import.meta.env
-vi.stubGlobal('import', {
-  meta: {
-    env: {
-      VITE_API_URL: 'http://localhost:3000/api/v1',
-    },
-  },
-});
+// Stub VITE_API_URL env variable
+vi.stubEnv('VITE_API_URL', 'http://localhost:3000/api/v1');
 
 describe('apiUtils', () => {
   describe('sanitizeUrl', () => {

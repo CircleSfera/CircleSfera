@@ -7,7 +7,6 @@ afterEach(() => {
   cleanup();
 });
 
-// Mock browser APIs not available in JSDOM if needed
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: vi.fn().mockImplementation((query) => ({
@@ -21,3 +20,41 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   })),
 });
+
+// Mock react-i18next
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, options?: any) => {
+      const translations: Record<string, string> = {
+        'auth.login.identifier_label': 'Email or Username',
+        'auth.login.password_label': 'Password',
+        'auth.login.sign_in': 'Sign In',
+        'auth.login.title': 'Sign In',
+        'landing.nav.log_in': 'Log In',
+        'landing.nav.sign_up': 'Sign Up',
+        'post.content.likes': 'likes',
+        'post.content.view_all_comments': 'View all {{count}} comments',
+      };
+      let val = translations[key] || key;
+      if (options && typeof options === 'object') {
+        if (options.count !== undefined) {
+          val = val.replace('{{count}}', options.count.toString());
+        }
+        if (options.defaultValue) {
+          val = options.defaultValue;
+        }
+      } else if (typeof options === 'string') {
+        val = options;
+      }
+      return val;
+    },
+    i18n: {
+      changeLanguage: () => Promise.resolve(),
+      language: 'en',
+    },
+  }),
+  initReactI18next: {
+    type: '3rdParty',
+    init: () => {},
+  },
+}));
