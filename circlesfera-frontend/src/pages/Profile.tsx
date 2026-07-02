@@ -61,18 +61,21 @@ export default function Profile() {
       import('../services').then((m) =>
         m.api.post('/creator/subscribe', {
           creatorId: profile?.data.userId,
-          monthlyTokens: 500,
+          priceCents: profile?.data.subscriptionPriceCents || 500, // Default to $5 if not set
+          returnUrl: window.location.href,
         }),
       ),
-    onSuccess: () => {
-      toast.success(t('profile.messages.subscribed_success'));
-      queryClient.invalidateQueries({ queryKey: ['creator-subscription'] });
-      queryClient.invalidateQueries({ queryKey: ['userProfile', username] });
+    onSuccess: (res) => {
+      if (res.data?.url) {
+        window.location.href = res.data.url;
+      } else {
+        toast.success(t('profile.messages.subscribed_success'));
+        queryClient.invalidateQueries({ queryKey: ['creator-subscription'] });
+        queryClient.invalidateQueries({ queryKey: ['userProfile', username] });
+      }
     },
     onError: (e: any) => {
-      toast.error(
-        e.response?.data?.message || t('profile.messages.subscribe_error'),
-      );
+      toast.error(e.response?.data?.message || t('profile.messages.error'));
     },
   });
 
