@@ -207,7 +207,7 @@ export default memo(function PostCard({ post, isDetailMode, renderComments }: Po
 
       {/* Mobile or Feed Layout */}
       <div
-        className={isDetailMode ? "md:hidden bg-black/40 backdrop-blur-3xl rounded-3xl mx-2 mb-2 overflow-hidden shadow-2xl border border-white/10" : "glass-panel-post rounded-lg overflow-hidden mb-2"}
+        className={isDetailMode ? "md:hidden w-full flex flex-col pb-4" : "glass-panel-post rounded-lg overflow-hidden mb-2"}
       >
         <PostHeader
           post={post}
@@ -215,14 +215,16 @@ export default memo(function PostCard({ post, isDetailMode, renderComments }: Po
           onMenuToggle={() => setShowMenu(!showMenu)}
         />
 
-        <PostMedia 
-          post={post} 
-          aspectRatio={isDetailMode ? 'aspect-auto' : 'aspect-4/5'} 
-          className={isDetailMode ? 'max-h-[75vh]' : ''} 
-          objectFit={isDetailMode ? 'contain' : 'cover'} 
-        />
+        <div className={isDetailMode ? "w-full bg-black flex justify-center items-center" : ""}>
+          <PostMedia 
+            post={post} 
+            aspectRatio={isDetailMode ? 'aspect-auto' : 'aspect-4/5'} 
+            className={isDetailMode ? 'max-h-[75vh] w-full' : ''} 
+            objectFit={isDetailMode ? 'contain' : 'cover'} 
+          />
+        </div>
 
-        <div className="p-3">
+        <div className="p-3 pb-1">
           {actionsNode}
           <PostContent post={post} likesCount={likesCount} />
         </div>
