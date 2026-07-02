@@ -1,6 +1,7 @@
 import { AlertTriangle, Lock, Shield } from 'lucide-react';
 import { useState } from 'react';
 import { apiClient } from '../../services/api';
+import { useAuthStore } from '../../stores/authStore';
 import { useE2EStore } from '../../stores/e2eStore';
 import { E2EService } from '../../utils/e2e';
 import { Button } from '../ui';
@@ -46,13 +47,21 @@ export default function E2ESetupModal() {
       });
 
       // 4. Store unencrypted keys locally for current device
-      localStorage.setItem('e2e_public_key', publicKeyB64);
-      localStorage.setItem('e2e_private_key', privateKeyB64);
+      const profile = useAuthStore.getState().profile;
+      if (profile?.id) {
+        localStorage.setItem(`e2e_public_key_${profile.id}`, publicKeyB64);
+        localStorage.setItem(`e2e_private_key_${profile.id}`, privateKeyB64);
+      } else {
+        localStorage.setItem('e2e_public_key', publicKeyB64);
+        localStorage.setItem('e2e_private_key', privateKeyB64);
+      }
 
       // 5. Complete
       setStatus('READY');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error al configurar el cifrado.');
+      setError(
+        err instanceof Error ? err.message : 'Error al configurar el cifrado.',
+      );
     } finally {
       setIsSubmitting(false);
     }

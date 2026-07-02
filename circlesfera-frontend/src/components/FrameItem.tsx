@@ -11,20 +11,26 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { Link, useLocation } from 'react-router-dom';
-import { bookmarksApi, followsApi, postsApi } from '../services';
+import { api, bookmarksApi, followsApi, postsApi } from '../services';
 import { creatorApi } from '../services/creator.service';
 import { useAuthStore } from '../stores/authStore';
 import { useFrameStore } from '../stores/frameStore';
 import type { Post } from '../types';
 import { logger } from '../utils/logger';
 import LikeButton from './LikeButton';
+import AddToCollectionModal from './modals/AddToCollectionModal';
 import ConfirmModal from './modals/ConfirmModal';
 import FrameCommentsModal from './modals/FrameCommentsModal';
 import ReportModal from './modals/ReportModal';
 import SharePostModal from './modals/SharePostModal';
+import PaywallOverlay from './monetization/PaywallOverlay';
 import PostMenu from './post/PostMenu';
+
+const PromoteModal = lazy(() => import('./creator/PromoteModal'));
+
 import RichText from './RichText';
 
 interface FrameItemProps {
@@ -52,6 +58,9 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showAddToCollectionModal, setShowAddToCollectionModal] =
+    useState(false);
+  const [showPromoteModal, setShowPromoteModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -67,11 +76,23 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
   });
   const isBookmarked = bookmarkData?.data?.bookmarked ?? false;
 
-  const toggleBookmarkMutation = useMutation({
-    mutationFn: () => bookmarksApi.toggle(post.id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bookmark', post.id] });
-      queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
+  const unlockMutation = useMutation({
+    mutationFn: () =>
+      api.post('/monetization/unlock', {
+        postId: post.id,
+        returnUrl: window.location.href,
+      }),
+    onSuccess: (response: any) => {
+      if (response.data?.url) {
+        window.location.href = response.data.url;
+      } else {
+        toast.success('Post unlocked!');
+        queryClient.invalidateQueries({ queryKey: ['frames'] });
+        queryClient.invalidateQueries({ queryKey: ['feed'] });
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Error unlocking post');
     },
   });
 
@@ -135,6 +156,32 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
       }
     }
   }, [isActive, post.id, isMuted, setMuted]);
+
+  const viewRecorded = useRef(false);
+  useEffect(() => {
+    if (!post.isPromoted || !post.promotionId || viewRecorded.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && !viewRecorded.current) {
+          viewRecorded.current = true;
+          creatorApi
+            .recordPromotionView(post.promotionId!)
+            .catch(console.error);
+        }
+      },
+      { threshold: 0.5 },
+    );
+
+    if (videoRef.current) {
+      observer.observe(videoRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [post.isPromoted, post.promotionId]);
 
   // Keyboard controls for active frame
   useEffect(() => {
@@ -264,7 +311,7 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
         <video
           ref={videoRef}
           src={videoMedia.url}
-          className="w-full h-dvh md:h-full object-cover md:rounded-[20px]"
+          className={`w-full h-full object-contain bg-black md:rounded-[20px] transition-all duration-300 ${post.isLocked ? 'blur-2xl scale-[1.2] pointer-events-none' : ''}`}
           loop
           playsInline
           muted={isMuted}
@@ -273,6 +320,14 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
         >
           <track kind="captions" />
         </video>
+
+        {post.isLocked && (
+          <PaywallOverlay
+            price={post.priceCents ? post.priceCents / 100 : post.price || 0}
+            onUnlock={() => unlockMutation.mutate()}
+            isLoading={unlockMutation.isPending}
+          />
+        )}
 
         {/* Double Tap Heart Animation */}
         {showHeartAnim && (
@@ -329,21 +384,30 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
               className="w-10 h-10 rounded-full object-cover border border-white/20 shadow-md"
             />
           </Link>
-          <Link
-            to={`/${post.user.profile.username}`}
-            className="font-bold text-[15px] text-white drop-shadow-md hover:underline transition-all"
-          >
-            {post.user.profile.username}
-          </Link>
-          {!isOwner && (
-            <button
-              type="button"
-              onClick={() => followMutation.mutate()}
-              className="ml-1 px-3 py-1 bg-transparent border border-white/80 rounded-lg text-xs font-semibold text-white transition-all active:scale-95 hover:bg-white/10"
-            >
-              Seguir
-            </button>
-          )}
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <Link
+                to={`/${post.user.profile.username}`}
+                className="font-bold text-[15px] text-white drop-shadow-md hover:underline transition-all"
+              >
+                {post.user.profile.username}
+              </Link>
+              {!isOwner && (
+                <button
+                  type="button"
+                  onClick={() => followMutation.mutate()}
+                  className="px-3 py-1 bg-transparent border border-white/80 rounded-lg text-xs font-semibold text-white transition-all active:scale-95 hover:bg-white/10"
+                >
+                  Seguir
+                </button>
+              )}
+            </div>
+            {post.isPromoted && (
+              <span className="text-[10px] font-black uppercase tracking-widest text-yellow-400 drop-shadow-md mt-0.5">
+                Patrocinado
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Caption Area */}
@@ -421,7 +485,7 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
 
         <button
           type="button"
-          onClick={() => toggleBookmarkMutation.mutate()}
+          onClick={() => setShowAddToCollectionModal(true)}
           className="flex flex-col items-center gap-1 transition-transform active:scale-90 hover:scale-110"
         >
           <Bookmark
@@ -490,6 +554,13 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
         targetType="POST"
         targetId={post.id}
       />
+      {showAddToCollectionModal && (
+        <AddToCollectionModal
+          isOpen={showAddToCollectionModal}
+          onClose={() => setShowAddToCollectionModal(false)}
+          postId={post.id}
+        />
+      )}
       <ConfirmModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
@@ -514,11 +585,27 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
           setShowMenu(false);
           setShowReportModal(true);
         }}
+        onPromote={() => {
+          setShowMenu(false);
+          setShowPromoteModal(true);
+        }}
         onAddToCollection={() => {
           setShowMenu(false);
-          toggleBookmarkMutation.mutate();
+          setShowAddToCollectionModal(true);
         }}
       />
+      {showPromoteModal && (
+        <Suspense fallback={null}>
+          <PromoteModal
+            post={post}
+            onClose={() => setShowPromoteModal(false)}
+            onToast={(msg: string, type: 'success' | 'error') => {
+              if (type === 'success') toast.success(msg);
+              else toast.error(msg);
+            }}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

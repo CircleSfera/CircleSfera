@@ -1,6 +1,7 @@
 import { AlertTriangle, KeyRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { apiClient } from '../../services/api';
+import { useAuthStore } from '../../stores/authStore';
 import { useE2EStore } from '../../stores/e2eStore';
 import { useSocketStore } from '../../stores/socketStore';
 import { E2EService } from '../../utils/e2e';
@@ -80,8 +81,14 @@ export default function E2ERecoveryModal() {
       const publicKeyB64 = res.data.publicKey;
 
       // 3. Store both keys locally for this new device
-      localStorage.setItem('e2e_public_key', publicKeyB64);
-      localStorage.setItem('e2e_private_key', privateKeyB64);
+      const profile = useAuthStore.getState().profile;
+      if (profile?.id) {
+        localStorage.setItem(`e2e_public_key_${profile.id}`, publicKeyB64);
+        localStorage.setItem(`e2e_private_key_${profile.id}`, privateKeyB64);
+      } else {
+        localStorage.setItem('e2e_public_key', publicKeyB64);
+        localStorage.setItem('e2e_private_key', privateKeyB64);
+      }
 
       setStatus('READY');
     } catch (err: unknown) {
@@ -115,7 +122,9 @@ export default function E2ERecoveryModal() {
             Sincronizando claves...
           </h2>
           <p className="text-gray-400 text-sm mb-6">
-            Por favor, abre CircleSfera en tu otro dispositivo (móvil o PC) y <strong>aprueba la solicitud de transferencia</strong>. Tienes 60 segundos.
+            Por favor, abre CircleSfera en tu otro dispositivo (móvil o PC) y{' '}
+            <strong>aprueba la solicitud de transferencia</strong>. Tienes 60
+            segundos.
           </p>
           <Button
             type="button"
