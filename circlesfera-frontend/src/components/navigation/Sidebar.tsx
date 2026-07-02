@@ -118,9 +118,7 @@ export default function Sidebar() {
   });
 
   return (
-    <div className="hidden md:flex md:flex-col fixed left-0 top-0 h-screen w-16 xl:w-56 border-r border-white/5 bg-black/40 backdrop-blur-2xl z-50 transition-all duration-300">
-      {/* Premium Glass Effect Overlay (Subtle Top Light) */}
-      <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+    <div className="hidden md:flex md:flex-col fixed left-4 top-4 bottom-4 w-16 xl:w-56 border border-white/10 bg-black/40 backdrop-blur-3xl z-50 transition-all duration-300 rounded-[24px] shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
       {/* Logo Area */}
       <div className="p-4 mb-2 flex justify-center xl:justify-start">
         <Link to="/" className="block">
@@ -184,9 +182,9 @@ export default function Sidebar() {
                 key={item.label}
                 onClick={item.onClick}
                 aria-label={item.label}
-                className={`w-full flex items-center gap-3 py-1.5 px-2 rounded-md transition-all duration-200 group active:scale-95 ${
+                className={`w-full flex items-center gap-3 py-2 px-3 rounded-xl transition-all duration-200 group active:scale-95 ${
                   isActive
-                    ? 'bg-linear-to-r from-brand-primary/30 to-brand-secondary/20 text-white font-bold shadow-[0_0_25px_rgba(131,58,180,0.2)] border border-white/15'
+                    ? 'bg-linear-to-r from-brand-primary/20 to-brand-secondary/10 text-white font-bold shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_8px_20px_-6px_rgba(131,58,180,0.3)] border border-white/10'
                     : 'text-gray-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
@@ -201,9 +199,9 @@ export default function Sidebar() {
               to={item.to!}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
-              className={`flex items-center gap-3 py-1.5 px-2 rounded-md transition-all duration-200 group active:scale-95 ${
+              className={`flex items-center gap-3 py-2 px-3 rounded-xl transition-all duration-200 group active:scale-95 ${
                 isActive
-                  ? 'bg-linear-to-r from-brand-primary/30 to-brand-secondary/20 text-white font-bold shadow-[0_0_15px_rgba(131,58,180,0.15)] border border-white/10'
+                  ? 'bg-linear-to-r from-brand-primary/20 to-brand-secondary/10 text-white font-bold shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_8px_20px_-6px_rgba(131,58,180,0.3)] border border-white/10'
                   : 'text-gray-400 hover:bg-white/5 hover:text-white'
               }`}
             >
@@ -214,11 +212,11 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom Area (More/Settings) */}
-      <div className="p-2 mt-auto mb-3 space-y-1">
+      <div className="p-3 mt-auto mb-2 space-y-1">
         <Link
           to="/pricing"
           aria-label="Premium"
-          className="flex items-center gap-3 py-1.5 px-2 rounded-md text-amber-400 hover:bg-amber-400/10 hover:text-amber-300 transition-all duration-200 group relative overflow-hidden active:scale-95"
+          className="flex items-center gap-3 py-2 px-3 rounded-xl text-amber-400 hover:bg-amber-400/10 hover:text-amber-300 transition-all duration-200 group relative overflow-hidden active:scale-95"
         >
           <div className="absolute inset-0 bg-linear-to-r from-amber-400/0 via-amber-400/5 to-amber-400/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
           <Sparkles
@@ -229,22 +227,22 @@ export default function Sidebar() {
             {t('nav.premium')}
           </span>
         </Link>
-
+ 
         <Link
           to="/accounts/edit"
           aria-label="Settings"
-          className="flex items-center gap-3 py-1.5 px-2 rounded-md text-gray-400 hover:bg-white/5 hover:text-white transition-all duration-200 active:scale-95"
+          className="flex items-center gap-3 py-2 px-3 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-all duration-200 active:scale-95"
         >
           <Settings size={20} />
           <span className="hidden xl:block text-sm">{t('nav.settings')}</span>
         </Link>
-
+ 
         {/* Logout Button */}
         <button
           type="button"
           onClick={logout}
           aria-label="Log out"
-          className="w-full flex items-center gap-3 py-1.5 px-2 rounded-md text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 active:scale-95"
+          className="w-full flex items-center gap-3 py-2 px-3 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 active:scale-95"
         >
           <LogOut size={20} />
           <span className="hidden xl:block text-sm">{t('nav.log_out')}</span>
