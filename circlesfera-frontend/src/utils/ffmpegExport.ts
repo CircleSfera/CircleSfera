@@ -1,6 +1,6 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
-import type { MediaClip, StudioProject } from '../types/studio';
+import type { MediaClip, StudioProject, TextClip } from '../types/studio';
 
 const getFFmpegFilter = (cssFilter: string) => {
   if (cssFilter.includes('grayscale')) {
@@ -32,6 +32,14 @@ export async function exportStudioProject(
     coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
     wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
   });
+
+  try {
+    const fontURL = 'https://unpkg.com/@canvas-fonts/roboto@1.0.4/Roboto-Regular.ttf';
+    const fontData = await fetchFile(fontURL);
+    await ffmpeg.writeFile('Roboto-Regular.ttf', fontData);
+  } catch (e) {
+    console.warn('Could not load font for export', e);
+  }
 
   const inputs: string[] = [];
   const filterStrings: string[] = [];
@@ -87,6 +95,33 @@ export async function exportStudioProject(
     `${concatInputs}concat=n=${inputIndex}:v=1:a=1[basev][basea];`,
   );
 
+  // 1.5. Process Text Tracks
+  const textTracks = project.tracks.filter((t) => t.type === 'text');
+  const textClips = textTracks.flatMap((t) => t.clips) as TextClip[];
+
+  let finalVideoNode = '[basev]';
+
+  if (textClips.length > 0) {
+    for (let i = 0; i < textClips.length; i++) {
+      const tClip = textClips[i];
+      const prevNode = finalVideoNode;
+      finalVideoNode = `[textv${i}]`;
+      
+      // Escape text for drawtext
+      const textStr = tClip.content.replace(/:/g, '\\\\:').replace(/'/g, ""); 
+      
+      let xExpr = `(w/2)+${tClip.transform.x}-(tw/2)`;
+      if (tClip.style.textAlign === 'left') xExpr = `(w/2)+${tClip.transform.x}`;
+      if (tClip.style.textAlign === 'right') xExpr = `(w/2)+${tClip.transform.x}-tw`;
+      
+      const yExpr = `(h/2)+${tClip.transform.y}-th`;
+      
+      const drawtext = `drawtext=fontfile=Roboto-Regular.ttf:text='${textStr}':fontsize=${tClip.style.fontSize}:fontcolor=${tClip.style.color}:x=${xExpr}:y=${yExpr}:enable='between(t,${tClip.startAt},${tClip.startAt + tClip.duration})'`;
+      
+      filterStrings.push(`${prevNode}${drawtext}${finalVideoNode};`);
+    }
+  }
+
   // 2. Process Audio Tracks
   const audioTracks = project.tracks.filter((t) => t.type === 'audio');
   const audioClips = audioTracks.flatMap((t) => t.clips) as MediaClip[];
@@ -135,7 +170,7 @@ export async function exportStudioProject(
     '-filter_complex',
     complexFilter,
     '-map',
-    '[basev]',
+    finalVideoNode,
     '-map',
     '[outa]',
     '-c:v',
