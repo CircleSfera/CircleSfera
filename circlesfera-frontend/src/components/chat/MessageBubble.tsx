@@ -60,7 +60,10 @@ export default memo(function MessageBubble({
     if (msg.e2eKeys && currentUserId && msg.e2eKeys[currentUserId]) {
       const decrypt = async () => {
         try {
-          const privateKeyStr = localStorage.getItem('e2e_private_key');
+          const privateKeyStr =
+            localStorage.getItem(`e2e_private_key_${currentUserId}`) ||
+            localStorage.getItem('e2e_private_key');
+
           if (!privateKeyStr) {
             if (isMounted) {
               setDecryptedText('🔒 Mensaje cifrado (Falta tu clave privada)');

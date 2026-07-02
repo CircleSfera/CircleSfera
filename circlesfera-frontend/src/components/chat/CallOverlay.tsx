@@ -43,8 +43,6 @@ export const CallOverlay: React.FC = () => {
     }
   }, [status]);
 
-
-
   const toggleMute = () => {
     if (localStream) {
       localStream.getAudioTracks().forEach((track) => {
