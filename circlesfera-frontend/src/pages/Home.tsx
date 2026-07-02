@@ -29,70 +29,83 @@ export default function Home() {
         {t('feed.brand_name')}
       </h1>
 
-      <div className="max-w-lg mx-auto px-4">
-        {/* Feed Tabs */}
-        {/* Feed Tabs */}
-        <div className="flex justify-center mb-8">
-          <div className="flex items-center gap-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full p-1 shadow-2xl relative z-20">
-            <button
-              type="button"
-              onClick={() => setActiveTab('foryou')}
-              className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
-                activeTab === 'foryou'
-                  ? 'bg-white/10 text-white shadow-md'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
-              }`}
-            >
-              {t('feed.foryou', 'Para Ti')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('following')}
-              className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
-                activeTab === 'following'
-                  ? 'bg-white/10 text-white shadow-md'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
-              }`}
-            >
-              {t('feed.following', 'Siguiendo')}
-            </button>
-          </div>
-        </div>
-
-        {/* Stories Section */}
-        {isLoading ? (
-          <div className="glass-panel rounded-lg p-4 mb-6 flex gap-4 overflow-hidden">
-            {['s1', 's2', 's3', 's4', 's5', 's6'].map((id) => (
-              <StorySkeleton key={id} />
-            ))}
-          </div>
-        ) : (
-          <StoryList />
-        )}
-
-        <SuggestionsList />
-
-        <div className="space-y-4">
-          {!isAuthenticated && activeTab === 'following' ? (
-            <div className="text-center py-12 glass-panel rounded-lg p-8">
-              <p className="text-gray-400">
-                {t(
-                  'feed.login_required',
-                  'Inicia sesión para ver tu feed personalizado.',
-                )}
-              </p>
+      <div className="max-w-lg lg:max-w-4xl mx-auto px-4">
+        <div className="flex flex-col lg:flex-row gap-8 items-start justify-center">
+          {/* Main Feed Column */}
+          <div className="flex-1 w-full max-w-lg mx-auto shrink-0">
+            {/* Feed Tabs */}
+            <div className="flex justify-center mb-8">
+              <div className="flex items-center gap-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full p-1 shadow-2xl relative z-20">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('foryou')}
+                  className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
+                    activeTab === 'foryou'
+                      ? 'bg-white/10 text-white shadow-md'
+                      : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                  }`}
+                >
+                  {t('feed.foryou', 'Para Ti')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('following')}
+                  className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
+                    activeTab === 'following'
+                      ? 'bg-white/10 text-white shadow-md'
+                      : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                  }`}
+                >
+                  {t('feed.following', 'Siguiendo')}
+                </button>
+              </div>
             </div>
-          ) : isLoading ? (
-            ['p1', 'p2', 'p3'].map((id) => <PostSkeleton key={id} />)
-          ) : data?.data.data.length === 0 ? (
-            <div className="text-center py-12 glass-panel rounded-lg p-8">
-              <p className="text-gray-400">{t('feed.no_posts')}</p>
+
+            {/* Stories Section */}
+            {isLoading ? (
+              <div className="glass-panel rounded-lg p-4 mb-6 flex gap-4 overflow-hidden">
+                {['s1', 's2', 's3', 's4', 's5', 's6'].map((id) => (
+                  <StorySkeleton key={id} />
+                ))}
+              </div>
+            ) : (
+              <StoryList />
+            )}
+
+            {/* Suggestions inline on mobile */}
+            <div className="lg:hidden">
+              <SuggestionsList layout="horizontal" />
             </div>
-          ) : (
-            data?.data.data.map((post) => (
-              <PostCard key={post.id} post={post} />
-            ))
-          )}
+
+            {/* Posts List */}
+            <div className="space-y-4">
+              {!isAuthenticated && activeTab === 'following' ? (
+                <div className="text-center py-12 glass-panel rounded-lg p-8">
+                  <p className="text-gray-400">
+                    {t(
+                      'feed.login_required',
+                      'Inicia sesión para ver tu feed personalizado.',
+                    )}
+                  </p>
+                </div>
+              ) : isLoading ? (
+                ['p1', 'p2', 'p3'].map((id) => <PostSkeleton key={id} />)
+              ) : data?.data.data.length === 0 ? (
+                <div className="text-center py-12 glass-panel rounded-lg p-8">
+                  <p className="text-gray-400">{t('feed.no_posts')}</p>
+                </div>
+              ) : (
+                data?.data.data.map((post) => (
+                  <PostCard key={post.id} post={post} />
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Right Sidebar Suggestions (Desktop Only) */}
+          <aside className="hidden lg:block w-[320px] sticky top-24 shrink-0">
+            <SuggestionsList layout="vertical" />
+          </aside>
         </div>
       </div>
     </div>

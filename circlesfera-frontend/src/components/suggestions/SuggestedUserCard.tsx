@@ -12,11 +12,13 @@ import VerificationBadge, {
 interface SuggestedUserCardProps {
   user: SuggestedUser;
   onFollow?: (userId: string) => void;
+  layout?: 'card' | 'row';
 }
 
 export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({
   user,
   onFollow,
+  layout = 'card',
 }) => {
   const { t } = useTranslation();
   const [isFollowing, setIsFollowing] = useState(false);
@@ -38,6 +40,63 @@ export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({
   };
 
   if (isFollowing) return null; // Hide after following? or show "Following"
+
+  if (layout === 'row') {
+    return (
+      <div className="flex items-center justify-between w-full py-2.5 hover:bg-white/5 rounded-xl px-3 transition-all duration-200 group/row">
+        <Link
+          to={`/${user.username}`}
+          className="flex items-center gap-3 min-w-0"
+        >
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-zinc-900 shrink-0 border border-white/10 group-hover/row:border-brand-primary transition-colors">
+            {user.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user.username}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                <svg
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="w-5 h-5"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col min-w-0">
+            <span className="font-bold text-xs text-white tracking-tight flex items-center gap-1 truncate">
+              {user.username}
+              <VerificationBadge
+                level={user.verificationLevel as VerificationLevel}
+                size={10}
+              />
+            </span>
+            <span className="text-[10px] text-zinc-500 font-bold tracking-wider truncate">
+              {user.fullName || t('suggestions.suggested')}
+            </span>
+          </div>
+        </Link>
+        <button
+          type="button"
+          onClick={handleFollow}
+          disabled={loading}
+          className="text-xs font-black uppercase tracking-wider text-brand-primary hover:text-brand-secondary transition-colors pl-2 disabled:opacity-50"
+        >
+          {loading ? '...' : t('suggestions.follow')}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center min-w-[140px] p-5 glass-panel rounded-lg group/card hover:bg-white/5 transition-all duration-300">
