@@ -32,6 +32,7 @@ const MonetizationDashboard = lazy(
 );
 
 import { Button } from '../components/ui';
+import { useUIStore } from '../stores/uiStore';
 import type {
   CreatorChartDay,
   CreatorPost,
@@ -43,6 +44,7 @@ export default function Creator() {
   const { tab } = useParams<{ tab: string }>();
   const navigate = useNavigate();
   const activeTab = (tab as CreatorTab) || 'overview';
+  const openCreateMenu = useUIStore((state) => state.openCreateMenu);
 
   const handleTabChange = useCallback(
     (newTab: CreatorTab) => {
@@ -99,7 +101,7 @@ export default function Creator() {
           </p>
         </div>
 
-        <Button variant="primary" size="sm" className="hidden sm:flex">
+        <Button variant="primary" size="sm" className="hidden sm:flex" onClick={openCreateMenu}>
           <Plus size={14} className="mr-2" />
           {t('creator.new_content')}
         </Button>
@@ -181,6 +183,7 @@ export default function Creator() {
       {/* Floating Action Button (Mobile Only) */}
       <button
         type="button"
+        onClick={openCreateMenu}
         className="sm:hidden fixed bottom-24 right-6 w-14 h-14 bg-brand-primary text-white rounded-full flex items-center justify-center shadow-2xl shadow-brand-primary/40 z-40 active:scale-95 transition-transform"
       >
         <Plus size={24} />
