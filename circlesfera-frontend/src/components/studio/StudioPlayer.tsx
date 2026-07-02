@@ -38,7 +38,9 @@ export default function StudioPlayer() {
         document.body.appendChild(videoEl);
       }
 
-      const targetTime = activeClip.mediaStart + (playhead - activeClip.startAt) * (activeClip.speed ?? 1);
+      const targetTime =
+        activeClip.mediaStart +
+        (playhead - activeClip.startAt) * (activeClip.speed ?? 1);
       if (Math.abs(videoEl.currentTime - targetTime) > 0.1) {
         videoEl.currentTime = targetTime;
       }
@@ -64,10 +66,12 @@ export default function StudioPlayer() {
         audioElementsRef.current[clip.id] = audioEl;
       }
 
-      const isOverlapping = playhead >= clip.startAt && playhead < clip.startAt + clip.duration;
+      const isOverlapping =
+        playhead >= clip.startAt && playhead < clip.startAt + clip.duration;
 
       if (isOverlapping) {
-        const targetTime = clip.mediaStart + (playhead - clip.startAt) * (clip.speed ?? 1);
+        const targetTime =
+          clip.mediaStart + (playhead - clip.startAt) * (clip.speed ?? 1);
         if (Math.abs(audioEl.currentTime - targetTime) > 0.2) {
           audioEl.currentTime = targetTime;
         }
@@ -84,7 +88,6 @@ export default function StudioPlayer() {
         }
       }
     });
-
   }, [playhead, project, isPlaying]);
 
   // Render loop
@@ -95,22 +98,25 @@ export default function StudioPlayer() {
       const ctx = canvas?.getContext('2d');
       if (canvas && ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
+
         const { project, playhead } = useStudioStore.getState();
-        
+
         if (activeVideo && project) {
           // Find the active video clip to get its filter
           const activeTrack = project.tracks.find((t) => t.type === 'video');
           const activeClip = activeTrack?.clips.find(
-            (c) => c.type === 'video' && playhead >= c.startAt && playhead < c.startAt + c.duration
+            (c) =>
+              c.type === 'video' &&
+              playhead >= c.startAt &&
+              playhead < c.startAt + c.duration,
           ) as MediaClip | undefined;
-          
+
           if (activeClip?.filter) {
             ctx.filter = activeClip.filter;
           } else {
             ctx.filter = 'none';
           }
-          
+
           ctx.drawImage(activeVideo, 0, 0, canvas.width, canvas.height);
           ctx.filter = 'none'; // reset for text
         }

@@ -36,7 +36,9 @@ export const chatApi = {
     apiClient.put<Conversation>(`/chat/conversations/${id}/group`, data),
 
   removeParticipant: (id: string, userId: string) =>
-    apiClient.delete<Conversation>(`/chat/conversations/${id}/participants/${userId}`),
+    apiClient.delete<Conversation>(
+      `/chat/conversations/${id}/participants/${userId}`,
+    ),
 
   leaveGroup: (id: string) =>
     apiClient.delete<{ success: boolean }>(`/chat/conversations/${id}/leave`),

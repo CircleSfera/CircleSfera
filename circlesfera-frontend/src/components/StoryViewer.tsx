@@ -438,7 +438,10 @@ export default function StoryViewer({
                     </button>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDeleteConfirm(true);
+                      }}
                       aria-label="Delete this story"
                       className="text-white bg-black/40 backdrop-blur-xl p-3 rounded-full border border-white/20 hover:bg-red-500/80 hover:border-red-500 transition-all shadow-2xl"
                     >
@@ -460,7 +463,8 @@ export default function StoryViewer({
                 }, 200);
               }}
               onPointerUp={(e) => {
-                if (longPressTimer.current) clearTimeout(longPressTimer.current);
+                if (longPressTimer.current)
+                  clearTimeout(longPressTimer.current);
                 if (longPressRef.current) {
                   setIsPaused(false);
                   longPressRef.current = false;

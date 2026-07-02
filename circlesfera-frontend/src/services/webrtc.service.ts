@@ -134,7 +134,9 @@ class WebRTCService {
 
   private async processIceCandidateQueue() {
     if (this.iceCandidateQueue.length > 0) {
-      logger.log(`Processing ${this.iceCandidateQueue.length} queued ICE candidates`);
+      logger.log(
+        `Processing ${this.iceCandidateQueue.length} queued ICE candidates`,
+      );
       for (const candidate of this.iceCandidateQueue) {
         try {
           await this.pc?.addIceCandidate(new RTCIceCandidate(candidate));
@@ -167,9 +169,12 @@ class WebRTCService {
         useCallStore.getState().setRemoteStream(updatedStream);
       } else {
         // Fallback if event.streams is empty
-        const currentStream = useCallStore.getState().remoteStream || new MediaStream();
+        const currentStream =
+          useCallStore.getState().remoteStream || new MediaStream();
         currentStream.addTrack(event.track);
-        useCallStore.getState().setRemoteStream(new MediaStream(currentStream.getTracks()));
+        useCallStore
+          .getState()
+          .setRemoteStream(new MediaStream(currentStream.getTracks()));
       }
     };
 

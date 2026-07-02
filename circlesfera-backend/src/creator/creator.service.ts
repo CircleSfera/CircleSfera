@@ -494,6 +494,40 @@ export class CreatorService {
     };
   }
 
+  async recordPromotionView(promotionId: string) {
+    const promo = await this.prisma.promotion.findUnique({
+      where: { id: promotionId },
+    });
+    
+    if (!promo || promo.status !== PromotionStatus.ACTIVE) {
+      return { success: false };
+    }
+
+    const COST_PER_VIEW = 0.01;
+    const newBudget = promo.budget - COST_PER_VIEW;
+
+    if (newBudget <= 0) {
+      await this.prisma.promotion.update({
+        where: { id: promotionId },
+        data: {
+          reach: { increment: 1 },
+          budget: 0,
+          status: PromotionStatus.COMPLETED,
+        },
+      });
+    } else {
+      await this.prisma.promotion.update({
+        where: { id: promotionId },
+        data: {
+          reach: { increment: 1 },
+          budget: newBudget,
+        },
+      });
+    }
+
+    return { success: true };
+  }
+
   async cancelPromotion(userId: string, promotionId: string) {
     const promo = await this.prisma.promotion.findFirst({
       where: { id: promotionId, userId },

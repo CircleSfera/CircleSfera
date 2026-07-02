@@ -1,4 +1,4 @@
-import { Bookmark, Flag, Pencil, Trash2 } from 'lucide-react';
+import { Bookmark, Flag, Megaphone, Pencil, Trash2 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -11,6 +11,7 @@ interface PostMenuProps {
   onDelete: () => void;
   onReport: () => void;
   onAddToCollection: () => void;
+  onPromote?: () => void;
 }
 
 export default function PostMenu({
@@ -22,6 +23,7 @@ export default function PostMenu({
   onDelete,
   onReport,
   onAddToCollection,
+  onPromote,
 }: PostMenuProps) {
   const { t } = useTranslation();
   if (!showMenu) return null;
@@ -39,6 +41,16 @@ export default function PostMenu({
     >
       {isOwner ? (
         <>
+          {onPromote && (
+            <button
+              type="button"
+              onClick={onPromote}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-white hover:bg-zinc-700 transition-colors"
+            >
+              <Megaphone size={16} className="text-yellow-400" />
+              <span>{t('post.menu.promote', 'Boost Post')}</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={onEdit}

@@ -39,7 +39,7 @@ export const useStudioStore = create<StudioState>((set) => ({
   zoom: 50, // 50px = 1 second by default
 
   setProject: (project) => set({ project }),
-  
+
   setCloudProjectId: (id) => set({ cloudProjectId: id }),
 
   setPlayhead: (time) => set({ playhead: Math.max(0, time) }),

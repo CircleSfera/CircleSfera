@@ -21,7 +21,9 @@ import { Link } from 'react-router-dom';
 import type { ProfileWithUser } from '../../types';
 import FollowButton from '../FollowButton';
 import UserAvatar from '../UserAvatar';
-import VerificationBadge, { type VerificationLevel } from '../VerificationBadge';
+import VerificationBadge, {
+  type VerificationLevel,
+} from '../VerificationBadge';
 
 function AnimatedCounter({ value, label }: { value: number; label: string }) {
   const [count, setCount] = useState(0);
@@ -197,7 +199,9 @@ export default function ProfileHeader({
                   <button
                     type="button"
                     onClick={openCreateMenu}
-                    aria-label={t('profile.actions.create_post', { defaultValue: 'Create new post' })}
+                    aria-label={t('profile.actions.create_post', {
+                      defaultValue: 'Create new post',
+                    })}
                     className="p-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg border border-brand-primary/50 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg shadow-brand-primary/20"
                   >
                     <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
@@ -222,7 +226,9 @@ export default function ProfileHeader({
                   </button>
                   <button
                     type="button"
-                    aria-label={t('profile.actions.settings', { defaultValue: 'Settings' })}
+                    aria-label={t('profile.actions.settings', {
+                      defaultValue: 'Settings',
+                    })}
                     className="p-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]"
                   >
                     <Settings size={18} aria-hidden="true" />
@@ -268,7 +274,9 @@ export default function ProfileHeader({
                     <button
                       type="button"
                       onClick={() => setShowMenu(!showMenu)}
-                      aria-label={t('profile.actions.more_options', { defaultValue: 'More options' })}
+                      aria-label={t('profile.actions.more_options', {
+                        defaultValue: 'More options',
+                      })}
                       aria-expanded={showMenu}
                       className="p-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95"
                     >
@@ -321,7 +329,11 @@ export default function ProfileHeader({
               <div className="flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-2 mt-4 text-xs md:text-sm font-medium">
                 {profile.data.location && (
                   <span className="flex items-center gap-2 text-zinc-500">
-                    <MapPin size={16} className="text-brand-secondary" aria-hidden="true" />
+                    <MapPin
+                      size={16}
+                      className="text-brand-secondary"
+                      aria-hidden="true"
+                    />
                     {profile.data.location}
                   </span>
                 )}
@@ -340,7 +352,11 @@ export default function ProfileHeader({
                     <span className="underline decoration-white/10 underline-offset-4">
                       {profile.data.website.replace(/^https?:\/\/(www\.)?/, '')}
                     </span>
-                    <ExternalLink size={12} className="opacity-40" aria-hidden="true" />
+                    <ExternalLink
+                      size={12}
+                      className="opacity-40"
+                      aria-hidden="true"
+                    />
                   </a>
                 )}
               </div>

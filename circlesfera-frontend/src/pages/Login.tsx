@@ -86,8 +86,8 @@ export default function Login() {
     loginMutation.mutate({ identifier, password });
   };
 
-  const errorMessage = axios.isAxiosError(loginMutation.error) 
-    ? loginMutation.error.response?.data?.message 
+  const errorMessage = axios.isAxiosError(loginMutation.error)
+    ? loginMutation.error.response?.data?.message
     : undefined;
   const is2FARequired = errorMessage === '2FA_REQUIRED';
 
@@ -159,10 +159,10 @@ export default function Login() {
             </div>
 
             {loginMutation.isError && !is2FARequired && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
-                  {errorMessage || t('auth.login.default_error')}
-                </div>
-              )}
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
+                {errorMessage || t('auth.login.default_error')}
+              </div>
+            )}
 
             {error && (
               <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">

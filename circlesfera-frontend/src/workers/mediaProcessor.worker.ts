@@ -11,14 +11,17 @@ self.addEventListener('message', async (e: MessageEvent) => {
     switch (type) {
       case 'APPLY_FILTER': {
         const { imageBitmap, filterString } = payload;
-        
+
         if (!imageBitmap) {
           throw new Error('No imageBitmap provided');
         }
 
-        const canvas = new OffscreenCanvas(imageBitmap.width, imageBitmap.height);
+        const canvas = new OffscreenCanvas(
+          imageBitmap.width,
+          imageBitmap.height,
+        );
         const ctx = canvas.getContext('2d');
-        
+
         if (!ctx) {
           throw new Error('Failed to get 2d context');
         }
@@ -31,8 +34,11 @@ self.addEventListener('message', async (e: MessageEvent) => {
         ctx.drawImage(imageBitmap, 0, 0);
 
         // Convert back to blob or ImageBitmap
-        const processedBlob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.95 });
-        
+        const processedBlob = await canvas.convertToBlob({
+          type: 'image/jpeg',
+          quality: 0.95,
+        });
+
         self.postMessage({ jobId, status: 'success', data: processedBlob });
         break;
       }
@@ -46,6 +52,10 @@ self.addEventListener('message', async (e: MessageEvent) => {
         throw new Error(`Unknown job type: ${type}`);
     }
   } catch (error: unknown) {
-    self.postMessage({ jobId, status: 'error', error: error instanceof Error ? error.message : 'Unknown error' });
+    self.postMessage({
+      jobId,
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 });

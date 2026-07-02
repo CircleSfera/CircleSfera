@@ -16,6 +16,6 @@ export const useFrameStore = create<FrameState>()(
     }),
     {
       name: 'frame-storage',
-    }
-  )
+    },
+  ),
 );

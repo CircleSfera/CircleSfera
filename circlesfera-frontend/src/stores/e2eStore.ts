@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 
-export type E2EStatus = 'INITIALIZING' | 'READY' | 'NEEDS_SETUP' | 'NEEDS_RECOVERY' | 'SYNCING';
+export type E2EStatus =
+  | 'INITIALIZING'
+  | 'READY'
+  | 'NEEDS_SETUP'
+  | 'NEEDS_RECOVERY'
+  | 'SYNCING';
 
 interface E2EState {
   status: E2EStatus;
@@ -17,7 +22,13 @@ export const useE2EStore = create<E2EState>((set) => ({
   encryptedPrivateKeyPayload: null,
   syncKeyPair: null,
   setStatus: (status) => set({ status }),
-  setEncryptedPayload: (payload) => set({ encryptedPrivateKeyPayload: payload }),
+  setEncryptedPayload: (payload) =>
+    set({ encryptedPrivateKeyPayload: payload }),
   setSyncKeyPair: (syncKeyPair) => set({ syncKeyPair }),
-  reset: () => set({ status: 'INITIALIZING', encryptedPrivateKeyPayload: null, syncKeyPair: null }),
+  reset: () =>
+    set({
+      status: 'INITIALIZING',
+      encryptedPrivateKeyPayload: null,
+      syncKeyPair: null,
+    }),
 }));

@@ -100,6 +100,11 @@ export const creatorApi = {
       chart: { date: string; views: number }[];
     }>(`analytics/post/${postId}/insights`),
 
+  recordPromotionView: (promotionId: string) =>
+    apiClient.post<{ success: boolean }>(
+      `/creator/promotions/${promotionId}/view`,
+    ),
+
   createPromotion: (data: {
     targetType: string;
     targetId: string;

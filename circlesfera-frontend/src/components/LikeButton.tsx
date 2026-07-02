@@ -9,7 +9,11 @@ interface LikeButtonProps {
   iconClassName?: string;
 }
 
-export default function LikeButton({ postId, onToggle, iconClassName = "w-5 h-5" }: LikeButtonProps) {
+export default function LikeButton({
+  postId,
+  onToggle,
+  iconClassName = 'w-5 h-5',
+}: LikeButtonProps) {
   const queryClient = useQueryClient();
   const [isLiked, setIsLiked] = useState<boolean | null>(null);
 

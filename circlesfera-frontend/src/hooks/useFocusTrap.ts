@@ -29,11 +29,11 @@ export function useFocusTrap<T extends HTMLElement>(isActive: boolean) {
     ].join(', ');
 
     const focusableElements = Array.from(
-      container.querySelectorAll<HTMLElement>(focusableSelectors)
+      container.querySelectorAll<HTMLElement>(focusableSelectors),
     ).filter(
       (el) =>
         !el.hasAttribute('disabled') &&
-        el.getAttribute('aria-hidden') !== 'true'
+        el.getAttribute('aria-hidden') !== 'true',
     );
 
     const firstElement = focusableElements[0];

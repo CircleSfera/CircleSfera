@@ -74,7 +74,9 @@ export function useStoryPlayback({
       if (isPaused || isPausedOverride) {
         audio.pause();
       } else {
-        audio.play().catch((e) => logger.error('Story audio playback failed', e));
+        audio
+          .play()
+          .catch((e) => logger.error('Story audio playback failed', e));
       }
     }
   }, [isMuted, isPaused, isPausedOverride]);

@@ -72,7 +72,6 @@ class ApiClient {
           this.csrfToken = null;
         }
 
-
         return response;
       },
       async (error) => {

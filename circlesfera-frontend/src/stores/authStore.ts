@@ -37,9 +37,10 @@ export const useAuthStore = create<AuthState>()(
           console.error('Failed to logout from backend', error);
         }
 
-        // 2. Purge E2E Private Keys to prevent XSS leakage
-        localStorage.removeItem('e2e_private_key');
-        localStorage.removeItem('e2e_public_key');
+        // 2. We no longer purge E2E Private Keys on logout to allow remembering the device.
+        // Keys are now scoped by profile ID to prevent collision between users.
+        // localStorage.removeItem('e2e_private_key');
+        // localStorage.removeItem('e2e_public_key');
 
         // 3. Clear Service Worker API cache to prevent cross-account data bleed
         if ('caches' in window) {

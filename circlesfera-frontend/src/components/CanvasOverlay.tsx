@@ -88,7 +88,12 @@ const URLImage = ({
   );
 };
 
-const TextNode = ({ shapeProps, isSelected, onSelect, onChange }: {
+const TextNode = ({
+  shapeProps,
+  isSelected,
+  onSelect,
+  onChange,
+}: {
   shapeProps: OverlayElement;
   isSelected: boolean;
   onSelect: () => void;

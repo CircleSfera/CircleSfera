@@ -17,6 +17,7 @@ interface CarouselProps {
   aspectRatio?: string; // e.g. "aspect-square"
   objectFit?: 'cover' | 'contain';
   className?: string;
+  isLocked?: boolean;
 }
 
 export default function Carousel({
@@ -24,6 +25,7 @@ export default function Carousel({
   aspectRatio = 'aspect-4/5',
   objectFit = 'cover',
   className = '',
+  isLocked = false,
 }: CarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
@@ -41,6 +43,10 @@ export default function Carousel({
       item.filter,
     );
 
+    const blurClass = isLocked
+      ? 'blur-2xl scale-[1.2] pointer-events-none'
+      : '';
+
     if (item.type === 'video') {
       return (
         <div className="relative w-full h-full">
@@ -49,7 +55,7 @@ export default function Carousel({
               videoRefs.current[index] = el;
             }}
             src={item.url}
-            className={`w-full h-full object-${objectFit} ${filterClass}`}
+            className={`w-full h-full object-${objectFit} ${filterClass} ${blurClass} transition-all duration-300`}
             style={filterStyle}
             autoPlay
             muted={isMuted}
@@ -59,13 +65,15 @@ export default function Carousel({
             controlsList="nodownload nofullscreen noremoteplayback"
             onClick={toggleMute}
           />
-          <button
-            type="button"
-            onClick={toggleMute}
-            className="absolute bottom-4 right-4 p-2 bg-black/50 backdrop-blur-md rounded-full text-white z-20 hover:bg-black/70 transition-colors"
-          >
-            {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-          </button>
+          {!isLocked && (
+            <button
+              type="button"
+              onClick={toggleMute}
+              className="absolute bottom-4 right-4 p-2 bg-black/50 backdrop-blur-md rounded-full text-white z-20 hover:bg-black/70 transition-colors"
+            >
+              {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            </button>
+          )}
         </div>
       );
     }
@@ -85,7 +93,7 @@ export default function Carousel({
         srcSet={srcSet || undefined}
         sizes="(max-width: 768px) 100vw, 800px"
         alt={item.altText || 'Post content'}
-        className={`w-full h-full object-${objectFit} ${filterClass}`}
+        className={`w-full h-full object-${objectFit} ${filterClass} ${blurClass} transition-all duration-300`}
         style={filterStyle}
         loading="lazy"
         decoding="async"

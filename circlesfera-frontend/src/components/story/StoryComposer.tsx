@@ -902,12 +902,15 @@ export default function StoryComposer({
             backgroundPosition: 'center',
           }}
         >
-          {backgroundUrl && (
-            background?.type.startsWith('video/') ? (
+          {backgroundUrl &&
+            (background?.type.startsWith('video/') ? (
               <video
                 src={backgroundUrl}
                 crossOrigin={
-                  backgroundUrl.startsWith('blob:') || backgroundUrl.startsWith('data:') ? undefined : 'anonymous'
+                  backgroundUrl.startsWith('blob:') ||
+                  backgroundUrl.startsWith('data:')
+                    ? undefined
+                    : 'anonymous'
                 }
                 className="w-full h-full object-cover"
                 autoPlay
@@ -925,7 +928,10 @@ export default function StoryComposer({
               <img
                 src={backgroundUrl}
                 crossOrigin={
-                  backgroundUrl.startsWith('blob:') || backgroundUrl.startsWith('data:') ? undefined : 'anonymous'
+                  backgroundUrl.startsWith('blob:') ||
+                  backgroundUrl.startsWith('data:')
+                    ? undefined
+                    : 'anonymous'
                 }
                 className="w-full h-full object-cover"
                 alt="Background"
@@ -937,8 +943,7 @@ export default function StoryComposer({
                       : undefined,
                 }}
               />
-            )
-          )}
+            ))}
           {/* Darken overlay */}
           {bgDarken > 0 && !backgroundUrl && (
             <div

@@ -87,7 +87,8 @@ export default function LayoutWrapper({
       {/* Navigation - Each handles its own visibility via media queries */}
       {shouldShowNav && (
         <>
-          {!location.pathname.includes('/direct/inbox/t/') && !isFramesRoute && <TopNav />}
+          {!location.pathname.includes('/direct/inbox/t/') &&
+            !isFramesRoute && <TopNav />}
           <Sidebar />
           <BottomNav />
         </>
@@ -99,9 +100,9 @@ export default function LayoutWrapper({
         className={`flex-1 w-full transition-all duration-300 ${shouldShowNav && !isFramesRoute ? 'md:pl-16 xl:pl-56' : ''}`}
       >
         {/* Top spacing for mobile to account for TopNav height */}
-        {shouldShowNav && !location.pathname.startsWith('/direct') && !isFramesRoute && (
-          <div className="md:hidden h-16" />
-        )}
+        {shouldShowNav &&
+          !location.pathname.startsWith('/direct') &&
+          !isFramesRoute && <div className="md:hidden h-16" />}
 
         <div
           className={`w-full ${location.pathname.startsWith('/direct') ? (location.pathname.includes('/t/') ? 'h-[calc(100dvh-80px)] md:h-screen' : 'h-[calc(100dvh-64px-80px)] md:h-screen') : isFramesRoute ? 'h-screen' : `min-h-screen ${shouldShowNav ? 'pb-24 md:pb-8' : ''}`} overflow-hidden`}

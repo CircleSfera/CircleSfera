@@ -186,6 +186,25 @@ export class FeedService {
         .map((id) => hydratedPosts.find((p) => p.id === id))
         .filter(Boolean);
 
+      // Fetch user's subscriptions and unlocked posts
+      let subscribedCreatorIds = new Set<string>();
+      let unlockedPostIds = new Set<string>();
+
+      if (userId) {
+        const [subs, unlocks] = await Promise.all([
+          this.prisma.creatorSubscription.findMany({
+            where: { subscriberId: userId, status: 'ACTIVE' },
+            select: { creatorId: true },
+          }),
+          this.prisma.postUnlock.findMany({
+            where: { userId },
+            select: { postId: true },
+          }),
+        ]);
+        subscribedCreatorIds = new Set(subs.map((s) => s.creatorId));
+        unlockedPostIds = new Set(unlocks.map((u) => u.postId));
+      }
+
       const formattedPosts = sortedPosts.map((post: any) => {
         const { likes, ...rest } = post;
         const isLiked = Array.isArray(likes) ? likes.length > 0 : false;
@@ -193,15 +212,36 @@ export class FeedService {
         // Attach algorithm reasoning score for debugging
         const rawData = postsRaw.find((r) => r.id === post.id);
 
-        return {
+        let finalPost = {
           ...rest,
           isLiked,
           algScore: rawData?.final_score,
         };
+
+        if (finalPost.isPremium && finalPost.userId !== userId) {
+          const isSubscribed = subscribedCreatorIds.has(finalPost.userId);
+          const isUnlocked = unlockedPostIds.has(finalPost.id);
+
+          if (!isSubscribed && !isUnlocked) {
+            finalPost = {
+              ...finalPost,
+              isLocked: true,
+              media: finalPost.media?.map((m: any) => ({
+                ...m,
+                url: '',
+                standardUrl: '',
+              })),
+            };
+          }
+        }
+
+        return finalPost;
       });
 
+      const feedWithPromotions = await this.injectPromotions(formattedPosts, userId);
+
       // Simple mock total since accurate counts are heavy for algorithmic feeds
-      const result = createPaginatedResult(formattedPosts, 1000, page, limit);
+      const result = createPaginatedResult(feedWithPromotions, 1000, page, limit);
 
       // Save to cache for 3 minutes (180000 ms)
       await this.cacheManager.set(cacheKey, result, 180000);
@@ -269,13 +309,53 @@ export class FeedService {
       }),
     ]);
 
-    const formattedPosts = posts.map((post) => {
+    let subscribedCreatorIds = new Set<string>();
+    let unlockedPostIds = new Set<string>();
+
+    if (userId) {
+      const [subs, unlocks] = await Promise.all([
+        this.prisma.creatorSubscription.findMany({
+          where: { subscriberId: userId, status: 'ACTIVE' },
+          select: { creatorId: true },
+        }),
+        this.prisma.postUnlock.findMany({
+          where: { userId },
+          select: { postId: true },
+        }),
+      ]);
+      subscribedCreatorIds = new Set(subs.map((s) => s.creatorId));
+      unlockedPostIds = new Set(unlocks.map((u) => u.postId));
+    }
+
+    const formattedPosts = posts.map((post: any) => {
       const { likes, ...rest } = post;
       const isLiked = Array.isArray(likes) ? likes.length > 0 : false;
-      return { ...rest, isLiked };
+      
+      let finalPost = { ...rest, isLiked };
+
+      if (finalPost.isPremium && finalPost.userId !== userId) {
+        const isSubscribed = subscribedCreatorIds.has(finalPost.userId);
+        const isUnlocked = unlockedPostIds.has(finalPost.id);
+
+        if (!isSubscribed && !isUnlocked) {
+          finalPost = {
+            ...finalPost,
+            isLocked: true,
+            media: finalPost.media?.map((m: any) => ({
+              ...m,
+              url: '',
+              standardUrl: '',
+            })),
+          };
+        }
+      }
+
+      return finalPost;
     });
 
-    return createPaginatedResult(formattedPosts, total, page, limit);
+    const feedWithPromotions = await this.injectPromotions(formattedPosts, userId);
+
+    return createPaginatedResult(feedWithPromotions, total, page, limit);
   }
 
   /**
@@ -321,18 +401,119 @@ export class FeedService {
       },
     });
 
-    const formattedPosts = posts.map((post) => {
+    let subscribedCreatorIds = new Set<string>();
+    let unlockedPostIds = new Set<string>();
+
+    if (currentUserId) {
+      const [subs, unlocks] = await Promise.all([
+        this.prisma.creatorSubscription.findMany({
+          where: { subscriberId: currentUserId, status: 'ACTIVE' },
+          select: { creatorId: true },
+        }),
+        this.prisma.postUnlock.findMany({
+          where: { userId: currentUserId },
+          select: { postId: true },
+        }),
+      ]);
+      subscribedCreatorIds = new Set(subs.map((s) => s.creatorId));
+      unlockedPostIds = new Set(unlocks.map((u) => u.postId));
+    }
+
+    const formattedPosts = posts.map((post: any) => {
       const { likes, ...rest } = post;
       const isLiked =
         currentUserId && Array.isArray(likes) ? likes.length > 0 : false;
-      return { ...rest, isLiked };
+      
+      let finalPost = { ...rest, isLiked };
+
+      if (finalPost.isPremium && finalPost.userId !== currentUserId) {
+        const isSubscribed = subscribedCreatorIds.has(finalPost.userId);
+        const isUnlocked = unlockedPostIds.has(finalPost.id);
+
+        if (!isSubscribed && !isUnlocked) {
+          finalPost = {
+            ...finalPost,
+            isLocked: true,
+            media: finalPost.media?.map((m: any) => ({
+              ...m,
+              url: '',
+              standardUrl: '',
+            })),
+          };
+        }
+      }
+
+      return finalPost;
     });
 
-    const result = createPaginatedResult(formattedPosts, 1000, page, limit);
+    const feedWithPromotions = await this.injectPromotions(formattedPosts, currentUserId);
+
+    const result = createPaginatedResult(feedWithPromotions, 1000, page, limit);
 
     // Save to cache for 5 minutes (300000 ms)
     await this.cacheManager.set(cacheKey, result, 300000);
 
     return result;
+  }
+
+  /**
+   * Helper to inject active promotions into a feed
+   */
+  private async injectPromotions(posts: any[], userId?: string | null) {
+    if (posts.length === 0) return posts;
+
+    // We want to inject 1 promotion every 5 posts.
+    const neededPromotions = Math.floor(posts.length / 5);
+    if (neededPromotions === 0) return posts;
+
+    const activePromotions = await this.prisma.promotion.findMany({
+      where: {
+        status: 'ACTIVE',
+        targetType: 'POST',
+        budget: { gt: 0 },
+        endDate: { gt: new Date() },
+        ...(userId ? { userId: { not: userId } } : {}),
+      },
+      take: neededPromotions,
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (activePromotions.length === 0) return posts;
+
+    const promotedPostIds = activePromotions.map(p => p.targetId);
+    const promotedPostsRaw = await this.prisma.post.findMany({
+      where: { id: { in: promotedPostIds } },
+      include: {
+        user: { include: { profile: true } },
+        media: true,
+        _count: { select: { likes: true, comments: true } },
+        likes: userId ? { where: { userId }, take: 1 } : false,
+      }
+    });
+
+    const promotedPostsDict = new Map();
+    for (const p of promotedPostsRaw) {
+      const { likes, ...rest } = p;
+      const isLiked = userId && Array.isArray(likes) ? likes.length > 0 : false;
+      promotedPostsDict.set(p.id, { ...rest, isLiked, isPromoted: true });
+    }
+
+    const finalPosts = [];
+    let promoIndex = 0;
+    
+    for (let i = 0; i < posts.length; i++) {
+      finalPosts.push(posts[i]);
+      // Inject after every 5th post (index 4, 9, 14)
+      if ((i + 1) % 5 === 0 && promoIndex < activePromotions.length) {
+        const promo = activePromotions[promoIndex];
+        const postToInject = promotedPostsDict.get(promo.targetId);
+        if (postToInject) {
+          finalPosts.push({ ...postToInject, promotionId: promo.id });
+        }
+        promoIndex++;
+      }
+    }
+
+    return finalPosts;
   }
 }
