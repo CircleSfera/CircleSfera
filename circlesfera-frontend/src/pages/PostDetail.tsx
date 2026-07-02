@@ -42,7 +42,7 @@ export default function PostDetail() {
             className="w-full h-full object-cover opacity-50 blur-[100px] scale-125 saturate-150"
           />
         )}
-        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 bg-black/80 md:bg-black/40" />
       </div>
 
       <SEO
@@ -55,7 +55,7 @@ export default function PostDetail() {
       />
       <div className="w-full mx-auto md:px-4 relative z-10">
         {/* Sticky Header (Mobile Only) */}
-        <div className="md:hidden sticky top-0 z-50 bg-transparent backdrop-blur-xl border-b border-white/10 flex items-center justify-between p-4 pt-[calc(1rem+env(safe-area-inset-top))] mb-2">
+        <div className="md:hidden sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/10 flex items-center justify-between p-4 pt-[calc(1rem+env(safe-area-inset-top))]">
           <Link
             to="/"
             className="p-1 -ml-1 text-white hover:bg-white/10 rounded-full transition-colors"

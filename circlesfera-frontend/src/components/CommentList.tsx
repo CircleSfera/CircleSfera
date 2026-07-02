@@ -328,7 +328,7 @@ export default function CommentList({ postId, comments, isDetailMode, captionCom
         )}
       </div>
 
-      <div className={isDetailMode ? "shrink-0 border-t border-white/10" : "mt-6 pt-4 border-t border-white/10 sticky bottom-0 bg-black/80 backdrop-blur-md p-4 -mx-4 rounded-b-2xl"}>
+      <div className={isDetailMode ? "shrink-0 border-t border-white/10" : "mt-6 pt-4 border-t border-white/10 sticky bottom-[56px] lg:bottom-0 bg-black/95 backdrop-blur-md p-4 lg:-mx-4 rounded-t-xl lg:rounded-b-2xl z-20 shadow-2xl"}>
         {isDetailMode && actionsComponent && (
           <div className="p-3 pb-0">
             {actionsComponent}
