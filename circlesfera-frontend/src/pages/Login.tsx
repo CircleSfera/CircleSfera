@@ -1,6 +1,5 @@
 import { startAuthentication } from '@simplewebauthn/browser';
 import { useMutation } from '@tanstack/react-query';
-import axios from 'axios';
 import { Fingerprint } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
