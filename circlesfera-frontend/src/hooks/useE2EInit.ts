@@ -9,18 +9,34 @@ import { useE2EStore } from '../stores/e2eStore';
  */
 export function useE2EInit() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const profile = useAuthStore((state) => state.profile);
   const setStatus = useE2EStore((state) => state.setStatus);
   const setEncryptedPayload = useE2EStore((state) => state.setEncryptedPayload);
   const initialized = useRef(false);
 
   useEffect(() => {
-    if (!isAuthenticated || initialized.current) return;
+    if (!isAuthenticated || !profile || initialized.current) return;
 
     const initKeys = async () => {
       initialized.current = true;
       try {
-        const storedPrivateKey = localStorage.getItem('e2e_private_key');
-        const storedPublicKey = localStorage.getItem('e2e_public_key');
+        const privateKeyName = `e2e_private_key_${profile.id}`;
+        const publicKeyName = `e2e_public_key_${profile.id}`;
+
+        let storedPrivateKey = localStorage.getItem(privateKeyName);
+        let storedPublicKey = localStorage.getItem(publicKeyName);
+
+        // Migration from old keys
+        if (!storedPrivateKey && localStorage.getItem('e2e_private_key')) {
+          storedPrivateKey = localStorage.getItem('e2e_private_key');
+          localStorage.setItem(privateKeyName, storedPrivateKey!);
+          localStorage.removeItem('e2e_private_key');
+        }
+        if (!storedPublicKey && localStorage.getItem('e2e_public_key')) {
+          storedPublicKey = localStorage.getItem('e2e_public_key');
+          localStorage.setItem(publicKeyName, storedPublicKey!);
+          localStorage.removeItem('e2e_public_key');
+        }
 
         // Check what the backend has
         const res = await apiClient.get<{
@@ -51,10 +67,10 @@ export function useE2EInit() {
       } catch (error) {
         console.error('Failed to initialize E2E keys', error);
         // Fallback to avoid breaking app if endpoint fails
-        setStatus('READY'); 
+        setStatus('READY');
       }
     };
 
     initKeys();
-  }, [isAuthenticated, setStatus, setEncryptedPayload]);
+  }, [isAuthenticated, profile, setStatus, setEncryptedPayload]);
 }

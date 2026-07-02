@@ -38,9 +38,13 @@ export default function Frames() {
           if (entry.isIntersecting) {
             const index = Number(entry.target.getAttribute('data-index'));
             setActiveFrameIndex(index);
-            
+
             // Fetch next page if near the end
-            if (index >= frames.length - 3 && hasNextPage && !isFetchingNextPage) {
+            if (
+              index >= frames.length - 3 &&
+              hasNextPage &&
+              !isFetchingNextPage
+            ) {
               fetchNextPage();
             }
           }
@@ -49,7 +53,7 @@ export default function Frames() {
       {
         root: containerRef.current,
         threshold: 0.6, // Trigger when 60% of the frame is visible
-      }
+      },
     );
 
     itemRefs.current.forEach((ref) => {
@@ -63,16 +67,20 @@ export default function Frames() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't interfere if user is typing in an input (e.g. comments)
-      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+      if (
+        document.activeElement?.tagName === 'INPUT' ||
+        document.activeElement?.tagName === 'TEXTAREA'
+      ) {
         return;
       }
 
       if (['ArrowDown', 'ArrowUp'].includes(e.key)) {
         e.preventDefault();
-        const newIndex = e.key === 'ArrowDown' 
-          ? Math.min(activeFrameIndex + 1, frames.length - 1)
-          : Math.max(activeFrameIndex - 1, 0);
-        
+        const newIndex =
+          e.key === 'ArrowDown'
+            ? Math.min(activeFrameIndex + 1, frames.length - 1)
+            : Math.max(activeFrameIndex - 1, 0);
+
         itemRefs.current[newIndex]?.scrollIntoView({ behavior: 'smooth' });
       }
     };
@@ -101,7 +109,8 @@ export default function Frames() {
   }
 
   const activeFrame = frames[activeFrameIndex];
-  const blurredBgImage = activeFrame?.media?.[0]?.thumbnailUrl || activeFrame?.media?.[0]?.url;
+  const blurredBgImage =
+    activeFrame?.media?.[0]?.thumbnailUrl || activeFrame?.media?.[0]?.url;
 
   return (
     <div className="h-dvh md:h-screen w-full flex items-center justify-center bg-black relative overflow-hidden">
@@ -109,28 +118,30 @@ export default function Frames() {
       <div className="hidden md:block absolute inset-0 z-0">
         {blurredBgImage && (
           <>
-            <img 
-              src={blurredBgImage} 
-              alt="" 
-              className="w-full h-full object-cover opacity-40 blur-[80px] transition-all duration-700 ease-in-out scale-110" 
+            <img
+              src={blurredBgImage}
+              alt=""
+              className="w-full h-full object-cover opacity-40 blur-[80px] transition-all duration-700 ease-in-out scale-110"
             />
             <div className="absolute inset-0 bg-black/40" />
           </>
         )}
       </div>
-      
+
       {/* Mobile: Edge-to-edge, Desktop: Center-aligned player */}
       <div
         ref={containerRef}
-        className="h-dvh w-full md:h-[calc(100vh-40px)] md:w-[450px] md:max-w-full md:rounded-[20px] mx-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide bg-black relative z-10 md:shadow-2xl md:border md:border-white/10"
+        className="h-[calc(100dvh-80px)] w-full md:h-[calc(100vh-40px)] md:w-[450px] md:max-w-full md:rounded-[20px] mx-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide bg-black relative z-10 md:shadow-2xl md:border md:border-white/10"
         style={{ scrollBehavior: 'smooth' }}
       >
         {frames.map((frame, index) => (
-          <div 
-            key={frame.id} 
-            ref={(el) => { itemRefs.current[index] = el; }}
+          <div
+            key={frame.id}
+            ref={(el) => {
+              itemRefs.current[index] = el;
+            }}
             data-index={index}
-            className="h-dvh md:h-full w-full snap-start relative bg-black"
+            className="h-[calc(100dvh-80px)] md:h-full w-full snap-start relative bg-black flex flex-col justify-center"
           >
             <FrameItem post={frame} isActive={index === activeFrameIndex} />
           </div>
@@ -144,4 +155,3 @@ export default function Frames() {
     </div>
   );
 }
-
