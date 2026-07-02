@@ -22,6 +22,15 @@ describe('FeedService', () => {
     mute: {
       findMany: vi.fn().mockResolvedValue([]),
     },
+    creatorSubscription: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    postUnlock: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    promotion: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     $queryRaw: vi.fn(),
   };
 
