@@ -94,10 +94,9 @@ export default function LayoutWrapper({
         </>
       )}
 
-      {/* Main Content Area */}
       <main
         id="main-content"
-        className={`flex-1 w-full transition-all duration-300 ${shouldShowNav && !isFramesRoute ? 'md:pl-24 xl:pl-64' : ''}`}
+        className={`flex-1 w-full transition-all duration-300 ${shouldShowNav ? 'md:pl-24 xl:pl-64' : ''}`}
       >
         {/* Top spacing for mobile to account for TopNav height */}
         {shouldShowNav &&

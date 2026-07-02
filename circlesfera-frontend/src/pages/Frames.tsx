@@ -113,7 +113,7 @@ export default function Frames() {
     activeFrame?.media?.[0]?.thumbnailUrl || activeFrame?.media?.[0]?.url;
 
   return (
-    <div className="h-dvh md:h-screen w-full flex flex-col items-start md:justify-center md:items-center bg-black relative overflow-hidden">
+    <div className="h-dvh md:h-screen w-full flex flex-col items-start md:justify-center md:items-center bg-black md:bg-transparent relative overflow-hidden">
       {/* Dynamic blurred background for desktop */}
       <div className="hidden md:block absolute inset-0 z-0">
         {blurredBgImage && (
@@ -131,7 +131,7 @@ export default function Frames() {
       {/* Mobile: Edge-to-edge, Desktop: Center-aligned player */}
       <div
         ref={containerRef}
-        className="h-[calc(100dvh-80px)] w-full md:h-[calc(100vh-40px)] md:w-[450px] md:max-w-full md:rounded-[30px] mx-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide bg-black md:bg-black/20 md:backdrop-blur-3xl relative z-10 md:shadow-[0_0_50px_rgba(0,0,0,0.5)] md:border md:border-white/10"
+        className="h-dvh w-full md:h-[calc(100vh-40px)] md:w-[450px] md:max-w-full md:rounded-[30px] mx-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide bg-black md:bg-black/20 md:backdrop-blur-3xl relative z-10 md:shadow-[0_0_50px_rgba(0,0,0,0.5)] md:border md:border-white/10"
         style={{ scrollBehavior: 'smooth' }}
       >
         {frames.map((frame, index) => (
@@ -141,7 +141,7 @@ export default function Frames() {
               itemRefs.current[index] = el;
             }}
             data-index={index}
-            className="h-[calc(100dvh-80px)] md:h-full w-full snap-start relative bg-black md:bg-transparent flex flex-col justify-center"
+            className="h-dvh md:h-full w-full snap-start relative bg-black md:bg-transparent flex flex-col justify-center"
           >
             <FrameItem post={frame} isActive={index === activeFrameIndex} />
           </div>
