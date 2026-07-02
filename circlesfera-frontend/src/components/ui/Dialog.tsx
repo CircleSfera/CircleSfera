@@ -65,7 +65,10 @@ export function Dialog({
       >
         {title && (
           <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
-            <h2 id="dialog-title" className="text-lg font-bold text-white tracking-tight">
+            <h2
+              id="dialog-title"
+              className="text-lg font-bold text-white tracking-tight"
+            >
               {title}
             </h2>
             <button

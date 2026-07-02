@@ -13,15 +13,15 @@ export interface MediaClip extends BaseClip {
   type: 'video' | 'image' | 'audio';
   fileUrl: string; // Blob URL or remote URL
   file: File | null;
-  
+
   // Media timing
   mediaStart: number; // Start time within the media file (for trimming)
-  
+
   // Adjustments
   speed: number;
   volume: number;
   muted: boolean;
-  
+
   // Visuals
   filter?: string; // CSS filter string
   transform: {

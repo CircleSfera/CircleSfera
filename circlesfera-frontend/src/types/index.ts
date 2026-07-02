@@ -53,6 +53,7 @@ export type SuggestedUser = ISuggestedUser;
 export type PlatformPlanDto = IPlatformPlanDto;
 
 export interface ProfileWithUser extends IProfile {
+  subscriptionPriceCents?: number;
   user?: {
     id: string;
     email: string;

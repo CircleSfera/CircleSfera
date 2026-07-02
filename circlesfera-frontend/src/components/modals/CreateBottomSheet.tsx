@@ -148,11 +148,13 @@ export default function CreateBottomSheet() {
                   let borderHover = 'hover:border-white/20';
 
                   if (item.id === 'post') {
-                    bgGlow = 'bg-linear-to-br from-brand-primary/20 to-purple-600/10';
+                    bgGlow =
+                      'bg-linear-to-br from-brand-primary/20 to-purple-600/10';
                     iconColor = 'text-purple-400';
                     borderHover = 'hover:border-purple-500/50';
                   } else if (item.id === 'story') {
-                    bgGlow = 'bg-linear-to-br from-pink-500/20 to-orange-500/10';
+                    bgGlow =
+                      'bg-linear-to-br from-pink-500/20 to-orange-500/10';
                     iconColor = 'text-pink-400';
                     borderHover = 'hover:border-pink-500/50';
                   } else if (item.id === 'frame') {
@@ -160,11 +162,13 @@ export default function CreateBottomSheet() {
                     iconColor = 'text-blue-400';
                     borderHover = 'hover:border-blue-500/50';
                   } else if (item.id === 'studio') {
-                    bgGlow = 'bg-linear-to-br from-emerald-500/20 to-teal-500/10';
+                    bgGlow =
+                      'bg-linear-to-br from-emerald-500/20 to-teal-500/10';
                     iconColor = 'text-emerald-400';
                     borderHover = 'hover:border-emerald-500/50';
                   } else if (item.id === 'circle') {
-                    bgGlow = 'bg-linear-to-br from-amber-500/20 to-orange-600/10';
+                    bgGlow =
+                      'bg-linear-to-br from-amber-500/20 to-orange-600/10';
                     iconColor = 'text-amber-400';
                     borderHover = 'hover:border-amber-500/50';
                   }
@@ -177,18 +181,20 @@ export default function CreateBottomSheet() {
                       className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border border-white/5 transition-all duration-300 group hover:bg-white/10 active:scale-95 ${bgGlow} ${borderHover}`}
                     >
                       <div className="relative">
-                        <div className={`absolute -inset-2 bg-current opacity-20 blur-xl rounded-full transition-opacity group-hover:opacity-40 ${iconColor}`} />
+                        <div
+                          className={`absolute -inset-2 bg-current opacity-20 blur-xl rounded-full transition-opacity group-hover:opacity-40 ${iconColor}`}
+                        />
                         <item.icon
                           size={32}
                           className={`relative z-10 transition-transform group-hover:scale-110 ${iconColor}`}
                           strokeWidth={1.5}
                         />
                       </div>
-                      
+
                       <span className="text-[15px] font-semibold text-white mt-1">
                         {item.label}
                       </span>
-                      
+
                       {item.badge && (
                         <span className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(37,99,235,0.5)]">
                           {item.badge}

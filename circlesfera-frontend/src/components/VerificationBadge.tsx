@@ -52,12 +52,9 @@ export default function VerificationBadge({
       )}
       title={config.tooltip}
     >
-      <Icon 
-        size={size} 
-        className={clsx(
-          config.color, 
-          'text-white drop-shadow-sm'
-        )} 
+      <Icon
+        size={size}
+        className={clsx(config.color, 'text-white drop-shadow-sm')}
       />
     </div>
   );

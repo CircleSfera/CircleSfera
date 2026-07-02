@@ -186,7 +186,8 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
-img, video {
+img,
+video {
   /* Allow natural gestures on media elements */
   touch-action: auto;
 }
