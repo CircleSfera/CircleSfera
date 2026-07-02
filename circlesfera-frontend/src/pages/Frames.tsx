@@ -131,7 +131,7 @@ export default function Frames() {
       {/* Mobile: Edge-to-edge, Desktop: Center-aligned player */}
       <div
         ref={containerRef}
-        className="h-[calc(100dvh-80px)] w-full md:h-[calc(100vh-40px)] md:w-[450px] md:max-w-full md:rounded-[20px] mx-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide bg-black relative z-10 md:shadow-2xl md:border md:border-white/10"
+        className="h-[calc(100dvh-80px)] w-full md:h-[calc(100vh-40px)] md:w-[450px] md:max-w-full md:rounded-[30px] mx-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide bg-black md:bg-black/20 md:backdrop-blur-3xl relative z-10 md:shadow-[0_0_50px_rgba(0,0,0,0.5)] md:border md:border-white/10"
         style={{ scrollBehavior: 'smooth' }}
       >
         {frames.map((frame, index) => (
@@ -141,13 +141,13 @@ export default function Frames() {
               itemRefs.current[index] = el;
             }}
             data-index={index}
-            className="h-[calc(100dvh-80px)] md:h-full w-full snap-start relative bg-black flex flex-col justify-center"
+            className="h-[calc(100dvh-80px)] md:h-full w-full snap-start relative bg-black md:bg-transparent flex flex-col justify-center"
           >
             <FrameItem post={frame} isActive={index === activeFrameIndex} />
           </div>
         ))}
         {isFetchingNextPage && (
-          <div className="h-dvh md:h-full w-full snap-start flex items-center justify-center bg-black">
+          <div className="h-dvh md:h-full w-full snap-start flex items-center justify-center bg-black md:bg-transparent">
             <LoadingSpinner size="md" />
           </div>
         )}

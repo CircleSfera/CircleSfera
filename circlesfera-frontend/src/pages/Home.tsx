@@ -31,29 +31,32 @@ export default function Home() {
 
       <div className="max-w-lg mx-auto px-4">
         {/* Feed Tabs */}
-        <div className="flex border-b border-gray-800 mb-6">
-          <button
-            type="button"
-            onClick={() => setActiveTab('foryou')}
-            className={`flex-1 pb-4 text-center font-bold transition-colors ${
-              activeTab === 'foryou'
-                ? 'text-white border-b-2 border-brand-primary'
-                : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            {t('feed.foryou', 'Para Ti')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('following')}
-            className={`flex-1 pb-4 text-center font-bold transition-colors ${
-              activeTab === 'following'
-                ? 'text-white border-b-2 border-brand-primary'
-                : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            {t('feed.following', 'Siguiendo')}
-          </button>
+        {/* Feed Tabs */}
+        <div className="flex justify-center mb-8">
+          <div className="flex items-center gap-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full p-1 shadow-2xl relative z-20">
+            <button
+              type="button"
+              onClick={() => setActiveTab('foryou')}
+              className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
+                activeTab === 'foryou'
+                  ? 'bg-white/10 text-white shadow-md'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+              }`}
+            >
+              {t('feed.foryou', 'Para Ti')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('following')}
+              className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
+                activeTab === 'following'
+                  ? 'bg-white/10 text-white shadow-md'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+              }`}
+            >
+              {t('feed.following', 'Siguiendo')}
+            </button>
+          </div>
         </div>
 
         {/* Stories Section */}
