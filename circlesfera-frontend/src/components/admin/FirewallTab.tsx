@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
 import { ShieldCheck, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { adminApi, type FirewallSignature } from '../../services/admin.service';
@@ -141,7 +140,13 @@ export default function FirewallTab({ onToast }: Props) {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-400">
-                      {format(new Date(item.createdAt), 'dd MMM yyyy, HH:mm')}
+                      {new Date(item.createdAt).toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
@@ -163,8 +168,7 @@ export default function FirewallTab({ onToast }: Props) {
         {data?.meta && data.meta.totalPages > 1 && (
           <div className="p-4 border-t border-white/5">
             <Pagination
-              currentPage={page}
-              totalPages={data.meta.totalPages}
+              meta={data.meta}
               onPageChange={setPage}
             />
           </div>
@@ -178,7 +182,7 @@ export default function FirewallTab({ onToast }: Props) {
         confirmText="Eliminar"
         cancelText="Cancelar"
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
-        onCancel={() => setDeleteId(null)}
+        onClose={() => setDeleteId(null)}
         isLoading={deleteMutation.isPending}
       />
     </div>
