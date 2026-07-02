@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
-import { memo, useEffect, useRef, useState } from 'react';
-import { bookmarksApi, postsApi } from '../services';
+import { lazy, memo, Suspense, useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
+import { bookmarksApi, creatorApi, postsApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { Post } from '../types';
 
@@ -16,6 +17,8 @@ import PostHeader from './post/PostHeader';
 import PostMedia from './post/PostMedia';
 import PostMenu from './post/PostMenu';
 import PostModals from './post/PostModals';
+
+const PromoteModal = lazy(() => import('./creator/PromoteModal'));
 
 interface PostCardProps {
   post: Post;
@@ -33,11 +36,40 @@ export default memo(function PostCard({ post }: PostCardProps) {
   const [showReportModal, setShowReportModal] = useState(false);
   const [showAddToCollectionModal, setShowAddToCollectionModal] =
     useState(false);
+  const [showPromoteModal, setShowPromoteModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showTipModal, setShowTipModal] = useState(false);
   const [editCaption, setEditCaption] = useState(post.caption || '');
   const [likesCount, setLikesCount] = useState(post._count?.likes || 0);
   const [isDeleted, setIsDeleted] = useState(false);
+
+  const postRef = useRef<HTMLDivElement>(null);
+  const viewRecorded = useRef(false);
+
+  useEffect(() => {
+    if (!post.isPromoted || !post.promotionId || viewRecorded.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && !viewRecorded.current) {
+          viewRecorded.current = true;
+          creatorApi
+            .recordPromotionView(post.promotionId!)
+            .catch(console.error);
+        }
+      },
+      { threshold: 0.5 },
+    );
+
+    if (postRef.current) {
+      observer.observe(postRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [post.isPromoted, post.promotionId]);
 
   // Refs
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -125,7 +157,10 @@ export default memo(function PostCard({ post }: PostCardProps) {
 
   return (
     <>
-      <div className="glass-panel-post rounded-lg overflow-hidden mb-2">
+      <div
+        ref={postRef}
+        className="glass-panel-post rounded-lg overflow-hidden mb-2"
+      >
         <PostHeader
           post={post}
           menuButtonRef={menuButtonRef}
@@ -169,6 +204,10 @@ export default memo(function PostCard({ post }: PostCardProps) {
         onReport={() => {
           setShowMenu(false);
           setShowReportModal(true);
+        }}
+        onPromote={() => {
+          setShowMenu(false);
+          setShowPromoteModal(true);
         }}
         onAddToCollection={() => {
           setShowMenu(false);
@@ -221,6 +260,19 @@ export default memo(function PostCard({ post }: PostCardProps) {
           postId={post.id}
           currentCollectionId={collectionId}
         />
+      )}
+
+      {showPromoteModal && (
+        <Suspense fallback={null}>
+          <PromoteModal
+            post={post}
+            onClose={() => setShowPromoteModal(false)}
+            onToast={(msg: string, type: 'success' | 'error') => {
+              if (type === 'success') toast.success(msg);
+              else toast.error(msg);
+            }}
+          />
+        </Suspense>
       )}
     </>
   );
