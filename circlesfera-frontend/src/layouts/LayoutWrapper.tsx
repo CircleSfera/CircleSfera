@@ -105,7 +105,7 @@ export default function LayoutWrapper({
           !isFramesRoute && <div className="md:hidden h-16" />}
 
         <div
-          className={`w-full ${location.pathname.startsWith('/direct') ? (location.pathname.includes('/t/') ? 'h-[calc(100dvh-80px)] md:h-screen' : 'h-[calc(100dvh-64px-80px)] md:h-screen') : isFramesRoute ? 'h-screen' : `min-h-screen ${shouldShowNav ? 'pb-24 md:pb-8' : ''}`} overflow-hidden`}
+          className={`w-full ${location.pathname.startsWith('/direct') ? (location.pathname.includes('/t/') ? 'h-[calc(100dvh-80px)] md:h-screen' : 'h-[calc(100dvh-64px-80px)] md:h-screen') : isFramesRoute ? 'h-dvh md:h-screen' : `min-h-screen ${shouldShowNav ? 'pb-24 md:pb-8' : ''}`} overflow-hidden`}
         >
           <div
             className={
