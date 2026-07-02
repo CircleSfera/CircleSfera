@@ -368,7 +368,7 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
       </div>
 
       {/* Overlay Gradients */}
-      <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-linear-to-t from-black/90 via-black/40 to-transparent pointer-events-none z-10" />
+      <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-linear-to-t from-black via-black/60 to-transparent pointer-events-none z-10" />
 
       {/* Main Info Area (Bottom) */}
       <div className="absolute bottom-4 md:bottom-6 left-0 right-16 px-4 flex flex-col justify-end z-20 pointer-events-none">
@@ -444,7 +444,7 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
       </div>
 
       {/* Right Sidebar Actions */}
-      <div className="absolute bottom-6 right-2 w-14 flex flex-col items-center justify-end gap-6 z-20 pointer-events-auto">
+      <div className="absolute bottom-6 right-2 w-[60px] py-5 flex flex-col items-center justify-end gap-6 z-20 pointer-events-auto bg-black/30 backdrop-blur-xl border border-white/10 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
         <div className="flex flex-col items-center gap-1 group">
           <LikeButton
             postId={post.id}
@@ -528,10 +528,10 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
         />
         <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
           <div
-            className="h-full bg-white relative"
+            className="h-full bg-white relative drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]"
             style={{ width: `${progress}%` }}
           >
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-white rounded-full shadow-md scale-0 group-hover:scale-100 transition-transform" />
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,1)] scale-0 group-hover:scale-100 transition-transform" />
           </div>
         </div>
       </div>
