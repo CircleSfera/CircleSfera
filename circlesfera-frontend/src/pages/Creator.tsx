@@ -3,15 +3,15 @@ import { ArrowLeft, Plus } from 'lucide-react';
 import { lazy, Suspense, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import CreatorSidebar from '../components/creator/CreatorSidebar';
 import type { CreatorTab } from '../components/creator/CreatorSidebar';
+import CreatorSidebar from '../components/creator/CreatorSidebar';
 import { Button } from '../components/ui';
-import { creatorApi } from '../services/creator.service';
 import type {
   CreatorChartDay,
   CreatorPost,
   CreatorStats,
 } from '../services/creator.service';
+import { creatorApi } from '../services/creator.service';
 import { useUIStore } from '../stores/uiStore';
 
 const CreatorAnalyticsTab = lazy(
@@ -98,7 +98,12 @@ export default function Creator() {
           </p>
         </div>
 
-        <Button variant="primary" size="sm" className="hidden sm:flex" onClick={openCreateMenu}>
+        <Button
+          variant="primary"
+          size="sm"
+          className="hidden sm:flex"
+          onClick={openCreateMenu}
+        >
           <Plus size={14} className="mr-2" />
           {t('creator.new_content')}
         </Button>
