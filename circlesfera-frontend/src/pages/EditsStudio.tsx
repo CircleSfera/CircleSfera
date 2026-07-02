@@ -50,6 +50,7 @@ export default function Studio() {
     splitClip,
     removeClip,
     selectedClipId,
+    selectClip,
     updateClip,
     playhead,
     setPlayhead,
@@ -437,7 +438,7 @@ export default function Studio() {
               onChange={(e) =>
                 project && setProject({ ...project, name: e.target.value })
               }
-              className="bg-transparent border-none text-sm font-bold text-white w-32 focus:w-48 transition-all outline-none focus:ring-1 focus:ring-brand-primary/50 rounded px-1 -ml-1 placeholder:text-white/30"
+              className="bg-transparent border-none text-sm font-bold text-white w-24 sm:w-32 focus:w-36 sm:focus:w-48 transition-all outline-none focus:ring-1 focus:ring-brand-primary/50 rounded px-1 -ml-1 placeholder:text-white/30"
             />
           </div>
         </div>
@@ -476,7 +477,7 @@ export default function Studio() {
             className="ml-2 bg-white text-black hover:bg-zinc-200 h-8 px-4 rounded-full text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5"
           >
             <Download size={14} />
-            <span>Exportar</span>
+            <span className="hidden sm:inline">Exportar</span>
           </Button>
         </div>
       </div>
@@ -490,10 +491,10 @@ export default function Studio() {
             <StudioPlayer />
 
             {/* Playback Controls Area */}
-            <div className="h-16 bg-[#0a0a0c] border-t border-white/5 shrink-0 flex items-center justify-between px-6 z-20">
+            <div className="h-16 bg-[#0a0a0c] border-t border-white/5 shrink-0 flex items-center justify-between px-3 sm:px-6 z-20">
               {/* Left: Timecode */}
-              <div className="w-32">
-                <span className="font-mono text-sm text-brand-primary drop-shadow-[0_0_8px_rgba(131,58,180,0.5)] bg-brand-primary/10 px-2 py-1 rounded">
+              <div className="w-20 sm:w-32">
+                <span className="font-mono text-xs sm:text-sm text-brand-primary drop-shadow-[0_0_8px_rgba(131,58,180,0.5)] bg-brand-primary/10 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded">
                   {formatTimecode(playhead)}
                 </span>
                 <span className="font-mono text-xs text-white/30 ml-2 hidden sm:inline">
@@ -502,7 +503,7 @@ export default function Studio() {
               </div>
 
               {/* Center: Playback Buttons */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 sm:gap-4">
                 <button
                   type="button"
                   onClick={() => setPlayhead(0)}
@@ -514,7 +515,7 @@ export default function Studio() {
                 <button
                   type="button"
                   onClick={() => skipFrames(-1)}
-                  className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  className="hidden sm:block p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                   title="Frame anterior"
                 >
                   <svg
@@ -548,7 +549,7 @@ export default function Studio() {
                 <button
                   type="button"
                   onClick={() => skipFrames(1)}
-                  className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  className="hidden sm:block p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                   title="Siguiente frame"
                 >
                   <svg
@@ -577,7 +578,7 @@ export default function Studio() {
               </div>
 
               {/* Right: Fullscreen/Settings */}
-              <div className="w-32 flex justify-end gap-2">
+              <div className="w-20 sm:w-32 flex justify-end gap-2">
                 <button
                   type="button"
                   className="p-1.5 text-white/30 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
@@ -590,7 +591,7 @@ export default function Studio() {
         </div>
 
         {/* Bottom/Right: Timeline Area */}
-        <div className="h-[45vh] lg:h-full lg:w-[45%] flex flex-col shrink-0 bg-[#0e0e12] relative z-10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] lg:shadow-none">
+        <div className="h-[35vh] lg:h-full lg:w-[45%] flex flex-col shrink-0 bg-[#0e0e12] relative z-10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)] lg:shadow-none">
           {/* Main Toolbar */}
           <div className="h-14 bg-[#121216] flex items-center justify-between px-4 border-b border-white/5 shrink-0">
             <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
@@ -647,7 +648,7 @@ export default function Studio() {
             </div>
 
             {/* Zoom Controls */}
-            <div className="flex items-center gap-2 pl-4 shrink-0">
+            <div className="hidden sm:flex items-center gap-2 pl-4 shrink-0">
               <ZoomOut size={14} className="text-white/40" />
               <input
                 type="range"
@@ -661,12 +662,22 @@ export default function Studio() {
             </div>
           </div>
 
-          {/* Properties Panel (Slide up / inline) */}
+          {/* Properties Panel (Floating bottom sheet on mobile, inline on desktop) */}
           {selectedClip && (
-            <div className="bg-[#1a1a20] border-b border-white/5 shrink-0 animate-in fade-in slide-in-from-top-2 p-3 flex flex-wrap gap-x-6 gap-y-3">
-              <div className="flex items-center gap-2 mb-1 w-full text-xs font-medium text-white/50 uppercase tracking-wider">
-                <Settings2 size={14} />
-                <span>Propiedades de {selectedClip.type}</span>
+            <div className="lg:static absolute bottom-0 left-0 right-0 z-30 lg:z-0 bg-[#121216]/95 lg:bg-[#1a1a20] border-t lg:border-t-0 border-b border-white/10 lg:border-white/5 p-4 lg:p-3 rounded-t-2xl lg:rounded-none shadow-2xl lg:shadow-none flex flex-col lg:flex-row lg:flex-wrap gap-4 lg:gap-x-6 lg:gap-y-3 animate-in slide-in-from-bottom lg:slide-in-from-top-2 duration-300">
+              <div className="flex items-center justify-between w-full border-b border-white/5 pb-2 lg:border-b-0 lg:pb-0">
+                <div className="flex items-center gap-2 text-xs font-semibold text-white/50 uppercase tracking-wider">
+                  <Settings2 size={14} />
+                  <span>Propiedades de {selectedClip.type}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => selectClip(null)}
+                  className="lg:hidden p-1 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors"
+                  aria-label="Cerrar propiedades"
+                >
+                  <X size={16} />
+                </button>
               </div>
 
               {selectedClip.type === 'text' && (
