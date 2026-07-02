@@ -18,6 +18,9 @@ import VerificationBadge, { type VerificationLevel } from './VerificationBadge';
 interface CommentListProps {
   postId: string;
   comments: Comment[];
+  isDetailMode?: boolean;
+  captionComponent?: React.ReactNode;
+  actionsComponent?: React.ReactNode;
 }
 
 interface CommentItemProps {
@@ -184,7 +187,7 @@ const CommentItem = ({
 import { logger } from '../utils/logger';
 import ConfirmModal from './modals/ConfirmModal';
 
-export default function CommentList({ postId, comments }: CommentListProps) {
+export default function CommentList({ postId, comments, isDetailMode, captionComponent, actionsComponent }: CommentListProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { profile } = useAuthStore();
@@ -301,8 +304,10 @@ export default function CommentList({ postId, comments }: CommentListProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-4">
+    <div className={isDetailMode ? "flex flex-col h-full min-h-0" : "space-y-4"}>
+      <div className={isDetailMode ? "flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4 border-t border-white/5" : "space-y-4"}>
+        {isDetailMode && captionComponent}
+        
         {comments.map((comment) => (
           <CommentItem
             key={comment.id}
@@ -323,10 +328,16 @@ export default function CommentList({ postId, comments }: CommentListProps) {
         )}
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="mt-6 pt-4 border-t border-white/10 sticky bottom-0 bg-black/80 backdrop-blur-md p-4 -mx-4 rounded-b-2xl"
-      >
+      <div className={isDetailMode ? "shrink-0 border-t border-white/10" : "mt-6 pt-4 border-t border-white/10 sticky bottom-0 bg-black/80 backdrop-blur-md p-4 -mx-4 rounded-b-2xl"}>
+        {isDetailMode && actionsComponent && (
+          <div className="p-3 pb-0">
+            {actionsComponent}
+          </div>
+        )}
+        <form
+          onSubmit={handleSubmit}
+          className={isDetailMode ? "p-3 pt-2" : ""}
+        >
         {replyingTo && (
           <div className="flex items-center justify-between bg-white/5 px-2 py-1 rounded-lg mb-2 text-sm border border-white/10">
             <span className="text-gray-300">
@@ -406,7 +417,8 @@ export default function CommentList({ postId, comments }: CommentListProps) {
             {t('comments.post')}
           </Button>
         </div>
-      </form>
+        </form>
+      </div>
 
       <ConfirmModal
         isOpen={showDeleteConfirm}

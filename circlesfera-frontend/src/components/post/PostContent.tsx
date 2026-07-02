@@ -6,17 +6,21 @@ import RichText from '../RichText';
 interface PostContentProps {
   post: Post;
   likesCount: number;
+  hideCaption?: boolean;
+  hideStats?: boolean;
 }
 
-export default function PostContent({ post, likesCount }: PostContentProps) {
+export default function PostContent({ post, likesCount, hideCaption, hideStats }: PostContentProps) {
   const { t } = useTranslation();
   return (
     <div className="pt-3">
-      <div className="font-semibold text-sm mb-1">
-        {likesCount} {t('post.content.likes')}
-      </div>
+      {!hideStats && (
+        <div className="font-semibold text-sm mb-1">
+          {likesCount} {t('post.content.likes')}
+        </div>
+      )}
 
-      {post.caption && (
+      {!hideCaption && post.caption && (
         <div className="text-sm text-gray-300 mb-1">
           <Link
             to={`/${post.user.profile.username}`}
@@ -28,18 +32,20 @@ export default function PostContent({ post, likesCount }: PostContentProps) {
         </div>
       )}
 
-      {post._count?.comments > 0 && (
+      {!hideStats && post._count?.comments > 0 && (
         <Link
           to={`/p/${post.id}`}
-          className="text-sm text-gray-500 hover:text-gray-400 transition-colors"
+          className="text-sm text-gray-500 hover:text-gray-400 transition-colors block mb-1"
         >
           {t('post.content.view_all_comments', { count: post._count.comments })}
         </Link>
       )}
 
-      <div className="text-xs text-gray-600 mt-1 uppercase">
-        {new Date(post.createdAt).toLocaleDateString()}
-      </div>
+      {!hideStats && (
+        <div className="text-xs text-gray-600 mt-1 uppercase">
+          {new Date(post.createdAt).toLocaleDateString()}
+        </div>
+      )}
     </div>
   );
 }
