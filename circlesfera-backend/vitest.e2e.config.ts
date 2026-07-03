@@ -9,6 +9,7 @@ export default defineConfig({
     exclude: ['**/node_modules/**', '**/dist/**'],
     environment: 'node',
     testTimeout: 30000,
+    setupFiles: ['./test/setup.ts'],
   },
   plugins: [
     swc.vite({
