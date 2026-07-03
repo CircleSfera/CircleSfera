@@ -11,6 +11,7 @@ interface PostMediaProps {
   className?: string;
   aspectRatio?: string;
   objectFit?: 'cover' | 'contain';
+  priority?: boolean;
 }
 
 export default function PostMedia({
@@ -18,6 +19,7 @@ export default function PostMedia({
   className = '',
   aspectRatio = 'aspect-4/5',
   objectFit = 'cover',
+  priority = false,
 }: PostMediaProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -60,6 +62,7 @@ export default function PostMedia({
           aspectRatio={aspectRatio}
           objectFit={objectFit}
           isLocked={post.isLocked}
+          priority={priority}
         />
         {post.isLocked && (
           <PaywallOverlay

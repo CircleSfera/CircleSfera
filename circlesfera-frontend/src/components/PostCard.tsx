@@ -24,12 +24,14 @@ interface PostCardProps {
   post: Post;
   isDetailMode?: boolean;
   renderComments?: (props?: any) => React.ReactNode;
+  priority?: boolean;
 }
 
 export default memo(function PostCard({
   post,
   isDetailMode,
   renderComments,
+  priority,
 }: PostCardProps) {
   const queryClient = useQueryClient();
   const { profile } = useAuthStore();
@@ -199,6 +201,7 @@ export default memo(function PostCard({
             aspectRatio="aspect-auto"
             className="w-full h-full"
             objectFit="contain"
+            priority={priority}
           />
         </div>
 
@@ -229,7 +232,7 @@ export default memo(function PostCard({
         className={
           isDetailMode
             ? 'md:hidden w-full flex flex-col pb-4'
-            : 'glass-panel-post rounded-lg overflow-hidden mb-2'
+            : 'glass-panel-post rounded-lg overflow-hidden mb-2 content-visibility-auto'
         }
       >
         <PostHeader
@@ -250,6 +253,7 @@ export default memo(function PostCard({
             aspectRatio={isDetailMode ? 'aspect-auto' : 'aspect-4/5'}
             className={isDetailMode ? 'max-h-[75vh] w-full' : ''}
             objectFit={isDetailMode ? 'contain' : 'cover'}
+            priority={priority}
           />
         </div>
 
@@ -266,33 +270,37 @@ export default memo(function PostCard({
       </div>
 
       {/* Overlays & Modals */}
-      <PostMenu
-        showMenu={showMenu}
-        menuRef={menuRef}
-        menuPosition={menuPosition}
-        isOwner={isOwner}
-        onEdit={() => {
-          setShowMenu(false);
-          setEditCaption(post.caption || '');
-          setShowEditModal(true);
-        }}
-        onDelete={() => {
-          setShowMenu(false);
-          setShowDeleteModal(true);
-        }}
-        onReport={() => {
-          setShowMenu(false);
-          setShowReportModal(true);
-        }}
-        onPromote={() => {
-          setShowMenu(false);
-          setShowPromoteModal(true);
-        }}
-        onAddToCollection={() => {
-          setShowMenu(false);
-          setShowAddToCollectionModal(true);
-        }}
-      />
+      <AnimatePresence>
+        {showMenu && (
+          <PostMenu
+            showMenu={showMenu}
+            menuRef={menuRef}
+            menuPosition={menuPosition}
+            isOwner={isOwner}
+            onEdit={() => {
+              setShowMenu(false);
+              setEditCaption(post.caption || '');
+              setShowEditModal(true);
+            }}
+            onDelete={() => {
+              setShowMenu(false);
+              setShowDeleteModal(true);
+            }}
+            onReport={() => {
+              setShowMenu(false);
+              setShowReportModal(true);
+            }}
+            onPromote={() => {
+              setShowMenu(false);
+              setShowPromoteModal(true);
+            }}
+            onAddToCollection={() => {
+              setShowMenu(false);
+              setShowAddToCollectionModal(true);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       <PostModals
         showDeleteModal={showDeleteModal}
