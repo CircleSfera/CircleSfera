@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { usersApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
 import type { SuggestedUser } from '../../types';
-import { logger } from '../../utils/logger';
 import { SuggestedUserCard } from './SuggestedUserCard';
 
 export const SuggestionsList: React.FC<{
@@ -24,9 +23,10 @@ export const SuggestionsList: React.FC<{
     const fetchSuggestions = async () => {
       try {
         const response = await usersApi.getSuggestions();
+        console.log('CircleSfera Debug - Suggestions response:', response.data);
         setUsers(response.data);
       } catch (error) {
-        logger.error('Error fetching suggestions:', error);
+        console.error('CircleSfera Debug - Error fetching suggestions:', error);
       } finally {
         setLoading(false);
       }
