@@ -1428,7 +1428,7 @@ export class AdminService {
 
   async getFirewallSignatures(page = 1, limit = 20) {
     const skip = (page - 1) * limit;
-    
+
     const [signatures, total] = await Promise.all([
       this.prisma.$queryRaw<any[]>`
         SELECT id, category, "textPreview", "createdAt"
@@ -1456,7 +1456,7 @@ export class AdminService {
     }
 
     const embedding = await this.aiService.generateEmbedding(text);
-    
+
     await this.prisma.$executeRaw`
       INSERT INTO moderation_signatures (id, category, vector, "textPreview")
       VALUES (gen_random_uuid(), ${category}, ${JSON.stringify(embedding)}::vector, ${text.substring(0, 500)})

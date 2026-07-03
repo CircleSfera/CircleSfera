@@ -87,7 +87,7 @@ export default function Login() {
 
   const err = loginMutation.error as any;
   const errorMessage = err
-    ? (err.response?.data?.message || err.message)
+    ? err.response?.data?.message || err.message
     : undefined;
   const is2FARequired = errorMessage === '2FA_REQUIRED';
 

@@ -52,7 +52,9 @@ export default function PostMedia({
       ? post.priceCents / 100
       : post.price || 0;
     return (
-      <div className={`relative bg-black overflow-hidden group ${aspectRatio} ${className}`}>
+      <div
+        className={`relative bg-black overflow-hidden group ${aspectRatio} ${className}`}
+      >
         <Carousel
           media={post.media}
           aspectRatio={aspectRatio}

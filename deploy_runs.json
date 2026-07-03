@@ -18,9 +18,7 @@
       "check_suite_node_id": "CS_kwDOS4uhvc8AAAARNuKkhA",
       "url": "https://api.github.com/repos/CircleSfera/CircleSfera/actions/runs/27477845352",
       "html_url": "https://github.com/CircleSfera/CircleSfera/actions/runs/27477845352",
-      "pull_requests": [
-
-      ],
+      "pull_requests": [],
       "created_at": "2026-06-13T20:13:43Z",
       "updated_at": "2026-06-13T20:18:59Z",
       "actor": {
@@ -45,9 +43,7 @@
         "site_admin": false
       },
       "run_attempt": 1,
-      "referenced_workflows": [
-
-      ],
+      "referenced_workflows": [],
       "run_started_at": "2026-06-13T20:13:43Z",
       "triggering_actor": {
         "login": "EasyFeliu",
@@ -246,9 +242,7 @@
       "check_suite_node_id": "CS_kwDOS4uhvc8AAAARNuDP8A",
       "url": "https://api.github.com/repos/CircleSfera/CircleSfera/actions/runs/27477800993",
       "html_url": "https://github.com/CircleSfera/CircleSfera/actions/runs/27477800993",
-      "pull_requests": [
-
-      ],
+      "pull_requests": [],
       "created_at": "2026-06-13T20:11:51Z",
       "updated_at": "2026-06-13T20:12:45Z",
       "actor": {
@@ -273,9 +267,7 @@
         "site_admin": false
       },
       "run_attempt": 1,
-      "referenced_workflows": [
-
-      ],
+      "referenced_workflows": [],
       "run_started_at": "2026-06-13T20:11:51Z",
       "triggering_actor": {
         "login": "EasyFeliu",
@@ -474,9 +466,7 @@
       "check_suite_node_id": "CS_kwDOS4uhvc8AAAARNsOP6Q",
       "url": "https://api.github.com/repos/CircleSfera/CircleSfera/actions/runs/27477106827",
       "html_url": "https://github.com/CircleSfera/CircleSfera/actions/runs/27477106827",
-      "pull_requests": [
-
-      ],
+      "pull_requests": [],
       "created_at": "2026-06-13T19:43:04Z",
       "updated_at": "2026-06-13T19:45:08Z",
       "actor": {
@@ -501,9 +491,7 @@
         "site_admin": false
       },
       "run_attempt": 1,
-      "referenced_workflows": [
-
-      ],
+      "referenced_workflows": [],
       "run_started_at": "2026-06-13T19:43:04Z",
       "triggering_actor": {
         "login": "EasyFeliu",
@@ -702,9 +690,7 @@
       "check_suite_node_id": "CS_kwDOS4uhvc8AAAARNsGG9g",
       "url": "https://api.github.com/repos/CircleSfera/CircleSfera/actions/runs/27477058907",
       "html_url": "https://github.com/CircleSfera/CircleSfera/actions/runs/27477058907",
-      "pull_requests": [
-
-      ],
+      "pull_requests": [],
       "created_at": "2026-06-13T19:41:04Z",
       "updated_at": "2026-06-13T19:42:10Z",
       "actor": {
@@ -729,9 +715,7 @@
         "site_admin": false
       },
       "run_attempt": 1,
-      "referenced_workflows": [
-
-      ],
+      "referenced_workflows": [],
       "run_started_at": "2026-06-13T19:41:04Z",
       "triggering_actor": {
         "login": "EasyFeliu",
@@ -930,9 +914,7 @@
       "check_suite_node_id": "CS_kwDOS4uhvc8AAAARNr5oIw",
       "url": "https://api.github.com/repos/CircleSfera/CircleSfera/actions/runs/27476984302",
       "html_url": "https://github.com/CircleSfera/CircleSfera/actions/runs/27476984302",
-      "pull_requests": [
-
-      ],
+      "pull_requests": [],
       "created_at": "2026-06-13T19:37:59Z",
       "updated_at": "2026-06-13T19:38:44Z",
       "actor": {
@@ -957,9 +939,7 @@
         "site_admin": false
       },
       "run_attempt": 1,
-      "referenced_workflows": [
-
-      ],
+      "referenced_workflows": [],
       "run_started_at": "2026-06-13T19:37:59Z",
       "triggering_actor": {
         "login": "EasyFeliu",

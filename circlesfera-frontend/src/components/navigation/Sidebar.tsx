@@ -227,7 +227,7 @@ export default function Sidebar() {
             {t('nav.premium')}
           </span>
         </Link>
- 
+
         <Link
           to="/accounts/edit"
           aria-label="Settings"
@@ -236,7 +236,7 @@ export default function Sidebar() {
           <Settings size={20} />
           <span className="hidden xl:block text-sm">{t('nav.settings')}</span>
         </Link>
- 
+
         {/* Logout Button */}
         <button
           type="button"

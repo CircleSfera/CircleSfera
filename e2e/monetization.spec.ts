@@ -1,7 +1,9 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Monetization & Virtual Economy', () => {
-  test('should show paywall for premium posts and allow unlocking', async ({ page }) => {
+  test('should show paywall for premium posts and allow unlocking', async ({
+    page,
+  }) => {
     // 1. Mock the authenticated user with an initial balance of 500 tokens
     await page.route('**/api/v1/users/me', async (route) => {
       await route.fulfill({
@@ -54,7 +56,7 @@ test.describe('Monetization & Virtual Economy', () => {
     await page.route('**/api/v1/wallet/unlock', async (route) => {
       const requestBody = JSON.parse(route.request().postData() || '{}');
       expect(requestBody.postId).toBe('mock-post-1');
-      
+
       await route.fulfill({
         status: 201,
         json: {
@@ -68,18 +70,25 @@ test.describe('Monetization & Virtual Economy', () => {
     await page.goto('/');
 
     // Verify the paywall overlay is visible on the post
-    const paywallOverlay = page.locator('div').filter({ hasText: 'Contenido Premium' }).first();
+    const paywallOverlay = page
+      .locator('div')
+      .filter({ hasText: 'Contenido Premium' })
+      .first();
     await expect(paywallOverlay).toBeVisible({ timeout: 10000 });
 
     // Verify the unlock button displays the correct price
-    const unlockButton = page.getByRole('button', { name: /Desbloquear por 100/i });
+    const unlockButton = page.getByRole('button', {
+      name: /Desbloquear por 100/i,
+    });
     await expect(unlockButton).toBeVisible();
 
     // 4. Click the unlock button
     await unlockButton.click();
 
     // 5. Expect a success toast to appear
-    await expect(page.getByText('Post unlocked successfully')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Post unlocked successfully')).toBeVisible({
+      timeout: 5000,
+    });
   });
 
   test('should allow subscribing to a creator', async ({ page }) => {
@@ -119,7 +128,7 @@ test.describe('Monetization & Virtual Economy', () => {
     await page.route('**/api/v1/wallet/subscribe', async (route) => {
       const requestBody = JSON.parse(route.request().postData() || '{}');
       expect(requestBody.creatorId).toBe('creator-999');
-      
+
       await route.fulfill({
         status: 201,
         json: { message: 'Subscribed successfully' },
@@ -132,10 +141,12 @@ test.describe('Monetization & Virtual Economy', () => {
     // Find and click the Subscribe button
     const subscribeButton = page.getByRole('button', { name: /subscribe/i });
     await expect(subscribeButton).toBeVisible({ timeout: 10000 });
-    
+
     await subscribeButton.click();
 
     // Verify the success toast
-    await expect(page.getByText('Subscribed successfully')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Subscribed successfully')).toBeVisible({
+      timeout: 5000,
+    });
   });
 });

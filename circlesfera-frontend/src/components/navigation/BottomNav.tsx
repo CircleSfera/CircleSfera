@@ -82,7 +82,7 @@ export default function BottomNav() {
   return (
     <nav
       aria-label="Mobile navigation"
-      className="flex md:hidden fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] left-4 right-4 h-16 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.5)] z-50"
+      className="flex md:hidden fixed bottom-[calc(0.5rem+env(safe-area-inset-bottom,0px))] left-4 right-4 h-14 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.5)] z-50"
     >
       <div className="flex items-center justify-between w-full px-2 relative z-10">
         {navItems.map((item) => {
@@ -96,15 +96,15 @@ export default function BottomNav() {
 
           const content = (
             <motion.div
-              className={`flex items-center justify-center w-11 h-11 rounded-full transition-all duration-300 relative ${
+              className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 relative ${
                 isActive
                   ? 'bg-linear-to-r from-brand-primary/20 to-brand-secondary/20 text-white shadow-[0_0_15px_rgba(131,58,180,0.3)] border border-white/10'
                   : 'text-gray-400 hover:text-white'
               }`}
               whileTap={{ scale: 0.9 }}
             >
-              <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
- 
+              <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+
               {/* Notification Badge */}
               {item.badge > 0 && (
                 <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center text-[10px] font-bold text-white bg-red-500 rounded-full px-1 shadow-lg shadow-red-500/50 animate-pulse">

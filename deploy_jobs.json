@@ -93,9 +93,7 @@
         }
       ],
       "check_run_url": "https://api.github.com/repos/CircleSfera/CircleSfera/check-runs/81220282437",
-      "labels": [
-        "ubuntu-latest"
-      ],
+      "labels": ["ubuntu-latest"],
       "runner_id": 1000000189,
       "runner_name": "GitHub Actions 1000000189",
       "runner_group_id": 0,
@@ -233,9 +231,7 @@
         }
       ],
       "check_run_url": "https://api.github.com/repos/CircleSfera/CircleSfera/check-runs/81220336679",
-      "labels": [
-        "ubuntu-latest"
-      ],
+      "labels": ["ubuntu-latest"],
       "runner_id": 1000000190,
       "runner_name": "GitHub Actions 1000000190",
       "runner_group_id": 0,
@@ -293,9 +289,7 @@
         }
       ],
       "check_run_url": "https://api.github.com/repos/CircleSfera/CircleSfera/check-runs/81220538776",
-      "labels": [
-        "ubuntu-latest"
-      ],
+      "labels": ["ubuntu-latest"],
       "runner_id": 1000000191,
       "runner_name": "GitHub Actions 1000000191",
       "runner_group_id": 0,

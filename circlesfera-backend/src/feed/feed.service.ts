@@ -238,10 +238,18 @@ export class FeedService {
         return finalPost;
       });
 
-      const feedWithPromotions = await this.injectPromotions(formattedPosts, userId);
+      const feedWithPromotions = await this.injectPromotions(
+        formattedPosts,
+        userId,
+      );
 
       // Simple mock total since accurate counts are heavy for algorithmic feeds
-      const result = createPaginatedResult(feedWithPromotions, 1000, page, limit);
+      const result = createPaginatedResult(
+        feedWithPromotions,
+        1000,
+        page,
+        limit,
+      );
 
       // Save to cache for 3 minutes (180000 ms)
       await this.cacheManager.set(cacheKey, result, 180000);
@@ -330,7 +338,7 @@ export class FeedService {
     const formattedPosts = posts.map((post: any) => {
       const { likes, ...rest } = post;
       const isLiked = Array.isArray(likes) ? likes.length > 0 : false;
-      
+
       let finalPost = { ...rest, isLiked };
 
       if (finalPost.isPremium && finalPost.userId !== userId) {
@@ -353,7 +361,10 @@ export class FeedService {
       return finalPost;
     });
 
-    const feedWithPromotions = await this.injectPromotions(formattedPosts, userId);
+    const feedWithPromotions = await this.injectPromotions(
+      formattedPosts,
+      userId,
+    );
 
     return createPaginatedResult(feedWithPromotions, total, page, limit);
   }
@@ -423,7 +434,7 @@ export class FeedService {
       const { likes, ...rest } = post;
       const isLiked =
         currentUserId && Array.isArray(likes) ? likes.length > 0 : false;
-      
+
       let finalPost = { ...rest, isLiked };
 
       if (finalPost.isPremium && finalPost.userId !== currentUserId) {
@@ -446,7 +457,10 @@ export class FeedService {
       return finalPost;
     });
 
-    const feedWithPromotions = await this.injectPromotions(formattedPosts, currentUserId);
+    const feedWithPromotions = await this.injectPromotions(
+      formattedPosts,
+      currentUserId,
+    );
 
     const result = createPaginatedResult(feedWithPromotions, 1000, page, limit);
 
@@ -475,12 +489,12 @@ export class FeedService {
         ...(userId ? { userId: { not: userId } } : {}),
       },
       take: neededPromotions,
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
     if (activePromotions.length === 0) return posts;
 
-    const promotedPostIds = activePromotions.map(p => p.targetId);
+    const promotedPostIds = activePromotions.map((p) => p.targetId);
     const promotedPostsRaw = await this.prisma.post.findMany({
       where: { id: { in: promotedPostIds } },
       include: {
@@ -488,7 +502,7 @@ export class FeedService {
         media: true,
         _count: { select: { likes: true, comments: true } },
         likes: userId ? { where: { userId }, take: 1 } : false,
-      }
+      },
     });
 
     const promotedPostsDict = new Map();
@@ -500,7 +514,7 @@ export class FeedService {
 
     const finalPosts = [];
     let promoIndex = 0;
-    
+
     for (let i = 0; i < posts.length; i++) {
       finalPosts.push(posts[i]);
       // Inject after every 5th post (index 4, 9, 14)

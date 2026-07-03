@@ -232,41 +232,45 @@ export const es: typeof en = {
   pricing: {
     label: 'Suscripciones',
     title: 'Desbloquea Tu Potencial',
-    subtitle: 'Eleva tu presencia, accede a herramientas profesionales y construye tu audiencia con planes exclusivos para creadores y marcas.',
+    subtitle:
+      'Eleva tu presencia, accede a herramientas profesionales y construye tu audiencia con planes exclusivos para creadores y marcas.',
     popularBadge: 'Más Popular',
     perMonth: '/ mes',
     subscribeBtn: 'Comenzar Ahora',
     plans: {
       premium: {
         name: 'Premium',
-        description: 'Insignia de verificación, Analíticas básicas y Soporte prioritario.',
+        description:
+          'Insignia de verificación, Analíticas básicas y Soporte prioritario.',
         features: [
           'Insignia de Verificación',
           'Analíticas Básicas',
-          'Soporte Prioritario'
-        ]
+          'Soporte Prioritario',
+        ],
       },
       elite: {
         name: 'Elite Creator',
-        description: 'Herramientas Pro de crecimiento, Insights de audiencia y Spotlight.',
+        description:
+          'Herramientas Pro de crecimiento, Insights de audiencia y Spotlight.',
         features: [
           'Herramientas Pro de Crecimiento',
           'Insights de Audiencia',
           'Profile Spotlight',
-          'Insignia de Verificación'
-        ]
+          'Insignia de Verificación',
+        ],
       },
       business: {
         name: 'Business',
-        description: 'Verificación de negocio, Gestión multi-cuenta y Soporte 24/7 dedicado.',
+        description:
+          'Verificación de negocio, Gestión multi-cuenta y Soporte 24/7 dedicado.',
         features: [
           'Verificación de Negocio',
           'Gestión Multi-cuenta',
           'Soporte 24/7 Dedicado',
-          'Acceso a API (Beta)'
-        ]
-      }
-    }
+          'Acceso a API (Beta)',
+        ],
+      },
+    },
   },
 
   // Features Page

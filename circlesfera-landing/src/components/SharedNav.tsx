@@ -70,7 +70,7 @@ const SharedNav = () => {
         </div>
 
         <a
-          href={(isFeatures || isPricing) ? '/#whitelist' : '#whitelist'}
+          href={isFeatures || isPricing ? '/#whitelist' : '#whitelist'}
           onClick={(e) => {
             if (!isFeatures && !isPricing) {
               e.preventDefault();

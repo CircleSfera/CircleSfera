@@ -61,7 +61,10 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
     navigator.serviceWorker
       .register('/service-worker.js')
       .then((reg) => {
-        console.log('Service Worker registered successfully with scope:', reg.scope);
+        console.log(
+          'Service Worker registered successfully with scope:',
+          reg.scope,
+        );
       })
       .catch((err) => {
         console.error('Service Worker registration failed:', err);
