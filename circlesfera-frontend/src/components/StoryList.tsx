@@ -205,10 +205,42 @@ export default function StoryList() {
             );
           })}
 
-        {/* Empty state message if no stories */}
-        {groupedStories.length === 0 && (
-          <div className="flex items-center px-4">
-            <span className="text-sm text-gray-500">No stories yet</span>
+        {/* Placeholder bubbles when no other users have stories */}
+        {groupedStories.filter((g) => g.user.id !== profile?.id).length ===
+          0 && (
+          <div className="flex gap-3 items-center">
+            {/* Divider */}
+            <div className="h-8 w-px bg-white/10 mx-1 shrink-0" />
+
+            {/* Placeholder 1 */}
+            <div className="flex flex-col items-center gap-2 opacity-25 shrink-0 select-none w-16">
+              <div className="w-12 h-12 rounded-full border border-dashed border-white/40 flex items-center justify-center p-0.5">
+                <div className="w-full h-full bg-zinc-900/50 rounded-full flex items-center justify-center">
+                  <div className="w-4 h-4 rounded-full bg-white/20" />
+                </div>
+              </div>
+              <div className="h-2 w-10 bg-white/20 rounded-full" />
+            </div>
+
+            {/* Placeholder 2 */}
+            <div className="flex flex-col items-center gap-2 opacity-15 shrink-0 select-none w-16">
+              <div className="w-12 h-12 rounded-full border border-dashed border-white/40 flex items-center justify-center p-0.5">
+                <div className="w-full h-full bg-zinc-900/50 rounded-full flex items-center justify-center">
+                  <div className="w-4 h-4 rounded-full bg-white/20" />
+                </div>
+              </div>
+              <div className="h-2 w-8 bg-white/20 rounded-full" />
+            </div>
+
+            {/* Placeholder 3 */}
+            <div className="hidden sm:flex flex-col items-center gap-2 opacity-5 shrink-0 select-none w-16">
+              <div className="w-12 h-12 rounded-full border border-dashed border-white/40 flex items-center justify-center p-0.5">
+                <div className="w-full h-full bg-zinc-900/50 rounded-full flex items-center justify-center">
+                  <div className="w-4 h-4 rounded-full bg-white/20" />
+                </div>
+              </div>
+              <div className="h-2 w-12 bg-white/20 rounded-full" />
+            </div>
           </div>
         )}
       </div>

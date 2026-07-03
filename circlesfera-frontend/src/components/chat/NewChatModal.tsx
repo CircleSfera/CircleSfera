@@ -54,9 +54,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
     queryFn: async () => {
       if (!currentUser?.username) return [];
       const res = await followsApi.getFollowing(currentUser.username);
-      return (res.data || []).map(
-        (f: { following: { profile: Profile } }) => f.following.profile,
-      );
+      return (res.data || []).map((u: any) => u.profile).filter(Boolean);
     },
     enabled: !debouncedSearch && !!currentUser?.username,
   });

@@ -2,6 +2,7 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usersApi } from '../../services';
+import { useAuthStore } from '../../stores/authStore';
 import type { SuggestedUser } from '../../types';
 import { logger } from '../../utils/logger';
 import { SuggestedUserCard } from './SuggestedUserCard';
@@ -10,10 +11,16 @@ export const SuggestionsList: React.FC<{
   layout?: 'horizontal' | 'vertical';
 }> = ({ layout = 'horizontal' }) => {
   const { t } = useTranslation();
+  const { isAuthenticated } = useAuthStore();
   const [users, setUsers] = useState<SuggestedUser[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
     const fetchSuggestions = async () => {
       try {
         const response = await usersApi.getSuggestions();
@@ -26,7 +33,7 @@ export const SuggestionsList: React.FC<{
     };
 
     fetchSuggestions();
-  }, []);
+  }, [isAuthenticated]);
 
   const handleFollow = () => {
     // Optionally remove user from list after follow

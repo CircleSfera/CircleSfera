@@ -1,5 +1,5 @@
 import { Volume2, VolumeX } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { parseFilter } from '../utils/styleUtils';
 
 interface MediaItem {
@@ -18,6 +18,7 @@ interface CarouselProps {
   objectFit?: 'cover' | 'contain';
   className?: string;
   isLocked?: boolean;
+  priority?: boolean;
 }
 
 export default function Carousel({
@@ -26,10 +27,31 @@ export default function Carousel({
   objectFit = 'cover',
   className = '',
   isLocked = false,
+  priority = false,
 }: CarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+
+  // Automatically play active video and pause others
+  useEffect(() => {
+    // Pause all videos
+    for (const video of videoRefs.current) {
+      if (video) {
+        try {
+          video.pause();
+        } catch (_) {}
+      }
+    }
+
+    // Play current video if applicable
+    const activeVideo = videoRefs.current[currentIndex];
+    if (activeVideo) {
+      activeVideo.play().catch((err) => {
+        console.warn('Video autoplay failed:', err);
+      });
+    }
+  }, [currentIndex]);
 
   if (!media || media.length === 0) return null;
 
@@ -47,6 +69,8 @@ export default function Carousel({
       ? 'blur-2xl scale-[1.2] pointer-events-none'
       : '';
 
+    const fitClass = objectFit === 'cover' ? 'object-cover' : 'object-contain';
+
     if (item.type === 'video') {
       return (
         <div className="relative w-full h-full">
@@ -55,7 +79,7 @@ export default function Carousel({
               videoRefs.current[index] = el;
             }}
             src={item.url}
-            className={`w-full h-full object-${objectFit} ${filterClass} ${blurClass} transition-all duration-300`}
+            className={`w-full h-full ${fitClass} ${filterClass} ${blurClass} transition-all duration-300`}
             style={filterStyle}
             autoPlay
             muted={isMuted}
@@ -64,6 +88,7 @@ export default function Carousel({
             disablePictureInPicture
             controlsList="nodownload nofullscreen noremoteplayback"
             onClick={toggleMute}
+            preload={priority ? 'auto' : 'metadata'}
           />
           {!isLocked && (
             <button
@@ -78,25 +103,30 @@ export default function Carousel({
       );
     }
 
-    // Build srcSet for responsive images
-    const srcSet = [
-      item.thumbnailUrl ? `${item.thumbnailUrl} 300w` : '',
-      item.standardUrl ? `${item.standardUrl} 800w` : '',
-      `${item.url} 1200w`,
-    ]
-      .filter(Boolean)
-      .join(', ');
+    // Build srcSet for responsive images (exclude blob and data URLs)
+    const isLocalUrl =
+      item.url.startsWith('blob:') || item.url.startsWith('data:');
+    const srcSet = !isLocalUrl
+      ? [
+          item.thumbnailUrl ? `${item.thumbnailUrl} 300w` : '',
+          item.standardUrl ? `${item.standardUrl} 800w` : '',
+          `${item.url} 1200w`,
+        ]
+          .filter(Boolean)
+          .join(', ')
+      : undefined;
 
     return (
       <img
         src={item.url}
-        srcSet={srcSet || undefined}
+        srcSet={srcSet}
         sizes="(max-width: 768px) 100vw, 800px"
         alt={item.altText || 'Post content'}
-        className={`w-full h-full object-${objectFit} ${filterClass} ${blurClass} transition-all duration-300`}
+        className={`w-full h-full ${fitClass} ${filterClass} ${blurClass} transition-all duration-300`}
         style={filterStyle}
-        loading="lazy"
-        decoding="async"
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : undefined}
+        decoding={priority ? 'sync' : 'async'}
       />
     );
   };

@@ -205,23 +205,24 @@ video {
 }
 
 .glass-panel-post {
-  background: rgba(20, 20, 25, 0.4);
+  background: rgba(13, 13, 17, 0.45);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow:
-    0 10px 30px -10px rgba(0, 0, 0, 0.5),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    0 20px 40px -15px rgba(0, 0, 0, 0.7),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.01);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .glass-panel-post:hover {
-  border-color: rgba(131, 58, 180, 0.3);
-  background: rgba(25, 25, 30, 0.7);
+  border-color: rgba(131, 58, 180, 0.25);
+  background: rgba(20, 16, 28, 0.6);
   box-shadow:
-    0 8px 24px -8px rgba(131, 58, 180, 0.15),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-  transform: translateY(-1px);
+    0 30px 60px -20px rgba(131, 58, 180, 0.12),
+    0 0 0 1px rgba(131, 58, 180, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  transform: translateY(-2px);
 }
 
 .modal-glass {
@@ -232,6 +233,13 @@ video {
   box-shadow:
     0 24px 48px -12px rgba(0, 0, 0, 0.5),
     inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* ─── Performance Utilities ─── */
+
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 600px;
 }
 
 /* ─── Background Effects ─── */
