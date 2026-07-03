@@ -138,7 +138,7 @@ function ClipItem({ clip, zoom }: ClipItemProps) {
 
   let bgClass = 'bg-zinc-700';
   let icon = null;
-  
+
   if (clip.type === 'video') {
     bgClass = 'bg-gradient-to-r from-blue-600 to-blue-500';
     icon = <Video size={12} className="shrink-0" />;
@@ -158,8 +158,8 @@ function ClipItem({ clip, zoom }: ClipItemProps) {
       type="button"
       onPointerDown={handleDragStart}
       className={`absolute top-1 bottom-1 rounded-lg overflow-hidden flex items-center cursor-grab active:cursor-grabbing transition-all border shadow-sm ${
-        isSelected 
-          ? 'border-white z-10 ring-2 ring-white/20 scale-[1.02] brightness-110' 
+        isSelected
+          ? 'border-white z-10 ring-2 ring-white/20 scale-[1.02] brightness-110'
           : 'border-white/10 hover:brightness-110'
       } ${bgClass}`}
       style={{
@@ -171,7 +171,9 @@ function ClipItem({ clip, zoom }: ClipItemProps) {
       <div className="flex items-center gap-1.5 px-3 w-full h-full text-white pointer-events-none">
         {icon}
         <span className="text-[11px] font-medium truncate select-none drop-shadow-md">
-          {clip.type === 'text' ? (clip as any).content : clip.type.charAt(0).toUpperCase() + clip.type.slice(1)}
+          {clip.type === 'text'
+            ? (clip as any).content
+            : clip.type.charAt(0).toUpperCase() + clip.type.slice(1)}
         </span>
       </div>
 

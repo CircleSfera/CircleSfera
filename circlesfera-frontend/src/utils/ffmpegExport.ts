@@ -34,7 +34,8 @@ export async function exportStudioProject(
   });
 
   try {
-    const fontURL = 'https://unpkg.com/@canvas-fonts/roboto@1.0.4/Roboto-Regular.ttf';
+    const fontURL =
+      'https://unpkg.com/@canvas-fonts/roboto@1.0.4/Roboto-Regular.ttf';
     const fontData = await fetchFile(fontURL);
     await ffmpeg.writeFile('Roboto-Regular.ttf', fontData);
   } catch (e) {
@@ -106,18 +107,20 @@ export async function exportStudioProject(
       const tClip = textClips[i];
       const prevNode = finalVideoNode;
       finalVideoNode = `[textv${i}]`;
-      
+
       // Escape text for drawtext
-      const textStr = tClip.content.replace(/:/g, '\\\\:').replace(/'/g, ""); 
-      
+      const textStr = tClip.content.replace(/:/g, '\\\\:').replace(/'/g, '');
+
       let xExpr = `(w/2)+${tClip.transform.x}-(tw/2)`;
-      if (tClip.style.textAlign === 'left') xExpr = `(w/2)+${tClip.transform.x}`;
-      if (tClip.style.textAlign === 'right') xExpr = `(w/2)+${tClip.transform.x}-tw`;
-      
+      if (tClip.style.textAlign === 'left')
+        xExpr = `(w/2)+${tClip.transform.x}`;
+      if (tClip.style.textAlign === 'right')
+        xExpr = `(w/2)+${tClip.transform.x}-tw`;
+
       const yExpr = `(h/2)+${tClip.transform.y}-th`;
-      
+
       const drawtext = `drawtext=fontfile=Roboto-Regular.ttf:text='${textStr}':fontsize=${tClip.style.fontSize}:fontcolor=${tClip.style.color}:x=${xExpr}:y=${yExpr}:enable='between(t,${tClip.startAt},${tClip.startAt + tClip.duration})'`;
-      
+
       filterStrings.push(`${prevNode}${drawtext}${finalVideoNode};`);
     }
   }

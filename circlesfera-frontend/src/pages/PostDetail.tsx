@@ -36,9 +36,9 @@ export default function PostDetail() {
       {/* Cinematic Background */}
       <div className="fixed inset-0 z-[-1] pointer-events-none overflow-hidden bg-black">
         {post.data.media?.[0]?.url && (
-          <img 
-            src={post.data.media[0].url} 
-            alt="" 
+          <img
+            src={post.data.media[0].url}
+            alt=""
             className="w-full h-full object-cover opacity-50 blur-[100px] scale-125 saturate-150"
           />
         )}
@@ -80,11 +80,17 @@ export default function PostDetail() {
         </div>
 
         {/* Post Card in Detail Mode */}
-        <PostCard 
-          post={post.data} 
-          isDetailMode={true} 
+        <PostCard
+          post={post.data}
+          isDetailMode={true}
           renderComments={(props) => (
-            <div className={props?.isDetailMode ? "h-full flex flex-col min-h-0" : "flex flex-col h-full"}>
+            <div
+              className={
+                props?.isDetailMode
+                  ? 'h-full flex flex-col min-h-0'
+                  : 'flex flex-col h-full'
+              }
+            >
               {!props?.isDetailMode && (
                 <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2 shrink-0 px-2">
                   <span>{t('post.detail.comments')}</span>
@@ -95,7 +101,11 @@ export default function PostDetail() {
               )}
               {id && (
                 <div className="flex-1 pb-4 min-h-0">
-                  <CommentList postId={id} comments={comments?.data.data || []} {...props} />
+                  <CommentList
+                    postId={id}
+                    comments={comments?.data.data || []}
+                    {...props}
+                  />
                 </div>
               )}
             </div>

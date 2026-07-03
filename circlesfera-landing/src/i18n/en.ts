@@ -228,41 +228,41 @@ export const en = {
   pricing: {
     label: 'Subscriptions',
     title: 'Unlock Your Potential',
-    subtitle: 'Elevate your presence, access professional tools, and build your audience with exclusive plans for creators and brands.',
+    subtitle:
+      'Elevate your presence, access professional tools, and build your audience with exclusive plans for creators and brands.',
     popularBadge: 'Most Popular',
     perMonth: '/ month',
     subscribeBtn: 'Get Started',
     plans: {
       premium: {
         name: 'Premium',
-        description: 'Verification badge, Basic analytics, and Priority support.',
-        features: [
-          'Verified Badge',
-          'Basic Analytics',
-          'Priority Support'
-        ]
+        description:
+          'Verification badge, Basic analytics, and Priority support.',
+        features: ['Verified Badge', 'Basic Analytics', 'Priority Support'],
       },
       elite: {
         name: 'Elite Creator',
-        description: 'Pro growth tools, Audience insights, and Profile spotlight.',
+        description:
+          'Pro growth tools, Audience insights, and Profile spotlight.',
         features: [
           'Pro Growth Tools',
           'Audience Insights',
           'Profile Spotlight',
-          'Verified Badge'
-        ]
+          'Verified Badge',
+        ],
       },
       business: {
         name: 'Business',
-        description: 'Business verification, Multi-account management, and 24/7 dedicated support.',
+        description:
+          'Business verification, Multi-account management, and 24/7 dedicated support.',
         features: [
           'Business Verification',
           'Multi-account Management',
           'Dedicated 24/7 Support',
-          'API Access (Beta)'
-        ]
-      }
-    }
+          'API Access (Beta)',
+        ],
+      },
+    },
   },
 
   // Features Page

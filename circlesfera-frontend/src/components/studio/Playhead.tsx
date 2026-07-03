@@ -35,7 +35,7 @@ export default function Playhead() {
               className="fill-brand-primary group-hover:fill-purple-400 transition-colors"
             />
           </svg>
-          
+
           {/* Timecode Tooltip */}
           <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur text-white text-[10px] font-mono px-1.5 py-0.5 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none">
             {formatTime(playhead)}

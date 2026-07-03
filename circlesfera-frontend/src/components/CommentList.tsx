@@ -187,7 +187,13 @@ const CommentItem = ({
 import { logger } from '../utils/logger';
 import ConfirmModal from './modals/ConfirmModal';
 
-export default function CommentList({ postId, comments, isDetailMode, captionComponent, actionsComponent }: CommentListProps) {
+export default function CommentList({
+  postId,
+  comments,
+  isDetailMode,
+  captionComponent,
+  actionsComponent,
+}: CommentListProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { profile } = useAuthStore();
@@ -304,10 +310,18 @@ export default function CommentList({ postId, comments, isDetailMode, captionCom
   };
 
   return (
-    <div className={isDetailMode ? "flex flex-col h-full min-h-0" : "space-y-4"}>
-      <div className={isDetailMode ? "flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4 border-t border-white/5" : "space-y-4"}>
+    <div
+      className={isDetailMode ? 'flex flex-col h-full min-h-0' : 'space-y-4'}
+    >
+      <div
+        className={
+          isDetailMode
+            ? 'flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4 border-t border-white/5'
+            : 'space-y-4'
+        }
+      >
         {isDetailMode && captionComponent}
-        
+
         {comments.map((comment) => (
           <CommentItem
             key={comment.id}
@@ -328,95 +342,99 @@ export default function CommentList({ postId, comments, isDetailMode, captionCom
         )}
       </div>
 
-      <div className={isDetailMode ? "shrink-0 border-t border-white/10" : "mt-6 pt-4 border-t border-white/10 sticky bottom-[56px] lg:bottom-0 bg-black/95 backdrop-blur-md p-4 lg:-mx-4 rounded-t-xl lg:rounded-b-2xl z-20 shadow-2xl"}>
+      <div
+        className={
+          isDetailMode
+            ? 'shrink-0 border-t border-white/10'
+            : 'mt-6 pt-4 border-t border-white/10 sticky bottom-[56px] lg:bottom-0 bg-black/95 backdrop-blur-md p-4 lg:-mx-4 rounded-t-xl lg:rounded-b-2xl z-20 shadow-2xl'
+        }
+      >
         {isDetailMode && actionsComponent && (
-          <div className="p-3 pb-0">
-            {actionsComponent}
-          </div>
+          <div className="p-3 pb-0">{actionsComponent}</div>
         )}
         <form
           onSubmit={handleSubmit}
-          className={isDetailMode ? "p-3 pt-2" : ""}
+          className={isDetailMode ? 'p-3 pt-2' : ''}
         >
-        {replyingTo && (
-          <div className="flex items-center justify-between bg-white/5 px-2 py-1 rounded-lg mb-2 text-sm border border-white/10">
-            <span className="text-gray-300">
-              {t('comments.replying_to')}{' '}
-              <span className="font-bold text-purple-400">
-                @{replyingTo.user.profile.username}
+          {replyingTo && (
+            <div className="flex items-center justify-between bg-white/5 px-2 py-1 rounded-lg mb-2 text-sm border border-white/10">
+              <span className="text-gray-300">
+                {t('comments.replying_to')}{' '}
+                <span className="font-bold text-purple-400">
+                  @{replyingTo.user.profile.username}
+                </span>
               </span>
-            </span>
-            <Button
-              onClick={() => setReplyingTo(null)}
-              variant="ghost"
-              size="icon"
-              className="w-6 h-6 text-gray-400 hover:text-white rounded-full"
-            >
-              <X size={14} />
-            </Button>
-          </div>
-        )}
+              <Button
+                onClick={() => setReplyingTo(null)}
+                variant="ghost"
+                size="icon"
+                className="w-6 h-6 text-gray-400 hover:text-white rounded-full"
+              >
+                <X size={14} />
+              </Button>
+            </div>
+          )}
 
-        {media && (
-          <div className="relative inline-block mb-3 group">
-            <img
-              src={media.url}
-              alt="Preview"
-              className="w-20 h-20 object-cover rounded-lg border border-white/20"
+          {media && (
+            <div className="relative inline-block mb-3 group">
+              <img
+                src={media.url}
+                alt="Preview"
+                className="w-20 h-20 object-cover rounded-lg border border-white/20"
+              />
+              <Button
+                onClick={() => setMedia(null)}
+                variant="danger"
+                size="icon"
+                className="absolute -top-2 -right-2 w-6 h-6 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X size={12} />
+              </Button>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*,video/*"
+              onChange={handleFileUpload}
             />
             <Button
-              onClick={() => setMedia(null)}
-              variant="danger"
+              disabled={commentMutation.isPending}
+              isLoading={isUploading}
+              onClick={() => fileInputRef.current?.click()}
+              variant="ghost"
               size="icon"
-              className="absolute -top-2 -right-2 w-6 h-6 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+              className="w-12 h-12 bg-white/5 border border-white/10 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 shrink-0"
             >
-              <X size={12} />
+              {!isUploading && <ImageIcon size={20} />}
+            </Button>
+            <input
+              ref={inputRef}
+              type="text"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder={
+                replyingTo
+                  ? t('comments.reply_to_user', {
+                      username: replyingTo.user.profile.username,
+                    })
+                  : t('comments.add_comment')
+              }
+              className="flex-1 px-2 py-1 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-500 outline-none transition-all"
+            />
+            <Button
+              type="submit"
+              disabled={!newComment.trim()}
+              isLoading={commentMutation.isPending}
+              variant="primary"
+              className="px-6 py-2 bg-linear-to-r from-purple-600 to-pink-600 font-semibold hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/20 border-transparent"
+            >
+              {t('comments.post')}
             </Button>
           </div>
-        )}
-
-        <div className="flex gap-3">
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            accept="image/*,video/*"
-            onChange={handleFileUpload}
-          />
-          <Button
-            disabled={commentMutation.isPending}
-            isLoading={isUploading}
-            onClick={() => fileInputRef.current?.click()}
-            variant="ghost"
-            size="icon"
-            className="w-12 h-12 bg-white/5 border border-white/10 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 shrink-0"
-          >
-            {!isUploading && <ImageIcon size={20} />}
-          </Button>
-          <input
-            ref={inputRef}
-            type="text"
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder={
-              replyingTo
-                ? t('comments.reply_to_user', {
-                    username: replyingTo.user.profile.username,
-                  })
-                : t('comments.add_comment')
-            }
-            className="flex-1 px-2 py-1 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-500 outline-none transition-all"
-          />
-          <Button
-            type="submit"
-            disabled={!newComment.trim()}
-            isLoading={commentMutation.isPending}
-            variant="primary"
-            className="px-6 py-2 bg-linear-to-r from-purple-600 to-pink-600 font-semibold hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/20 border-transparent"
-          >
-            {t('comments.post')}
-          </Button>
-        </div>
         </form>
       </div>
 

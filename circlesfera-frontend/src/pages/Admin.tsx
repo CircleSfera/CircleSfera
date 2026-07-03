@@ -141,9 +141,7 @@ export default function Admin() {
               {activeTab === 'moderation' && (
                 <ModerationTab onToast={addToast} />
               )}
-              {activeTab === 'firewall' && (
-                <FirewallTab onToast={addToast} />
-              )}
+              {activeTab === 'firewall' && <FirewallTab onToast={addToast} />}
               {activeTab === 'monetization' && <MonetizationTab />}
               {activeTab === 'promotions' && (
                 <PromotionsTab onToast={addToast} />

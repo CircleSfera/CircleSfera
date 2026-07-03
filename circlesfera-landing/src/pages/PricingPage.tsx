@@ -77,7 +77,8 @@ const PricingPage = () => {
       <section className="max-w-6xl mx-auto px-6 pb-24 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10 items-start w-full mx-auto">
           {['premium', 'elite', 'business'].map((planKey) => {
-            const plan = t.pricing.plans[planKey as keyof typeof t.pricing.plans];
+            const plan =
+              t.pricing.plans[planKey as keyof typeof t.pricing.plans];
             const price = prices[planKey as keyof typeof prices];
             const isElite = planKey === 'elite';
 

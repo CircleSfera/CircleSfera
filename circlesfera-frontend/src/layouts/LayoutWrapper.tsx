@@ -56,7 +56,9 @@ export default function LayoutWrapper({
   const { isOpen, stories, initialIndex, closeStories } = useStoryStore();
 
   return (
-    <div className={`relative text-white selection:bg-purple-500/30 ${isFramesRoute ? 'h-dvh overflow-hidden' : 'min-h-screen overflow-x-hidden'}`}>
+    <div
+      className={`relative text-white selection:bg-purple-500/30 ${isFramesRoute ? 'h-dvh overflow-hidden' : 'min-h-screen overflow-x-hidden'}`}
+    >
       {/* Skip to Content Link */}
       <a
         href="#main-content"

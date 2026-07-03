@@ -498,7 +498,7 @@ export class CreatorService {
     const promo = await this.prisma.promotion.findUnique({
       where: { id: promotionId },
     });
-    
+
     if (!promo || promo.status !== PromotionStatus.ACTIVE) {
       return { success: false };
     }

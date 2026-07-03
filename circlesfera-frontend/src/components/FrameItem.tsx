@@ -371,7 +371,7 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
       <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-linear-to-t from-black via-black/60 to-transparent pointer-events-none z-10" />
 
       {/* Main Info Area (Bottom) */}
-      <div className="absolute bottom-[calc(6rem+env(safe-area-inset-bottom,0px))] md:bottom-6 left-0 right-16 px-4 flex flex-col justify-end z-20 pointer-events-none">
+      <div className="absolute bottom-4 md:bottom-6 left-0 right-16 px-4 flex flex-col justify-end z-20 pointer-events-none">
         {/* User Info Row */}
         <div className="flex items-center gap-2.5 mb-2.5 pointer-events-auto">
           <Link
@@ -444,7 +444,7 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
       </div>
 
       {/* Right Sidebar Actions */}
-      <div className="absolute bottom-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:bottom-6 right-2 w-[60px] py-5 flex flex-col items-center justify-end gap-6 z-20 pointer-events-auto bg-black/30 backdrop-blur-xl border border-white/10 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+      <div className="absolute bottom-6 right-2 w-[60px] py-5 flex flex-col items-center justify-end gap-6 z-20 pointer-events-auto bg-black/30 backdrop-blur-xl border border-white/10 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
         <div className="flex flex-col items-center gap-1 group">
           <LikeButton
             postId={post.id}

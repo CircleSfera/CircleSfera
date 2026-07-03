@@ -10,7 +10,12 @@ interface PostContentProps {
   hideStats?: boolean;
 }
 
-export default function PostContent({ post, likesCount, hideCaption, hideStats }: PostContentProps) {
+export default function PostContent({
+  post,
+  likesCount,
+  hideCaption,
+  hideStats,
+}: PostContentProps) {
   const { t } = useTranslation();
   return (
     <div className="pt-3">

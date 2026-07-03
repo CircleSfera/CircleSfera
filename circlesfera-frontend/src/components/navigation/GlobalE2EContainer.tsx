@@ -48,7 +48,10 @@ export function GlobalE2EContainer() {
           // Save the recovered master key
           const profile = useAuthStore.getState().profile;
           if (profile?.id) {
-            localStorage.setItem(`e2e_private_key_${profile.id}`, masterPrivateKeyBase64);
+            localStorage.setItem(
+              `e2e_private_key_${profile.id}`,
+              masterPrivateKeyBase64,
+            );
           } else {
             localStorage.setItem('e2e_private_key', masterPrivateKeyBase64);
           }
@@ -62,7 +65,10 @@ export function GlobalE2EContainer() {
             '/users/me/e2e-keys',
           );
           if (profile?.id) {
-            localStorage.setItem(`e2e_public_key_${profile.id}`, res.data.publicKey);
+            localStorage.setItem(
+              `e2e_public_key_${profile.id}`,
+              res.data.publicKey,
+            );
           } else {
             localStorage.setItem('e2e_public_key', res.data.publicKey);
           }
@@ -87,16 +93,16 @@ export function GlobalE2EContainer() {
     };
   }, [socket, setStatus, setSyncKeyPair]);
 
-    const handleApproveSync = async (payload: {
-      syncPublicKey: string;
-      requesterSocketId: string;
-    }) => {
-      try {
-        const profile = useAuthStore.getState().profile;
-        const privateKey = profile?.id
-          ? localStorage.getItem(`e2e_private_key_${profile.id}`)
-          : localStorage.getItem('e2e_private_key');
-        if (!privateKey || !socket) return;
+  const handleApproveSync = async (payload: {
+    syncPublicKey: string;
+    requesterSocketId: string;
+  }) => {
+    try {
+      const profile = useAuthStore.getState().profile;
+      const privateKey = profile?.id
+        ? localStorage.getItem(`e2e_private_key_${profile.id}`)
+        : localStorage.getItem('e2e_private_key');
+      if (!privateKey || !socket) return;
 
       const syncPayload = await E2EService.generateSyncPayload(
         privateKey,

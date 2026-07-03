@@ -179,8 +179,19 @@ export default function StudioPlayer() {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center bg-[#0a0a0c] text-white/40">
         <div className="w-16 h-16 mb-4 rounded-full bg-white/5 flex items-center justify-center">
-          <svg className="w-8 h-8 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+          <svg
+            className="w-8 h-8 opacity-50"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M12 4v16m8-8H4"
+            />
           </svg>
         </div>
         <p className="text-sm font-medium">No hay proyecto cargado</p>
@@ -189,7 +200,7 @@ export default function StudioPlayer() {
   }
 
   // Comprobar si hay clips en el proyecto
-  const hasClips = project.tracks.some(track => track.clips.length > 0);
+  const hasClips = project.tracks.some((track) => track.clips.length > 0);
 
   return (
     <div className="w-full h-full flex items-center justify-center bg-[#0a0a0c] relative p-4 md:p-8">
@@ -197,7 +208,9 @@ export default function StudioPlayer() {
       <div className="h-full w-auto aspect-9/16 rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/10 bg-checkerboard relative flex items-center justify-center">
         {!hasClips && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-white/40 pointer-events-none z-10 bg-black/40 backdrop-blur-sm">
-            <p className="text-sm font-medium">Arrastra contenido o usa [+ Agregar]</p>
+            <p className="text-sm font-medium">
+              Arrastra contenido o usa [+ Agregar]
+            </p>
           </div>
         )}
         <canvas

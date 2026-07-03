@@ -17,7 +17,7 @@ export default function FirewallTab({ onToast }: Props) {
   const [newText, setNewText] = useState('');
   const [newCategory, setNewCategory] = useState('SPAM');
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  
+
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery<PaginatedResponse<FirewallSignature>>({
@@ -58,9 +58,12 @@ export default function FirewallTab({ onToast }: Props) {
           <ShieldCheck size={20} className="text-brand-primary" />
         </div>
         <div>
-          <h2 className="text-lg font-black text-white">Escudo de IA (Vector Firewall)</h2>
+          <h2 className="text-lg font-black text-white">
+            Escudo de IA (Vector Firewall)
+          </h2>
           <p className="text-xs text-gray-500">
-            Reglas vectoriales que bloquean automáticamente contenido antes de publicarse.
+            Reglas vectoriales que bloquean automáticamente contenido antes de
+            publicarse.
           </p>
         </div>
       </div>
@@ -96,7 +99,8 @@ export default function FirewallTab({ onToast }: Props) {
           </Button>
         </div>
         <p className="text-xs text-gray-500">
-          Al generar el vector, el sistema bloqueará textos futuros que tengan un 90% o más de similitud semántica con esta frase.
+          Al generar el vector, el sistema bloqueará textos futuros que tengan
+          un 90% o más de similitud semántica con esta frase.
         </p>
       </div>
 
@@ -106,10 +110,18 @@ export default function FirewallTab({ onToast }: Props) {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-white/5 bg-white/2">
-                <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase">Texto Origen (Preview)</th>
-                <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase">Categoría</th>
-                <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase">Fecha creación</th>
-                <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase text-right">Acciones</th>
+                <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase">
+                  Texto Origen (Preview)
+                </th>
+                <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase">
+                  Categoría
+                </th>
+                <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase">
+                  Fecha creación
+                </th>
+                <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase text-right">
+                  Acciones
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -121,18 +133,30 @@ export default function FirewallTab({ onToast }: Props) {
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-gray-500 text-sm">
+                  <td
+                    colSpan={4}
+                    className="p-8 text-center text-gray-500 text-sm"
+                  >
                     No hay reglas vectoriales activas.
                   </td>
                 </tr>
               ) : (
                 items.map((item) => (
-                  <tr key={item.id} className="hover:bg-white/2 transition-colors">
+                  <tr
+                    key={item.id}
+                    className="hover:bg-white/2 transition-colors"
+                  >
                     <td className="px-4 py-3">
                       <div className="text-sm text-white max-w-md truncate">
-                        {item.textPreview || <span className="text-gray-500 italic">Vector generado automáticamente (sin preview)</span>}
+                        {item.textPreview || (
+                          <span className="text-gray-500 italic">
+                            Vector generado automáticamente (sin preview)
+                          </span>
+                        )}
                       </div>
-                      <div className="text-[10px] text-gray-500 font-mono mt-1">ID: {item.id.split('-')[0]}...</div>
+                      <div className="text-[10px] text-gray-500 font-mono mt-1">
+                        ID: {item.id.split('-')[0]}...
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <span className="px-2 py-1 bg-red-500/10 text-red-400 text-xs font-bold rounded-full border border-red-500/20">
@@ -164,13 +188,10 @@ export default function FirewallTab({ onToast }: Props) {
             </tbody>
           </table>
         </div>
-        
+
         {data?.meta && data.meta.totalPages > 1 && (
           <div className="p-4 border-t border-white/5">
-            <Pagination
-              meta={data.meta}
-              onPageChange={setPage}
-            />
+            <Pagination meta={data.meta} onPageChange={setPage} />
           </div>
         )}
       </div>
