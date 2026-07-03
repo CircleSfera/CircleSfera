@@ -29,9 +29,9 @@ export default function Home() {
       <div className="max-w-lg lg:max-w-4xl mx-auto px-4">
         <div className="flex flex-col lg:flex-row gap-8 items-start justify-center">
           {/* Main Feed Column */}
-          <div className="flex-1 w-full max-w-lg mx-auto shrink-0">
+          <div className="flex-1 w-full max-w-lg shrink-0">
             {/* Header Title - Hidden on mobile as TopNav replaces it */}
-            <h1 className="hidden md:block text-2xl md:text-3xl font-black text-center mb-8 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
+            <h1 className="hidden md:block w-full text-2xl md:text-3xl font-black text-center mb-8 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
               {t('feed.brand_name')}
             </h1>
             {/* Feed Tabs */}
@@ -130,7 +130,7 @@ export default function Home() {
           </div>
 
           {/* Right Sidebar Suggestions (Desktop Only) */}
-          <aside className="hidden lg:block w-[320px] sticky top-24 shrink-0">
+          <aside className="hidden lg:block w-[320px] sticky top-24 shrink-0 empty:hidden">
             <SuggestionsList layout="vertical" />
           </aside>
         </div>
