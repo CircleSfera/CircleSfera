@@ -51,7 +51,7 @@ export function DataExportSettings() {
           <h3 className="font-bold text-white text-lg tracking-tight">
             {t('settings.account.export.title', 'Download Your Data')}
           </h3>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-300">
             {t(
               'settings.account.export.desc',
               'Download a copy of your data including your profile, posts, and messages. This process may take a few minutes.',
@@ -80,7 +80,7 @@ export function DataExportSettings() {
       ) : exports.length > 0 ? (
         <div className="bg-white/5 border border-white/10 rounded-lg overflow-hidden">
           <div className="px-5 py-3 border-b border-white/10 bg-white/2">
-            <h4 className="text-xs font-bold uppercase tracking-wide text-gray-400">
+            <h4 className="text-xs font-bold uppercase tracking-wide text-gray-300">
               {t('settings.account.export.history', 'Export History')}
             </h4>
           </div>

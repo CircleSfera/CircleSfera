@@ -22,11 +22,29 @@ export default function FollowButton({ username }: FollowButtonProps) {
   }, [data]);
 
   const followMutation = useMutation({
-    mutationFn: () => followsApi.toggle(username),
-    onSuccess: (response) => {
-      // Invalidate the follow query to trigger a re-fetch, which will update the derived status
+    mutationFn: (user: string) => followsApi.toggle(user),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['follow', username] });
+      const previousFollow = queryClient.getQueryData(['follow', username]);
+
+      // Optimistically assume accepted if currently NONE, otherwise NONE.
+      // The server response will correct this to PENDING if the account is private.
+      const newStatus = status === 'NONE' ? 'ACCEPTED' : 'NONE';
+      queryClient.setQueryData(['follow', username], {
+        data: { status: newStatus, following: newStatus === 'ACCEPTED' },
+      });
+
+      return { previousFollow };
+    },
+    onError: (err, variables, context) => {
+      console.error('Failed to toggle follow:', err, 'for user:', variables);
+      if (context?.previousFollow) {
+        queryClient.setQueryData(['follow', username], context.previousFollow);
+      }
+    },
+    onSettled: (response) => {
       queryClient.invalidateQueries({ queryKey: ['follow', username] });
-      if (response.data.following) {
+      if (response?.data?.following || status !== 'NONE') {
         queryClient.invalidateQueries({ queryKey: ['profile', username] });
         queryClient.invalidateQueries({ queryKey: ['followers', username] });
       }
@@ -49,7 +67,7 @@ export default function FollowButton({ username }: FollowButtonProps) {
 
   return (
     <Button
-      onClick={() => followMutation.mutate()}
+      onClick={() => followMutation.mutate(username)}
       isLoading={followMutation.isPending}
       variant={getButtonVariant()}
       className="px-6 py-2 font-semibold"

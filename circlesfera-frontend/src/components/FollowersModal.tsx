@@ -67,7 +67,7 @@ export default function FollowersModal({
                     <div className="font-semibold text-white">
                       {profile.username}
                     </div>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-gray-300">
                       {profile.fullName}
                     </div>
                   </div>

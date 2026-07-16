@@ -28,7 +28,7 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
               <span className="text-sm font-medium text-white">{label}</span>
             )}
             {description && (
-              <span className="text-xs text-gray-400">{description}</span>
+              <span className="text-xs text-gray-300">{description}</span>
             )}
           </div>
         )}

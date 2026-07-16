@@ -101,7 +101,7 @@ export default function StoryList() {
                   </div>
                 </div>
                 <span
-                  className={`text-xs ${allViewed ? 'text-gray-500' : 'text-gray-400'} group-hover:text-white transition-colors`}
+                  className={`text-xs ${allViewed ? 'text-gray-500' : 'text-gray-300'} group-hover:text-white transition-colors`}
                 >
                   Your story
                 </span>
@@ -143,13 +143,13 @@ export default function StoryList() {
                     <div className="w-full h-full rounded-full bg-zinc-800 border-[1.5px] border-dashed border-zinc-600 flex items-center justify-center group-hover:border-purple-500 transition-colors">
                       <Plus
                         size={24}
-                        className="text-zinc-500 group-hover:text-purple-400 transition-colors"
+                        className="text-zinc-400 group-hover:text-purple-400 transition-colors"
                       />
                     </div>
                   )}
                 </div>
               </div>
-              <span className="text-xs text-gray-400 group-hover:text-purple-400 transition-colors">
+              <span className="text-xs text-gray-300 group-hover:text-purple-400 transition-colors">
                 Your story
               </span>
             </Link>
@@ -197,7 +197,7 @@ export default function StoryList() {
                   </div>
                 </div>
                 <span
-                  className={`text-xs ${allViewed ? 'text-gray-500' : 'text-gray-400'} max-w-[64px] truncate group-hover:text-white transition-colors`}
+                  className={`text-xs ${allViewed ? 'text-gray-500' : 'text-gray-300'} max-w-[64px] truncate group-hover:text-white transition-colors`}
                 >
                   {group.user.profile.username}
                 </span>

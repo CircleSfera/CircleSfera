@@ -96,7 +96,7 @@ export function TwoFactorSettings() {
           {is2FAEnabled ? (
             <ShieldCheck size={20} className="text-green-400" />
           ) : (
-            <ShieldAlert size={20} className="text-gray-400" />
+            <ShieldAlert size={20} className="text-gray-300" />
           )}
         </div>
         <div>
@@ -106,7 +106,7 @@ export function TwoFactorSettings() {
               'Two-Factor Authentication (TOTP)',
             )}
           </h3>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-300">
             {is2FAEnabled
               ? t(
                   'settings.security.2fa.status_enabled',

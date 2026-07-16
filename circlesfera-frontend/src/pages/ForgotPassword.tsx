@@ -46,7 +46,7 @@ export default function ForgotPassword() {
           <h1 className="text-2xl font-bold mb-4">
             {t('auth.forgot_password.success_title')}
           </h1>
-          <p className="text-gray-400 mb-5">
+          <p className="text-gray-300 mb-5">
             {t('auth.forgot_password.success_desc1')} <strong>{email}</strong>
             {t('auth.forgot_password.success_desc2')}
           </p>
@@ -70,7 +70,7 @@ export default function ForgotPassword() {
       >
         <Link
           to="/accounts/login"
-          className="text-gray-400 hover:text-white mb-6 inline-flex items-center gap-2 text-sm transition-colors"
+          className="text-gray-300 hover:text-white mb-6 inline-flex items-center gap-2 text-sm transition-colors"
         >
           <ArrowLeft size={16} /> {t('auth.forgot_password.back')}
         </Link>
@@ -78,7 +78,7 @@ export default function ForgotPassword() {
         <h1 className="text-2xl font-bold mb-2">
           {t('auth.forgot_password.title')}
         </h1>
-        <p className="text-gray-400 mb-5 text-sm">
+        <p className="text-gray-300 mb-5 text-sm">
           {t('auth.forgot_password.subtitle')}
         </p>
 
@@ -86,7 +86,7 @@ export default function ForgotPassword() {
           <div className="space-y-2">
             <label
               htmlFor="email"
-              className="text-xs font-bold text-gray-400 uppercase tracking-wider"
+              className="text-xs font-bold text-gray-300 uppercase tracking-wider"
             >
               {t('auth.forgot_password.email_label')}
             </label>

@@ -73,7 +73,7 @@ export default function VerifyEmail() {
                   <h1 className="text-2xl font-black mb-2 tracking-tighter text-white">
                     {t('auth.verify.loading_title')}
                   </h1>
-                  <p className="text-gray-400 text-sm font-medium">
+                  <p className="text-gray-300 text-sm font-medium">
                     {t('auth.verify.loading_desc')}
                   </p>
                 </div>
@@ -102,7 +102,7 @@ export default function VerifyEmail() {
                       {message}
                     </p>
                   </div>
-                  <p className="text-gray-400 text-sm mb-6">
+                  <p className="text-gray-300 text-sm mb-6">
                     {t('auth.verify.success_desc')}
                   </p>
                   <Link

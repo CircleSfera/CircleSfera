@@ -108,7 +108,7 @@ export default function CreateHighlightModal({
             onClick={handleClose}
             variant="ghost"
             size="icon"
-            className="text-gray-400 hover:text-white"
+            className="text-gray-300 hover:text-white"
           >
             <X size={24} />
           </Button>
@@ -118,7 +118,7 @@ export default function CreateHighlightModal({
         <div className="flex-1 overflow-y-auto p-4">
           {step === 1 ? (
             <div className="space-y-4">
-              <p className="text-gray-400 text-sm">
+              <p className="text-gray-300 text-sm">
                 {t('modals.highlight.select_stories_desc')}
               </p>
 

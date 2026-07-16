@@ -102,7 +102,7 @@ export default function Frames() {
       <div className="h-screen w-full flex items-center justify-center text-white">
         <div className="text-center">
           <h2 className="text-xl font-bold mb-2">{t('frames.no_frames')}</h2>
-          <p className="text-gray-400">{t('frames.be_first')}</p>
+          <p className="text-gray-300">{t('frames.be_first')}</p>
         </div>
       </div>
     );

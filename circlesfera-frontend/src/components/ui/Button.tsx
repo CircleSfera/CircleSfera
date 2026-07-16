@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import React, { forwardRef } from 'react';
 
@@ -30,11 +31,11 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center rounded-lg font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98]';
+      'inline-flex items-center justify-center rounded-lg font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:opacity-50 disabled:pointer-events-none cursor-pointer';
 
     const variants = {
       primary:
-        'bg-blue-600 text-white hover:bg-blue-500 focus:ring-blue-500 shadow-sm shadow-blue-900/20',
+        'bg-blue-600 text-white hover:bg-blue-500 focus:ring-blue-500 shadow-sm shadow-blue-900/20 hover:shadow-[0_0_15px_rgba(37,99,235,0.5)] border border-blue-500/50',
       secondary: 'bg-white/10 text-white hover:bg-white/20 focus:ring-white/20',
       danger:
         'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 focus:ring-red-500',
@@ -60,15 +61,17 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const classes = `${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`;
 
     return (
-      <button
+      <motion.button
         ref={ref}
         className={classes}
         disabled={disabled || isLoading}
-        {...props}
+        whileTap={disabled || isLoading ? undefined : { scale: 0.95 }}
+        whileHover={disabled || isLoading ? undefined : { scale: 1.02 }}
+        {...(props as any)}
       >
         {isLoading && <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />}
         {children}
-      </button>
+      </motion.button>
     );
   },
 );
