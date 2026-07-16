@@ -142,7 +142,7 @@ export default function Home() {
             </div>
 
             {/* Right Sidebar Suggestions (Desktop Only) */}
-            <aside className="hidden lg:block w-[320px] sticky top-24 shrink-0 empty:hidden">
+            <aside className="hidden lg:block w-[320px] sticky top-24 shrink-0">
               <SuggestionsList layout="vertical" />
             </aside>
           </div>
