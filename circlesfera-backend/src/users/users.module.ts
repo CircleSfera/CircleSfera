@@ -3,6 +3,7 @@ import { Logger, Module, OnApplicationBootstrap } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 import { EmailModule } from '../email/email.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { StripeService } from '../common/stripe/stripe.service.js';
 import { DataExportService } from './data-export.service.js';
 import { GdprProcessor } from './gdpr.processor.js';
 import { UsersController } from './users.controller.js';
@@ -17,7 +18,7 @@ import { UsersService } from './users.service.js';
     }),
   ],
   controllers: [UsersController],
-  providers: [UsersService, DataExportService, GdprProcessor],
+  providers: [UsersService, DataExportService, GdprProcessor, StripeService],
   exports: [UsersService],
 })
 export class UsersModule implements OnApplicationBootstrap {

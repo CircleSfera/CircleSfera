@@ -6,6 +6,7 @@ import {
   Inject,
   Param,
   Patch,
+  Post,
   Put,
   Query,
   UseGuards,
@@ -101,5 +102,26 @@ export class UsersController {
     @Body() dto: UpdateSettingsDto,
   ) {
     return this.usersService.updateSettings(user.userId, dto);
+  }
+
+  // --- Identity Verification ---
+
+  @Post('identity-session')
+  async createIdentitySession(
+    @CurrentUser() user: CurrentUserData,
+    @Body() body: { returnUrl?: string },
+  ): Promise<{ url: string }> {
+    return this.usersService.createIdentitySession(
+      user.userId,
+      body.returnUrl ||
+        `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/edit`,
+    );
+  }
+
+  @Post('identity-session/sync')
+  async syncIdentitySession(
+    @CurrentUser() user: CurrentUserData,
+  ): Promise<{ status: string }> {
+    return this.usersService.syncIdentitySession(user.userId);
   }
 }

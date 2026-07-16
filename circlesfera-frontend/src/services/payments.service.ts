@@ -25,20 +25,6 @@ export const paymentsApi = {
     return response.data; // { url: string }
   },
 
-  /** Create an Identity Verification Session. */
-  createIdentitySession: async (returnUrl: string) => {
-    const response = await api.post('/payments/identity-session', {
-      returnUrl,
-    });
-    return response.data; // { url: string }
-  },
-
-  /** Sync an Identity Verification Session. */
-  syncIdentitySession: async () => {
-    const response = await api.post('/payments/identity-session/sync');
-    return response.data;
-  },
-
   /** Create a Stripe Checkout session to unlock a specific post. */
   createPostUnlockSession: async (postId: string) => {
     const response = await api.post(`/payments/unlock-post/${postId}`);
