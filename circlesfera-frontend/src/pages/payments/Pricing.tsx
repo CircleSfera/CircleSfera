@@ -40,9 +40,9 @@ export default function Pricing() {
 
       // Map tier names to plan IDs (from seed)
       const planMap: Record<string, string> = {
-        Premium: 'prod_premium',
-        'Elite Creator': 'prod_elite',
-        Business: 'prod_business',
+        Premium: 'prod_UtQGHGBnYo5yGX',
+        'Elite Creator': 'prod_UtQG21Jd98Vidi',
+        Business: 'prod_UtQGy36G3SscjF',
       };
 
       const response = await paymentsApi.createSubscriptionCheckout(
