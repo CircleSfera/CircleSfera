@@ -50,6 +50,7 @@ services:
       - '3005:3000'
     env_file: .env
     environment:
+      - PORT=3000
       - DB_HOST=postgres
       - REDIS_HOST=redis
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
