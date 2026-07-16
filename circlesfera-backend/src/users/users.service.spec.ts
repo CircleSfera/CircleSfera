@@ -84,4 +84,67 @@ describe('UsersService', () => {
     const result = await service.unbanUser('1');
     expect(result.isActive).toBe(true);
   });
+
+  describe('syncUserTier', () => {
+    it('should promote user to CREATOR and VERIFIED if they have an elite plan', async () => {
+      mockPrismaService.user.findUnique = vi.fn().mockResolvedValue({
+        id: 'u1',
+        accountType: 'PERSONAL',
+        verificationLevel: 'BASIC',
+        platformSubscriptions: [
+          { status: 'ACTIVE', plan: { name: 'Elite' } },
+        ],
+      });
+
+      await service.syncUserTier('u1');
+
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: 'u1' },
+        data: {
+          accountType: 'CREATOR',
+          verificationLevel: 'VERIFIED',
+        },
+      });
+    });
+
+    it('should maintain VERIFIED level if KYC was passed but subscription is downgraded', async () => {
+      mockPrismaService.user.findUnique = vi.fn().mockResolvedValue({
+        id: 'u2',
+        accountType: 'CREATOR',
+        verificationLevel: 'VERIFIED',
+        identityVerifiedAt: new Date(),
+        platformSubscriptions: [], // No active subscriptions
+      });
+
+      await service.syncUserTier('u2');
+
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: 'u2' },
+        data: {
+          accountType: 'PERSONAL',
+          verificationLevel: 'VERIFIED', // Remains VERIFIED due to KYC
+        },
+      });
+    });
+
+    it('should downgrade to BASIC if no subscription and no KYC', async () => {
+      mockPrismaService.user.findUnique = vi.fn().mockResolvedValue({
+        id: 'u3',
+        accountType: 'CREATOR',
+        verificationLevel: 'VERIFIED',
+        identityVerifiedAt: null, // No KYC
+        platformSubscriptions: [], // No active subscriptions
+      });
+
+      await service.syncUserTier('u3');
+
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: 'u3' },
+        data: {
+          accountType: 'PERSONAL',
+          verificationLevel: 'BASIC',
+        },
+      });
+    });
+  });
 });

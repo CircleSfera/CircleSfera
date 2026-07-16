@@ -1,6 +1,12 @@
 /** Trigger re-index */
 import { Inject, Injectable } from '@nestjs/common';
-import { ContentRating, Visibility } from '@prisma/client';
+import {
+  AccountType,
+  ContentRating,
+  SubscriptionStatus,
+  VerificationLevel,
+  Visibility,
+} from '@prisma/client';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
@@ -350,5 +356,79 @@ export class UsersService {
     }
 
     return { status: session.status };
+  }
+
+  /**
+   * Evaluates the user's active subscriptions and KYC status to correctly set
+   * their VerificationLevel and AccountType.
+   * This decoupled logic replaces manual updates from the Payments service.
+   * @param userId - The user ID
+   */
+  async syncUserTier(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        platformSubscriptions: {
+          where: {
+            status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING] },
+          },
+          include: { plan: true },
+        },
+      },
+    });
+
+    if (!user) return;
+
+    let targetAccountType = AccountType.PERSONAL;
+    let targetVerificationLevel = VerificationLevel.BASIC;
+
+    // 1. Evaluate highest active subscription tier
+    let hasPremium = false;
+    let hasElite = false;
+    let hasBusiness = false;
+
+    for (const sub of user.platformSubscriptions) {
+      const name = sub.plan.name.toLowerCase();
+      if (name.includes('business')) hasBusiness = true;
+      else if (name.includes('elite')) hasElite = true;
+      else if (name.includes('premium')) hasPremium = true;
+    }
+
+    if (hasBusiness) {
+      targetAccountType = AccountType.BUSINESS;
+      targetVerificationLevel = VerificationLevel.BUSINESS;
+    } else if (hasElite) {
+      targetAccountType = AccountType.CREATOR;
+      targetVerificationLevel = VerificationLevel.VERIFIED;
+    } else if (hasPremium) {
+      targetVerificationLevel = VerificationLevel.VERIFIED;
+    }
+
+    // 2. Evaluate KYC status (Overrides BASIC if verified but no active premium plan)
+    // If they have Elite/Premium, they are already 'VERIFIED'. 
+    // If they have Business, they are 'BUSINESS' (highest).
+    if (
+      user.identityVerifiedAt &&
+      targetVerificationLevel === VerificationLevel.BASIC
+    ) {
+      targetVerificationLevel = VerificationLevel.VERIFIED;
+    }
+
+    // 3. Apply changes if there is a discrepancy
+    if (
+      user.accountType !== targetAccountType ||
+      user.verificationLevel !== targetVerificationLevel
+    ) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          accountType: targetAccountType,
+          verificationLevel: targetVerificationLevel,
+        },
+      });
+      console.log(
+        `User ${userId} tier synced: ${targetAccountType} / ${targetVerificationLevel}`,
+      );
+    }
   }
 }
