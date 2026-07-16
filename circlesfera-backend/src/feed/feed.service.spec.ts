@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FeedService } from './feed.service.js';
+import { FeedInboxService } from './feed-inbox.service.js';
 
 describe('FeedService', () => {
   let service: FeedService;
@@ -40,6 +41,10 @@ describe('FeedService', () => {
     set: vi.fn().mockResolvedValue(undefined),
   };
 
+  const mockFeedInboxService = {
+    getInbox: vi.fn().mockResolvedValue([]),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -47,6 +52,7 @@ describe('FeedService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: AIService, useValue: mockAIService },
         { provide: CACHE_MANAGER, useValue: mockCache },
+        { provide: FeedInboxService, useValue: mockFeedInboxService },
       ],
     }).compile();
 

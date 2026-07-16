@@ -1,5 +1,5 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Visibility } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { AIService } from '../ai/ai.service.js';
@@ -8,14 +8,18 @@ import {
   PaginationDto,
 } from '../common/dto/pagination.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { FeedInboxService } from './feed-inbox.service.js';
 
 @Injectable()
 export class FeedService {
+  private readonly logger = new Logger(FeedService.name);
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     // biome-ignore lint/correctness/noUnusedPrivateClassMembers: aiService injected for future use
     @Inject(AIService) private readonly aiService: AIService,
+    @Inject(FeedInboxService) private readonly feedInbox: FeedInboxService,
   ) {}
 
   /**
@@ -108,7 +112,7 @@ export class FeedService {
           JOIN "post_embeddings" pe ON p.id = pe."postId"
           LEFT JOIN social_graph sg ON p."userId" = sg."followingId"
           
-          WHERE p.visibility = 'PUBLIC'
+          WHERE (p.visibility = 'PUBLIC' OR (p.visibility = 'FOLLOWERS' AND sg.weight IS NOT NULL))
             AND p."moderationStatus" = 'VISIBLE'
             AND p."userId" != ${userId}
             AND p.id NOT IN (SELECT "postId" FROM "likes" WHERE "userId" = ${userId})
@@ -152,7 +156,7 @@ export class FeedService {
           FROM "posts" p
           LEFT JOIN social_graph sg ON p."userId" = sg."followingId"
           
-          WHERE p.visibility = 'PUBLIC'
+          WHERE (p.visibility = 'PUBLIC' OR (p.visibility = 'FOLLOWERS' AND sg.weight IS NOT NULL))
             AND p."moderationStatus" = 'VISIBLE'
             AND p."userId" != ${userId}
             AND p."userId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${userId})
@@ -212,10 +216,25 @@ export class FeedService {
         // Attach algorithm reasoning score for debugging
         const rawData = postsRaw.find((r) => r.id === post.id);
 
+        // Determine recommendation reason
+        let recommendationReason = 'new';
+        if (rawData) {
+          if (rawData.social_weight === 2.0) {
+            recommendationReason = 'close_friend';
+          } else if (rawData.social_weight === 1.5) {
+            recommendationReason = 'following';
+          } else if (rawData.ai_score && rawData.ai_score > 0.65) {
+            recommendationReason = 'interest';
+          } else if (post.performanceScore > 20) {
+            recommendationReason = 'popular';
+          }
+        }
+
         let finalPost = {
           ...rest,
           isLiked,
           algScore: rawData?.final_score,
+          recommendationReason,
         };
 
         if (finalPost.isPremium && finalPost.userId !== userId) {
@@ -252,7 +271,8 @@ export class FeedService {
       );
 
       // Save to cache for 3 minutes (180000 ms)
-      await this.cacheManager.set(cacheKey, result, 180000);
+      const ttl = process.env.NODE_ENV === 'production' ? 180000 : 1000;
+      await this.cacheManager.set(cacheKey, result, ttl);
 
       return result;
     } catch (error) {
@@ -263,60 +283,105 @@ export class FeedService {
 
   /**
    * Chronological feed from Followed users
+   * Refactored to use Feed Fan-out on Write (Inbox Pattern) via Redis
    */
   async getFollowingFeed(userId: string, pagination: PaginationDto) {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
 
-    const [following, mutes] = await Promise.all([
-      this.prisma.follow.findMany({
-        where: { followerId: userId, status: 'ACCEPTED' },
-        select: { followingId: true },
-      }),
-      this.prisma.mute.findMany({
-        where: { muterId: userId },
-        select: { mutedId: true },
-      }),
-    ]);
+    let posts: any[] = [];
+    let total = 0;
 
-    const mutedIds = new Set(mutes.map((m) => m.mutedId));
-    const followingIds = following
-      .map((f) => f.followingId)
-      .filter((id) => !mutedIds.has(id));
+    // 1. Try to read from Redis Inbox (Fast Path)
+    const inboxPostIds = await this.feedInbox.getInbox(userId, skip, limit);
 
-    followingIds.push(userId); // Include own posts
+    if (inboxPostIds.length > 0) {
+      this.logger.debug(
+        `Fetching ${inboxPostIds.length} posts from Redis inbox for user ${userId}`,
+      );
 
-    const [posts, total] = await Promise.all([
-      this.prisma.post.findMany({
+      const rawPosts = await this.prisma.post.findMany({
         where: {
-          userId: { in: followingIds },
-          type: 'POST',
+          id: { in: inboxPostIds },
           moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
-          OR: [
-            { visibility: Visibility.PUBLIC },
-            { visibility: Visibility.FOLLOWERS },
-            { userId: userId },
-          ],
         },
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
         include: {
           user: { include: { profile: true } },
           media: true,
           _count: { select: { likes: true, comments: true } },
           likes: { where: { userId }, take: 1 },
         },
-      }),
-      this.prisma.post.count({
-        where: {
-          userId: { in: followingIds },
-          type: 'POST',
-          moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
-        },
-      }),
-    ]);
+      });
 
+      // Maintain Redis order (chronological by push time)
+      posts = inboxPostIds
+        .map((id) => rawPosts.find((p) => p.id === id))
+        .filter(Boolean);
+
+      total = await this.feedInbox.getInboxCount(userId);
+    } else {
+      // 2. Fallback to Slow SQL JOIN (Legacy Path) - Only if inbox is empty
+      this.logger.debug(
+        `Redis inbox empty for ${userId}, falling back to SQL...`,
+      );
+
+      const [following, mutes] = await Promise.all([
+        this.prisma.follow.findMany({
+          where: { followerId: userId, status: 'ACCEPTED' },
+          select: { followingId: true },
+        }),
+        this.prisma.mute.findMany({
+          where: { muterId: userId },
+          select: { mutedId: true },
+        }),
+      ]);
+
+      const mutedIds = new Set(mutes.map((m) => m.mutedId));
+      const followingIds = following
+        .map((f) => f.followingId)
+        .filter((id) => !mutedIds.has(id));
+
+      followingIds.push(userId); // Include own posts
+
+      const [fallbackPosts, fallbackTotal] = await Promise.all([
+        this.prisma.post.findMany({
+          where: {
+            userId: { in: followingIds },
+            type: 'POST',
+            moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+            OR: [
+              { visibility: Visibility.PUBLIC },
+              { visibility: Visibility.FOLLOWERS },
+              { userId: userId },
+            ],
+          },
+          skip,
+          take: limit,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            user: { include: { profile: true } },
+            media: true,
+            _count: { select: { likes: true, comments: true } },
+            likes: { where: { userId }, take: 1 },
+          },
+        }),
+        this.prisma.post.count({
+          where: {
+            userId: { in: followingIds },
+            type: 'POST',
+            moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+          },
+        }),
+      ]);
+
+      posts = fallbackPosts;
+      total = fallbackTotal;
+
+      // Optional: We could trigger a background job to rebuild their inbox here,
+      // but for now, they'll just get new posts seamlessly as they are created.
+    }
+
+    // 3. Hydrate Subscriptions and Unlocks (Common Path)
     let subscribedCreatorIds = new Set<string>();
     let unlockedPostIds = new Set<string>();
 
@@ -339,7 +404,7 @@ export class FeedService {
       const { likes, ...rest } = post;
       const isLiked = Array.isArray(likes) ? likes.length > 0 : false;
 
-      let finalPost = { ...rest, isLiked };
+      let finalPost = { ...rest, isLiked, recommendationReason: 'following' };
 
       if (finalPost.isPremium && finalPost.userId !== userId) {
         const isSubscribed = subscribedCreatorIds.has(finalPost.userId);
@@ -435,7 +500,7 @@ export class FeedService {
       const isLiked =
         currentUserId && Array.isArray(likes) ? likes.length > 0 : false;
 
-      let finalPost = { ...rest, isLiked };
+      let finalPost = { ...rest, isLiked, recommendationReason: 'popular' };
 
       if (finalPost.isPremium && finalPost.userId !== currentUserId) {
         const isSubscribed = subscribedCreatorIds.has(finalPost.userId);
@@ -465,7 +530,8 @@ export class FeedService {
     const result = createPaginatedResult(feedWithPromotions, 1000, page, limit);
 
     // Save to cache for 5 minutes (300000 ms)
-    await this.cacheManager.set(cacheKey, result, 300000);
+    const ttl = process.env.NODE_ENV === 'production' ? 300000 : 1000;
+    await this.cacheManager.set(cacheKey, result, ttl);
 
     return result;
   }
@@ -480,7 +546,16 @@ export class FeedService {
     const neededPromotions = Math.floor(posts.length / 5);
     if (neededPromotions === 0) return posts;
 
-    const activePromotions = await this.prisma.promotion.findMany({
+    let viewerLocation: string | undefined;
+    if (userId) {
+      const viewer = await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: { profile: true },
+      });
+      viewerLocation = viewer?.profile?.location?.toLowerCase();
+    }
+
+    const activePromotionsRaw = await this.prisma.promotion.findMany({
       where: {
         status: 'ACTIVE',
         targetType: 'POST',
@@ -488,9 +563,26 @@ export class FeedService {
         endDate: { gt: new Date() },
         ...(userId ? { userId: { not: userId } } : {}),
       },
-      take: neededPromotions,
       orderBy: { createdAt: 'desc' },
     });
+
+    const activePromotions = activePromotionsRaw
+      .filter((promo) => {
+        if (!promo.countries) return true; // No country targeting
+        const targetCountries = promo.countries
+          .toLowerCase()
+          .split(',')
+          .map((c: string) => c.trim())
+          .filter(Boolean);
+        if (targetCountries.length === 0) return true;
+        if (!viewerLocation) return false; // Viewer has no location, but promo requires one
+
+        // Check if viewer's location matches any of the target countries
+        return targetCountries.some((country: string) =>
+          viewerLocation!.includes(country),
+        );
+      })
+      .slice(0, neededPromotions);
 
     if (activePromotions.length === 0) return posts;
 
