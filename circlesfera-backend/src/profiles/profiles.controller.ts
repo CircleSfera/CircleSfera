@@ -31,6 +31,13 @@ export class ProfilesController {
     return this.profilesService.searchProfiles(query);
   }
 
+  /** Get the authenticated user's referrals. */
+  @Get('me/referrals')
+  @UseGuards(JwtAuthGuard)
+  async getMyReferrals(@CurrentUser() user: CurrentUserData) {
+    return this.profilesService.getMyReferrals(user.userId);
+  }
+
   /** Get the authenticated user's own profile. */
   @Get('me')
   @UseGuards(JwtAuthGuard)
