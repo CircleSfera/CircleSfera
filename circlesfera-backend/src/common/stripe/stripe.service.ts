@@ -171,7 +171,6 @@ export class StripeService implements OnModuleInit {
       },
       options: {
         document: {
-          require_id_number: true,
           require_live_capture: true,
           require_matching_selfie: true,
         },
