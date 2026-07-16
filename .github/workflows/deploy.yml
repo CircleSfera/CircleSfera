@@ -140,6 +140,16 @@ jobs:
             # Pull latest images
             REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml pull
 
+            # Start only postgres first to allow migrations resolution
+            REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml up -d postgres
+            echo "Waiting for postgres to be ready..."
+            sleep 10
+
+            # Resolve failed migrations using a temporary backend container
+            echo "Resolving Prisma migrations..."
+            REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml run --rm backend sh -c "npx prisma migrate resolve --applied 20260716000000_update_stripe_ids || true"
+            REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml run --rm backend sh -c "npx prisma migrate resolve --rolled-back 20260716000001_cleanup_mock_plans || true"
+
             # Restart containers (container command runs migrations then starts app)
             REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml down
             REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml up -d
