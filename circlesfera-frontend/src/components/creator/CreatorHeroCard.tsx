@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { TrendingUp, Users, Zap } from 'lucide-react';
+import { Award, DollarSign, TrendingUp, Users, Zap } from 'lucide-react';
 import { Area, AreaChart } from 'recharts';
 import type {
   CreatorChartDay,
@@ -96,7 +96,7 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 md:gap-8 bg-white/5 backdrop-blur-md p-5 rounded-xl border border-white/5">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 bg-white/5 backdrop-blur-md p-5 rounded-xl border border-white/5">
             <div>
               <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mb-1 italic">
                 Engagement
@@ -120,6 +120,28 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
                       ? `${(stats.totalReach / 1000000).toFixed(1)}M`
                       : stats.totalReach.toLocaleString()
                     : '0'}
+                </span>
+              </div>
+            </div>
+            <div>
+              <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mb-1 italic">
+                Monthly MRR
+              </p>
+              <div className="flex items-center gap-2">
+                <DollarSign size={14} className="text-emerald-400" />
+                <span className="text-white font-black text-xl tracking-tight">
+                  ${stats?.mrr || 0}
+                </span>
+              </div>
+            </div>
+            <div>
+              <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mb-1 italic">
+                Active Subs
+              </p>
+              <div className="flex items-center gap-2">
+                <Award size={14} className="text-purple-400" />
+                <span className="text-white font-black text-xl tracking-tight">
+                  {stats?.subscriberCount || 0}
                 </span>
               </div>
             </div>

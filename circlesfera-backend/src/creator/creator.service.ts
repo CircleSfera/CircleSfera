@@ -185,6 +185,96 @@ export class CreatorService {
         ? Math.round((activeFollowersCount / followerCount) * 100)
         : 0;
 
+    // Calculate monetization metrics (MRR, Subscribers & Retention Status)
+    const creatorSubscriptions = await this.prisma.creatorSubscription.findMany(
+      {
+        where: { creatorId: userId },
+      },
+    );
+
+    const activeSubscriptions = creatorSubscriptions.filter(
+      (sub) => sub.status === 'ACTIVE' && sub.expiresAt > new Date(),
+    );
+
+    const mrr =
+      activeSubscriptions.reduce((acc, sub) => acc + sub.priceCents, 0) / 100;
+    const subscriberCount = activeSubscriptions.length;
+
+    const active = activeSubscriptions.filter((sub) => sub.autoRenew).length;
+    const churning = activeSubscriptions.filter((sub) => !sub.autoRenew).length;
+    const churned = creatorSubscriptions.filter(
+      (sub) => sub.status !== 'ACTIVE' || sub.expiresAt <= new Date(),
+    ).length;
+
+    const retentionStatus = { active, churning, churned };
+
+    // Calculate follower geo-distribution
+    const followersList = await this.prisma.follow.findMany({
+      where: { followingId: userId, status: 'ACCEPTED' },
+      select: {
+        followerId: true,
+        follower: {
+          select: {
+            profile: {
+              select: {
+                location: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const locationCounts: Record<string, number> = {};
+    for (const item of followersList) {
+      const loc = item.follower.profile?.location || 'Unknown';
+      locationCounts[loc] = (locationCounts[loc] || 0) + 1;
+    }
+
+    const geoDistribution = Object.entries(locationCounts).map(
+      ([location, count]) => ({
+        location,
+        count,
+      }),
+    );
+
+    // Calculate follower activity hours from the last 30 days of interaction events
+    const followerIds = followersList.map((f) => f.followerId);
+    let activityHours: { hour: number; count: number }[] = [];
+
+    if (followerIds.length > 0) {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const recentEvents = await this.prisma.interactionEvent.findMany({
+        where: {
+          userId: { in: followerIds },
+          createdAt: { gte: thirtyDaysAgo },
+        },
+        select: {
+          createdAt: true,
+        },
+      });
+
+      const hourlyCounts = Array(24).fill(0);
+      for (const event of recentEvents) {
+        const hour = new Date(event.createdAt).getHours();
+        hourlyCounts[hour]++;
+      }
+
+      activityHours = hourlyCounts.map((count, hour) => ({
+        hour,
+        count,
+      }));
+    } else {
+      activityHours = Array(24)
+        .fill(0)
+        .map((_, hour) => ({
+          hour,
+          count: 0,
+        }));
+    }
+
     return {
       postCount,
       frameCount,
@@ -198,6 +288,11 @@ export class CreatorService {
       engagementRate,
       followerGrowth,
       totalReach,
+      mrr,
+      subscriberCount,
+      geoDistribution,
+      activityHours,
+      retentionStatus,
       insights: {
         bestDayToPost: bestDay,
         bestHourToPost: bestHour,
@@ -403,9 +498,13 @@ export class CreatorService {
     userId: string,
     targetType: string,
     targetId: string,
-    budget: number,
     durationDays: number,
+    budget?: number,
     currency = 'EUR',
+    objective = 'PROFILE_VISITS',
+    interests?: string,
+    countries?: string,
+    dailyBudget?: number,
   ) {
     // 1. Validate ownership
     if (targetType === 'post' || targetType === 'frame') {
@@ -440,15 +539,22 @@ export class CreatorService {
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + durationDays);
 
+    const finalBudget =
+      budget || (dailyBudget ? dailyBudget * durationDays : 0);
+
     const promotion = await this.prisma.promotion.create({
       data: {
         userId,
         targetType:
           typeMap[targetType.toLowerCase()] || PromotionTargetType.POST,
         targetId,
-        budget,
+        budget: finalBudget,
+        dailyBudget,
         currency,
         endDate,
+        objective,
+        interests,
+        countries,
         status: PromotionStatus.PENDING,
       },
     });
@@ -467,7 +573,7 @@ export class CreatorService {
               name: `Promotion: ${targetType.toUpperCase()}`,
               description: `Boost for ${durationDays} days`,
             },
-            unit_amount: Math.round(budget * 100),
+            unit_amount: Math.round(finalBudget * 100),
           },
           quantity: 1,
         },
