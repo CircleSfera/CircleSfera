@@ -1,3 +1,4 @@
+import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { AIModule } from '../ai/ai.module.js';
 import { AnalyticsModule } from '../analytics/analytics.module.js';
@@ -9,6 +10,9 @@ import { PostsService } from './posts.service.js';
 
 @Module({
   imports: [
+    BullModule.registerQueue({
+      name: 'feed-fanout',
+    }),
     PrismaModule,
     NotificationsModule,
     AIModule,

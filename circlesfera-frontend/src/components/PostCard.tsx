@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { bookmarksApi, creatorApi, postsApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { Post } from '../types';
+import { telemetry } from '../utils/telemetry';
 
 import AddToCollectionModal from './modals/AddToCollectionModal';
 import ReportModal from './modals/ReportModal';
@@ -55,19 +56,43 @@ export default memo(function PostCard({
   const viewRecorded = useRef(false);
 
   useEffect(() => {
-    if (!post.isPromoted || !post.promotionId || viewRecorded.current) return;
-
+    let visibleStartTime = 0;
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        if (entry.isIntersecting && !viewRecorded.current) {
-          viewRecorded.current = true;
-          creatorApi
-            .recordPromotionView(post.promotionId!)
-            .catch(console.error);
+        if (entry.isIntersecting) {
+          visibleStartTime = Date.now();
+          // Log impression
+          telemetry.track({
+            eventType: 'IMPRESSION',
+            targetId: post.id,
+            targetType: 'POST',
+          });
+
+          // If promoted, also record promotion view
+          if (post.isPromoted && post.promotionId && !viewRecorded.current) {
+            viewRecorded.current = true;
+            creatorApi
+              .recordPromotionView(post.promotionId!)
+              .catch(console.error);
+          }
+        } else {
+          // If was visible, log DWELL_TIME
+          if (visibleStartTime > 0) {
+            const duration = Date.now() - visibleStartTime;
+            if (duration > 500) {
+              telemetry.track({
+                eventType: 'DWELL_TIME',
+                targetId: post.id,
+                targetType: 'POST',
+                dwellTime: duration,
+              });
+            }
+            visibleStartTime = 0;
+          }
         }
       },
-      { threshold: 0.5 },
+      { threshold: 0.3 },
     );
 
     if (postRef.current) {
@@ -76,8 +101,19 @@ export default memo(function PostCard({
 
     return () => {
       observer.disconnect();
+      if (visibleStartTime > 0) {
+        const duration = Date.now() - visibleStartTime;
+        if (duration > 500) {
+          telemetry.track({
+            eventType: 'DWELL_TIME',
+            targetId: post.id,
+            targetType: 'POST',
+            dwellTime: duration,
+          });
+        }
+      }
     };
-  }, [post.isPromoted, post.promotionId]);
+  }, [post.id, post.isPromoted, post.promotionId]);
 
   // Refs
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -100,6 +136,13 @@ export default memo(function PostCard({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookmark', post.id] });
       queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
+      if (!isBookmarked) {
+        telemetry.track({
+          eventType: 'SAVE',
+          targetId: post.id,
+          targetType: 'POST',
+        });
+      }
     },
   });
 
@@ -171,8 +214,22 @@ export default memo(function PostCard({
       isBookmarkPending={toggleBookmarkMutation.isPending}
       onLikeToggle={(newLiked) => {
         setLikesCount((prev) => (newLiked ? prev + 1 : prev - 1));
+        if (newLiked) {
+          telemetry.track({
+            eventType: 'LIKE',
+            targetId: post.id,
+            targetType: 'POST',
+          });
+        }
       }}
-      onShare={() => setShowShareModal(true)}
+      onShare={() => {
+        setShowShareModal(true);
+        telemetry.track({
+          eventType: 'SHARE',
+          targetId: post.id,
+          targetType: 'POST',
+        });
+      }}
       onTip={() => setShowTipModal(true)}
     />
   );
@@ -235,6 +292,44 @@ export default memo(function PostCard({
             : 'glass-panel-post rounded-lg overflow-hidden mb-2 content-visibility-auto'
         }
       >
+        {post.recommendationReason && !isDetailMode && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white/50 border-b border-white/5 bg-white/2">
+            {post.recommendationReason === 'close_friend' && (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                <span className="font-semibold text-green-400">
+                  Mejores Amigos
+                </span>
+              </>
+            )}
+            {post.recommendationReason === 'following' && (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                <span>Siguiendo</span>
+              </>
+            )}
+            {post.recommendationReason === 'interest' && (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                <span className="text-purple-300 font-medium">
+                  Recomendado para ti
+                </span>
+              </>
+            )}
+            {post.recommendationReason === 'popular' && (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                <span className="text-amber-300 font-medium">Popular</span>
+              </>
+            )}
+            {post.recommendationReason === 'new' && (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
+                <span>Nuevo para ti</span>
+              </>
+            )}
+          </div>
+        )}
         <PostHeader
           post={post}
           menuButtonRef={menuButtonRef}

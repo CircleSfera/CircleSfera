@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../services';
+import { monetizationApi } from '../../services/monetization.service';
 import type { Post } from '../../types';
 import Carousel from '../Carousel';
 import PaywallOverlay from '../monetization/PaywallOverlay';
@@ -25,14 +25,11 @@ export default function PostMedia({
   const queryClient = useQueryClient();
 
   const unlockMutation = useMutation({
-    mutationFn: () =>
-      api.post('/monetization/unlock', {
-        postId: post.id,
-        returnUrl: window.location.href,
-      }),
+    mutationFn: () => monetizationApi.unlockPost(post.id, window.location.href),
     onSuccess: (response: any) => {
-      if (response.data?.url) {
-        window.location.href = response.data.url;
+      console.log('[BROWSER] MUTATION SUCCESS', response);
+      if (response?.url) {
+        window.location.href = response.url;
       } else {
         toast.success(t('post.media.unlock_success'));
         queryClient.invalidateQueries({ queryKey: ['feed'] });
@@ -42,6 +39,7 @@ export default function PostMedia({
       }
     },
     onError: (error: any) => {
+      console.log('[BROWSER] MUTATION ERROR', error);
       toast.error(
         error.response?.data?.message || t('post.media.unlock_error'),
       );

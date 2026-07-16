@@ -80,7 +80,7 @@ export default function CaptionStep({
       icon: MapPin,
       label: location || t('createPost.caption.add_location'),
       isActive: !!location,
-      activeColor: 'text-blue-400',
+      activeColor: 'text-brand-primary',
       onClick: () => setSubScreen('location'),
     },
     {
@@ -88,7 +88,7 @@ export default function CaptionStep({
       icon: UserPlus,
       label: t('createPost.caption.tag_people'),
       isActive: false,
-      activeColor: 'text-blue-400',
+      activeColor: 'text-brand-primary',
       onClick: () => setSubScreen('tags'),
     },
     {
@@ -122,7 +122,7 @@ export default function CaptionStep({
         ? `${selectedAudio.title} — ${selectedAudio.artist}`
         : t('createPost.caption.add_music'),
       isActive: !!selectedAudio,
-      activeColor: 'text-blue-400',
+      activeColor: 'text-brand-primary',
       onClick: () => setShowMusicPicker(true),
       suffix: selectedAudio ? (
         <button
@@ -315,7 +315,7 @@ export default function CaptionStep({
               >
                 <div
                   className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors
-                    ${item.isActive ? 'bg-blue-500/10' : 'bg-white/3'}
+                    ${item.isActive ? 'bg-brand-primary/10' : 'bg-white/3'}
                   `}
                 >
                   <Icon

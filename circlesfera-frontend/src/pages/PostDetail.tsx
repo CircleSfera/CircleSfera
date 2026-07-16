@@ -33,16 +33,10 @@ export default function PostDetail() {
 
   return (
     <div className="min-h-screen pb-24 md:pt-6 md:flex md:items-center relative">
-      {/* Cinematic Background */}
+      {/* Brand Background */}
       <div className="fixed inset-0 z-[-1] pointer-events-none overflow-hidden bg-black">
-        {post.data.media?.[0]?.url && (
-          <img
-            src={post.data.media[0].url}
-            alt=""
-            className="w-full h-full object-cover opacity-50 blur-[100px] scale-125 saturate-150"
-          />
-        )}
-        <div className="absolute inset-0 bg-black/80 md:bg-black/40" />
+        <div className="absolute inset-0 bg-linear-to-br from-brand-primary/30 via-black to-brand-primary/10" />
+        <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-brand-primary/20 blur-[120px] rounded-full mix-blend-screen" />
       </div>
 
       <SEO
