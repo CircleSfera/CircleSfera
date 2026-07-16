@@ -19,8 +19,9 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Account Status
-  isActive  Boolean   @default(true)
-  deletedAt DateTime?
+  isActive    Boolean   @default(true)
+  strikeCount Int       @default(0)
+  deletedAt   DateTime?
 
   profile           Profile?
   posts             Post[]
@@ -92,6 +93,7 @@ model User {
   stripeConnectAccountId String?                @unique
   platformSubscriptions  PlatformSubscription[]
   postViews              PostView[]
+  interactionEvents      InteractionEvent[]
   metrics                UserMetric[]
 
   // Growth & Referrals
@@ -117,10 +119,6 @@ model User {
   resetToken         String?   @unique
   resetTokenExpires  DateTime?
 
-  // E2E Encryption
-  e2ePublicKey           String? // User's public key for E2EE (Base64)
-  e2ePrivateKeyEncrypted String? // User's private key encrypted with their password (Base64)
-
   // Verification & Account Type
   verificationLevel VerificationLevel @default(BASIC)
   accountType       AccountType       @default(PERSONAL)
@@ -137,7 +135,6 @@ model User {
   receivedTransactions Transaction[]         @relation("ReceivedTransactions")
   subscribedToCreator  CreatorSubscription[] @relation("SubscribedToCreator")
   creatorSubscribers   CreatorSubscription[] @relation("CreatorSubscribers")
-  payoutRequests       PayoutRequest[]
   postUnlocks          PostUnlock[]
 
   // Support
@@ -145,6 +142,9 @@ model User {
 
   // Edit Projects (Drafts)
   editProjects EditProject[]
+
+  // A/B Testing
+  userExperiments UserExperiment[]
 
   @@index([isOnline])
   @@index([verificationToken])
@@ -273,7 +273,7 @@ model Post {
   moderationStatus ModerationStatus @default(VISIBLE)
   moderationNote   String?          @db.Text
 
-  // Phase 8: Premium Content
+  // Premium Content
   isPremium   Boolean      @default(false)
   priceCents  Int          @default(0) // Price in fiat cents (e.g., 500 = $5.00)
   postUnlocks PostUnlock[]
@@ -368,7 +368,7 @@ model Story {
   expiresAt    DateTime
   createdAt    DateTime @default(now())
 
-  // New: Close Friends support
+  // Close Friends support
   isCloseFriendsOnly Boolean @default(false)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -517,9 +517,11 @@ model Comment {
   id        String   @id @default(uuid())
   postId    String
   userId    String
-  content   String
-  url       String?
-  mediaType String? // "image", "video", "file"
+  content      String
+  url          String?
+  standardUrl  String? // New: Optimized variant (HLS)
+  thumbnailUrl String? // New: Optimized variant
+  mediaType    String? // "image", "video", "file"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -653,7 +655,7 @@ enum Visibility {
   PRIVATE
 }
 
-// Platform Subscriptions (Phase 1 SaaS Model)
+// Platform Subscriptions
 model PlatformPlan {
   id                  String   @id @default(uuid())
   name                String // e.g. "Pro Creator", "Verified"
@@ -718,7 +720,7 @@ model Notification {
   content     String
   read        Boolean          @default(false)
 
-  // INC-03: Polymorphic references
+  // Polymorphic references
   postId     String?
   storyId    String?
   reportId   String?
@@ -796,6 +798,8 @@ model Message {
   senderId       String
   content        String
   url            String?
+  standardUrl    String? // New: Optimized variant (HLS)
+  thumbnailUrl   String? // New: Optimized variant
   mediaType      String? // New: "image", "video", "file"
 
   // GDPR: Retention
@@ -811,8 +815,7 @@ model Message {
   isEdited  Boolean @default(false)
   isDeleted Boolean @default(false)
 
-  // E2E Encryption
-  e2eKeys Json? // Stores encrypted symmetric keys for participants
+
 
   // New: Reply support
   replyToId String?
@@ -984,7 +987,7 @@ model AdminAuditLog {
   @@map("admin_audit_logs")
 }
 
-// Promotions — users can boost their content
+// Promotions
 model Promotion {
   id         String              @id @default(uuid())
   userId     String
@@ -997,7 +1000,13 @@ model Promotion {
   endDate    DateTime
   reach      Int                 @default(0)
 
-  // Monetization fixes (INC-05)
+  // Sponsored Placements Segmentation
+  objective   String?  @default("PROFILE_VISITS")
+  interests   String?
+  countries   String?
+  dailyBudget Float?
+
+  // Monetization fixes
   stripePaymentIntentId String?               @unique
   chargedAt             DateTime?
   refundPolicy          PromotionRefundPolicy @default(PROPORTIONAL)
@@ -1249,33 +1258,7 @@ model CreatorSubscription {
   @@map("creator_subscriptions")
 }
 
-model PayoutRequest {
-  id            String       @id @default(uuid())
-  userId        String
-  amountTokens  Int
-  amountFiat    Float
-  currency      String       @default("USD")
-  status        PayoutStatus @default(PENDING)
-  payoutMethod  String // e.g. "PAYPAL", "BANK_TRANSFER"
-  payoutDetails String? // e.g. "paypal@email.com"
 
-  createdAt   DateTime  @default(now())
-  processedAt DateTime?
-  adminNotes  String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([status])
-  @@map("payout_requests")
-}
-
-enum PayoutStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  COMPLETED
-}
 
 // Support Tickets
 model SupportTicket {
@@ -1312,3 +1295,68 @@ model ModerationSignature {
 
   @@map("moderation_signatures")
 }
+
+enum UserEventType {
+  IMPRESSION
+  VIEW_START
+  VIEW_COMPLETE
+  DWELL_TIME
+  LIKE
+  COMMENT
+  SAVE
+  SHARE
+  HIDE
+  REPORT
+  PROFILE_CLICK
+  FOLLOW
+  SUBSCRIPTION_CLICK
+  SUBSCRIPTION_SUCCESS
+  SPONSORED_PLACEMENT_CLICK
+}
+
+model InteractionEvent {
+  id         String        @id @default(uuid())
+  userId     String?       // Nullable for anonymous guests
+  eventType  UserEventType
+  targetId   String        // Polymorphic ID (Post, User, Story, etc.)
+  targetType String        // "POST", "STORY", "USER", "PROMOTION"
+  dwellTime  Int?          // Dwell duration in milliseconds
+  createdAt  DateTime      @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([targetId, eventType])
+  @@index([createdAt])
+  @@map("interaction_events")
+}
+
+// A/B Testing & Feature Flags
+model FeatureFlag {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  name        String
+  description String?
+  isEnabled   Boolean  @default(false)
+  percentage  Int      @default(0) // 0 to 100
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("feature_flags")
+}
+
+model UserExperiment {
+  id            String   @id @default(uuid())
+  userId        String
+  experimentKey String
+  variant       String   // e.g., "control", "treatment", "true", "false"
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, experimentKey])
+  @@index([experimentKey])
+  @@map("user_experiments")
+}
+
