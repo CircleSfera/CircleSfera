@@ -177,6 +177,7 @@ Opera sobre reporting, auditoría y acciones administrativas. El schema ya conte
 - Stripe customer ID en usuario.
 - Webhook event log para idempotencia.
 - Promotions: cargo inmediato vía Stripe PaymentIntent al crear la promoción. El estado pasa a `ACTIVE` solo tras el cobro exitoso. Reembolsos proporcionales si se cancela antes de tiempo.
+- Pay-Per-View (PPV): monetización de contenido exclusivo fan-to-creator gestionado a través de Stripe Connect.
 
 
 ### Decisión de diseño: un plan activo por usuario
@@ -248,7 +249,6 @@ La documentación anterior separaba stories y frames como fase 2. Eso ya no refl
 - Communities.
 - Marketplace marca-creador.
 - Payouts complejos a creadores.
-- Suscripciones fan-to-creator.
 - Moderation case management más detallado con appeals persistidas.
 
 ---
