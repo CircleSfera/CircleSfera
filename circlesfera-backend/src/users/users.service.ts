@@ -262,6 +262,56 @@ export class UsersService {
     return { url: session.url || returnUrl };
   }
 
+  async handleIdentityWebhook(session: any) {
+    const userId = session.metadata?.userId;
+
+    if (userId) {
+      const dob = session.verified_outputs?.dob;
+      let dateOfBirth: Date | null = null;
+      let isActive = true;
+      const verificationLevel = 'VERIFIED';
+
+      if (dob?.year && dob?.month && dob?.day) {
+        dateOfBirth = new Date(dob.year, dob.month - 1, dob.day);
+
+        // Calculate age
+        const today = new Date();
+        let age = today.getFullYear() - dateOfBirth.getFullYear();
+        const m = today.getMonth() - dateOfBirth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dateOfBirth.getDate())) {
+          age--;
+        }
+
+        if (age < 16) {
+          isActive = false; // Suspend under 16 for GDPR compliance
+          console.log(
+            `User ${userId} suspended due to being under 16 (Age: ${age})`,
+          );
+        } else if (age < 18) {
+          console.log(`User ${userId} verified but under 18 (Age: ${age})`);
+        }
+      }
+
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { verificationLevel: true },
+      });
+
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          identityVerifiedAt: new Date(),
+          ...(dateOfBirth && { dateOfBirth }),
+          ...(user?.verificationLevel === 'BASIC' && {
+            verificationLevel: verificationLevel,
+          }),
+          isActive: isActive,
+        },
+      });
+      console.log(`Successfully verified identity for user ${userId}`);
+    }
+  }
+
   async syncIdentitySession(userId: string): Promise<{ status: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
