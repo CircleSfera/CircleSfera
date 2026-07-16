@@ -22,7 +22,7 @@ export default function PostGrid({
           {icon}
         </div>
         <h3 className="text-lg font-bold text-white mb-2">{emptyMessage}</h3>
-        <p className="text-gray-400 text-sm">{emptySubtext}</p>
+        <p className="text-gray-300 text-sm">{emptySubtext}</p>
       </div>
     );
   }

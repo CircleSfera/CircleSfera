@@ -245,7 +245,7 @@ export default function Profile() {
           <h2 className="text-2xl font-bold text-white">
             {t('profile.blocked.title')}
           </h2>
-          <p className="text-gray-400 mt-2">{t('profile.blocked.subtitle')}</p>
+          <p className="text-gray-300 mt-2">{t('profile.blocked.subtitle')}</p>
         </div>
       </div>
     );
@@ -538,7 +538,7 @@ export default function Profile() {
               <h3 className="text-xl font-black text-white mb-4 tracking-tight">
                 {t('profile.private.title')}
               </h3>
-              <p className="text-zinc-500 max-w-xs mx-auto leading-relaxed font-medium">
+              <p className="text-zinc-400 max-w-xs mx-auto leading-relaxed font-medium">
                 {t('profile.private.subtitle')}
               </p>
             </div>

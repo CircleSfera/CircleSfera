@@ -29,7 +29,7 @@ export default function ProfileTabs({
         className={`flex items-center gap-2.5 px-5 py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
           activeTab === 'posts'
             ? 'text-white'
-            : 'text-zinc-500 hover:text-zinc-300'
+            : 'text-zinc-400 hover:text-zinc-300'
         }`}
       >
         {activeTab === 'posts' && (
@@ -49,7 +49,7 @@ export default function ProfileTabs({
         className={`flex items-center gap-2.5 px-5 py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
           activeTab === 'frames'
             ? 'text-white'
-            : 'text-zinc-500 hover:text-zinc-300'
+            : 'text-zinc-400 hover:text-zinc-300'
         }`}
       >
         {activeTab === 'frames' && (
@@ -70,7 +70,7 @@ export default function ProfileTabs({
           className={`flex items-center gap-2.5 px-5 py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
             activeTab === 'saved'
               ? 'text-white'
-              : 'text-zinc-500 hover:text-zinc-300'
+              : 'text-zinc-400 hover:text-zinc-300'
           }`}
         >
           {activeTab === 'saved' && (
@@ -91,7 +91,7 @@ export default function ProfileTabs({
         className={`flex items-center gap-2.5 px-5 py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
           activeTab === 'tagged'
             ? 'text-white'
-            : 'text-zinc-500 hover:text-zinc-300'
+            : 'text-zinc-400 hover:text-zinc-300'
         }`}
       >
         {activeTab === 'tagged' && (
