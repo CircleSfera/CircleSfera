@@ -1,3 +1,4 @@
+import { BullModule } from '@nestjs/bullmq';
 import { forwardRef, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { EmailModule } from '../email/email.module.js';
@@ -15,6 +16,9 @@ import { TwoFactorModule } from './two-factor/two-factor.module.js';
     EmailModule,
     forwardRef(() => PasskeyModule),
     TwoFactorModule,
+    BullModule.registerQueue({
+      name: 'users-processing',
+    }),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

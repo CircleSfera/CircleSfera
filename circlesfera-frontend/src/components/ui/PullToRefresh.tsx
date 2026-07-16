@@ -1,4 +1,9 @@
-import { motion, useAnimation, useMotionValue, useTransform } from 'framer-motion';
+import {
+  motion,
+  useAnimation,
+  useMotionValue,
+  useTransform,
+} from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 

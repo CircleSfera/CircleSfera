@@ -9,6 +9,7 @@ describe('UsersService', () => {
 
   const mockPrismaService = {
     user: {
+      findUnique: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
     },
@@ -91,9 +92,7 @@ describe('UsersService', () => {
         id: 'u1',
         accountType: 'PERSONAL',
         verificationLevel: 'BASIC',
-        platformSubscriptions: [
-          { status: 'ACTIVE', plan: { name: 'Elite' } },
-        ],
+        platformSubscriptions: [{ status: 'ACTIVE', plan: { name: 'Elite' } }],
       });
 
       await service.syncUserTier('u1');

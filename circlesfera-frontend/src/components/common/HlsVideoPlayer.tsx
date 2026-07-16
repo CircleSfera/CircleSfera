@@ -6,11 +6,13 @@ interface HlsVideoPlayerProps
   extends React.VideoHTMLAttributes<HTMLVideoElement> {
   src: string;
   hlsUrl?: string; // Optional .m3u8 URL
+  isNext?: boolean; // If true, only prefetch metadata
 }
 
 const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(
-  ({ src, hlsUrl, ...props }, ref) => {
+  ({ src, hlsUrl, isNext, ...props }, ref) => {
     const videoRef = useRef<HTMLVideoElement>(null);
+    const initialIsNextRef = useRef(isNext);
 
     // Forward the ref to parent components (like FrameItem)
     useImperativeHandle(ref, () => videoRef.current as HTMLVideoElement);
@@ -28,6 +30,7 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(
           hls = new Hls({
             enableWorker: true,
             lowLatencyMode: true,
+            autoStartLoad: !initialIsNextRef.current, // If it's the next video, don't download all segments yet
           });
 
           hls.loadSource(targetUrl);
@@ -63,12 +66,26 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(
         video.src = src;
       }
 
+      // Store hls instance on the video element for the other effect to access
+      (video as any).__hls = hls;
+
       return () => {
         if (hls) {
           hls.destroy();
         }
       };
     }, [src, hlsUrl]);
+
+    // Start loading when it's no longer 'next' but 'active'
+    useEffect(() => {
+      const video = videoRef.current;
+      if (!video) return;
+      const hls = (video as any).__hls as Hls | undefined;
+      
+      if (hls && !isNext) {
+        hls.startLoad();
+      }
+    }, [isNext]);
 
     return <video ref={videoRef} {...props} />;
   },

@@ -1,12 +1,14 @@
 import { startAuthentication } from '@simplewebauthn/browser';
 import { useMutation } from '@tanstack/react-query';
-import { Fingerprint } from 'lucide-react';
+import { AlertOctagon, Fingerprint } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui';
 import LayoutWrapper from '../layouts/LayoutWrapper';
 import { authApi, passkeyApi, profileApi } from '../services';
+import { apiClient } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import type { LoginDto } from '../types';
 import { logger } from '../utils/logger';
@@ -20,6 +22,34 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Appeal state
+  const [appealToken, setAppealToken] = useState<string | null>(null);
+  const [appealReason, setAppealReason] = useState('');
+
+  const appealMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiClient.post(
+        '/appeals',
+        { targetType: 'ACCOUNT_BAN', reason: appealReason },
+        { headers: { 'x-appeal-token': appealToken } },
+      );
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success(
+        t(
+          'auth.login.appeal_success',
+          'Appeal submitted successfully. Our team will review it.',
+        ),
+      );
+      setAppealToken(null);
+      setAppealReason('');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || 'Failed to submit appeal');
+    },
+  });
 
   const loginMutation = useMutation({
     mutationFn: (data: LoginDto) => authApi.login(data),
@@ -90,6 +120,12 @@ export default function Login() {
     ? err.response?.data?.message || err.message
     : undefined;
   const is2FARequired = errorMessage === '2FA_REQUIRED';
+  const isBanned = errorMessage === 'ACCOUNT_BANNED';
+  const receivedAppealToken = err?.response?.data?.appealToken;
+
+  if (isBanned && receivedAppealToken && !appealToken) {
+    setAppealToken(receivedAppealToken);
+  }
 
   return (
     <LayoutWrapper showNavigation={false}>
@@ -170,7 +206,63 @@ export default function Login() {
               </div>
             )}
 
-            {is2FARequired ? (
+            {appealToken ? (
+              <div className="space-y-4 animate-in fade-in">
+                <div className="flex items-center gap-3 mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                  <AlertOctagon className="text-red-400 w-5 h-5 shrink-0" />
+                  <p className="text-xs text-red-400 font-medium leading-tight">
+                    {t(
+                      'auth.login.banned_message',
+                      'Your account has been deactivated. You may submit an appeal below.',
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <label
+                    htmlFor="appealReason"
+                    className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
+                  >
+                    {t('auth.login.appeal_reason_label', 'Reason for Appeal')}
+                  </label>
+                  <textarea
+                    id="appealReason"
+                    value={appealReason}
+                    onChange={(e) => setAppealReason(e.target.value)}
+                    required
+                    rows={4}
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-brand-primary/50 transition-all text-white placeholder-gray-600 outline-none text-sm shadow-[0_0_15px_rgba(255,255,255,0.02)] resize-none"
+                    placeholder={t(
+                      'auth.login.appeal_reason_placeholder',
+                      'Explain why your account should be reinstated...',
+                    )}
+                  />
+                </div>
+                <div className="space-y-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={() => appealMutation.mutate()}
+                    isLoading={appealMutation.isPending}
+                    disabled={
+                      appealMutation.isPending || appealReason.length < 10
+                    }
+                    className="w-full font-black text-xs md:text-sm tracking-wide uppercase py-1.5"
+                  >
+                    {t('auth.login.submit_appeal', 'Submit Appeal')}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAppealToken(null);
+                      loginMutation.reset();
+                    }}
+                    className="w-full text-xs text-gray-500 hover:text-white transition-colors uppercase tracking-wide font-bold pt-2"
+                  >
+                    {t('auth.login.back_to_login', 'Back')}
+                  </button>
+                </div>
+              </div>
+            ) : is2FARequired ? (
               <div className="space-y-4 animate-in fade-in">
                 <div>
                   <label

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Inject,
@@ -11,6 +12,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import type Stripe from 'stripe';
+import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PaymentsService } from './payments.service.js';
@@ -50,6 +52,22 @@ export class PaymentsController {
     @Req() req: RequestWithUser,
   ): Promise<Stripe.BillingPortal.Session | { url: string }> {
     return this.paymentsService.getPortalUrl(req.user.userId);
+  }
+
+  @Get('ledger')
+  @UseGuards(JwtAuthGuard)
+  @Header('Content-Type', 'text/csv')
+  @Header('Content-Disposition', 'attachment; filename="ledger.csv"')
+  async getLedger(@Req() req: RequestWithUser): Promise<string> {
+    return this.paymentsService.getLedgerCsv(req.user.userId);
+  }
+
+  @Get('admin/ledger')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @Header('Content-Type', 'text/csv')
+  @Header('Content-Disposition', 'attachment; filename="full-ledger.csv"')
+  async getAdminLedger(): Promise<string> {
+    return this.paymentsService.getLedgerCsv();
   }
 
   @Post('webhook')

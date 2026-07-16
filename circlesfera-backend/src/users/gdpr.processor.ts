@@ -35,6 +35,8 @@ export class GdprProcessor extends WorkerHost {
         return this.cleanExpiredDataExports();
       case 'clean-expired-accounts':
         return this.cleanExpiredAccounts();
+      case 'hard-delete-user':
+        return this.hardDeleteUser(job.data.userId);
       default:
         this.logger.warn(`Unknown job name: ${job.name}`);
     }
@@ -128,6 +130,17 @@ export class GdprProcessor extends WorkerHost {
       this.logger.log(`Purged ${deletedCount} expired user accounts.`);
     } catch (error) {
       this.logger.error('Failed to purge expired accounts', error);
+    }
+  }
+
+  async hardDeleteUser(userId: string) {
+    this.logger.log(`Executing hard delete for user ${userId}`);
+    try {
+      await this.usersService.deleteUser(userId);
+      this.logger.log(`Successfully hard deleted user ${userId}`);
+    } catch (error) {
+      this.logger.error(`Failed to hard delete user ${userId}`, error);
+      throw error;
     }
   }
 

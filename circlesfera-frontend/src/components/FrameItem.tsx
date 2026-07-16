@@ -38,9 +38,10 @@ import RichText from './RichText';
 interface FrameItemProps {
   post: Post;
   isActive: boolean;
+  isNext?: boolean;
 }
 
-export default function FrameItem({ post, isActive }: FrameItemProps) {
+export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const watchTimeRef = useRef(0);
   const lastUpdateRef = useRef(Date.now());
@@ -314,6 +315,7 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
           loop
           playsInline
           muted={isMuted}
+          isNext={isNext}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
         >

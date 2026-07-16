@@ -19,10 +19,26 @@ export const paymentsApi = {
     return response.data; // { url: string }
   },
 
-  /** Get URL for the Stripe Customer Portal. */
+  /** Get Stripe Customer Portal URL to manage billing. */
   getBillingPortalUrl: async () => {
     const response = await api.get('/payments/portal');
     return response.data; // { url: string }
+  },
+
+  /** Download Financial Ledger (CSV) for the current user */
+  getLedger: async () => {
+    const response = await api.get('/payments/ledger', {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  /** Download Full Financial Ledger (CSV) for Admin */
+  getAdminLedger: async () => {
+    const response = await api.get('/payments/admin/ledger', {
+      responseType: 'blob',
+    });
+    return response.data;
   },
 
   /** Create a Stripe Checkout session to unlock a specific post. */

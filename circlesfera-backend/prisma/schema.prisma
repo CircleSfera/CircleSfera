@@ -139,6 +139,7 @@ model User {
 
   // Support
   supportTickets SupportTicket[]
+  appeals        Appeal[]
 
   // Edit Projects (Drafts)
   editProjects EditProject[]
@@ -1360,3 +1361,35 @@ model UserExperiment {
   @@map("user_experiments")
 }
 
+
+// -----------------------------------------------------------------------------
+// MODERATION APPEALS
+// -----------------------------------------------------------------------------
+model Appeal {
+  id              String           @id @default(uuid())
+  userId          String
+  targetType      AppealTargetType
+  targetId        String?
+  reason          String
+  status          AppealStatus     @default(PENDING)
+  adminNotes      String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("appeals")
+}
+
+enum AppealTargetType {
+  ACCOUNT_BAN
+  POST_REMOVAL
+}
+
+enum AppealStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}

@@ -3,12 +3,14 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
+  CreditCard,
   Download,
   FileArchive,
   Loader2,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { paymentsApi } from '../services/payments.service';
 import { usersApi } from '../services/users.service';
 
 export function DataExportSettings() {
@@ -37,6 +39,25 @@ export function DataExportSettings() {
     onError: () => {
       toast.error(
         t('settings.account.export_error', 'Failed to request data export.'),
+      );
+    },
+  });
+
+  const downloadLedgerMutation = useMutation({
+    mutationFn: () => paymentsApi.getLedger(),
+    onSuccess: (data) => {
+      const url = window.URL.createObjectURL(data as any);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'ledger.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success(t('settings.account.ledger_success', 'Ledger downloaded.'));
+    },
+    onError: () => {
+      toast.error(
+        t('settings.account.ledger_error', 'Failed to download ledger.'),
       );
     },
   });
@@ -70,6 +91,38 @@ export function DataExportSettings() {
             <Download size={16} />
           )}
           {t('settings.account.export.btn', 'Request Export')}
+        </button>
+      </div>
+
+      {/* Financial Ledger Export */}
+      <div className="flex items-center gap-3 mt-6 pt-6 border-t border-white/10">
+        <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+          <CreditCard size={20} className="text-green-400" />
+        </div>
+        <div className="flex-1">
+          <h3 className="font-bold text-white text-lg tracking-tight">
+            {t('settings.account.ledger.title', 'Financial Ledger')}
+          </h3>
+          <p className="text-xs text-gray-300">
+            {t(
+              'settings.account.ledger.desc',
+              'Download a complete CSV record of all your financial transactions.',
+            )}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => downloadLedgerMutation.mutate()}
+          disabled={downloadLedgerMutation.isPending}
+          className="px-5 py-2.5 bg-[#2d2d2d] hover:bg-[#3d3d3d] text-white rounded-xl font-bold text-xs uppercase tracking-wide transition-colors border border-white/5 disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+        >
+          {downloadLedgerMutation.isPending ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : (
+            <Download size={16} />
+          )}
+          {t('settings.account.ledger.button', 'Download Ledger')}
         </button>
       </div>
 

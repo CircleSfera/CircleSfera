@@ -1,4 +1,5 @@
 /** Trigger re-index */
+import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   AccountType,
@@ -7,6 +8,7 @@ import {
   VerificationLevel,
   Visibility,
 } from '@prisma/client';
+import type { Queue } from 'bullmq';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
@@ -19,6 +21,7 @@ export class UsersService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(StripeService) private readonly stripeService: StripeService,
+    @InjectQueue('users-processing') private readonly usersQueue: Queue,
   ) {}
 
   /**
@@ -200,6 +203,14 @@ export class UsersService {
       },
     });
 
+    // Schedule BullMQ job for Hard Delete (Exactly 30 days from now)
+    const delayMs = 30 * 24 * 60 * 60 * 1000;
+    await this.usersQueue.add(
+      'hard-delete-user',
+      { userId },
+      { delay: delayMs, jobId: `delete-${userId}` },
+    );
+
     return scheduledDeletionAt;
   }
 
@@ -321,7 +332,11 @@ export class UsersService {
   async syncIdentitySession(userId: string): Promise<{ status: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { stripeIdentitySessionId: true, verificationLevel: true, identityVerifiedAt: true },
+      select: {
+        stripeIdentitySessionId: true,
+        verificationLevel: true,
+        identityVerifiedAt: true,
+      },
     });
 
     if (!user?.stripeIdentitySessionId) {
@@ -370,7 +385,9 @@ export class UsersService {
       include: {
         platformSubscriptions: {
           where: {
-            status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING] },
+            status: {
+              in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+            },
           },
           include: { plan: true },
         },
@@ -379,8 +396,8 @@ export class UsersService {
 
     if (!user) return;
 
-    let targetAccountType = AccountType.PERSONAL;
-    let targetVerificationLevel = VerificationLevel.BASIC;
+    let targetAccountType: AccountType = AccountType.PERSONAL;
+    let targetVerificationLevel: VerificationLevel = VerificationLevel.BASIC;
 
     // 1. Evaluate highest active subscription tier
     let hasPremium = false;
@@ -405,7 +422,7 @@ export class UsersService {
     }
 
     // 2. Evaluate KYC status (Overrides BASIC if verified but no active premium plan)
-    // If they have Elite/Premium, they are already 'VERIFIED'. 
+    // If they have Elite/Premium, they are already 'VERIFIED'.
     // If they have Business, they are 'BUSINESS' (highest).
     if (
       user.identityVerifiedAt &&

@@ -1,10 +1,6 @@
 /** Trigger re-index */
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import {
-  AccountType,
-  SubscriptionStatus,
-  VerificationLevel,
-} from '@prisma/client';
+import { SubscriptionStatus } from '@prisma/client';
 import type Stripe from 'stripe';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
@@ -43,6 +39,36 @@ export class PaymentsService {
       default:
         return SubscriptionStatus.ACTIVE; // Fallback
     }
+  }
+
+  async getLedgerCsv(userId?: string): Promise<string> {
+    const transactions = await this.prisma.transaction.findMany({
+      where: userId
+        ? {
+            OR: [{ senderId: userId }, { receiverId: userId }],
+          }
+        : undefined,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        sender: { select: { email: true } },
+        receiver: { select: { email: true } },
+      },
+    });
+
+    const header =
+      'ID,Date,Type,Amount,Currency,Status,Sender,Receiver,Description\n';
+    const rows = transactions
+      .map((tx) => {
+        const senderStr = tx.sender?.email || 'SYSTEM';
+        const receiverStr = tx.receiver?.email || 'SYSTEM';
+        const dateStr = tx.createdAt.toISOString();
+        const descStr = (tx.description || '').replace(/"/g, '""');
+
+        return `"${tx.id}","${dateStr}","${tx.type}","${tx.amount}","${tx.currency}","${tx.status}","${senderStr}","${receiverStr}","${descStr}"`;
+      })
+      .join('\n');
+
+    return header + rows;
   }
 
   async findAllPlans() {
