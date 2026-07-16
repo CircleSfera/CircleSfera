@@ -7,6 +7,7 @@ import {
 } from '@prisma/client';
 import type Stripe from 'stripe';
 import { StripeService } from '../common/stripe/stripe.service.js';
+import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SlackService } from '../slack/slack.service.js';
 
@@ -17,6 +18,7 @@ export class PaymentsService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(StripeService) private readonly stripeService: StripeService,
     @Inject(SlackService) private readonly slackService: SlackService,
+    @Inject(EmailService) private readonly emailService: EmailService,
   ) {}
 
   /** Map Stripe status to our SubscriptionStatus enum. */
@@ -66,37 +68,6 @@ export class PaymentsService {
 
     if (!plan) throw new NotFoundException('Plan not found');
 
-    if (
-      process.env.NODE_ENV !== 'production' &&
-      process.env.PAYMENT_MODE === 'SIMULATOR'
-    ) {
-      const newAccountType =
-        plan.name === 'Elite Creator'
-          ? AccountType.CREATOR
-          : plan.name === 'Business'
-            ? AccountType.BUSINESS
-            : user.accountType;
-
-      const newVerificationLevel =
-        plan.name === 'Premium' || plan.name === 'Elite Creator'
-          ? VerificationLevel.VERIFIED
-          : plan.name === 'Business'
-            ? VerificationLevel.BUSINESS
-            : user.verificationLevel;
-
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: {
-          accountType: newAccountType,
-          verificationLevel: newVerificationLevel,
-        },
-      });
-
-      return {
-        url: `${process.env.CORS_ORIGIN?.split(',')[0] || 'http://localhost:8080'}/creator?success=true`,
-      };
-    }
-
     const stripePriceId =
       billingCycle === 'YEARLY' ? plan.yearlyStripePriceId : plan.stripePriceId;
 
@@ -136,12 +107,6 @@ export class PaymentsService {
   async getPortalUrl(
     userId: string,
   ): Promise<Stripe.BillingPortal.Session | { url: string }> {
-    if (process.env.PAYMENT_MODE === 'SIMULATOR') {
-      return {
-        url: `${process.env.CORS_ORIGIN?.split(',')[0] || 'http://localhost:8080'}/creator`,
-      };
-    }
-
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -375,6 +340,30 @@ export class PaymentsService {
             console.log(
               `Successfully processed Creator Subscription from ${subscriberId} to ${creatorId}`,
             );
+
+            const user = await this.prisma.user.findUnique({
+              where: { id: subscriberId },
+              select: { email: true },
+            });
+            const creator = await this.prisma.user.findUnique({
+              where: { id: creatorId },
+              select: { profile: true },
+            });
+
+            if (user && creator?.profile) {
+              const formattedAmount = new Intl.NumberFormat('es-ES', {
+                style: 'currency',
+                currency: session.currency?.toUpperCase() || 'EUR',
+              }).format(parseInt(priceCents, 10) / 100);
+              this.emailService
+                .sendSubscriptionReceipt(
+                  user.email,
+                  `Suscripción a ${creator.profile.username}`,
+                  formattedAmount,
+                )
+                .catch((e) => console.error(e));
+            }
+
             this.slackService
               .sendPaymentAlert({
                 eventType: 'Creator Subscription',
@@ -471,6 +460,23 @@ export class PaymentsService {
           console.log(
             `Successfully processed checkout for user ${userId}, plan ${planId}`,
           );
+
+          if (plan) {
+            const user = await this.prisma.user.findUnique({
+              where: { id: userId },
+              select: { email: true },
+            });
+            if (user) {
+              const formattedAmount = new Intl.NumberFormat('es-ES', {
+                style: 'currency',
+                currency: session.currency?.toUpperCase() || 'EUR',
+              }).format((session.amount_total || 0) / 100);
+              this.emailService
+                .sendSubscriptionReceipt(user.email, plan.name, formattedAmount)
+                .catch((e) => console.error(e));
+            }
+          }
+
           this.slackService
             .sendPaymentAlert({
               eventType: 'Platform Subscription Checkout',

@@ -226,10 +226,6 @@ export class MonetizationService {
     returnUrl: string,
     refreshUrl: string,
   ) {
-    if (process.env.PAYMENT_MODE === 'SIMULATOR') {
-      return { url: `${returnUrl}?success=true&mode=simulator` };
-    }
-
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
@@ -259,6 +255,33 @@ export class MonetizationService {
           ? error.message
           : 'Failed to connect with Stripe',
       );
+    }
+  }
+
+  async getAccountStatus(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    if (!user.stripeConnectAccountId) {
+      return { connected: false, transfersEnabled: false };
+    }
+
+    try {
+      const account = await this.stripeService.getAccount(
+        user.stripeConnectAccountId,
+      );
+      return {
+        connected: true,
+        transfersEnabled: account.capabilities?.transfers === 'active',
+        detailsSubmitted: account.details_submitted,
+      };
+    } catch (error) {
+      console.error('Stripe Get Account Error:', error);
+      return {
+        connected: true,
+        transfersEnabled: false,
+        detailsSubmitted: false,
+      };
     }
   }
 
