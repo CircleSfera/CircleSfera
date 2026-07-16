@@ -1,9 +1,9 @@
 import { BullModule, InjectQueue } from '@nestjs/bullmq';
 import { Logger, Module, OnApplicationBootstrap } from '@nestjs/common';
 import type { Queue } from 'bullmq';
+import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailModule } from '../email/email.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
-import { StripeService } from '../common/stripe/stripe.service.js';
 import { DataExportService } from './data-export.service.js';
 import { GdprProcessor } from './gdpr.processor.js';
 import { UsersController } from './users.controller.js';

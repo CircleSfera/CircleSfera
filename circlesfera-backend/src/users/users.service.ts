@@ -1,9 +1,9 @@
 /** Trigger re-index */
 import { Inject, Injectable } from '@nestjs/common';
 import { ContentRating, Visibility } from '@prisma/client';
+import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
-import { StripeService } from '../common/stripe/stripe.service.js';
 
 /**
  * Service for user management: follow suggestions, banning, and unbanning.
@@ -272,7 +272,11 @@ export class UsersService {
       return { status: 'no_session' };
     }
 
-    if (user.verificationLevel === 'VERIFIED' || user.verificationLevel === 'BUSINESS' || user.verificationLevel === 'ELITE') {
+    if (
+      user.verificationLevel === 'VERIFIED' ||
+      user.verificationLevel === 'BUSINESS' ||
+      user.verificationLevel === 'ELITE'
+    ) {
       return { status: 'already_verified' };
     }
 

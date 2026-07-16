@@ -604,5 +604,4 @@ export class PaymentsService {
         console.log(`Unhandled event type: ${type}`);
     }
   }
-
 }
