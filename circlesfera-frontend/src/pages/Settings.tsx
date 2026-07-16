@@ -7,8 +7,10 @@ import {
   Bell,
   Camera,
   Check,
+  Clock,
   CreditCard,
   DollarSign,
+  Download,
   Globe,
   Key,
   Loader2,
@@ -36,6 +38,7 @@ import UserAvatar from '../components/UserAvatar';
 import { Button, Input, Switch, Textarea } from '../components/ui';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { followsApi, profileApi, uploadApi } from '../services';
+import * as dataExportApi from '../services/data-export.service';
 import { paymentsApi } from '../services/payments.service';
 import { usersApi } from '../services/users.service';
 import { useAuthStore } from '../stores/authStore';
@@ -458,15 +461,29 @@ export default function Settings() {
   }, [profile, initialized]);
 
   useEffect(() => {
-    if (activeTab === 'account' && profile?.user?.verificationLevel && profile.user.verificationLevel !== 'VERIFIED' && profile.user.verificationLevel !== 'BUSINESS' && profile.user.verificationLevel !== 'ELITE') {
-      usersApi.syncIdentitySession().then((res) => {
-        if (res?.status === 'verified') {
-          queryClient.invalidateQueries({ queryKey: ['myProfile'] });
-          toast.success(t('settings.account.verification.success', 'Your identity has been verified!'));
-        }
-      }).catch((err) => {
-        logger.error('Failed to sync identity session:', err);
-      });
+    if (
+      activeTab === 'account' &&
+      profile?.user?.verificationLevel &&
+      profile.user.verificationLevel !== 'VERIFIED' &&
+      profile.user.verificationLevel !== 'BUSINESS' &&
+      profile.user.verificationLevel !== 'ELITE'
+    ) {
+      usersApi
+        .syncIdentitySession()
+        .then((res) => {
+          if (res?.status === 'verified') {
+            queryClient.invalidateQueries({ queryKey: ['myProfile'] });
+            toast.success(
+              t(
+                'settings.account.verification.success',
+                'Your identity has been verified!',
+              ),
+            );
+          }
+        })
+        .catch((err) => {
+          logger.error('Failed to sync identity session:', err);
+        });
     }
   }, [activeTab, profile?.user?.verificationLevel, queryClient, t]);
 
@@ -570,6 +587,33 @@ export default function Settings() {
     }
 
     updateProfileMutation.mutate(data);
+  };
+
+  // --- Data Export (GDPR) ---
+  const { data: latestExport, refetch: refetchExport } = useQuery({
+    queryKey: ['data-export-latest'],
+    queryFn: dataExportApi.getLatestDataExport,
+    retry: false, // Don't retry if it returns 404
+  });
+
+  const requestExportMutation = useMutation({
+    mutationFn: dataExportApi.requestDataExport,
+    onSuccess: () => {
+      toast.success(
+        t('settings.privacy.export_requested') ||
+          'Solicitud de exportación creada con éxito. Te avisaremos cuando esté lista.',
+      );
+      refetchExport();
+    },
+    onError: (error: any) => {
+      toast.error(
+        error.response?.data?.message || 'Error al solicitar la exportación',
+      );
+    },
+  });
+
+  const handleRequestExport = () => {
+    requestExportMutation.mutate();
   };
 
   const handlePrivacyToggle = () => {
@@ -1072,6 +1116,69 @@ export default function Settings() {
                     label={t('settings.privacy.private_account')}
                     description={t('settings.privacy.private_desc')}
                   />
+                </div>
+
+                <div className="bg-white/2 p-5 rounded-xl border border-white/5 mt-6">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-2">
+                    {t('settings.privacy.export_data') ||
+                      'Exportar Datos (GDPR)'}
+                  </h3>
+                  <p className="text-sm text-gray-400 mb-4">
+                    {t('settings.privacy.export_desc') ||
+                      'Solicita una copia de tus datos personales, posts, likes y comentarios. Te enviaremos un enlace de descarga cuando esté listo.'}
+                  </p>
+
+                  {latestExport && latestExport.status === 'PENDING' ? (
+                    <div className="flex items-center gap-2 text-yellow-400 bg-yellow-500/10 p-3 rounded-lg border border-yellow-500/20">
+                      <Clock size={18} />
+                      <span className="text-sm font-bold uppercase tracking-wide">
+                        Procesando solicitud...
+                      </span>
+                    </div>
+                  ) : latestExport &&
+                    latestExport.status === 'COMPLETED' &&
+                    latestExport.url ? (
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-2 text-green-400 bg-green-500/10 p-3 rounded-lg border border-green-500/20">
+                        <Check size={18} />
+                        <span className="text-sm font-bold uppercase tracking-wide">
+                          Tu archivo está listo para descargar
+                        </span>
+                      </div>
+                      <a
+                        href={latestExport.url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <Button
+                          variant="primary"
+                          className="w-full flex items-center justify-center gap-2"
+                        >
+                          <Download size={18} />
+                          Descargar Datos
+                        </Button>
+                      </a>
+                      <div className="text-center mt-2">
+                        <Button
+                          variant="ghost"
+                          onClick={handleRequestExport}
+                          isLoading={requestExportMutation.isPending}
+                          className="text-xs uppercase tracking-wide"
+                        >
+                          Solicitar nueva exportación
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={handleRequestExport}
+                      isLoading={requestExportMutation.isPending}
+                      variant="secondary"
+                      className="w-full sm:w-auto"
+                    >
+                      Solicitar mis datos
+                    </Button>
+                  )}
                 </div>
               </div>
             )}

@@ -413,7 +413,12 @@ export class PostsService {
       };
     });
 
-    return createPaginatedResult(formattedPosts, total, page, limit);
+    const processedPosts = await this.applyPaywall(
+      formattedPosts,
+      currentUserId,
+    );
+
+    return createPaginatedResult(processedPosts, total, page, limit);
   }
 
   /**
@@ -877,8 +882,8 @@ export class PostsService {
             isLocked: true,
             media: post.media?.map((m: any) => ({
               ...m,
-              url: '',
-              standardUrl: '',
+              url: m.url ? `/media/teaser/${m.id}/${m.url.split('/').pop()}` : '',
+              standardUrl: m.standardUrl ? `/media/teaser/${m.id}/master.m3u8` : '',
             })),
           };
         }
@@ -917,8 +922,8 @@ export class PostsService {
             isLocked: true,
             media: post.media?.map((m: any) => ({
               ...m,
-              url: '',
-              standardUrl: '',
+              url: m.url ? `/media/teaser/${m.id}/${m.url.split('/').pop()}` : '',
+              standardUrl: m.standardUrl ? `/media/teaser/${m.id}/master.m3u8` : '',
             })),
           };
         }

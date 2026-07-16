@@ -17,6 +17,7 @@ import { AIModule } from './ai/ai.module.js';
 import { AnalyticsModule } from './analytics/analytics.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { AppealsModule } from './appeals/appeals.module.js';
 import { AudioModule } from './audio/audio.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { BookmarksModule } from './bookmarks/bookmarks.module.js';
@@ -37,6 +38,7 @@ import { HealthModule } from './health/health.module.js';
 import { HighlightsModule } from './highlights/highlights.module.js';
 import { LikesModule } from './likes/likes.module.js';
 import { MaintenanceModule } from './maintenance/maintenance.module.js';
+import { MediaModule } from './media/media.module.js';
 import { MonetizationModule } from './monetization/monetization.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
@@ -129,6 +131,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     UploadsModule,
     BookmarksModule,
     CollectionsModule,
+    MediaModule,
     ...(process.env.CLOUDINARY_NAME
       ? []
       : [
@@ -141,6 +144,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     CloseFriendsModule,
     ReportsModule,
     UsersModule,
+    AppealsModule,
     SocketModule,
     AIModule,
     AudioModule,

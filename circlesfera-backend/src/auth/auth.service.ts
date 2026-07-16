@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,
   ConflictException,
@@ -10,6 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import * as bcrypt from 'bcrypt';
+import type { Queue } from 'bullmq';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
@@ -26,6 +28,7 @@ import type {
  * Handles password hashing (Argon2), JWT token generation/rotation, email verification,
  * and password reset flows. Supports legacy bcrypt migration on login.
  */
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -33,6 +36,7 @@ export class AuthService {
     @Inject(JwtService) private readonly jwtService: JwtService,
     @Inject(ConfigService) private readonly configService: ConfigService,
     @Inject(EmailService) private readonly emailService: EmailService,
+    @InjectQueue('users-processing') private readonly usersQueue: Queue,
   ) {}
 
   /**
@@ -294,8 +298,21 @@ export class AuthService {
           where: { id: user.id },
           data: { isActive: true, deletedAt: null },
         });
+
+        // Cancel the scheduled hard delete job
+        const job = await this.usersQueue.getJob(`delete-${user.id}`);
+        if (job) {
+          await job.remove();
+        }
       } else {
-        throw new UnauthorizedException('Account is deactivated');
+        const appealToken = this.jwtService.sign(
+          { sub: user.id, isAppealToken: true },
+          { expiresIn: '15m', secret: this.configService.get('JWT_SECRET') },
+        );
+        throw new UnauthorizedException({
+          message: 'ACCOUNT_BANNED',
+          appealToken,
+        });
       }
     }
 
@@ -336,15 +353,32 @@ export class AuthService {
       where: { id: userId },
     });
 
-    if (!user?.isActive) {
-      if (user?.deletedAt && user.deletedAt > new Date()) {
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if (!user.isActive) {
+      if (user.deletedAt && user.deletedAt > new Date()) {
         // Auto-restore account if logged in during GDPR grace period
         await this.prisma.user.update({
           where: { id: user.id },
           data: { isActive: true, deletedAt: null },
         });
+
+        // Cancel the scheduled hard delete job
+        const job = await this.usersQueue.getJob(`delete-${user.id}`);
+        if (job) {
+          await job.remove();
+        }
       } else {
-        throw new UnauthorizedException('User not found or inactive');
+        const appealToken = this.jwtService.sign(
+          { sub: user.id, isAppealToken: true },
+          { expiresIn: '15m', secret: this.configService.get('JWT_SECRET') },
+        );
+        throw new UnauthorizedException({
+          message: 'ACCOUNT_BANNED',
+          appealToken,
+        });
       }
     }
 
