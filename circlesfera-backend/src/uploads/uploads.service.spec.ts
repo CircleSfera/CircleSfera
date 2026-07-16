@@ -7,6 +7,34 @@ import { MediaProcessorService } from './media-processor.service.js';
 import { LocalStorageProvider } from './providers/local.provider.js';
 import { UploadsService } from './uploads.service.js';
 
+// Mock Sharp to handle both default import and requirement types
+vi.mock('sharp', () => {
+  /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+  /* eslint-disable @typescript-eslint/no-unsafe-return */
+
+  /* eslint-disable @typescript-eslint/no-unsafe-call */
+  const sharpMock: any = {
+    toBuffer: vi.fn(),
+  };
+  // Use simple functions to ensure return value
+  sharpMock.resize = vi.fn(() => sharpMock);
+  sharpMock.webp = vi.fn(() => sharpMock);
+  sharpMock.toBuffer.mockResolvedValue(Buffer.from('optimized'));
+
+  const sharpFn = vi.fn(() => sharpMock);
+  (sharpFn as any).default = sharpFn;
+
+  return {
+    default: sharpFn,
+    __esModule: true,
+  };
+
+  /* eslint-enable @typescript-eslint/no-unsafe-member-access */
+  /* eslint-enable @typescript-eslint/no-unsafe-return */
+
+  /* eslint-enable @typescript-eslint/no-unsafe-call */
+});
+
 // Mock ConfigService
 const mockConfigService = {
   get: vi.fn((key: string) => {
@@ -68,34 +96,6 @@ describe('UploadsService', () => {
     };
 
     it('should upload a file and return url and type', async () => {
-      // Mock Sharp to handle both default import and requirement types
-      vi.mock('sharp', () => {
-        /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-        /* eslint-disable @typescript-eslint/no-unsafe-return */
-
-        /* eslint-disable @typescript-eslint/no-unsafe-call */
-        const sharpMock: any = {
-          toBuffer: vi.fn(),
-        };
-        // Use simple functions to ensure return value
-        sharpMock.resize = vi.fn(() => sharpMock);
-        sharpMock.webp = vi.fn(() => sharpMock);
-        sharpMock.toBuffer.mockResolvedValue(Buffer.from('optimized'));
-
-        const sharpFn = vi.fn(() => sharpMock);
-        (sharpFn as any).default = sharpFn;
-
-        return {
-          default: sharpFn,
-          __esModule: true,
-        };
-
-        /* eslint-enable @typescript-eslint/no-unsafe-member-access */
-        /* eslint-enable @typescript-eslint/no-unsafe-return */
-
-        /* eslint-enable @typescript-eslint/no-unsafe-call */
-      });
-
       // Mock fs.promises.writeFile
       vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
 

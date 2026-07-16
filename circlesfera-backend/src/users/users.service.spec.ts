@@ -1,5 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from './users.service.js';
 
@@ -19,11 +20,17 @@ describe('UsersService', () => {
     },
   };
 
+  const mockStripeService = {
+    createIdentityVerificationSession: vi.fn(),
+    getIdentityVerificationSession: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: StripeService, useValue: mockStripeService },
       ],
     }).compile();
 
