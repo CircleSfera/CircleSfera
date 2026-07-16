@@ -63,6 +63,11 @@ describe('PostsService', () => {
 
   const mockAIService = {
     generateEmbedding: vi.fn(() => [0.1, 0.2, 0.3]),
+    moderateContent: vi.fn().mockResolvedValue({
+      isSafe: true,
+      categories: {},
+      reason: 'Safe content',
+    }),
   };
 
   const mockQueue = {
