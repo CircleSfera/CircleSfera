@@ -137,7 +137,7 @@ export default function AudioRecorder({
         <button
           type="button"
           onClick={onCancel}
-          className="p-2 text-gray-400 hover:text-red-500 hover:bg-white/10 rounded-full transition-colors"
+          className="p-2 text-gray-300 hover:text-red-500 hover:bg-white/10 rounded-full transition-colors"
         >
           <Trash2 size={20} />
         </button>

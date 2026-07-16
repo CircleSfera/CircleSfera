@@ -223,7 +223,7 @@ export default memo(function MessageBubble({
             )}
 
             <div
-              className={`absolute bottom-1 right-2.5 flex items-center gap-1 pl-2 text-xs ${isMe ? 'text-white/80' : 'text-gray-400'}`}
+              className={`absolute bottom-1 right-2.5 flex items-center gap-1 pl-2 text-xs ${isMe ? 'text-white/80' : 'text-gray-300'}`}
             >
               <span className="tabular-nums font-mono leading-none tracking-wide opacity-80 flex items-center gap-1">
                 {msg.isEdited && !msg.isDeleted && (
@@ -297,7 +297,7 @@ export default memo(function MessageBubble({
               <button
                 type="button"
                 onClick={() => onReply(msg)}
-                className="p-1 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
+                className="p-1 hover:bg-white/10 rounded-full text-gray-300 hover:text-white transition-colors"
                 title="Reply"
               >
                 <Reply size={14} />
@@ -305,7 +305,7 @@ export default memo(function MessageBubble({
               <div className="relative group/emojis">
                 <button
                   type="button"
-                  className="p-1 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
+                  className="p-1 hover:bg-white/10 rounded-full text-gray-300 hover:text-white transition-colors"
                   title="React"
                 >
                   <Smile size={14} />
@@ -334,7 +334,7 @@ export default memo(function MessageBubble({
                 <button
                   type="button"
                   onClick={() => onEdit(msg, decryptedText)}
-                  className="p-1 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
+                  className="p-1 hover:bg-white/10 rounded-full text-gray-300 hover:text-white transition-colors"
                   title="Edit"
                 >
                   <svg
@@ -359,7 +359,7 @@ export default memo(function MessageBubble({
                 <button
                   type="button"
                   onClick={() => onDelete(msg.id!)}
-                  className="p-1 hover:bg-white/10 rounded-full text-gray-400 hover:text-red-400 transition-colors"
+                  className="p-1 hover:bg-white/10 rounded-full text-gray-300 hover:text-red-400 transition-colors"
                   title="Delete"
                 >
                   <Trash2 size={14} />

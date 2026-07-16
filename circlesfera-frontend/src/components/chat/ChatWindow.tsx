@@ -1010,7 +1010,7 @@ export default function ChatWindow() {
                     })}
                   </span>
                 </div>
-                <span className="text-gray-400 line-clamp-1 text-xs mt-0.5">
+                <span className="text-gray-300 line-clamp-1 text-xs mt-0.5">
                   {replyTo.content?.includes('"ciphertext"')
                     ? `🔒 ${t('chat.secure_message', 'Mensaje seguro')}`
                     : replyTo.content || t('chat.attachment')}
@@ -1040,7 +1040,7 @@ export default function ChatWindow() {
                     })}
                   </span>
                 </div>
-                <span className="text-gray-400 line-clamp-1 text-xs mt-0.5">
+                <span className="text-gray-300 line-clamp-1 text-xs mt-0.5">
                   {editingMessage.text}
                 </span>
               </div>

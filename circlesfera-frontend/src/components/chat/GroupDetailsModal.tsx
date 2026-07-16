@@ -72,7 +72,7 @@ export default function GroupDetailsModal({
                 />
               ) : (
                 <div className="w-full h-full bg-zinc-800 rounded-full flex items-center justify-center border-2 border-zinc-700">
-                  <span className="text-3xl text-zinc-500">
+                  <span className="text-3xl text-zinc-400">
                     {(conversation.name || 'G').charAt(0).toUpperCase()}
                   </span>
                 </div>
