@@ -108,6 +108,7 @@ export function useCreatePost() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['frames'] });
       navigate('/');
     },
@@ -286,6 +287,8 @@ export function useCreatePost() {
               mediaType: uploadedMedia[idx].type,
               isCloseFriendsOnly,
               audioId: selectedAudio?.id,
+              isPremium,
+              priceCents: isPremium ? Math.round(price * 100) : 0,
             }),
           ),
         );

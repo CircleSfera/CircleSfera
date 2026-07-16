@@ -91,7 +91,7 @@ export default function Frames() {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-black">
+      <div className="h-screen w-full flex items-center justify-center">
         <LoadingSpinner size="lg" />
       </div>
     );
@@ -99,7 +99,7 @@ export default function Frames() {
 
   if (frames.length === 0) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-black text-white">
+      <div className="h-screen w-full flex items-center justify-center text-white">
         <div className="text-center">
           <h2 className="text-xl font-bold mb-2">{t('frames.no_frames')}</h2>
           <p className="text-gray-400">{t('frames.be_first')}</p>
@@ -113,7 +113,7 @@ export default function Frames() {
     activeFrame?.media?.[0]?.thumbnailUrl || activeFrame?.media?.[0]?.url;
 
   return (
-    <div className="h-dvh md:h-screen w-full flex flex-col items-start md:justify-center md:items-center bg-black md:bg-transparent relative overflow-hidden">
+    <div className="h-dvh md:h-screen w-full flex flex-col items-start md:justify-center md:items-center relative overflow-hidden">
       {/* Dynamic blurred background for desktop */}
       <div className="hidden md:block absolute inset-0 z-0">
         {blurredBgImage && (

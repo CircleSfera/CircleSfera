@@ -23,7 +23,6 @@ export const SuggestionsList: React.FC<{
     const fetchSuggestions = async () => {
       try {
         const response = await usersApi.getSuggestions();
-        console.log('CircleSfera Debug - Suggestions response:', response.data);
         setUsers(response.data);
       } catch (error) {
         console.error('CircleSfera Debug - Error fetching suggestions:', error);

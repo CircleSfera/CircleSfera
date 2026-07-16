@@ -140,7 +140,7 @@ const AdjustmentSlider = ({
     >
       <div className="flex justify-between text-xs font-bold uppercase tracking-[0.12em]">
         <span className="text-white/30">{label}</span>
-        <span className={isModified ? 'text-blue-400' : 'text-white/20'}>
+        <span className={isModified ? 'text-brand-primary' : 'text-white/20'}>
           {value}
           {unit}
         </span>
@@ -156,7 +156,7 @@ const AdjustmentSlider = ({
           max={max}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full h-1 bg-white/6 rounded-lg appearance-none cursor-pointer accent-blue-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
+          className="w-full appearance-none bg-transparent cursor-pointer outline-none [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(131,58,180,0.5)] [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
         />
       </div>
     </motion.div>
@@ -370,7 +370,7 @@ export default function PhotoEditor({
           <button
             type="button"
             onClick={handleSave}
-            className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-xl transition-all"
+            className="p-2 text-brand-primary hover:text-brand-primary/80 hover:bg-brand-primary/10 rounded-xl transition-all"
           >
             <Check size={20} />
           </button>
@@ -504,7 +504,7 @@ export default function PhotoEditor({
                     <div
                       className={`w-[56px] h-[56px] rounded-lg overflow-hidden border-2 transition-all duration-200 ${
                         selectedFilter.name === filter.name
-                          ? 'border-blue-500 scale-105 shadow-lg shadow-blue-500/20'
+                          ? 'border-brand-primary/50 scale-105 shadow-[0_0_15px_rgba(131,58,180,0.3)]'
                           : 'border-transparent opacity-60 group-hover:opacity-100'
                       }`}
                     >
@@ -517,7 +517,7 @@ export default function PhotoEditor({
                     <span
                       className={`text-xs uppercase font-bold tracking-wider ${
                         selectedFilter.name === filter.name
-                          ? 'text-blue-400'
+                          ? 'text-brand-primary'
                           : 'text-white/30'
                       }`}
                     >
@@ -571,7 +571,7 @@ export default function PhotoEditor({
                     className={`p-2 rounded-lg transition-all ${
                       videoData.muted
                         ? 'bg-red-500/20 text-red-400'
-                        : 'bg-blue-500/20 text-blue-400'
+                        : 'bg-brand-primary/20 text-brand-primary'
                     }`}
                   >
                     {videoData.muted ? 'Silenciado 🔇' : 'Con Sonido 🔊'}
@@ -604,7 +604,7 @@ export default function PhotoEditor({
                             videoRef.current.currentTime = val;
                         }
                       }}
-                      className="flex-1 h-1 bg-blue-500/30 rounded-lg appearance-none cursor-pointer accent-blue-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
+                      className="flex-1 appearance-none bg-transparent cursor-pointer outline-none [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
                     />
                     <input
                       type="range"
@@ -620,7 +620,7 @@ export default function PhotoEditor({
                             videoRef.current.currentTime = val - 0.1;
                         }
                       }}
-                      className="flex-1 h-1 bg-red-500/30 rounded-lg appearance-none cursor-pointer accent-red-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-red-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
+                      className="flex-1 appearance-none bg-transparent cursor-pointer outline-none [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-red-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-red-500 [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
                     />
                     <span className="text-xs w-8 text-right">
                       {videoData.endTime.toFixed(1)}s
@@ -641,28 +641,28 @@ export default function PhotoEditor({
                   <button
                     type="button"
                     onClick={() => setAspect(undefined)}
-                    className={`flex-1 py-3 text-xs font-bold rounded-lg ${!aspect ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/60'}`}
+                    className={`flex-1 py-3 text-xs font-bold rounded-lg ${!aspect ? 'bg-brand-primary/20 text-brand-primary' : 'bg-white/5 text-white/60'}`}
                   >
                     Libre
                   </button>
                   <button
                     type="button"
                     onClick={() => setAspect(1)}
-                    className={`flex-1 py-3 text-xs font-bold rounded-lg ${aspect === 1 ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/60'}`}
+                    className={`flex-1 py-3 text-xs font-bold rounded-lg ${aspect === 1 ? 'bg-brand-primary/20 text-brand-primary' : 'bg-white/5 text-white/60'}`}
                   >
                     1:1
                   </button>
                   <button
                     type="button"
                     onClick={() => setAspect(4 / 5)}
-                    className={`flex-1 py-3 text-xs font-bold rounded-lg ${aspect === 4 / 5 ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/60'}`}
+                    className={`flex-1 py-3 text-xs font-bold rounded-lg ${aspect === 4 / 5 ? 'bg-brand-primary/20 text-brand-primary' : 'bg-white/5 text-white/60'}`}
                   >
                     4:5
                   </button>
                   <button
                     type="button"
                     onClick={() => setAspect(16 / 9)}
-                    className={`flex-1 py-3 text-xs font-bold rounded-lg ${aspect === 16 / 9 ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/60'}`}
+                    className={`flex-1 py-3 text-xs font-bold rounded-lg ${aspect === 16 / 9 ? 'bg-brand-primary/20 text-brand-primary' : 'bg-white/5 text-white/60'}`}
                   >
                     16:9
                   </button>
@@ -677,9 +677,9 @@ export default function PhotoEditor({
                     max={180}
                     value={rotation}
                     onChange={(e) => setRotation(Number(e.target.value))}
-                    className="flex-1 h-1 bg-white/6 rounded-lg appearance-none cursor-pointer accent-blue-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
+                    className="flex-1 appearance-none bg-transparent cursor-pointer outline-none [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
                   />
-                  <span className="text-xs font-bold text-blue-400 w-8">
+                  <span className="text-xs font-bold text-brand-primary w-8">
                     {rotation}°
                   </span>
                 </div>
@@ -699,7 +699,7 @@ export default function PhotoEditor({
                     onClick={() => setDrawMode(!drawMode)}
                     className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${
                       drawMode
-                        ? 'bg-blue-500 text-white'
+                        ? 'bg-brand-primary text-white shadow-[0_0_15px_rgba(131,58,180,0.3)]'
                         : 'bg-white/5 text-white/60 hover:text-white'
                     }`}
                   >
@@ -783,7 +783,7 @@ export default function PhotoEditor({
                       max={20}
                       value={brushSize}
                       onChange={(e) => setBrushSize(Number(e.target.value))}
-                      className="flex-1 h-1 bg-white/6 rounded-lg appearance-none cursor-pointer accent-blue-500 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md"
+                      className="flex-1 appearance-none bg-transparent cursor-pointer outline-none [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
                     />
                   </div>
                 )}
@@ -818,13 +818,13 @@ export default function PhotoEditor({
                           isActive
                             ? 'text-white bg-white/6'
                             : isModified
-                              ? 'text-blue-400/60 hover:text-blue-400'
+                              ? 'text-brand-primary/80 hover:text-brand-primary'
                               : 'text-white/20 hover:text-white/40'
                         }`}
                       >
                         {adj.label}
                         {isModified && !isActive && (
-                          <span className="ml-1 w-1 h-1 bg-blue-400 rounded-full inline-block" />
+                          <span className="ml-1 w-1 h-1 bg-brand-primary rounded-full inline-block" />
                         )}
                       </button>
                     );
@@ -881,7 +881,7 @@ export default function PhotoEditor({
                 onClick={() => setActiveTab('CROP')}
                 className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all rounded-xl ${
                   activeTab === 'CROP'
-                    ? 'text-blue-400 bg-blue-500/20'
+                    ? 'text-brand-primary bg-brand-primary/10'
                     : 'text-white/40 hover:text-white hover:bg-white/5'
                 }`}
               >
@@ -898,7 +898,7 @@ export default function PhotoEditor({
                 onClick={() => setActiveTab('TRIM')}
                 className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all rounded-xl ${
                   activeTab === 'TRIM'
-                    ? 'text-blue-400 bg-blue-500/20'
+                    ? 'text-brand-primary bg-brand-primary/10'
                     : 'text-white/40 hover:text-white hover:bg-white/5'
                 }`}
               >
@@ -918,7 +918,7 @@ export default function PhotoEditor({
                 }}
                 className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all rounded-xl ${
                   activeTab === 'OVERLAY'
-                    ? 'text-blue-400 bg-blue-500/20'
+                    ? 'text-brand-primary bg-brand-primary/10'
                     : 'text-white/40 hover:text-white hover:bg-white/5'
                 }`}
               >

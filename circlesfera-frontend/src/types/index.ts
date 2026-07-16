@@ -33,6 +33,7 @@ export type Post = IPost & {
   price?: number | null;
   priceCents?: number | null;
   isLocked?: boolean;
+  recommendationReason?: string;
 };
 export type PostMedia = IPostMedia;
 export type Comment = IComment & {
@@ -92,7 +93,6 @@ export type Participant = Omit<IParticipant, 'user'> & {
   user?: {
     id: string;
     isOnline?: boolean;
-    e2ePublicKey?: string;
     profile: Profile;
   };
 };
@@ -136,6 +136,8 @@ export type CreateStoryDto = {
   mediaType?: string;
   isCloseFriendsOnly?: boolean;
   audioId?: string;
+  isPremium?: boolean;
+  priceCents?: number;
 };
 
 export type Message = Omit<
@@ -144,7 +146,6 @@ export type Message = Omit<
 > & {
   tempId?: string;
   mediaType?: string;
-  e2eKeys?: Record<string, string>;
   createdAt: Date | string;
   updatedAt: Date | string;
   sender?: {
@@ -157,7 +158,6 @@ export type Message = Omit<
     userId: string;
     user?: {
       id: string;
-      e2ePublicKey?: string;
       profile: {
         username: string;
       };

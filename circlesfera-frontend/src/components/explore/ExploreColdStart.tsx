@@ -33,31 +33,31 @@ export default function ExploreColdStart({
     >
       {/* Educational Hero */}
       <div className="space-y-4 max-w-xl">
-        <div className="w-20 h-20 bg-brand-primary/10 rounded-xl mx-auto flex items-center justify-center border border-brand-primary/20 shadow-2xl shadow-brand-primary/20 mb-8 relative">
-          <div className="absolute inset-0 bg-brand-primary/20 blur-2xl rounded-full" />
-          <Sparkles className="text-brand-primary w-10 h-10 relative z-10" />
+        <div className="w-14 h-14 bg-brand-primary/10 rounded-xl mx-auto flex items-center justify-center border border-brand-primary/20 shadow-xl shadow-brand-primary/20 mb-6 relative">
+          <div className="absolute inset-0 bg-brand-primary/20 blur-xl rounded-full" />
+          <Sparkles className="text-brand-primary w-6 h-6 relative z-10" />
         </div>
 
-        <h2 className="text-xl md:text-2xl font-black text-white tracking-tight leading-tight">
+        <h2 className="text-lg md:text-xl font-bold text-white tracking-tight leading-tight">
           {activeTab === 'foryou'
             ? 'Descubre tu propio espacio'
             : 'Las tendencias te esperan'}
         </h2>
 
-        <p className="text-zinc-400 text-lg md:text-xl leading-relaxed font-medium">
+        <p className="text-zinc-400 text-sm leading-relaxed font-medium">
           {activeTab === 'foryou'
             ? 'Nuestro motor de Inteligencia Artificial aprende de ti. Dale "Me Gusta" y sigue a otros usuarios para que tu feed cobre vida con contenido personalizado.'
             : 'Parece que no hay tendencias activas en este momento o necesitas explorar más contenido para destapar el flujo.'}
         </p>
 
-        <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
           {activeTab === 'foryou' && (
             <button
               type="button"
               onClick={() => setActiveTab('trending')}
-              className="px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold transition-all flex items-center gap-3 active:scale-95 border border-white/5"
+              className="px-5 py-2.5 text-sm bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold transition-all flex items-center gap-2 active:scale-95 border border-white/5"
             >
-              <TrendingUp size={20} />
+              <TrendingUp size={16} />
               Ver Tendencias Globales
             </button>
           )}
@@ -69,9 +69,9 @@ export default function ExploreColdStart({
                 document.getElementById('desktop-create-btn');
               if (sidebarToggle) sidebarToggle.click();
             }}
-            className="px-8 py-4 bg-brand-primary hover:bg-brand-primary/90 text-white rounded-lg font-bold transition-all flex items-center gap-3 shadow-lg shadow-brand-primary/30 active:scale-95"
+            className="px-5 py-2.5 text-sm bg-brand-primary hover:bg-brand-primary/90 text-white rounded-lg font-bold transition-all flex items-center gap-2 shadow-lg shadow-brand-primary/30 active:scale-95"
           >
-            <Sparkles size={20} />
+            <Sparkles size={16} />
             Publicar Ahora
           </button>
         </div>
@@ -79,9 +79,9 @@ export default function ExploreColdStart({
 
       {/* Suggested Users Section */}
       <div className="w-full pt-8 border-t border-white/10">
-        <div className="flex items-center justify-between mb-8">
-          <h3 className="text-xl font-bold text-white flex items-center gap-3">
-            <Users className="text-brand-primary" />
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-bold text-white flex items-center gap-2">
+            <Users size={18} className="text-brand-primary" />
             Personas a las que seguir
           </h3>
         </div>

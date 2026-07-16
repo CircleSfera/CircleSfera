@@ -1,6 +1,7 @@
 import { Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { parseFilter } from '../utils/styleUtils';
+import HlsVideoPlayer from './common/HlsVideoPlayer';
 
 interface MediaItem {
   id: string;
@@ -74,11 +75,14 @@ export default function Carousel({
     if (item.type === 'video') {
       return (
         <div className="relative w-full h-full">
-          <video
+          <HlsVideoPlayer
             ref={(el) => {
               videoRefs.current[index] = el;
             }}
             src={item.url}
+            hlsUrl={
+              item.standardUrl?.endsWith('.m3u8') ? item.standardUrl : undefined
+            }
             className={`w-full h-full ${fitClass} ${filterClass} ${blurClass} transition-all duration-300`}
             style={filterStyle}
             autoPlay

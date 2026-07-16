@@ -16,6 +16,11 @@ export interface CreatorStats {
   engagementRate: number;
   followerGrowth: number;
   totalReach: number;
+  mrr: number;
+  subscriberCount: number;
+  geoDistribution: { location: string; count: number }[];
+  activityHours: { hour: number; count: number }[];
+  retentionStatus: { active: number; churning: number; churned: number };
   insights: {
     bestDayToPost: string;
     bestHourToPost: number;
@@ -41,6 +46,10 @@ export interface CreatorPost {
   media?: { url: string; type?: string }[];
   loops?: number;
   watchTime?: number;
+  impressions?: number;
+  shares?: number;
+  totalDwellTime?: number;
+  conversionRate?: number;
   _count: { likes: number; comments: number; bookmarks: number };
 }
 
@@ -108,9 +117,13 @@ export const creatorApi = {
   createPromotion: (data: {
     targetType: string;
     targetId: string;
-    budget: number;
+    budget?: number;
+    dailyBudget?: number;
     durationDays: number;
     currency?: string;
+    objective?: string;
+    interests?: string;
+    countries?: string;
   }) =>
     apiClient.post<{ url: string; promotionId: string }>(
       'creator/promotions',

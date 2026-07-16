@@ -5,7 +5,7 @@ import Sidebar from '../components/navigation/Sidebar';
 import TopNav from '../components/navigation/TopNav';
 
 import StoryViewer from '../components/StoryViewer';
-import { useE2EInit } from '../hooks/useE2EInit';
+
 import { useAuthStore } from '../stores/authStore';
 import { useNotificationsStore } from '../stores/notificationsStore';
 import { useSocketStore } from '../stores/socketStore';
@@ -26,6 +26,7 @@ export default function LayoutWrapper({
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isCreatorRoute = location.pathname.startsWith('/creator');
   const isFramesRoute = location.pathname.startsWith('/frames');
+  const isEditsRoute = location.pathname.startsWith('/edits');
 
   // Only show nav if authenticated AND not in hidden routes AND not in admin/creator
   const shouldShowNav =
@@ -45,7 +46,6 @@ export default function LayoutWrapper({
   }, [isAuthenticated, connect, disconnect]);
 
   // Initialize E2E keys
-  useE2EInit();
 
   // Accessibility: Announce new notifications to screen readers
   const liveNotifications = useNotificationsStore(
@@ -90,7 +90,8 @@ export default function LayoutWrapper({
       {shouldShowNav && (
         <>
           {!location.pathname.includes('/direct/inbox/t/') &&
-            !isFramesRoute && <TopNav />}
+            !isFramesRoute &&
+            !isEditsRoute && <TopNav />}
           <Sidebar />
           <BottomNav />
         </>
@@ -103,19 +104,21 @@ export default function LayoutWrapper({
         {/* Top spacing for mobile to account for TopNav height */}
         {shouldShowNav &&
           !location.pathname.startsWith('/direct') &&
-          !isFramesRoute && <div className="md:hidden h-16" />}
+          !isFramesRoute &&
+          !isEditsRoute && <div className="md:hidden h-16" />}
 
         <div
-          className={`w-full ${location.pathname.startsWith('/direct') ? (location.pathname.includes('/t/') ? 'h-[calc(100dvh-80px)] md:h-screen' : 'h-[calc(100dvh-64px-80px)] md:h-screen') : isFramesRoute ? 'h-dvh md:h-screen' : `min-h-screen ${shouldShowNav ? 'pb-24 md:pb-8' : ''}`} overflow-hidden`}
+          className={`w-full ${location.pathname.startsWith('/direct') ? (location.pathname.includes('/t/') ? 'h-[calc(100dvh-80px)] md:h-screen' : 'h-[calc(100dvh-64px-80px)] md:h-screen') : isFramesRoute ? 'h-dvh md:h-screen' : isEditsRoute ? 'h-[calc(100dvh-64px)] md:h-screen' : `min-h-screen ${shouldShowNav ? 'pb-24 md:pb-8' : ''}`} overflow-hidden`}
         >
           <div
             className={
               shouldShowNav &&
               !location.pathname.startsWith('/direct') &&
               !location.pathname.startsWith('/admin') &&
-              !isFramesRoute
+              !isFramesRoute &&
+              !isEditsRoute
                 ? 'mx-auto max-w-5xl px-4'
-                : `w-full h-full ${shouldShowNav && !isFramesRoute ? 'md:pb-10' : ''}`
+                : `w-full h-full ${shouldShowNav && !isFramesRoute && !isEditsRoute ? 'md:pb-10' : ''}`
             }
           >
             {children}

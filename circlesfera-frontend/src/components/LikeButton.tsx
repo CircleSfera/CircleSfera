@@ -47,6 +47,7 @@ export default function LikeButton({
       size="icon"
       className="transition-transform hover:scale-110 active:scale-95 bg-transparent border-none"
       aria-label={liked ? 'Unlike post' : 'Like post'}
+      data-testid="like-button"
     >
       {liked ? (
         <svg
