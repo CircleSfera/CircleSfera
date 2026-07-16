@@ -17,7 +17,7 @@ import {
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { DataExportService } from './data-export.service.js';
-import { UpdateE2EKeysDto } from './dto/update-e2e-keys.dto.js';
+
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
 import { UsersService } from './users.service.js';
 
@@ -101,30 +101,5 @@ export class UsersController {
     @Body() dto: UpdateSettingsDto,
   ) {
     return this.usersService.updateSettings(user.userId, dto);
-  }
-
-  /** E2EE: Upload public and encrypted private key for the user. */
-  @Put('me/e2e-keys')
-  async uploadE2EKeys(
-    @CurrentUser() user: CurrentUserData,
-    @Body() dto: UpdateE2EKeysDto,
-  ) {
-    return this.usersService.updateE2EKeys(
-      user.userId,
-      dto.publicKey,
-      dto.privateKeyEncrypted,
-    );
-  }
-
-  /** E2EE: Get the current user's own keys for device syncing. */
-  @Get('me/e2e-keys')
-  async getMyE2EKeys(@CurrentUser() user: CurrentUserData) {
-    return this.usersService.getE2EMyKeys(user.userId);
-  }
-
-  /** E2EE: Get public key of a user. */
-  @Get(':id/e2e-key')
-  async getE2EPublicKey(@Param('id') id: string) {
-    return this.usersService.getE2EPublicKey(id);
   }
 }

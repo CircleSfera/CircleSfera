@@ -2,11 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertTriangle,
+  BadgeCheck,
   BarChart3,
   Bell,
   Camera,
   Check,
   CreditCard,
+  DollarSign,
   Globe,
   Key,
   Loader2,
@@ -15,6 +17,7 @@ import {
   Star,
   User,
   UserPlus,
+  Users,
   UserX,
   X,
 } from 'lucide-react';
@@ -23,7 +26,11 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { PasskeySettings, TwoFactorSettings } from '../components';
+import {
+  MonetizationSettings,
+  PasskeySettings,
+  TwoFactorSettings,
+} from '../components';
 import CloseFriendsModal from '../components/modals/CloseFriendsModal';
 import UserAvatar from '../components/UserAvatar';
 import { Button, Input, Switch, Textarea } from '../components/ui';
@@ -52,6 +59,111 @@ function useDebounce<T extends (...args: Parameters<T>) => void>(
       }, delay);
     },
     [callback, delay],
+  );
+}
+
+function ReferralsSettings() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['myReferrals'],
+    queryFn: () => profileApi.getMyReferrals(),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-10">
+        <Loader2 className="animate-spin text-blue-500" size={32} />
+      </div>
+    );
+  }
+
+  const inviteCode = data?.data?.inviteCode;
+  const referrals = data?.data?.referrals || [];
+  const maxReferrals = data?.data?.maxReferrals || 3;
+  const referralCount = data?.data?.referralCount || 0;
+  const inviteLink = `${window.location.origin}/accounts/register?inviteCode=${inviteCode}`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(inviteLink);
+    toast.success('Invite link copied!');
+  };
+
+  return (
+    <div className="max-w-xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div>
+        <h2 className="text-xl font-black text-white tracking-tighter">
+          Beta Invites
+        </h2>
+        <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
+          Invite your friends to CircleSfera
+        </p>
+      </div>
+
+      <div className="bg-white/2 p-5 rounded-xl border border-white/5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+            Your Invite Link
+          </h3>
+          <span className="text-xs font-bold bg-blue-500/20 text-blue-400 px-2 py-1 rounded-md">
+            {referralCount} / {maxReferrals} Used
+          </span>
+        </div>
+
+        <div className="flex gap-2 mb-2">
+          <Input
+            value={inviteLink}
+            readOnly
+            className="flex-1 font-mono text-sm"
+          />
+          <Button
+            onClick={handleCopyLink}
+            disabled={referralCount >= maxReferrals}
+          >
+            Copy
+          </Button>
+        </div>
+        {referralCount >= maxReferrals && (
+          <p className="text-xs text-red-400 font-bold uppercase tracking-wider">
+            You have reached the maximum number of invites for this beta phase.
+          </p>
+        )}
+      </div>
+
+      <div className="bg-white/2 p-5 rounded-xl border border-white/5 space-y-4">
+        <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+          Users you invited
+        </h3>
+
+        {referrals.length === 0 ? (
+          <div className="text-center py-6 text-gray-500 text-sm font-medium">
+            You haven't invited anyone yet.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {referrals.map((referral: any) => (
+              <div
+                key={referral.id}
+                className="flex items-center gap-3 p-3 bg-white/5 rounded-lg"
+              >
+                <UserAvatar
+                  src={referral.profile?.avatar}
+                  alt={referral.profile?.fullName || referral.profile?.username}
+                  size="md"
+                />
+                <div className="flex flex-col">
+                  <span className="font-bold text-white text-sm">
+                    {referral.profile?.fullName || referral.profile?.username}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    @{referral.profile?.username} • Joined{' '}
+                    {new Date(referral.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -155,6 +267,8 @@ export default function Settings() {
     | 'account'
     | 'close_friends'
     | 'notifications'
+    | 'referrals'
+    | 'monetization'
   >('profile');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { t, i18n } = useTranslation();
@@ -271,6 +385,17 @@ export default function Settings() {
     onSuccess: () => {
       logout();
       navigate('/accounts/login');
+    },
+    onError: () => toast.error(t('settings.account.disable.error')),
+  });
+
+  const verifyIdentityMutation = useMutation({
+    mutationFn: () => paymentsApi.createIdentitySession(window.location.href),
+    onSuccess: (data) => {
+      window.location.href = data.url;
+    },
+    onError: () => {
+      toast.error('Failed to initialize verification session');
     },
   });
 
@@ -512,10 +637,22 @@ export default function Settings() {
       icon: CreditCard,
     },
     {
+      id: 'monetization',
+      label: 'Monetization',
+      desc: 'Manage Stripe Connect and payouts',
+      icon: DollarSign,
+    },
+    {
       id: 'requests',
       label: t('settings.tabs.requests.label'),
       desc: t('settings.tabs.requests.desc'),
       icon: UserPlus,
+    },
+    {
+      id: 'referrals',
+      label: 'Referrals',
+      desc: 'Invite friends and track referrals',
+      icon: Users,
     },
     {
       id: 'close_friends',
@@ -575,7 +712,7 @@ export default function Settings() {
                 <button
                   type="button"
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => setActiveTab(tab.id as any)}
                   className={`flex flex-row md:flex-col items-center md:items-start gap-2 md:gap-0 px-3 py-2 rounded-lg transition-all relative group shrink-0 ${
                     activeTab === tab.id
                       ? 'bg-blue-500/10 text-white shadow-[0_0_15px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/30'
@@ -592,13 +729,13 @@ export default function Settings() {
                       }
                     />
                     <span className="font-semibold text-xs tracking-wider uppercase whitespace-nowrap">
-                      {t(`settings.tabs.${tab.id}.label`)}
+                      {t(`settings.tabs.${tab.id}.label`) || tab.label}
                     </span>
                   </div>
                   <span
                     className={`hidden md:block text-xs ml-6 font-medium leading-relaxed mt-0.5 ${activeTab === tab.id ? 'text-blue-300/80' : 'text-gray-500'}`}
                   >
-                    {t(`settings.tabs.${tab.id}.desc`)}
+                    {t(`settings.tabs.${tab.id}.desc`) || tab.desc}
                   </span>
                   {activeTab === tab.id && (
                     <motion.div
@@ -1166,6 +1303,51 @@ export default function Settings() {
                   </Button>
                 </div>
 
+                {/* KYC Verification */}
+                <div
+                  className={`p-4 rounded-xl border transition-colors group mb-8 ${profile?.user?.verificationLevel === 'VERIFIED' ? 'bg-green-500/5 border-green-500/10 hover:bg-green-500/10' : 'bg-purple-500/5 border-purple-500/10 hover:bg-purple-500/10'}`}
+                >
+                  <h3
+                    className={`font-bold uppercase tracking-wide text-xs mb-2 flex items-center gap-2 ${profile?.user?.verificationLevel === 'VERIFIED' ? 'text-green-400' : 'text-purple-400'}`}
+                  >
+                    <BadgeCheck size={16} />
+                    {t(
+                      'settings.account.verification.title',
+                      'Identity Verification',
+                    )}
+                  </h3>
+                  <p className="text-sm text-gray-400 leading-relaxed font-medium mb-5">
+                    {profile?.user?.verificationLevel === 'VERIFIED'
+                      ? t(
+                          'settings.account.verification.verified_desc',
+                          'Your identity has been successfully verified. This badge adds trust to your profile and helps keep the community safe.',
+                        )
+                      : t(
+                          'settings.account.verification.unverified_desc',
+                          'Verify your identity to get the verified badge and unlock additional security features for your account. You will need a valid ID or Passport.',
+                        )}
+                  </p>
+
+                  {profile?.user?.verificationLevel === 'VERIFIED' ? (
+                    <div className="flex items-center gap-2 text-green-400 font-bold text-xs uppercase tracking-wide px-2 py-1 bg-green-500/10 w-fit rounded-lg">
+                      <Check size={14} strokeWidth={3} />
+                      {t('settings.account.verification.verified', 'Verified')}
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={() => verifyIdentityMutation.mutate()}
+                      isLoading={verifyIdentityMutation.isPending}
+                      variant="outline"
+                      className="px-5 py-2 text-purple-400 border-purple-500/20 hover:bg-purple-500 hover:text-white font-black text-xs uppercase tracking-wide"
+                    >
+                      {t(
+                        'settings.account.verification.btn',
+                        'Verify Identity',
+                      )}
+                    </Button>
+                  )}
+                </div>
+
                 {/* Language Switcher */}
                 <div className="bg-white/2 p-4 rounded-xl border border-white/5 mb-8">
                   <h3 className="font-bold text-white tracking-wide text-xs uppercase mb-4 flex items-center gap-2">
@@ -1317,7 +1499,7 @@ export default function Settings() {
             )}
 
             {activeTab === 'security' && (
-              <div className="max-w-xl space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="max-w-xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div>
                   <h2 className="text-xl font-black text-white tracking-tighter">
                     {t('settings.security.title')}
@@ -1328,15 +1510,16 @@ export default function Settings() {
                 </div>
 
                 <div className="bg-white/2 p-4 rounded-xl border border-white/5">
-                  <TwoFactorSettings />
-                </div>
-
-                <div className="bg-white/2 p-4 rounded-xl border border-white/5">
                   <PasskeySettings />
+                </div>
+                <div className="bg-white/2 p-4 rounded-xl border border-white/5">
+                  <TwoFactorSettings />
                 </div>
               </div>
             )}
 
+            {activeTab === 'monetization' && <MonetizationSettings />}
+            {activeTab === 'referrals' && <ReferralsSettings />}
             {activeTab === 'notifications' && <NotificationsSettings />}
           </div>
         </div>
