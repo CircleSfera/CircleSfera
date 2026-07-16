@@ -1318,10 +1318,10 @@ export default function Settings() {
 
                 {/* KYC Verification */}
                 <div
-                  className={`p-4 rounded-xl border transition-colors group mb-8 ${profile?.user?.verificationLevel === 'VERIFIED' ? 'bg-green-500/5 border-green-500/10 hover:bg-green-500/10' : 'bg-purple-500/5 border-purple-500/10 hover:bg-purple-500/10'}`}
+                  className={`p-4 rounded-xl border transition-colors group mb-8 ${profile?.identityVerifiedAt ? 'bg-green-500/5 border-green-500/10 hover:bg-green-500/10' : 'bg-purple-500/5 border-purple-500/10 hover:bg-purple-500/10'}`}
                 >
                   <h3
-                    className={`font-bold uppercase tracking-wide text-xs mb-2 flex items-center gap-2 ${profile?.user?.verificationLevel === 'VERIFIED' ? 'text-green-400' : 'text-purple-400'}`}
+                    className={`font-bold uppercase tracking-wide text-xs mb-2 flex items-center gap-2 ${profile?.identityVerifiedAt ? 'text-green-400' : 'text-purple-400'}`}
                   >
                     <BadgeCheck size={16} />
                     {t(
@@ -1330,7 +1330,7 @@ export default function Settings() {
                     )}
                   </h3>
                   <p className="text-sm text-gray-300 leading-relaxed font-medium mb-5">
-                    {profile?.user?.verificationLevel === 'VERIFIED'
+                    {profile?.identityVerifiedAt
                       ? t(
                           'settings.account.verification.verified_desc',
                           'Your identity has been successfully verified. This badge adds trust to your profile and helps keep the community safe.',
@@ -1341,7 +1341,7 @@ export default function Settings() {
                         )}
                   </p>
 
-                  {profile?.user?.verificationLevel === 'VERIFIED' ? (
+                  {profile?.identityVerifiedAt ? (
                     <div className="flex items-center gap-2 text-green-400 font-bold text-xs uppercase tracking-wide px-2 py-1 bg-green-500/10 w-fit rounded-lg">
                       <Check size={14} strokeWidth={3} />
                       {t('settings.account.verification.verified', 'Verified')}

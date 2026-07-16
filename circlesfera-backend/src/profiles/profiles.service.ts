@@ -305,6 +305,7 @@ export class ProfilesService {
             accountType: true,
             inviteCode: true,
             referredById: true,
+            identityVerifiedAt: true,
             _count: {
               select: {
                 followers: { where: { status: 'ACCEPTED' } },
@@ -337,6 +338,7 @@ export class ProfilesService {
       verificationLevel: profile.user?.verificationLevel,
       inviteCode: profile.user?.inviteCode,
       referredById: profile.user?.referredById,
+      identityVerifiedAt: profile.user?.identityVerifiedAt,
       isVerified:
         !!isVerifiedResult ||
         profile.user?.verificationLevel === 'VERIFIED' ||

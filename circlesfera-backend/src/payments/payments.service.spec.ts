@@ -252,6 +252,11 @@ describe('PaymentsService', () => {
         },
       };
 
+      // Mock user.findUnique to return BASIC verification level
+      vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({
+        verificationLevel: VerificationLevel.BASIC,
+      } as any);
+
       await service.processWebhookEvent(event);
 
       expect(prisma.user.update).toHaveBeenCalledWith({
