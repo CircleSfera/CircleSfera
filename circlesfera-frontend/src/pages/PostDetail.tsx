@@ -66,7 +66,7 @@ export default function PostDetail() {
         <div className="max-w-5xl mx-auto mb-4 hidden md:block">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm px-4 md:px-0"
+            className="inline-flex items-center gap-2 text-gray-300 hover:text-white transition-colors text-sm px-4 md:px-0"
           >
             <ArrowLeft size={18} />
             <span>{t('post.detail.back_to_feed')}</span>
@@ -88,7 +88,7 @@ export default function PostDetail() {
               {!props?.isDetailMode && (
                 <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2 shrink-0 px-2">
                   <span>{t('post.detail.comments')}</span>
-                  <span className="text-sm font-normal text-gray-400">
+                  <span className="text-sm font-normal text-gray-300">
                     ({comments?.data.data.length || 0})
                   </span>
                 </h2>

@@ -63,7 +63,7 @@ export default function AccessibilitySubScreen({
               <h2 className="font-black text-xl tracking-tighter text-white italic uppercase">
                 {t('createPost.accessibility.title')}
               </h2>
-              <p className="text-zinc-500 text-xs font-bold uppercase tracking-wide">
+              <p className="text-zinc-400 text-xs font-bold uppercase tracking-wide">
                 {t('createPost.accessibility.subtitle')}
               </p>
             </div>
@@ -145,7 +145,7 @@ export default function AccessibilitySubScreen({
                           onClick={() => handleAiGenerate(idx)}
                           className={`absolute bottom-3 right-3 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
                             isGenerating
-                              ? 'bg-zinc-800 border-zinc-700 text-zinc-500'
+                              ? 'bg-zinc-800 border-zinc-700 text-zinc-400'
                               : 'bg-brand-primary/10 border-brand-primary/20 text-brand-primary hover:bg-brand-primary hover:text-white'
                           }`}
                         >

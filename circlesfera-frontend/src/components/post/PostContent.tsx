@@ -40,7 +40,7 @@ export default function PostContent({
       {!hideStats && post._count?.comments > 0 && (
         <Link
           to={`/p/${post.id}`}
-          className="text-sm text-gray-500 hover:text-gray-400 transition-colors block mb-1"
+          className="text-sm text-gray-500 hover:text-gray-300 transition-colors block mb-1"
         >
           {t('post.content.view_all_comments', { count: post._count.comments })}
         </Link>

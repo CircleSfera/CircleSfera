@@ -38,7 +38,7 @@ export default function PostModals({
             <h3 className="text-xl font-bold text-center mb-2">
               {t('post.modals.delete_title')}
             </h3>
-            <p className="text-gray-400 text-center text-sm mb-6">
+            <p className="text-gray-300 text-center text-sm mb-6">
               {t('post.modals.delete_warning')}
             </p>
             <div className="flex gap-3">

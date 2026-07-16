@@ -76,7 +76,7 @@ export default function PostHeader({
         onClick={onMenuToggle}
         variant="ghost"
         size="icon"
-        className="text-gray-400 hover:bg-white/10 rounded-full"
+        className="text-gray-300 hover:bg-white/10 rounded-full"
       >
         <MoreHorizontal size={20} />
       </Button>
