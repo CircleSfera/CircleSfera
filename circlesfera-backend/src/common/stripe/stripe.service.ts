@@ -109,6 +109,13 @@ export class StripeService implements OnModuleInit {
   }
 
   /**
+   * Retrieve a Stripe Account by ID.
+   */
+  async getAccount(accountId: string): Promise<Stripe.Account> {
+    return this.stripe.accounts.retrieve(accountId);
+  }
+
+  /**
    * Create an Account Link for onboarding.
    */
   async createAccountLink(

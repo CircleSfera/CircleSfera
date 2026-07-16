@@ -38,6 +38,10 @@ export class CryptoService {
 
       const [ivHex, authTagHex, encryptedHex] = parts;
 
+      if (ivHex.length !== 32 || authTagHex.length !== 32) {
+        return encryptedText; // Not our encryption format
+      }
+
       const iv = Buffer.from(ivHex, 'hex');
       const authTag = Buffer.from(authTagHex, 'hex');
 
