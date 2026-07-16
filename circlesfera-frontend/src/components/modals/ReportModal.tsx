@@ -16,7 +16,7 @@ interface ReportModalProps {
 const REPORT_REASONS = [
   { id: 'SPAM', label: "It's spam" },
   { id: 'HARASSMENT', label: 'Harassment or bullying' },
-  { id: 'INAPPROPRIATE', label: 'Inappropriate content' },
+  { id: 'HATE_SPEECH', label: 'Inappropriate content or hate speech' },
   { id: 'OTHER', label: 'Something else' },
 ];
 

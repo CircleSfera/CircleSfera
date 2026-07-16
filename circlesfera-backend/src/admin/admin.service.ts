@@ -657,7 +657,7 @@ export class AdminService {
 
     if (
       status &&
-      ['PENDING', 'RESOLVED', 'DISMISSED', 'REVIEWING'].includes(status)
+      ['PENDING', 'RESOLVED', 'REJECTED', 'REVIEWING'].includes(status)
     ) {
       where.status = status as ReportStatus;
     }
@@ -801,6 +801,87 @@ export class AdminService {
         : AdminAction.REPORT_DISMISSED;
     await this.logAction(adminId, action, 'report', reportId);
     return result;
+  }
+
+  /**
+   * Resolve a report with a manual moderation penalty.
+   * @param adminId - The ID of the admin resolving it
+   * @param reportId - The report ID
+   * @param penaltyAction - The action to take: 'IGNORE', 'STRIKE', or 'BAN'
+   */
+  async resolveReportWithPenalty(
+    adminId: string,
+    reportId: string,
+    penaltyAction: 'IGNORE' | 'STRIKE' | 'BAN',
+  ) {
+    const report = await this.prisma.report.findUnique({
+      where: { id: reportId },
+    });
+
+    if (!report) throw new NotFoundException('Report not found');
+
+    let targetUserId: string | null = null;
+
+    if (report.targetType === 'USER') {
+      targetUserId = report.targetId;
+    } else if (report.targetType === 'POST') {
+      const post = await this.prisma.post.findUnique({
+        where: { id: report.targetId },
+      });
+      if (post) targetUserId = post.userId;
+    } else if (report.targetType === 'STORY') {
+      const story = await this.prisma.story.findUnique({
+        where: { id: report.targetId },
+      });
+      if (story) targetUserId = story.userId;
+    } else if (report.targetType === 'COMMENT') {
+      const comment = await this.prisma.comment.findUnique({
+        where: { id: report.targetId },
+      });
+      if (comment) targetUserId = comment.userId;
+    }
+
+    if (penaltyAction === 'STRIKE' && targetUserId) {
+      await this.prisma.user.update({
+        where: { id: targetUserId },
+        data: { strikeCount: { increment: 1 } },
+      });
+    } else if (penaltyAction === 'BAN' && targetUserId) {
+      await this.prisma.user.update({
+        where: { id: targetUserId },
+        data: { isActive: false },
+      });
+    } else if (
+      penaltyAction === 'IGNORE' &&
+      targetUserId &&
+      report.targetType === 'USER'
+    ) {
+      // If AI automatically escalated it based on strikes, an IGNORE might mean it was a false positive.
+      // We optionally decrement strike count so they don't get stuck at 3.
+      const user = await this.prisma.user.findUnique({
+        where: { id: targetUserId },
+      });
+      if (user && user.strikeCount >= 3) {
+        await this.prisma.user.update({
+          where: { id: targetUserId },
+          data: { strikeCount: { decrement: 1 } },
+        });
+      }
+    }
+
+    // Log the admin action
+    await this.logAction(
+      adminId,
+      AdminAction.REPORT_RESOLVED,
+      'REPORT',
+      reportId,
+      `Resolved with penalty action: ${penaltyAction}`,
+    );
+
+    return await this.prisma.report.update({
+      where: { id: reportId },
+      data: { status: ReportStatus.RESOLVED },
+    });
   }
 
   // ─── Audit Logs ───────────────────────────────────────────────────
@@ -1484,6 +1565,103 @@ export class AdminService {
       'firewall',
       id,
       `Deleted firewall rule`,
+    );
+
+    return { success: true };
+  }
+
+  // ─── User Experiments (A/B Testing) ───────────────────────────────
+
+  async getUserExperiments(page = 1, limit = 20, search?: string) {
+    const skip = (page - 1) * limit;
+    const where: Prisma.UserExperimentWhereInput = search
+      ? {
+          OR: [
+            { experimentKey: { contains: search, mode: 'insensitive' } },
+            {
+              user: {
+                profile: {
+                  username: { contains: search, mode: 'insensitive' },
+                },
+              },
+            },
+          ],
+        }
+      : {};
+
+    const [experiments, total] = await Promise.all([
+      this.prisma.userExperiment.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: {
+              id: true,
+              profile: {
+                select: { avatar: true, fullName: true, username: true },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.userExperiment.count({ where }),
+    ]);
+
+    return {
+      data: experiments,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async assignUserExperiment(
+    adminId: string,
+    userId: string,
+    experimentKey: string,
+    variant: string,
+  ) {
+    const experiment = await this.prisma.userExperiment.upsert({
+      where: {
+        userId_experimentKey: { userId, experimentKey },
+      },
+      update: { variant },
+      create: { userId, experimentKey, variant },
+      include: {
+        user: { select: { profile: { select: { username: true } } } },
+      },
+    });
+
+    await this.logAction(
+      adminId,
+      AdminAction.MANUAL_OVERRIDE,
+      'user_experiment',
+      experiment.id,
+      `Assigned ${experiment.user?.profile?.username || userId} to ${experimentKey} (${variant})`,
+    );
+
+    // Clear user cache if caching is implemented per user, though ExperimentsService caches by key globally, overrides are dynamic.
+
+    return experiment;
+  }
+
+  async removeUserExperiment(adminId: string, id: string) {
+    const experiment = await this.prisma.userExperiment.delete({
+      where: { id },
+      include: {
+        user: { select: { profile: { select: { username: true } } } },
+      },
+    });
+
+    await this.logAction(
+      adminId,
+      AdminAction.MANUAL_OVERRIDE,
+      'user_experiment',
+      id,
+      `Removed ${experiment.user?.profile?.username || experiment.userId} from ${experiment.experimentKey}`,
     );
 
     return { success: true };

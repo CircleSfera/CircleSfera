@@ -43,10 +43,72 @@ self.addEventListener('message', async (e: MessageEvent) => {
         break;
       }
 
-      case 'PROCESS_VIDEO':
-        // TODO: Implement FFmpeg.wasm calls
-        self.postMessage({ jobId, status: 'success', data: null });
+      case 'PROCESS_VIDEO': {
+        const { file, options } = payload;
+
+        if (!file) {
+          throw new Error('No video file provided');
+        }
+
+        // Initialize FFmpeg
+        const { FFmpeg } = await import('@ffmpeg/ffmpeg');
+        const { fetchFile } = await import('@ffmpeg/util');
+
+        const ffmpeg = new FFmpeg();
+
+        // Listen to progress
+        ffmpeg.on('progress', ({ progress }) => {
+          self.postMessage({
+            jobId,
+            status: 'progress',
+            progress: Math.round(progress * 100),
+          });
+        });
+
+        // Load FFmpeg
+        await ffmpeg.load({
+          coreURL: '/ffmpeg/ffmpeg-core.js',
+          wasmURL: '/ffmpeg/ffmpeg-core.wasm',
+        });
+
+        const inputName = 'input.mp4';
+        const outputName = 'output.mp4';
+
+        // Write file to memory
+        await ffmpeg.writeFile(inputName, await fetchFile(file));
+
+        // Construct arguments based on options (e.g. scale, trim)
+        const args = ['-i', inputName];
+
+        if (options?.scale) {
+          args.push('-vf', `scale=${options.scale}`);
+        }
+
+        // Fast start for web playback and optimize
+        args.push('-movflags', 'faststart');
+        args.push('-vcodec', 'libx264');
+        args.push('-crf', '28');
+        args.push('-preset', 'superfast');
+
+        args.push(outputName);
+
+        // Execute command
+        await ffmpeg.exec(args);
+
+        // Read result
+        const data = await ffmpeg.readFile(outputName);
+
+        // Cleanup
+        await ffmpeg.deleteFile(inputName);
+        await ffmpeg.deleteFile(outputName);
+
+        // Send back
+        const processedBlob = new Blob([data as unknown as BlobPart], {
+          type: 'video/mp4',
+        });
+        self.postMessage({ jobId, status: 'success', data: processedBlob });
         break;
+      }
 
       default:
         throw new Error(`Unknown job type: ${type}`);

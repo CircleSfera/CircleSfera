@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 import AdminGuard from './components/auth/AdminGuard';
 import AuthGuard from './components/auth/AuthGuard';
@@ -9,7 +9,7 @@ import SelectChat from './components/chat/SelectChat';
 import ScrollToTop from './components/common/ScrollToTop';
 import CreateBottomSheet from './components/modals/CreateBottomSheet';
 import { GlobalCallContainer } from './components/navigation/GlobalCallContainer';
-import { GlobalE2EContainer } from './components/navigation/GlobalE2EContainer';
+
 import LayoutWrapper from './layouts/LayoutWrapper';
 
 const Admin = lazy(() => import('./pages/Admin'));
@@ -45,6 +45,7 @@ import TagFeed from './pages/TagFeed';
 import TermsOfService from './pages/TermsOfService';
 import VerifyEmail from './pages/VerifyEmail';
 import { useAuthStore } from './stores/authStore';
+import { useExperimentStore } from './stores/useExperimentStore';
 
 // Helper to redirect /profile to current user's profile
 
@@ -67,12 +68,21 @@ function RedirectToProfile() {
 
 function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const fetchFlags = useExperimentStore((state) => state.fetchFlags);
+
+  useEffect(() => {
+    // Fetch flags when app initializes. If auth changes, we might want to refetch,
+    // but for now fetch once on mount.
+    if (isAuthenticated !== undefined) {
+      fetchFlags();
+    }
+  }, [fetchFlags, isAuthenticated]);
 
   return (
     <LayoutWrapper>
       <ScrollToTop />
       <GlobalCallContainer />
-      <GlobalE2EContainer />
+
       <CreateBottomSheet />
       <Suspense
         fallback={

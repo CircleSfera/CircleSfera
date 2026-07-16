@@ -60,7 +60,7 @@ export default function AdvancedSettingsSubScreen({
               role="switch"
               aria-checked={hideLikes}
               onClick={() => setHideLikes(!hideLikes)}
-              className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${hideLikes ? 'bg-blue-500' : 'bg-neutral-700'}`}
+              className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${hideLikes ? 'bg-brand-primary' : 'bg-neutral-700'}`}
               aria-label="Toggle hide like counts"
             >
               <div
@@ -83,7 +83,7 @@ export default function AdvancedSettingsSubScreen({
               role="switch"
               aria-checked={turnOffComments}
               onClick={() => setTurnOffComments(!turnOffComments)}
-              className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${turnOffComments ? 'bg-blue-500' : 'bg-neutral-700'}`}
+              className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${turnOffComments ? 'bg-brand-primary' : 'bg-neutral-700'}`}
               aria-label="Toggle commenting"
             >
               <div

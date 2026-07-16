@@ -100,15 +100,19 @@ export class CreatorController {
     body: {
       targetType: string;
       targetId: string;
-      budget: number;
+      budget?: number; // Optional if dailyBudget is provided
+      dailyBudget?: number;
       durationDays: number;
       currency?: string;
+      objective?: string;
+      interests?: string;
+      countries?: string;
     },
   ) {
     if (
       !body.targetType ||
       !body.targetId ||
-      !body.budget ||
+      (!body.budget && !body.dailyBudget) ||
       !body.durationDays
     ) {
       throw new BadRequestException('Missing required fields');
@@ -117,9 +121,13 @@ export class CreatorController {
       req.user.userId,
       body.targetType,
       body.targetId,
-      body.budget,
       body.durationDays,
+      body.budget,
       body.currency,
+      body.objective,
+      body.interests,
+      body.countries,
+      body.dailyBudget,
     ) as Promise<unknown>;
   }
 

@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  AlertOctagon,
   AlertTriangle,
   ArrowLeft,
   Bot,
   Check,
+  Gavel,
   Ghost,
   Trash2,
   X,
@@ -39,7 +41,7 @@ interface Props {
 export default function ReportsTab({ onToast }: Props) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('pending'); // Default to pending for moderation flow
+  const [statusFilter, setStatusFilter] = useState('PENDING'); // Default to pending for moderation flow
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const debouncedSearch = useDebounce(search);
   const queryClient = useQueryClient();
@@ -69,6 +71,28 @@ export default function ReportsTab({ onToast }: Props) {
     onError: () => onToast('Error al actualizar reporte', 'error'),
   });
 
+  const penaltyMutation = useMutation({
+    mutationFn: ({
+      id,
+      action,
+    }: {
+      id: string;
+      action: 'IGNORE' | 'STRIKE' | 'BAN';
+    }) => adminApi.resolveReportWithPenalty(id, action),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'reports'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+      if (selectedReportId === variables.id) setSelectedReportId(null);
+      const msgs = {
+        IGNORE: 'Falso positivo descartado',
+        STRIKE: 'Strike aplicado al usuario',
+        BAN: 'Usuario baneado permanentemente',
+      };
+      onToast(msgs[variables.action], 'success');
+    },
+    onError: () => onToast('Error al aplicar penalización', 'error'),
+  });
+
   const selectedReport = data?.data.find((r) => r.id === selectedReportId);
 
   // Keyboard shortcuts could be added here in a useEffect listening to 'A', 'D', 'X'
@@ -94,9 +118,9 @@ export default function ReportsTab({ onToast }: Props) {
           }}
           options={[
             { value: '', label: 'Todos' },
-            { value: 'pending', label: 'Pendientes' },
-            { value: 'resolved', label: 'Resueltos' },
-            { value: 'dismissed', label: 'Descartados' },
+            { value: 'PENDING', label: 'Pendientes' },
+            { value: 'RESOLVED', label: 'Resueltos' },
+            { value: 'REJECTED', label: 'Descartados' },
           ]}
         />
       </div>
@@ -203,63 +227,129 @@ export default function ReportsTab({ onToast }: Props) {
                       <ArrowLeft size={20} />
                     </button>
                     <div>
-                      <h3 className="text-lg font-bold text-white">
+                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
                         Detalles del Reporte
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (selectedReport.targetType === 'POST') window.open(`/p/${selectedReport.targetId}`, '_blank');
+                            if (selectedReport.targetType === 'USER' && selectedReport.targetContent?.author) window.open(`/${selectedReport.targetContent.author}`, '_blank');
+                          }}
+                          className="text-xs font-bold bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 px-2 py-1 rounded transition-colors"
+                        >
+                          Ver Original
+                        </button>
                       </h3>
                       <p className="text-xs text-gray-400">
                         ID: {selectedReport.id}
                       </p>
                     </div>
                   </div>
-                  {selectedReport.status === 'pending' && (
+                  {selectedReport.status === 'PENDING' && (
                     <div className="flex items-center gap-2">
-                      <Button
-                        onClick={() =>
-                          updateMutation.mutate({
-                            id: selectedReport.id,
-                            status: 'DISMISSED',
-                          })
-                        }
-                        isLoading={updateMutation.isPending}
-                        variant="secondary"
-                        className="text-sm font-bold border-white/5 px-4 py-2"
-                      >
-                        <X size={16} className="mr-2" /> Ignorar (D)
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          if (
-                            window.confirm(
-                              '¿Seguro que quieres eliminar este contenido permanentemente?',
-                            )
-                          ) {
-                            const deleteFn =
-                              selectedReport.targetType.toUpperCase() === 'POST'
-                                ? adminApi.deletePost
-                                : selectedReport.targetType.toUpperCase() ===
-                                    'STORY'
-                                  ? adminApi.deleteStory
-                                  : adminApi.deleteComment;
-                            deleteFn(selectedReport.targetId)
-                              .then(() => {
-                                updateMutation.mutate({
-                                  id: selectedReport.id,
-                                  status: 'RESOLVED',
-                                });
-                                onToast('Contenido eliminado', 'success');
+                      {selectedReport.targetType === 'USER' &&
+                      selectedReport.details?.includes('[URGENT]') ? (
+                        <>
+                          <Button
+                            onClick={() =>
+                              penaltyMutation.mutate({
+                                id: selectedReport.id,
+                                action: 'IGNORE',
                               })
-                              .catch(() =>
-                                onToast('Error al eliminar', 'error'),
-                              );
-                          }
-                        }}
-                        isLoading={updateMutation.isPending}
-                        variant="danger"
-                        className="text-sm font-bold border-red-500/30 px-4 py-2"
-                      >
-                        <Trash2 size={16} className="mr-2" /> Eliminar Contenido
-                        (E)
-                      </Button>
+                            }
+                            isLoading={penaltyMutation.isPending}
+                            variant="secondary"
+                            className="text-sm font-bold border-white/5 px-4 py-2"
+                          >
+                            <X size={16} className="mr-2" /> Falso Positivo
+                            (Ignorar)
+                          </Button>
+                          <Button
+                            onClick={() =>
+                              penaltyMutation.mutate({
+                                id: selectedReport.id,
+                                action: 'STRIKE',
+                              })
+                            }
+                            isLoading={penaltyMutation.isPending}
+                            className="bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30 border border-yellow-500/50 text-sm font-bold px-4 py-2"
+                          >
+                            <Gavel size={16} className="mr-2" /> Confirmar
+                            Strike
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  '¿Seguro que quieres BANEAR a este usuario? Esta acción le impedirá volver a iniciar sesión.',
+                                )
+                              ) {
+                                penaltyMutation.mutate({
+                                  id: selectedReport.id,
+                                  action: 'BAN',
+                                });
+                              }
+                            }}
+                            isLoading={penaltyMutation.isPending}
+                            variant="danger"
+                            className="text-sm font-bold border-red-500/30 px-4 py-2"
+                          >
+                            <AlertOctagon size={16} className="mr-2" /> Banear
+                            Usuario
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            onClick={() =>
+                              updateMutation.mutate({
+                                id: selectedReport.id,
+                                status: 'REJECTED',
+                              })
+                            }
+                            isLoading={updateMutation.isPending}
+                            variant="secondary"
+                            className="text-sm font-bold border-white/5 px-4 py-2"
+                          >
+                            <X size={16} className="mr-2" /> Ignorar (D)
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  '¿Seguro que quieres eliminar este contenido permanentemente?',
+                                )
+                              ) {
+                                const deleteFn =
+                                  selectedReport.targetType.toUpperCase() ===
+                                  'POST'
+                                    ? adminApi.deletePost
+                                    : selectedReport.targetType.toUpperCase() ===
+                                        'STORY'
+                                      ? adminApi.deleteStory
+                                      : adminApi.deleteComment;
+                                deleteFn(selectedReport.targetId)
+                                  .then(() => {
+                                    updateMutation.mutate({
+                                      id: selectedReport.id,
+                                      status: 'RESOLVED',
+                                    });
+                                    onToast('Contenido eliminado', 'success');
+                                  })
+                                  .catch(() =>
+                                    onToast('Error al eliminar', 'error'),
+                                  );
+                              }
+                            }}
+                            isLoading={updateMutation.isPending}
+                            variant="danger"
+                            className="text-sm font-bold border-red-500/30 px-4 py-2"
+                          >
+                            <Trash2 size={16} className="mr-2" /> Eliminar
+                            Contenido (E)
+                          </Button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -339,9 +429,9 @@ export default function ReportsTab({ onToast }: Props) {
                       </p>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
-                          selectedReport.status === 'pending'
+                          selectedReport.status === 'PENDING'
                             ? 'bg-yellow-500/20 text-yellow-500'
-                            : selectedReport.status === 'resolved'
+                            : selectedReport.status === 'RESOLVED'
                               ? 'bg-green-500/20 text-green-500'
                               : 'bg-zinc-500/20 text-zinc-400'
                         }`}

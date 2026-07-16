@@ -35,6 +35,14 @@
         "label": "Suscripción",
         "desc": "Planes"
       },
+      "monetization": {
+        "label": "Monetización",
+        "desc": "Stripe Connect y pagos"
+      },
+      "referrals": {
+        "label": "Invitaciones",
+        "desc": "Invita amigos y beta"
+      },
       "requests": {
         "label": "Solicitudes",
         "desc": "Seguidores"
@@ -631,7 +639,7 @@
     "reasons": {
       "spam": "Es spam",
       "harassment": "Acoso o intimidación",
-      "inappropriate": "Contenido inapropiado",
+      "hate_speech": "Contenido inapropiado o Discurso de odio",
       "other": "Otra cosa"
     }
   },

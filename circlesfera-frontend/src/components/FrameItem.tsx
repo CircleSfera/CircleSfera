@@ -14,12 +14,14 @@ import {
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { Link, useLocation } from 'react-router-dom';
-import { api, bookmarksApi, followsApi, postsApi } from '../services';
+import { bookmarksApi, followsApi, postsApi } from '../services';
 import { creatorApi } from '../services/creator.service';
+import { paymentsApi } from '../services/payments.service';
 import { useAuthStore } from '../stores/authStore';
 import { useFrameStore } from '../stores/frameStore';
 import type { Post } from '../types';
 import { logger } from '../utils/logger';
+import HlsVideoPlayer from './common/HlsVideoPlayer';
 import LikeButton from './LikeButton';
 import AddToCollectionModal from './modals/AddToCollectionModal';
 import ConfirmModal from './modals/ConfirmModal';
@@ -77,14 +79,10 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
   const isBookmarked = bookmarkData?.data?.bookmarked ?? false;
 
   const unlockMutation = useMutation({
-    mutationFn: () =>
-      api.post('/monetization/unlock', {
-        postId: post.id,
-        returnUrl: window.location.href,
-      }),
+    mutationFn: () => paymentsApi.createPostUnlockSession(post.id),
     onSuccess: (response: any) => {
-      if (response.data?.url) {
-        window.location.href = response.data.url;
+      if (response?.url) {
+        window.location.href = response.url;
       } else {
         toast.success('Post unlocked!');
         queryClient.invalidateQueries({ queryKey: ['frames'] });
@@ -308,9 +306,10 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
         onClick={handleVideoClick}
         aria-label="Video playback area"
       >
-        <video
+        <HlsVideoPlayer
           ref={videoRef}
           src={videoMedia.url}
+          hlsUrl={videoMedia.standardUrl}
           className={`w-full h-full object-cover bg-black md:rounded-[20px] transition-all duration-300 ${post.isLocked ? 'blur-2xl scale-[1.2] pointer-events-none' : ''}`}
           loop
           playsInline
@@ -319,7 +318,7 @@ export default function FrameItem({ post, isActive }: FrameItemProps) {
           onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
         >
           <track kind="captions" />
-        </video>
+        </HlsVideoPlayer>
 
         {post.isLocked && (
           <PaywallOverlay

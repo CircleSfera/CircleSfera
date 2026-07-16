@@ -83,6 +83,7 @@ describe('PostsService', () => {
         { provide: 'BullQueue_ai-processing', useValue: mockQueue },
         { provide: AnalyticsService, useValue: { trackEvent: vi.fn() } },
         { provide: UploadsService, useValue: mockUploadsService },
+        { provide: 'BullQueue_feed-fanout', useValue: { add: vi.fn() } },
       ],
     }).compile();
 

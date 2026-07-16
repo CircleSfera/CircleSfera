@@ -43,7 +43,7 @@ export default function LocationSubScreen({
         className="w-full h-full bg-black flex flex-col relative"
       >
         {/* Ambient glow */}
-        <div className="absolute inset-0 bg-radial-[at_50%_0%] from-blue-500/10 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-radial-[at_50%_0%] from-brand-primary/10 via-transparent to-transparent pointer-events-none" />
 
         <div className="sticky top-0 z-10 flex items-center px-4 h-14 bg-black border-b border-white/10">
           <button
@@ -71,7 +71,7 @@ export default function LocationSubScreen({
 
           <button
             type="button"
-            className="w-full mt-4 flex items-center gap-3 px-2 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 transition-all"
+            className="w-full mt-4 flex items-center gap-3 px-2 py-1 rounded-lg bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary border border-brand-primary/20 transition-all"
           >
             <Navigation size={18} />
             <span className="text-sm font-semibold">
@@ -99,7 +99,7 @@ export default function LocationSubScreen({
                   <div
                     className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors ${
                       isSelected
-                        ? 'bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+                        ? 'bg-brand-primary text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]'
                         : 'bg-white/5 text-white/50 group-hover:bg-white/10 group-hover:text-white/80'
                     }`}
                   >

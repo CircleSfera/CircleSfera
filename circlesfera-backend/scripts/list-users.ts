@@ -55,8 +55,8 @@ async function main() {
       },
     },
     include: {
-      profile: true
-    }
+      profile: true,
+    },
   });
   console.log('--- SUGGESTIONS QUERY RESULTS ---');
   console.log(suggestions);

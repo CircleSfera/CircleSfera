@@ -7,7 +7,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module, ValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
-
+import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { SentryModule } from '@sentry/nestjs/setup';
@@ -30,11 +30,13 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { CreatorModule } from './creator/creator.module.js';
 import { EditsModule } from './edits/edits.module.js';
 import { EmailModule } from './email/email.module.js';
+import { ExperimentsModule } from './experiments/experiments.module.js';
 import { FeedModule } from './feed/feed.module.js';
 import { FollowsModule } from './follows/follows.module.js';
 import { HealthModule } from './health/health.module.js';
 import { HighlightsModule } from './highlights/highlights.module.js';
 import { LikesModule } from './likes/likes.module.js';
+import { MaintenanceModule } from './maintenance/maintenance.module.js';
 import { MonetizationModule } from './monetization/monetization.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
@@ -75,6 +77,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
       },
     }),
 
+    ScheduleModule.forRoot(),
     RedisCacheModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
@@ -156,6 +159,8 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     EditsModule,
     SlackModule,
     SupportModule,
+    ExperimentsModule,
+    MaintenanceModule,
   ],
   controllers: [AppController, CsrfController],
   providers: [

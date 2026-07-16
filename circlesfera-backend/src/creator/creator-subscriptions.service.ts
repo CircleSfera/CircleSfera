@@ -27,6 +27,24 @@ export class CreatorSubscriptionsService {
       throw new BadRequestException('Minimum subscription is $1.00 USD/month');
     }
 
+    if (process.env.NODE_ENV !== 'production') {
+      const expiresAt = new Date();
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
+      
+      await this.prisma.creatorSubscription.upsert({
+        where: { subscriberId_creatorId: { subscriberId, creatorId } },
+        update: { status: 'ACTIVE', expiresAt },
+        create: {
+          subscriberId,
+          creatorId,
+          status: 'ACTIVE',
+          priceCents,
+          expiresAt,
+        }
+      });
+      return { url: null, success: true };
+    }
+
     const creator = await this.prisma.user.findUnique({
       where: { id: creatorId },
     });

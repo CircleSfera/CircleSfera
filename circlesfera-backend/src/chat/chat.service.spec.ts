@@ -345,6 +345,51 @@ describe('ChatService', () => {
     });
   });
 
+  describe('getUnreadCount', () => {
+    it('should return 0 if there are no conversations', async () => {
+      mockPrismaService.conversation.findMany.mockResolvedValueOnce([]);
+      const result = await service.getUnreadCount('userA');
+      expect(result).toBe(0);
+    });
+
+    it('should return 0 if the last message is from the current user', async () => {
+      const mockConv = {
+        id: 'c1',
+        messages: [{ senderId: 'userA', createdAt: new Date() }],
+        participants: [{ userId: 'userA', lastReadAt: new Date() }],
+      };
+      mockPrismaService.conversation.findMany.mockResolvedValueOnce([mockConv]);
+      const result = await service.getUnreadCount('userA');
+      expect(result).toBe(0);
+    });
+
+    it('should return 1 if the last message is from another user and newer than lastReadAt', async () => {
+      const mockConv = {
+        id: 'c1',
+        messages: [
+          { senderId: 'userB', createdAt: new Date(Date.now() + 5000) },
+        ],
+        participants: [{ userId: 'userA', lastReadAt: new Date() }],
+      };
+      mockPrismaService.conversation.findMany.mockResolvedValueOnce([mockConv]);
+      const result = await service.getUnreadCount('userA');
+      expect(result).toBe(1);
+    });
+
+    it('should return 0 if the last message is older than lastReadAt', async () => {
+      const mockConv = {
+        id: 'c1',
+        messages: [
+          { senderId: 'userB', createdAt: new Date(Date.now() - 5000) },
+        ],
+        participants: [{ userId: 'userA', lastReadAt: new Date() }],
+      };
+      mockPrismaService.conversation.findMany.mockResolvedValueOnce([mockConv]);
+      const result = await service.getUnreadCount('userA');
+      expect(result).toBe(0);
+    });
+  });
+
   describe('deleteConversation', () => {
     it('should throw ForbiddenException if user is not participant before deletion', async () => {
       mockPrismaService.participant.findFirst.mockResolvedValueOnce(null);

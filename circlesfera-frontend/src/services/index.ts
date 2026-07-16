@@ -16,6 +16,7 @@ export * from './feed.service';
 export * from './follows.service';
 export * from './highlights.service';
 export * from './likes.service';
+export * from './monetization.service';
 export * from './notifications.service';
 export * from './passkey.service';
 export * from './payments.service';

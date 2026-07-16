@@ -4,6 +4,8 @@ import { apiClient } from './api';
 export const profileApi = {
   getMyProfile: () => apiClient.get<ProfileWithUser>('profiles/me'),
 
+  getMyReferrals: () => apiClient.get<any>('profiles/me/referrals'),
+
   getProfile: (username: string) =>
     apiClient.get<ProfileWithUser>(`/profiles/${username}`),
 

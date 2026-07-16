@@ -52,7 +52,9 @@ export class AuthController {
 
   /** Register a new user and return JWT tokens as HTTP-only cookies. */
   @Post('register')
-  @Throttle({ short: { limit: 5, ttl: 60000 } }) // 5 requests per minute
+  @Throttle({
+    short: { limit: process.env.NODE_ENV !== 'production' ? 1000 : 5, ttl: 60000 },
+  })
   async register(
     @Body() dto: RegisterDto,
     @Res({ passthrough: true }) res: Response,
@@ -74,7 +76,9 @@ export class AuthController {
   /** Authenticate with email/username and password. Sets tokens as HTTP-only cookies. */
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ short: { limit: 5, ttl: 60000 } }) // 5 requests per minute
+  @Throttle({
+    short: { limit: process.env.NODE_ENV !== 'production' ? 1000 : 5, ttl: 60000 },
+  })
   async login(
     @Body() dto: LoginDto,
     @Res({ passthrough: true }) res: Response,
@@ -96,6 +100,9 @@ export class AuthController {
   /** Rotate tokens. Reads refresh token from cookie (or body for backward compat). */
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @Throttle({
+    short: { limit: process.env.NODE_ENV !== 'production' ? 1000 : 5, ttl: 60000 },
+  })
   async refresh(
     @Req() req: Request,
     @Body() body: { refreshToken?: string },

@@ -20,7 +20,6 @@ import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
 import { useCallStore } from '../../stores/useCallStore';
 import type { Conversation, Message, Participant } from '../../types';
-import { E2EService } from '../../utils/e2e';
 import { logger } from '../../utils/logger';
 import UserAvatar from '../UserAvatar';
 import AudioRecorder from './AudioRecorder';
@@ -55,7 +54,6 @@ export default function ChatWindow() {
   } | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [showGroupDetails, setShowGroupDetails] = useState(false);
-  const [showE2EWarning, setShowE2EWarning] = useState(false);
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -66,40 +64,20 @@ export default function ChatWindow() {
     setIsRecording(false);
     setIsUploading(true);
     try {
-      // 1. Generate AES key for the file
-      const fileAesKey = await E2EService.generateSymmetricKey();
-      const arrayBuffer = await audioBlob.arrayBuffer();
-
-      // 2. Encrypt the file blob
-      const { ciphertext, iv: fileIv } = await E2EService.encryptFile(
-        arrayBuffer,
-        fileAesKey,
-      );
-
-      // 3. Upload the encrypted blob
-      const file = new File([ciphertext], 'voice-message.webm.enc', {
-        type: 'application/octet-stream',
+      const file = new File([audioBlob], 'voice-message.webm', {
+        type: 'audio/webm',
       });
       const formData = new FormData();
       formData.append('file', file);
       const uploadRes = await uploadApi.upload(formData);
 
-      // 4. Export the AES key
-      const fileKeyRaw = await E2EService.exportSymmetricKey(fileAesKey);
-
-      // 5. Build the E2E media payload
       const mediaPayload = {
         text: '🎤 Voice Message',
         originalName: 'voice-message.webm',
         originalType: 'audio/webm',
-        fileKey: fileKeyRaw,
-        fileIv,
       };
 
-      // 6. Encrypt the JSON payload for all participants
-      const { finalContent, e2eKeys } = await encryptPayloadForParticipants(
-        JSON.stringify(mediaPayload),
-      );
+      const finalContent = JSON.stringify(mediaPayload);
 
       const tempId =
         Date.now().toString() + Math.random().toString(36).substring(2, 9);
@@ -120,10 +98,9 @@ export default function ChatWindow() {
       await apiClient.post('/chat/messages', {
         conversationId: id,
         content: finalContent,
-        url: uploadRes.data.url,
+        mediaUrl: uploadRes.data.url,
         mediaType: 'audio',
         tempId,
-        e2eKeys,
       });
     } catch (err) {
       logger.error('Audio upload failed', err);
@@ -197,26 +174,6 @@ export default function ChatWindow() {
       const conv = res.data.find((c: Conversation) => c.id === id);
       if (conv) {
         setConversation(conv);
-
-        // Check if any participants are missing E2E keys
-        if (conv.participants) {
-          const expectedParticipants = conv.participants.filter(
-            (p: Participant) => p.userId !== (profile?.userId || profile?.id),
-          ).length;
-          const participantsWithKeys = conv.participants.filter(
-            (p: Participant) =>
-              p.user?.e2ePublicKey &&
-              p.userId !== (profile?.userId || profile?.id),
-          ).length;
-          if (
-            expectedParticipants > 0 &&
-            participantsWithKeys < expectedParticipants
-          ) {
-            setShowE2EWarning(true);
-          } else {
-            setShowE2EWarning(false);
-          }
-        }
 
         // Use the chatApi to persist the read status in the database
         chatApi
@@ -508,53 +465,6 @@ export default function ChatWindow() {
     }
   };
 
-  const encryptPayloadForParticipants = async (payloadStr: string) => {
-    let finalContent = payloadStr;
-    let e2eKeys: Record<string, string> | undefined;
-
-    const keysMap: Record<string, CryptoKey> = {};
-
-    if (conversation?.participants) {
-      for (const p of conversation.participants) {
-        const pubKey = p.user?.e2ePublicKey;
-        if (pubKey) {
-          try {
-            keysMap[p.userId] = await E2EService.importPublicKey(pubKey);
-          } catch {
-            console.warn('Invalid public key for user', p.userId);
-          }
-        }
-      }
-    }
-
-    if (Object.keys(keysMap).length > 0) {
-      const currentUserId =
-        profile?.userId || profile?.user?.id || profile?.id || '';
-
-      const myPubB64 = localStorage.getItem('e2e_public_key');
-      if (myPubB64 && currentUserId) {
-        try {
-          keysMap[currentUserId] = await E2EService.importPublicKey(myPubB64);
-        } catch {}
-      }
-
-      const aesKey = await E2EService.generateSymmetricKey();
-      const encrypted = await E2EService.encryptMessage(payloadStr, aesKey);
-      finalContent = JSON.stringify(encrypted);
-
-      e2eKeys = {};
-      for (const [pid, pubKey] of Object.entries(keysMap)) {
-        e2eKeys[pid] = await E2EService.wrapSymmetricKey(aesKey, pubKey);
-      }
-    }
-
-    return {
-      finalContent,
-      e2eKeys,
-      keysMapLength: Object.keys(keysMap).length,
-    };
-  };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !id || !profile) return;
@@ -569,42 +479,17 @@ export default function ChatWindow() {
 
     setIsUploading(true);
     try {
-      // 1. Generate AES key for the file
-      const fileAesKey = await E2EService.generateSymmetricKey();
-      const arrayBuffer = await file.arrayBuffer();
-
-      // 2. Encrypt the file blob
-      const { ciphertext, iv: fileIv } = await E2EService.encryptFile(
-        arrayBuffer,
-        fileAesKey,
-      );
-
-      // 3. Upload the encrypted blob
       const formData = new FormData();
-      formData.append(
-        'file',
-        new File([ciphertext], `${file.name}.enc`, {
-          type: 'application/octet-stream',
-        }),
-      );
+      formData.append('file', file);
       const uploadRes = await uploadApi.upload(formData);
 
-      // 4. Export the AES key
-      const fileKeyRaw = await E2EService.exportSymmetricKey(fileAesKey);
-
-      // 5. Build the E2E media payload
       const mediaPayload = {
-        text: t('chat.sent_image'),
+        text: t('chat.sent_image') || '📷 Image',
         originalName: file.name,
         originalType: file.type,
-        fileKey: fileKeyRaw,
-        fileIv,
       };
 
-      // 6. Encrypt the JSON payload for all participants
-      const { finalContent, e2eKeys } = await encryptPayloadForParticipants(
-        JSON.stringify(mediaPayload),
-      );
+      const finalContent = JSON.stringify(mediaPayload);
 
       const tempId =
         Date.now().toString() + Math.random().toString(36).substring(2, 9);
@@ -625,10 +510,9 @@ export default function ChatWindow() {
       await apiClient.post('/chat/messages', {
         conversationId: id,
         content: finalContent,
-        url: uploadRes.data.url,
+        mediaUrl: uploadRes.data.url,
         mediaType: 'image',
         tempId,
-        e2eKeys,
       });
     } catch (err) {
       logger.error('Upload failed', err);
@@ -677,32 +561,14 @@ export default function ChatWindow() {
 
     const doSend = async () => {
       try {
-        // Check for missing public keys warning
-        const expectedParticipants =
-          conversation?.participants?.filter(
-            (p) => p.userId !== (profile?.userId || profile?.id),
-          )?.length || 0;
-        const { finalContent, e2eKeys, keysMapLength } =
-          await encryptPayloadForParticipants(input);
-
-        // keysMapLength includes current user, so subtract 1 for the comparison
-        if (keysMapLength > 0 && keysMapLength - 1 < expectedParticipants) {
-          // Warning logic can be handled later or UI can show a toast.
-          console.warn(
-            'Cifrado parcial: Faltan llaves públicas de algunos usuarios.',
-          );
-        }
-
         if (editingMessage) {
-          await chatApi.editMessage(editingMessage.id, finalContent, e2eKeys);
-          // Only update UI if we want to manually handle it, but websocket will update it anyway
+          await chatApi.editMessage(editingMessage.id, input);
         } else {
           await apiClient.post('/chat/messages', {
             conversationId: id,
-            content: finalContent,
+            content: input,
             replyToId: replyTo?.id,
             tempId,
-            e2eKeys,
           });
         }
       } catch (err) {
@@ -1050,19 +916,6 @@ export default function ChatWindow() {
             <span className="text-sm font-medium text-white/50">
               {t('chat.loading_history')}
             </span>
-          </div>
-        )}
-        {showE2EWarning && (
-          <div className="mx-4 my-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-yellow-200 text-sm flex items-start gap-3 backdrop-blur-md">
-            <span className="mt-0.5">⚠️</span>
-            <div>
-              <p className="font-semibold mb-1">Cifrado parcial</p>
-              <p className="opacity-90 leading-tight">
-                Hay participantes en este chat que aún no han configurado su
-                privacidad E2E. Tus mensajes se enviarán, pero ellos no podrán
-                leerlos hasta que configuren su cuenta.
-              </p>
-            </div>
           </div>
         )}
 

@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Inject,
@@ -9,7 +10,9 @@ import {
 } from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { AnalyticsService } from './analytics.service.js';
+import { CreateEventBatchDto, CreateEventDto } from './dto/create-event.dto.js';
 
 @Controller('analytics')
 @UseGuards(JwtAuthGuard)
@@ -18,6 +21,28 @@ export class AnalyticsController {
     @Inject(AnalyticsService)
     private readonly analyticsService: AnalyticsService,
   ) {}
+
+  /** Log a single telemetry interaction event */
+  @Post('events')
+  @UseGuards(JwtOptionalGuard)
+  async logEvent(
+    @CurrentUser('id') userId: string | null,
+    @Body() dto: CreateEventDto,
+  ) {
+    await this.analyticsService.logEvent(userId, dto);
+    return { success: true };
+  }
+
+  /** Log a batch of telemetry interaction events */
+  @Post('events/batch')
+  @UseGuards(JwtOptionalGuard)
+  async logEventsBatch(
+    @CurrentUser('id') userId: string | null,
+    @Body() dto: CreateEventBatchDto,
+  ) {
+    await this.analyticsService.logEventsBatch(userId, dto);
+    return { success: true };
+  }
 
   /** Get dashboard statistics for the current user (creator) */
   @Get('dashboard')

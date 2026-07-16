@@ -19,6 +19,7 @@ import { useAuthStore } from '../stores/authStore';
 import type { Story, UserWithProfile } from '../types';
 import { logger } from '../utils/logger';
 import { parseFilter } from '../utils/styleUtils';
+import HlsVideoPlayer from './common/HlsVideoPlayer';
 import { StoryDeleteConfirm } from './StoryDeleteConfirm';
 import { StoryViewersSheet } from './StoryViewersSheet';
 import UserAvatar from './UserAvatar';
@@ -218,8 +219,9 @@ export default function StoryViewer({
                 currentStory.standardUrl ||
                 currentStory.url;
               return currentStory.mediaType === 'video' ? (
-                <video
+                <HlsVideoPlayer
                   src={currentStory.url}
+                  hlsUrl={currentStory.standardUrl || undefined}
                   className={`w-full h-full object-cover blur-3xl opacity-40 scale-125 ${className}`}
                   style={style}
                   muted
@@ -253,8 +255,9 @@ export default function StoryViewer({
             {(() => {
               const { className, style } = parseFilter(currentStory.filter);
               return currentStory.mediaType === 'video' ? (
-                <video
+                <HlsVideoPlayer
                   src={currentStory.url}
+                  hlsUrl={currentStory.standardUrl || undefined}
                   className={`absolute inset-0 w-full h-full md:rounded-lg shadow-2xl object-contain pointer-events-auto z-10 ${className}`}
                   style={style}
                   autoPlay

@@ -44,6 +44,7 @@ describe('UploadsService', () => {
           useFactory: (_config: ConfigService) => new LocalStorageProvider(),
           inject: [ConfigService],
         },
+        { provide: 'BullQueue_video-transcoding', useValue: { add: vi.fn() } },
       ],
     }).compile();
 

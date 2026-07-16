@@ -198,4 +198,12 @@ export const EmailTemplates = {
       buttonText: 'Contactar Soporte',
       buttonUrl: 'mailto:support@circlesfera.com',
     }),
+
+  subscriptionReceipt: (planName: string, amount: string) =>
+    getBaseLayout({
+      title: 'Recibo de Suscripción',
+      content: `Gracias por suscribirte a CircleSfera.<br><br>Has adquirido el plan <strong>${planName}</strong>.<br>El cargo de <strong>${amount}</strong> ha sido procesado con éxito y las funciones de tu plan ya están activas en tu cuenta.`,
+      buttonText: 'Ir a mi Panel',
+      buttonUrl: 'https://circlesfera.com/settings/monetization',
+    }),
 };

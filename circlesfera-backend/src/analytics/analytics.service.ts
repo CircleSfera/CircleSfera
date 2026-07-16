@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { format, startOfDay, subDays } from 'date-fns';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CreateEventBatchDto, CreateEventDto } from './dto/create-event.dto.js';
 
 @Injectable()
 export class AnalyticsService {
@@ -35,6 +36,66 @@ export class AnalyticsService {
       this.logger.log('Daily analytics aggregation completed successfully');
     } catch (error) {
       this.logger.error('Failed to perform daily aggregation:', error);
+    }
+  }
+
+  /**
+   * Log a single telemetry event.
+   */
+  async logEvent(userId: string | null, dto: CreateEventDto) {
+    try {
+      return await this.prisma.interactionEvent.create({
+        data: {
+          userId: userId || null,
+          eventType: dto.eventType,
+          targetId: dto.targetId,
+          targetType: dto.targetType,
+          dwellTime: dto.dwellTime,
+        },
+      });
+    } catch (error) {
+      this.logger.error('Failed to log interaction event:', error);
+    }
+  }
+
+  /**
+   * Log a batch of telemetry events.
+   */
+  async logEventsBatch(userId: string | null, dto: CreateEventBatchDto) {
+    try {
+      const data = dto.events.map((e) => ({
+        userId: userId || null,
+        eventType: e.eventType,
+        targetId: e.targetId,
+        targetType: e.targetType,
+        dwellTime: e.dwellTime,
+      }));
+
+      return await this.prisma.interactionEvent.createMany({
+        data,
+      });
+    } catch (error) {
+      this.logger.error('Failed to log batch interaction events:', error);
+    }
+  }
+
+  /**
+   * Clean up interaction events older than 90 days.
+   */
+  async cleanupOldEvents() {
+    this.logger.log('Starting interaction events cleanup...');
+    try {
+      const ninetyDaysAgo = subDays(new Date(), 90);
+      const { count } = await this.prisma.interactionEvent.deleteMany({
+        where: {
+          createdAt: { lt: ninetyDaysAgo },
+        },
+      });
+      this.logger.log(
+        `Cleaned up ${count} interaction events older than 90 days.`,
+      );
+    } catch (error) {
+      this.logger.error('Failed to clean up old interaction events:', error);
     }
   }
 
@@ -260,13 +321,55 @@ export class AnalyticsService {
 
     // Group by day
     const viewsByDay: Record<string, number> = {};
-    dailyViews.forEach((v: any) => {
+    for (const v of dailyViews) {
       const day = format(v.createdAt, 'yyyy-MM-dd');
       viewsByDay[day] = (viewsByDay[day] || 0) + 1;
+    }
+
+    // Fetch interaction events for this post to get more detailed metrics
+    const interactionEvents = await this.prisma.interactionEvent.findMany({
+      where: {
+        targetId: postId,
+        targetType: 'POST',
+      },
+      select: {
+        eventType: true,
+        dwellTime: true,
+      },
     });
 
+    const impressions = interactionEvents.filter(
+      (e) => e.eventType === 'IMPRESSION',
+    ).length;
+
+    const shares = interactionEvents.filter(
+      (e) => e.eventType === 'SHARE',
+    ).length;
+
+    const totalDwellMs = interactionEvents
+      .filter((e) => e.eventType === 'DWELL_TIME' && e.dwellTime)
+      .reduce((acc, e) => acc + (e.dwellTime || 0), 0);
+    const totalDwellTime = Math.round(totalDwellMs / 1000);
+
+    const totalViews = post.views;
+    const likesCount = post._count.likes;
+    const commentsCount = post._count.comments;
+    const bookmarksCount = post._count.bookmarks;
+    const totalInteractions = likesCount + commentsCount + bookmarksCount;
+
+    const conversionRate =
+      totalViews > 0
+        ? Math.round((totalInteractions / totalViews) * 100 * 10) / 10
+        : 0;
+
     return {
-      post,
+      post: {
+        ...post,
+        impressions,
+        shares,
+        totalDwellTime,
+        conversionRate,
+      },
       chart: Object.entries(viewsByDay).map(([date, count]) => ({
         date,
         views: count,

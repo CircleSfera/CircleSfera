@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('Happy Path', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
   test('should allow a user to register, login, and see the feed', async ({
     page,
   }) => {
@@ -29,42 +30,41 @@ test.describe('Happy Path', () => {
 
     await page.goto('/');
 
-    // Check if we are on landing or login
-    if (await page.getByText('Share Your Universe').isVisible()) {
-      await page.getByRole('link', { name: 'Get Started' }).click();
-    }
-
-    // 2. Go to Register (if not already there via Get Started)
-    if (page.url().includes('login')) {
-      await page.getByRole('link', { name: 'Sign up' }).click();
-    }
+    // Directly navigate to the registration page to ensure we are there
+    await page.goto('/accounts/emailsignup');
 
     const randomUser = `user_${Math.floor(Math.random() * 10000)}`;
     const email = `${randomUser}@example.com`;
 
-    await page.getByPlaceholder('you@example.com').fill(email);
-    await page.getByPlaceholder('johndoe').fill(randomUser);
-    await page.getByPlaceholder('John Doe').fill('E2E Test User');
-    await page.getByPlaceholder('••••••••').fill('Password123!');
+    await page.locator('#email').fill(email);
+    await page.locator('#username').fill(randomUser);
+    await page.locator('#fullName').fill('E2E Test User');
+    await page.locator('#password').fill('Password123!');
 
-    await page.getByRole('button', { name: 'Sign Up', exact: true }).click();
+    // Wait for the registration API call to complete
+    const responsePromise = page.waitForResponse('**/api/v1/auth/register', {
+      timeout: 15000,
+    });
+    await page.locator('button[type="submit"]').click();
 
-    // Check for registration errors
-    const regError = page.locator('div[class*="bg-red-500/10"]');
-    if (await regError.isVisible({ timeout: 2000 })) {
-      const msg = await regError.innerText();
-      throw new Error(`Registration failed: ${msg}`);
+    const response = await responsePromise;
+    if (!response.ok()) {
+      throw new Error(`Registration failed: ${response.status()}`);
     }
 
-    // 3. Verify redirection to feed or verification message
-    // If auto-authenticated on registration, it might go to / or /feed
-    await expect(page).toHaveURL(/.*login|.*feed|.*/, { timeout: 15000 });
+    // 3. Verify redirection
+    await expect(page).not.toHaveURL(/.*emailsignup/);
 
-    // 4. Login
+    // 4. Login (force logout first so it doesn't auto-redirect to feed)
+    await page.context().clearCookies();
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
     await page.goto('/accounts/login');
-    await page.getByPlaceholder('you@example.com or username').fill(email);
-    await page.getByPlaceholder('••••••••').fill('Password123!');
-    await page.getByRole('button', { name: 'Sign In', exact: true }).click();
+    await page.locator('#identifier').fill(email);
+    await page.locator('#password').fill('Password123!');
+    await page.locator('button[type="submit"]').click();
 
     // Check for login errors
     const errorAlert = page.locator('div[class*="bg-red-500/10"]');
@@ -74,24 +74,33 @@ test.describe('Happy Path', () => {
     }
 
     // 5. Check Feed - wait for the navigation sidebar which only shows when authenticated
-    await expect(page).toHaveURL(/.*feed|.*\//, { timeout: 15000 });
+    await expect(page).toHaveURL(/.*feed|\/$/, { timeout: 15000 });
+    const sidebarNav = page.locator('nav').first();
+    await expect(sidebarNav).toBeVisible({ timeout: 15000 });
 
-    // Check for the Create link directly (it's inside the Main Navigation)
-    const createLink = page
-      .locator('nav[aria-label="Main Navigation"] a[href="/create"]')
+    // Check for the Create button in the sidebar
+    const createBtn = page
+      .getByRole('button', { name: /Create|Crear/i })
       .first();
-    await expect(createLink).toBeVisible({ timeout: 15000 });
+    await expect(createBtn).toBeVisible({ timeout: 15000 });
 
     // 6. Create Post
-    await createLink.click();
+    await createBtn.click();
 
-    // Wait for the modal content to appear
-    await expect(page.getByText('Select from computer')).toBeVisible({
-      timeout: 15000,
-    });
+    // Wait for the Create Bottom Sheet to appear and select "Post"
+    const postOption = page
+      .locator('button')
+      .filter({ hasText: /Publicación|Post/i })
+      .first();
+    await expect(postOption).toBeVisible({ timeout: 10000 });
+    await postOption.click();
 
-    // Select-file directly using the hidden input which is more reliable
-    const fileInput = page.locator('input[type="file"]').first();
+    // Wait for the modal dialog to appear instead of specific text
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible({ timeout: 15000 });
+
+    const fileInput = page.locator('input[type="file"]').last();
+    await expect(fileInput).toBeAttached({ timeout: 10000 });
     await fileInput.setInputFiles({
       name: 'test-image.png',
       mimeType: 'image/png',
@@ -119,21 +128,19 @@ test.describe('Happy Path', () => {
     await expect(page.getByText('Settings')).toBeVisible({ timeout: 15000 });
 
     // Wait for bio to be hydrated
-    const bioField = page.getByPlaceholder('Tell us about yourself');
+    const bioField = page.locator('#bio');
     await expect(bioField).toBeVisible({ timeout: 15000 });
 
     const newBio = `This is a test bio ${Math.floor(Math.random() * 1000)}`;
     await bioField.fill(newBio);
 
     // Ensure Submit button is enabled
-    const submitBtn = page.getByRole('button', { name: 'Submit' });
+    const submitBtn = page.getByRole('button', { name: /Guardar|Save|Submit/i }).first();
     await expect(submitBtn).toBeEnabled({ timeout: 10000 });
     await submitBtn.click();
 
     // Verify success message
-    await expect(page.getByText('Profile updated successfully!')).toBeVisible({
-      timeout: 20000,
-    });
+    await expect(page.getByText(/Profile updated successfully|¡Perfil actualizado con éxito!/i).first()).toBeVisible({ timeout: 15000 });
 
     // Verify on profile page
     await page.goto(`/${randomUser}`);

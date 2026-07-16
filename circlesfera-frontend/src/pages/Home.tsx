@@ -100,15 +100,15 @@ export default function Home() {
             )}
 
             {/* Suggestions inline on mobile */}
-            <div className="lg:hidden">
+            <div className="lg:hidden mb-6">
               <SuggestionsList layout="horizontal" />
             </div>
 
             {/* Posts List */}
             <div className="space-y-4">
               {!isAuthenticated && activeTab === 'following' ? (
-                <div className="text-center py-12 glass-panel rounded-lg p-8">
-                  <p className="text-gray-400">
+                <div className="text-center py-6 glass-panel rounded-lg px-4 mx-auto max-w-sm mb-6">
+                  <p className="text-zinc-500 text-sm">
                     {t(
                       'feed.login_required',
                       'Inicia sesión para ver tu feed personalizado.',
@@ -118,8 +118,8 @@ export default function Home() {
               ) : isLoading ? (
                 ['p1', 'p2', 'p3'].map((id) => <PostSkeleton key={id} />)
               ) : data?.data.data.length === 0 ? (
-                <div className="text-center py-12 glass-panel rounded-lg p-8">
-                  <p className="text-gray-400">{t('feed.no_posts')}</p>
+                <div className="text-center py-6 glass-panel rounded-lg px-4 mx-auto max-w-sm mb-6">
+                  <p className="text-zinc-500 text-sm">{t('feed.no_posts')}</p>
                 </div>
               ) : (
                 data?.data.data.map((post, index) => (

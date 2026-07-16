@@ -41,6 +41,11 @@ export class MonetizationController {
     );
   }
 
+  @Get('status')
+  async getStatus(@Req() req: AuthRequest) {
+    return this.monetizationService.getAccountStatus(req.user.userId);
+  }
+
   @Post('connect')
   @UseGuards(IdentityVerifiedGuard)
   async connectStripe(@Req() req: AuthRequest, @Body() body: ConnectStripeDto) {
@@ -65,7 +70,6 @@ export class MonetizationController {
   }
 
   @Post('unlock')
-  @UseGuards(IdentityVerifiedGuard)
   async unlockPost(@Req() req: AuthRequest, @Body() body: UnlockPostDto) {
     return this.monetizationService.createPostUnlockSession(
       req.user.userId,

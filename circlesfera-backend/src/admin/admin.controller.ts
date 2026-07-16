@@ -223,6 +223,20 @@ export class AdminController {
     return this.adminService.updateReportStatus(req.user.userId, id, status);
   }
 
+  /** Resolve a report and apply a moderation penalty. */
+  @Post('reports/:id/resolve-penalty')
+  async resolveReportWithPenalty(
+    @Param('id') id: string,
+    @Body('action') action: 'IGNORE' | 'STRIKE' | 'BAN',
+    @Req() req: AuthRequest,
+  ) {
+    return this.adminService.resolveReportWithPenalty(
+      req.user.userId,
+      id,
+      action,
+    );
+  }
+
   // ─── Audit Logs ───────────────────────────────────────────────────
 
   /** Paginated audit logs for admin accountability. */
@@ -452,5 +466,34 @@ export class AdminController {
     @Req() req: AuthRequest,
   ) {
     return this.adminService.deleteFirewallSignature(req.user.userId, id);
+  }
+
+  // ─── User Experiments (A/B Testing) ───────────────────────────────
+
+  @Get('experiments/users')
+  async getUserExperiments(@Query() query: AdminQueryDto) {
+    return this.adminService.getUserExperiments(
+      query.page ?? 1,
+      query.limit ?? 20,
+      query.search,
+    );
+  }
+
+  @Post('experiments/users')
+  async assignUserExperiment(
+    @Body() body: { userId: string; experimentKey: string; variant: string },
+    @Req() req: AuthRequest,
+  ) {
+    return this.adminService.assignUserExperiment(
+      req.user.userId,
+      body.userId,
+      body.experimentKey,
+      body.variant,
+    );
+  }
+
+  @Delete('experiments/users/:id')
+  async removeUserExperiment(@Param('id') id: string, @Req() req: AuthRequest) {
+    return this.adminService.removeUserExperiment(req.user.userId, id);
   }
 }

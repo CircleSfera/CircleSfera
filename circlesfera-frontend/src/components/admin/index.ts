@@ -13,6 +13,7 @@ export {
 export { default as AudioTab } from './AudioTab';
 export { default as AuditLogTab } from './AuditLogTab';
 export { default as CommentsTab } from './CommentsTab';
+export { default as ExperimentsTab } from './ExperimentsTab';
 export { default as FirewallTab } from './FirewallTab';
 export { default as HashtagsTab } from './HashtagsTab';
 export { default as ModerationTab } from './ModerationTab';

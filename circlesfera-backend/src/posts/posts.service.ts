@@ -1,6 +1,7 @@
 /** Trigger re-index */
 import { InjectQueue } from '@nestjs/bullmq';
 import {
+  BadRequestException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -19,6 +20,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 const NotificationType = $Enums.NotificationType;
 
 import { Queue } from 'bullmq';
+import { AIService } from '../ai/ai.service.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import {
   createPaginatedResult,
@@ -43,6 +45,8 @@ export class PostsService {
     private readonly analyticsService: AnalyticsService,
     @Inject(UploadsService)
     private readonly uploadsService: UploadsService,
+    @InjectQueue('feed-fanout') private readonly feedFanoutQueue: Queue,
+    @Inject(AIService) private readonly aiService: AIService,
   ) {}
 
   /**
@@ -67,6 +71,19 @@ export class PostsService {
       ? [...new Set(mentions.map((m) => m.trim().slice(1)))]
       : [];
 
+    // AI Moderation before creation
+    const mediaUrls = dto.media?.map((m) => m.url) || [];
+    const moderation = await this.aiService.moderateContent(
+      dto.caption || '',
+      mediaUrls,
+    );
+
+    if (moderation.flagged) {
+      throw new BadRequestException(
+        'El contenido infringe las normas de la comunidad y ha sido bloqueado.',
+      );
+    }
+
     const createdPost = await this.prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
         const post = await tx.post.create({
@@ -80,6 +97,8 @@ export class PostsService {
             audioId: dto.audioId,
             contentRating: dto.contentRating || ContentRating.GENERAL,
             visibility: dto.visibility || Visibility.PUBLIC,
+            isPremium: dto.isPremium || false,
+            priceCents: dto.priceCents || 0,
             tags:
               dto.tags && dto.tags.length > 0
                 ? {
@@ -168,6 +187,17 @@ export class PostsService {
     await this.aiQueue.add('generate-alt-text', {
       postId: post.id,
     });
+
+    // Enqueue Feed Fan-out for followers if post is somewhat public
+    if (
+      post.visibility === Visibility.PUBLIC ||
+      post.visibility === Visibility.FOLLOWERS
+    ) {
+      await this.feedFanoutQueue.add('distribute', {
+        postId: post.id,
+        authorId: post.userId,
+      });
+    }
 
     // Handle Mentions (outside transaction to avoid blocking)
     if (uniqueMentions.length > 0) {

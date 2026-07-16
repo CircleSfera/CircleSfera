@@ -47,9 +47,9 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
   const connectMutation = useMutation({
     mutationFn: () => {
       const returnUrl = window.location.href;
-      return monetizationApi.connectStripe(returnUrl, returnUrl);
+      return monetizationApi.connectAccount(returnUrl, returnUrl);
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       window.location.href = data.url;
     },
     onError: (err: Error) => {

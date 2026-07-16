@@ -139,7 +139,7 @@ export default function CreateBottomSheet() {
             </div>
 
             {/* Menu Items (Action Cards Grid) */}
-            <div className="overflow-y-auto overscroll-contain px-4 py-6 pb-safe">
+            <div className="overflow-y-auto overscroll-contain px-4 pt-6 pb-8 md:pb-10">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {menuItems.map((item) => {
                   // Determine specific card styling based on item.id

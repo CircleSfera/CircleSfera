@@ -231,9 +231,25 @@ export interface WhitelistEntry {
 
 export interface FirewallSignature {
   id: string;
+  text: string;
   category: string;
-  textPreview: string | null;
   createdAt: string;
+}
+
+export interface UserExperiment {
+  id: string;
+  userId: string;
+  experimentKey: string;
+  variant: string;
+  createdAt: string;
+  user: {
+    id: string;
+    username: string;
+    profile: {
+      avatar: string | null;
+      fullName: string | null;
+    } | null;
+  };
 }
 
 export const adminApi = {
@@ -312,6 +328,9 @@ export const adminApi = {
 
   updateReport: (id: string, status: string) =>
     apiClient.patch(`admin/reports/${id}`, { status }),
+
+  resolveReportWithPenalty: (id: string, action: 'IGNORE' | 'STRIKE' | 'BAN') =>
+    apiClient.post(`admin/reports/${id}/resolve-penalty`, { action }),
 
   // Audit Logs
   getAuditLogs: (page = 1, limit = 50) =>
@@ -433,4 +452,27 @@ export const adminApi = {
 
   deleteFirewallSignature: (id: string) =>
     apiClient.delete(`admin/firewall/${id}`),
+
+  // User Experiments (A/B Testing)
+  getUserExperiments: (page = 1, limit = 20, search?: string) =>
+    apiClient.get<PaginatedResponse<UserExperiment>>(
+      'admin/experiments/users',
+      {
+        params: { page, limit, search },
+      },
+    ),
+
+  assignUserExperiment: (
+    userId: string,
+    experimentKey: string,
+    variant: string,
+  ) =>
+    apiClient.post<UserExperiment>('admin/experiments/users', {
+      userId,
+      experimentKey,
+      variant,
+    }),
+
+  removeUserExperiment: (id: string) =>
+    apiClient.delete(`admin/experiments/users/${id}`),
 };

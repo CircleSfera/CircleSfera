@@ -2,6 +2,7 @@ import { MoreHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { Post } from '../../types';
+import { telemetry } from '../../utils/telemetry.js';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
 import type { VerificationLevel } from '../VerificationBadge';
@@ -19,9 +20,22 @@ export default function PostHeader({
   onMenuToggle,
 }: PostHeaderProps) {
   const { t } = useTranslation();
+
+  const handleProfileClick = () => {
+    telemetry.track({
+      eventType: 'PROFILE_CLICK',
+      targetId: post.userId,
+      targetType: 'USER',
+    });
+  };
+
   return (
     <div className="p-2 flex items-center gap-2 border-b border-white/5">
-      <Link to={`/${post.user.profile.username}`} className="relative">
+      <Link
+        to={`/${post.user.profile.username}`}
+        className="relative"
+        onClick={handleProfileClick}
+      >
         <div className="absolute -inset-0.5 bg-linear-to-tr from-purple-500 to-blue-500 rounded-full opacity-70 blur-sm"></div>
         <UserAvatar
           src={post.user.profile.avatar || undefined}
@@ -34,6 +48,7 @@ export default function PostHeader({
       <Link
         to={`/${post.user.profile.username}`}
         className="flex-1 hover:opacity-80 transition-opacity"
+        onClick={handleProfileClick}
       >
         <div className="font-bold text-sm bg-linear-to-r from-white to-white/70 bg-clip-text text-transparent flex items-center gap-1">
           {post.user.profile.fullName || post.user.profile.username}

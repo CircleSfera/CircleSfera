@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 import { LoadingSpinner } from '../components/LoadingStates';
+import PendingFollowRequests from '../components/notifications/PendingFollowRequests';
 import UserAvatar from '../components/UserAvatar';
 import { notificationsApi } from '../services';
 import { useNotificationsStore } from '../stores/notificationsStore';
@@ -144,6 +145,7 @@ export default function Notifications() {
       </div>
 
       <div className="flex flex-col">
+        <PendingFollowRequests />
         {notifs.length === 0 ? (
           <div className="text-center py-32 opacity-50 flex flex-col items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">

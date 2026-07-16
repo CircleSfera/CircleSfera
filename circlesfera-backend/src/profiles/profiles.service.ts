@@ -257,6 +257,40 @@ export class ProfilesService {
    * @param userId - The user's ID
    * @throws NotFoundException if profile not found
    */
+  async getMyReferrals(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        inviteCode: true,
+        referrals: {
+          select: {
+            id: true,
+            createdAt: true,
+            profile: {
+              select: {
+                username: true,
+                fullName: true,
+                avatar: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return {
+      inviteCode: user.inviteCode,
+      maxReferrals: 3,
+      referralCount: user.referrals.length,
+      referrals: user.referrals,
+    };
+  }
+
   async getMyProfile(userId: string) {
     const profile = await this.prisma.profile.findUnique({
       where: { userId },

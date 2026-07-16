@@ -102,7 +102,7 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
 
   async generateOpenGraphHtml(path: string): Promise<string> {
     const baseUrl = 'https://circlesfera.com';
-    const fallbackImage = 'https://circlesfera.com/og-image.jpg'; // TODO: Update with real default OpenGraph image
+    const fallbackImage = 'https://circlesfera.com/assets/og-default.jpg'; // Updated default OpenGraph image
 
     // Default meta tags
     let title = 'CircleSfera - The Next-Gen Social Network';

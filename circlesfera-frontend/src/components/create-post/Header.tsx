@@ -54,7 +54,7 @@ export default function Header({
             ${
               nextLabel === t('createPost.header.share')
                 ? 'bg-linear-to-r from-brand-primary to-brand-blue text-white shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/30 active:scale-95'
-                : 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/10'
+                : 'text-brand-primary hover:text-brand-primary/80 hover:bg-brand-primary/10'
             }
           `}
         >

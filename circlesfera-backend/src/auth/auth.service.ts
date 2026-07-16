@@ -68,10 +68,17 @@ export class AuthService {
     if (dto.inviteCode) {
       const referringUser = await this.prisma.user.findUnique({
         where: { inviteCode: dto.inviteCode },
+        include: { _count: { select: { referrals: true } } },
       });
-      if (referringUser) {
-        referredById = referringUser.id;
+      if (!referringUser) {
+        throw new BadRequestException('Invalid invite code');
       }
+      if (referringUser._count.referrals >= 3) {
+        throw new BadRequestException(
+          'This invite code has reached its maximum usage limit',
+        );
+      }
+      referredById = referringUser.id;
     }
 
     // Hash password

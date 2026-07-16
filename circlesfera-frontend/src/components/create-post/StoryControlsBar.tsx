@@ -31,7 +31,7 @@ export default function StoryControlsBar({
           onClick={() => setShowMusicPicker(true)}
           className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
             selectedAudio
-              ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20'
+              ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20'
               : 'bg-white/6 text-white/70 hover:bg-white/10'
           }`}
         >

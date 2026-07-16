@@ -23,9 +23,6 @@ interface MessageBubbleProps {
 
 const EMOJI_OPTIONS = ['❤️', '😂', '😮', '😢', '🔥', '👍'];
 
-import { useEffect, useState } from 'react';
-import { E2EService } from '../../utils/e2e';
-
 export default memo(function MessageBubble({
   msg,
   isMe,
@@ -47,119 +44,23 @@ export default memo(function MessageBubble({
       })
     : '';
 
-  const [decryptedText, setDecryptedText] = useState<string>(
-    msg.e2eKeys ? '' : msg.content,
-  );
-  const [mediaUrl, setMediaUrl] = useState<string | undefined>(
-    msg.e2eKeys ? undefined : msg.url,
-  );
-  const [isDecrypting, setIsDecrypting] = useState<boolean>(!!msg.e2eKeys);
+  let parsedText = msg.content || '';
+  const mediaUrl = msg.url;
 
-  useEffect(() => {
-    let isMounted = true;
-    if (msg.e2eKeys && currentUserId && msg.e2eKeys[currentUserId]) {
-      const decrypt = async () => {
-        try {
-          const privateKeyStr =
-            localStorage.getItem(`e2e_private_key_${currentUserId}`) ||
-            localStorage.getItem('e2e_private_key');
-
-          if (!privateKeyStr) {
-            if (isMounted) {
-              setDecryptedText('🔒 Mensaje cifrado (Falta tu clave privada)');
-              setIsDecrypting(false);
-            }
-            return;
-          }
-
-          const privateKey = await E2EService.importPrivateKey(privateKeyStr);
-
-          const parsedKeys =
-            typeof msg.e2eKeys === 'string'
-              ? JSON.parse(msg.e2eKeys as any)
-              : msg.e2eKeys;
-          const wrappedAesKey = parsedKeys![currentUserId];
-          const aesKey = await E2EService.unwrapSymmetricKey(
-            wrappedAesKey,
-            privateKey,
-          );
-
-          const payload =
-            typeof msg.content === 'string' && msg.content.startsWith('{')
-              ? JSON.parse(msg.content)
-              : msg.content;
-
-          const text = await E2EService.decryptMessage(
-            payload.ciphertext,
-            payload.iv,
-            aesKey,
-          );
-
-          let parsedText = text;
-          let fileKeyRaw = '';
-          let fileIv = '';
-
-          try {
-            const mediaPayload = JSON.parse(text);
-            if (mediaPayload.fileKey && mediaPayload.text) {
-              parsedText = mediaPayload.text;
-              fileKeyRaw = mediaPayload.fileKey;
-              fileIv = mediaPayload.fileIv;
-            }
-          } catch (_e) {
-            // normal text message, not JSON
-          }
-
-          if (isMounted) {
-            setDecryptedText(parsedText);
-
-            // If it's a file, fetch and decrypt it
-            if (fileKeyRaw && msg.url) {
-              try {
-                const res = await fetch(msg.url);
-                const arrayBuffer = await res.arrayBuffer();
-                const fileAesKey =
-                  await E2EService.importSymmetricKey(fileKeyRaw);
-                const blob = await E2EService.decryptFile(
-                  arrayBuffer,
-                  fileIv,
-                  fileAesKey,
-                );
-                setMediaUrl(URL.createObjectURL(blob));
-              } catch (fileErr) {
-                console.error('Error decrypting file:', fileErr);
-              }
-            }
-
-            setIsDecrypting(false);
-          }
-        } catch (err) {
-          console.error('Error decrypting message:', err);
-          if (isMounted) {
-            setDecryptedText('🔒 Mensaje cifrado con una clave anterior');
-            setIsDecrypting(false);
-          }
-        }
-      };
-      decrypt();
-    } else if (msg.e2eKeys) {
-      // It has E2E keys, but not for this user (because they didn't have a public key when it was sent)
-      if (isMounted) {
-        setDecryptedText(
-          '🔒 Configura tu privacidad E2E para leer futuros mensajes.',
-        );
-        setIsDecrypting(false);
-      }
-    } else {
-      if (isMounted) {
-        setDecryptedText(msg.content);
-        setIsDecrypting(false);
+  try {
+    if (typeof parsedText === 'string' && parsedText.startsWith('{')) {
+      const mediaPayload = JSON.parse(parsedText);
+      if (mediaPayload.text) {
+        parsedText = mediaPayload.text;
       }
     }
-    return () => {
-      isMounted = false;
-    };
-  }, [msg, currentUserId]);
+  } catch (_e) {
+    // normal text message, not JSON
+  }
+
+  const decryptedText = parsedText;
+
+  const isDecrypting = false;
 
   return (
     <motion.div

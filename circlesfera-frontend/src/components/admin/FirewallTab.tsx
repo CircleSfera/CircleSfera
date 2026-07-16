@@ -148,7 +148,7 @@ export default function FirewallTab({ onToast }: Props) {
                   >
                     <td className="px-4 py-3">
                       <div className="text-sm text-white max-w-md truncate">
-                        {item.textPreview || (
+                        {item.text || (
                           <span className="text-gray-500 italic">
                             Vector generado automáticamente (sin preview)
                           </span>

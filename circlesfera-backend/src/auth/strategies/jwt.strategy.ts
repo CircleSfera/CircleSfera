@@ -51,7 +51,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     const role = (user as { role?: string }).role || 'USER';
-    console.log(`JwtStrategy: Validated user ${user.id} with role ${role}`);
 
     return {
       userId: user.id,
