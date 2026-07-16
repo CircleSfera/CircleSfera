@@ -1,4 +1,4 @@
-import { motion, useAnimation, useMotionValue } from 'framer-motion';
+import { motion, useAnimation, useMotionValue, useTransform } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -100,10 +100,15 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
     return () => unsubscribe();
   }, [y]);
 
+  const opacity = useTransform(y, [0, 50], [0, 1]);
+
   return (
     <div className="relative w-full overflow-hidden" ref={containerRef}>
       {/* Loading Spinner Area */}
-      <div className="absolute top-0 left-0 w-full flex justify-center items-start pt-4 z-0">
+      <motion.div
+        style={{ opacity: isRefreshing ? 1 : opacity }}
+        className="absolute top-0 left-0 w-full flex justify-center items-start pt-4 z-0"
+      >
         <div className="bg-black/50 backdrop-blur-md rounded-full p-2 border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.1)]">
           <Loader2
             className={`w-6 h-6 text-brand-primary ${isRefreshing ? 'animate-spin' : ''}`}
@@ -112,7 +117,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
             }}
           />
         </div>
-      </div>
+      </motion.div>
 
       {/* Content Area */}
       <motion.div
