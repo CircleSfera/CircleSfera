@@ -3,13 +3,17 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ContentRating, Visibility } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
+import { StripeService } from '../common/stripe/stripe.service.js';
 
 /**
  * Service for user management: follow suggestions, banning, and unbanning.
  */
 @Injectable()
 export class UsersService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(StripeService) private readonly stripeService: StripeService,
+  ) {}
 
   /**
    * Get follow suggestions for a user. Excludes already-followed, pending,
@@ -236,5 +240,63 @@ export class UsersService {
         pushNotifications: dto.pushNotifications ?? true,
       },
     });
+  }
+
+  // --- Identity Verification ---
+
+  async createIdentitySession(
+    userId: string,
+    returnUrl: string,
+  ): Promise<{ url: string }> {
+    const session = await this.stripeService.createIdentityVerificationSession(
+      userId,
+      returnUrl,
+    );
+
+    // Save the session ID to the user for tracking
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { stripeIdentitySessionId: session.id },
+    });
+
+    return { url: session.url || returnUrl };
+  }
+
+  async syncIdentitySession(userId: string): Promise<{ status: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { stripeIdentitySessionId: true, verificationLevel: true },
+    });
+
+    if (!user?.stripeIdentitySessionId) {
+      return { status: 'no_session' };
+    }
+
+    if (user.verificationLevel === 'VERIFIED' || user.verificationLevel === 'BUSINESS' || user.verificationLevel === 'ELITE') {
+      return { status: 'already_verified' };
+    }
+
+    const session = await this.stripeService.getIdentityVerificationSession(
+      user.stripeIdentitySessionId,
+    );
+
+    if (session.status === 'verified') {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          identityVerifiedAt: new Date(),
+          verificationLevel: 'VERIFIED',
+        },
+      });
+      return { status: 'verified' };
+    } else if (session.status === 'canceled') {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { stripeIdentitySessionId: null },
+      });
+      return { status: 'canceled' };
+    }
+
+    return { status: session.status };
   }
 }

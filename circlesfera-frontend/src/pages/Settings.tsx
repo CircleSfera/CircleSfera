@@ -390,7 +390,7 @@ export default function Settings() {
   });
 
   const verifyIdentityMutation = useMutation({
-    mutationFn: () => paymentsApi.createIdentitySession(window.location.href),
+    mutationFn: () => usersApi.createIdentitySession(window.location.href),
     onSuccess: (data) => {
       window.location.href = data.url;
     },
@@ -459,7 +459,7 @@ export default function Settings() {
 
   useEffect(() => {
     if (activeTab === 'account' && profile?.user?.verificationLevel && profile.user.verificationLevel !== 'VERIFIED' && profile.user.verificationLevel !== 'BUSINESS' && profile.user.verificationLevel !== 'ELITE') {
-      paymentsApi.syncIdentitySession().then((res) => {
+      usersApi.syncIdentitySession().then((res) => {
         if (res?.status === 'verified') {
           queryClient.invalidateQueries({ queryKey: ['myProfile'] });
           toast.success(t('settings.account.verification.success', 'Your identity has been verified!'));

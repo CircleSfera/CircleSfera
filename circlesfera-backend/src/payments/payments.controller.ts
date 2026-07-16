@@ -76,24 +76,4 @@ export class PaymentsController {
     }
   }
 
-  @Post('identity-session')
-  @UseGuards(JwtAuthGuard)
-  async createIdentitySession(
-    @Req() req: RequestWithUser,
-    @Body() body: { returnUrl: string },
-  ): Promise<{ url: string }> {
-    return this.paymentsService.createIdentitySession(
-      req.user.userId,
-      body.returnUrl ||
-        `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/edit`,
-    );
-  }
-
-  @Post('identity-session/sync')
-  @UseGuards(JwtAuthGuard)
-  async syncIdentitySession(
-    @Req() req: RequestWithUser,
-  ): Promise<{ status: string }> {
-    return this.paymentsService.syncIdentitySession(req.user.userId);
-  }
 }
