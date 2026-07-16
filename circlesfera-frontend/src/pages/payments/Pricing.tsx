@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { paymentsApi } from '../../services/payments.service';
+import { usersApi } from '../../services/users.service';
 import { useAuthStore } from '../../stores/authStore';
 
 export default function Pricing() {
@@ -72,7 +73,7 @@ export default function Pricing() {
                 onClick={async () => {
                   toast.dismiss(t.id);
                   try {
-                    const res = await paymentsApi.createIdentitySession(
+                    const res = await usersApi.createIdentitySession(
                       window.location.href,
                     );
                     if (res.url) {
