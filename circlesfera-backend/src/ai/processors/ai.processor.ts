@@ -172,21 +172,28 @@ export class AIProcessor extends WorkerHost {
             moderationNote: aiAssessment,
           };
 
+          let authorId: string | null = null;
           if (targetType === 'POST') {
-            await this.prisma.post.update({
+            const res = await this.prisma.post.update({
               where: { id: targetId },
               data: updateData,
+              select: { userId: true },
             });
+            authorId = res.userId;
           } else if (targetType === 'STORY') {
-            await this.prisma.story.update({
+            const res = await this.prisma.story.update({
               where: { id: targetId },
               data: updateData,
+              select: { userId: true },
             });
+            authorId = res.userId;
           } else if (targetType === 'COMMENT') {
-            await this.prisma.comment.update({
+            const res = await this.prisma.comment.update({
               where: { id: targetId },
               data: updateData,
+              select: { userId: true },
             });
+            authorId = res.userId;
           }
 
           const adminUser = await this.prisma.user.findFirst({
@@ -203,6 +210,11 @@ export class AIProcessor extends WorkerHost {
                 details: aiAssessment,
               },
             });
+
+            // Check author strikes
+            if (authorId) {
+              await this.applyStrikeAndCheckEscalation(authorId, adminUser.id);
+            }
           }
 
           return; // EXIT EARLY! DO NOT CALL OPENAI
@@ -254,21 +266,28 @@ export class AIProcessor extends WorkerHost {
           moderationNote: aiAssessment,
         };
 
+        let authorId: string | null = null;
         if (targetType === 'POST') {
-          await this.prisma.post.update({
+          const res = await this.prisma.post.update({
             where: { id: targetId },
             data: updateData,
+            select: { userId: true },
           });
+          authorId = res.userId;
         } else if (targetType === 'STORY') {
-          await this.prisma.story.update({
+          const res = await this.prisma.story.update({
             where: { id: targetId },
             data: updateData,
+            select: { userId: true },
           });
+          authorId = res.userId;
         } else if (targetType === 'COMMENT') {
-          await this.prisma.comment.update({
+          const res = await this.prisma.comment.update({
             where: { id: targetId },
             data: updateData,
+            select: { userId: true },
           });
+          authorId = res.userId;
         }
 
         // Find system admin to attribute the report to
@@ -288,19 +307,12 @@ export class AIProcessor extends WorkerHost {
             },
           });
           this.logger.warn(
-            `;
-          AI;
-          automatically;
-          set;
-          $;
-          targetType;
-          $;
-          targetId;
-          to;
-          $;
-          status;
-          for ${flags.join(', ')}`,
+            `AI automatically set ${targetType} ${targetId} to ${status} for ${flags.join(', ')}`,
           );
+
+          if (shouldHide && authorId) {
+            await this.applyStrikeAndCheckEscalation(authorId, adminUser.id);
+          }
         } else {
           this.logger.error(
             `Cannot create
@@ -318,6 +330,31 @@ export class AIProcessor extends WorkerHost {
         `Failed to process moderation for ${targetType} ${targetId}: ${errorMessage}`,
       );
       throw error;
+    }
+  }
+
+  private async applyStrikeAndCheckEscalation(userId: string, adminId: string) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { strikeCount: { increment: 1 } },
+      select: { strikeCount: true },
+    });
+
+    this.logger.log(`User ${userId} now has ${user.strikeCount} strikes.`);
+
+    if (user.strikeCount >= 3) {
+      this.logger.warn(
+        `User ${userId} reached 3 strikes. Escalating to Admin...`,
+      );
+      await this.prisma.report.create({
+        data: {
+          reporterId: adminId,
+          targetType: 'USER',
+          targetId: userId,
+          reason: 'OTHER',
+          details: `[URGENT] El usuario ha acumulado ${user.strikeCount} strikes por violaciones de contenido ocultadas automáticamente. Requiere revisión manual para posible suspensión de cuenta.`,
+        },
+      });
     }
   }
 }
