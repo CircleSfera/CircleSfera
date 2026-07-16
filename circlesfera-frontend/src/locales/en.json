@@ -33,7 +33,15 @@
       },
       "billing": {
         "label": "Billing",
-        "desc": "Subscription"
+        "desc": "Plans"
+      },
+      "monetization": {
+        "label": "Monetization",
+        "desc": "Manage Stripe Connect and payouts"
+      },
+      "referrals": {
+        "label": "Referrals",
+        "desc": "Invite friends and track referrals"
       },
       "requests": {
         "label": "Requests",
@@ -632,7 +640,7 @@
     "reasons": {
       "spam": "It's spam",
       "harassment": "Harassment or bullying",
-      "inappropriate": "Inappropriate content",
+      "hate_speech": "Inappropriate content or Hate speech",
       "other": "Something else"
     }
   },
