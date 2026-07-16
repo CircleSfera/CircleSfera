@@ -75,5 +75,4 @@ export class PaymentsController {
       return { received: false, error: message };
     }
   }
-
 }

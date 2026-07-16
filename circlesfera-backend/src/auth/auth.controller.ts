@@ -53,7 +53,10 @@ export class AuthController {
   /** Register a new user and return JWT tokens as HTTP-only cookies. */
   @Post('register')
   @Throttle({
-    short: { limit: process.env.NODE_ENV !== 'production' ? 1000 : 5, ttl: 60000 },
+    short: {
+      limit: process.env.NODE_ENV !== 'production' ? 1000 : 5,
+      ttl: 60000,
+    },
   })
   async register(
     @Body() dto: RegisterDto,
@@ -77,7 +80,10 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @Throttle({
-    short: { limit: process.env.NODE_ENV !== 'production' ? 1000 : 5, ttl: 60000 },
+    short: {
+      limit: process.env.NODE_ENV !== 'production' ? 1000 : 5,
+      ttl: 60000,
+    },
   })
   async login(
     @Body() dto: LoginDto,
@@ -101,7 +107,10 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @Throttle({
-    short: { limit: process.env.NODE_ENV !== 'production' ? 1000 : 5, ttl: 60000 },
+    short: {
+      limit: process.env.NODE_ENV !== 'production' ? 1000 : 5,
+      ttl: 60000,
+    },
   })
   async refresh(
     @Req() req: Request,

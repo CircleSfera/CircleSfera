@@ -30,7 +30,7 @@ export class CreatorSubscriptionsService {
     if (process.env.NODE_ENV !== 'production') {
       const expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 1);
-      
+
       await this.prisma.creatorSubscription.upsert({
         where: { subscriberId_creatorId: { subscriberId, creatorId } },
         update: { status: 'ACTIVE', expiresAt },
@@ -40,7 +40,7 @@ export class CreatorSubscriptionsService {
           status: 'ACTIVE',
           priceCents,
           expiresAt,
-        }
+        },
       });
       return { url: null, success: true };
     }
