@@ -8,8 +8,20 @@ async function globalSetup(config: FullConfig) {
   console.log('Running Global Setup: Logging in test user...');
 
   try {
+    const backendURL = 'http://localhost:3005/api/v1';
+
+    // Seed the user via API to ensure it exists
+    await page.request.post(`${backendURL}/auth/register`, {
+      data: {
+        email: 'easyfeliu@gmail.com',
+        username: 'easyfeliu',
+        password: 'password123',
+        fullName: 'Test User',
+      },
+    });
+
     // Navigate to login
-    await page.goto(`${baseURL}/auth/login`);
+    await page.goto(`${baseURL}/accounts/login`);
 
     // Fill in credentials for the seeded user
     await page.locator('#identifier').fill('easyfeliu@gmail.com');

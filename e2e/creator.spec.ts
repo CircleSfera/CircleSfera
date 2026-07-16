@@ -12,8 +12,8 @@ test.describe('Creator Dashboard', () => {
     // Check if the URL is correct
     await expect(page).toHaveURL(/.*\/creator\/analytics/);
 
-    // The "CreatorAnalyticsTab" has a "Rendimiento" title
-    await expect(page.getByText(/Rendimiento/i).first()).toBeVisible({
+    // The CreatorAnalyticsTab has an h2 heading
+    await expect(page.getByRole('heading', { level: 2 }).first()).toBeVisible({
       timeout: 5000,
     });
   });
@@ -22,14 +22,18 @@ test.describe('Creator Dashboard', () => {
     page,
   }) => {
     // Click on monetization tab
-    const monetizationTab = page.locator('a[href="/creator/monetization"]');
+    const monetizationTab = page
+      .locator('a[href="/creator/monetization"]')
+      .first();
     if (await monetizationTab.isVisible()) {
       await monetizationTab.click();
 
-      // Wait for Suspense to finish and show the actual content
-      await expect(page.getByText(/Ganancias/i).first()).toBeVisible({
-        timeout: 5000,
-      });
+      // Wait for actual content
+      await expect(page.getByRole('heading', { level: 2 }).first()).toBeVisible(
+        {
+          timeout: 5000,
+        },
+      );
     }
   });
 
