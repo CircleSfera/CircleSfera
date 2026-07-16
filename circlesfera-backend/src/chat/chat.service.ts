@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { type Message, type MessageReaction, Prisma } from '@prisma/client';
+import { type Message, type MessageReaction } from '@prisma/client';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PushService } from '../push/push.service.js';
@@ -322,7 +322,6 @@ export class ChatService {
     postId?: string,
     storyId?: string,
     replyToId?: string,
-    e2eKeys?: Record<string, string>,
   ): Promise<Message> {
     let conversation: any;
 
@@ -333,7 +332,7 @@ export class ChatService {
           participants: {
             include: {
               user: {
-                select: { e2ePublicKey: true },
+                select: { id: true },
               },
             },
           },
@@ -361,7 +360,7 @@ export class ChatService {
           participants: {
             include: {
               user: {
-                select: { e2ePublicKey: true },
+                select: { id: true },
               },
             },
           },
@@ -404,11 +403,10 @@ export class ChatService {
       );
     }
 
-    // 2. Create message (content is already E2EE encrypted by the client)
+    // 2. Create message (content encrypted in server)
     const message = await this.prisma.message.create({
       data: {
-        content, // Client sends ciphertext
-        e2eKeys: e2eKeys ? e2eKeys : undefined,
+        content: this.cryptoService.encrypt(content),
         senderId,
         conversationId: conversation.id,
         url,
@@ -475,12 +473,11 @@ export class ChatService {
     });
 
     // 4. Emit to all participants
-    // We DO NOT decrypt the content since it is E2EE.
-    // The client will decrypt it using their e2eKeys.
+    // We send decrypted content to the client in real-time
     conversation.participants.forEach((p: any) => {
       this.gateway.server
         .to(`user:${p.userId}`)
-        .emit('receiveMessage', { ...message, tempId });
+        .emit('receiveMessage', { ...message, content, tempId });
 
       if (p.userId !== senderId) {
         this.pushService
@@ -541,7 +538,7 @@ export class ChatService {
             user: {
               select: {
                 id: true,
-                e2ePublicKey: true,
+
                 profile: {
                   select: {
                     username: true,
@@ -565,11 +562,10 @@ export class ChatService {
       },
     });
 
-    // Decrypt the last message for backwards compatibility (legacy messages without e2eKeys)
     const decryptedConversations = conversations.map((conv) => {
       if (conv.messages?.length > 0) {
         const lastMsg = conv.messages[0];
-        if (!lastMsg.e2eKeys && lastMsg.content?.includes(':')) {
+        if (lastMsg.content) {
           lastMsg.content = this.cryptoService.decrypt(lastMsg.content);
         }
       }
@@ -685,9 +681,9 @@ export class ChatService {
       },
     });
 
-    // Decrypt legacy messages for backwards compatibility
+    // Decrypt messages
     return messages.map((m) => {
-      if (!m.e2eKeys && m.content?.includes(':')) {
+      if (m.content) {
         m.content = this.cryptoService.decrypt(m.content);
       }
       return m;
@@ -792,12 +788,7 @@ export class ChatService {
   /**
    * Edit a message. Only the sender can edit their own message.
    */
-  async editMessage(
-    userId: string,
-    messageId: string,
-    newContent: string,
-    newE2eKeys?: any,
-  ) {
+  async editMessage(userId: string, messageId: string, newContent: string) {
     const message = await this.prisma.message.findUnique({
       where: { id: messageId },
       include: { conversation: { include: { participants: true } } },
@@ -814,8 +805,7 @@ export class ChatService {
     const updated = await this.prisma.message.update({
       where: { id: messageId },
       data: {
-        content: newContent,
-        e2eKeys: newE2eKeys || message.e2eKeys,
+        content: this.cryptoService.encrypt(newContent),
         isEdited: true,
       },
       include: {
@@ -829,6 +819,7 @@ export class ChatService {
     });
 
     // Emit to all participants
+    updated.content = newContent; // send decrypted text back to clients
     message.conversation.participants.forEach((p: any) => {
       this.gateway.server
         .to(`user:${p.userId}`)
@@ -857,7 +848,6 @@ export class ChatService {
       where: { id: messageId },
       data: {
         content: '',
-        e2eKeys: Prisma.DbNull,
         isDeleted: true,
         url: null,
         mediaType: null,

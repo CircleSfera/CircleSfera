@@ -87,7 +87,6 @@ export class ChatController {
       dto.postId,
       dto.storyId,
       dto.replyToId,
-      dto.e2eKeys,
     );
   }
 
@@ -153,14 +152,9 @@ export class ChatController {
   async editMessage(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { content: string; e2eKeys?: any },
+    @Body() body: { content: string },
   ) {
-    return this.chatService.editMessage(
-      req.user.userId,
-      id,
-      body.content,
-      body.e2eKeys,
-    );
+    return this.chatService.editMessage(req.user.userId, id, body.content);
   }
 
   /** Delete a message. */
