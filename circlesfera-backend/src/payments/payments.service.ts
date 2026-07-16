@@ -581,12 +581,19 @@ export class PaymentsService {
             }
           }
 
+          const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { verificationLevel: true },
+          });
+
           await this.prisma.user.update({
             where: { id: userId },
             data: {
               identityVerifiedAt: new Date(),
               ...(dateOfBirth && { dateOfBirth }),
-              verificationLevel: verificationLevel,
+              ...(user?.verificationLevel === 'BASIC' && {
+                verificationLevel: verificationLevel,
+              }),
               isActive: isActive,
             },
           });

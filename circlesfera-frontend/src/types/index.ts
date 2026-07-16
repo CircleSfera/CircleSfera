@@ -78,6 +78,7 @@ export interface ProfileWithUser extends IProfile {
   banner?: string | null;
   inviteCode?: string;
   referredById?: string | null;
+  identityVerifiedAt?: Date | string | null;
 }
 
 export interface PostMediaItem {

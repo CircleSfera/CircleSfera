@@ -265,18 +265,14 @@ export class UsersService {
   async syncIdentitySession(userId: string): Promise<{ status: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { stripeIdentitySessionId: true, verificationLevel: true },
+      select: { stripeIdentitySessionId: true, verificationLevel: true, identityVerifiedAt: true },
     });
 
     if (!user?.stripeIdentitySessionId) {
       return { status: 'no_session' };
     }
 
-    if (
-      user.verificationLevel === 'VERIFIED' ||
-      user.verificationLevel === 'BUSINESS' ||
-      user.verificationLevel === 'ELITE'
-    ) {
+    if (user.identityVerifiedAt) {
       return { status: 'already_verified' };
     }
 
@@ -289,7 +285,9 @@ export class UsersService {
         where: { id: userId },
         data: {
           identityVerifiedAt: new Date(),
-          verificationLevel: 'VERIFIED',
+          ...(user.verificationLevel === 'BASIC' && {
+            verificationLevel: 'VERIFIED',
+          }),
         },
       });
       return { status: 'verified' };
