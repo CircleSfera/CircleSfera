@@ -178,4 +178,13 @@ export class StripeService implements OnModuleInit {
       return_url: returnUrl,
     });
   }
+
+  /**
+   * Retrieve an Identity Verification Session.
+   */
+  async getIdentityVerificationSession(
+    sessionId: string,
+  ): Promise<Stripe.Identity.VerificationSession> {
+    return this.stripe.identity.verificationSessions.retrieve(sessionId);
+  }
 }

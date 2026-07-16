@@ -457,6 +457,19 @@ export default function Settings() {
     }
   }, [profile, initialized]);
 
+  useEffect(() => {
+    if (activeTab === 'account' && profile?.user?.verificationLevel && profile.user.verificationLevel !== 'VERIFIED' && profile.user.verificationLevel !== 'BUSINESS' && profile.user.verificationLevel !== 'ELITE') {
+      paymentsApi.syncIdentitySession().then((res) => {
+        if (res?.status === 'verified') {
+          queryClient.invalidateQueries({ queryKey: ['myProfile'] });
+          toast.success(t('settings.account.verification.success', 'Your identity has been verified!'));
+        }
+      }).catch((err) => {
+        logger.error('Failed to sync identity session:', err);
+      });
+    }
+  }, [activeTab, profile?.user?.verificationLevel, queryClient, t]);
+
   // --- Handlers ---
   const checkUsernameAvailability = useCallback(
     async (newUsername: string) => {

@@ -88,4 +88,12 @@ export class PaymentsController {
         `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/edit`,
     );
   }
+
+  @Post('identity-session/sync')
+  @UseGuards(JwtAuthGuard)
+  async syncIdentitySession(
+    @Req() req: RequestWithUser,
+  ): Promise<{ status: string }> {
+    return this.paymentsService.syncIdentitySession(req.user.userId);
+  }
 }

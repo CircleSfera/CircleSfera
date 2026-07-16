@@ -622,4 +622,42 @@ export class PaymentsService {
 
     return { url: session.url || returnUrl };
   }
+
+  async syncIdentitySession(userId: string): Promise<{ status: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { stripeIdentitySessionId: true, verificationLevel: true },
+    });
+
+    if (!user?.stripeIdentitySessionId) {
+      return { status: 'no_session' };
+    }
+
+    if (user.verificationLevel === VerificationLevel.VERIFIED || user.verificationLevel === VerificationLevel.BUSINESS || user.verificationLevel === VerificationLevel.ELITE) {
+      return { status: 'already_verified' };
+    }
+
+    const session = await this.stripeService.getIdentityVerificationSession(
+      user.stripeIdentitySessionId,
+    );
+
+    if (session.status === 'verified') {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          identityVerifiedAt: new Date(),
+          verificationLevel: VerificationLevel.VERIFIED,
+        },
+      });
+      return { status: 'verified' };
+    } else if (session.status === 'canceled') {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { stripeIdentitySessionId: null },
+      });
+      return { status: 'canceled' };
+    }
+
+    return { status: session.status };
+  }
 }
