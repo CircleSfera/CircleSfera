@@ -6,6 +6,7 @@ import {
 } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StripeService } from '../common/stripe/stripe.service.js';
+import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SlackService } from '../slack/slack.service.js';
 import { PaymentsService } from './payments.service.js';
@@ -37,7 +38,7 @@ describe('PaymentsService', () => {
               findFirst: vi.fn(),
             },
             platformPlan: { findUnique: vi.fn() },
-            user: { update: vi.fn() },
+            user: { update: vi.fn(), findUnique: vi.fn() },
             $transaction: vi.fn((callback) => callback(prisma)),
           },
         },
@@ -50,6 +51,13 @@ describe('PaymentsService', () => {
         {
           provide: SlackService,
           useValue: { sendPaymentAlert: vi.fn().mockResolvedValue(true) },
+        },
+        {
+          provide: EmailService,
+          useValue: {
+            sendTipReceivedEmail: vi.fn(),
+            sendSubscriptionStartedEmail: vi.fn(),
+          },
         },
       ],
     }).compile();
