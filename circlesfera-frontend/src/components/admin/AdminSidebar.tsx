@@ -7,6 +7,7 @@ import {
   Clock,
   DollarSign,
   Flag,
+  FlaskConical,
   FolderTree,
   Hash,
   ImageIcon,
@@ -41,6 +42,7 @@ export type AdminTab =
   | 'moderation'
   | 'firewall'
   | 'newsletter'
+  | 'experiments'
   | 'system-health';
 
 interface SearchGroup {
@@ -87,6 +89,7 @@ const GROUPS: SearchGroup[] = [
     icon: Settings,
     items: [
       { id: 'system-health', label: 'Estado', icon: Activity },
+      { id: 'experiments', label: 'Experimentos', icon: FlaskConical },
       { id: 'reports', label: 'Reportes', icon: Flag },
       { id: 'audit', label: 'Audit Log', icon: ScrollText },
     ],
