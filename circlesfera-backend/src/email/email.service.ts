@@ -138,6 +138,21 @@ export class EmailService {
   }
 
   /**
+   * Send a subscription receipt to a user.
+   */
+  async sendSubscriptionReceipt(
+    email: string,
+    planName: string,
+    amount: string,
+  ) {
+    await this.sendMail({
+      to: email,
+      subject: `Recibo de Suscripción - ${planName}`,
+      html: EmailTemplates.subscriptionReceipt(planName, amount),
+    });
+  }
+
+  /**
    * Low-level method to send an email via Brevo API.
    * @param options - Email options
    */
