@@ -434,31 +434,7 @@ export class PaymentsService {
           });
 
           if (plan) {
-            let newAccountType: AccountType | undefined;
-            let newVerificationLevel: VerificationLevel | undefined;
-
-            const name = plan.name.toLowerCase();
-            if (name.includes('premium')) {
-              newVerificationLevel = VerificationLevel.VERIFIED;
-            } else if (name.includes('elite')) {
-              newVerificationLevel = VerificationLevel.VERIFIED;
-              newAccountType = AccountType.CREATOR;
-            } else if (name.includes('business')) {
-              newVerificationLevel = VerificationLevel.BUSINESS;
-              newAccountType = AccountType.BUSINESS;
-            }
-
-            if (newVerificationLevel || newAccountType) {
-              await this.prisma.user.update({
-                where: { id: userId },
-                data: {
-                  ...(newAccountType && { accountType: newAccountType }),
-                  ...(newVerificationLevel && {
-                    verificationLevel: newVerificationLevel,
-                  }),
-                },
-              });
-            }
+            await this.usersService.syncUserTier(userId);
           }
 
           console.log(
@@ -519,30 +495,14 @@ export class PaymentsService {
           },
         });
 
-        // Downgrade user privileges if subscription is actually deleted or past due
-        const newStatus = this.mapStripeStatus(subscription.status);
-        if (
-          newStatus === SubscriptionStatus.CANCELLED ||
-          newStatus === SubscriptionStatus.EXPIRED ||
-          newStatus === SubscriptionStatus.PAST_DUE
-        ) {
-          const sub = await this.prisma.platformSubscription.findFirst({
-            where: { stripeSubscriptionId: subscription.id },
-            select: { userId: true },
-          });
+        // Sync user tier after subscription status changes (handles downgrades dynamically)
+        const sub = await this.prisma.platformSubscription.findFirst({
+          where: { stripeSubscriptionId: subscription.id },
+          select: { userId: true },
+        });
 
-          if (sub) {
-            await this.prisma.user.update({
-              where: { id: sub.userId },
-              data: {
-                accountType: AccountType.PERSONAL,
-                verificationLevel: VerificationLevel.BASIC,
-              },
-            });
-            console.log(
-              `Downgraded user ${sub.userId} privileges due to subscription ${newStatus}`,
-            );
-          }
+        if (sub) {
+          await this.usersService.syncUserTier(sub.userId);
         }
 
         await this.prisma.webhookEvent.update({

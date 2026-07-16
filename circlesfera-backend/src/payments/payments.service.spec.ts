@@ -65,6 +65,7 @@ describe('PaymentsService', () => {
           provide: UsersService,
           useValue: {
             handleIdentityWebhook: vi.fn(),
+            syncUserTier: vi.fn(),
           },
         },
       ],
@@ -129,14 +130,8 @@ describe('PaymentsService', () => {
 
       expect(prisma.platformSubscription.upsert).toHaveBeenCalled();
 
-      // Verify User elevation
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { id: 'user1' },
-        data: {
-          accountType: AccountType.CREATOR,
-          verificationLevel: VerificationLevel.VERIFIED,
-        },
-      });
+      // Verify User elevation is delegated
+      expect(usersService.syncUserTier).toHaveBeenCalledWith('user1');
 
       expect(slackService.sendPaymentAlert).toHaveBeenCalled();
       expect(prisma.webhookEvent.update).toHaveBeenCalled();
@@ -167,13 +162,7 @@ describe('PaymentsService', () => {
         data: expect.objectContaining({ status: SubscriptionStatus.PAST_DUE }),
       });
 
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { id: 'user1' },
-        data: {
-          accountType: AccountType.PERSONAL,
-          verificationLevel: VerificationLevel.BASIC,
-        },
-      });
+      expect(usersService.syncUserTier).toHaveBeenCalledWith('user1');
     });
 
     it('4. should handle customer.subscription.deleted', async () => {
@@ -201,13 +190,7 @@ describe('PaymentsService', () => {
         data: expect.objectContaining({ status: SubscriptionStatus.CANCELLED }),
       });
 
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { id: 'user2' },
-        data: {
-          accountType: AccountType.PERSONAL,
-          verificationLevel: VerificationLevel.BASIC,
-        },
-      });
+      expect(usersService.syncUserTier).toHaveBeenCalledWith('user2');
     });
 
     it('5. should handle checkout.session.completed for PROMOTION', async () => {
