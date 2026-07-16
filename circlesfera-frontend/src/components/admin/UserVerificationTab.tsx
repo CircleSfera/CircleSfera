@@ -119,7 +119,7 @@ export default function UserVerificationTab({
             <ShieldCheck className="text-brand-primary" />
             KYC & Verificación
           </h2>
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-300 text-sm">
             Estado de Stripe Identity y niveles de cuenta de los creadores.
           </p>
         </div>
@@ -217,7 +217,7 @@ export default function UserVerificationTab({
                             size={14}
                           />
                         </div>
-                        <p className="text-zinc-500 text-xs truncate uppercase tracking-wide font-black">
+                        <p className="text-zinc-400 text-xs truncate uppercase tracking-wide font-black">
                           {user.accountType}
                         </p>
                       </div>
@@ -253,7 +253,7 @@ export default function UserVerificationTab({
                     <button
                       type="button"
                       onClick={() => setSelectedUserId(null)}
-                      className="lg:hidden p-2 -ml-2 text-gray-400 hover:text-white"
+                      className="lg:hidden p-2 -ml-2 text-gray-300 hover:text-white"
                     >
                       <ArrowLeft size={20} />
                     </button>
@@ -278,7 +278,7 @@ export default function UserVerificationTab({
                           size={18}
                         />
                       </h3>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-gray-300">
                         ID: {selectedUser.id}
                       </p>
                     </div>
@@ -313,7 +313,7 @@ export default function UserVerificationTab({
                           <h5 className="text-green-400 font-bold text-lg mb-1">
                             Identidad Verificada
                           </h5>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-gray-300">
                             Stripe confirmó la identidad de este usuario el{' '}
                             {new Date(
                               selectedUser.identityVerifiedAt,
@@ -329,14 +329,14 @@ export default function UserVerificationTab({
                           <h5 className="text-yellow-400 font-bold text-lg mb-1">
                             Sesión Creadada (Pendiente)
                           </h5>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-gray-300">
                             El usuario ha iniciado el proceso pero aún no lo ha
                             completado o está bajo revisión en Stripe.
                           </p>
                         </div>
                       ) : (
                         <div className="p-6 bg-white/5 border border-white/10 rounded-lg flex flex-col items-center justify-center text-center">
-                          <div className="w-16 h-16 bg-white/10 text-gray-400 rounded-full flex items-center justify-center mb-4">
+                          <div className="w-16 h-16 bg-white/10 text-gray-300 rounded-full flex items-center justify-center mb-4">
                             <UserX size={32} />
                           </div>
                           <h5 className="text-gray-300 font-bold text-lg mb-1">

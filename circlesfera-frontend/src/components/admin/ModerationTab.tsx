@@ -333,7 +333,7 @@ export default function ModerationTab({ onToast }: Props) {
                     <button
                       type="button"
                       onClick={() => setSelectedItemId(null)}
-                      className="lg:hidden p-2 -ml-2 text-gray-400 hover:text-white"
+                      className="lg:hidden p-2 -ml-2 text-gray-300 hover:text-white"
                     >
                       <ArrowLeft size={20} />
                     </button>
@@ -347,7 +347,7 @@ export default function ModerationTab({ onToast }: Props) {
                         <h3 className="text-sm font-bold text-white">
                           @{selectedItem.user?.profile?.username}
                         </h3>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-gray-300">
                           {new Date(selectedItem.createdAt).toLocaleString()}
                         </p>
                       </div>

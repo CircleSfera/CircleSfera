@@ -186,7 +186,7 @@ function ExperimentForm({
       <div>
         <label
           htmlFor="userId"
-          className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block"
+          className="text-xs font-bold text-gray-300 uppercase tracking-wider mb-2 block"
         >
           ID de Usuario
         </label>
@@ -202,7 +202,7 @@ function ExperimentForm({
       <div>
         <label
           htmlFor="experimentKey"
-          className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block"
+          className="text-xs font-bold text-gray-300 uppercase tracking-wider mb-2 block"
         >
           Clave del Experimento
         </label>
@@ -218,7 +218,7 @@ function ExperimentForm({
       <div>
         <label
           htmlFor="variant"
-          className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block"
+          className="text-xs font-bold text-gray-300 uppercase tracking-wider mb-2 block"
         >
           Variante
         </label>

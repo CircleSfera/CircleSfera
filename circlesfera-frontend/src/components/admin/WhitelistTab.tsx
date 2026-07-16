@@ -87,7 +87,7 @@ export default function WhitelistTab() {
                   {entry.name || 'Sin nombre'}
                 </div>
               </td>
-              <td className="px-2 py-1 text-gray-400 text-xs">
+              <td className="px-2 py-1 text-gray-300 text-xs">
                 <div className="flex items-center gap-2">
                   <Mail size={13} className="text-gray-500" />
                   {entry.email}

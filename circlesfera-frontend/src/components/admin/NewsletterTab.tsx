@@ -80,7 +80,7 @@ export default function NewsletterTab({
               type="button"
               variant="secondary"
               onClick={() => setShowPreview(!showPreview)}
-              className="px-4 py-2 rounded-xl text-xs font-bold transition-all border border-white/10 hover:bg-white/5 text-gray-400"
+              className="px-4 py-2 rounded-xl text-xs font-bold transition-all border border-white/10 hover:bg-white/5 text-gray-300"
             >
               {showPreview ? 'Editar Contenido' : 'Vista Previa'}
             </Button>
@@ -117,7 +117,7 @@ export default function NewsletterTab({
               <h1 className="text-xl font-black text-white tracking-tight leading-tight">
                 {formData.title || 'Título del Correo'}
               </h1>
-              <p className="text-gray-400 text-sm leading-relaxed whitespace-pre-wrap">
+              <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
                 {formData.content ||
                   'El contenido de tu mensaje aparecerá aquí...'}
               </p>
@@ -252,7 +252,7 @@ export default function NewsletterTab({
           <h4 className="text-orange-500 text-xs font-black uppercase tracking-wide mb-1">
             Aviso de Seguridad
           </h4>
-          <p className="text-gray-400 text-xs leading-relaxed">
+          <p className="text-gray-300 text-xs leading-relaxed">
             Al enviar este mensaje, se enviará un correo electrónico individual
             a cada uno de los usuarios activos registrados en el sistema.
             Asegúrate de que el contenido cumple con nuestras políticas de

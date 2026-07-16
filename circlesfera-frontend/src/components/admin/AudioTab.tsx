@@ -180,7 +180,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <Music size={16} className="text-zinc-500" />
+                    <Music size={16} className="text-zinc-400" />
                   )}
                 </div>
                 <div
@@ -206,7 +206,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
               </div>
             </td>
             <td
-              className="px-2 py-1 text-sm text-zinc-500"
+              className="px-2 py-1 text-sm text-zinc-400"
               data-label="Subido el"
             >
               {new Date(track.createdAt).toLocaleDateString()}

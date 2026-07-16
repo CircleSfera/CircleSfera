@@ -223,7 +223,7 @@ export default function UsersTab({ onToast }: Props) {
         <Button
           onClick={handleExport}
           variant="outline"
-          className="text-sm font-bold text-gray-400 hover:text-white border-white/10 px-4 py-2.5"
+          className="text-sm font-bold text-gray-300 hover:text-white border-white/10 px-4 py-2.5"
           aria-label="Exportar usuarios como CSV"
         >
           <Download size={16} className="mr-2" />
@@ -294,7 +294,7 @@ export default function UsersTab({ onToast }: Props) {
                 </div>
               </td>
               <td
-                className="px-2 py-2 text-gray-400 text-sm"
+                className="px-2 py-2 text-gray-300 text-sm"
                 data-label="Email"
               >
                 {user.email}
@@ -316,7 +316,7 @@ export default function UsersTab({ onToast }: Props) {
                 {new Date(user.createdAt).toLocaleDateString()}
               </td>
               <td
-                className="px-2 py-2 text-gray-400 text-sm font-bold md:text-center"
+                className="px-2 py-2 text-gray-300 text-sm font-bold md:text-center"
                 data-label="Posts"
               >
                 {user.postCount}

@@ -110,16 +110,16 @@ export default function FirewallTab({ onToast }: Props) {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-white/5 bg-white/2">
-                <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase">
+                <th className="px-4 py-3 text-xs font-bold text-gray-300 uppercase">
                   Texto Origen (Preview)
                 </th>
-                <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase">
+                <th className="px-4 py-3 text-xs font-bold text-gray-300 uppercase">
                   Categoría
                 </th>
-                <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase">
+                <th className="px-4 py-3 text-xs font-bold text-gray-300 uppercase">
                   Fecha creación
                 </th>
-                <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase text-right">
+                <th className="px-4 py-3 text-xs font-bold text-gray-300 uppercase text-right">
                   Acciones
                 </th>
               </tr>
@@ -163,7 +163,7 @@ export default function FirewallTab({ onToast }: Props) {
                         {item.category.toUpperCase()}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-400">
+                    <td className="px-4 py-3 text-sm text-gray-300">
                       {new Date(item.createdAt).toLocaleDateString('es-ES', {
                         day: '2-digit',
                         month: 'short',

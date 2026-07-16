@@ -85,7 +85,7 @@ export default function UserPreviewModal({
               >
                 {user.isActive ? 'Cuenta Activa' : 'Cuenta Baneada'}
               </span>
-              <span className="px-4 py-1.5 rounded-full bg-white/5 text-gray-400 border border-white/10 text-xs font-black uppercase tracking-wide text-center">
+              <span className="px-4 py-1.5 rounded-full bg-white/5 text-gray-300 border border-white/10 text-xs font-black uppercase tracking-wide text-center">
                 Rol: {user.role}
               </span>
             </div>
@@ -167,7 +167,7 @@ export default function UserPreviewModal({
             {/* System Details / Identifiers */}
             <div className="bg-white/2 p-5 rounded-xl border border-white/5 space-y-4">
               <h4 className="text-xs font-black text-gray-500 uppercase tracking-wide flex items-center gap-2 border-b border-white/5 pb-2">
-                <Database size={14} className="text-gray-400" /> Datos de
+                <Database size={14} className="text-gray-300" /> Datos de
                 Sistema y Seguridad
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -210,7 +210,7 @@ export default function UserPreviewModal({
                     <span className="text-xs font-bold text-indigo-400 uppercase">
                       Stripe Session ID
                     </span>
-                    <p className="text-xs font-mono text-gray-400 truncate">
+                    <p className="text-xs font-mono text-gray-300 truncate">
                       {user.stripeIdentitySessionId}
                     </p>
                   </div>
@@ -232,7 +232,7 @@ export default function UserPreviewModal({
                     key={post.id}
                     className="p-3 bg-white/2 rounded-xl border border-white/5 hover:bg-white/5 transition-all text-xs flex justify-between items-center group"
                   >
-                    <span className="text-gray-400 truncate max-w-[150px]">
+                    <span className="text-gray-300 truncate max-w-[150px]">
                       {post.caption || '(Sin pie de foto)'}
                     </span>
                     <a

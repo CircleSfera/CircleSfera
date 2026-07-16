@@ -111,7 +111,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           className="relative w-full max-w-lg bg-surface-elevated border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
         >
           <div className="flex items-center px-4 py-3 border-b border-white/10">
-            <Search size={20} className="text-gray-400 mr-3" />
+            <Search size={20} className="text-gray-300 mr-3" />
             <input
               ref={inputRef}
               value={query}

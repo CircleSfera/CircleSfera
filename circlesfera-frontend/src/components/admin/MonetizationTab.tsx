@@ -98,7 +98,7 @@ export default function MonetizationTab() {
             <h4 className="text-white font-black uppercase text-sm mb-1 tracking-tight">
               Stripe API
             </h4>
-            <p className="text-gray-400 text-xs">
+            <p className="text-gray-300 text-xs">
               Conexión principal con Stripe habilitada. Pagos activos.
             </p>
           </div>
@@ -118,7 +118,7 @@ export default function MonetizationTab() {
             <h4 className="text-white font-black uppercase text-sm mb-1 tracking-tight">
               Stripe Connect
             </h4>
-            <p className="text-gray-400 text-xs">
+            <p className="text-gray-300 text-xs">
               Infraestructura para pagos divididos y Creadores.
             </p>
           </div>
@@ -138,7 +138,7 @@ export default function MonetizationTab() {
             <h4 className="text-white font-black uppercase text-sm mb-1 tracking-tight">
               Stripe Identity (KYC)
             </h4>
-            <p className="text-gray-400 text-xs">
+            <p className="text-gray-300 text-xs">
               Verificación de identidad automatizada para Creadores.
             </p>
           </div>
@@ -156,7 +156,7 @@ export default function MonetizationTab() {
               <h3 className="text-2xl font-black text-white tracking-tight italic uppercase">
                 Distribución de Experiencia
               </h3>
-              <p className="text-zinc-500 text-xs font-black uppercase tracking-wide">
+              <p className="text-zinc-400 text-xs font-black uppercase tracking-wide">
                 Desglose de niveles por usuario
               </p>
             </div>
@@ -166,7 +166,7 @@ export default function MonetizationTab() {
             {/* Progress Bar Tier Map */}
             <div className="space-y-4">
               <div className="flex items-center justify-between px-2">
-                <span className="text-xs font-black text-zinc-500 uppercase tracking-wide">
+                <span className="text-xs font-black text-zinc-400 uppercase tracking-wide">
                   Composición de Tiers
                 </span>
                 <span className="text-xs font-black text-white">
@@ -230,7 +230,7 @@ export default function MonetizationTab() {
                       <span className="text-sm font-black text-white italic uppercase">
                         {tier.label}
                       </span>
-                      <span className="text-xs text-zinc-500 font-bold uppercase tracking-tighter">
+                      <span className="text-xs text-zinc-400 font-bold uppercase tracking-tighter">
                         {tier.count} Miembros
                       </span>
                     </div>
@@ -257,7 +257,7 @@ export default function MonetizationTab() {
                 Proyección de Crecimiento
               </h4>
             </div>
-            <p className="text-zinc-500 text-sm font-light leading-relaxed mb-6">
+            <p className="text-zinc-400 text-sm font-light leading-relaxed mb-6">
               Basado en el ritmo actual de adquisiciones, se estima un
               crecimiento del <strong className="text-white">12.4%</strong> en
               el próximo ciclo de facturación.
@@ -287,7 +287,7 @@ export default function MonetizationTab() {
                 <h4 className="text-white font-black text-xs uppercase tracking-wide mb-2">
                   Cumplimiento de Pagos
                 </h4>
-                <p className="text-zinc-500 text-xs font-medium leading-relaxed uppercase tracking-tighter italic">
+                <p className="text-zinc-400 text-xs font-medium leading-relaxed uppercase tracking-tighter italic">
                   Las cuentas están migrando hacia el modelo de{' '}
                   <span className="text-white font-bold">Stripe Connect</span>.
                   Es necesario que los creadores completen la validación de KYC

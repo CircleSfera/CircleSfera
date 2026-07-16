@@ -25,9 +25,9 @@ const ACTION_COLORS: Record<string, string> = {
   delete_post: 'text-red-400',
   delete_user: 'text-red-500',
   promote_user: 'text-yellow-400',
-  demote_user: 'text-gray-400',
+  demote_user: 'text-gray-300',
   resolved_report: 'text-green-400',
-  dismissed_report: 'text-gray-400',
+  dismissed_report: 'text-gray-300',
   delete_comment: 'text-red-400',
   delete_story: 'text-red-400',
 };
@@ -53,7 +53,7 @@ export default function AuditLogTab() {
               key={log.id}
               className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
             >
-              <td className="px-2 py-1 text-gray-400 text-sm whitespace-nowrap">
+              <td className="px-2 py-1 text-gray-300 text-sm whitespace-nowrap">
                 {new Date(log.createdAt).toLocaleString()}
               </td>
               <td className="px-2 py-1">
@@ -65,17 +65,17 @@ export default function AuditLogTab() {
                 <div className="flex items-center gap-2">
                   <Activity
                     size={14}
-                    className={ACTION_COLORS[log.action] || 'text-gray-400'}
+                    className={ACTION_COLORS[log.action] || 'text-gray-300'}
                   />
                   <span
-                    className={`text-sm font-medium ${ACTION_COLORS[log.action] || 'text-gray-400'}`}
+                    className={`text-sm font-medium ${ACTION_COLORS[log.action] || 'text-gray-300'}`}
                   >
                     {ACTION_LABELS[log.action] || log.action}
                   </span>
                 </div>
               </td>
               <td className="px-2 py-1">
-                <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-black uppercase tracking-wider text-gray-400 border border-white/10">
+                <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-black uppercase tracking-wider text-gray-300 border border-white/10">
                   {log.targetType}
                 </span>
               </td>
