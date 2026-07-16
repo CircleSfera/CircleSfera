@@ -27,7 +27,9 @@ export function MonetizationSettings() {
       window.location.href = data.url;
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Error al conectar con Stripe');
+      toast.error(
+        error.response?.data?.message || 'Error al conectar con Stripe',
+      );
     },
   });
 
@@ -39,14 +41,16 @@ export function MonetizationSettings() {
       window.open(data.url, '_blank');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'Error al abrir Stripe Dashboard');
+      toast.error(
+        error.response?.data?.message || 'Error al abrir Stripe Dashboard',
+      );
     },
   });
 
   if (statusLoading || monetizationLoading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-gray-300" />
       </div>
     );
   }
@@ -62,7 +66,7 @@ export function MonetizationSettings() {
           <Wallet className="w-5 h-5 text-purple-400" />
           {t('settings.monetization.title', 'Monetization')}
         </h3>
-        <p className="text-gray-400 text-sm">
+        <p className="text-gray-300 text-sm">
           {t(
             'settings.monetization.desc',
             'Manage your payments, payouts, and Stripe Connect account.',
@@ -76,7 +80,7 @@ export function MonetizationSettings() {
             <h4 className="text-white font-medium">
               {t('settings.monetization.stripeConnect', 'Stripe Connect')}
             </h4>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-sm text-gray-300 mt-1">
               {isTransfersEnabled
                 ? t(
                     'settings.monetization.status.active',
@@ -129,7 +133,7 @@ export function MonetizationSettings() {
               {t('settings.monetization.earnings', 'Earnings Overview')}
             </h4>
             <div className="bg-white/5 rounded-lg p-4">
-              <div className="text-sm text-gray-400">
+              <div className="text-sm text-gray-300">
                 {t('settings.monetization.lifetime', 'Lifetime Earnings')}
               </div>
               <div className="text-2xl font-bold text-white mt-1">
