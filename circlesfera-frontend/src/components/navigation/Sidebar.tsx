@@ -23,7 +23,6 @@ import { chatApi, notificationsApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
 import { useNotificationsStore } from '../../stores/notificationsStore';
 import { useUIStore } from '../../stores/uiStore';
-import { Tooltip } from '../ui';
 
 export default function Sidebar() {
   const location = useLocation();
@@ -178,106 +177,76 @@ export default function Sidebar() {
 
           if (item.onClick) {
             return (
-              <Tooltip
+              <button
+                type="button"
                 key={item.label}
-                content={item.label}
-                position="right"
-                className="xl:hidden"
+                onClick={item.onClick}
+                aria-label={item.label}
+                className={`w-full flex items-center gap-3 py-2 px-3 rounded-xl transition-all duration-200 group active:scale-95 ${
+                  isActive
+                    ? 'bg-linear-to-r from-brand-primary/20 to-brand-secondary/10 text-white font-bold shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_8px_20px_-6px_rgba(131,58,180,0.3)] border border-white/10'
+                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                }`}
               >
-                <button
-                  type="button"
-                  onClick={item.onClick}
-                  aria-label={item.label}
-                  className={`w-full flex items-center gap-3 py-2 px-3 rounded-xl transition-all duration-200 group active:scale-95 ${
-                    isActive
-                      ? 'bg-linear-to-r from-brand-primary/20 to-brand-secondary/10 text-white font-bold shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_8px_20px_-6px_rgba(131,58,180,0.3)] border border-white/10'
-                      : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                  }`}
-                >
-                  {content}
-                </button>
-              </Tooltip>
+                {content}
+              </button>
             );
           }
 
           return (
-            <Tooltip
+            <Link
               key={item.label}
-              content={item.label}
-              position="right"
-              className="xl:hidden"
+              to={item.to!}
+              aria-label={item.label}
+              aria-current={isActive ? 'page' : undefined}
+              className={`flex items-center gap-3 py-2 px-3 rounded-xl transition-all duration-200 group active:scale-95 ${
+                isActive
+                  ? 'bg-linear-to-r from-brand-primary/20 to-brand-secondary/10 text-white font-bold shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_8px_20px_-6px_rgba(131,58,180,0.3)] border border-white/10'
+                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
+              }`}
             >
-              <Link
-                to={item.to!}
-                aria-label={item.label}
-                aria-current={isActive ? 'page' : undefined}
-                className={`flex items-center gap-3 py-2 px-3 rounded-xl transition-all duration-200 group active:scale-95 ${
-                  isActive
-                    ? 'bg-linear-to-r from-brand-primary/20 to-brand-secondary/10 text-white font-bold shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_8px_20px_-6px_rgba(131,58,180,0.3)] border border-white/10'
-                    : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                {content}
-              </Link>
-            </Tooltip>
+              {content}
+            </Link>
           );
         })}
       </nav>
 
       {/* Bottom Area (More/Settings) */}
       <div className="p-3 mt-auto mb-2 space-y-1">
-        <Tooltip
-          content={t('nav.premium')}
-          position="right"
-          className="xl:hidden"
+        <Link
+          to="/pricing"
+          aria-label="Premium"
+          className="flex items-center gap-3 py-2 px-3 rounded-xl text-amber-400 hover:bg-amber-400/10 hover:text-amber-300 transition-all duration-200 group relative overflow-hidden active:scale-95"
         >
-          <Link
-            to="/pricing"
-            aria-label="Premium"
-            className="flex items-center gap-3 py-2 px-3 rounded-xl text-amber-400 hover:bg-amber-400/10 hover:text-amber-300 transition-all duration-200 group relative overflow-hidden active:scale-95"
-          >
-            <div className="absolute inset-0 bg-linear-to-r from-amber-400/0 via-amber-400/5 to-amber-400/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-            <Sparkles
-              size={20}
-              className="drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]"
-            />
-            <span className="hidden xl:block text-sm font-bold tracking-wide">
-              {t('nav.premium')}
-            </span>
-          </Link>
-        </Tooltip>
+          <div className="absolute inset-0 bg-linear-to-r from-amber-400/0 via-amber-400/5 to-amber-400/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+          <Sparkles
+            size={20}
+            className="drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]"
+          />
+          <span className="hidden xl:block text-sm font-bold tracking-wide">
+            {t('nav.premium')}
+          </span>
+        </Link>
 
-        <Tooltip
-          content={t('nav.settings')}
-          position="right"
-          className="xl:hidden"
+        <Link
+          to="/accounts/edit"
+          aria-label="Settings"
+          className="flex items-center gap-3 py-2 px-3 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-all duration-200 active:scale-95"
         >
-          <Link
-            to="/accounts/edit"
-            aria-label="Settings"
-            className="flex items-center gap-3 py-2 px-3 rounded-xl text-gray-300 hover:bg-white/5 hover:text-white transition-all duration-200 active:scale-95"
-          >
-            <Settings size={20} />
-            <span className="hidden xl:block text-sm">{t('nav.settings')}</span>
-          </Link>
-        </Tooltip>
+          <Settings size={20} />
+          <span className="hidden xl:block text-sm">{t('nav.settings')}</span>
+        </Link>
 
         {/* Logout Button */}
-        <Tooltip
-          content={t('nav.log_out')}
-          position="right"
-          className="xl:hidden"
+        <button
+          type="button"
+          onClick={logout}
+          aria-label="Log out"
+          className="w-full flex items-center gap-3 py-2 px-3 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 active:scale-95"
         >
-          <button
-            type="button"
-            onClick={logout}
-            aria-label="Log out"
-            className="w-full flex items-center gap-3 py-2 px-3 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 active:scale-95"
-          >
-            <LogOut size={20} />
-            <span className="hidden xl:block text-sm">{t('nav.log_out')}</span>
-          </button>
-        </Tooltip>
+          <LogOut size={20} />
+          <span className="hidden xl:block text-sm">{t('nav.log_out')}</span>
+        </button>
       </div>
     </div>
   );
