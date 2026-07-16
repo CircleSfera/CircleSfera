@@ -1,4 +1,6 @@
+import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { Queue } from 'bullmq';
 import {
   STORAGE_PROVIDER,
   type StorageProvider,
@@ -18,6 +20,7 @@ export class UploadsService {
     private readonly storageProvider: StorageProvider,
     @Inject(MediaProcessorService)
     private readonly mediaProcessor: MediaProcessorService,
+    @InjectQueue('video-transcoding') private readonly videoQueue: Queue,
   ) {}
 
   /**
@@ -75,6 +78,14 @@ export class UploadsService {
         buffer: processed.original.buffer,
         mimetype: processed.original.mimetype,
       });
+
+      if (file.mimetype.startsWith('video/')) {
+        this.logger.log(`Enqueuing video for HLS transcoding: ${result.url}`);
+        await this.videoQueue.add('transcode', {
+          url: result.url,
+          originalname: file.originalname,
+        });
+      }
 
       return result;
     } catch (error: unknown) {

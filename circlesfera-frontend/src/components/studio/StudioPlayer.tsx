@@ -44,7 +44,7 @@ export default function StudioPlayer() {
       if (Math.abs(videoEl.currentTime - targetTime) > 0.1) {
         videoEl.currentTime = targetTime;
       }
-      videoEl.volume = activeClip.volume ?? 1;
+      videoEl.volume = Math.max(0, Math.min(1, activeClip.volume ?? 1));
 
       setActiveVideo(videoEl);
     } else {
@@ -75,7 +75,7 @@ export default function StudioPlayer() {
         if (Math.abs(audioEl.currentTime - targetTime) > 0.2) {
           audioEl.currentTime = targetTime;
         }
-        audioEl.volume = clip.volume ?? 1;
+        audioEl.volume = Math.max(0, Math.min(1, clip.volume ?? 1));
         audioEl.playbackRate = clip.speed ?? 1;
         if (isPlaying && audioEl.paused) {
           audioEl.play().catch(() => {});
@@ -203,7 +203,7 @@ export default function StudioPlayer() {
   const hasClips = project.tracks.some((track) => track.clips.length > 0);
 
   return (
-    <div className="w-full h-full flex items-center justify-center bg-[#0a0a0c] relative p-4 md:p-8">
+    <div className="w-full h-full flex items-center justify-center bg-transparent relative p-4 md:p-8">
       {/* 9:16 Aspect Ratio Canvas for mobile video */}
       <div className="h-full w-auto aspect-9/16 rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/10 bg-checkerboard relative flex items-center justify-center">
         {!hasClips && (

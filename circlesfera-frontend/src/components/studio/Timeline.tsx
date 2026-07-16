@@ -35,9 +35,10 @@ export default function Timeline() {
         const playheadX = playhead * zoom;
         const containerWidth = containerRef.current.clientWidth;
 
-        // Keep playhead roughly in the middle of the screen when playing
-        const targetScroll = playheadX - containerWidth / 2;
-        containerRef.current.scrollLeft = targetScroll;
+        const targetScroll = playheadX + 32 - containerWidth / 2;
+        if (targetScroll > containerRef.current.scrollLeft) {
+          containerRef.current.scrollLeft = targetScroll;
+        }
       }
       animationFrameId = requestAnimationFrame(scrollLoop);
     };
@@ -55,12 +56,12 @@ export default function Timeline() {
     // For now, we just let them scroll. We can implement scroll-scrubbing later if desired.
   };
 
-  const handleTimelineClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left + containerRef.current.scrollLeft;
-    // Account for the padding at the start (e.g. 50vw so playhead can start at center)
-    const offsetLeft = containerRef.current.clientWidth / 2;
+    // Account for the padding at the start
+    const offsetLeft = 32;
 
     let newTime = (clickX - offsetLeft) / zoom;
     if (newTime < 0) newTime = 0;
@@ -76,8 +77,8 @@ export default function Timeline() {
     );
   }
 
-  // Add padding equal to half the container width so the start/end can be centered under the playhead
-  const paddingStyle = { paddingLeft: '50vw', paddingRight: '50vw' };
+  // Left padding is fixed, right padding allows scrolling past the end
+  const paddingStyle = { paddingLeft: '32px', paddingRight: '50vw' };
 
   // Generate ruler markers
   const rulerMarkers = [];
@@ -122,19 +123,15 @@ export default function Timeline() {
         className="flex-1 overflow-x-auto overflow-y-auto relative no-scrollbar"
         onScroll={handleScroll}
       >
-        <button
-          type="button"
+        {/* biome-ignore lint/a11y/useKeyWithClickEvents: Timeline canvas cannot be a button due to nested interactive clips */}
+        {/* biome-ignore lint/a11y/noStaticElementInteractions: Timeline canvas needs click events */}
+        <div
           className="relative min-h-full block text-left p-0 cursor-text outline-none"
           style={{
             width: `${Math.max(project.duration * zoom, 0)}px`,
             ...paddingStyle,
           }}
           onClick={handleTimelineClick}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              // trigger same logic
-            }
-          }}
         >
           {/* Time markers (Ruler) */}
           <div className="sticky top-0 z-20 h-6 border-b border-white/10 bg-[#0e0e12]/90 backdrop-blur w-full mb-4">
@@ -150,7 +147,7 @@ export default function Timeline() {
           </div>
 
           <Playhead />
-        </button>
+        </div>
       </div>
     </div>
   );
