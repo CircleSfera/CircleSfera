@@ -32,7 +32,7 @@ export default function SystemHealthTab() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="animate-spin text-brand-primary" size={32} />
-        <p className="text-sm font-bold text-zinc-500 uppercase tracking-wide">
+        <p className="text-sm font-bold text-zinc-400 uppercase tracking-wide">
           Analizando infraestructura...
         </p>
       </div>
@@ -89,13 +89,13 @@ export default function SystemHealthTab() {
             <Activity className="text-brand-primary" />
             Estado del Sistema
           </h2>
-          <p className="text-zinc-500 text-xs font-bold uppercase tracking-wide mt-1">
+          <p className="text-zinc-400 text-xs font-bold uppercase tracking-wide mt-1">
             "God View" de Infraestructura CircleSfera
           </p>
         </div>
 
         <div className="flex items-center gap-4">
-          <p className="text-xs text-zinc-500 font-mono">
+          <p className="text-xs text-zinc-400 font-mono">
             Última vez: {new Date(health.timestamp).toLocaleTimeString()}
           </p>
           <Button
@@ -103,7 +103,7 @@ export default function SystemHealthTab() {
             size="icon"
             onClick={() => refetch()}
             isLoading={isRefetching}
-            className="text-gray-400 hover:text-white"
+            className="text-gray-300 hover:text-white"
           >
             <RefreshCw size={20} />
           </Button>
@@ -156,7 +156,7 @@ export default function SystemHealthTab() {
               </span>
               <span className="text-xl font-black text-white font-mono">
                 {health.database.latencyMs}{' '}
-                <span className="text-xs text-zinc-500">ms</span>
+                <span className="text-xs text-zinc-400">ms</span>
               </span>
             </div>
           </div>
@@ -189,7 +189,7 @@ export default function SystemHealthTab() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-black/20 rounded-xl p-3">
-              <p className="text-xs font-bold text-zinc-500 uppercase tracking-wide mb-1">
+              <p className="text-xs font-bold text-zinc-400 uppercase tracking-wide mb-1">
                 En Cola
               </p>
               <p className="text-xl font-black text-white font-mono">
@@ -250,7 +250,7 @@ export default function SystemHealthTab() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-black/20 rounded-xl p-3">
-              <p className="text-xs font-bold text-zinc-500 uppercase tracking-wide mb-1">
+              <p className="text-xs font-bold text-zinc-400 uppercase tracking-wide mb-1">
                 En Cola
               </p>
               <p className="text-xl font-black text-white font-mono">
@@ -299,7 +299,7 @@ export default function SystemHealthTab() {
               <h3 className="text-lg font-black text-white uppercase tracking-wide">
                 Stripe Webhooks
               </h3>
-              <p className="text-xs font-bold text-zinc-500 uppercase tracking-wide mt-1">
+              <p className="text-xs font-bold text-zinc-400 uppercase tracking-wide mt-1">
                 Sincronización (Últimas 24h)
               </p>
             </div>
@@ -333,7 +333,7 @@ export default function SystemHealthTab() {
                 <p className="text-xl font-black text-white font-mono">
                   {webhookSuccessRate.toFixed(1)}
                 </p>
-                <span className="text-sm font-bold text-zinc-500 mb-1">%</span>
+                <span className="text-sm font-bold text-zinc-400 mb-1">%</span>
               </div>
               <div className="w-full h-1 bg-white/10 rounded-full mt-3 overflow-hidden">
                 <div

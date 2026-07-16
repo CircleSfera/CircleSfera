@@ -51,7 +51,7 @@ export default function AdvancedSettingsSubScreen({
               <div className="font-medium text-white">
                 {t('createPost.caption.hide_like_view')}
               </div>
-              <div className="text-xs text-gray-400 mt-1 max-w-[280px]">
+              <div className="text-xs text-gray-300 mt-1 max-w-[280px]">
                 {t('createPost.caption.hide_like_view_desc')}
               </div>
             </div>
@@ -74,7 +74,7 @@ export default function AdvancedSettingsSubScreen({
               <div className="font-medium text-white">
                 {t('createPost.caption.turn_off_comments')}
               </div>
-              <div className="text-xs text-gray-400 mt-1 max-w-[280px]">
+              <div className="text-xs text-gray-300 mt-1 max-w-[280px]">
                 {t('createPost.caption.turn_off_comments_desc')}
               </div>
             </div>

@@ -75,7 +75,7 @@ export default function TipModal({
                 onClick={onClose}
                 variant="ghost"
                 size="icon"
-                className="absolute top-4 right-4 text-gray-400 hover:text-white rounded-full hover:bg-white/5"
+                className="absolute top-4 right-4 text-gray-300 hover:text-white rounded-full hover:bg-white/5"
               >
                 <X size={20} />
               </Button>
@@ -86,7 +86,7 @@ export default function TipModal({
               <h3 className="font-bold text-white text-xl tracking-tight mb-1">
                 {t('wallet.send_gift')}
               </h3>
-              <p className="text-gray-400 text-sm">
+              <p className="text-gray-300 text-sm">
                 {t('wallet.support_with_money', {
                   name: receiverName,
                   defaultValue: `Support ${receiverName} with a tip`,

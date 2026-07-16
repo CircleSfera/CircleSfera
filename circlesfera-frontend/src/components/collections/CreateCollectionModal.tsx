@@ -56,7 +56,7 @@ export default function CreateCollectionModal({
           <div>
             <label
               htmlFor="collectionName"
-              className="block text-sm font-medium text-gray-400 mb-2"
+              className="block text-sm font-medium text-gray-300 mb-2"
             >
               {t('collections.collection_name')}
             </label>

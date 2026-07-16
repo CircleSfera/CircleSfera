@@ -93,7 +93,7 @@ function ReferralsSettings() {
         <h2 className="text-xl font-black text-white tracking-tighter">
           Beta Invites
         </h2>
-        <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
+        <p className="text-gray-300 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
           Invite your friends to CircleSfera
         </p>
       </div>
@@ -153,7 +153,7 @@ function ReferralsSettings() {
                   <span className="font-bold text-white text-sm">
                     {referral.profile?.fullName || referral.profile?.username}
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-300">
                     @{referral.profile?.username} • Joined{' '}
                     {new Date(referral.createdAt).toLocaleDateString()}
                   </span>
@@ -183,7 +183,7 @@ function NotificationsSettings() {
         <h2 className="text-xl font-black text-white tracking-tighter">
           {t('settings.notifications_tab.title')}
         </h2>
-        <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
+        <p className="text-gray-300 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
           {t('settings.notifications_tab.subtitle')}
         </p>
       </div>
@@ -194,7 +194,7 @@ function NotificationsSettings() {
             <h3 className="text-lg font-bold text-white tracking-tight">
               {t('settings.notifications_tab.native_alerts')}
             </h3>
-            <p className="text-sm text-gray-400 mt-1 leading-relaxed">
+            <p className="text-sm text-gray-300 mt-1 leading-relaxed">
               {t('settings.notifications_tab.native_alerts_desc')}
             </p>
             {permission === 'denied' && (
@@ -686,7 +686,7 @@ export default function Settings() {
             <h1 className="text-xl font-bold text-white tracking-tight">
               {t('settings.title')}
             </h1>
-            <p className="text-gray-400 mt-1 font-medium italic">
+            <p className="text-gray-300 mt-1 font-medium italic">
               {t('settings.subtitle')}
             </p>
           </div>
@@ -716,7 +716,7 @@ export default function Settings() {
                   className={`flex flex-row md:flex-col items-center md:items-start gap-2 md:gap-0 px-3 py-2 rounded-lg transition-all relative group shrink-0 ${
                     activeTab === tab.id
                       ? 'bg-blue-500/10 text-white shadow-[0_0_15px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/30'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      : 'text-gray-300 hover:text-white hover:bg-white/5'
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -813,7 +813,7 @@ export default function Settings() {
                     <h3 className="text-lg font-bold text-white tracking-tight">
                       @{profile?.username}
                     </h3>
-                    <p className="text-sm text-gray-400 leading-relaxed max-w-xs">
+                    <p className="text-sm text-gray-300 leading-relaxed max-w-xs">
                       {t('settings.profile.avatar_desc')}
                     </p>
                     <div className="flex items-center justify-center sm:justify-start gap-4 pt-1">
@@ -900,7 +900,7 @@ export default function Settings() {
                       <div className="flex justify-between items-end">
                         <label
                           htmlFor="bio"
-                          className="block text-sm font-medium text-gray-400 mb-1"
+                          className="block text-sm font-medium text-gray-300 mb-1"
                         >
                           {t('settings.profile.bio')}
                         </label>
@@ -988,10 +988,10 @@ export default function Settings() {
                         )}
                         <type.icon
                           size={18}
-                          className={`mb-2 ${accountType === type.id ? 'text-blue-400' : 'text-gray-500 group-hover:text-gray-400 transition-colors'}`}
+                          className={`mb-2 ${accountType === type.id ? 'text-blue-400' : 'text-gray-500 group-hover:text-gray-300 transition-colors'}`}
                         />
                         <h4
-                          className={`text-xs font-bold tracking-tight ${accountType === type.id ? 'text-white' : 'text-gray-400'}`}
+                          className={`text-xs font-bold tracking-tight ${accountType === type.id ? 'text-white' : 'text-gray-300'}`}
                         >
                           {t(
                             `settings.profile.types.${type.id.toLowerCase()}.label`,
@@ -1047,7 +1047,7 @@ export default function Settings() {
                   <h2 className="text-xl font-black text-white tracking-tighter">
                     {t('settings.privacy.title')}
                   </h2>
-                  <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
+                  <p className="text-gray-300 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
                     {t('settings.privacy.subtitle')}
                   </p>
                 </div>
@@ -1069,7 +1069,7 @@ export default function Settings() {
                   <h2 className="text-xl font-black text-white tracking-tighter">
                     {t('settings.requests.title')}
                   </h2>
-                  <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
+                  <p className="text-gray-300 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
                     {t('settings.requests.subtitle')}
                   </p>
                 </div>
@@ -1159,7 +1159,7 @@ export default function Settings() {
                   </h2>
 
                   {blockedUsers.length === 0 ? (
-                    <div className="text-center text-gray-400 py-10 border border-white/5 rounded-xl bg-white/2">
+                    <div className="text-center text-gray-300 py-10 border border-white/5 rounded-xl bg-white/2">
                       <UserX size={48} className="mx-auto mb-4 opacity-50" />
                       <p>
                         {t('settings.mutes.blocked_empty', 'No blocked users')}
@@ -1218,7 +1218,7 @@ export default function Settings() {
                   </h2>
 
                   {mutedUsers.length === 0 ? (
-                    <div className="text-center text-gray-400 py-10 border border-white/5 rounded-xl bg-white/2">
+                    <div className="text-center text-gray-300 py-10 border border-white/5 rounded-xl bg-white/2">
                       <UserX size={48} className="mx-auto mb-4 opacity-50" />
                       <p>{t('settings.mutes.muted_empty', 'No muted users')}</p>
                     </div>
@@ -1277,7 +1277,7 @@ export default function Settings() {
                   <h2 className="text-xl font-black text-white tracking-tighter">
                     {t('settings.account.title')}
                   </h2>
-                  <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
+                  <p className="text-gray-300 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
                     {t('settings.account.subtitle')}
                   </p>
                 </div>
@@ -1316,7 +1316,7 @@ export default function Settings() {
                       'Identity Verification',
                     )}
                   </h3>
-                  <p className="text-sm text-gray-400 leading-relaxed font-medium mb-5">
+                  <p className="text-sm text-gray-300 leading-relaxed font-medium mb-5">
                     {profile?.user?.verificationLevel === 'VERIFIED'
                       ? t(
                           'settings.account.verification.verified_desc',
@@ -1361,7 +1361,7 @@ export default function Settings() {
                       className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                         i18n.language.startsWith('en')
                           ? 'bg-blue-500 text-white'
-                          : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                          : 'bg-white/5 text-gray-300 hover:bg-white/10'
                       }`}
                     >
                       English
@@ -1372,7 +1372,7 @@ export default function Settings() {
                       className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                         i18n.language.startsWith('es')
                           ? 'bg-blue-500 text-white'
-                          : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                          : 'bg-white/5 text-gray-300 hover:bg-white/10'
                       }`}
                     >
                       Español
@@ -1426,7 +1426,7 @@ export default function Settings() {
                   <h2 className="text-xl font-black text-white tracking-tighter">
                     {t('settings.billing.title')}
                   </h2>
-                  <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
+                  <p className="text-gray-300 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
                     {t('settings.billing.subtitle')}
                   </p>
                 </div>
@@ -1472,7 +1472,7 @@ export default function Settings() {
                       <h4 className="text-white font-bold text-sm tracking-tight">
                         {t('settings.billing.verified_badge')}
                       </h4>
-                      <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">
+                      <p className="text-xs text-gray-300 font-bold uppercase tracking-wider">
                         {t('settings.billing.verified_desc')}
                       </p>
                     </div>
@@ -1485,7 +1485,7 @@ export default function Settings() {
                       <h4 className="text-white font-bold text-sm tracking-tight">
                         {t('settings.billing.pro_insights')}
                       </h4>
-                      <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">
+                      <p className="text-xs text-gray-300 font-bold uppercase tracking-wider">
                         {t('settings.billing.pro_desc')}
                       </p>
                     </div>
@@ -1504,7 +1504,7 @@ export default function Settings() {
                   <h2 className="text-xl font-black text-white tracking-tighter">
                     {t('settings.security.title')}
                   </h2>
-                  <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
+                  <p className="text-gray-300 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
                     {t('settings.security.subtitle')}
                   </p>
                 </div>
@@ -1529,7 +1529,7 @@ export default function Settings() {
           <div className="mt-6 text-center">
             <Link
               to={`/${profile.username}`}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-gray-300 hover:text-white transition-colors"
             >
               {t('settings.back_to_profile')}
             </Link>

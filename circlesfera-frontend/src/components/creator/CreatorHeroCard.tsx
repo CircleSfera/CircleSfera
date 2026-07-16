@@ -98,7 +98,7 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 bg-white/5 backdrop-blur-md p-5 rounded-xl border border-white/5">
             <div>
-              <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mb-1 italic">
+              <p className="text-zinc-400 text-xs font-black uppercase tracking-wide mb-1 italic">
                 Engagement
               </p>
               <div className="flex items-center gap-2">
@@ -109,7 +109,7 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
               </div>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mb-1 italic">
+              <p className="text-zinc-400 text-xs font-black uppercase tracking-wide mb-1 italic">
                 Total Reach
               </p>
               <div className="flex items-center gap-2">
@@ -124,7 +124,7 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
               </div>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mb-1 italic">
+              <p className="text-zinc-400 text-xs font-black uppercase tracking-wide mb-1 italic">
                 Monthly MRR
               </p>
               <div className="flex items-center gap-2">
@@ -135,7 +135,7 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
               </div>
             </div>
             <div>
-              <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mb-1 italic">
+              <p className="text-zinc-400 text-xs font-black uppercase tracking-wide mb-1 italic">
                 Active Subs
               </p>
               <div className="flex items-center gap-2">

@@ -23,7 +23,7 @@ export default function Saved() {
             to="/"
             className="p-2 hover:bg-white/10 rounded-full transition-colors"
           >
-            <ArrowLeft size={24} className="text-gray-400" />
+            <ArrowLeft size={24} className="text-gray-300" />
           </Link>
           <h1 className="text-xl font-bold text-white">
             {t('collections.saved_title')}
@@ -40,7 +40,7 @@ export default function Saved() {
             <h2 className="text-xl font-semibold text-white mb-2">
               {t('collections.no_saved')}
             </h2>
-            <p className="text-gray-400">{t('collections.no_saved_desc')}</p>
+            <p className="text-gray-300">{t('collections.no_saved_desc')}</p>
           </div>
         ) : (
           <div className="space-y-4">

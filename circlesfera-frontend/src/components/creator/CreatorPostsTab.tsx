@@ -99,7 +99,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                   </p>
 
                   <div className="space-y-2 mb-4">
-                    <div className="flex items-center justify-between text-xs font-black uppercase tracking-wide text-zinc-500 italic">
+                    <div className="flex items-center justify-between text-xs font-black uppercase tracking-wide text-zinc-400 italic">
                       <span>Rendimiento</span>
                       <span
                         className={
@@ -143,7 +143,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                       <MessageCircle size={12} className="text-blue-500/60" />{' '}
                       {post._count.comments.toLocaleString()}
                     </span>
-                    <span className="text-zinc-500 ml-auto opacity-60">
+                    <span className="text-zinc-400 ml-auto opacity-60">
                       {post.views.toLocaleString()} views
                     </span>
                   </div>

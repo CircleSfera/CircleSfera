@@ -54,7 +54,7 @@ function AnimatedCounter({ value, label }: { value: number; label: string }) {
       <span className="block text-white font-black text-base md:text-xl leading-none transition-all duration-300 origin-center md:origin-left group-hover:scale-110 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-brand-secondary group-hover:to-brand-primary">
         {count}
       </span>
-      <span className="text-zinc-500 text-[10px] md:text-xs font-bold uppercase tracking-wide mt-1 block transition-colors duration-300 group-hover:text-brand-primary/80">
+      <span className="text-zinc-400 text-[10px] md:text-xs font-bold uppercase tracking-wide mt-1 block transition-colors duration-300 group-hover:text-brand-primary/80">
         {label}
       </span>
     </div>
@@ -213,7 +213,7 @@ export default function ProfileHeader({
                       ${
                         isCreatorModeActive
                           ? 'bg-brand-primary text-white border-brand-primary/50 shadow-brand-primary/20'
-                          : 'bg-white/5 text-gray-400 hover:text-white border-white/5 hover:bg-white/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]'
+                          : 'bg-white/5 text-gray-300 hover:text-white border-white/5 hover:bg-white/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]'
                       }`}
                     title={
                       isCreatorModeActive
@@ -328,7 +328,7 @@ export default function ProfileHeader({
             {(profile.data.website || profile.data.location) && (
               <div className="flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-2 mt-4 text-xs md:text-sm font-medium">
                 {profile.data.location && (
-                  <span className="flex items-center gap-2 text-zinc-500">
+                  <span className="flex items-center gap-2 text-zinc-400">
                     <MapPin
                       size={16}
                       className="text-brand-secondary"
@@ -367,7 +367,7 @@ export default function ProfileHeader({
               profile.data.inviteCode && (
                 <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-xl max-w-sm mx-auto md:mx-0 flex items-center justify-between gap-3 backdrop-blur-md">
                   <div className="flex flex-col">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wide">
+                    <span className="text-xs font-bold text-gray-300 uppercase tracking-wide">
                       {t('profile.invite.title')}
                     </span>
                     <span className="font-mono text-brand-primary font-bold tracking-wider text-sm">
@@ -407,7 +407,7 @@ export default function ProfileHeader({
                     ${
                       isCreatorModeActive
                         ? 'bg-brand-primary text-white border-brand-primary/50 shadow-brand-primary/20'
-                        : 'bg-white/5 text-gray-400 border-white/5'
+                        : 'bg-white/5 text-gray-300 border-white/5'
                     }`}
                 >
                   <Wand2 size={14} aria-hidden="true" />

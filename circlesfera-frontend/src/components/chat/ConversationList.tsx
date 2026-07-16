@@ -132,7 +132,7 @@ export default function ConversationList() {
           <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
             <Search
               size={16}
-              className="text-gray-400 group-focus-within:text-white transition-colors"
+              className="text-gray-300 group-focus-within:text-white transition-colors"
             />
           </div>
           <input

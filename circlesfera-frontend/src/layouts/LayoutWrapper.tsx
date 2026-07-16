@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { GlobalKeyboardShortcuts } from '../components/common/GlobalKeyboardShortcuts';
 import BottomNav from '../components/navigation/BottomNav';
 import Sidebar from '../components/navigation/Sidebar';
 import TopNav from '../components/navigation/TopNav';
@@ -66,6 +67,7 @@ export default function LayoutWrapper({
       >
         Skip to content
       </a>
+      <GlobalKeyboardShortcuts />
 
       {/* ARIA Live Region for Real-time Announcements */}
       <div
@@ -117,7 +119,7 @@ export default function LayoutWrapper({
               !location.pathname.startsWith('/admin') &&
               !isFramesRoute &&
               !isEditsRoute
-                ? 'mx-auto max-w-5xl px-4'
+                ? 'mx-auto max-w-5xl 2xl:max-w-7xl px-4'
                 : `w-full h-full ${shouldShowNav && !isFramesRoute && !isEditsRoute ? 'md:pb-10' : ''}`
             }
           >

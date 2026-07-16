@@ -148,7 +148,7 @@ export default function MonetizationDashboard() {
             <Coins className="text-brand-primary" />
             {t('wallet.how_it_works', 'How Creator Economy Works')}
           </h3>
-          <ul className="space-y-4 text-gray-400">
+          <ul className="space-y-4 text-gray-300">
             <li className="flex items-start gap-3">
               <div className="mt-1 w-2 h-2 rounded-full bg-brand-primary" />
               <p>
@@ -219,7 +219,7 @@ export default function MonetizationDashboard() {
                     <p className="text-white font-bold text-lg">
                       {tx.description || tx.type.replace(/_/g, ' ')}
                     </p>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-gray-300 text-sm">
                       {new Date(tx.createdAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -235,7 +235,7 @@ export default function MonetizationDashboard() {
           {(!transactions || transactions.length === 0) && (
             <div className="text-center py-12">
               <Coins className="mx-auto h-12 w-12 text-gray-600 mb-4" />
-              <p className="text-gray-400 text-lg">
+              <p className="text-gray-300 text-lg">
                 {t('wallet.no_transactions', 'No transactions found.')}
               </p>
             </div>

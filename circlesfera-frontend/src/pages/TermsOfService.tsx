@@ -125,10 +125,10 @@ export default function TermsOfService() {
                     <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
                       <section.icon
                         size={14}
-                        className="text-zinc-500 group-hover:text-white transition-colors"
+                        className="text-zinc-400 group-hover:text-white transition-colors"
                       />
                     </div>
-                    <span className="text-xs font-black uppercase tracking-wide text-zinc-500 group-hover:text-white transition-colors">
+                    <span className="text-xs font-black uppercase tracking-wide text-zinc-400 group-hover:text-white transition-colors">
                       {section.title.split('. ')[1]}
                     </span>
                     <ChevronRight
@@ -141,7 +141,7 @@ export default function TermsOfService() {
 
               <div className="p-5 glass-panel rounded-lg border border-white/5 bg-white/1">
                 <FileText className="text-brand-accent mb-2" size={20} />
-                <p className="text-zinc-500 text-xs font-bold uppercase tracking-wide leading-relaxed italic">
+                <p className="text-zinc-400 text-xs font-bold uppercase tracking-wide leading-relaxed italic">
                   Este documento rige el acceso y uso de los servicios de
                   CircleSfera. Al participar, aceptas estos términos sin
                   limitaciones.
@@ -212,7 +212,7 @@ export default function TermsOfService() {
                 <div className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center mb-4">
                   <Scale size={16} className="text-brand-accent opacity-50" />
                 </div>
-                <p className="text-zinc-500 text-xs uppercase font-black tracking-wide text-center italic">
+                <p className="text-zinc-400 text-xs uppercase font-black tracking-wide text-center italic">
                   Version 2.0 • SaaS Compliance Framework • CircleSfera Legal
                   Center
                 </p>

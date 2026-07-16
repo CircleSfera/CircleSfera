@@ -74,7 +74,7 @@ export default function StoriesTab({ onToast }: Props) {
                 </span>
               </td>
               <td className="px-2 py-1">
-                <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-black uppercase tracking-wider text-gray-400 border border-white/10">
+                <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-black uppercase tracking-wider text-gray-300 border border-white/10">
                   {story.mediaType}
                 </span>
               </td>
@@ -90,7 +90,7 @@ export default function StoriesTab({ onToast }: Props) {
                 )}
               </td>
               <td className="px-2 py-1">
-                <span className="flex items-center gap-1 text-gray-400 text-sm">
+                <span className="flex items-center gap-1 text-gray-300 text-sm">
                   <Eye size={12} /> {story._count?.views || 0}
                 </span>
               </td>

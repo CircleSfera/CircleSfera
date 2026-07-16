@@ -57,7 +57,7 @@ export default function MonetizationSubScreen({
                   'Premium Content (Pay-Per-View)',
                 )}
               </div>
-              <div className="text-xs text-gray-400 mt-1 max-w-[280px]">
+              <div className="text-xs text-gray-300 mt-1 max-w-[280px]">
                 {t(
                   'createPost.caption.premium_desc',
                   'Require users to pay to unlock and view this post.',
@@ -88,7 +88,7 @@ export default function MonetizationSubScreen({
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <span className="text-gray-400 font-medium">$</span>
+                  <span className="text-gray-300 font-medium">$</span>
                 </div>
                 <input
                   id="premium-price"

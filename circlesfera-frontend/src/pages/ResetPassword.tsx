@@ -60,7 +60,7 @@ export default function ResetPassword() {
           <h1 className="text-2xl font-bold mb-4">
             {t('auth.reset_password.success_title')}
           </h1>
-          <p className="text-gray-400 mb-6">
+          <p className="text-gray-300 mb-6">
             {t('auth.reset_password.success_desc')}
           </p>
           <p className="text-xs text-gray-500">
@@ -81,7 +81,7 @@ export default function ResetPassword() {
         <h1 className="text-2xl font-bold mb-2">
           {t('auth.reset_password.title')}
         </h1>
-        <p className="text-gray-400 mb-8 text-sm">
+        <p className="text-gray-300 mb-8 text-sm">
           {t('auth.reset_password.subtitle')}
         </p>
 
@@ -89,7 +89,7 @@ export default function ResetPassword() {
           <div className="space-y-2">
             <label
               htmlFor="newPassword"
-              className="text-xs font-bold text-gray-400 uppercase tracking-wider"
+              className="text-xs font-bold text-gray-300 uppercase tracking-wider"
             >
               {t('auth.reset_password.new_password')}
             </label>
@@ -115,7 +115,7 @@ export default function ResetPassword() {
           <div className="space-y-2">
             <label
               htmlFor="confirmPassword"
-              className="text-xs font-bold text-gray-400 uppercase tracking-wider"
+              className="text-xs font-bold text-gray-300 uppercase tracking-wider"
             >
               {t('auth.reset_password.confirm_password')}
             </label>
@@ -157,7 +157,7 @@ export default function ResetPassword() {
         <div className="mt-8 text-center">
           <Link
             to="/accounts/login"
-            className="text-gray-400 hover:text-white inline-flex items-center gap-2 text-sm transition-colors"
+            className="text-gray-300 hover:text-white inline-flex items-center gap-2 text-sm transition-colors"
           >
             <ArrowLeft size={16} /> {t('auth.reset_password.cancel')}
           </Link>

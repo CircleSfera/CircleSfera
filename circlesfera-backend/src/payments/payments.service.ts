@@ -62,8 +62,10 @@ export class PaymentsService {
 
     if (!user) throw new NotFoundException('User not found');
 
-    const plan = await this.prisma.platformPlan.findUnique({
-      where: { id: planId },
+    const plan = await this.prisma.platformPlan.findFirst({
+      where: {
+        OR: [{ id: planId }, { stripeProductId: planId }],
+      },
     });
 
     if (!plan) throw new NotFoundException('Plan not found');

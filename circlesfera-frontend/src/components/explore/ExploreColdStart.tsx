@@ -124,7 +124,7 @@ export default function ExploreColdStart({
                     size={14}
                   />
                 </Link>
-                <p className="text-xs text-zinc-500 truncate w-full mb-4">
+                <p className="text-xs text-zinc-400 truncate w-full mb-4">
                   {user.fullName}
                 </p>
                 <button
@@ -139,7 +139,7 @@ export default function ExploreColdStart({
           </div>
         ) : (
           <div className="py-12 bg-white/5 rounded-xl border border-dashed border-white/10">
-            <p className="text-zinc-500 font-medium">
+            <p className="text-zinc-400 font-medium">
               No hay sugerencias en este momento.
             </p>
           </div>

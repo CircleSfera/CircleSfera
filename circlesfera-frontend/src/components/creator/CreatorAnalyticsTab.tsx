@@ -157,7 +157,7 @@ export default function CreatorAnalyticsTab() {
               </AreaChart>
             </SafeResponsiveContainer>
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-zinc-500">
+            <div className="w-full h-full flex flex-col items-center justify-center text-zinc-400">
               <p className="text-sm font-bold">
                 {t('creator.analytics.not_enough_data')}
               </p>
@@ -224,7 +224,7 @@ export default function CreatorAnalyticsTab() {
                 </BarChart>
               </SafeResponsiveContainer>
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-zinc-500 text-xs font-bold">
+              <div className="w-full h-full flex items-center justify-center text-zinc-400 text-xs font-bold">
                 {t(
                   'creator.analytics.no_location_data',
                   'No hay datos de ubicación',
@@ -332,7 +332,7 @@ export default function CreatorAnalyticsTab() {
                 </div>
               </>
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-zinc-500 text-xs font-bold">
+              <div className="w-full h-full flex items-center justify-center text-zinc-400 text-xs font-bold">
                 {t(
                   'creator.analytics.no_retention_data',
                   'No hay datos de suscriptores',
@@ -397,7 +397,7 @@ export default function CreatorAnalyticsTab() {
                 </LineChart>
               </SafeResponsiveContainer>
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-zinc-500 text-xs font-bold">
+              <div className="w-full h-full flex items-center justify-center text-zinc-400 text-xs font-bold">
                 {t(
                   'creator.analytics.no_activity_data',
                   'No hay datos de actividad',

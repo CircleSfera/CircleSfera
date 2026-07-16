@@ -187,7 +187,7 @@ export default function ReportsTab({ onToast }: Props) {
                       <p className="text-white text-xs font-bold truncate">
                         @{report.targetContent?.author || 'Desconocido'}
                       </p>
-                      <p className="text-zinc-500 text-xs truncate">
+                      <p className="text-zinc-400 text-xs truncate">
                         {report.targetType}
                       </p>
                     </div>
@@ -222,7 +222,7 @@ export default function ReportsTab({ onToast }: Props) {
                     <button
                       type="button"
                       onClick={() => setSelectedReportId(null)}
-                      className="lg:hidden p-2 -ml-2 text-gray-400 hover:text-white"
+                      className="lg:hidden p-2 -ml-2 text-gray-300 hover:text-white"
                     >
                       <ArrowLeft size={20} />
                     </button>
@@ -232,15 +232,26 @@ export default function ReportsTab({ onToast }: Props) {
                         <button
                           type="button"
                           onClick={() => {
-                            if (selectedReport.targetType === 'POST') window.open(`/p/${selectedReport.targetId}`, '_blank');
-                            if (selectedReport.targetType === 'USER' && selectedReport.targetContent?.author) window.open(`/${selectedReport.targetContent.author}`, '_blank');
+                            if (selectedReport.targetType === 'POST')
+                              window.open(
+                                `/p/${selectedReport.targetId}`,
+                                '_blank',
+                              );
+                            if (
+                              selectedReport.targetType === 'USER' &&
+                              selectedReport.targetContent?.author
+                            )
+                              window.open(
+                                `/${selectedReport.targetContent.author}`,
+                                '_blank',
+                              );
                           }}
                           className="text-xs font-bold bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 px-2 py-1 rounded transition-colors"
                         >
                           Ver Original
                         </button>
                       </h3>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-gray-300">
                         ID: {selectedReport.id}
                       </p>
                     </div>
@@ -414,7 +425,7 @@ export default function ReportsTab({ onToast }: Props) {
                         <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-2">
                           Detalles Adicionales
                         </p>
-                        <div className="text-sm text-gray-400 whitespace-pre-wrap">
+                        <div className="text-sm text-gray-300 whitespace-pre-wrap">
                           {selectedReport.details.replace(
                             '[AI Automated Flag]: ',
                             '',

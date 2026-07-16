@@ -39,7 +39,7 @@ export default function BlockModal({
             onClick={onClose}
             variant="ghost"
             size="icon"
-            className="text-gray-400 hover:text-white"
+            className="text-gray-300 hover:text-white"
           >
             <X size={20} />
           </Button>

@@ -72,7 +72,7 @@ export default function CreatorStoriesTab() {
               {/* Top Bar: Status */}
               <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
                 {isExpired(story.expiresAt) ? (
-                  <span className="px-2.5 py-1 bg-zinc-900/80 backdrop-blur-xl border border-white/5 rounded-lg text-xs font-black uppercase tracking-wide text-zinc-500">
+                  <span className="px-2.5 py-1 bg-zinc-900/80 backdrop-blur-xl border border-white/5 rounded-lg text-xs font-black uppercase tracking-wide text-zinc-400">
                     Expirada
                   </span>
                 ) : (
@@ -142,7 +142,7 @@ export default function CreatorStoriesTab() {
           <h4 className="text-white font-black uppercase text-xl mb-2">
             No hay historias
           </h4>
-          <p className="text-zinc-500 text-sm max-w-xs mx-auto">
+          <p className="text-zinc-400 text-sm max-w-xs mx-auto">
             Comparte momentos efímeros con tus seguidores para aumentar tu
             alcance.
           </p>
@@ -160,7 +160,7 @@ export default function CreatorStoriesTab() {
                 className={`w-10 h-10 rounded-xl text-xs font-black uppercase transition-all ${
                   page === p
                     ? 'bg-white text-black shadow-xl shadow-white/5'
-                    : 'bg-white/5 text-zinc-500 hover:text-white border border-white/5'
+                    : 'bg-white/5 text-zinc-400 hover:text-white border border-white/5'
                 }`}
               >
                 {p}

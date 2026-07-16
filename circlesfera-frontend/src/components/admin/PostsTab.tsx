@@ -100,7 +100,7 @@ export default function PostsTab({ onToast }: Props) {
         <Button
           onClick={handleExport}
           variant="outline"
-          className="text-sm font-bold text-gray-400 hover:text-white border-white/10 px-4 py-2.5"
+          className="text-sm font-bold text-gray-300 hover:text-white border-white/10 px-4 py-2.5"
           aria-label="Exportar publicaciones como CSV"
         >
           <Download size={16} className="mr-2" />
@@ -163,7 +163,7 @@ export default function PostsTab({ onToast }: Props) {
                 {new Date(post.createdAt).toLocaleDateString()}
               </td>
               <td className="px-2 py-1">
-                <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-black uppercase tracking-wider text-gray-400 border border-white/10">
+                <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-black uppercase tracking-wider text-gray-300 border border-white/10">
                   {post.type}
                 </span>
               </td>

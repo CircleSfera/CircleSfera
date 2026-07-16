@@ -80,7 +80,7 @@ export default function MusicPicker({ onSelect, onClose }: MusicPickerProps) {
         <div className="p-4">
           <div className="relative group">
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-blue-400 transition-colors"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-blue-400 transition-colors"
               size={18}
             />
             <input
@@ -98,12 +98,12 @@ export default function MusicPicker({ onSelect, onClose }: MusicPickerProps) {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-zinc-500">Cargando pistas...</p>
+              <p className="text-sm text-zinc-400">Cargando pistas...</p>
             </div>
           ) : tracks && tracks.length > 0 ? (
             <div className="space-y-1">
               {!searchQuery && (
-                <p className="px-2 py-1 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                <p className="px-2 py-1 text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                   Tendencias
                 </p>
               )}
@@ -124,7 +124,7 @@ export default function MusicPicker({ onSelect, onClose }: MusicPickerProps) {
                       />
                     ) : (
                       <div className="w-full h-full bg-white/5 rounded-lg flex items-center justify-center">
-                        <Music className="text-zinc-500" size={20} />
+                        <Music className="text-zinc-400" size={20} />
                       </div>
                     )}
                     {/* biome-ignore lint/a11y/useSemanticElements: Nested interaction */}
@@ -157,7 +157,7 @@ export default function MusicPicker({ onSelect, onClose }: MusicPickerProps) {
                     <h4 className="font-medium text-sm truncate text-zinc-100">
                       {track.title}
                     </h4>
-                    <p className="text-xs text-zinc-500 truncate">
+                    <p className="text-xs text-zinc-400 truncate">
                       {track.artist}
                     </p>
                   </div>

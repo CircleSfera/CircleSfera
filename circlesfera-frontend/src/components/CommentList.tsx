@@ -106,7 +106,7 @@ const CommentItem = ({
                 onClick={() => onLike(comment.id, isLiked)}
                 variant="ghost"
                 size="icon"
-                className={`w-6 h-6 p-0 transition-colors ${isLiked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}
+                className={`w-6 h-6 p-0 transition-colors ${isLiked ? 'text-red-500' : 'text-gray-300 hover:text-red-400'}`}
                 title={isLiked ? t('comments.unlike') : t('comments.like')}
               >
                 <Heart size={14} fill={isLiked ? 'currentColor' : 'none'} />
@@ -116,7 +116,7 @@ const CommentItem = ({
                 onClick={() => onReply(comment)}
                 variant="ghost"
                 size="icon"
-                className="w-6 h-6 p-0 text-gray-400 hover:text-purple-400 transition-colors"
+                className="w-6 h-6 p-0 text-gray-300 hover:text-purple-400 transition-colors"
                 title={t('comments.reply')}
               >
                 <MessageCircle size={14} />
@@ -128,7 +128,7 @@ const CommentItem = ({
                   disabled={isDeleting}
                   variant="ghost"
                   size="icon"
-                  className="w-6 h-6 p-0 text-gray-400 hover:text-red-400 transition-colors"
+                  className="w-6 h-6 p-0 text-gray-300 hover:text-red-400 transition-colors"
                   title={t('comments.delete')}
                 >
                   <Trash2 size={14} />
@@ -368,7 +368,7 @@ export default function CommentList({
                 onClick={() => setReplyingTo(null)}
                 variant="ghost"
                 size="icon"
-                className="w-6 h-6 text-gray-400 hover:text-white rounded-full"
+                className="w-6 h-6 text-gray-300 hover:text-white rounded-full"
               >
                 <X size={14} />
               </Button>
@@ -407,7 +407,7 @@ export default function CommentList({
               onClick={() => fileInputRef.current?.click()}
               variant="ghost"
               size="icon"
-              className="w-12 h-12 bg-white/5 border border-white/10 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 shrink-0"
+              className="w-12 h-12 bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 shrink-0"
             >
               {!isUploading && <ImageIcon size={20} />}
             </Button>

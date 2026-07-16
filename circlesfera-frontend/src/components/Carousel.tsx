@@ -2,6 +2,7 @@ import { Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { parseFilter } from '../utils/styleUtils';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
+import ProgressiveImage from './common/ProgressiveImage';
 
 interface MediaItem {
   id: string;
@@ -121,12 +122,13 @@ export default function Carousel({
       : undefined;
 
     return (
-      <img
+      <ProgressiveImage
+        placeholderSrc={item.thumbnailUrl}
         src={item.url}
         srcSet={srcSet}
         sizes="(max-width: 768px) 100vw, 800px"
         alt={item.altText || 'Post content'}
-        className={`w-full h-full ${fitClass} ${filterClass} ${blurClass} transition-all duration-300`}
+        className={`w-full h-full ${fitClass} ${filterClass} ${blurClass}`}
         style={filterStyle}
         loading={priority ? 'eager' : 'lazy'}
         fetchPriority={priority ? 'high' : undefined}

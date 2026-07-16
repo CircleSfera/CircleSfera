@@ -48,7 +48,7 @@ export const Support: React.FC = () => {
         <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
           Centro de Soporte
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-gray-600 dark:text-gray-300">
           ¿Tienes algún problema con tu cuenta o necesitas ayuda con un pago?
           Escríbenos y te responderemos por correo electrónico.
         </p>

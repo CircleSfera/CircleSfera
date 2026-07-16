@@ -126,10 +126,10 @@ export default function CommunityGuidelines() {
                     <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
                       <section.icon
                         size={14}
-                        className="text-zinc-500 group-hover:text-white transition-colors"
+                        className="text-zinc-400 group-hover:text-white transition-colors"
                       />
                     </div>
-                    <span className="text-xs font-black uppercase tracking-wide text-zinc-500 group-hover:text-white transition-colors">
+                    <span className="text-xs font-black uppercase tracking-wide text-zinc-400 group-hover:text-white transition-colors">
                       {section.title.split('. ')[1]}
                     </span>
                     <ChevronRight
@@ -142,7 +142,7 @@ export default function CommunityGuidelines() {
 
               <div className="p-5 glass-panel rounded-lg border border-white/5 bg-white/1">
                 <Gavel className="text-brand-primary mb-2" size={20} />
-                <p className="text-zinc-500 text-xs font-bold uppercase tracking-wide leading-relaxed italic">
+                <p className="text-zinc-400 text-xs font-bold uppercase tracking-wide leading-relaxed italic">
                   Mantener CircleSfera como un espacio seguro y premium es
                   responsabilidad de todos. No toleramos comportamientos que
                   degraden la experiencia de nuestra comunidad.
@@ -216,7 +216,7 @@ export default function CommunityGuidelines() {
                     className="text-brand-primary opacity-50"
                   />
                 </div>
-                <p className="text-zinc-500 text-xs uppercase font-black tracking-wide text-center italic">
+                <p className="text-zinc-400 text-xs uppercase font-black tracking-wide text-center italic">
                   Last Updated: April 2026 • Premium Environment • CircleSfera
                   Trust & Safety
                 </p>

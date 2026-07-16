@@ -44,7 +44,7 @@ export default function ConfirmModal({
             <h2 className="text-xl font-bold text-white tracking-tight">
               {title}
             </h2>
-            <p className="text-gray-400 text-sm leading-relaxed px-2">
+            <p className="text-gray-300 text-sm leading-relaxed px-2">
               {message}
             </p>
           </div>
@@ -66,7 +66,7 @@ export default function ConfirmModal({
           onClick={onClose}
           disabled={isLoading}
           variant="ghost"
-          className="w-full font-bold text-sm bg-white/5 hover:bg-white/10 text-gray-400 py-3"
+          className="w-full font-bold text-sm bg-white/5 hover:bg-white/10 text-gray-300 py-3"
         >
           {cancelText}
         </Button>

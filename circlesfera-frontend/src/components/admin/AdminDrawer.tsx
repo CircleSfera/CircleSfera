@@ -75,14 +75,14 @@ export default function AdminDrawer({
                   {title}
                 </h2>
                 {subtitle && (
-                  <p className="text-sm text-gray-400 mt-0.5">{subtitle}</p>
+                  <p className="text-sm text-gray-300 mt-0.5">{subtitle}</p>
                 )}
               </div>
               <Button
                 onClick={onClose}
                 variant="secondary"
                 size="icon"
-                className="text-gray-400 hover:text-white border-transparent"
+                className="text-gray-300 hover:text-white border-transparent"
               >
                 <X size={20} />
               </Button>

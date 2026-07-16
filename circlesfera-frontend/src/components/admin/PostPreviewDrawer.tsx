@@ -25,7 +25,7 @@ export default function PostPreviewDrawer({ post, onClose }: Props) {
             <span className="text-white font-bold text-sm tracking-tight">
               @{post.user?.profile?.username || 'unknown'}
             </span>
-            <span className="text-xs text-gray-400 uppercase tracking-wide font-medium">
+            <span className="text-xs text-gray-300 uppercase tracking-wide font-medium">
               {new Date(post.createdAt).toLocaleString()}
             </span>
           </div>

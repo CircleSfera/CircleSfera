@@ -99,7 +99,7 @@ export default function Admin() {
             <button
               type="button"
               onClick={() => setIsCommandPaletteOpen(true)}
-              className="flex items-center justify-between bg-black/50 border border-white/10 text-gray-400 text-sm rounded-xl pl-3 pr-2 py-2 hover:bg-white/5 hover:border-white/20 transition-all w-64"
+              className="flex items-center justify-between bg-black/50 border border-white/10 text-gray-300 text-sm rounded-xl pl-3 pr-2 py-2 hover:bg-white/5 hover:border-white/20 transition-all w-64"
             >
               <div className="flex items-center">
                 <Search size={16} className="mr-2 text-gray-500" />
@@ -180,7 +180,7 @@ function AdminBadge() {
   return (
     <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-brand-primary/5 border border-brand-primary/20 rounded-xl">
       <ShieldCheck size={16} className="text-brand-primary" />
-      <span className="text-sm text-gray-400">
+      <span className="text-sm text-gray-300">
         {t('admin.connected_as')}{' '}
         <span className="text-brand-primary font-bold">
           @{profile.username}

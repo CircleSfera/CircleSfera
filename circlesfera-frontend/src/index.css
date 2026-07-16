@@ -161,7 +161,7 @@
   --neon-secondary: var(--brand-blue);
 
   /* Typography */
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
   color-scheme: dark;
@@ -186,6 +186,16 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Outfit", system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.02em;
+}
+
 img,
 video {
   /* Allow natural gestures on media elements */
@@ -199,6 +209,7 @@ video {
   backdrop-filter: blur(12px) saturate(180%);
   -webkit-backdrop-filter: blur(12px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem; /* rounded-2xl */
   box-shadow:
     0 4px 16px 0 rgba(0, 0, 0, 0.2),
     inset 0 0 0 1px rgba(255, 255, 255, 0.02);
@@ -209,6 +220,7 @@ video {
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem; /* rounded-2xl */
   box-shadow:
     0 20px 40px -15px rgba(0, 0, 0, 0.7),
     inset 0 0 0 1px rgba(255, 255, 255, 0.01);
@@ -230,6 +242,7 @@ video {
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.5rem; /* rounded-3xl */
   box-shadow:
     0 24px 48px -12px rgba(0, 0, 0, 0.5),
     inset 0 0 0 1px rgba(255, 255, 255, 0.05);

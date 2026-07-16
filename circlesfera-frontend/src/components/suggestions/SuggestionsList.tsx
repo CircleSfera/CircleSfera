@@ -75,7 +75,7 @@ export const SuggestionsList: React.FC<{
   return (
     <div className="py-6 my-2">
       <div className="flex justify-between items-center px-4 mb-4">
-        <span className="font-black text-zinc-500 text-xs uppercase tracking-wide">
+        <span className="font-black text-zinc-400 text-xs uppercase tracking-wide">
           {t('suggestions.title')}
         </span>
         <button

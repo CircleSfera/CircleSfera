@@ -134,7 +134,7 @@ async function main() {
     // 1. Crear Planes Base de Plataforma (Stripe IDs mantenidos intactos)
     console.log('📦 Creando Planes de Suscripción...');
     await prisma.platformPlan.upsert({
-      where: { stripeProductId: 'prod_UtMlvjSwO3Snq5' },
+      where: { stripeProductId: 'prod_UtQGHGBnYo5yGX' },
       update: {},
       create: {
         name: 'Premium',
@@ -142,14 +142,14 @@ async function main() {
         price: 9.99,
         currency: 'EUR',
         interval: 'month',
-        stripeProductId: 'prod_UtMlvjSwO3Snq5',
-        stripePriceId: 'price_1Tta2LIEniBX3suAi9RJmVYk',
+        stripeProductId: 'prod_UtQGHGBnYo5yGX',
+        stripePriceId: 'price_1TtdPZIEniBX3suALJ68LF3d',
         features: ['verified_badge', 'basic_analytics', 'priority_support'],
       },
     });
 
     await prisma.platformPlan.upsert({
-      where: { stripeProductId: 'prod_UtMl6xbt2ja8pl' },
+      where: { stripeProductId: 'prod_UtQG21Jd98Vidi' },
       update: {},
       create: {
         name: 'Elite Creator',
@@ -157,14 +157,14 @@ async function main() {
         price: 19.99,
         currency: 'EUR',
         interval: 'month',
-        stripeProductId: 'prod_UtMl6xbt2ja8pl',
-        stripePriceId: 'price_1Tta2LIEniBX3suA7c8ezWYK',
+        stripeProductId: 'prod_UtQG21Jd98Vidi',
+        stripePriceId: 'price_1TtdPZIEniBX3suAnR6uNNsN',
         features: ['pro_growth_tools', 'audience_insights', 'profile_spotlight', 'verified_badge'],
       },
     });
 
     await prisma.platformPlan.upsert({
-      where: { stripeProductId: 'prod_UtMlwSETmqpGQw' },
+      where: { stripeProductId: 'prod_UtQGy36G3SscjF' },
       update: {},
       create: {
         name: 'Business',
@@ -172,8 +172,8 @@ async function main() {
         price: 49.99,
         currency: 'EUR',
         interval: 'month',
-        stripeProductId: 'prod_UtMlwSETmqpGQw',
-        stripePriceId: 'price_1Tta2MIEniBX3suAewFGLAVE',
+        stripeProductId: 'prod_UtQGy36G3SscjF',
+        stripePriceId: 'price_1TtdPaIEniBX3suAm9IfVW1o',
         features: ['business_verification', 'multi_account', 'dedicated_support', 'api_access_beta'],
       },
     });

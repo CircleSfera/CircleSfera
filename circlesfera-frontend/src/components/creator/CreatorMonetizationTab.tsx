@@ -110,7 +110,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="animate-spin text-brand-primary" size={40} />
-        <p className="text-zinc-500 font-bold uppercase tracking-wide text-xs">
+        <p className="text-zinc-400 font-bold uppercase tracking-wide text-xs">
           {t('creator.monetization.loading_plans')}
         </p>
       </div>
@@ -138,7 +138,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
 
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
               <div>
-                <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mb-2">
+                <p className="text-zinc-400 text-xs font-black uppercase tracking-wide mb-2">
                   Ingresos Totales (Lifetime)
                 </p>
                 <h2 className="text-2xl font-bold text-white tracking-tight uppercase">
@@ -191,7 +191,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
             <div>
-              <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mb-2">
+              <p className="text-zinc-400 text-xs font-black uppercase tracking-wide mb-2">
                 {t('creator.monetization.current_plan')}
               </p>
               <h2 className="text-xl font-bold text-white tracking-tight uppercase">
@@ -259,7 +259,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                     {plan.price}
                     {plan.currency === 'EUR' ? '€' : plan.currency}
                   </span>
-                  <span className="text-xs font-bold text-zinc-500 uppercase tracking-wide">
+                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wide">
                     {plan.interval === 'month'
                       ? t('creator.monetization.per_month')
                       : t('creator.monetization.per_year')}
@@ -271,7 +271,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                 {plan.features.map((feature: string) => (
                   <li
                     key={feature}
-                    className="flex items-center gap-2.5 text-xs font-bold text-zinc-500 uppercase tracking-wide"
+                    className="flex items-center gap-2.5 text-xs font-bold text-zinc-400 uppercase tracking-wide"
                   >
                     <CheckCircle2 size={14} className="text-brand-primary" />
                     {feature.replace(/_/g, ' ')}
@@ -305,7 +305,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
               {t('creator.monetization.growth_analytics')}
             </h3>
           </div>
-          <p className="text-zinc-500 text-xs font-bold uppercase tracking-wide leading-relaxed italic">
+          <p className="text-zinc-400 text-xs font-bold uppercase tracking-wide leading-relaxed italic">
             {t('creator.monetization.growth_desc')}
           </p>
         </div>
@@ -319,7 +319,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
               {t('creator.monetization.vip_community')}
             </h3>
           </div>
-          <p className="text-zinc-500 text-xs font-bold uppercase tracking-wide leading-relaxed italic">
+          <p className="text-zinc-400 text-xs font-bold uppercase tracking-wide leading-relaxed italic">
             {t('creator.monetization.vip_desc')}
           </p>
         </div>

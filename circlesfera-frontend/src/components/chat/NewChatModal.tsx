@@ -251,7 +251,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
                           <div className="font-bold text-white text-[16px]">
                             {profile.username}
                           </div>
-                          <div className="text-[13px] text-gray-400 font-medium">
+                          <div className="text-[13px] text-gray-300 font-medium">
                             {profile.fullName}
                           </div>
                         </div>

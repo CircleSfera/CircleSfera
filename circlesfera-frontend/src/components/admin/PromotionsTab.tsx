@@ -254,7 +254,7 @@ export default function PromotionsTab({ onToast }: Props) {
                     <button
                       type="button"
                       onClick={() => setSelectedPromoId(null)}
-                      className="lg:hidden p-2 -ml-2 text-gray-400 hover:text-white"
+                      className="lg:hidden p-2 -ml-2 text-gray-300 hover:text-white"
                     >
                       <ArrowLeft size={20} />
                     </button>
@@ -268,7 +268,7 @@ export default function PromotionsTab({ onToast }: Props) {
                         <h3 className="text-sm font-bold text-white">
                           @{selectedPromo.user.profile.username}
                         </h3>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-gray-300">
                           {selectedPromo.user.email}
                         </p>
                       </div>
@@ -339,7 +339,7 @@ export default function PromotionsTab({ onToast }: Props) {
                       </p>
                       <p className="text-lg font-black text-white">
                         {selectedPromo.budget}{' '}
-                        <span className="text-sm text-gray-400">
+                        <span className="text-sm text-gray-300">
                           {selectedPromo.currency}
                         </span>
                       </p>

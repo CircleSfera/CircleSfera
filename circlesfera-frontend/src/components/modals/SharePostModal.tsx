@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import { Check, Search, Send, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { chatApi } from '../../services';
 import type { Conversation, Participant, Post } from '../../types';
@@ -50,6 +50,20 @@ export default function SharePostModal({
     },
   });
 
+  const dragControls = useDragControls();
+
+  // Lock body scroll when open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const conversations = conversationsData?.data || [];
@@ -77,121 +91,156 @@ export default function SharePostModal({
   };
 
   return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="modal-glass w-full max-w-md rounded-[32px] overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 ease-out"
-      >
-        {/* Header with brand-vibrant accent line */}
-        <div className="relative pt-8 pb-4 px-6">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-brand-primary via-brand-secondary to-brand-accent opacity-80" />
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-bold text-white tracking-tight">
-              {t('modals.share.share_to')}
-            </h3>
-            <Button
-              onClick={onClose}
-              variant="ghost"
-              size="icon"
-              className="text-gray-500 hover:text-white rounded-full hover:bg-white/5"
-            >
-              <X size={20} />
-            </Button>
-          </div>
-        </div>
-
-        <div className="p-4">
-          <div className="relative mb-4">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-              size={18}
-            />
-            <input
-              type="text"
-              placeholder={t('modals.share.search_conversations')}
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 outline-none focus:border-brand-primary/50"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-
-          <div className="max-h-[60vh] overflow-y-auto space-y-2 custom-scrollbar">
-            {isLoading ? (
-              <div className="flex justify-center p-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand-primary"></div>
-              </div>
-            ) : filteredConversations.length > 0 ? (
-              filteredConversations.map((c) => {
-                const otherParticipant = !c.isGroup
-                  ? c.participants.find(
-                      (p: Participant) => p.userId !== post.userId,
-                    )
-                  : null;
-                const name = c.isGroup
-                  ? c.name
-                  : otherParticipant?.user?.profile.username;
-                const avatar = !c.isGroup
-                  ? otherParticipant?.user?.profile.avatar
-                  : null;
-                const isSent = selectedIds.includes(c.id);
-
-                return (
-                  <div
-                    key={c.id}
-                    className="flex items-center justify-between p-2 hover:bg-white/5 rounded-xl transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-zinc-800 border border-white/10 overflow-hidden">
-                        {avatar ? (
-                          <img
-                            src={avatar}
-                            alt={name || 'User'}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-500">
-                            {name?.substring(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                      <span className="font-medium text-sm">{name}</span>
-                    </div>
-                    <Button
-                      onClick={() => handleShare(c)}
-                      disabled={isSent}
-                      variant={isSent ? 'secondary' : 'primary'}
-                      className={`px-4 py-1.5 text-xs font-semibold ${isSent ? 'opacity-50' : ''}`}
-                    >
-                      {isSent ? (
-                        <Check size={16} className="mr-1" />
-                      ) : (
-                        <Send size={16} className="mr-1" />
-                      )}
-                      {isSent ? t('modals.share.sent') : t('modals.share.send')}
-                    </Button>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-8 text-gray-500 text-sm">
-                {t('modals.share.no_conversations')}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="p-4 bg-zinc-800/50 flex justify-end">
-          <Button
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-100 bg-black/60 backdrop-blur-sm"
             onClick={onClose}
-            variant="secondary"
-            className="px-6 py-2 font-semibold"
-          >
-            {t('modals.share.done')}
-          </Button>
-        </div>
-      </motion.div>
-    </div>
+          />
+          <div className="fixed inset-0 z-101 pointer-events-none flex flex-col justify-end md:justify-center md:items-center">
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              drag="y"
+              dragControls={dragControls}
+              dragListener={false}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(_e, info) => {
+                if (info.offset.y > 100 || info.velocity.y > 500) {
+                  onClose();
+                }
+              }}
+              className="pointer-events-auto w-full bg-black/80 backdrop-blur-2xl border border-white/10 rounded-t-[32px] md:max-w-md md:rounded-[32px] shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              {/* Drag Handle Area */}
+              <div
+                className="w-full flex md:hidden justify-center pt-4 pb-2 cursor-grab active:cursor-grabbing touch-none"
+                onPointerDown={(e) => dragControls.start(e)}
+              >
+                <div className="w-10 h-1.5 bg-white/20 rounded-full" />
+              </div>
+
+              {/* Header with brand-vibrant accent line */}
+              <div className="relative pt-4 md:pt-8 pb-4 px-6">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-brand-primary via-brand-secondary to-brand-accent opacity-80" />
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-white tracking-tight">
+                    {t('modals.share.share_to')}
+                  </h3>
+                  <Button
+                    onClick={onClose}
+                    variant="ghost"
+                    size="icon"
+                    className="text-gray-500 hover:text-white rounded-full hover:bg-white/5"
+                  >
+                    <X size={20} />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="p-4">
+                <div className="relative mb-4">
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                    size={18}
+                  />
+                  <input
+                    type="text"
+                    placeholder={t('modals.share.search_conversations')}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 outline-none focus:border-brand-primary/50"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+
+                <div className="max-h-[60vh] overflow-y-auto space-y-2 custom-scrollbar">
+                  {isLoading ? (
+                    <div className="flex justify-center p-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand-primary"></div>
+                    </div>
+                  ) : filteredConversations.length > 0 ? (
+                    filteredConversations.map((c) => {
+                      const otherParticipant = !c.isGroup
+                        ? c.participants.find(
+                            (p: Participant) => p.userId !== post.userId,
+                          )
+                        : null;
+                      const name = c.isGroup
+                        ? c.name
+                        : otherParticipant?.user?.profile.username;
+                      const avatar = !c.isGroup
+                        ? otherParticipant?.user?.profile.avatar
+                        : null;
+                      const isSent = selectedIds.includes(c.id);
+
+                      return (
+                        <div
+                          key={c.id}
+                          className="flex items-center justify-between p-2 hover:bg-white/5 rounded-xl transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-zinc-800 border border-white/10 overflow-hidden">
+                              {avatar ? (
+                                <img
+                                  src={avatar}
+                                  alt={name || 'User'}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-500">
+                                  {name?.substring(0, 2).toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+                            <span className="font-medium text-sm">{name}</span>
+                          </div>
+                          <Button
+                            onClick={() => handleShare(c)}
+                            disabled={isSent}
+                            variant={isSent ? 'secondary' : 'primary'}
+                            className={`px-4 py-1.5 text-xs font-semibold ${isSent ? 'opacity-50' : ''}`}
+                          >
+                            {isSent ? (
+                              <Check size={16} className="mr-1" />
+                            ) : (
+                              <Send size={16} className="mr-1" />
+                            )}
+                            {isSent
+                              ? t('modals.share.sent')
+                              : t('modals.share.send')}
+                          </Button>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-8 text-gray-500 text-sm">
+                      {t('modals.share.no_conversations')}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-4 bg-zinc-800/50 flex justify-end">
+                <Button
+                  onClick={onClose}
+                  variant="secondary"
+                  className="px-6 py-2 font-semibold"
+                >
+                  {t('modals.share.done')}
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }

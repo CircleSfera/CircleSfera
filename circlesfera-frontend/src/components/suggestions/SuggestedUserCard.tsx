@@ -81,7 +81,7 @@ export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({
                 size={10}
               />
             </span>
-            <span className="text-[10px] text-zinc-500 font-bold tracking-wider truncate">
+            <span className="text-[10px] text-zinc-400 font-bold tracking-wider truncate">
               {user.fullName || t('suggestions.suggested')}
             </span>
           </div>
@@ -135,7 +135,7 @@ export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({
             size={12}
           />
         </span>
-        <span className="text-xs text-zinc-500 font-bold tracking-wider truncate w-full text-center mb-4">
+        <span className="text-xs text-zinc-400 font-bold tracking-wider truncate w-full text-center mb-4">
           {user.fullName || t('suggestions.suggested')}
         </span>
       </Link>

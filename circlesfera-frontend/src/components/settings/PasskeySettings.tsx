@@ -112,7 +112,7 @@ export const PasskeySettings: React.FC = () => {
             <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 italic">
               {t('settings.passkey_settings.title')}
             </h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">
+            <p className="text-sm text-zinc-400 dark:text-zinc-400 font-medium">
               {t('settings.passkey_settings.subtitle')}
             </p>
           </div>
@@ -134,7 +134,7 @@ export const PasskeySettings: React.FC = () => {
           </div>
         ) : passkeys.length > 0 ? (
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+            <h4 className="text-sm font-semibold text-zinc-400 dark:text-zinc-400 uppercase tracking-wider">
               {t('settings.passkey_settings.registered')} ({passkeys.length})
             </h4>
             {passkeys.map((passkey) => (
@@ -150,12 +150,12 @@ export const PasskeySettings: React.FC = () => {
                     <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                       {t('settings.passkey_settings.passkey')}
                     </p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                    <p className="text-xs text-zinc-400 dark:text-zinc-400">
                       {t('settings.passkey_settings.added')}{' '}
                       {formatDate(passkey.createdAt)}
                     </p>
                     {passkey.transports.length > 0 && (
-                      <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
+                      <p className="text-xs text-zinc-400 dark:text-zinc-400 mt-0.5">
                         {passkey.transports.join(', ')}
                       </p>
                     )}
@@ -215,7 +215,7 @@ export const PasskeySettings: React.FC = () => {
         </button>
       </div>
 
-      <div className="mt-8 flex items-center gap-3 text-xs text-zinc-400 dark:text-zinc-500 font-medium border-t border-zinc-100 dark:border-zinc-800 pt-6">
+      <div className="mt-8 flex items-center gap-3 text-xs text-zinc-400 dark:text-zinc-400 font-medium border-t border-zinc-100 dark:border-zinc-800 pt-6">
         <Shield className="w-4 h-4" />
         <span>{t('settings.passkey_settings.fido')}</span>
       </div>

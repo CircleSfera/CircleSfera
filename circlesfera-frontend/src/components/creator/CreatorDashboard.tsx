@@ -50,7 +50,7 @@ function SectionHeader({
         <button
           type="button"
           onClick={onSeeAll}
-          className="text-zinc-500 hover:text-white transition-colors text-xs font-black uppercase tracking-wide flex items-center gap-1 group"
+          className="text-zinc-400 hover:text-white transition-colors text-xs font-black uppercase tracking-wide flex items-center gap-1 group"
         >
           {seeAllLabel || t('creator.dashboard.see_all')}
           <ChevronRight
@@ -157,14 +157,14 @@ export default function CreatorDashboard({
                     <p className="text-white font-bold text-sm truncate">
                       {post.caption || t('creator.dashboard.untitled_post')}
                     </p>
-                    <span className="text-zinc-500 text-xs font-black uppercase tracking-wide">
+                    <span className="text-zinc-400 text-xs font-black uppercase tracking-wide">
                       {post.type}
                     </span>
                   </div>
 
                   {/* Premium Performance Bar */}
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-black uppercase tracking-wide text-zinc-500 italic">
+                    <div className="flex items-center justify-between text-xs font-black uppercase tracking-wide text-zinc-400 italic">
                       <span>{t('creator.dashboard.performance')}</span>
                       <span className="text-brand-primary">
                         {t('creator.dashboard.vs_avg', {
@@ -211,7 +211,7 @@ export default function CreatorDashboard({
                 <h4 className="text-white font-bold text-lg mb-1 tracking-tight">
                   {t('creator.dashboard.finance_earnings')}
                 </h4>
-                <p className="text-zinc-500 text-sm leading-relaxed">
+                <p className="text-zinc-400 text-sm leading-relaxed">
                   {t('creator.dashboard.finance_desc')}
                 </p>
               </div>
@@ -229,7 +229,7 @@ export default function CreatorDashboard({
                 <h4 className="text-white font-bold text-lg mb-1 tracking-tight">
                   {t('creator.dashboard.ads_promotions')}
                 </h4>
-                <p className="text-zinc-500 text-sm leading-relaxed">
+                <p className="text-zinc-400 text-sm leading-relaxed">
                   {t('creator.dashboard.ads_desc')}
                 </p>
               </div>
@@ -282,7 +282,7 @@ export default function CreatorDashboard({
                 <span className="text-white font-black text-xl leading-none">
                   {stats?.insights.retentionRate || 0}%
                 </span>
-                <span className="text-zinc-500 text-xs font-black uppercase tracking-tighter">
+                <span className="text-zinc-400 text-xs font-black uppercase tracking-tighter">
                   {t('creator.dashboard.retention')}
                 </span>
               </div>
@@ -292,7 +292,7 @@ export default function CreatorDashboard({
                 day: stats?.insights.bestDayToPost,
               })}
             </p>
-            <p className="text-zinc-500 text-xs font-bold uppercase tracking-wide">
+            <p className="text-zinc-400 text-xs font-bold uppercase tracking-wide">
               {t('creator.dashboard.most_active_hour', {
                 hour: stats?.insights.bestHourToPost,
               })}

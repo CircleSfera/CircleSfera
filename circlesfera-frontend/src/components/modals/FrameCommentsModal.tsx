@@ -62,7 +62,7 @@ export default function FrameCommentsModal({
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
           <h2 className="text-base font-bold text-white flex items-center gap-2">
             {t('post.detail.comments')}
-            <span className="text-sm font-normal text-gray-400">
+            <span className="text-sm font-normal text-gray-300">
               ({comments?.data?.data?.length || 0})
             </span>
           </h2>

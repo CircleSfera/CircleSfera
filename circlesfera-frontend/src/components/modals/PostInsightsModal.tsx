@@ -66,7 +66,7 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                 <h3 className="text-white font-black text-lg leading-none">
                   {t('modals.insights.post_stats')}
                 </h3>
-                <p className="text-zinc-500 text-xs font-bold uppercase tracking-wide mt-1.5">
+                <p className="text-zinc-400 text-xs font-bold uppercase tracking-wide mt-1.5">
                   {t('modals.insights.realtime_metrics')}
                 </p>
               </div>
@@ -75,7 +75,7 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
               onClick={onClose}
               variant="ghost"
               size="icon"
-              className="w-10 h-10 rounded-full hover:bg-white/5 text-zinc-500 hover:text-white"
+              className="w-10 h-10 rounded-full hover:bg-white/5 text-zinc-400 hover:text-white"
             >
               <X size={20} />
             </Button>
@@ -164,7 +164,7 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                       <TrendingUp size={14} className="text-brand-primary" />
                       {t('modals.insights.views_evolution')}
                     </h4>
-                    <span className="text-xs font-bold text-zinc-500 uppercase tracking-wide">
+                    <span className="text-xs font-bold text-zinc-400 uppercase tracking-wide">
                       {t('modals.insights.last_days')}
                     </span>
                   </div>
@@ -261,7 +261,7 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                     <h4 className="text-white font-bold mb-1">
                       {t('modals.insights.impact_summary')}
                     </h4>
-                    <p className="text-zinc-500 text-sm leading-relaxed">
+                    <p className="text-zinc-400 text-sm leading-relaxed">
                       {t('modals.insights.engagement_rate_prefix')}{' '}
                       {(
                         ((insights.post._count.likes +
@@ -308,7 +308,7 @@ function StatCard({
         <Icon size={16} className={color} />
       </div>
       <div>
-        <p className="text-zinc-500 text-xs font-black uppercase tracking-wide">
+        <p className="text-zinc-400 text-xs font-black uppercase tracking-wide">
           {label}
         </p>
         <p className="text-white font-black text-xl tracking-tight mt-0.5">

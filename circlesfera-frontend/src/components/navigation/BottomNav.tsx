@@ -99,7 +99,7 @@ export default function BottomNav() {
               className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 relative ${
                 isActive
                   ? 'bg-linear-to-r from-brand-primary/20 to-brand-secondary/20 text-white shadow-[0_0_15px_rgba(131,58,180,0.3)] border border-white/10'
-                  : 'text-gray-400 hover:text-white'
+                  : 'text-gray-300 hover:text-white'
               }`}
               whileTap={{ scale: 0.9 }}
             >

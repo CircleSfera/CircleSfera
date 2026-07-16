@@ -84,7 +84,7 @@ export default function CloseFriendsModal({
             onClick={onClose}
             variant="ghost"
             size="icon"
-            className="text-gray-400 hover:text-white"
+            className="text-gray-300 hover:text-white"
           >
             <X size={24} />
           </Button>
@@ -108,7 +108,7 @@ export default function CloseFriendsModal({
 
         <div className="flex-1 overflow-y-auto p-2">
           {isLoading ? (
-            <div className="p-4 text-center text-gray-400">
+            <div className="p-4 text-center text-gray-300">
               {t('settings.close_friends_modal.loading')}
             </div>
           ) : (
@@ -143,7 +143,7 @@ export default function CloseFriendsModal({
                       <h3 className="text-white font-medium mb-1">
                         {t('settings.close_friends_modal.list_title')}
                       </h3>
-                      <p className="text-gray-400 text-sm">
+                      <p className="text-gray-300 text-sm">
                         {t('settings.close_friends_modal.list_desc')}
                       </p>
                     </div>
@@ -205,7 +205,7 @@ function UserItem({
           <div className="font-semibold text-white">
             {user.profile?.username}
           </div>
-          <div className="text-sm text-gray-400">{user.profile?.fullName}</div>
+          <div className="text-sm text-gray-300">{user.profile?.fullName}</div>
         </div>
       </div>
       <div

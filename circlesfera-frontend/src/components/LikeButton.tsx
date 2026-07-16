@@ -23,11 +23,29 @@ export default function LikeButton({
   });
 
   const likeMutation = useMutation({
-    mutationFn: () => likesApi.toggle(postId),
-    onSuccess: (response) => {
-      const newLiked = response.data.liked;
+    mutationFn: (id: string) => likesApi.toggle(id),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['like', postId] });
+      const previousLike = queryClient.getQueryData(['like', postId]);
+
+      const currentLiked =
+        isLiked !== null ? isLiked : data?.data?.liked || false;
+      const newLiked = !currentLiked;
+
       setIsLiked(newLiked);
       onToggle?.(newLiked);
+
+      return { previousLike, currentLiked };
+    },
+    onError: (err, variables, context) => {
+      console.error('Failed to toggle like:', err, 'for post:', variables);
+      if (context) {
+        setIsLiked(context.currentLiked);
+        onToggle?.(context.currentLiked);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['like', postId] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['explore'] });
       queryClient.invalidateQueries({ queryKey: ['post', postId] });
@@ -35,7 +53,10 @@ export default function LikeButton({
   });
 
   const handleLike = () => {
-    likeMutation.mutate();
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+    likeMutation.mutate(postId);
   };
 
   const liked = isLiked !== null ? isLiked : data?.data.liked || false;

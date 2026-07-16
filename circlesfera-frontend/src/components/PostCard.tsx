@@ -132,17 +132,38 @@ export default memo(function PostCard({
   )?.collectionId;
 
   const toggleBookmarkMutation = useMutation({
-    mutationFn: () => bookmarksApi.toggle(post.id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bookmark', post.id] });
-      queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
-      if (!isBookmarked) {
+    mutationFn: (id: string) => bookmarksApi.toggle(id),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['bookmark', post.id] });
+      const previousBookmark = queryClient.getQueryData(['bookmark', post.id]);
+
+      const newBookmarked = !isBookmarked;
+      queryClient.setQueryData(['bookmark', post.id], {
+        data: { bookmarked: newBookmarked },
+      });
+
+      if (newBookmarked) {
         telemetry.track({
           eventType: 'SAVE',
           targetId: post.id,
           targetType: 'POST',
         });
       }
+
+      return { previousBookmark };
+    },
+    onError: (err, variables, context) => {
+      console.error('Failed to toggle bookmark:', err, 'for post:', variables);
+      if (context?.previousBookmark) {
+        queryClient.setQueryData(
+          ['bookmark', post.id],
+          context.previousBookmark,
+        );
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookmark', post.id] });
+      queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
     },
   });
 
@@ -210,7 +231,12 @@ export default memo(function PostCard({
     <PostActions
       post={post}
       isBookmarked={isBookmarked}
-      onToggleBookmark={() => toggleBookmarkMutation.mutate()}
+      onToggleBookmark={() => {
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate(50);
+        }
+        toggleBookmarkMutation.mutate(post.id);
+      }}
       isBookmarkPending={toggleBookmarkMutation.isPending}
       onLikeToggle={(newLiked) => {
         setLikesCount((prev) => (newLiked ? prev + 1 : prev - 1));
@@ -251,6 +277,7 @@ export default memo(function PostCard({
             ? 'hidden md:flex flex-row md:h-[calc(100vh-80px)] md:max-h-[850px] md:max-w-5xl md:mx-auto bg-black/40 backdrop-blur-3xl md:border md:border-white/10 md:rounded-3xl overflow-hidden mb-4 shadow-[0_0_50px_rgba(0,0,0,0.5)]'
             : 'hidden'
         }
+        data-post-card="true"
       >
         <div className="flex flex-col flex-1 bg-black/20 justify-center items-center border-r border-white/10 relative">
           <PostMedia
@@ -291,6 +318,7 @@ export default memo(function PostCard({
             ? 'md:hidden w-full flex flex-col pb-4'
             : 'glass-panel-post rounded-lg overflow-hidden mb-2 content-visibility-auto'
         }
+        data-post-card="true"
       >
         {post.recommendationReason && !isDetailMode && (
           <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-white/50 border-b border-white/5 bg-white/2">

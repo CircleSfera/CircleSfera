@@ -33,7 +33,7 @@ export default function TagFeed() {
           <h1 className="text-2xl font-black mb-2 text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-purple-400">
             #{tag}
           </h1>
-          <p className="text-gray-400">{t('post.tag_feed.discover')}</p>
+          <p className="text-gray-300">{t('post.tag_feed.discover')}</p>
         </div>
 
         {isLoading ? (

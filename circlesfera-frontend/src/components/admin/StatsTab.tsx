@@ -286,7 +286,7 @@ export default function StatsTab() {
                       <span className="text-brand-primary">
                         @{log.adminUsername}
                       </span>{' '}
-                      <span className="text-gray-400">
+                      <span className="text-gray-300">
                         {formatAction(log.action)}
                       </span>
                     </p>

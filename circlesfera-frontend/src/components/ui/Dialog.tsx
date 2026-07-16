@@ -74,7 +74,7 @@ export function Dialog({
             <button
               type="button"
               onClick={onClose}
-              className="p-1 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+              className="p-1 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors"
             >
               <X size={20} />
             </button>
@@ -84,7 +84,7 @@ export function Dialog({
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 p-1 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+            className="absolute top-4 right-4 z-10 p-1 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors"
           >
             <X size={20} />
           </button>

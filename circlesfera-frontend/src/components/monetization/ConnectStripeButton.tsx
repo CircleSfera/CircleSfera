@@ -40,7 +40,7 @@ export default function ConnectStripeButton() {
           'Verify Identity to Receive Payouts',
         )}
       </h3>
-      <p className="text-gray-400 text-sm mb-6">
+      <p className="text-gray-300 text-sm mb-6">
         {t(
           'monetization.stripe_connect_desc',
           'To withdraw your earnings, you must securely verify your identity and link a bank account through Stripe Connect.',
