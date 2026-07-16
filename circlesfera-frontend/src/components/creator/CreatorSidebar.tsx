@@ -65,7 +65,7 @@ export default function CreatorSidebar({ activeTab, onTabChange }: Props) {
         </Link>
         <Link
           to="/"
-          className="flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-white transition-colors group"
+          className="flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-white transition-colors group"
         >
           <ArrowLeft
             size={12}
@@ -128,7 +128,7 @@ export default function CreatorSidebar({ activeTab, onTabChange }: Props) {
       {/* Status Panel (Matching Admin) */}
       <div className="hidden lg:block pt-4 mt-4 border-t border-white/5">
         <div className="p-4 glass-panel rounded-lg border border-white/5 bg-linear-to-br from-brand-primary/5 to-transparent">
-          <p className="text-xs text-zinc-500 font-bold uppercase tracking-wide mb-1">
+          <p className="text-xs text-zinc-400 font-bold uppercase tracking-wide mb-1">
             Status
           </p>
           <div className="flex items-center gap-2">

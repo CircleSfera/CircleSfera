@@ -64,7 +64,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
             <h2 className="text-white font-black text-lg">Promocionar</h2>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
-            <X size={18} className="text-gray-400" />
+            <X size={18} className="text-gray-300" />
           </Button>
         </div>
 
@@ -99,7 +99,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
         <div className="p-5 space-y-6">
           {/* Objective Selection */}
           <div>
-            <h3 className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-1">
+            <h3 className="text-gray-300 text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-1">
               <Target size={14} /> Objetivo de la Campaña
             </h3>
             <div className="grid grid-cols-1 gap-2">
@@ -114,7 +114,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
                   className={`p-3 text-left rounded-xl border transition-all text-sm font-bold ${
                     objective === obj.id
                       ? 'bg-brand-primary/10 border-brand-primary text-brand-primary'
-                      : 'bg-white/5 border-white/5 text-gray-400 hover:border-white/15'
+                      : 'bg-white/5 border-white/5 text-gray-300 hover:border-white/15'
                   }`}
                   type="button"
                 >
@@ -129,7 +129,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
             <div>
               <label
                 htmlFor="dailyBudgetInput"
-                className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2 block"
+                className="text-gray-300 text-xs font-bold uppercase tracking-wider mb-2 block"
               >
                 Presupuesto Diario (€)
               </label>
@@ -146,7 +146,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
             <div>
               <label
                 htmlFor="durationDaysInput"
-                className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2 block"
+                className="text-gray-300 text-xs font-bold uppercase tracking-wider mb-2 block"
               >
                 Duración (Días)
               </label>
@@ -167,7 +167,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
             <div>
               <label
                 htmlFor="countriesInput"
-                className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1"
+                className="text-gray-300 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1"
               >
                 <Globe size={14} /> Países (Ej. ES, MX, US)
               </label>
@@ -183,7 +183,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
             <div>
               <label
                 htmlFor="interestsInput"
-                className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1"
+                className="text-gray-300 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1"
               >
                 <Hash size={14} /> Intereses (Ej. Música, Moda)
               </label>

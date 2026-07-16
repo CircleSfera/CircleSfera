@@ -82,7 +82,7 @@ export default function Creator() {
         <div className="flex flex-col gap-1">
           <Link
             to="/"
-            className="lg:hidden flex w-fit items-center gap-2 text-xs font-bold text-zinc-500 hover:text-white transition-colors group mb-2"
+            className="lg:hidden flex w-fit items-center gap-2 text-xs font-bold text-zinc-400 hover:text-white transition-colors group mb-2"
           >
             <ArrowLeft
               size={12}
@@ -93,7 +93,7 @@ export default function Creator() {
           <h1 className="text-xl font-black text-white tracking-tight">
             {t('creator.title')}
           </h1>
-          <p className="text-zinc-500 mt-0.5 text-xs">
+          <p className="text-zinc-400 mt-0.5 text-xs">
             {t('creator.subtitle')}
           </p>
         </div>
@@ -120,7 +120,7 @@ export default function Creator() {
             fallback={
               <div className="flex flex-col items-center justify-center p-20 opacity-50">
                 <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin mb-4" />
-                <div className="text-sm font-bold text-gray-400">
+                <div className="text-sm font-bold text-gray-300">
                   Cargando módulo...
                 </div>
               </div>

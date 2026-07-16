@@ -128,7 +128,7 @@ export default function CreatorSandbox({ isConnecting, onConnect }: Props) {
               {t('creator.sandbox.badge', '80% Para ti')}
             </div>
 
-            <p className="text-zinc-500 text-xs font-black uppercase tracking-wide mb-2 flex items-center gap-2">
+            <p className="text-zinc-400 text-xs font-black uppercase tracking-wide mb-2 flex items-center gap-2">
               <TrendingUp size={14} />
               {t('creator.sandbox.estimated', 'Ingresos Mensuales Estimados')}
             </p>
