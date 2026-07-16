@@ -51,7 +51,7 @@ COPY --chown=node:node circlesfera-backend/prisma.config.ts ./
 RUN mkdir -p uploads && chown -R node:node uploads
 
 # Install only production dependencies
-RUN apk add --no-cache openssl ffmpeg
+RUN apk add --no-cache ffmpeg
 RUN npm install --omit=dev
 
 # Copy the built application from the build stage
