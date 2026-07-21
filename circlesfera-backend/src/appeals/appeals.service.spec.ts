@@ -36,7 +36,7 @@ describe('AppealsService', () => {
   describe('create', () => {
     it('should create an appeal', async () => {
       const dto = {
-        targetType: 'ACCOUNT_BAN',
+        targetType: 'ACCOUNT_BAN' as any,
         targetId: 'ban-1',
         reason: 'Unfair ban, I did not break rules',
       };
