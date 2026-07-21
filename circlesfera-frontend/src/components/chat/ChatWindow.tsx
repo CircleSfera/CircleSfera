@@ -1010,7 +1010,7 @@ export default function ChatWindow() {
               initial={{ opacity: 0, y: 10, height: 0 }}
               animate={{ opacity: 1, y: 0, height: 'auto' }}
               exit={{ opacity: 0, y: 10, height: 0 }}
-              className="flex items-center justify-between bg-white/5 p-3 rounded-t-[20px] border-x border-t border-white/10 mb-[-16px] pb-5 pt-3 px-4 mx-2 backdrop-blur-md relative z-0"
+              className="flex items-center justify-between bg-white/5 p-3 rounded-t-[20px] border-x border-t border-white/10 -mb-4 pb-5 pt-3 px-4 mx-2 backdrop-blur-md relative z-0"
             >
               <div className="flex flex-col text-sm border-l-2 border-purple-500 pl-3">
                 <div className="flex items-center gap-2">
@@ -1040,7 +1040,7 @@ export default function ChatWindow() {
               initial={{ opacity: 0, y: 10, height: 0 }}
               animate={{ opacity: 1, y: 0, height: 'auto' }}
               exit={{ opacity: 0, y: 10, height: 0 }}
-              className="flex items-center justify-between bg-blue-500/10 p-3 rounded-t-[20px] border-x border-t border-blue-500/20 mb-[-16px] pb-5 pt-3 px-4 mx-2 backdrop-blur-md relative z-0"
+              className="flex items-center justify-between bg-blue-500/10 p-3 rounded-t-[20px] border-x border-t border-blue-500/20 -mb-4 pb-5 pt-3 px-4 mx-2 backdrop-blur-md relative z-0"
             >
               <div className="flex flex-col text-sm border-l-2 border-blue-500 pl-3">
                 <div className="flex items-center gap-2">
@@ -1077,7 +1077,7 @@ export default function ChatWindow() {
           ) : (
             <form
               onSubmit={sendMessage}
-              className={`flex items-end gap-1 glass-panel p-1 rounded-[32px] border border-white/10 shadow-2xl shadow-black/50 focus-within:border-brand-primary/50 focus-within:shadow-[0_0_20px_rgba(131,58,180,0.2)] transition-all duration-300 ${replyTo ? 'rounded-t-[10px] border-t-0' : ''}`}
+              className={`flex items-end gap-1 glass-panel p-1 rounded-4xl border border-white/10 shadow-2xl shadow-black/50 focus-within:border-brand-primary/50 focus-within:shadow-[0_0_20px_rgba(131,58,180,0.2)] transition-all duration-300 ${replyTo ? 'rounded-t-[10px] border-t-0' : ''}`}
             >
               <input
                 type="file"
@@ -1111,7 +1111,7 @@ export default function ChatWindow() {
                   }
                 }}
                 rows={1}
-                className="flex-1 bg-transparent border-none py-1.5 px-2 text-white placeholder-white/40 focus:ring-0 text-[15px] resize-none overflow-hidden custom-scrollbar max-h-[120px] min-h-[44px]"
+                className="flex-1 bg-transparent border-none py-1.5 px-2 text-white placeholder-white/40 focus:ring-0 text-[15px] resize-none overflow-hidden custom-scrollbar max-h-30 min-h-11"
                 placeholder={t('chat.type_message')}
               />
 
