@@ -1,14 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SlackService } from '../slack/slack.service.js';
 import { CreateAppealDto } from './dto/create-appeal.dto.js';
 import { UpdateAppealDto } from './dto/update-appeal.dto.js';
 
 @Injectable()
 export class AppealsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(SlackService) private readonly slackService: SlackService,
+  ) {}
 
   async create(userId: string, dto: CreateAppealDto) {
-    return this.prisma.appeal.create({
+    const appeal = await this.prisma.appeal.create({
       data: {
         userId,
         targetType: dto.targetType,
@@ -16,6 +20,18 @@ export class AppealsService {
         reason: dto.reason,
       },
     });
+
+    this.slackService
+      .sendModerationAlert({
+        reportId: appeal.id,
+        reporterId: userId,
+        targetType: dto.targetType,
+        targetId: dto.targetId || 'N/A',
+        reason: `New Appeal Created: ${dto.reason}`,
+      })
+      .catch((e) => console.error(e));
+
+    return appeal;
   }
 
   async findMyUserAppeals(userId: string) {
@@ -58,8 +74,8 @@ export class AppealsService {
     // Determine if we need to reactivate account or restore post based on approval
     const appeal = await this.findOne(id);
 
-    return this.prisma.$transaction(async (tx) => {
-      const updatedAppeal = await tx.appeal.update({
+    const updatedAppeal = await this.prisma.$transaction(async (tx) => {
+      const res = await tx.appeal.update({
         where: { id },
         data: {
           status: dto.status,
@@ -75,7 +91,7 @@ export class AppealsService {
             data: { isActive: true },
           });
         }
-        // If targetType is POST_REMOVAL, we would restore the post
+        // If targetType is POST_REMOVAL, restore post
         if (appeal.targetType === 'POST_REMOVAL' && appeal.targetId) {
           await tx.post.update({
             where: { id: appeal.targetId },
@@ -84,7 +100,19 @@ export class AppealsService {
         }
       }
 
-      return updatedAppeal;
+      return res;
     });
+
+    this.slackService
+      .sendModerationAlert({
+        reportId: appeal.id,
+        reporterId: appeal.userId,
+        targetType: appeal.targetType,
+        targetId: appeal.targetId || 'N/A',
+        reason: `Appeal Status Updated: ${dto.status}. Notes: ${dto.adminNotes || 'None'}`,
+      })
+      .catch((e) => console.error(e));
+
+    return updatedAppeal;
   }
 }

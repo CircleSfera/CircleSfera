@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SlackService } from '../slack/slack.service.js';
 import { AppealsService } from './appeals.service.js';
 
 describe('AppealsService', () => {
@@ -17,11 +18,16 @@ describe('AppealsService', () => {
     $transaction: vi.fn(),
   };
 
+  const mockSlackService = {
+    sendModerationAlert: vi.fn().mockResolvedValue(true),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AppealsService,
         { provide: PrismaService, useValue: mockPrismaService },
+        { provide: SlackService, useValue: mockSlackService },
       ],
     }).compile();
 
@@ -34,7 +40,7 @@ describe('AppealsService', () => {
   });
 
   describe('create', () => {
-    it('should create an appeal', async () => {
+    it('should create an appeal and send Slack alert', async () => {
       const dto = {
         targetType: 'ACCOUNT_BAN' as any,
         targetId: 'ban-1',
@@ -56,6 +62,7 @@ describe('AppealsService', () => {
           reason: dto.reason,
         },
       });
+      expect(mockSlackService.sendModerationAlert).toHaveBeenCalled();
       expect(result).toHaveProperty('id', 'appeal-1');
     });
   });
