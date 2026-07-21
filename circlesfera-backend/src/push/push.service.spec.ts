@@ -16,7 +16,7 @@ describe('PushService', () => {
   };
 
   const mockConfigService = {
-    get: vi.fn((key: string) => {
+    get: vi.fn((_key: string) => {
       // Return null for keys so setVapidDetails isn't called with dummy invalid key lengths in test
       return null;
     }),
