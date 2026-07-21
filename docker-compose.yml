@@ -133,11 +133,9 @@ services:
 
 volumes:
   postgres_data:
-    name: circlesfera-backend_postgres_data
-    external: true
+    name: circlesfera-postgres_data
   redis_data:
-    name: circlesfera-backend_redis_data
-    external: true
+    name: circlesfera-redis_data
 
 networks:
   circlesfera-network:
