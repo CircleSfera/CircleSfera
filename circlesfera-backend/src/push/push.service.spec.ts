@@ -16,8 +16,10 @@ describe('PushService', () => {
   };
 
   const mockConfigService = {
-    get: vi.fn((_key: string) => {
-      // Return null for keys so setVapidDetails isn't called with dummy invalid key lengths in test
+    get: vi.fn((key: string) => {
+      if (key === 'VAPID_PUBLIC_KEY' || key === 'VAPID_PRIVATE_KEY' || key === 'VAPID_SUBJECT') {
+        return null;
+      }
       return null;
     }),
   };
