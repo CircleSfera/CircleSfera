@@ -768,7 +768,7 @@ export default function Settings() {
           onSelectTab={(tab) => setActiveTab(tab as any)}
         />
 
-        <div className="glass-panel rounded-2xl overflow-hidden flex flex-col md:flex-row min-h-[400px] md:min-h-[500px] border-white/10 shadow-2xl relative bg-zinc-950/80 backdrop-blur-2xl">
+        <div className="glass-panel rounded-2xl overflow-hidden flex flex-col md:flex-row min-h-100 md:min-h-125 border-white/10 shadow-2xl relative bg-zinc-950/80 backdrop-blur-2xl">
           {/* Desktop Sidebar Panel */}
           <div className="hidden md:block w-64 border-r border-white/10 bg-black/30 shrink-0 p-4 sticky top-24">
             <div className="flex flex-col gap-1.5">
@@ -797,7 +797,7 @@ export default function Settings() {
                         {t(`settings.tabs.${tab.id}.label`) || tab.label}
                       </span>
                       <span
-                        className={`text-[10px] font-medium block truncate max-w-[140px] mt-0.5 ${
+                        className={`text-[10px] font-medium block truncate max-w-35 mt-0.5 ${
                           activeTab === tab.id ? 'text-blue-300/80' : 'text-gray-500'
                         }`}
                       >
