@@ -1,11 +1,11 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  AlertTriangle,
   Bell,
   Check,
   ChevronUp,
   CreditCard,
   DollarSign,
+  FileText,
   Key,
   Shield,
   Star,
@@ -103,7 +103,7 @@ export default function SettingsMobileNav({
     {
       id: 'account',
       label: t('settings.tabs.account.label', 'Cuenta & Datos'),
-      icon: AlertTriangle,
+      icon: FileText,
     },
   ];
 
