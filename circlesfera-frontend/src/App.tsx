@@ -25,6 +25,8 @@ import Frames from './pages/Frames';
 import HighlightViewerPage from './pages/HighlightViewerPage';
 import Home from './pages/Home';
 import LandingPage from './pages/LandingPage';
+import LiveBroadcaster from './pages/Live/LiveBroadcaster';
+import LiveViewer from './pages/Live/LiveViewer';
 import Login from './pages/Login';
 import Messages from './pages/Messages';
 import Notifications from './pages/Notifications';
@@ -159,6 +161,24 @@ function App() {
             element={
               <AuthGuard>
                 <EditsStudio />
+              </AuthGuard>
+            }
+          />
+
+          {/* Live Spaces */}
+          <Route
+            path="/live/broadcast"
+            element={
+              <AuthGuard>
+                <LiveBroadcaster />
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/live/:streamId"
+            element={
+              <AuthGuard>
+                <LiveViewer />
               </AuthGuard>
             }
           />

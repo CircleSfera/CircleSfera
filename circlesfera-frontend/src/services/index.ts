@@ -29,3 +29,4 @@ export * from './search.service';
 export * from './stories.service';
 export * from './upload.service';
 export * from './users.service';
+export * from './live';

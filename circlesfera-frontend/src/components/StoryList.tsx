@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { storiesApi } from '../services';
+import { liveApi, storiesApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import { useStoryStore } from '../stores/storyStore';
 import type { Story } from '../types';
@@ -21,6 +21,11 @@ export default function StoryList() {
   const { data: storiesResponse } = useQuery({
     queryKey: ['stories'],
     queryFn: () => storiesApi.getAll(),
+  });
+
+  const { data: liveStreamsResponse } = useQuery({
+    queryKey: ['live-streams'],
+    queryFn: () => liveApi.getActiveStreams(),
   });
 
   // Group stories by user
@@ -63,6 +68,34 @@ export default function StoryList() {
   return (
     <div className="glass-panel rounded-lg p-3 mb-4 overflow-hidden">
       <div className="flex gap-3 overflow-x-auto no-scrollbar py-1">
+        {/* Active Live Streams */}
+        {liveStreamsResponse?.map((stream: any) => (
+          <Link
+            key={stream.id}
+            to={`/live/${stream.id}`}
+            className="flex flex-col items-center gap-2 shrink-0 group focus:outline-none w-16"
+          >
+            <div className="w-12 h-12 p-0.5 rounded-full bg-red-600 flex items-center justify-center transform transition-transform duration-300 group-hover:scale-105 animate-pulse">
+              <div className="w-full h-full bg-black rounded-full p-0.5 relative group-hover:opacity-90 transition-opacity flex items-center justify-center">
+                <UserAvatar
+                  src={stream.host.profile?.avatar}
+                  alt={stream.host.profile?.username}
+                  size="full"
+                  hasStory={false}
+                />
+              </div>
+            </div>
+            <div className="text-center w-full">
+              <span className="text-xs truncate block w-full opacity-80 font-medium">
+                {stream.host.profile?.username}
+              </span>
+              <span className="text-[9px] uppercase font-bold text-red-500 bg-red-500/10 px-1 rounded block truncate w-full">
+                En vivo
+              </span>
+            </div>
+          </Link>
+        ))}
+
         {/* Your Story / Add Story */}
         {(() => {
           const myStoriesIndex = groupedStories.findIndex(
