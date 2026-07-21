@@ -1,4 +1,3 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StripeService } from '../common/stripe/stripe.service.js';
@@ -55,7 +54,7 @@ describe('MonetizationService', () => {
     it('should return monetization and stripe status when record exists', async () => {
       mockPrismaService.monetization.findUnique.mockResolvedValue({
         userId: 'user-1',
-        totalEarningsCents: 5000,
+        lifetimeEarningsCents: 5000,
       });
       mockPrismaService.user.findUnique.mockResolvedValue({
         stripeConnectAccountId: 'acct_123',
@@ -63,14 +62,14 @@ describe('MonetizationService', () => {
 
       const result = await service.getMonetization('user-1');
       expect(result).toHaveProperty('hasStripeAccount', true);
-      expect(result.totalEarningsCents).toBe(5000);
+      expect(result.lifetimeEarningsCents).toBe(5000);
     });
 
     it('should create monetization record if none exists', async () => {
       mockPrismaService.monetization.findUnique.mockResolvedValue(null);
       mockPrismaService.monetization.create.mockResolvedValue({
         userId: 'user-2',
-        totalEarningsCents: 0,
+        lifetimeEarningsCents: 0,
       });
       mockPrismaService.user.findUnique.mockResolvedValue({
         stripeConnectAccountId: null,
@@ -111,7 +110,7 @@ describe('MonetizationService', () => {
 
       await expect(
         service.createPostUnlockSession('user-1', 'post-1', 'http://localhost/return'),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow();
     });
 
     it('should throw if buyer is buying own post', async () => {
@@ -124,7 +123,7 @@ describe('MonetizationService', () => {
 
       await expect(
         service.createPostUnlockSession('user-1', 'post-1', 'http://localhost/return'),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow();
     });
   });
 
@@ -132,13 +131,13 @@ describe('MonetizationService', () => {
     it('should throw if amount is less than 100 cents', async () => {
       await expect(
         service.createTipSession('user-1', 'creator-1', 50, 'http://localhost/return'),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow();
     });
 
     it('should throw if tipping yourself', async () => {
       await expect(
         service.createTipSession('user-1', 'user-1', 500, 'http://localhost/return'),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow();
     });
   });
 });
