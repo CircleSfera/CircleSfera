@@ -1,0 +1,29 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "explore": "Explorer",
+    "frames": "Frames",
+    "messages": "Messages",
+    "notifications": "Notifications",
+    "create": "Créer",
+    "profile": "Profil",
+    "settings": "Paramètres",
+    "admin": "Administration",
+    "creator": "Studio Créateur"
+  },
+  "auth": {
+    "login": {
+      "title": "Connexion",
+      "subtitle": "Bienvenue sur CircleSfera",
+      "passkey_btn": "Se connecter avec Biométrie / Passkey",
+      "identifier_label": "Nom d'utilisateur ou E-mail",
+      "password_label": "Mot de passe",
+      "submit": "Se connecter"
+    }
+  },
+  "settings": {
+    "title": "Paramètres",
+    "language": "Langue",
+    "passkeys": "Biométrie et Passkeys"
+  }
+}
