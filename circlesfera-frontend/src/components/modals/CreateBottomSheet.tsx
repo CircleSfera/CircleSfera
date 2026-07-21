@@ -81,7 +81,7 @@ export default function CreateBottomSheet() {
       id: 'live',
       icon: Radio,
       label: t('create_menu.live', 'Directo'),
-      action: () => handleNavigation('/create'),
+      action: () => handleNavigation('/live/broadcast'),
     },
     {
       id: 'circle',

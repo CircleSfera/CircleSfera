@@ -1,3 +1,4 @@
+import * as crypto from 'node:crypto';
 import {
   forwardRef,
   Inject,
@@ -323,6 +324,68 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('call:hangup')
   handleCallHangup(@MessageBody() payload: { targetId: string }) {
     this.server.to(`user:${payload.targetId}`).emit('call:ended');
+  }
+
+  // --- Live Streams ---
+
+  @SubscribeMessage('live:join')
+  async handleLiveJoin(
+    @MessageBody() payload: { streamId: string },
+    @ConnectedSocket() client: SocketWithAuth,
+  ) {
+    await client.join(`live:${payload.streamId}`);
+
+    // Optionally emit viewer count update or joined event
+    this.server.to(`live:${payload.streamId}`).emit('live:viewer_joined', {
+      userId: client.data.user.sub,
+    });
+  }
+
+  @SubscribeMessage('live:leave')
+  async handleLiveLeave(
+    @MessageBody() payload: { streamId: string },
+    @ConnectedSocket() client: SocketWithAuth,
+  ) {
+    await client.leave(`live:${payload.streamId}`);
+
+    this.server.to(`live:${payload.streamId}`).emit('live:viewer_left', {
+      userId: client.data.user.sub,
+    });
+  }
+
+  @SubscribeMessage('live:chat')
+  async handleLiveChat(
+    @MessageBody() payload: { streamId: string; message: string },
+    @ConnectedSocket() client: SocketWithAuth,
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: client.data.user.sub },
+      include: { profile: true },
+    });
+
+    if (user?.profile) {
+      this.server.to(`live:${payload.streamId}`).emit('live:chat_message', {
+        id: crypto.randomUUID(),
+        user: {
+          id: user.id,
+          username: user.profile.username,
+          avatar: user.profile.avatar,
+        },
+        message: payload.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  @SubscribeMessage('live:heart')
+  async handleLiveHeart(
+    @MessageBody() payload: { streamId: string },
+    @ConnectedSocket() client: SocketWithAuth,
+  ) {
+    // Broadcast heart animation trigger
+    this.server.to(`live:${payload.streamId}`).emit('live:heart_received', {
+      userId: client.data.user.sub,
+    });
   }
 
   /**

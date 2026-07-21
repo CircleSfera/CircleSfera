@@ -37,6 +37,7 @@ import { FollowsModule } from './follows/follows.module.js';
 import { HealthModule } from './health/health.module.js';
 import { HighlightsModule } from './highlights/highlights.module.js';
 import { LikesModule } from './likes/likes.module.js';
+import { LiveModule } from './live/live.module.js';
 import { MaintenanceModule } from './maintenance/maintenance.module.js';
 import { MediaModule } from './media/media.module.js';
 import { MonetizationModule } from './monetization/monetization.module.js';
@@ -165,6 +166,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     SupportModule,
     ExperimentsModule,
     MaintenanceModule,
+    LiveModule,
   ],
   controllers: [AppController, CsrfController],
   providers: [

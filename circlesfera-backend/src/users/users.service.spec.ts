@@ -1,3 +1,4 @@
+import { getQueueToken } from '@nestjs/bullmq';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StripeService } from '../common/stripe/stripe.service.js';
@@ -26,12 +27,21 @@ describe('UsersService', () => {
     getIdentityVerificationSession: vi.fn(),
   };
 
+  const mockUsersQueue = {
+    add: vi.fn(),
+    getJob: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: StripeService, useValue: mockStripeService },
+        {
+          provide: getQueueToken('users-processing'),
+          useValue: mockUsersQueue,
+        },
       ],
     }).compile();
 

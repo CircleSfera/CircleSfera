@@ -1,3 +1,4 @@
+import { getQueueToken } from '@nestjs/bullmq';
 import {
   BadRequestException,
   ConflictException,
@@ -54,6 +55,11 @@ describe('AuthService', () => {
     sendPasswordResetEmail: vi.fn(),
   };
 
+  const mockUsersQueue = {
+    add: vi.fn(),
+    getJob: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -62,6 +68,10 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: EmailService, useValue: mockEmailService },
+        {
+          provide: getQueueToken('users-processing'),
+          useValue: mockUsersQueue,
+        },
       ],
     }).compile();
 
