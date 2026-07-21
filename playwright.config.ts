@@ -9,9 +9,16 @@ export default defineConfig({
   reporter: 'html',
   globalSetup: './e2e/global-setup.ts',
   use: {
-    baseURL: 'http://localhost:8080',
+    baseURL: process.env.BASE_URL || 'http://localhost:5173',
     trace: 'on-first-retry',
     viewport: { width: 1280, height: 720 },
+  },
+  webServer: {
+    command: 'npm run dev -- --port 5173',
+    cwd: './circlesfera-frontend',
+    url: 'http://localhost:5173',
+    reuseExistingServer: true,
+    timeout: 30000,
   },
   projects: [
     {
