@@ -7,6 +7,7 @@ import {
   MoreVertical,
   Phone,
   Send,
+  ShieldCheck,
   Smile,
   Trash2,
   Video,
@@ -770,8 +771,17 @@ export default function ChatWindow() {
               )}
 
               <div className="flex flex-col justify-center gap-0.5 min-w-0 flex-1">
-                <div className="font-bold text-white leading-tight text-xs md:text-[15px] group-hover:text-gray-200 transition-colors tracking-tight wrap-break-word">
-                  {chatInfo.name}
+                <div className="font-bold text-white leading-tight text-xs md:text-[15px] group-hover:text-gray-200 transition-colors tracking-tight wrap-break-word flex items-center gap-1.5">
+                  <span>{chatInfo.name}</span>
+                  {!chatInfo.isGroup && (
+                    <span
+                      title="Mensajería cifrada de extremo a extremo (E2EE)"
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold tracking-wider uppercase"
+                    >
+                      <ShieldCheck size={12} className="shrink-0" />
+                      <span className="hidden sm:inline">E2EE</span>
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs md:text-[12px] font-semibold flex flex-wrap items-center gap-x-1.5 gap-y-0.5 min-w-0 text-white/50">
                   {!chatInfo.isGroup && chatInfo.username && (
