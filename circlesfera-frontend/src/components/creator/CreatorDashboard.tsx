@@ -22,8 +22,6 @@ import type { PaginatedResponse } from '../../types';
 import PostInsightsModal from '../modals/PostInsightsModal';
 import CreatorHeroCard from './CreatorHeroCard';
 
-// ─── Sub-components ─────────────────────────────────────────────
-
 function SectionHeader({
   title,
   icon: Icon,
@@ -39,10 +37,10 @@ function SectionHeader({
   return (
     <div className="flex items-center justify-between mb-5">
       <div className="flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-lg bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20">
-          <Icon size={16} className="text-brand-primary" />
+        <div className="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20 text-brand-primary shadow-[0_0_15px_rgba(var(--brand-primary),0.15)]">
+          <Icon size={18} />
         </div>
-        <h3 className="text-white font-black text-sm uppercase tracking-wider">
+        <h3 className="text-white font-black text-base uppercase tracking-wider">
           {title}
         </h3>
       </div>
@@ -50,20 +48,18 @@ function SectionHeader({
         <button
           type="button"
           onClick={onSeeAll}
-          className="text-zinc-400 hover:text-white transition-colors text-xs font-black uppercase tracking-wide flex items-center gap-1 group"
+          className="text-gray-400 hover:text-white transition-colors text-xs font-black uppercase tracking-wide flex items-center gap-1 group"
         >
-          {seeAllLabel || t('creator.dashboard.see_all')}
+          {seeAllLabel || t('creator.dashboard.see_all', 'Ver todo')}
           <ChevronRight
-            size={12}
-            className="group-hover:translate-x-0.5 transition-transform"
+            size={14}
+            className="group-hover:translate-x-0.5 transition-transform text-brand-primary"
           />
         </button>
       )}
     </div>
   );
 }
-
-// ─── Main Component ─────────────────────────────────────────────
 
 export default function CreatorDashboard({
   onPromote,
@@ -88,7 +84,7 @@ export default function CreatorDashboard({
   });
 
   return (
-    <div className="space-y-12 pb-20">
+    <div className="space-y-8 pb-12">
       {/* Post Insights Modal */}
       {insightsPostId && (
         <PostInsightsModal
@@ -97,16 +93,16 @@ export default function CreatorDashboard({
         />
       )}
 
-      {/* 0. Hero Section (Moved here for better layout flow) */}
+      {/* Hero Overview Card */}
       <CreatorHeroCard stats={stats} chartData={chartData} />
 
-      {/* 1. Content Insights Section */}
+      {/* Content Performance Section */}
       <section>
         <SectionHeader
-          title={t('creator.dashboard.content_performance')}
+          title={t('creator.dashboard.content_performance', 'Rendimiento de Contenido')}
           icon={Zap}
           onSeeAll={() => onNavigate('content')}
-          seeAllLabel={t('creator.dashboard.see_all_content')}
+          seeAllLabel={t('creator.dashboard.see_all_content', 'Ver todo el contenido')}
         />
 
         {postsLoading ? (
@@ -114,7 +110,7 @@ export default function CreatorDashboard({
             {['sk-1', 'sk-2', 'sk-3', 'sk-4'].map((id) => (
               <div
                 key={id}
-                className="h-32 rounded-xl bg-white/5 animate-pulse"
+                className="h-32 rounded-2xl bg-white/5 animate-pulse border border-white/5"
               />
             ))}
           </div>
@@ -124,10 +120,10 @@ export default function CreatorDashboard({
               <motion.div
                 whileHover={{ scale: 1.01 }}
                 key={post.id}
-                className="glass-panel p-4 rounded-lg border border-white/5 flex items-center gap-5 hover:bg-white/5 transition-all cursor-pointer group/card"
+                className="bg-black/40 backdrop-blur-xl p-4 rounded-2xl border border-white/10 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer group/card shadow-lg"
                 onClick={() => setInsightsPostId(post.id)}
               >
-                <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-zinc-900 border border-white/5 text-zinc-800 flex items-center justify-center relative">
+                <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-black/60 border border-white/10 text-gray-400 flex items-center justify-center relative">
                   {post.media?.[0] ? (
                     <img
                       src={post.media[0].url}
@@ -145,41 +141,39 @@ export default function CreatorDashboard({
                       e.stopPropagation();
                       onPromote(post);
                     }}
-                    className="absolute inset-0 bg-brand-primary/20 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center justify-center hover:bg-brand-primary/40"
-                    title={t('creator.dashboard.promote_post')}
+                    className="absolute inset-0 bg-brand-primary/40 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center justify-center hover:bg-brand-primary/60"
+                    title={t('creator.dashboard.promote_post', 'Promocionar publicación')}
                   >
                     <Megaphone size={20} className="text-white" />
                   </button>
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-1.5">
                     <p className="text-white font-bold text-sm truncate">
-                      {post.caption || t('creator.dashboard.untitled_post')}
+                      {post.caption || t('creator.dashboard.untitled_post', 'Sin título')}
                     </p>
-                    <span className="text-zinc-400 text-xs font-black uppercase tracking-wide">
+                    <span className="text-brand-primary text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-brand-primary/10 border border-brand-primary/20 rounded-md">
                       {post.type}
                     </span>
                   </div>
 
-                  {/* Premium Performance Bar */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-black uppercase tracking-wide text-zinc-400 italic">
-                      <span>{t('creator.dashboard.performance')}</span>
-                      <span className="text-brand-primary">
-                        {t('creator.dashboard.vs_avg', {
-                          score: post.performanceScore || 0,
-                        })}
+                  {/* Performance Bar */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                      <span>Rendimiento</span>
+                      <span className="text-brand-primary font-black">
+                        {post.performanceScore || 0}% vs prom.
                       </span>
                     </div>
-                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{
                           width: `${Math.min(post.performanceScore || 0, 100)}%`,
                         }}
-                        transition={{ duration: 1.5, ease: 'easeOut' }}
-                        className="h-full bg-linear-to-r from-brand-primary to-purple-500 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.4)]"
+                        transition={{ duration: 1.2, ease: 'easeOut' }}
+                        className="h-full bg-linear-to-r from-brand-primary to-purple-500 rounded-full shadow-[0_0_10px_rgba(var(--brand-primary),0.4)]"
                       />
                     </div>
                   </div>
@@ -190,29 +184,29 @@ export default function CreatorDashboard({
         )}
       </section>
 
-      {/* 2. Quick Strategy & Tools */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* Quick Studio Tools & Audience */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Tool Cards */}
         <section className="lg:col-span-2 space-y-4">
           <SectionHeader
-            title={t('creator.dashboard.studio_management')}
+            title={t('creator.dashboard.studio_management', 'Herramientas del Studio')}
             icon={BarChart3}
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
               type="button"
               onClick={() => onNavigate('finance')}
-              className="glass-panel p-5 rounded-xl border border-white/10 bg-white/2 flex flex-col gap-4 hover:bg-white/10 hover:border-white/20 transition-all text-left group"
+              className="bg-black/40 backdrop-blur-xl p-5 rounded-2xl border border-white/10 flex flex-col gap-4 hover:bg-white/5 hover:border-white/20 transition-all text-left group shadow-lg"
             >
-              <div className="w-12 h-12 rounded-xl bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20 group-hover:scale-110 transition-transform">
-                <DollarSign size={24} className="text-brand-primary" />
+              <div className="w-12 h-12 rounded-xl bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20 group-hover:scale-110 transition-transform text-brand-primary">
+                <DollarSign size={24} />
               </div>
               <div>
-                <h4 className="text-white font-bold text-lg mb-1 tracking-tight">
-                  {t('creator.dashboard.finance_earnings')}
+                <h4 className="text-white font-black text-base mb-1 tracking-tight">
+                  {t('creator.dashboard.finance_earnings', 'Gestión de Ingresos')}
                 </h4>
-                <p className="text-zinc-400 text-sm leading-relaxed">
-                  {t('creator.dashboard.finance_desc')}
+                <p className="text-gray-400 text-xs leading-relaxed">
+                  {t('creator.dashboard.finance_desc', 'Consulta tus métricas de suscripciones, propinas y payouts.')}
                 </p>
               </div>
             </button>
@@ -220,29 +214,29 @@ export default function CreatorDashboard({
             <button
               type="button"
               onClick={() => onNavigate('ads')}
-              className="glass-panel p-5 rounded-xl border border-white/10 bg-white/2 flex flex-col gap-4 hover:bg-white/10 hover:border-white/20 transition-all text-left group"
+              className="bg-black/40 backdrop-blur-xl p-5 rounded-2xl border border-white/10 flex flex-col gap-4 hover:bg-white/5 hover:border-white/20 transition-all text-left group shadow-lg"
             >
-              <div className="w-12 h-12 rounded-xl bg-brand-secondary/10 flex items-center justify-center border border-brand-secondary/20 group-hover:scale-110 transition-transform">
-                <Megaphone size={24} className="text-brand-secondary" />
+              <div className="w-12 h-12 rounded-xl bg-brand-secondary/10 flex items-center justify-center border border-brand-secondary/20 group-hover:scale-110 transition-transform text-brand-secondary">
+                <Megaphone size={24} />
               </div>
               <div>
-                <h4 className="text-white font-bold text-lg mb-1 tracking-tight">
-                  {t('creator.dashboard.ads_promotions')}
+                <h4 className="text-white font-black text-base mb-1 tracking-tight">
+                  {t('creator.dashboard.ads_promotions', 'Promoción y Campañas')}
                 </h4>
-                <p className="text-zinc-400 text-sm leading-relaxed">
-                  {t('creator.dashboard.ads_desc')}
+                <p className="text-gray-400 text-xs leading-relaxed">
+                  {t('creator.dashboard.ads_desc', 'Impulsa tus publicaciones para llegar a más audiencia.')}
                 </p>
               </div>
             </button>
           </div>
         </section>
 
-        {/* Mini Audiencia Insights */}
+        {/* Audience Retention Gauge */}
         <section className="space-y-4">
-          <SectionHeader title={t('creator.dashboard.audience')} icon={Users} />
-          <div className="glass-panel p-5 rounded-xl border border-white/10 bg-white/2 flex flex-col items-center text-center">
+          <SectionHeader title={t('creator.dashboard.audience', 'Audiencia')} icon={Users} />
+          <div className="bg-black/40 backdrop-blur-xl p-5 rounded-2xl border border-white/10 flex flex-col items-center text-center shadow-lg">
             <div
-              className="relative w-32 h-32 mb-6"
+              className="relative w-32 h-32 mb-4"
               role="img"
               aria-label={t('creator.dashboard.retention_chart_aria', {
                 rate: stats?.insights.retentionRate || 0,
@@ -255,47 +249,44 @@ export default function CreatorDashboard({
                 <circle
                   cx="64"
                   cy="64"
-                  r="58"
+                  r="56"
                   stroke="currentColor"
-                  strokeWidth="12"
+                  strokeWidth="10"
                   fill="transparent"
                   className="text-white/5"
                 />
                 <motion.circle
                   cx="64"
                   cy="64"
-                  r="58"
+                  r="56"
                   stroke="currentColor"
-                  strokeWidth="12"
+                  strokeWidth="10"
                   fill="transparent"
-                  strokeDasharray={364}
-                  initial={{ strokeDashoffset: 364 }}
+                  strokeDasharray={351}
+                  initial={{ strokeDashoffset: 351 }}
                   animate={{
                     strokeDashoffset:
-                      364 * (1 - (stats?.insights.retentionRate || 0) / 100),
+                      351 * (1 - (stats?.insights.retentionRate || 0) / 100),
                   }}
-                  transition={{ duration: 2, ease: 'easeOut' }}
+                  transition={{ duration: 1.8, ease: 'easeOut' }}
                   className="text-brand-primary"
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-white font-black text-xl leading-none">
+                <span className="text-white font-black text-2xl leading-none">
                   {stats?.insights.retentionRate || 0}%
                 </span>
-                <span className="text-zinc-400 text-xs font-black uppercase tracking-tighter">
-                  {t('creator.dashboard.retention')}
+                <span className="text-gray-400 text-[10px] font-black uppercase tracking-wider mt-1">
+                  Retención
                 </span>
               </div>
             </div>
-            <p className="text-white font-medium text-sm mb-1">
-              {t('creator.dashboard.most_active_day', {
-                day: stats?.insights.bestDayToPost,
-              })}
+
+            <p className="text-white font-bold text-xs mb-1">
+              Mejor día: <span className="text-brand-primary">{stats?.insights.bestDayToPost || 'Lunes'}</span>
             </p>
-            <p className="text-zinc-400 text-xs font-bold uppercase tracking-wide">
-              {t('creator.dashboard.most_active_hour', {
-                hour: stats?.insights.bestHourToPost,
-              })}
+            <p className="text-gray-400 text-xs">
+              Hora pico: <span className="text-white font-bold">{stats?.insights.bestHourToPost || '20:00'}</span>
             </p>
           </div>
         </section>
