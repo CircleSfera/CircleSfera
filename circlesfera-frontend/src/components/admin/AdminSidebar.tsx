@@ -48,7 +48,7 @@ export type AdminTab =
 interface SearchGroup {
   label: string;
   icon: React.ElementType;
-  items: { id: AdminTab; label: string; icon: React.ElementType }[];
+  items: { id: AdminTab; label: string; icon: React.ElementType; badge?: string }[];
 }
 
 const GROUPS: SearchGroup[] = [
@@ -69,7 +69,7 @@ const GROUPS: SearchGroup[] = [
     icon: ShieldAlert,
     items: [
       { id: 'users', label: 'Usuarios', icon: Users },
-      { id: 'moderation', label: 'Cola AI', icon: ShieldAlert },
+      { id: 'moderation', label: 'Cola AI', icon: ShieldAlert, badge: 'AI' },
       { id: 'firewall', label: 'Escudo AI', icon: ShieldCheck },
       { id: 'posts', label: 'Publicaciones', icon: ImageIcon },
       { id: 'stories', label: 'Historias', icon: Clock },
@@ -103,83 +103,99 @@ interface Props {
 
 export default function AdminSidebar({ activeTab, onTabChange }: Props) {
   return (
-    <aside className="w-full lg:w-64 flex flex-col lg:h-[calc(100vh-5rem)] lg:sticky lg:top-6 overflow-hidden z-20">
-      {/* Brand & Back Link - Hidden on mobile to save vertical space, shown in header instead if needed */}
-      <div className="hidden lg:block px-3 mb-8 space-y-3">
-        <Link to="/" className="block">
-          <img src={logoSrc} alt="CircleSfera" className="h-7 w-auto" />
-        </Link>
+    <aside className="hidden lg:flex w-72 flex-col h-[calc(100vh-5rem)] sticky top-6 overflow-hidden z-20 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 shadow-2xl">
+      {/* Brand Header & Back to App */}
+      <div className="px-2 mb-6 space-y-3 pb-4 border-b border-white/10">
+        <div className="flex items-center justify-between">
+          <Link to="/" className="block">
+            <img src={logoSrc} alt="CircleSfera" className="h-7 w-auto" />
+          </Link>
+          <span className="text-[10px] font-black tracking-widest text-brand-primary uppercase px-2 py-0.5 bg-brand-primary/10 border border-brand-primary/20 rounded-md">
+            v2.4
+          </span>
+        </div>
         <Link
           to="/"
-          className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-white transition-colors group"
+          className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-white transition-colors group"
         >
           <ArrowLeft
-            size={12}
-            className="group-hover:-translate-x-1 transition-transform"
+            size={13}
+            className="group-hover:-translate-x-1 transition-transform text-brand-primary"
           />
-          Volver a la App
+          <span>Volver a CircleSfera</span>
         </Link>
       </div>
 
-      <div className="flex lg:flex-col overflow-x-auto lg:overflow-y-auto space-x-2 lg:space-x-0 lg:space-y-4 pb-4 lg:pb-0 lg:pr-2 no-scrollbar snap-x">
+      {/* Categories Navigation list */}
+      <div className="flex-1 overflow-y-auto space-y-6 pr-1 custom-scrollbar">
         {GROUPS.map((group) => (
-          <div
-            key={group.label}
-            className="flex lg:flex-col items-center lg:items-stretch lg:space-y-1.5 snap-start shrink-0"
-          >
-            <h3 className="hidden lg:flex px-3 text-xs font-black uppercase tracking-wide text-white/40 items-center gap-2 mb-1">
-              <group.icon size={11} className="opacity-50" />
-              {group.label}
+          <div key={group.label} className="space-y-1.5">
+            <h3 className="px-3 text-[11px] font-black uppercase tracking-wider text-gray-400 flex items-center gap-2 mb-2">
+              <group.icon size={13} className="text-brand-primary opacity-80" />
+              <span>{group.label}</span>
             </h3>
-            <div className="flex lg:flex-col gap-2 lg:gap-1">
-              {group.items.map((item) => (
-                <button
-                  type="button"
-                  key={item.id}
-                  onClick={() => onTabChange(item.id)}
-                  className={clsx(
-                    'flex items-center justify-center lg:justify-between px-4 py-2.5 lg:px-3 lg:py-2.5 rounded-full lg:rounded-xl text-[12px] lg:text-[13px] font-bold transition-all group whitespace-nowrap border',
-                    activeTab === item.id
-                      ? 'bg-white/10 text-white border-white/20 shadow-lg'
-                      : 'bg-white/5 text-white/50 border-white/5 hover:bg-white/10 hover:text-white',
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <item.icon
-                      size={16}
-                      className={clsx(
-                        'transition-colors',
-                        activeTab === item.id
-                          ? 'text-white'
-                          : 'text-white/40 group-hover:text-white/80',
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const isSelected = activeTab === item.id;
+                const ItemIcon = item.icon;
+                return (
+                  <button
+                    type="button"
+                    key={item.id}
+                    onClick={() => onTabChange(item.id)}
+                    className={clsx(
+                      'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all relative group border text-left',
+                      isSelected
+                        ? 'bg-linear-to-r from-brand-primary/20 via-brand-primary/10 to-transparent text-white border-brand-primary/30 shadow-[0_0_15px_rgba(var(--brand-primary),0.15)]'
+                        : 'bg-transparent text-gray-400 border-transparent hover:bg-white/5 hover:text-white hover:border-white/5',
+                    )}
+                  >
+                    <div className="flex items-center gap-3 relative z-10">
+                      <ItemIcon
+                        size={16}
+                        className={clsx(
+                          'transition-colors',
+                          isSelected
+                            ? 'text-brand-primary'
+                            : 'text-gray-400 group-hover:text-white',
+                        )}
+                      />
+                      <span>{item.label}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 relative z-10">
+                      {item.badge && (
+                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary border border-brand-primary/30">
+                          {item.badge}
+                        </span>
                       )}
-                    />
-                    <span>{item.label}</span>
-                  </div>
-                  {activeTab === item.id && (
-                    <motion.div
-                      layoutId="active-indicator"
-                      className="hidden lg:block ml-2"
-                    >
-                      <ChevronRight size={14} className="text-white/50" />
-                    </motion.div>
-                  )}
-                </button>
-              ))}
+                      {isSelected && (
+                        <motion.div layoutId="sidebar-active-indicator">
+                          <ChevronRight size={14} className="text-brand-primary" />
+                        </motion.div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         ))}
       </div>
 
-      <div className="hidden lg:block pt-4 mt-4 border-t border-white/5">
-        <div className="p-4 glass-panel rounded-lg border border-white/5 bg-linear-to-br from-brand-primary/5 to-transparent">
-          <p className="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">
-            Status
-          </p>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-xs text-white font-bold">Sistema Online</span>
+      {/* System Status Footer Card */}
+      <div className="pt-4 mt-4 border-t border-white/10">
+        <div className="p-3.5 bg-linear-to-br from-brand-primary/10 via-black/40 to-transparent rounded-xl border border-white/10 relative overflow-hidden">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+              Estado de Servidores
+            </span>
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+            </span>
           </div>
+          <p className="text-xs text-white font-black">Todos los nodos activos</p>
         </div>
       </div>
     </aside>

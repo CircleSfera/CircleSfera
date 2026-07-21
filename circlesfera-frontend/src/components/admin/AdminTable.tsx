@@ -27,16 +27,16 @@ export function Table({
   isEmpty,
 }: TableProps) {
   return (
-    <div className="relative w-full">
-      <div className="w-full pb-2 overflow-x-auto no-scrollbar">
-        <table className="w-full text-left border-collapse min-w-[800px]">
+    <div className="relative w-full overflow-hidden rounded-2xl border border-white/10 bg-black/40 backdrop-blur-2xl shadow-2xl">
+      <div className="w-full overflow-x-auto custom-scrollbar">
+        <table className="w-full text-left border-collapse min-w-187.5">
           <thead className="bg-white/5 border-b border-white/10">
             <tr>
               {headers.map((h, idx) => (
                 <th
                   key={typeof h === 'string' ? h : idx}
                   className={clsx(
-                    'px-2 py-1 text-xs font-black uppercase tracking-wide text-gray-500 whitespace-normal',
+                    'px-4 py-3 text-[11px] font-black uppercase tracking-wider text-gray-400 whitespace-nowrap',
                     columnWidths?.[idx],
                   )}
                 >
@@ -45,51 +45,44 @@ export function Table({
               ))}
             </tr>
           </thead>
-          <tbody className="relative min-h-[200px]">
+          <tbody className="divide-y divide-white/5 font-medium text-xs text-gray-200">
             {loading ? (
               ['s-1', 's-2', 's-3', 's-4', 's-5'].map((rowId) => (
                 <tr
                   key={rowId}
-                  className="border-b border-white/5 animate-pulse"
+                  className="animate-pulse hover:bg-white/5 transition-colors"
                 >
                   {headers.map((h) => (
-                    <td key={`${rowId}-${h}`} className="px-4 py-6">
-                      <div className="h-4 bg-white/5 rounded-lg w-full max-w-[120px]" />
+                    <td key={`${rowId}-${h}`} className="px-4 py-5">
+                      <div className="h-4 bg-white/10 rounded-md w-full max-w-35" />
                     </td>
                   ))}
                 </tr>
               ))
             ) : isEmpty ? (
               <tr>
-                <td colSpan={headers.length} className="py-24">
+                <td colSpan={headers.length} className="py-20">
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col items-center gap-4 text-gray-500"
+                    className="flex flex-col items-center gap-3 text-gray-500"
                   >
-                    <div className="w-16 h-16 rounded-xl bg-white/5 flex items-center justify-center text-gray-600">
-                      <Ghost size={32} />
+                    <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400">
+                      <Ghost size={28} />
                     </div>
                     <div className="text-center">
-                      <p className="font-bold text-white mb-1">
-                        No hay resultados
+                      <p className="font-bold text-white text-sm mb-1">
+                        No hay datos disponibles
                       </p>
-                      <p className="text-xs max-w-[200px]">
-                        No hemos encontrado nada que coincida con tu búsqueda.
+                      <p className="text-xs text-gray-400 max-w-xs">
+                        No se encontraron registros en esta vista con los filtros seleccionados.
                       </p>
                     </div>
                   </motion.div>
                 </td>
               </tr>
             ) : (
-              <AnimatePresence mode="popLayout">
-                {/* 
-                  IMPORTANT: children should only contain <tr> elements.
-                  The responsive cards are now handled outside or by wrapping the whole table.
-                  To fix the user's report, we make the table scrollable horizontally on mobile.
-                */}
-                {children}
-              </AnimatePresence>
+              <AnimatePresence mode="popLayout">{children}</AnimatePresence>
             )}
           </tbody>
         </table>
@@ -252,7 +245,7 @@ export function FilterDropdown({
       id="admin-filter-select"
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="min-w-[140px]"
+      className="min-w-35"
       aria-label={label}
     >
       {options.map((opt) => (
