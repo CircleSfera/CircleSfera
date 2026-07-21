@@ -46,7 +46,7 @@ describe('EditsService', () => {
         mediaUrl: 'https://cdn.example.com/photo.jpg',
         mediaType: 'image',
         name: 'My Edit Project',
-        state: '{"filter":"vintage"}',
+        state: { filter: 'vintage' },
       };
 
       mockPrismaService.editProject.create.mockResolvedValue({
