@@ -307,9 +307,14 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
     onError: () => onToast(t('creator.promotions.error_cancel'), 'error'),
   });
 
-  const activePromos = data?.data?.filter((p) => p.status === 'active') || [];
+  const activePromos =
+    data?.data?.filter((p) =>
+      ['ACTIVE', 'PENDING', 'active', 'pending'].includes(p.status),
+    ) || [];
   const completedPromos =
-    data?.data?.filter((p) => p.status === 'completed') || [];
+    data?.data?.filter((p) =>
+      ['COMPLETED', 'CANCELLED', 'completed', 'cancelled'].includes(p.status),
+    ) || [];
 
   const handleRepeat = (promo: CreatorPromotion) => {
     creatorApi
@@ -476,7 +481,42 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                         </div>
 
                         {/* Admin Action */}
-                        <div className="shrink-0 flex items-center md:justify-end">
+                        <div className="shrink-0 flex flex-col items-stretch md:items-end gap-2">
+                          <Button
+                            variant="secondary"
+                            onClick={() => {
+                              const next = new Date(promo.endDate);
+                              next.setDate(next.getDate() + 1);
+                              creatorApi
+                                .updatePromotion(promo.id, {
+                                  endDate: next.toISOString(),
+                                })
+                                .then(() => {
+                                  queryClient.invalidateQueries({
+                                    queryKey: ['creator', 'promotions'],
+                                  });
+                                  onToast(
+                                    t(
+                                      'creator.promotions.extended',
+                                      'Campaign extended by 1 day',
+                                    ),
+                                    'success',
+                                  );
+                                })
+                                .catch(() =>
+                                  onToast(
+                                    t(
+                                      'creator.promotions.error_edit',
+                                      'Could not update campaign',
+                                    ),
+                                    'error',
+                                  ),
+                                );
+                            }}
+                            className="w-full md:w-auto"
+                          >
+                            {t('creator.promotions.extend', '+1 day')}
+                          </Button>
                           {confirmCancel === promo.id ? (
                             <div className="flex items-center gap-2 w-full md:w-auto">
                               <Button

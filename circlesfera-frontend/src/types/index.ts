@@ -34,6 +34,10 @@ export type Post = IPost & {
   priceCents?: number | null;
   isLocked?: boolean;
   recommendationReason?: string;
+  recommendationSignals?: string[];
+  shouldBlurSensitive?: boolean;
+  poll?: { id: string } | null;
+  qnaBox?: { id: string } | null;
 };
 export type PostMedia = IPostMedia;
 export type Comment = IComment & {
@@ -47,7 +51,10 @@ export type Comment = IComment & {
   voiceDuration?: number | null;
   voiceWaveform?: unknown;
 };
-export type Story = IStory;
+export type Story = IStory & {
+  poll?: { id: string } | null;
+  qnaBox?: { id: string } | null;
+};
 export type Collection = ICollection;
 export type Audio = IAudio;
 export type Purchase = IPurchase;

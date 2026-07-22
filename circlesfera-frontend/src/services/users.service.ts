@@ -26,4 +26,13 @@ export const usersApi = {
     const response = await apiClient.post('/users/identity-session/sync');
     return response.data;
   },
+
+  getSettings: () => apiClient.get('/users/me/settings'),
+
+  updateSettings: (data: {
+    pushNotifications?: boolean;
+    emailNotifications?: boolean;
+    contentPreference?: 'GENERAL' | 'MATURE';
+    blurSensitiveContent?: boolean;
+  }) => apiClient.put('/users/me/settings', data),
 };
