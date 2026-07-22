@@ -1,3 +1,4 @@
+import { InjectQueue } from '@nestjs/bullmq';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
@@ -5,6 +6,7 @@ import {
   SubscriptionStatus,
   Visibility,
 } from '@prisma/client';
+import type { Queue } from 'bullmq';
 import type { Cache } from 'cache-manager';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
@@ -18,7 +20,30 @@ export class ProfilesService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    @InjectQueue('ai-processing') private readonly aiQueue: Queue,
   ) {}
+
+  private buildProfileEmbeddingText(profile: {
+    username: string;
+    fullName?: string | null;
+    bio?: string | null;
+  }) {
+    return [profile.username, profile.fullName, profile.bio]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+  }
+
+  private async enqueueProfileEmbedding(
+    profileId: string,
+    text: string,
+  ): Promise<void> {
+    if (!text) return;
+    await this.aiQueue.add('generate-profile-embedding', {
+      profileId,
+      text,
+    });
+  }
 
   /**
    * Get a public profile by username. Cached for 10 minutes.
@@ -246,6 +271,17 @@ export class ProfilesService {
       accountType: updated.user?.accountType,
       verificationLevel: updated.user?.verificationLevel,
     };
+
+    const embeddingText = this.buildProfileEmbeddingText(updated);
+    if (
+      dto.username !== undefined ||
+      dto.fullName !== undefined ||
+      dto.bio !== undefined
+    ) {
+      await this.enqueueProfileEmbedding(updated.id, embeddingText).catch(
+        () => undefined,
+      );
+    }
 
     // Invalidate cache
     await this.cacheManager.del(`profile:${profile.username}`);

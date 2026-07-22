@@ -1,3 +1,4 @@
+import { getQueueToken } from '@nestjs/bullmq';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -25,12 +26,17 @@ describe('ProfilesService', () => {
     del: vi.fn(),
   };
 
+  const mockAiQueue = {
+    add: vi.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProfilesService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: CACHE_MANAGER, useValue: mockCacheManager },
+        { provide: getQueueToken('ai-processing'), useValue: mockAiQueue },
       ],
     }).compile();
 
