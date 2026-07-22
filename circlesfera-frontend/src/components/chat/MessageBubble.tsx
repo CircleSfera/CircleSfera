@@ -115,8 +115,8 @@ export default memo(function MessageBubble({
           <div
             className={`px-5 py-2 text-[15px] leading-relaxed relative transition-all duration-300 ${
               isMe
-                ? `bg-linear-to-br from-brand-primary to-brand-secondary text-white shadow-xl shadow-brand-primary/20 ${isSeq ? 'rounded-[24px]' : 'rounded-[24px] rounded-tr-[4px]'}`
-                : `glass-panel border border-white/10 text-white shadow-xl shadow-black/40 ${isSeq ? 'rounded-[24px]' : 'rounded-[24px] rounded-tl-[4px]'}`
+                ? `bg-linear-to-br from-brand-primary to-brand-secondary text-white shadow-xl shadow-brand-primary/20 ${isSeq ? 'rounded-3xl' : 'rounded-3xl rounded-tr-sm'}`
+                : `glass-panel border border-white/10 text-white shadow-xl shadow-black/40 ${isSeq ? 'rounded-3xl' : 'rounded-3xl rounded-tl-sm'}`
             } ${isSeq ? 'mt-1' : 'mt-3'}`}
           >
             {/* Story Reply Preview */}
@@ -251,7 +251,7 @@ export default memo(function MessageBubble({
                       aria-hidden="true"
                       viewBox="0 0 24 24"
                       fill="none"
-                      className="w-[14px] h-[14px] text-blue-300 drop-shadow-[0_0_2px_rgba(147,197,253,0.5)]"
+                      className="w-3.5 h-3.5 text-blue-300 drop-shadow-[0_0_2px_rgba(147,197,253,0.5)]"
                     >
                       <path
                         d="M4 12L9 17L20 6"
@@ -274,7 +274,7 @@ export default memo(function MessageBubble({
                       aria-hidden="true"
                       viewBox="0 0 24 24"
                       fill="none"
-                      className="w-[14px] h-[14px] opacity-60"
+                      className="w-3.5 h-3.5 opacity-60"
                     >
                       <path
                         d="M5 13L9 17L19 7"

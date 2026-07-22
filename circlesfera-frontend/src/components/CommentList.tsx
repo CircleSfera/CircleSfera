@@ -357,7 +357,7 @@ export default function CommentList({
         className={
           isDetailMode
             ? 'shrink-0 border-t border-white/10'
-            : 'mt-6 pt-4 border-t border-white/10 sticky bottom-[56px] lg:bottom-0 bg-black/95 backdrop-blur-md p-4 lg:-mx-4 rounded-t-xl lg:rounded-b-2xl z-20 shadow-2xl'
+            : 'mt-6 pt-4 border-t border-white/10 sticky bottom-14 lg:bottom-0 bg-black/95 backdrop-blur-md p-4 lg:-mx-4 rounded-t-xl lg:rounded-b-2xl z-20 shadow-2xl'
         }
       >
         {isDetailMode && actionsComponent && (
