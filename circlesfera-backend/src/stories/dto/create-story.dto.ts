@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
@@ -23,6 +24,7 @@ export class CreateStoryDto {
   mediaType?: string = 'image';
 
   @IsOptional()
+  @IsBoolean()
   isCloseFriendsOnly?: boolean;
 
   @IsString()
@@ -36,4 +38,8 @@ export class CreateStoryDto {
   @IsNumber()
   @IsOptional()
   priceCents?: number;
+
+  @IsOptional()
+  @Type(() => Date)
+  scheduledAt?: Date;
 }
