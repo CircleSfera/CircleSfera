@@ -90,7 +90,7 @@ const CommentItem = ({
                 <div className="mt-1">
                   <VoicePlayer
                     voiceUrl={comment.voiceUrl}
-                    durationSeconds={comment.voiceDuration}
+                    durationSeconds={comment.voiceDuration ?? undefined}
                     waveform={comment.voiceWaveform as number[] | undefined}
                   />
                 </div>

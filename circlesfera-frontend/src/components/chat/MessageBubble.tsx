@@ -4,8 +4,8 @@ import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStoryStore } from '../../stores/storyStore';
 import type { Message } from '../../types';
-import UserAvatar from '../UserAvatar';
 import { VoicePlayer } from '../audio/VoicePlayer';
+import UserAvatar from '../UserAvatar';
 import AudioPlayer from './AudioPlayer';
 import SharedPost from './SharedPost';
 
