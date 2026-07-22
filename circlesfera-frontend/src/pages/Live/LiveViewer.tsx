@@ -4,18 +4,34 @@ import {
   RoomAudioRenderer,
   VideoConference,
 } from '@livekit/components-react';
-import { Heart, Send, X } from 'lucide-react';
+import { Eye, Heart, Send, X } from 'lucide-react';
+import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import CoHostInviteBanner from '../../components/live/CoHostInviteBanner';
+import LivePinnedComment, {
+  type PinnedCommentData,
+} from '../../components/live/LivePinnedComment';
 import { apiClient as api } from '../../services/api';
 import { useSocketStore } from '../../stores/socketStore';
+
+const REACTION_EMOJIS = ['🔥', '❤️', '👏', '🚀', '⭐'];
+
+interface FloatingReaction {
+  id: string;
+  emoji: string;
+  x: number;
+}
 
 export default function LiveViewer() {
   const { streamId } = useParams<{ streamId: string }>();
   const [token, setToken] = useState('');
   const [coHostToken, setCoHostToken] = useState<string | null>(null);
   const [coHostStreamId, setCoHostStreamId] = useState<string | null>(null);
+  const [viewerCount, setViewerCount] = useState<number>(1);
+  const [pinnedComment, setPinnedComment] = useState<PinnedCommentData | null>(
+    null,
+  );
   const [pendingInvite, setPendingInvite] = useState<{
     streamId: string;
     streamTitle?: string | null;
@@ -23,7 +39,7 @@ export default function LiveViewer() {
   } | null>(null);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [messageInput, setMessageInput] = useState('');
-  const [hearts, setHearts] = useState<{ id: string; x: number }[]>([]);
+  const [reactions, setReactions] = useState<FloatingReaction[]>([]);
   const navigate = useNavigate();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -44,6 +60,12 @@ export default function LiveViewer() {
     if (!socket) return;
     socket.emit('live:join', { streamId });
 
+    socket.on('live:viewer_count_update', (data: { viewerCount: number }) => {
+      if (typeof data?.viewerCount === 'number') {
+        setViewerCount(data.viewerCount);
+      }
+    });
+
     socket.on('live:chat_message', (msg: any) => {
       setChatMessages((prev) => [...prev.slice(-49), msg]); // Keep last 50
       setTimeout(
@@ -52,13 +74,29 @@ export default function LiveViewer() {
       );
     });
 
-    socket.on('live:heart_received', () => {
-      const id = Math.random().toString(36).substr(2, 9);
-      const x = Math.random() * 40 - 20; // Random X offset for animation
-      setHearts((prev) => [...prev, { id, x }]);
+    socket.on('live:comment_pinned', (data: PinnedCommentData) => {
+      setPinnedComment(data);
+    });
+
+    socket.on('live:comment_unpinned', () => {
+      setPinnedComment(null);
+    });
+
+    const triggerFloatingReaction = (emoji: string) => {
+      const id = Math.random().toString(36).substring(2, 9);
+      const x = Math.random() * 50 - 25;
+      setReactions((prev) => [...prev, { id, emoji, x }]);
       setTimeout(() => {
-        setHearts((prev) => prev.filter((h) => h.id !== id));
+        setReactions((prev) => prev.filter((r) => r.id !== id));
       }, 2000);
+    };
+
+    socket.on('live:heart_received', (data: any) => {
+      triggerFloatingReaction(data?.reaction || '❤️');
+    });
+
+    socket.on('live:reaction_received', (data: any) => {
+      triggerFloatingReaction(data?.reaction || '🔥');
     });
 
     socket.on('live:cohost_invite', (data: any) => {
@@ -67,8 +105,12 @@ export default function LiveViewer() {
 
     return () => {
       socket.emit('live:leave', { streamId });
+      socket.off('live:viewer_count_update');
       socket.off('live:chat_message');
+      socket.off('live:comment_pinned');
+      socket.off('live:comment_unpinned');
       socket.off('live:heart_received');
+      socket.off('live:reaction_received');
       socket.off('live:cohost_invite');
     };
   }, [streamId, navigate]);
@@ -82,20 +124,27 @@ export default function LiveViewer() {
     if (!messageInput.trim() || !activeStreamId) return;
     const socket = useSocketStore.getState().socket;
     if (!socket) return;
-    socket.emit('live:chat', { streamId: activeStreamId, message: messageInput });
+    socket.emit('live:chat', {
+      streamId: activeStreamId,
+      message: messageInput,
+    });
     setMessageInput('');
   };
 
-  const handleDoubleTap = () => {
+  const sendQuickReaction = (emoji: string) => {
     if (!activeStreamId) return;
     const socket = useSocketStore.getState().socket;
     if (!socket) return;
-    socket.emit('live:heart', { streamId: activeStreamId });
+    socket.emit('live:send_reaction', { streamId: activeStreamId, reaction: emoji });
+  };
+
+  const handleDoubleTap = () => {
+    sendQuickReaction('❤️');
   };
 
   if (activeToken === '') {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-black text-white font-bold">
         Conectando al directo...
       </div>
     );
@@ -108,18 +157,26 @@ export default function LiveViewer() {
     <div
       role="button"
       tabIndex={0}
-      className="flex h-screen flex-col bg-black relative"
+      className="flex h-screen flex-col bg-black relative select-none"
       onDoubleClick={handleDoubleTap}
       onKeyDown={(e) => e.key === 'Enter' && handleDoubleTap()}
     >
-      <div className="absolute top-4 left-4 z-50">
+      {/* Top Header Overlay */}
+      <div className="absolute top-4 left-4 right-4 z-50 flex items-center justify-between pointer-events-auto">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="p-2 bg-black/50 rounded-full text-white"
+          className="p-2 bg-black/60 hover:bg-black/80 rounded-full text-white backdrop-blur-md transition-all"
         >
           <X className="w-6 h-6" />
         </button>
+
+        {/* Live Viewer Badge */}
+        <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-black/60 border border-white/10 rounded-full backdrop-blur-md text-xs font-bold text-white shadow-lg">
+          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          <Eye className="w-3.5 h-3.5 text-gray-300 ml-1" />
+          <span>{viewerCount}</span>
+        </div>
       </div>
 
       {/* Co-Host Invite Banner */}
@@ -135,8 +192,8 @@ export default function LiveViewer() {
 
       <div className="flex-1 overflow-hidden relative">
         <LiveKitRoom
-          video={!!coHostToken} // Publish video only when co-host
-          audio={!!coHostToken} // Publish audio only when co-host
+          video={!!coHostToken}
+          audio={!!coHostToken}
           token={activeToken}
           serverUrl={serverUrl}
           data-lk-theme="default"
@@ -148,48 +205,77 @@ export default function LiveViewer() {
         </LiveKitRoom>
       </div>
 
-      {/* Floating Hearts Overlay */}
-      <div className="pointer-events-none absolute bottom-32 right-8 top-0 flex w-16 flex-col-reverse items-center justify-start overflow-hidden pb-4">
-        {hearts.map((heart) => (
+      {/* Floating Reactions Overlay */}
+      <div className="pointer-events-none absolute bottom-36 right-8 top-16 flex w-20 flex-col-reverse items-center justify-start overflow-hidden pb-4 z-40">
+        {reactions.map((r) => (
           <div
-            key={heart.id}
-            className="animate-float-up absolute bottom-0 opacity-0"
-            style={{ transform: `translateX(${heart.x}px)` }}
+            key={r.id}
+            className="animate-float-up absolute bottom-0 opacity-0 text-3xl drop-shadow-lg"
+            style={{ transform: `translateX(${r.x}px)` }}
           >
-            <Heart className="h-8 w-8 fill-red-500 text-red-500" />
+            {r.emoji === '❤️' ? (
+              <Heart className="h-8 w-8 fill-red-500 text-red-500" />
+            ) : (
+              <span>{r.emoji}</span>
+            )}
           </div>
         ))}
       </div>
 
-      {/* Chat Overlay */}
-      <div className="absolute bottom-0 left-0 right-0 h-64 bg-linear-to-t from-black/80 to-transparent p-4 flex flex-col justify-end z-40">
-        <div className="overflow-y-auto max-h-48 mb-2 space-y-2 no-scrollbar">
+      {/* Chat & Interactivity Overlay */}
+      <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/90 via-black/50 to-transparent p-4 flex flex-col justify-end z-40">
+        {/* Pinned Comment Banner */}
+        <LivePinnedComment pinnedComment={pinnedComment} />
+
+        {/* Live Chat Messages */}
+        <div className="overflow-y-auto max-h-44 mb-3 space-y-2 no-scrollbar">
           {chatMessages.map((msg) => (
-            <div key={msg.id} className="text-white text-sm">
-              <span className="font-bold opacity-80">
+            <div
+              key={msg.id}
+              className="text-white text-sm bg-black/30 backdrop-blur-xs px-2.5 py-1 rounded-xl w-fit max-w-[85%]"
+            >
+              <span className="font-bold text-blue-300">
                 {msg.user.username}:{' '}
               </span>
-              <span>{msg.message}</span>
+              <span className="text-gray-100">{msg.message}</span>
             </div>
           ))}
           <div ref={chatEndRef} />
         </div>
 
-        <form onSubmit={handleSend} className="flex gap-2 items-center">
-          <input
-            type="text"
-            placeholder="Escribe un comentario..."
-            value={messageInput}
-            onChange={(e) => setMessageInput(e.target.value)}
-            className="flex-1 rounded-full bg-white/20 px-4 py-2 text-sm text-white placeholder-white/50 outline-none backdrop-blur-md"
-          />
-          <button
-            type="submit"
-            className="rounded-full bg-brand-primary p-2 text-white"
-          >
-            <Send className="h-5 w-5" />
-          </button>
-        </form>
+        {/* Input & Quick Reactions */}
+        <div className="flex flex-col gap-2">
+          <form onSubmit={handleSend} className="flex gap-2 items-center">
+            <input
+              type="text"
+              placeholder="Escribe un comentario..."
+              value={messageInput}
+              onChange={(e) => setMessageInput(e.target.value)}
+              className="flex-1 rounded-full bg-white/15 px-4 py-2 text-sm text-white placeholder-white/50 outline-none backdrop-blur-md border border-white/10 focus:border-accent-blue/50 transition-all"
+            />
+            <button
+              type="submit"
+              className="rounded-full bg-accent-blue p-2.5 text-white hover:bg-accent-blue/90 active:scale-95 transition-all shadow-lg shrink-0"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </form>
+
+          {/* Quick Reaction Bar */}
+          <div className="flex items-center justify-end space-x-1.5 pt-1">
+            {REACTION_EMOJIS.map((emoji) => (
+              <button
+                type="button"
+                key={emoji}
+                onClick={() => sendQuickReaction(emoji)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 flex items-center justify-center text-base transition-all backdrop-blur-md border border-white/5"
+                title={`Enviar ${emoji}`}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <style>{`
@@ -198,8 +284,8 @@ export default function LiveViewer() {
         }
         @keyframes floatUp {
           0% { transform: translateY(0) scale(0.5); opacity: 0; }
-          20% { transform: translateY(-20px) scale(1.2); opacity: 1; }
-          100% { transform: translateY(-150px) scale(1); opacity: 0; }
+          20% { transform: translateY(-20px) scale(1.3); opacity: 1; }
+          100% { transform: translateY(-160px) scale(1); opacity: 0; }
         }
       `}</style>
     </div>

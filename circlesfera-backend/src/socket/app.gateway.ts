@@ -203,23 +203,18 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       payload.reaction,
     );
 
-    // Notify recipient
-    this.server.to(`user:${payload.recipientId}`).emit('message_reaction', {
+    const eventPayload = {
       messageId: payload.messageId,
       userId: client.data.user.sub,
-      reaction: payload.reaction,
+      reaction: reactionRecord.reaction,
       id: reactionRecord.id,
-    });
+    };
 
-    // Notify sender back (so they see it confirmed/updated if needed, though optimistic UI handles it)
-    // Actually, usually we emit to the conversation room. But here we seem to be using user:ID rooms.
-    // So let's emit to sender too.
-    this.server.to(`user:${client.data.user.sub}`).emit('message_reaction', {
-      messageId: payload.messageId,
-      userId: client.data.user.sub,
-      reaction: payload.reaction,
-      id: reactionRecord.id,
-    });
+    // Notify recipient
+    this.server.to(`user:${payload.recipientId}`).emit('message_reaction', eventPayload);
+
+    // Notify sender back
+    this.server.to(`user:${client.data.user.sub}`).emit('message_reaction', eventPayload);
   }
 
   @SubscribeMessage('mark_read')
@@ -335,9 +330,23 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     await client.join(`live:${payload.streamId}`);
 
-    // Optionally emit viewer count update or joined event
+    // Update DB viewer count & broadcast
+    const updatedStream = await this.prisma.liveStream.update({
+      where: { id: payload.streamId },
+      data: { viewerCount: { increment: 1 } },
+      select: { viewerCount: true },
+    }).catch(() => null);
+
+    const count = updatedStream?.viewerCount ?? 1;
+
     this.server.to(`live:${payload.streamId}`).emit('live:viewer_joined', {
       userId: client.data.user.sub,
+      viewerCount: count,
+    });
+
+    this.server.to(`live:${payload.streamId}`).emit('live:viewer_count_update', {
+      streamId: payload.streamId,
+      viewerCount: count,
     });
   }
 
@@ -348,8 +357,22 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     await client.leave(`live:${payload.streamId}`);
 
+    const updatedStream = await this.prisma.liveStream.update({
+      where: { id: payload.streamId },
+      data: { viewerCount: { decrement: 1 } },
+      select: { viewerCount: true },
+    }).catch(() => null);
+
+    const count = Math.max(0, updatedStream?.viewerCount ?? 0);
+
     this.server.to(`live:${payload.streamId}`).emit('live:viewer_left', {
       userId: client.data.user.sub,
+      viewerCount: count,
+    });
+
+    this.server.to(`live:${payload.streamId}`).emit('live:viewer_count_update', {
+      streamId: payload.streamId,
+      viewerCount: count,
     });
   }
 
@@ -377,14 +400,55 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage('live:pin_comment')
+  async handleLivePinComment(
+    @MessageBody()
+    payload: {
+      streamId: string;
+      commentId: string;
+      message: string;
+      username: string;
+      avatar?: string;
+    },
+  ) {
+    this.server.to(`live:${payload.streamId}`).emit('live:comment_pinned', {
+      commentId: payload.commentId,
+      message: payload.message,
+      username: payload.username,
+      avatar: payload.avatar,
+      pinnedAt: new Date().toISOString(),
+    });
+  }
+
+  @SubscribeMessage('live:unpin_comment')
+  async handleLiveUnpinComment(
+    @MessageBody() payload: { streamId: string },
+  ) {
+    this.server.to(`live:${payload.streamId}`).emit('live:comment_unpinned', {
+      streamId: payload.streamId,
+    });
+  }
+
   @SubscribeMessage('live:heart')
   async handleLiveHeart(
-    @MessageBody() payload: { streamId: string },
+    @MessageBody() payload: { streamId: string; reaction?: string },
     @ConnectedSocket() client: SocketWithAuth,
   ) {
-    // Broadcast heart animation trigger
+    const reaction = payload.reaction || '❤️';
     this.server.to(`live:${payload.streamId}`).emit('live:heart_received', {
       userId: client.data.user.sub,
+      reaction,
+    });
+  }
+
+  @SubscribeMessage('live:send_reaction')
+  async handleLiveSendReaction(
+    @MessageBody() payload: { streamId: string; reaction: string },
+    @ConnectedSocket() client: SocketWithAuth,
+  ) {
+    this.server.to(`live:${payload.streamId}`).emit('live:reaction_received', {
+      userId: client.data.user.sub,
+      reaction: payload.reaction || '🔥',
     });
   }
 

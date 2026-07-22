@@ -55,6 +55,17 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
     };
   }, [voiceUrl]);
 
+  const handleBarClick = (idx: number) => {
+    if (!duration || duration <= 0) return;
+    const targetPercent = idx / bars.length;
+    const targetTime = targetPercent * duration;
+
+    if (audioRef.current) {
+      audioRef.current.currentTime = targetTime;
+      setCurrentTime(targetTime);
+    }
+  };
+
   const togglePlay = () => {
     if (!audioRef.current) return;
 
@@ -62,6 +73,7 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
+      audioRef.current.playbackRate = speeds[speedIndex];
       audioRef.current
         .play()
         .then(() => setIsPlaying(true))
@@ -87,11 +99,11 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="flex items-center space-x-3 p-2.5 bg-white/5 border border-white/10 rounded-2xl max-w-xs sm:max-w-sm">
+    <div className="flex items-center space-x-3 p-2.5 bg-white/5 border border-white/10 rounded-2xl max-w-xs sm:max-w-sm select-none">
       <button
         type="button"
         onClick={togglePlay}
-        className="w-9 h-9 rounded-full bg-accent-blue text-white flex items-center justify-center hover:scale-105 transition-transform shrink-0 shadow-md"
+        className="w-9 h-9 rounded-full bg-accent-blue text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shrink-0 shadow-md"
       >
         {isPlaying ? (
           <Pause className="w-4 h-4 fill-white" />
@@ -100,20 +112,25 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
         )}
       </button>
 
-      {/* Waveform Bars */}
-      <div className="flex-1 flex items-center space-x-0.5 h-7">
+      {/* Waveform Bars Interactivas */}
+      <div className="flex-1 flex items-center space-x-0.5 h-7 cursor-pointer group/bars">
         {bars.map((barValue, idx) => {
           const barPercent = (idx / bars.length) * 100;
           const isFilled = barPercent <= progressPercent;
           const heightPx = Math.max(4, Math.min(24, Math.round(barValue * 24)));
 
           return (
-            <div
+            <button
               // biome-ignore lint/suspicious/noArrayIndexKey: fixed audio bar positions
               key={`bar-${barValue}-${idx}`}
-              className={`w-1 rounded-full transition-colors ${
-                isFilled ? 'bg-accent-blue' : 'bg-white/20'
-              }`}
+              type="button"
+              onClick={() => handleBarClick(idx)}
+              title={`Saltar a ${formatTime((idx / bars.length) * duration)}`}
+              className={`w-1 rounded-full transition-all duration-150 group-hover/bars:opacity-90 ${
+                isFilled
+                  ? 'bg-accent-blue hover:brightness-125'
+                  : 'bg-white/20 hover:bg-white/40'
+              } ${isPlaying && isFilled ? 'animate-pulse' : ''}`}
               style={{ height: `${heightPx}px` }}
             />
           );
@@ -126,7 +143,7 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
         <button
           type="button"
           onClick={cycleSpeed}
-          className="px-1.5 py-0.5 bg-white/10 hover:bg-white/20 rounded-md text-[10px] text-accent-blue font-extrabold"
+          className="px-1.5 py-0.5 bg-white/10 hover:bg-white/20 active:scale-95 rounded-md text-[10px] text-accent-blue font-extrabold transition-all"
         >
           {speeds[speedIndex]}x
         </button>

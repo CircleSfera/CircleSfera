@@ -38,6 +38,7 @@ describe('ChatService', () => {
       findUnique: vi.fn(),
       update: vi.fn(),
       create: vi.fn(),
+      delete: vi.fn(),
     },
     block: {
       findMany: vi.fn(),
@@ -306,7 +307,7 @@ describe('ChatService', () => {
   });
 
   describe('addReaction', () => {
-    it('should update reaction if it already exists', async () => {
+    it('should delete reaction (toggle OFF) if exact same emoji is sent again', async () => {
       mockPrismaService.message.findUnique.mockResolvedValueOnce({
         id: 'msg-1',
         conversation: {
@@ -315,6 +316,29 @@ describe('ChatService', () => {
       });
       mockPrismaService.messageReaction.findUnique.mockResolvedValueOnce({
         id: 'react-1',
+        reaction: '❤️',
+      });
+      mockPrismaService.messageReaction.delete.mockResolvedValueOnce({
+        id: 'react-1',
+      });
+
+      const result = await service.addReaction('msg-1', 'userA', '❤️');
+      expect(result.reaction).toBeNull();
+      expect(mockPrismaService.messageReaction.delete).toHaveBeenCalledWith({
+        where: { id: 'react-1' },
+      });
+    });
+
+    it('should update reaction if a different emoji already exists', async () => {
+      mockPrismaService.message.findUnique.mockResolvedValueOnce({
+        id: 'msg-1',
+        conversation: {
+          participants: [{ userId: 'userA' }],
+        },
+      });
+      mockPrismaService.messageReaction.findUnique.mockResolvedValueOnce({
+        id: 'react-1',
+        reaction: '👍',
       });
       mockPrismaService.messageReaction.update.mockResolvedValueOnce({
         id: 'react-1',

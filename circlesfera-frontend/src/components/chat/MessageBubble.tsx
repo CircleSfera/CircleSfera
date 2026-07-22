@@ -313,26 +313,36 @@ export default memo(function MessageBubble({
                 <button
                   type="button"
                   className="p-1 hover:bg-white/10 rounded-full text-gray-300 hover:text-white transition-colors"
-                  title="React"
+                  title="Reaccionar"
                 >
                   <Smile size={14} />
                 </button>
                 <div
                   className={`absolute bottom-full mb-0 pb-3 ${isMe ? 'right-0' : 'left-0'} hidden group-hover/emojis:flex z-100 pointer-events-auto`}
                 >
-                  <div className="bg-zinc-900/95 backdrop-blur-2xl p-2 rounded-full flex gap-1 shadow-2xl border border-white/10 ring-1 ring-white/5">
-                    {EMOJI_OPTIONS.map((emoji) => (
-                      <motion.button
-                        type="button"
-                        whileHover={{ scale: 1.3, y: -4 }}
-                        whileTap={{ scale: 0.9 }}
-                        key={emoji}
-                        onClick={() => onReact(msg.id!, emoji)}
-                        className="p-1 hover:bg-white/10 rounded-full transition-all text-xl leading-none"
-                      >
-                        {emoji}
-                      </motion.button>
-                    ))}
+                  <div className="bg-zinc-900/95 backdrop-blur-2xl p-1.5 rounded-full flex gap-1 shadow-2xl border border-white/10 ring-1 ring-white/5">
+                    {EMOJI_OPTIONS.map((emoji) => {
+                      const isSelected = msg.reactions?.some(
+                        (r) => r.reaction === emoji && r.userId === currentUserId,
+                      );
+                      return (
+                        <motion.button
+                          type="button"
+                          whileHover={{ scale: 1.35, y: -5 }}
+                          whileTap={{ scale: 0.85 }}
+                          key={emoji}
+                          onClick={() => onReact(msg.id!, emoji)}
+                          className={`p-1 rounded-full transition-all text-xl leading-none ${
+                            isSelected
+                              ? 'bg-blue-500/30 ring-1 ring-blue-400/50'
+                              : 'hover:bg-white/10'
+                          }`}
+                          title={isSelected ? 'Quitar reacción' : `Reaccionar ${emoji}`}
+                        >
+                          {emoji}
+                        </motion.button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -375,8 +385,8 @@ export default memo(function MessageBubble({
             </div>
           </div>
 
-          {/* Reactions Display (Grouped by emoji) */}
-          {msg.reactions && msg.reactions.length > 0 && (
+          {/* Reactions Display (Grouped by emoji with smooth animations) */}
+          {msg.reactions && msg.reactions.filter((r) => Boolean(r.reaction)).length > 0 && (
             <div
               className={`absolute -top-4 ${
                 isMe ? '-left-3' : '-right-3'
@@ -384,34 +394,40 @@ export default memo(function MessageBubble({
               onPointerDown={(e) => e.stopPropagation()}
               role="none"
             >
-              {[...new Set(msg.reactions.map((r) => r.reaction))].map(
-                (emoji) => {
-                  const count =
-                    msg.reactions?.filter((r) => r.reaction === emoji).length ||
-                    0;
-                  const hasReacted = msg.reactions?.some(
-                    (r) => r.reaction === emoji && r.userId === currentUserId,
-                  );
+              {[
+                ...new Set(
+                  msg.reactions
+                    .filter((r) => Boolean(r.reaction))
+                    .map((r) => r.reaction),
+                ),
+              ].map((emoji) => {
+                const count =
+                  msg.reactions?.filter((r) => r.reaction === emoji).length || 0;
+                const hasReacted = msg.reactions?.some(
+                  (r) => r.reaction === emoji && r.userId === currentUserId,
+                );
 
-                  return (
-                    <motion.button
-                      type="button"
-                      key={emoji}
-                      whileHover={{ scale: 1.15 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => onReact(msg.id!, emoji)}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold backdrop-blur-xl transition-all shadow-xl ${
-                        hasReacted
-                          ? 'bg-blue-600 border-blue-400 text-white shadow-blue-500/30'
-                          : 'bg-surface-high border-white/20 text-white shadow-black/50'
-                      } border`}
-                    >
-                      <span>{emoji}</span>
-                      {count > 1 && <span className="opacity-80">{count}</span>}
-                    </motion.button>
-                  );
-                },
-              )}
+                return (
+                  <motion.button
+                    type="button"
+                    key={emoji}
+                    initial={{ scale: 0.7, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.7, opacity: 0 }}
+                    whileHover={{ scale: 1.18 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => onReact(msg.id!, emoji)}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold backdrop-blur-xl transition-all shadow-lg ${
+                      hasReacted
+                        ? 'bg-blue-600/90 border-blue-400 text-white shadow-blue-500/40 ring-2 ring-blue-400/30'
+                        : 'bg-zinc-900/90 border-white/20 text-white hover:bg-zinc-800'
+                    } border`}
+                  >
+                    <span>{emoji}</span>
+                    {count > 1 && <span className="opacity-90 text-[10px]">{count}</span>}
+                  </motion.button>
+                );
+              })}
             </div>
           )}
         </div>
