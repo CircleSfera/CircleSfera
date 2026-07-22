@@ -138,7 +138,7 @@ export default function Frames() {
           // Virtualization: Only render the active frame and its immediate neighbors
           const isNear = Math.abs(activeFrameIndex - index) <= 1;
           const isNext = index === activeFrameIndex + 1;
-          
+
           return (
             <div
               key={frame.id}
@@ -149,7 +149,11 @@ export default function Frames() {
               className="h-[calc(100dvh-4.25rem-env(safe-area-inset-bottom,0px))] md:h-full w-full snap-start relative bg-black md:bg-transparent flex flex-col justify-center"
             >
               {isNear ? (
-                <FrameItem post={frame} isActive={index === activeFrameIndex} isNext={isNext} />
+                <FrameItem
+                  post={frame}
+                  isActive={index === activeFrameIndex}
+                  isNext={isNext}
+                />
               ) : (
                 <div className="w-full h-full bg-zinc-900/50 animate-pulse" />
               )}

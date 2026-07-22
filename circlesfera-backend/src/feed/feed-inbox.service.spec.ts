@@ -51,4 +51,25 @@ describe('FeedInboxService', () => {
       expect(empty).toBe(true);
     });
   });
+
+  describe('fanoutHybrid', () => {
+    it('should use READ_HYBRID strategy for celebrity creators with >= 5000 followers', async () => {
+      const followers = Array.from({ length: 5000 }, (_, i) => `follower-${i}`);
+      const result = await service.fanoutHybrid('star-user', followers, 'post-celebrity-1');
+      expect(result.strategy).toBe('READ_HYBRID');
+      expect(result.fannedOutCount).toBe(0);
+    });
+
+    it('should use WRITE strategy for standard creators with < 5000 followers', async () => {
+      const followers = ['user-1', 'user-2'];
+      const result = await service.fanoutHybrid('normal-user', followers, 'post-1');
+      expect(result.strategy).toBe('WRITE');
+    });
+  });
+
+  describe('invalidateUserFeedCache', () => {
+    it('should handle cache invalidation safely', async () => {
+      await expect(service.invalidateUserFeedCache('user-1')).resolves.not.toThrow();
+    });
+  });
 });

@@ -204,7 +204,11 @@ export const PasskeySettings: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-white font-mono">
-                      Passkey ({key.credentialID ? `${key.credentialID.slice(0, 16)}...` : key.id})
+                      Passkey (
+                      {key.credentialID
+                        ? `${key.credentialID.slice(0, 16)}...`
+                        : key.id}
+                      )
                     </p>
                     <p className="text-xs text-gray-500 font-medium">
                       Creado el {new Date(key.createdAt).toLocaleDateString()}

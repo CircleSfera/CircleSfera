@@ -25,7 +25,12 @@ export type CreatorTab =
 interface NavGroup {
   label: string;
   icon: React.ElementType;
-  items: { id: CreatorTab; label: string; icon: React.ElementType; badge?: string }[];
+  items: {
+    id: CreatorTab;
+    label: string;
+    icon: React.ElementType;
+    badge?: string;
+  }[];
 }
 
 const GROUPS: NavGroup[] = [
@@ -125,7 +130,10 @@ export default function CreatorSidebar({ activeTab, onTabChange }: Props) {
                       )}
                       {isSelected && (
                         <motion.div layoutId="creator-sidebar-active-indicator">
-                          <ChevronRight size={14} className="text-brand-primary" />
+                          <ChevronRight
+                            size={14}
+                            className="text-brand-primary"
+                          />
                         </motion.div>
                       )}
                     </div>

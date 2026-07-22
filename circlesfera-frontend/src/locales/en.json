@@ -153,7 +153,13 @@
     },
     "security": {
       "title": "Security",
-      "subtitle": "Next-Gen Protection"
+      "subtitle": "Next-Gen Protection",
+      "sessions_title": "Connected Devices & Active Sessions",
+      "sessions_subtitle": "Manage and revoke active session access across your devices",
+      "revoke_others": "Log out other sessions",
+      "current_device": "This device",
+      "loading_sessions": "Loading active sessions...",
+      "no_other_sessions": "No additional active sessions at this time."
     },
     "back_to_profile": "← Back to profile",
     "notifications_tab": {

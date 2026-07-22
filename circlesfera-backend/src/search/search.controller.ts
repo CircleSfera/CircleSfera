@@ -53,6 +53,16 @@ export class SearchController {
     return this.searchService.semanticSearchPosts(query);
   }
 
+  /** AI Semantic search for profiles. */
+  @Get('ai/profiles')
+  @UseGuards(JwtAuthGuard)
+  async searchSemanticProfiles(
+    @Query('q') query: string,
+    @CurrentUser() user: CurrentUserData,
+  ): Promise<any[]> {
+    return this.searchService.semanticSearchProfiles(query, 10, user.userId);
+  }
+
   /** Search for users by username or full name with Social Discovery ranking. */
   @Get('users')
   @UseGuards(JwtAuthGuard)

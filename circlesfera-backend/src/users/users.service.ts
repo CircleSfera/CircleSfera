@@ -396,8 +396,8 @@ export class UsersService {
 
     if (!user) return;
 
-    let targetAccountType: AccountType = AccountType.PERSONAL;
-    let targetVerificationLevel: VerificationLevel = VerificationLevel.BASIC;
+    let targetAccountType = AccountType.PERSONAL as AccountType;
+    let targetVerificationLevel = VerificationLevel.BASIC as VerificationLevel;
 
     // 1. Evaluate highest active subscription tier
     let hasPremium = false;

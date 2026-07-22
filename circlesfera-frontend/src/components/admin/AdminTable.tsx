@@ -75,7 +75,8 @@ export function Table({
                         No hay datos disponibles
                       </p>
                       <p className="text-xs text-gray-400 max-w-xs">
-                        No se encontraron registros en esta vista con los filtros seleccionados.
+                        No se encontraron registros en esta vista con los
+                        filtros seleccionados.
                       </p>
                     </div>
                   </motion.div>

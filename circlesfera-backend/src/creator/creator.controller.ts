@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Inject,
@@ -169,5 +170,41 @@ export class CreatorController {
       req.user.userId,
       creatorId,
     );
+  }
+
+  // --- Advanced Analytics ---
+
+  @Get('analytics/revenue')
+  async getRevenueAnalytics(
+    @Req() req: AuthRequest,
+    @Query('period') period?: '7d' | '30d' | '90d' | '1y',
+  ) {
+    return this.creatorService.getRevenueAnalytics(req.user.userId, period);
+  }
+
+  @Get('analytics/retention')
+  async getAudienceRetentionAnalytics(@Req() req: AuthRequest) {
+    return this.creatorService.getAudienceRetentionAnalytics(req.user.userId);
+  }
+
+  @Get('analytics/top-posts')
+  async getTopPerformingContent(
+    @Req() req: AuthRequest,
+    @Query('limit') limit?: string,
+  ) {
+    return this.creatorService.getTopPerformingContent(
+      req.user.userId,
+      limit ? Number.parseInt(limit, 10) : 5,
+    );
+  }
+
+  @Get('analytics/export')
+  @Header('Content-Type', 'text/csv')
+  @Header('Content-Disposition', 'attachment; filename="circlesfera-analytics-report.csv"')
+  async exportAnalyticsCsv(
+    @Req() req: AuthRequest,
+    @Query('period') period?: string,
+  ) {
+    return this.creatorService.exportAnalyticsCsv(req.user.userId, period || '30d');
   }
 }

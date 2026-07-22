@@ -139,4 +139,47 @@ export const creatorApi = {
     }),
 
   cancelPromotion: (id: string) => apiClient.delete(`creator/promotions/${id}`),
+
+  getRevenueAnalytics: (period = '30d') =>
+    apiClient.get<{
+      period: string;
+      grossRevenue: number;
+      subscriptionsTotal: number;
+      tipsTotal: number;
+      postUnlocksTotal: number;
+      giftsTotal: number;
+      activeSubscribersCount: number;
+      totalFollowersCount: number;
+      conversionRate: number;
+      currency: string;
+    }>('creator/analytics/revenue', { params: { period } }),
+
+  getAudienceRetentionAnalytics: () =>
+    apiClient.get<{
+      avgDwellSeconds: number;
+      totalInteractionsSampled: number;
+      peakActivityHourUTC: number;
+      hourlyDistribution: number[];
+    }>('creator/analytics/retention'),
+
+  getTopPerformingContent: (limit = 5) =>
+    apiClient.get<
+      {
+        id: string;
+        caption: string | null;
+        views: number;
+        performanceScore: number;
+        likes: number;
+        comments: number;
+        bookmarks: number;
+        thumbnailUrl: string | null;
+        createdAt: string;
+      }[]
+    >('creator/analytics/top-posts', { params: { limit } }),
+
+  exportAnalyticsCsv: (period = '30d') =>
+    apiClient.get<string>('creator/analytics/export', {
+      params: { period },
+      responseType: 'text' as unknown as undefined,
+    }),
 };

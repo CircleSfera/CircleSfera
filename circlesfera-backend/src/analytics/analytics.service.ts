@@ -40,11 +40,11 @@ export class AnalyticsService {
   }
 
   /**
-   * Log a single telemetry event.
+   * Log a single telemetry event and update post performance score if applicable.
    */
   async logEvent(userId: string | null, dto: CreateEventDto) {
     try {
-      return await this.prisma.interactionEvent.create({
+      const event = await this.prisma.interactionEvent.create({
         data: {
           userId: userId || null,
           eventType: dto.eventType,
@@ -53,13 +53,21 @@ export class AnalyticsService {
           dwellTime: dto.dwellTime,
         },
       });
+
+      if (dto.targetType === 'POST' && dto.targetId) {
+        this.updatePostPerformanceScore(dto.targetId, dto.dwellTime || 0).catch((err) =>
+          this.logger.error(`Async performance score update failed: ${err}`),
+        );
+      }
+
+      return event;
     } catch (error) {
       this.logger.error('Failed to log interaction event:', error);
     }
   }
 
   /**
-   * Log a batch of telemetry events.
+   * Log a batch of telemetry events and update post performance scores.
    */
   async logEventsBatch(userId: string | null, dto: CreateEventBatchDto) {
     try {
@@ -71,11 +79,75 @@ export class AnalyticsService {
         dwellTime: e.dwellTime,
       }));
 
-      return await this.prisma.interactionEvent.createMany({
+      const result = await this.prisma.interactionEvent.createMany({
         data,
       });
+
+      // Group dwell times by postId for batch performance update
+      const postDwellMap = new Map<string, number>();
+      for (const e of dto.events) {
+        if (e.targetType === 'POST' && e.targetId) {
+          const current = postDwellMap.get(e.targetId) || 0;
+          postDwellMap.set(e.targetId, current + (e.dwellTime || 0));
+        }
+      }
+
+      for (const [postId, totalDwellTime] of postDwellMap.entries()) {
+        this.updatePostPerformanceScore(postId, totalDwellTime).catch((err) =>
+          this.logger.error(`Batch performance score update failed for post ${postId}: ${err}`),
+        );
+      }
+
+      return result;
     } catch (error) {
       this.logger.error('Failed to log batch interaction events:', error);
+    }
+  }
+
+  /**
+   * Recalculates and updates the performance score for a given post.
+   */
+  async updatePostPerformanceScore(postId: string, additionalDwellTimeMs = 0) {
+    try {
+      const post = await this.prisma.post.findUnique({
+        where: { id: postId },
+        select: {
+          id: true,
+          watchTime: true,
+          _count: {
+            select: {
+              likes: true,
+              comments: true,
+              bookmarks: true,
+            },
+          },
+        },
+      });
+
+      if (!post) return;
+
+      const additionalSeconds = Math.max(0, Math.floor(additionalDwellTimeMs / 1000));
+      const newWatchTime = post.watchTime + additionalSeconds;
+
+      const likesWeight = post._count.likes * 2.0;
+      const commentsWeight = post._count.comments * 3.0;
+      const bookmarksWeight = post._count.bookmarks * 4.0;
+      const watchTimeWeight = Math.log10(newWatchTime + 1) * 1.5;
+
+      const newScore = parseFloat(
+        (likesWeight + commentsWeight + bookmarksWeight + watchTimeWeight).toFixed(2),
+      );
+
+      await this.prisma.post.update({
+        where: { id: postId },
+        data: {
+          watchTime: newWatchTime,
+          views: { increment: 1 },
+          performanceScore: newScore,
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Failed to update performance score for post ${postId}:`, error);
     }
   }
 

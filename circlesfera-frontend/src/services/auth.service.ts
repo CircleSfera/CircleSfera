@@ -31,4 +31,19 @@ export const authApi = {
     apiClient.post<{ success: boolean }>('/auth/2fa/enable', data),
 
   disable2fa: () => apiClient.post<{ success: boolean }>('/auth/2fa/disable'),
+
+  getSessions: () =>
+    apiClient.get<
+      Array<{
+        id: string;
+        userAgent?: string;
+        ipAddress?: string;
+        createdAt: string;
+        expiresAt: string;
+      }>
+    >('/auth/sessions'),
+
+  revokeSession: (id: string) => apiClient.delete(`/auth/sessions/${id}`),
+
+  revokeOtherSessions: () => apiClient.delete('/auth/sessions/other'),
 };

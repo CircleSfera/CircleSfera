@@ -521,37 +521,35 @@ function DraggableStoryElement({
         `}
         style={getTextStyleCSS(el)}
       >
-        {el.type === ('poll' as any) || el.content.startsWith('{"question"') ? (
-          (() => {
-            try {
-              const poll = JSON.parse(el.content);
-              return (
-                <div className="bg-zinc-900/90 backdrop-blur-2xl border border-white/15 p-4 rounded-2xl shadow-2xl text-left min-w-55 pointer-events-none select-none">
-                  <p className="text-white font-bold text-sm mb-3 tracking-tight">
-                    {poll.question}
-                  </p>
-                  <div className="space-y-2">
-                    {poll.options?.map((opt: string) => (
-                      <div
-                        key={`poll-opt-${opt}`}
-                        className="bg-white/10 border border-white/10 px-3.5 py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-between shadow-sm"
-                      >
-                        <span>{opt}</span>
-                        <span className="text-[10px] text-brand-primary font-bold">
-                          0%
-                        </span>
-                      </div>
-                    ))}
+        {el.type === ('poll' as any) || el.content.startsWith('{"question"')
+          ? (() => {
+              try {
+                const poll = JSON.parse(el.content);
+                return (
+                  <div className="bg-zinc-900/90 backdrop-blur-2xl border border-white/15 p-4 rounded-2xl shadow-2xl text-left min-w-55 pointer-events-none select-none">
+                    <p className="text-white font-bold text-sm mb-3 tracking-tight">
+                      {poll.question}
+                    </p>
+                    <div className="space-y-2">
+                      {poll.options?.map((opt: string) => (
+                        <div
+                          key={`poll-opt-${opt}`}
+                          className="bg-white/10 border border-white/10 px-3.5 py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-between shadow-sm"
+                        >
+                          <span>{opt}</span>
+                          <span className="text-[10px] text-brand-primary font-bold">
+                            0%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            } catch {
-              return el.content;
-            }
-          })()
-        ) : (
-          el.content
-        )}
+                );
+              } catch {
+                return el.content;
+              }
+            })()
+          : el.content}
       </div>
     </motion.div>
   );

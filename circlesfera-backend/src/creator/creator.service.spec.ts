@@ -40,6 +40,13 @@ describe('CreatorService', () => {
       count: vi.fn(),
     },
     creatorSubscription: {
+      count: vi.fn(),
+      findMany: vi.fn(),
+    },
+    transaction: {
+      findMany: vi.fn(),
+    },
+    interactionEvent: {
       findMany: vi.fn(),
     },
     user: {
@@ -99,6 +106,45 @@ describe('CreatorService', () => {
       expect(stats).toHaveProperty('postCount');
       expect(stats).toHaveProperty('followerCount');
       expect(stats).toHaveProperty('totalReach');
+    });
+  });
+
+  describe('advanced analytics', () => {
+    it('should return revenue analytics breakdown', async () => {
+      mockPrismaService.transaction.findMany.mockResolvedValue([
+        { type: 'STRIPE_SUBSCRIPTION', amount: 5000 },
+        { type: 'DIRECT_TIP', amount: 2000 },
+      ]);
+      mockPrismaService.creatorSubscription.count.mockResolvedValue(5);
+      mockPrismaService.follow.count.mockResolvedValue(50);
+
+      const res = await service.getRevenueAnalytics('creator-1', '30d');
+      expect(res.grossRevenue).toBe(70);
+      expect(res.conversionRate).toBe(10);
+      expect(res.currency).toBe('EUR');
+    });
+
+    it('should return audience retention analytics', async () => {
+      mockPrismaService.post.findMany.mockResolvedValue([{ id: 'p1' }]);
+      mockPrismaService.interactionEvent.findMany.mockResolvedValue([
+        { dwellTime: 12, createdAt: new Date(2026, 0, 1, 14, 0, 0) },
+        { dwellTime: 18, createdAt: new Date(2026, 0, 1, 14, 30, 0) },
+      ]);
+
+      const res = await service.getAudienceRetentionAnalytics('creator-1');
+      expect(res.avgDwellSeconds).toBe(15);
+      expect(res.peakActivityHourUTC).toBe(14);
+    });
+
+    it('should export CSV analytics report', async () => {
+      mockPrismaService.transaction.findMany.mockResolvedValue([]);
+      mockPrismaService.creatorSubscription.count.mockResolvedValue(0);
+      mockPrismaService.follow.count.mockResolvedValue(0);
+      mockPrismaService.post.findMany.mockResolvedValue([]);
+
+      const csv = await service.exportAnalyticsCsv('creator-1', '30d');
+      expect(csv).toContain('Metric,Value,Unit/Currency');
+      expect(csv).toContain('Gross Revenue,0.00,EUR');
     });
   });
 });

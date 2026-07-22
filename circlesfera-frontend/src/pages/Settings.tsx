@@ -29,6 +29,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 
 import {
+  ActiveSessionsSettings,
   MonetizationSettings,
   PasskeySettings,
   TwoFactorSettings,
@@ -798,7 +799,9 @@ export default function Settings() {
                       </span>
                       <span
                         className={`text-[10px] font-medium block truncate max-w-35 mt-0.5 ${
-                          activeTab === tab.id ? 'text-blue-300/80' : 'text-gray-500'
+                          activeTab === tab.id
+                            ? 'text-blue-300/80'
+                            : 'text-gray-500'
                         }`}
                       >
                         {t(`settings.tabs.${tab.id}.desc`) || tab.desc}
@@ -1640,6 +1643,9 @@ export default function Settings() {
                   </p>
                 </div>
 
+                <div className="bg-white/2 p-4 rounded-xl border border-white/5">
+                  <ActiveSessionsSettings />
+                </div>
                 <div className="bg-white/2 p-4 rounded-xl border border-white/5">
                   <PasskeySettings />
                 </div>

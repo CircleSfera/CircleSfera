@@ -81,11 +81,16 @@ interface AdminMobileNavProps {
   onTabChange: (tab: AdminTab) => void;
 }
 
-export function AdminMobileNav({ activeTab, onTabChange }: AdminMobileNavProps) {
+export function AdminMobileNav({
+  activeTab,
+  onTabChange,
+}: AdminMobileNavProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   // Find currently active item info
-  const activeItem = GROUPS.flatMap((g) => g.items).find((i) => i.id === activeTab);
+  const activeItem = GROUPS.flatMap((g) => g.items).find(
+    (i) => i.id === activeTab,
+  );
   const ActiveIcon = activeItem?.icon || LayoutDashboard;
 
   const handleSelect = (tab: AdminTab) => {
@@ -109,7 +114,9 @@ export function AdminMobileNav({ activeTab, onTabChange }: AdminMobileNavProps) 
             <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
               Sección Admin
             </p>
-            <p className="text-sm font-black text-white">{activeItem?.label || activeTab}</p>
+            <p className="text-sm font-black text-white">
+              {activeItem?.label || activeTab}
+            </p>
           </div>
         </div>
 
@@ -119,7 +126,10 @@ export function AdminMobileNav({ activeTab, onTabChange }: AdminMobileNavProps) 
           </span>
           <ChevronDown
             size={18}
-            className={clsx('text-gray-400 transition-transform duration-200', isOpen && 'rotate-180')}
+            className={clsx(
+              'text-gray-400 transition-transform duration-200',
+              isOpen && 'rotate-180',
+            )}
           />
         </div>
       </button>
@@ -149,7 +159,9 @@ export function AdminMobileNav({ activeTab, onTabChange }: AdminMobileNavProps) 
               <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse" />
-                  <h2 className="text-base font-black text-white">Navegación del Panel</h2>
+                  <h2 className="text-base font-black text-white">
+                    Navegación del Panel
+                  </h2>
                 </div>
                 <button
                   type="button"
@@ -188,7 +200,9 @@ export function AdminMobileNav({ activeTab, onTabChange }: AdminMobileNavProps) 
                             <ItemIcon
                               size={16}
                               className={clsx(
-                                isSelected ? 'text-brand-primary' : 'text-gray-400',
+                                isSelected
+                                  ? 'text-brand-primary'
+                                  : 'text-gray-400',
                               )}
                             />
                             <span className="truncate">{item.label}</span>

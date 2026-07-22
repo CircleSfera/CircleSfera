@@ -15,6 +15,10 @@ describe('MaintenanceService', () => {
     promotion: {
       updateMany: vi.fn(),
     },
+    user: {
+      findMany: vi.fn(),
+      delete: vi.fn(),
+    },
   };
 
   const mockUploadsService = {
@@ -73,6 +77,20 @@ describe('MaintenanceService', () => {
 
       await service.checkExpiredPromotions();
       expect(mockPrismaService.promotion.updateMany).toHaveBeenCalled();
+    });
+  });
+
+  describe('purgeGdprDeletedUsers', () => {
+    it('should permanently delete users soft-deleted > 30 days ago', async () => {
+      mockPrismaService.user.findMany.mockResolvedValue([{ id: 'deleted-user-1' }]);
+      mockPrismaService.user.delete.mockResolvedValue({ id: 'deleted-user-1' });
+
+      await service.purgeGdprDeletedUsers();
+
+      expect(mockPrismaService.user.findMany).toHaveBeenCalled();
+      expect(mockPrismaService.user.delete).toHaveBeenCalledWith({
+        where: { id: 'deleted-user-1' },
+      });
     });
   });
 });

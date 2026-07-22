@@ -9,6 +9,7 @@ export interface SearchResponse {
   users: any[];
   hashtags: Hashtag[];
   semanticPosts: any[];
+  semanticProfiles?: any[];
 }
 
 /**
@@ -96,6 +97,75 @@ export class SearchService {
       return posts;
     } catch (error) {
       console.error('Semantic Search Error:', error);
+      return [];
+    }
+  }
+
+  /**
+   * AI-powered semantic search for profiles using pgvector distance.
+   */
+  async semanticSearchProfiles(
+    query: string,
+    limit = 10,
+    userId?: string,
+  ): Promise<any[]> {
+    if (!query || query.length < 3) return [];
+
+    const cacheKey = `search:semantic_profiles:${query.toLowerCase().replace(/\s/g, '_')}:${limit}`;
+    const cached = await this.cacheManager.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const queryEmbedding = await this.aiService.generateEmbedding(query);
+      let matches: any[];
+
+      if (userId) {
+        matches = await this.prisma.$queryRaw`
+          SELECT pe."profileId",
+                 (pe.vector <=> ${queryEmbedding}::vector) as distance
+          FROM "profile_embeddings" pe
+          JOIN "profiles" pr ON pr.id = pe."profileId"
+          WHERE pr."userId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${userId})
+            AND pr."userId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${userId})
+          ORDER BY distance ASC
+          LIMIT ${limit}
+        `;
+      } else {
+        matches = await this.prisma.$queryRaw`
+          SELECT pe."profileId",
+                 (pe.vector <=> ${queryEmbedding}::vector) as distance
+          FROM "profile_embeddings" pe
+          ORDER BY distance ASC
+          LIMIT ${limit}
+        `;
+      }
+
+      if (!matches || matches.length === 0) return [];
+
+      const profiles = await Promise.all(
+        matches.map(async (m) => {
+          const profile = await this.prisma.profile.findUnique({
+            where: { id: m.profileId },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  role: true,
+                  verificationLevel: true,
+                  accountType: true,
+                },
+              },
+            },
+          });
+          return { ...profile, similarityScore: 1 - m.distance };
+        }),
+      );
+
+      const filtered = profiles.filter(Boolean);
+      await this.cacheManager.set(cacheKey, filtered, 600000);
+      return filtered;
+    } catch (error) {
+      console.error('Semantic Profile Search Error:', error);
       return [];
     }
   }

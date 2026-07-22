@@ -48,7 +48,12 @@ export type AdminTab =
 interface SearchGroup {
   label: string;
   icon: React.ElementType;
-  items: { id: AdminTab; label: string; icon: React.ElementType; badge?: string }[];
+  items: {
+    id: AdminTab;
+    label: string;
+    icon: React.ElementType;
+    badge?: string;
+  }[];
 }
 
 const GROUPS: SearchGroup[] = [
@@ -171,7 +176,10 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
                       )}
                       {isSelected && (
                         <motion.div layoutId="sidebar-active-indicator">
-                          <ChevronRight size={14} className="text-brand-primary" />
+                          <ChevronRight
+                            size={14}
+                            className="text-brand-primary"
+                          />
                         </motion.div>
                       )}
                     </div>
@@ -195,7 +203,9 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
             </span>
           </div>
-          <p className="text-xs text-white font-black">Todos los nodos activos</p>
+          <p className="text-xs text-white font-black">
+            Todos los nodos activos
+          </p>
         </div>
       </div>
     </aside>

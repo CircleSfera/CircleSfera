@@ -47,10 +47,15 @@ interface CreatorMobileNavProps {
   onTabChange: (tab: CreatorTab) => void;
 }
 
-export function CreatorMobileNav({ activeTab, onTabChange }: CreatorMobileNavProps) {
+export function CreatorMobileNav({
+  activeTab,
+  onTabChange,
+}: CreatorMobileNavProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const activeItem = GROUPS.flatMap((g) => g.items).find((i) => i.id === activeTab);
+  const activeItem = GROUPS.flatMap((g) => g.items).find(
+    (i) => i.id === activeTab,
+  );
   const ActiveIcon = activeItem?.icon || LayoutDashboard;
 
   const handleSelect = (tab: CreatorTab) => {
@@ -74,7 +79,9 @@ export function CreatorMobileNav({ activeTab, onTabChange }: CreatorMobileNavPro
             <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
               Sección Creador
             </p>
-            <p className="text-sm font-black text-white">{activeItem?.label || activeTab}</p>
+            <p className="text-sm font-black text-white">
+              {activeItem?.label || activeTab}
+            </p>
           </div>
         </div>
 
@@ -84,7 +91,10 @@ export function CreatorMobileNav({ activeTab, onTabChange }: CreatorMobileNavPro
           </span>
           <ChevronDown
             size={18}
-            className={clsx('text-gray-400 transition-transform duration-200', isOpen && 'rotate-180')}
+            className={clsx(
+              'text-gray-400 transition-transform duration-200',
+              isOpen && 'rotate-180',
+            )}
           />
         </div>
       </button>
@@ -112,7 +122,9 @@ export function CreatorMobileNav({ activeTab, onTabChange }: CreatorMobileNavPro
               <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse" />
-                  <h2 className="text-base font-black text-white">Creator Studio Navigation</h2>
+                  <h2 className="text-base font-black text-white">
+                    Creator Studio Navigation
+                  </h2>
                 </div>
                 <button
                   type="button"
@@ -151,7 +163,9 @@ export function CreatorMobileNav({ activeTab, onTabChange }: CreatorMobileNavPro
                             <ItemIcon
                               size={16}
                               className={clsx(
-                                isSelected ? 'text-brand-primary' : 'text-gray-400',
+                                isSelected
+                                  ? 'text-brand-primary'
+                                  : 'text-gray-400',
                               )}
                             />
                             <span className="truncate">{item.label}</span>

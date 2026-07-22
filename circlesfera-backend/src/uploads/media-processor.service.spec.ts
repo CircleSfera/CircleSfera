@@ -91,4 +91,18 @@ describe('MediaProcessorService', () => {
     expect(result.original.mimetype).toBe('image/webp');
     expect(result.original.buffer.toString()).toBe('webp-data');
   });
+
+  it('should generate HLS adaptive manifests for video files', async () => {
+    const file: UploadedFile = {
+      originalname: 'intro.mp4',
+      mimetype: 'video/mp4',
+      buffer: Buffer.from('video-bytes'),
+    };
+
+    const manifest = await service.processVideoHls(file);
+    expect(manifest.masterPlaylist).toContain('#EXTM3U');
+    expect(manifest.masterPlaylist).toContain('intro_720p.m3u8');
+    expect(manifest.masterPlaylist).toContain('intro_1080p.m3u8');
+    expect(manifest.segmentCount).toBe(2);
+  });
 });
