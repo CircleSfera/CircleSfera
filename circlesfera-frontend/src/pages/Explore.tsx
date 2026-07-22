@@ -1,16 +1,23 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { Clock, X as CloseIcon, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import SEO from '../components/common/SEO';
+import { ErrorState } from '../components/ErrorEmptyStates';
 import ExploreColdStart from '../components/explore/ExploreColdStart';
-import { PostSkeleton } from '../components/LoadingStates';
+import { LoadingSpinner, PostSkeleton } from '../components/LoadingStates';
 import PostCard from '../components/PostCard';
 import UserAvatar from '../components/UserAvatar';
 import { PullToRefresh } from '../components/ui';
 import VerificationBadge, {
   type VerificationLevel,
 } from '../components/VerificationBadge';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { feedApi, postsApi, searchApi } from '../services';
 
 interface SearchUserResult {
@@ -84,18 +91,38 @@ export default function Explore() {
   const {
     data: explorePosts,
     isLoading: isLoadingExplore,
+    isError: isExploreError,
     refetch: refetchExplore,
-  } = useQuery<PaginatedResponse<Post>>({
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<PaginatedResponse<Post>>({
     queryKey: ['posts', 'explore', activeTab],
-    queryFn: async () => {
+    queryFn: async ({ pageParam }) => {
+      const page = pageParam as number;
       const res =
         activeTab === 'foryou'
-          ? await feedApi.getForYou(1, 20)
-          : await postsApi.getAll(1, 20, 'trending');
+          ? await feedApi.getForYou(page, 20)
+          : await postsApi.getAll(page, 20, 'trending');
       return res.data;
     },
+    getNextPageParam: (lastPage) => {
+      if (lastPage.meta.page < lastPage.meta.totalPages) {
+        return lastPage.meta.page + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
     enabled: debouncedQuery.length < 2,
   });
+
+  const explorePostList =
+    explorePosts?.pages.flatMap((page) => page.data) ?? [];
+  const loadMoreRef = useInfiniteScroll(
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  );
 
   const handleRefresh = async () => {
     if (debouncedQuery.length >= 2) {
@@ -403,15 +430,32 @@ export default function Explore() {
                   </div>
                 ))}
               </div>
-            ) : explorePosts?.data && explorePosts.data.length > 0 ? (
+            ) : isExploreError ? (
+              <ErrorState
+                title={t('explore.error_title', "Couldn't load explore")}
+                message={t(
+                  'explore.error_message',
+                  'Something went wrong while loading posts. Please try again.',
+                )}
+                onRetry={() => refetchExplore()}
+              />
+            ) : explorePostList.length > 0 ? (
               /* Masonry Grid using CSS columns */
-              <div className="columns-1 md:columns-2 lg:columns-3 2xl:columns-4 gap-4 space-y-4">
-                {explorePosts.data.map((post: Post) => (
-                  <div key={post.id} className="break-inside-avoid mb-6">
-                    <PostCard post={post} />
+              <>
+                <div className="columns-1 md:columns-2 lg:columns-3 2xl:columns-4 gap-4 space-y-4">
+                  {explorePostList.map((post: Post) => (
+                    <div key={post.id} className="break-inside-avoid mb-6">
+                      <PostCard post={post} />
+                    </div>
+                  ))}
+                </div>
+                <div ref={loadMoreRef} className="h-1" aria-hidden="true" />
+                {isFetchingNextPage && (
+                  <div className="flex justify-center py-8">
+                    <LoadingSpinner size="md" />
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             ) : (
               <ExploreColdStart
                 activeTab={activeTab}
