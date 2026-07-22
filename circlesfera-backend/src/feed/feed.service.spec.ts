@@ -83,14 +83,10 @@ describe('FeedService', () => {
     it('should query hybrid SQL if user has likes', async () => {
       // User has 1 like
       mockPrismaService.like.findMany.mockResolvedValue([{ postId: '1' }]);
-      // That post has an embedding
-      mockPrismaService.post.findMany.mockResolvedValueOnce([
-        { embedding: '[0.1, 0.2]' },
-      ]);
-      // SQL query raw returns a post
-      mockPrismaService.$queryRaw.mockResolvedValue([
-        { id: '2', final_score: 5.5 },
-      ]);
+      // Embedding lookup + hybrid ranking via $queryRaw
+      mockPrismaService.$queryRaw
+        .mockResolvedValueOnce([{ vector: '[0.1, 0.2]' }])
+        .mockResolvedValueOnce([{ id: '2', final_score: 5.5 }]);
       // Hydrating returns the full post
       mockPrismaService.post.findMany.mockResolvedValueOnce([
         { id: '2', likes: [] },
