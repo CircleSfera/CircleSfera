@@ -21,6 +21,7 @@ import ProfileTabs, { type TabType } from '../components/profile/ProfileTabs';
 import StoryViewer from '../components/StoryViewer';
 import {
   chatApi,
+  creatorApi,
   followsApi,
   highlightsApi,
   postsApi,
@@ -56,29 +57,6 @@ export default function Profile() {
 
   const queryClient = useQueryClient();
 
-  const subscribeMutation = useMutation({
-    mutationFn: () =>
-      import('../services').then((m) =>
-        m.api.post('/creator/subscribe', {
-          creatorId: profile?.data.userId,
-          priceCents: profile?.data.subscriptionPriceCents || 500, // Default to $5 if not set
-          returnUrl: window.location.href,
-        }),
-      ),
-    onSuccess: (res) => {
-      if (res.data?.url) {
-        window.location.href = res.data.url;
-      } else {
-        toast.success(t('profile.messages.subscribed_success'));
-        queryClient.invalidateQueries({ queryKey: ['creator-subscription'] });
-        queryClient.invalidateQueries({ queryKey: ['userProfile', username] });
-      }
-    },
-    onError: (e: any) => {
-      toast.error(e.response?.data?.message || t('profile.messages.error'));
-    },
-  });
-
   const [showBlockModal, setShowBlockModal] = useState(false); // For future block confirmation if needed
   const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
@@ -101,6 +79,61 @@ export default function Profile() {
     retry: false,
   });
   const isMe = myProfile?.data.username === username;
+
+  const subscribeMutation = useMutation({
+    mutationFn: () =>
+      import('../services').then((m) =>
+        m.api.post('/creator/subscribe', {
+          creatorId: profile?.data.userId,
+          priceCents: profile?.data.subscriptionPriceCents || 500,
+          returnUrl: window.location.href,
+        }),
+      ),
+    onSuccess: (res) => {
+      if (res.data?.url) {
+        window.location.href = res.data.url;
+      } else {
+        toast.success(t('profile.messages.subscribed_success'));
+        queryClient.invalidateQueries({
+          queryKey: ['creator-subscription', profile?.data.userId],
+        });
+        queryClient.invalidateQueries({ queryKey: ['userProfile', username] });
+      }
+    },
+    onError: (e: any) => {
+      toast.error(e.response?.data?.message || t('profile.messages.error'));
+    },
+  });
+
+  const cancelSubscribeMutation = useMutation({
+    mutationFn: () =>
+      creatorApi.cancelCreatorSubscription(profile!.data.userId),
+    onSuccess: () => {
+      toast.success(
+        t('profile.messages.unsubscribed_success', 'Subscription cancelled'),
+      );
+      queryClient.invalidateQueries({
+        queryKey: ['creator-subscription', profile?.data.userId],
+      });
+    },
+    onError: (e: any) => {
+      toast.error(e.response?.data?.message || t('profile.messages.error'));
+    },
+  });
+
+  const { data: creatorSubStatus } = useQuery({
+    queryKey: ['creator-subscription', profile?.data.userId],
+    queryFn: async () => {
+      const res = await creatorApi.checkCreatorSubscription(
+        profile!.data.userId,
+      );
+      return res.data as { isSubscribed: boolean; expiresAt?: string };
+    },
+    enabled:
+      !!profile?.data.userId &&
+      !isMe &&
+      profile?.data.accountType === 'CREATOR',
+  });
 
   const { data: followStatus } = useQuery({
     queryKey: ['follow', username],
@@ -349,12 +382,23 @@ export default function Profile() {
               <CollectionCard
                 key={collection.id}
                 collection={collection}
+                canManage={isMe}
                 onClick={() =>
                   setSelectedCollection({
                     id: collection.id,
                     name: collection.name,
                   })
                 }
+                onRename={async (id, name) => {
+                  const { collectionsApi } = await import('../services');
+                  await collectionsApi.update(id, name);
+                  queryClient.invalidateQueries({ queryKey: ['collections'] });
+                }}
+                onDelete={async (id) => {
+                  const { collectionsApi } = await import('../services');
+                  await collectionsApi.delete(id);
+                  queryClient.invalidateQueries({ queryKey: ['collections'] });
+                }}
               />
             ))}
           </div>
@@ -383,6 +427,8 @@ export default function Profile() {
           setCreatorMode={setCreatorMode}
           openCreateMenu={openCreateMenu}
           subscribeMutation={subscribeMutation}
+          cancelSubscribeMutation={cancelSubscribeMutation}
+          isSubscribedToCreator={!!creatorSubStatus?.isSubscribed}
           isCreatingChat={isCreatingChat}
           handleMessageClick={handleMessageClick}
           setShowFollowsModal={setShowFollowsModal}
