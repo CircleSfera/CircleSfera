@@ -81,7 +81,7 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(
       const video = videoRef.current;
       if (!video) return;
       const hls = (video as any).__hls as Hls | undefined;
-      
+
       if (hls && !isNext) {
         hls.startLoad();
       }
