@@ -12,6 +12,20 @@ jobs:
   test:
     name: Run Lint and Unit Tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: prisma
+          POSTGRES_PASSWORD: prisma
+          POSTGRES_DB: schema_check
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U prisma -d schema_check"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,6 +52,11 @@ jobs:
           npx prisma generate
           npm run lint
           npm run test
+
+      - name: "Prisma: schema vs migrations"
+        env:
+          DATABASE_URL: postgresql://prisma:prisma@localhost:5432/schema_check
+        run: ./scripts/check-prisma-schema-migrations.sh
 
       - name: "Frontend: Install, Lint, Test and Build"
         run: |
