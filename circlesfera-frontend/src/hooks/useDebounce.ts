@@ -1,17 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useRef } from 'react';
 
-/**
- * Debounce a value by a given delay.
- * Returns the debounced value that only updates after the delay has elapsed
- * since the last change.
- */
-export function useDebounce<T>(value: T, delay = 300): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+/** Debounce a callback by `delay` ms. */
+export function useDebounce<T extends (...args: Parameters<T>) => void>(
+  callback: T,
+  delay: number,
+): (...args: Parameters<T>) => void {
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-
-  return debouncedValue;
+  return useCallback(
+    (...args: Parameters<T>) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => {
+        callback(...args);
+      }, delay);
+    },
+    [callback, delay],
+  );
 }

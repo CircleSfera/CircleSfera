@@ -10,7 +10,7 @@ Freshness notes: [00-status.md](./00-status.md). Planned ADRs: [adr/](./adr/).
 | --- | --- |
 | 01 | [01-product-requirements-document.md](./01-product-requirements-document.md) |
 | 02 | [02-database-er-diagram.md](./02-database-er-diagram.md) |
-| 03 | [03-api-detailed-endpoints.md](./03-api-detailed-endpoints.md) — **stale banner**; Nest controllers win |
+| 03 | [03-api-detailed-endpoints.md](./03-api-detailed-endpoints.md) — controller inventory (Jul 2026) |
 | 04 | [04-user-stories.md](./04-user-stories.md) |
 | 05 | [05-deployment-strategy.md](./05-deployment-strategy.md) |
 | 06 | [06-security-privacy-compliance.md](./06-security-privacy-compliance.md) |
