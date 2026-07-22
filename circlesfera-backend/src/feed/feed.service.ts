@@ -142,16 +142,18 @@ export class FeedService {
       let targetVectorStr = '';
 
       if (likedPostIds.length > 0) {
-        // We get the embedding of the most recently liked post
-        // (A more advanced approach averages the vectors, but pgvector makes it easier to just use the first for now)
-        const likedPosts = (await this.prisma.post.findMany({
-          where: { id: { in: likedPostIds }, embedding: { not: null } as any },
-          select: { embedding: true },
-          take: 1,
-        })) as any[];
+        // Embeddings live in post_embeddings (not on posts).
+        const likedEmbeddings = await this.prisma.$queryRaw<
+          { vector: string }[]
+        >`
+          SELECT pe.vector::text AS vector
+          FROM "post_embeddings" pe
+          WHERE pe."postId" = ANY(${likedPostIds}::text[])
+          LIMIT 1
+        `;
 
-        if (likedPosts.length > 0 && likedPosts[0].embedding) {
-          targetVectorStr = likedPosts[0].embedding;
+        if (likedEmbeddings[0]?.vector) {
+          targetVectorStr = likedEmbeddings[0].vector;
         }
       }
 
