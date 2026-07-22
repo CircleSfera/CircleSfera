@@ -35,9 +35,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: cookieOrHeaderExtractor,
       ignoreExpiration: false,
-      secretOrKey:
-        configService.get<string>('JWT_SECRET') ||
-        'circlesfera_default_secret_key',
+      secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
     });
   }
 
