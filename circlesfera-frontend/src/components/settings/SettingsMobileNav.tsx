@@ -6,7 +6,9 @@ import {
   CreditCard,
   DollarSign,
   FileText,
+  Flag,
   Key,
+  Scale,
   Shield,
   Star,
   User,
@@ -29,6 +31,8 @@ export type SettingsTabId =
   | 'referrals'
   | 'close_friends'
   | 'mutes'
+  | 'appeals'
+  | 'reports'
   | 'account';
 
 interface TabItem {
@@ -99,6 +103,16 @@ export default function SettingsMobileNav({
       id: 'referrals',
       label: 'Invitaciones Beta',
       icon: Users,
+    },
+    {
+      id: 'appeals',
+      label: t('settings.tabs.appeals.label', 'Apelaciones'),
+      icon: Scale,
+    },
+    {
+      id: 'reports',
+      label: t('settings.tabs.reports.label', 'Mis reportes'),
+      icon: Flag,
     },
     {
       id: 'account',

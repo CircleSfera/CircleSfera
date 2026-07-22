@@ -11,10 +11,12 @@ import {
   CreditCard,
   DollarSign,
   Download,
+  Flag,
   Globe,
   Key,
   Loader2,
   LogOut,
+  Scale,
   Shield,
   Star,
   User,
@@ -35,6 +37,9 @@ import {
   TwoFactorSettings,
 } from '../components';
 import CloseFriendsModal from '../components/modals/CloseFriendsModal';
+import AppealsSettings from '../components/settings/AppealsSettings';
+import CreatorSubscriptionsList from '../components/settings/CreatorSubscriptionsList';
+import MyReportsSettings from '../components/settings/MyReportsSettings';
 import NotificationsSettings from '../components/settings/NotificationsSettings';
 import ReferralsSettings from '../components/settings/ReferralsSettings';
 import SettingsMobileNav from '../components/settings/SettingsMobileNav';
@@ -48,6 +53,70 @@ import { usersApi } from '../services/users.service';
 import { useAuthStore } from '../stores/authStore';
 import type { Profile, UpdateProfileDto } from '../types';
 import { logger } from '../utils/logger';
+
+function BillingStatus({
+  handleUpgrade,
+  handleBillingPortal,
+  isProcessingPortal,
+}: {
+  handleUpgrade: () => void;
+  handleBillingPortal: () => void;
+  isProcessingPortal: boolean;
+}) {
+  const { t } = useTranslation();
+
+  const { data: billingStatus, isLoading } = useQuery({
+    queryKey: ['billingStatus'],
+    queryFn: () => paymentsApi.getBillingStatus(),
+    retry: false,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="glass-panel p-6 rounded-xl border border-white/5 bg-linear-to-br from-blue-500/5 via-transparent to-transparent flex items-center justify-center">
+        <Loader2 size={32} className="text-blue-400 animate-spin" />
+      </div>
+    );
+  }
+
+  const subscription = billingStatus?.subscription;
+  const hasActiveSubscription = !!billingStatus?.hasActiveSubscription;
+
+  return (
+    <div className="glass-panel p-6 rounded-xl border border-white/5 bg-linear-to-br from-blue-500/5 via-transparent to-transparent flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="flex-1">
+        <span className="text-xs font-black uppercase tracking-wide text-blue-400/80 mb-2 block">
+          {t('settings.billing.current_plan', 'Current Plan')}
+        </span>
+        <h3 className="text-2xl font-black text-white tracking-tighter italic uppercase">
+          {subscription?.planName || t('settings.billing.free', 'Free')}
+        </h3>
+        <p className="text-gray-500 text-xs font-bold uppercase tracking-wide mt-2">
+          {subscription?.status ||
+            t('settings.billing.no_subscription', 'No active subscription')}
+        </p>
+        {subscription?.currentPeriodEnd && (
+          <p className="text-gray-600 text-xs font-medium mt-1">
+            {subscription.cancelAtPeriodEnd
+              ? t('settings.billing.cancels_on', 'Cancels on')
+              : t('settings.billing.renews_on', 'Renews on')}{' '}
+            {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+          </p>
+        )}
+      </div>
+      <Button
+        onClick={hasActiveSubscription ? handleBillingPortal : handleUpgrade}
+        isLoading={isProcessingPortal}
+        variant="white"
+        className="px-8 py-4 font-black text-xs uppercase tracking-wide hover:scale-105 shadow-xl shadow-white/5"
+      >
+        {hasActiveSubscription
+          ? t('settings.billing.manage', 'Manage Billing')
+          : t('settings.billing.view_plans', 'View Plans')}
+      </Button>
+    </div>
+  );
+}
 
 export default function Settings() {
   const queryClient = useQueryClient();
@@ -66,6 +135,8 @@ export default function Settings() {
     | 'notifications'
     | 'referrals'
     | 'monetization'
+    | 'appeals'
+    | 'reports'
   >('profile');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { t, i18n } = useTranslation();
@@ -504,6 +575,18 @@ export default function Settings() {
       label: 'Referrals',
       desc: 'Invite friends and track referrals',
       icon: Users,
+    },
+    {
+      id: 'appeals',
+      label: t('settings.tabs.appeals.label', 'Appeals'),
+      desc: t('settings.tabs.appeals.desc', 'Content moderation appeals'),
+      icon: Scale,
+    },
+    {
+      id: 'reports',
+      label: t('settings.tabs.reports.label', 'My reports'),
+      desc: t('settings.tabs.reports.desc', 'Status of reports you filed'),
+      icon: Flag,
     },
     {
       id: 'close_friends',
@@ -1357,36 +1440,20 @@ export default function Settings() {
                   </p>
                 </div>
 
-                <div className="glass-panel p-6 rounded-xl border border-white/5 bg-linear-to-br from-blue-500/5 via-transparent to-transparent flex flex-col md:flex-row items-center justify-between gap-6">
-                  <div>
-                    <span className="text-xs font-black uppercase tracking-wide text-blue-400/80 mb-2 block">
-                      {t('settings.billing.current_plan')}
-                    </span>
-                    <h3 className="text-2xl font-black text-white tracking-tighter italic uppercase">
-                      {profile?.user?.verificationLevel === 'BASIC'
-                        ? t('settings.billing.free')
-                        : profile?.user?.verificationLevel}
-                    </h3>
-                    <p className="text-gray-500 text-xs font-bold uppercase tracking-wide mt-2">
-                      {profile?.user?.verificationLevel === 'BASIC'
-                        ? t('settings.billing.free_desc')
-                        : t('settings.billing.active_desc')}
-                    </p>
-                  </div>
-                  <Button
-                    onClick={
-                      profile?.user?.verificationLevel === 'BASIC'
-                        ? handleUpgrade
-                        : handleBillingPortal
-                    }
-                    isLoading={isProcessingPortal}
-                    variant="white"
-                    className="px-8 py-4 font-black text-xs uppercase tracking-wide hover:scale-105 shadow-xl shadow-white/5"
-                  >
-                    {profile?.user?.verificationLevel === 'BASIC'
-                      ? t('settings.billing.view_plans')
-                      : t('settings.billing.manage')}
-                  </Button>
+                <BillingStatus
+                  handleUpgrade={handleUpgrade}
+                  handleBillingPortal={handleBillingPortal}
+                  isProcessingPortal={isProcessingPortal}
+                />
+
+                <div className="space-y-3 pt-2">
+                  <h3 className="text-sm font-black uppercase tracking-wide text-gray-400">
+                    {t(
+                      'settings.billing.creator_subs_title',
+                      'Creator subscriptions',
+                    )}
+                  </h3>
+                  <CreatorSubscriptionsList />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1450,6 +1517,8 @@ export default function Settings() {
             {activeTab === 'monetization' && <MonetizationSettings />}
             {activeTab === 'referrals' && <ReferralsSettings />}
             {activeTab === 'notifications' && <NotificationsSettings />}
+            {activeTab === 'appeals' && <AppealsSettings />}
+            {activeTab === 'reports' && <MyReportsSettings />}
           </div>
         </div>
 
