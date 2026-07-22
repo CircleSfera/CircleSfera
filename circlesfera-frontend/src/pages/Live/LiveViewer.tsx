@@ -73,24 +73,25 @@ export default function LiveViewer() {
     };
   }, [streamId, navigate]);
 
+  // If co-host accepted: switch LiveKitRoom to publisher mode
+  const activeToken = coHostToken || token;
+  const activeStreamId = coHostStreamId || streamId;
+
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!messageInput.trim() || !streamId) return;
+    if (!messageInput.trim() || !activeStreamId) return;
     const socket = useSocketStore.getState().socket;
     if (!socket) return;
-    socket.emit('live:chat', { streamId, message: messageInput });
+    socket.emit('live:chat', { streamId: activeStreamId, message: messageInput });
     setMessageInput('');
   };
 
   const handleDoubleTap = () => {
-    if (!streamId) return;
+    if (!activeStreamId) return;
     const socket = useSocketStore.getState().socket;
     if (!socket) return;
-    socket.emit('live:heart', { streamId });
+    socket.emit('live:heart', { streamId: activeStreamId });
   };
-
-  // If co-host accepted: switch LiveKitRoom to publisher mode
-  const activeToken = coHostToken || token;
 
   if (activeToken === '') {
     return (

@@ -6,8 +6,8 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AccessToken } from 'livekit-server-sdk';
-import { AppGateway } from '../socket/app.gateway.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AppGateway } from '../socket/app.gateway.js';
 
 @Injectable()
 export class LiveService {
