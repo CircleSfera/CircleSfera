@@ -540,19 +540,30 @@ export class AuthService {
       expiresIn: '7d',
     });
 
-    // Store refresh token in database
+    // Store refresh token in database with defensive fallback for schema variations
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
 
-    await this.prisma.refreshToken.create({
-      data: {
-        token: refreshToken,
-        userId,
-        userAgent: userAgent || null,
-        ipAddress: ipAddress || null,
-        expiresAt,
-      },
-    });
+    try {
+      await this.prisma.refreshToken.create({
+        data: {
+          token: refreshToken,
+          userId,
+          userAgent: userAgent || null,
+          ipAddress: ipAddress || null,
+          expiresAt,
+        },
+      });
+    } catch (_err) {
+      // Fallback: If userAgent or ipAddress columns are missing in legacy DB schemas before migration runs
+      await this.prisma.refreshToken.create({
+        data: {
+          token: refreshToken,
+          userId,
+          expiresAt,
+        },
+      });
+    }
 
     return { accessToken, refreshToken };
   }
