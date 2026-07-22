@@ -31,6 +31,7 @@ describe('AuthService', () => {
     refreshToken: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
       deleteMany: vi.fn(),
@@ -251,6 +252,30 @@ describe('AuthService', () => {
     it('should delete refresh tokens', async () => {
       await service.logout('1', 'token');
       expect(mockPrismaService.refreshToken.deleteMany).toHaveBeenCalled();
+    });
+  });
+
+  describe('session management', () => {
+    it('should fetch user sessions', async () => {
+      mockPrismaService.refreshToken.findMany = vi.fn().mockResolvedValue([
+        { id: 's1', userAgent: 'Chrome', ipAddress: '127.0.0.1' },
+      ]);
+      const sessions = await service.getUserSessions('user-1');
+      expect(sessions).toHaveLength(1);
+    });
+
+    it('should revoke a single session', async () => {
+      await service.revokeSession('user-1', 's1');
+      expect(mockPrismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
+        where: { id: 's1', userId: 'user-1' },
+      });
+    });
+
+    it('should revoke other sessions', async () => {
+      await service.revokeOtherSessions('user-1', 's1');
+      expect(mockPrismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', id: { not: 's1' } },
+      });
     });
   });
 });

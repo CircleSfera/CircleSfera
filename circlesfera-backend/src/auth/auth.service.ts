@@ -445,15 +445,67 @@ export class AuthService {
   }
 
   /**
+   * Get all active sessions for a user.
+   */
+  async getUserSessions(userId: string) {
+    const sessions = await this.prisma.refreshToken.findMany({
+      where: {
+        userId,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        userAgent: true,
+        ipAddress: true,
+        createdAt: true,
+        expiresAt: true,
+      },
+    });
+
+    return sessions;
+  }
+
+  /**
+   * Revoke a specific session by ID for a user.
+   */
+  async revokeSession(userId: string, sessionId: string) {
+    await this.prisma.refreshToken.deleteMany({
+      where: {
+        id: sessionId,
+        userId,
+      },
+    });
+    return { success: true };
+  }
+
+  /**
+   * Revoke all sessions for a user except an optional current session ID.
+   */
+  async revokeOtherSessions(userId: string, currentSessionId?: string) {
+    await this.prisma.refreshToken.deleteMany({
+      where: {
+        userId,
+        ...(currentSessionId ? { id: { not: currentSessionId } } : {}),
+      },
+    });
+    return { success: true };
+  }
+
+  /**
    * Generate a new access/refresh token pair and persist the refresh token in the database.
    * Access tokens expire in 15 minutes; refresh tokens expire in 7 days.
    * @param userId - User ID to encode in the JWT payload
    * @param email - User email to encode in the JWT payload
+   * @param userAgent - Optional client browser/device User-Agent string
+   * @param ipAddress - Optional client IP address
    * @returns Signed access and refresh token pair
    */
-  private async generateTokens(
+  public async generateTokens(
     userId: string,
     email: string,
+    userAgent?: string,
+    ipAddress?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const payload = { sub: userId, email, jti: randomUUID() };
 
@@ -475,6 +527,8 @@ export class AuthService {
       data: {
         token: refreshToken,
         userId,
+        userAgent: userAgent || null,
+        ipAddress: ipAddress || null,
         expiresAt,
       },
     });

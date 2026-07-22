@@ -1,9 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
   Inject,
+  Param,
   Post,
   Req,
   Res,
@@ -167,5 +170,29 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
+  }
+
+  /** Get all active sessions for the current user. */
+  @Get('sessions')
+  @UseGuards(JwtAuthGuard)
+  async getSessions(@CurrentUser() user: CurrentUserData) {
+    return this.authService.getUserSessions(user.userId);
+  }
+
+  /** Revoke all other active sessions for the current user. */
+  @Delete('sessions/other')
+  @UseGuards(JwtAuthGuard)
+  async revokeOtherSessions(@CurrentUser() user: CurrentUserData) {
+    return this.authService.revokeOtherSessions(user.userId);
+  }
+
+  /** Revoke a specific active session by ID. */
+  @Delete('sessions/:id')
+  @UseGuards(JwtAuthGuard)
+  async revokeSession(
+    @Param('id') sessionId: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.authService.revokeSession(user.userId, sessionId);
   }
 }
