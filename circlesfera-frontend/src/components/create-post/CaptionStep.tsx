@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  BarChart2,
   ChevronRight,
   DollarSign,
   Eye,
@@ -14,6 +15,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type {
   CreateMode,
+  InteractiveDraft,
   MediaFile,
   SubScreen,
 } from '../../hooks/useCreatePost';
@@ -32,6 +34,7 @@ interface CaptionStepProps {
   setSelectedAudio: (audio: AudioTrack | null) => void;
   setShowMusicPicker: (show: boolean) => void;
   isPremium?: boolean;
+  interactiveDraft?: InteractiveDraft;
 }
 
 const MAX_CAPTION_LENGTH = 2200;
@@ -47,6 +50,7 @@ export default function CaptionStep({
   setSelectedAudio,
   setShowMusicPicker,
   isPremium,
+  interactiveDraft,
 }: CaptionStepProps) {
   const { t } = useTranslation();
   const { profile } = useAuthStore();
@@ -107,6 +111,22 @@ export default function CaptionStep({
       activeColor: '',
       onClick: () => setSubScreen('advanced'),
     },
+    ...(mode === 'POST' || mode === 'FRAME'
+      ? [
+          {
+            key: 'interactive',
+            icon: BarChart2,
+            label: interactiveDraft
+              ? interactiveDraft.kind === 'poll'
+                ? t('createPost.interactive.poll_attached', 'Poll attached')
+                : t('createPost.interactive.qna_attached', 'Q&A attached')
+              : t('createPost.interactive.add', 'Add poll or Q&A'),
+            isActive: !!interactiveDraft,
+            activeColor: 'text-sky-400',
+            onClick: () => setSubScreen('interactive'),
+          },
+        ]
+      : []),
     {
       key: 'monetization',
       icon: DollarSign,
