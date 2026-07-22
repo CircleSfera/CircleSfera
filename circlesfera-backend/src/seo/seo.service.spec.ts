@@ -9,6 +9,7 @@ describe('SeoService', () => {
   const mockPrismaService = {
     profile: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
     },
     post: {
       findMany: vi.fn(),
@@ -61,6 +62,38 @@ describe('SeoService', () => {
       const html = await service.generateOpenGraphHtml('/');
       expect(html).toContain('<title>CircleSfera - The Next-Gen Social Network</title>');
       expect(html).toContain('og:image');
+    });
+  });
+
+  describe('generatePostOgImage & generateProfileOgImage', () => {
+    it('should generate SVG card for post', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        id: 'post-1',
+        caption: 'Hello World',
+        user: { profile: { username: 'creator', fullName: 'Creator User' }, verificationLevel: 'VERIFIED' },
+        _count: { likes: 10, comments: 2 },
+      });
+
+      const svg = await service.generatePostOgImage('post-1');
+      expect(svg).toContain('<svg');
+      expect(svg).toContain('Creator User');
+      expect(svg).toContain('10 Likes');
+      expect(svg).toContain('CircleSfera');
+    });
+
+    it('should generate SVG card for profile', async () => {
+      mockPrismaService.profile.findFirst = vi.fn().mockResolvedValueOnce({
+        username: 'procreator',
+        fullName: 'Pro Creator',
+        bio: 'Official CircleSfera Account',
+        user: { _count: { followers: 1250, following: 100, posts: 45 } },
+      });
+
+      const svg = await service.generateProfileOgImage('procreator');
+      expect(svg).toContain('<svg');
+      expect(svg).toContain('Pro Creator');
+      expect(svg).toContain('1250 Followers');
+      expect(svg).toContain('CircleSfera');
     });
   });
 });

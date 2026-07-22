@@ -1,4 +1,4 @@
-import { Controller, Get, Header, Inject, Query } from '@nestjs/common';
+import { Controller, Get, Header, Inject, Param, Query } from '@nestjs/common';
 import { SeoService } from './seo.service.js';
 
 @Controller()
@@ -24,5 +24,17 @@ export class SeoController {
       path = '/';
     }
     return this.seoService.generateOpenGraphHtml(path);
+  }
+
+  @Get('og-image/post/:id')
+  @Header('Content-Type', 'image/svg+xml')
+  async getPostOgImage(@Param('id') id: string) {
+    return this.seoService.generatePostOgImage(id);
+  }
+
+  @Get('og-image/profile/:username')
+  @Header('Content-Type', 'image/svg+xml')
+  async getProfileOgImage(@Param('username') username: string) {
+    return this.seoService.generateProfileOgImage(username);
   }
 }
