@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { SubscriptionStatus } from '@prisma/client';
@@ -20,6 +21,8 @@ interface RequestWithUser extends Request {
 
 @Injectable()
 export class SubscriptionGuard implements CanActivate {
+  private readonly logger = new Logger(SubscriptionGuard.name);
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(Reflector) private readonly reflector: Reflector,
@@ -38,7 +41,7 @@ export class SubscriptionGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<RequestWithUser>();
     const user = request.user;
     if (!user?.userId) {
-      console.log('SubscriptionGuard: No user found on request');
+      this.logger.warn('SubscriptionGuard: No user found on request');
       return false;
     }
 
@@ -48,14 +51,9 @@ export class SubscriptionGuard implements CanActivate {
       select: { role: true },
     });
 
-    console.log(
-      `SubscriptionGuard: DB Role for ${user.userId} is "${dbUser?.role}"`,
-    );
-
     // Administrators bypass subscription requirements
     const currentRole = (dbUser?.role as string) || (user.role as string);
     if (currentRole === 'ADMIN') {
-      console.log('SubscriptionGuard: ADMIN bypass granted');
       return true;
     }
 
