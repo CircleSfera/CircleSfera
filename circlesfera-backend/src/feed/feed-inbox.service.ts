@@ -19,9 +19,13 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
     const host = this.configService.get<string>('REDIS_HOST') || 'localhost';
     const port = this.configService.get<number>('REDIS_PORT') || 6379;
 
+    const password =
+      this.configService.get<string>('REDIS_PASSWORD') || undefined;
+
     this.redisClient = new Redis({
       host,
       port,
+      password,
       retryStrategy: (times) => Math.min(times * 50, 2000),
       maxRetriesPerRequest: 3,
     });
@@ -133,7 +137,9 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
       await this.redisClient.del(key);
       this.logger.debug(`Invalidated feed inbox cache for user ${userId}`);
     } catch (error) {
-      this.logger.error(`Failed to invalidate feed cache for user ${userId}: ${error}`);
+      this.logger.error(
+        `Failed to invalidate feed cache for user ${userId}: ${error}`,
+      );
     }
   }
 

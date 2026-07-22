@@ -11,7 +11,12 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
+import { TwoFactorCodeDto } from './dto/two-factor-code.dto.js';
 import { TwoFactorService } from './two-factor.service.js';
+
+interface AuthRequest {
+  user: { userId: string; email: string; role: string };
+}
 
 @ApiTags('2FA')
 @Controller('2fa')
@@ -22,11 +27,12 @@ export class TwoFactorController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Generate a new 2FA secret and QR code URL' })
-  async generate(@Req() req: any, @Res() res: Response) {
+  async generate(@Req() req: AuthRequest, @Res() res: Response) {
     const { otpauthUrl } =
-      await this.twoFactorService.generateTwoFactorAuthenticationSecret(
-        req.user,
-      );
+      await this.twoFactorService.generateTwoFactorAuthenticationSecret({
+        id: req.user.userId,
+        email: req.user.email,
+      });
 
     const qrCodeDataUrl =
       await this.twoFactorService.generateQrCodeDataURL(otpauthUrl);
@@ -41,12 +47,9 @@ export class TwoFactorController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Turn on 2FA' })
-  async turnOn(
-    @Req() req: any,
-    @Body() body: { twoFactorAuthenticationCode: string },
-  ) {
+  async turnOn(@Req() req: AuthRequest, @Body() body: TwoFactorCodeDto) {
     await this.twoFactorService.turnOnTwoFactorAuthentication(
-      req.user.id,
+      req.user.userId,
       body.twoFactorAuthenticationCode,
     );
     return { message: '2FA has been turned on successfully' };
@@ -57,12 +60,9 @@ export class TwoFactorController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Turn off 2FA' })
-  async turnOff(
-    @Req() req: any,
-    @Body() body: { twoFactorAuthenticationCode: string },
-  ) {
+  async turnOff(@Req() req: AuthRequest, @Body() body: TwoFactorCodeDto) {
     await this.twoFactorService.turnOffTwoFactorAuthentication(
-      req.user.id,
+      req.user.userId,
       body.twoFactorAuthenticationCode,
     );
     return { message: '2FA has been turned off successfully' };

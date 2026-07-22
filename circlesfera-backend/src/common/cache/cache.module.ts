@@ -10,11 +10,15 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
-        const url = `redis://${configService.get<string>('REDIS_HOST') || 'localhost'}:${configService.get<number>('REDIS_PORT') || 6379}`;
+        const host = configService.get<string>('REDIS_HOST') || 'localhost';
+        const port = configService.get<number>('REDIS_PORT') || 6379;
+        const password = configService.get<string>('REDIS_PASSWORD');
+        const auth = password ? `:${encodeURIComponent(password)}@` : '';
+        const url = `redis://${auth}${host}:${port}`;
 
         const keyv = createKeyv(url);
 
-        keyv.on('error', (err: any) => {
+        keyv.on('error', (err: { message?: string }) => {
           console.error(
             'Redis cache error (prevented crash):',
             err.message || err,

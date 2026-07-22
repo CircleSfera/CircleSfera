@@ -15,6 +15,7 @@ CircleSfera es un proyecto serio, profesional y de largo recorrido. Toda acción
 - Monetización basada en tiers y funcionalidades premium
 - Dominio sensible: identidad, contenido, relaciones sociales, chat, stories, suscripciones, promociones, auditoría y datos de usuario
 - Principio de producto: plataforma seria, escalable, transparente y controlada por reglas explícitas
+- `circlesfera-landing/` está en desuso (DEPRECATED / unused); no usarlo como base de trabajo ni de despliegue
 
 ## Fuente de Verdad
 
@@ -23,8 +24,8 @@ Cuando exista conflicto entre documentos, se debe respetar este orden de priorid
 1. `schema.prisma`
 2. Código fuente realmente implementado
 3. Contratos API vigentes
-4. ADRs (Architecture Decision Records)
-5. Documentación técnica y funcional
+4. ADRs (Architecture Decision Records) — carpeta prevista en `circlesfera-documentation/adr/` (hito documental pendiente; ver README allí)
+5. Documentación técnica y funcional (`circlesfera-documentation/`)
 6. Suposiciones
 
 Regla obligatoria:

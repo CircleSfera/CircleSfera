@@ -20,6 +20,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { SubscriptionGuard } from '../auth/guards/subscription.guard.js';
 import { CreatorService } from './creator.service.js';
 import { CreatorSubscriptionsService } from './creator-subscriptions.service.js';
+import { SubscribeCreatorDto } from './dto/subscribe-creator.dto.js';
 
 interface AuthRequest extends Request {
   user: { userId: string; email: string; role: string };
@@ -149,10 +150,7 @@ export class CreatorController {
 
   // --- Subscriptions ---
   @Post('subscribe')
-  async subscribe(
-    @Req() req: AuthRequest,
-    @Body() body: { creatorId: string; priceCents: number; returnUrl: string },
-  ) {
+  async subscribe(@Req() req: AuthRequest, @Body() body: SubscribeCreatorDto) {
     return this.creatorSubscriptionsService.createSubscriptionSession(
       req.user.userId,
       body.creatorId,
@@ -200,11 +198,17 @@ export class CreatorController {
 
   @Get('analytics/export')
   @Header('Content-Type', 'text/csv')
-  @Header('Content-Disposition', 'attachment; filename="circlesfera-analytics-report.csv"')
+  @Header(
+    'Content-Disposition',
+    'attachment; filename="circlesfera-analytics-report.csv"',
+  )
   async exportAnalyticsCsv(
     @Req() req: AuthRequest,
     @Query('period') period?: string,
   ) {
-    return this.creatorService.exportAnalyticsCsv(req.user.userId, period || '30d');
+    return this.creatorService.exportAnalyticsCsv(
+      req.user.userId,
+      period || '30d',
+    );
   }
 }

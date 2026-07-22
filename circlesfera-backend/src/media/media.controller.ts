@@ -22,7 +22,7 @@ export class MediaController {
   @Get('teaser/:mediaId/*file')
   async serveTeaser(
     @Param('mediaId') mediaId: string,
-    @Param('file') file: string,
+    @Param('file') file: string | string[],
     @Req() req: Request,
     @Res() res: Response,
   ) {
@@ -47,14 +47,27 @@ export class MediaController {
     }
 
     const baseFolder = match[1];
-    const absolutePath = path.join(process.cwd(), 'uploads', baseFolder, file);
+    const relativeFile = Array.isArray(file) ? path.join(...file) : file;
+    const uploadsRoot = path.resolve(process.cwd(), 'uploads', baseFolder);
+    const absolutePath = path.resolve(uploadsRoot, relativeFile);
+
+    // Prevent path traversal outside the media folder
+    if (
+      absolutePath !== uploadsRoot &&
+      !absolutePath.startsWith(uploadsRoot + path.sep)
+    ) {
+      this.logger.warn(
+        `Path traversal blocked for media ${mediaId}: ${relativeFile}`,
+      );
+      throw new ForbiddenException('Invalid file path');
+    }
 
     if (!fs.existsSync(absolutePath)) {
       throw new NotFoundException('File not found');
     }
 
     // If it's a playlist (.m3u8), we slice it to keep only the first 5 seconds (usually ~2 segments)
-    if (file.endsWith('.m3u8')) {
+    if (relativeFile.endsWith('.m3u8')) {
       const content = fs.readFileSync(absolutePath, 'utf8');
       const lines = content.split('\n');
 
@@ -83,8 +96,8 @@ export class MediaController {
     }
 
     // If it's a TS segment, only allow the first few segments (e.g., stream_0.ts, stream_1.ts)
-    if (file.endsWith('.ts')) {
-      const segmentMatch = file.match(/_(\d+)\.ts$/);
+    if (relativeFile.endsWith('.ts')) {
+      const segmentMatch = relativeFile.match(/_(\d+)\.ts$/);
       if (segmentMatch) {
         const segmentIndex = parseInt(segmentMatch[1], 10);
         if (segmentIndex >= 2) {

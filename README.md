@@ -20,17 +20,21 @@ CircleSfera is a complete social media application that allows users to share ph
 
 ```
 CircleSfera/
-├── circlesfera-backend/  # NestJS REST API
-│   ├── README.md         # Backend documentation
-│   ├── prisma/           # Database schema & migrations
-│   ├── src/              # Source code
-├── circlesfera-frontend/ # React SPA
-│   ├── README.md         # Frontend documentation
-│   └── src/              # Source code
-├── circlesfera-shared/   # Shared Types & Utilities
-│   ├── package.json      # Shared package config
-│   └── src/              # Shared source code
-└── README.md             # This file
+├── circlesfera-backend/       # NestJS REST API
+│   ├── README.md
+│   ├── prisma/                # Database schema & migrations
+│   └── src/
+├── circlesfera-frontend/      # React SPA
+│   ├── README.md
+│   └── src/
+├── circlesfera-shared/        # Shared types & utilities (partial adoption)
+│   └── src/
+├── circlesfera-documentation/ # Product & technical docs (see README inside)
+│   └── adr/                   # ADRs planned (next documentation milestone)
+├── circlesfera-landing/       # DEPRECATED / unused — do not build on this
+├── e2e/                       # Playwright end-to-end tests
+├── nginx/                     # Reverse-proxy templates & config
+└── README.md                  # This file
 ```
 
 ## 🏗 System Architecture
@@ -167,23 +171,32 @@ Password: password123
 
 ## 📚 Documentation
 
-| Document                                            | Description                            |
-| --------------------------------------------------- | -------------------------------------- |
-| [Backend README](./circlesfera-backend/README.md)   | API documentation, endpoints, security |
-| [Frontend README](./circlesfera-frontend/README.md) | Components, state management, styling  |
+| Document                                                               | Description                                      |
+| ---------------------------------------------------------------------- | ------------------------------------------------ |
+| [Product & tech docs](./circlesfera-documentation/README.md)           | Indexed docs (PRD, API, schema snapshots, etc.)  |
+| [Backend README](./circlesfera-backend/README.md)                      | API documentation, endpoints, security           |
+| [Frontend README](./circlesfera-frontend/README.md)                    | Components, state management, styling            |
+
+> Snapshots under `circlesfera-documentation/` (esp. Abr 2026) may lag `schema.prisma` and Nest controllers — those remain the source of truth.
 
 ## 🔧 Development
 
 ### Scripts
+
+**Root (Biome):**
+
+```bash
+npm run check        # Biome lint + format (write)
+```
 
 **Backend:**
 
 ```bash
 npm run start:dev    # Development server
 npm run build        # Production build
-npm run lint         # ESLint
+npm run lint         # Biome lint
 npm run test         # Unit tests
-npm run test:e2e     # E2E tests
+npm run test:e2e     # E2E tests (see also root e2e/)
 ```
 
 **Frontend:**
@@ -191,7 +204,7 @@ npm run test:e2e     # E2E tests
 ```bash
 npm run dev          # Development server
 npm run build        # Production build
-npm run lint         # ESLint
+npm run lint         # Biome lint
 npm run preview      # Preview build
 ```
 
@@ -200,9 +213,9 @@ npm run preview      # Preview build
 ### Code Quality
 
 - ✅ TypeScript strict mode in both projects
-- ✅ ESLint + Prettier for consistent formatting
+- ✅ Biome for linting and formatting (root `biome.json`)
 - ✅ Modular architecture (NestJS modules / React components)
-- ✅ Type-safe API integration via `@circlesfera/shared` monorepo package
+- ✅ Shared types via `@circlesfera/shared` (partial adoption — not all API contracts are wired through the package yet)
 
 ### Security
 
@@ -240,12 +253,12 @@ npm run preview      # Preview build
 - [x] E2E Tests (Playwright)
 - [x] Dockerization
 
-### Phase 3: Advanced Features 📋
+### Phase 3: Advanced Features
 
-- [ ] Email verification & Password reset
-- [ ] Admin dashboard
-- [ ] Dark mode
-- [ ] PWA support
+- [x] Email verification & Password reset
+- [x] Admin dashboard
+- [x] PWA support
+- [ ] Dark mode (partial / betterable — Tailwind `dark:` classes exist in places; no complete theme system yet)
 
 ## 🤝 Contributing
 
@@ -257,7 +270,7 @@ npm run preview      # Preview build
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is intended to be distributed under the MIT License. A formal `LICENSE` file has not been added to the repository yet.
 
 ## 👥 Team
 
@@ -267,5 +280,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <p align="center">
   Made with ❤️ using NestJS + React
-// CI trigger: 2026-06-14T20:33:00+02:00
 </p>

@@ -40,6 +40,8 @@ interface SubScreenRouterProps {
   setIsPremium?: (val: boolean) => void;
   price?: number;
   setPrice?: (val: number) => void;
+  scheduledAt?: string;
+  setScheduledAt?: (val: string) => void;
 }
 
 export default function SubScreenRouter({
@@ -62,6 +64,8 @@ export default function SubScreenRouter({
   setIsPremium,
   price,
   setPrice,
+  scheduledAt = '',
+  setScheduledAt,
 }: SubScreenRouterProps) {
   if (subScreen === 'location') {
     return (
@@ -96,6 +100,8 @@ export default function SubScreenRouter({
         setHideLikes={setHideLikes}
         turnOffComments={turnOffComments}
         setTurnOffComments={setTurnOffComments}
+        scheduledAt={scheduledAt}
+        setScheduledAt={setScheduledAt || (() => undefined)}
         onClose={() => setSubScreen('none')}
       />
     );

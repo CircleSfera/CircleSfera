@@ -51,11 +51,13 @@ export default defineConfig({
   server: {
     proxy: {
       '/api/v1': {
-        target: 'http://localhost:3005',
+        // In Docker Compose the backend service is reachable as http://backend:3000.
+        // Local host runs use the published port http://localhost:3005.
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3005',
         changeOrigin: true,
       },
       '/socket.io': {
-        target: 'http://localhost:3005',
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3005',
         ws: true,
         changeOrigin: true,
       },

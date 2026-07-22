@@ -15,6 +15,7 @@ import type Stripe from 'stripe';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { CheckoutDto } from './dto/checkout.dto.js';
 import { PaymentsService } from './payments.service.js';
 
 interface RequestWithUser extends Request {
@@ -37,7 +38,7 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard, IdentityVerifiedGuard)
   async createCheckout(
     @Req() req: RequestWithUser,
-    @Body() body: { planId: string; billingCycle?: 'MONTHLY' | 'YEARLY' },
+    @Body() body: CheckoutDto,
   ): Promise<Stripe.Checkout.Session | { url: string }> {
     return this.paymentsService.createCheckout(
       req.user.userId,

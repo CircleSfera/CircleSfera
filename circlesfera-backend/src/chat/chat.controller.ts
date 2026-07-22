@@ -16,7 +16,9 @@ import type { Conversation, Message } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { ChatService } from './chat.service.js';
 import { CreateGroupDto } from './dto/create-group.dto.js';
+import { EditMessageDto } from './dto/edit-message.dto.js';
 import { SendMessageDto } from './dto/send-message.dto.js';
+import { UpdateGroupDto } from './dto/update-group.dto.js';
 
 interface AuthenticatedRequest extends Request {
   user: {
@@ -114,7 +116,7 @@ export class ChatController {
   async updateGroup(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { name?: string; avatarUrl?: string },
+    @Body() body: UpdateGroupDto,
   ) {
     return this.chatService.updateGroup(
       req.user.userId,
@@ -152,7 +154,7 @@ export class ChatController {
   async editMessage(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() body: { content: string },
+    @Body() body: EditMessageDto,
   ) {
     return this.chatService.editMessage(req.user.userId, id, body.content);
   }

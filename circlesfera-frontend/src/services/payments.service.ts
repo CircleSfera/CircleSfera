@@ -40,10 +40,4 @@ export const paymentsApi = {
     });
     return response.data;
   },
-
-  /** Create a Stripe Checkout session to unlock a specific post. */
-  createPostUnlockSession: async (postId: string) => {
-    const response = await api.post(`/payments/unlock-post/${postId}`);
-    return response.data; // { url: string }
-  },
 };

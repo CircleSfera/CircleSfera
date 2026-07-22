@@ -84,6 +84,11 @@ export class PostsService {
       );
     }
 
+    const scheduledAt =
+      dto.scheduledAt && new Date(dto.scheduledAt) > new Date()
+        ? new Date(dto.scheduledAt)
+        : undefined;
+
     const createdPost = await this.prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
         const post = await tx.post.create({
@@ -99,6 +104,8 @@ export class PostsService {
             visibility: dto.visibility || Visibility.PUBLIC,
             isPremium: dto.isPremium || false,
             priceCents: dto.priceCents || 0,
+            scheduledAt: scheduledAt ?? null,
+            scheduledStatus: scheduledAt ? 'SCHEDULED' : 'PUBLISHED',
             tags:
               dto.tags && dto.tags.length > 0
                 ? {
@@ -168,6 +175,11 @@ export class PostsService {
         },
       },
     });
+
+    // Defer fan-out/notifications until the maintenance worker publishes
+    if (scheduledAt) {
+      return post;
+    }
 
     // Generate and store embedding for the post in the background
     await this.aiQueue.add('generate-embedding', {
@@ -882,8 +894,12 @@ export class PostsService {
             isLocked: true,
             media: post.media?.map((m: any) => ({
               ...m,
-              url: m.url ? `/media/teaser/${m.id}/${m.url.split('/').pop()}` : '',
-              standardUrl: m.standardUrl ? `/media/teaser/${m.id}/master.m3u8` : '',
+              url: m.url
+                ? `/media/teaser/${m.id}/${m.url.split('/').pop()}`
+                : '',
+              standardUrl: m.standardUrl
+                ? `/media/teaser/${m.id}/master.m3u8`
+                : '',
             })),
           };
         }
@@ -922,8 +938,12 @@ export class PostsService {
             isLocked: true,
             media: post.media?.map((m: any) => ({
               ...m,
-              url: m.url ? `/media/teaser/${m.id}/${m.url.split('/').pop()}` : '',
-              standardUrl: m.standardUrl ? `/media/teaser/${m.id}/master.m3u8` : '',
+              url: m.url
+                ? `/media/teaser/${m.id}/${m.url.split('/').pop()}`
+                : '',
+              standardUrl: m.standardUrl
+                ? `/media/teaser/${m.id}/master.m3u8`
+                : '',
             })),
           };
         }

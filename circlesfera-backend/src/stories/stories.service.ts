@@ -39,6 +39,11 @@ export class StoriesService {
    * @param dto - Story data (url, mediaType, isCloseFriendsOnly, audioId)
    */
   async create(userId: string, dto: CreateStoryDto) {
+    const scheduledAt =
+      dto.scheduledAt && new Date(dto.scheduledAt) > new Date()
+        ? new Date(dto.scheduledAt)
+        : undefined;
+
     const story = await this.prisma.story.create({
       data: {
         userId,
@@ -49,6 +54,8 @@ export class StoriesService {
         isCloseFriendsOnly: dto.isCloseFriendsOnly || false,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
         audioId: dto.audioId,
+        scheduledAt: scheduledAt ?? null,
+        scheduledStatus: scheduledAt ? 'SCHEDULED' : 'PUBLISHED',
       },
       include: {
         user: {
@@ -58,6 +65,11 @@ export class StoriesService {
         },
       },
     });
+
+    // Skip fan-out moderation side effects for still-scheduled stories
+    if (scheduledAt) {
+      return story;
+    }
 
     // Moderate content in the background (Visual Moderation)
     await this.aiQueue.add('moderate-content', {
@@ -83,6 +95,7 @@ export class StoriesService {
       expiresAt: { gt: new Date() },
       createdAt: { gt: oneDayAgo },
       moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+      scheduledStatus: 'PUBLISHED',
     };
 
     // If userId is provided, filter to show only stories from followed users
