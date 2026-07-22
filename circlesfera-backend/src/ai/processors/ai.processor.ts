@@ -1,7 +1,8 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger } from '@nestjs/common';
-import { ModerationStatus } from '@prisma/client';
+import { ModerationStatus, NotificationType } from '@prisma/client';
 import type { Job } from 'bullmq';
+import { NotificationsService } from '../../notifications/notifications.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AIService } from '../ai.service.js';
 
@@ -12,6 +13,8 @@ export class AIProcessor extends WorkerHost {
   constructor(
     @Inject(AIService) private readonly aiService: AIService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(NotificationsService)
+    private readonly notificationsService: NotificationsService,
   ) {
     super();
   }
@@ -21,6 +24,10 @@ export class AIProcessor extends WorkerHost {
       case 'generate-embedding':
         return this.handleGenerateEmbedding(
           job as Job<{ postId: string; text: string }, any, string>,
+        );
+      case 'generate-profile-embedding':
+        return this.handleGenerateProfileEmbedding(
+          job as Job<{ profileId: string; text: string }, any, string>,
         );
       case 'moderate-content':
         return this.handleModerateContent(
@@ -100,6 +107,69 @@ export class AIProcessor extends WorkerHost {
       );
       throw error;
     }
+  }
+
+  private async handleGenerateProfileEmbedding(
+    job: Job<{ profileId: string; text: string }, any, string>,
+  ) {
+    const { profileId, text } = job.data;
+    this.logger.log(`Processing embedding for profile: ${profileId}`);
+
+    try {
+      const embedding = await this.aiService.generateEmbedding(text);
+
+      await this.prisma.$executeRaw`
+        INSERT INTO profile_embeddings ("profileId", vector)
+        VALUES (${profileId}, ${JSON.stringify(embedding)}::vector)
+        ON CONFLICT ("profileId")
+        DO UPDATE SET vector = EXCLUDED.vector
+      `;
+
+      this.logger.log(
+        `Successfully updated embedding for profile: ${profileId}`,
+      );
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        `Failed to process embedding for profile ${profileId}: ${errorMessage}`,
+      );
+      throw error;
+    }
+  }
+
+  private async notifyAuthorOfModeration(params: {
+    authorId: string | null;
+    adminId: string;
+    targetType: 'POST' | 'STORY' | 'COMMENT';
+    targetId: string;
+    status: ModerationStatus;
+    assessment: string;
+  }) {
+    const { authorId, adminId, targetType, targetId, status, assessment } =
+      params;
+    if (!authorId) return;
+
+    const statusLabel =
+      status === ModerationStatus.HIDDEN
+        ? 'hidden'
+        : status === ModerationStatus.FLAGGED
+          ? 'flagged for review'
+          : String(status).toLowerCase();
+
+    const content = `Your ${targetType.toLowerCase()} was ${statusLabel} by automated moderation. ${assessment} You can appeal from Settings → Appeals.`;
+
+    await this.notificationsService
+      .create({
+        recipientId: authorId,
+        senderId: adminId,
+        type: NotificationType.MODERATION,
+        content: content.slice(0, 500),
+        postId: targetType === 'POST' ? targetId : undefined,
+      })
+      .catch((err) =>
+        this.logger.error('Failed to notify author of moderation action', err),
+      );
   }
 
   private async handleModerateContent(
@@ -211,10 +281,18 @@ export class AIProcessor extends WorkerHost {
               },
             });
 
-            // Check author strikes
             if (authorId) {
               await this.applyStrikeAndCheckEscalation(authorId, adminUser.id);
             }
+
+            await this.notifyAuthorOfModeration({
+              authorId,
+              adminId: adminUser.id,
+              targetType,
+              targetId,
+              status: ModerationStatus.HIDDEN,
+              assessment: aiAssessment,
+            });
           }
 
           return; // EXIT EARLY! DO NOT CALL OPENAI
@@ -313,13 +391,18 @@ export class AIProcessor extends WorkerHost {
           if (shouldHide && authorId) {
             await this.applyStrikeAndCheckEscalation(authorId, adminUser.id);
           }
+
+          await this.notifyAuthorOfModeration({
+            authorId,
+            adminId: adminUser.id,
+            targetType,
+            targetId,
+            status,
+            assessment: aiAssessment,
+          });
         } else {
           this.logger.error(
-            `Cannot create
-          AI;
-          report;
-          for ${targetId}
-          : No ADMIN user found.`,
+            `Cannot create AI report for ${targetId}: No ADMIN user found.`,
           );
         }
       }
