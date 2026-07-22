@@ -25,6 +25,7 @@
     "prisma:seed:audio": "ts-node prisma/seed-audio.ts",
     "prisma:studio": "prisma studio",
     "prisma:generate": "prisma generate",
+    "prisma:check-migrations": "DATABASE_URL=\"${DATABASE_URL:?Set DATABASE_URL to an empty Postgres}\" ../scripts/check-prisma-schema-migrations.sh",
     "check-user": "ts-node scripts/check-user.ts",
     "embeddings:backfill": "tsx scripts/generate-embeddings.ts"
   },
