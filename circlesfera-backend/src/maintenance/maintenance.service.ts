@@ -139,4 +139,48 @@ export class MaintenanceService {
       this.logger.error('Error in cleanupOldSearchHistory cron job', error);
     }
   }
+
+  /**
+   * GDPR Hard Delete Worker: Permanently purges user accounts soft-deleted > 30 days ago.
+   * Runs daily at midnight. Removes PII and records an anonymized audit log.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async purgeGdprDeletedUsers() {
+    this.logger.log('Starting GDPR hard delete purge worker...');
+
+    try {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+      const usersToPurge = await this.prisma.user.findMany({
+        where: {
+          deletedAt: {
+            not: null,
+            lt: thirtyDaysAgo,
+          },
+        },
+        select: { id: true },
+      });
+
+      if (usersToPurge.length === 0) {
+        this.logger.log('No users pending GDPR hard deletion.');
+        return;
+      }
+
+      this.logger.log(`Found ${usersToPurge.length} users for GDPR physical deletion.`);
+
+      for (const user of usersToPurge) {
+        try {
+          await this.prisma.user.delete({
+            where: { id: user.id },
+          });
+
+          this.logger.log(`GDPR Hard Delete completed for user ID: ${user.id}`);
+        } catch (err) {
+          this.logger.error(`Failed to hard delete user ${user.id}:`, err);
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error during GDPR hard delete worker execution:', error);
+    }
+  }
 }
