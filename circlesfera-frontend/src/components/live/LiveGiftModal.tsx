@@ -125,9 +125,7 @@ export default function LiveGiftModal({
                       : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
                   }`}
                 >
-                  <div
-                    className={`p-3 rounded-2xl mb-2 border ${gift.color}`}
-                  >
+                  <div className={`p-3 rounded-2xl mb-2 border ${gift.color}`}>
                     <Icon size={24} />
                   </div>
                   <span className="text-xs font-bold truncate max-w-full">

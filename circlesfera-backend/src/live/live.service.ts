@@ -43,11 +43,26 @@ export class LiveService {
   }
 
   async endStream(userId: string) {
-    await this.prisma.liveStream.updateMany({
+    const activeStreams = await this.prisma.liveStream.findMany({
       where: { hostId: userId, status: 'LIVE' },
-      data: { status: 'ENDED', endedAt: new Date() },
     });
-    return { success: true };
+
+    if (activeStreams.length > 0) {
+      await Promise.all(
+        activeStreams.map((stream) =>
+          this.prisma.liveStream.update({
+            where: { id: stream.id },
+            data: {
+              status: 'ENDED',
+              endedAt: new Date(),
+              replayUrl: stream.hlsUrl || `https://cdn.circlesfera.com/vod/replays/${stream.id}.m3u8`,
+            },
+          }),
+        ),
+      );
+    }
+
+    return { success: true, endedCount: activeStreams.length };
   }
 
   async getActiveStreams() {

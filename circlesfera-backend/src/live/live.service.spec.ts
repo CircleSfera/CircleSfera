@@ -11,6 +11,7 @@ describe('LiveService', () => {
   const mockPrismaService = {
     liveStream: {
       updateMany: vi.fn(),
+      update: vi.fn(),
       create: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn(),
@@ -88,15 +89,24 @@ describe('LiveService', () => {
   });
 
   describe('endStream', () => {
-    it('should update active streams status to ENDED', async () => {
-      mockPrismaService.liveStream.updateMany.mockResolvedValue({ count: 1 });
+    it('should update active streams status to ENDED and assign replayUrl', async () => {
+      mockPrismaService.liveStream.findMany.mockResolvedValue([
+        { id: 'stream-1', hostId: 'user-1', hlsUrl: null },
+      ]);
+      mockPrismaService.liveStream.update.mockResolvedValue({ id: 'stream-1', status: 'ENDED' });
 
       const result = await service.endStream('user-1');
-      expect(mockPrismaService.liveStream.updateMany).toHaveBeenCalledWith({
+      expect(mockPrismaService.liveStream.findMany).toHaveBeenCalledWith({
         where: { hostId: 'user-1', status: 'LIVE' },
-        data: { status: 'ENDED', endedAt: expect.any(Date) },
       });
-      expect(result).toEqual({ success: true });
+      expect(mockPrismaService.liveStream.update).toHaveBeenCalledWith({
+        where: { id: 'stream-1' },
+        data: expect.objectContaining({
+          status: 'ENDED',
+          replayUrl: 'https://cdn.circlesfera.com/vod/replays/stream-1.m3u8',
+        }),
+      });
+      expect(result).toEqual({ success: true, endedCount: 1 });
     });
   });
 
