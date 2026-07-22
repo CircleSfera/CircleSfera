@@ -19,7 +19,7 @@ export class MediaController {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  @Get('teaser/:mediaId/:file(.*)')
+  @Get('teaser/:mediaId/*file')
   async serveTeaser(
     @Param('mediaId') mediaId: string,
     @Param('file') file: string,
