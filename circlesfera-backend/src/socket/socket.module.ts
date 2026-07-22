@@ -11,7 +11,9 @@ import { AppGateway } from './app.gateway.js';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
+        secret:
+          configService.get<string>('JWT_SECRET') ||
+          'circlesfera_default_secret_key',
         signOptions: { expiresIn: '15m' },
       }),
       inject: [ConfigService],

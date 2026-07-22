@@ -63,7 +63,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         throw new UnauthorizedException('No token found');
       }
 
-      const secret = this.configService.get<string>('JWT_SECRET');
+      const secret =
+        this.configService.get<string>('JWT_SECRET') ||
+        'circlesfera_default_secret_key';
       const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
         secret,
       });
