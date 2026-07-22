@@ -131,4 +131,41 @@ export class CreatorSubscriptionsService {
       },
     });
   }
+
+  async cancelSubscription(subscriberId: string, creatorId: string) {
+    const sub = await this.prisma.creatorSubscription.findUnique({
+      where: { subscriberId_creatorId: { subscriberId, creatorId } },
+    });
+
+    if (!sub || sub.status !== 'ACTIVE') {
+      throw new NotFoundException('Active subscription not found');
+    }
+
+    if (sub.stripeSubscriptionId) {
+      await this.stripeService.cancelSubscription(
+        sub.stripeSubscriptionId,
+        true,
+      );
+      await this.prisma.creatorSubscription.update({
+        where: { id: sub.id },
+        data: { autoRenew: false },
+      });
+      return {
+        success: true,
+        cancelAtPeriodEnd: true,
+        expiresAt: sub.expiresAt,
+      };
+    }
+
+    await this.prisma.creatorSubscription.update({
+      where: { id: sub.id },
+      data: {
+        status: 'CANCELLED',
+        autoRenew: false,
+        expiresAt: new Date(),
+      },
+    });
+
+    return { success: true, cancelAtPeriodEnd: false };
+  }
 }

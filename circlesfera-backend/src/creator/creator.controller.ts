@@ -9,6 +9,7 @@ import {
   HttpStatus,
   Inject,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -26,9 +27,10 @@ interface AuthRequest extends Request {
   user: { userId: string; email: string; role: string };
 }
 
+const ElitePlan = () => RequiresPlan('Elite Creator');
+
 @Controller('creator')
-@UseGuards(JwtAuthGuard, SubscriptionGuard)
-@RequiresPlan('Elite Creator')
+@UseGuards(JwtAuthGuard)
 export class CreatorController {
   constructor(
     @Inject(CreatorService)
@@ -38,6 +40,8 @@ export class CreatorController {
 
   /** Creator stats for authenticated user. */
   @Get('stats')
+  @UseGuards(SubscriptionGuard)
+  @ElitePlan()
   @HttpCode(HttpStatus.OK)
   async getStats(@Req() req: AuthRequest) {
     return this.creatorService.getStats(req.user.userId);
@@ -45,6 +49,8 @@ export class CreatorController {
 
   /** Activity chart (likes, comments, views per day for 14 days). */
   @Get('activity-chart')
+  @UseGuards(SubscriptionGuard)
+  @ElitePlan()
   @HttpCode(HttpStatus.OK)
   async getActivityChart(@Req() req: AuthRequest) {
     return this.creatorService.getActivityChart(req.user.userId);
@@ -52,6 +58,8 @@ export class CreatorController {
 
   /** Paginated posts/frames with metrics. */
   @Get('posts')
+  @UseGuards(SubscriptionGuard)
+  @ElitePlan()
   async getPosts(
     @Req() req: AuthRequest,
     @Query('page') page?: string,
@@ -68,6 +76,8 @@ export class CreatorController {
 
   /** Paginated stories with metrics. */
   @Get('stories')
+  @UseGuards(SubscriptionGuard)
+  @ElitePlan()
   async getStories(
     @Req() req: AuthRequest,
     @Query('page') page?: string,
@@ -82,6 +92,8 @@ export class CreatorController {
 
   /** Get my promotions. */
   @Get('promotions')
+  @UseGuards(SubscriptionGuard)
+  @ElitePlan()
   async getPromotions(
     @Req() req: AuthRequest,
     @Query('page') page?: string,
@@ -96,6 +108,8 @@ export class CreatorController {
 
   /** Create a promotion (simulated payment). */
   @Post('promotions')
+  @UseGuards(SubscriptionGuard)
+  @ElitePlan()
   async createPromotion(
     @Req() req: AuthRequest,
     @Body()
@@ -141,6 +155,8 @@ export class CreatorController {
 
   /** Cancel a promotion. */
   @Delete('promotions/:id')
+  @UseGuards(SubscriptionGuard)
+  @ElitePlan()
   async cancelPromotion(@Req() req: AuthRequest, @Param('id') id: string) {
     return this.creatorService.cancelPromotion(
       req.user.userId,
@@ -148,7 +164,30 @@ export class CreatorController {
     ) as Promise<unknown>;
   }
 
-  // --- Subscriptions ---
+  /** Edit targeting / schedule for an active or pending promotion. */
+  @Patch('promotions/:id')
+  @UseGuards(SubscriptionGuard)
+  @ElitePlan()
+  async updatePromotion(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+    @Body()
+    body: {
+      objective?: string;
+      interests?: string;
+      countries?: string;
+      endDate?: string;
+      dailyBudget?: number;
+    },
+  ) {
+    return this.creatorService.updatePromotion(
+      req.user.userId,
+      id,
+      body,
+    ) as Promise<unknown>;
+  }
+
+  // --- Subscriptions (any authenticated fan) ---
   @Post('subscribe')
   async subscribe(@Req() req: AuthRequest, @Body() body: SubscribeCreatorDto) {
     return this.creatorSubscriptionsService.createSubscriptionSession(
@@ -157,6 +196,11 @@ export class CreatorController {
       body.priceCents,
       body.returnUrl,
     );
+  }
+
+  @Get('subscriptions/me')
+  async getMySubscriptions(@Req() req: AuthRequest) {
+    return this.creatorSubscriptionsService.getMySubscriptions(req.user.userId);
   }
 
   @Get('subscription/:creatorId')
@@ -170,9 +214,22 @@ export class CreatorController {
     );
   }
 
+  @Delete('subscription/:creatorId')
+  async cancelSubscription(
+    @Req() req: AuthRequest,
+    @Param('creatorId') creatorId: string,
+  ) {
+    return this.creatorSubscriptionsService.cancelSubscription(
+      req.user.userId,
+      creatorId,
+    );
+  }
+
   // --- Advanced Analytics ---
 
   @Get('analytics/revenue')
+  @UseGuards(SubscriptionGuard)
+  @ElitePlan()
   async getRevenueAnalytics(
     @Req() req: AuthRequest,
     @Query('period') period?: '7d' | '30d' | '90d' | '1y',
@@ -181,11 +238,15 @@ export class CreatorController {
   }
 
   @Get('analytics/retention')
+  @UseGuards(SubscriptionGuard)
+  @ElitePlan()
   async getAudienceRetentionAnalytics(@Req() req: AuthRequest) {
     return this.creatorService.getAudienceRetentionAnalytics(req.user.userId);
   }
 
   @Get('analytics/top-posts')
+  @UseGuards(SubscriptionGuard)
+  @ElitePlan()
   async getTopPerformingContent(
     @Req() req: AuthRequest,
     @Query('limit') limit?: string,
@@ -197,6 +258,8 @@ export class CreatorController {
   }
 
   @Get('analytics/export')
+  @UseGuards(SubscriptionGuard)
+  @ElitePlan()
   @Header('Content-Type', 'text/csv')
   @Header(
     'Content-Disposition',
