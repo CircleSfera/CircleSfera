@@ -19,6 +19,10 @@ describe('AnalyticsService', () => {
     userMetric: {
       upsert: vi.fn(),
     },
+    post: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -100,5 +104,25 @@ describe('AnalyticsService', () => {
     });
     await service.cleanupOldEvents();
     expect(mockPrismaService.interactionEvent.deleteMany).toHaveBeenCalled();
+  });
+
+  it('should recalculate post performance score based on likes, comments, bookmarks and dwellTime', async () => {
+    mockPrismaService.post.findUnique.mockResolvedValueOnce({
+      id: 'post-1',
+      watchTime: 10,
+      _count: { likes: 5, comments: 2, bookmarks: 1 },
+    });
+    mockPrismaService.post.update.mockResolvedValueOnce({ id: 'post-1' });
+
+    await service.updatePostPerformanceScore('post-1', 2000); // +2s
+
+    expect(mockPrismaService.post.update).toHaveBeenCalledWith({
+      where: { id: 'post-1' },
+      data: expect.objectContaining({
+        watchTime: 12,
+        views: { increment: 1 },
+        performanceScore: expect.any(Number),
+      }),
+    });
   });
 });
