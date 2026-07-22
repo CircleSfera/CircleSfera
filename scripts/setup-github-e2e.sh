@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Optional: store E2E credentials as GitHub repository secrets/vars.
-# The E2E Smoke workflow uses workflow_dispatch inputs (no undeclared-secret
-# linter warnings). Secrets are still useful for other automation.
+# Optional: store E2E credentials as GitHub repository secrets/vars for local
+# or future automation. Smoke runs locally via Playwright (no Actions workflow).
 #
 # Prerequisites: gh auth login && repo admin/secrets write access
 set -euo pipefail
@@ -44,4 +43,4 @@ echo "Setting repository variable E2E_ENABLED=true..."
 gh variable set E2E_ENABLED --body "true"
 
 echo "Done. Verify with: gh secret list && gh variable list"
-echo "Run smoke manually: Actions → E2E Smoke → Run workflow (pass email/password inputs)."
+echo "Run smoke locally: BASE_URL=https://circlesfera.com BACKEND_URL=https://circlesfera.com/api/v1 SKIP_GLOBAL_SETUP=true npm run test:e2e -- e2e/smoke.spec.ts"
