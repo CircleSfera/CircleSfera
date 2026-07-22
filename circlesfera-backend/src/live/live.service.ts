@@ -62,6 +62,26 @@ export class LiveService {
     });
   }
 
+  async sendGift(
+    streamId: string,
+    _userId: string,
+    giftId: string,
+    price: number,
+  ) {
+    const stream = await this.prisma.liveStream.findUnique({
+      where: { id: streamId },
+    });
+    if (stream?.status !== 'LIVE') {
+      throw new NotFoundException('Live stream not active');
+    }
+    return {
+      success: true,
+      giftId,
+      price,
+      sentAt: new Date().toISOString(),
+    };
+  }
+
   private async createToken(
     roomName: string,
     participantName: string,
