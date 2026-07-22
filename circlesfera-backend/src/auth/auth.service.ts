@@ -299,15 +299,24 @@ export class AuthService {
           data: { isActive: true, deletedAt: null },
         });
 
-        // Cancel the scheduled hard delete job
-        const job = await this.usersQueue.getJob(`delete-${user.id}`);
-        if (job) {
-          await job.remove();
+        // Cancel the scheduled hard delete job safely
+        try {
+          if (this.usersQueue) {
+            const job = await this.usersQueue.getJob(`delete-${user.id}`);
+            if (job) {
+              await job.remove();
+            }
+          }
+        } catch (_err) {
+          // Ignore queue connection issues during login restore
         }
       } else {
+        const secret =
+          this.configService.get<string>('JWT_SECRET') ||
+          'circlesfera_default_secret_key';
         const appealToken = this.jwtService.sign(
           { sub: user.id, isAppealToken: true },
-          { expiresIn: '15m', secret: this.configService.get('JWT_SECRET') },
+          { expiresIn: '15m', secret },
         );
         throw new UnauthorizedException({
           message: 'ACCOUNT_BANNED',
@@ -325,14 +334,19 @@ export class AuthService {
         throw new UnauthorizedException('2FA configuration error');
       }
 
-      const { verifySync } = await import('otplib');
-      const isTwoFactorCodeValid = verifySync({
-        token: dto.twoFactorCode,
-        secret: user.twoFactorSecret,
-      }).valid;
+      try {
+        const { verifySync } = await import('otplib');
+        const isTwoFactorCodeValid = verifySync({
+          token: dto.twoFactorCode,
+          secret: user.twoFactorSecret,
+        })?.valid;
 
-      if (!isTwoFactorCodeValid) {
-        throw new UnauthorizedException('Invalid 2FA code');
+        if (!isTwoFactorCodeValid) {
+          throw new UnauthorizedException('Invalid 2FA code');
+        }
+      } catch (err) {
+        if (err instanceof UnauthorizedException) throw err;
+        throw new UnauthorizedException('Invalid 2FA code or configuration');
       }
     }
 
@@ -509,13 +523,20 @@ export class AuthService {
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const payload = { sub: userId, email, jti: randomUUID() };
 
+    const jwtSecret =
+      this.configService.get<string>('JWT_SECRET') ||
+      'circlesfera_default_secret_key';
+    const refreshSecret =
+      this.configService.get<string>('JWT_REFRESH_SECRET') ||
+      'circlesfera_default_refresh_secret_key';
+
     const accessToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_SECRET'),
+      secret: jwtSecret,
       expiresIn: '15m',
     });
 
     const refreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      secret: refreshSecret,
       expiresIn: '7d',
     });
 
