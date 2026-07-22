@@ -789,6 +789,9 @@ export class AdminService {
     reportId: string,
     status: ReportStatus,
   ) {
+    const existing = await this.prisma.report.findUnique({
+      where: { id: reportId },
+    });
     const result = await this.prisma.report.update({
       where: { id: reportId },
       data: { status },
@@ -798,6 +801,20 @@ export class AdminService {
         ? AdminAction.REPORT_RESOLVED
         : AdminAction.REPORT_DISMISSED;
     await this.logAction(adminId, action, 'report', reportId);
+
+    if (existing && existing.status !== status) {
+      await this.notificationsService
+        .create({
+          recipientId: existing.reporterId,
+          senderId: adminId,
+          type: NotificationType.MODERATION,
+          content: `Your report (${existing.targetType}) was updated to ${status}.`,
+          postId:
+            existing.targetType === 'POST' ? existing.targetId : undefined,
+        })
+        .catch((e) => console.error(e));
+    }
+
     return result;
   }
 
@@ -1354,18 +1371,28 @@ export class AdminService {
     };
 
     let result: any;
+    let authorId: string | undefined;
     if (targetType === 'POST') {
-      result = await this.prisma.post.update({ where: { id: targetId }, data });
+      result = await this.prisma.post.update({
+        where: { id: targetId },
+        data,
+        select: { id: true, userId: true, moderationStatus: true },
+      });
+      authorId = result.userId;
     } else if (targetType === 'STORY') {
       result = await this.prisma.story.update({
         where: { id: targetId },
         data,
+        select: { id: true, userId: true, moderationStatus: true },
       });
+      authorId = result.userId;
     } else if (targetType === 'COMMENT') {
       result = await this.prisma.comment.update({
         where: { id: targetId },
         data,
+        select: { id: true, userId: true, moderationStatus: true },
       });
+      authorId = result.userId;
     }
 
     const action =
@@ -1382,6 +1409,24 @@ export class AdminService {
       targetId,
       note,
     );
+
+    if (authorId) {
+      const statusLabel =
+        status === 'VISIBLE'
+          ? 'restored'
+          : status === 'HIDDEN'
+            ? 'hidden'
+            : 'removed';
+      await this.notificationsService
+        .create({
+          recipientId: authorId,
+          senderId: adminId,
+          type: NotificationType.MODERATION,
+          content: `Your ${targetType.toLowerCase()} was ${statusLabel} by moderation.${note ? ` Note: ${note}` : ''} You can appeal from Settings → Appeals.`,
+          postId: targetType === 'POST' ? targetId : undefined,
+        })
+        .catch((e) => console.error(e));
+    }
 
     return result;
   }

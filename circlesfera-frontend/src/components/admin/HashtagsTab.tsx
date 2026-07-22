@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Hash } from 'lucide-react';
 import { useState } from 'react';
-import { useDebounce } from '../../hooks/useDebounce';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminHashtag } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
@@ -10,7 +10,7 @@ import { Pagination, SearchInput, Table } from './AdminTable';
 export default function HashtagsTab() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebounce(search, 400);
+  const debouncedSearch = useDebouncedValue(search, 400);
 
   const { data, isLoading } = useQuery<PaginatedResponse<AdminHashtag>>({
     queryKey: ['admin', 'hashtags', page, debouncedSearch],

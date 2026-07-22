@@ -9,7 +9,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
-import { useDebounce } from '../../hooks/useDebounce';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminPost } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
@@ -35,7 +35,7 @@ export default function ModerationTab({ onToast }: Props) {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const debouncedSearch = useDebounce(search);
+  const debouncedSearch = useDebouncedValue(search, 400);
   const queryClient = useQueryClient();
 
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);

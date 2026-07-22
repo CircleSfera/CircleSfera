@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SlackService } from '../slack/slack.service.js';
 import { AppealsService } from './appeals.service.js';
@@ -22,12 +23,17 @@ describe('AppealsService', () => {
     sendModerationAlert: vi.fn().mockResolvedValue(true),
   };
 
+  const mockNotificationsService = {
+    create: vi.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AppealsService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: SlackService, useValue: mockSlackService },
+        { provide: NotificationsService, useValue: mockNotificationsService },
       ],
     }).compile();
 

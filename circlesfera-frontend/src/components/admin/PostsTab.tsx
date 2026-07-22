@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Download, ExternalLink, Eye, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { useDebounce } from '../../hooks/useDebounce';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminPost } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
@@ -25,7 +25,7 @@ export default function PostsTab({ onToast }: Props) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const debouncedSearch = useDebounce(search);
+  const debouncedSearch = useDebouncedValue(search, 400);
   const queryClient = useQueryClient();
 
   const [deleteId, setDeleteId] = useState<string | null>(null);

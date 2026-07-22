@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Calendar, Edit2, Key, Trash2, User } from 'lucide-react';
 import { useState } from 'react';
 
-import { useDebounce } from '../../hooks/useDebounce';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { UserExperiment } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
@@ -16,7 +16,7 @@ export default function ExperimentsTab() {
   const [search, setSearch] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
   const [editingEntry, setEditingEntry] = useState<UserExperiment | null>(null);
-  const debouncedSearch = useDebounce(search);
+  const debouncedSearch = useDebouncedValue(search, 400);
 
   const { data, isLoading } = useQuery<PaginatedResponse<UserExperiment>>({
     queryKey: ['admin', 'experiments', page, debouncedSearch],

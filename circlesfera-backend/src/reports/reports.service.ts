@@ -1,6 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { Report, ReportStatus } from '@prisma/client';
+import {
+  NotificationType,
+  type Report,
+  type ReportStatus,
+} from '@prisma/client';
 import { AIService } from '../ai/ai.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SlackService } from '../slack/slack.service.js';
 import {
@@ -15,6 +20,8 @@ export class ReportsService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(AIService) private readonly aiService: AIService,
     @Inject(SlackService) private readonly slackService: SlackService,
+    @Inject(NotificationsService)
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -61,7 +68,6 @@ export class ReportsService {
       },
     })) as Report;
 
-    // Send Slack alert in the background
     this.slackService
       .sendModerationAlert({
         reportId: report.id,
@@ -74,6 +80,24 @@ export class ReportsService {
       .catch((e) => console.error('Failed to send slack moderation alert', e));
 
     return report;
+  }
+
+  /** List reports filed by the authenticated user. */
+  async findMyReports(reporterId: string) {
+    return this.prisma.report.findMany({
+      where: { reporterId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        targetType: true,
+        targetId: true,
+        reason: true,
+        details: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
   }
 
   /** List all reports with reporter profiles (admin only). */
@@ -91,13 +115,42 @@ export class ReportsService {
 
   /**
    * Update a report's status (e.g. PENDING → RESOLVED).
-   * @param id - The report ID
-   * @param status - The new status value (ReportStatus enum)
    */
-  async update(id: string, status: ReportStatus): Promise<Report> {
-    return (await this.prisma.report.update({
+  async update(
+    id: string,
+    status: ReportStatus,
+    adminId?: string,
+  ): Promise<Report> {
+    const existing = await this.prisma.report.findUnique({ where: { id } });
+    const updated = (await this.prisma.report.update({
       where: { id },
       data: { status },
     })) as Report;
+
+    if (existing && existing.status !== status) {
+      const senderId =
+        adminId ||
+        (
+          await this.prisma.user.findFirst({
+            where: { role: 'ADMIN' },
+            select: { id: true },
+          })
+        )?.id;
+
+      if (senderId) {
+        await this.notificationsService
+          .create({
+            recipientId: existing.reporterId,
+            senderId,
+            type: NotificationType.MODERATION,
+            content: `Your report (${existing.targetType}) was updated to ${status}.`,
+            postId:
+              existing.targetType === 'POST' ? existing.targetId : undefined,
+          })
+          .catch((e) => console.error(e));
+      }
+    }
+
+    return updated;
   }
 }

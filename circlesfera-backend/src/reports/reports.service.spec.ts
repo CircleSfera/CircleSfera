@@ -2,6 +2,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SlackService } from '../slack/slack.service.js';
 import {
@@ -17,6 +18,7 @@ describe('ReportsService', () => {
     report: {
       create: vi.fn(),
       findMany: vi.fn(),
+      findUnique: vi.fn(),
       update: vi.fn(),
     },
     post: {
@@ -24,6 +26,9 @@ describe('ReportsService', () => {
     },
     comment: {
       findUnique: vi.fn(),
+    },
+    user: {
+      findFirst: vi.fn(),
     },
   };
 
@@ -35,6 +40,10 @@ describe('ReportsService', () => {
     sendModerationAlert: vi.fn().mockResolvedValue(undefined),
   };
 
+  const mockNotificationsService = {
+    create: vi.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -42,6 +51,7 @@ describe('ReportsService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: AIService, useValue: mockAIService },
         { provide: SlackService, useValue: mockSlackService },
+        { provide: NotificationsService, useValue: mockNotificationsService },
       ],
     }).compile();
 
@@ -172,6 +182,14 @@ describe('ReportsService', () => {
 
   describe('update', () => {
     it('should update report status', async () => {
+      mockPrismaService.report.findUnique.mockResolvedValue({
+        id: '1',
+        status: 'PENDING',
+        reporterId: 'reporter-1',
+        targetType: 'POST',
+        targetId: 'post-1',
+      });
+      mockPrismaService.user.findFirst.mockResolvedValue({ id: 'admin-1' });
       mockPrismaService.report.update.mockResolvedValue({
         id: '1',
         status: 'RESOLVED',
@@ -179,6 +197,7 @@ describe('ReportsService', () => {
       const result = await service.update('1', 'RESOLVED');
       expect(result.status).toBe('RESOLVED');
       expect(mockPrismaService.report.update).toHaveBeenCalled();
+      expect(mockNotificationsService.create).toHaveBeenCalled();
     });
   });
 });
