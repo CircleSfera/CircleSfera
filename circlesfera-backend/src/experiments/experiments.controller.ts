@@ -8,8 +8,8 @@ export class ExperimentsController {
 
   @UseGuards(JwtOptionalGuard)
   @Get('my-flags')
-  async getMyFlags(@Req() req: any) {
-    const userId = req.user?.id || null;
+  async getMyFlags(@Req() req: { user?: { userId?: string } }) {
+    const userId = req.user?.userId || null;
     return this.experimentsService.getMyFlags(userId);
   }
 }
