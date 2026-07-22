@@ -20,6 +20,7 @@ import type { Story, UserWithProfile } from '../types';
 import { logger } from '../utils/logger';
 import { parseFilter } from '../utils/styleUtils';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
+import { PollWidget } from './interactive/PollWidget';
 import { StoryDeleteConfirm } from './StoryDeleteConfirm';
 import { StoryViewersSheet } from './StoryViewersSheet';
 import UserAvatar from './UserAvatar';
@@ -283,6 +284,15 @@ export default function StoryViewer({
 
             <div className="absolute inset-x-0 top-0 h-40 bg-linear-to-b from-black/80 via-black/40 to-transparent pointer-events-none z-20 md:rounded-t-2xl" />
             <div className="absolute inset-x-0 bottom-0 h-48 bg-linear-to-t from-black/90 via-black/50 to-transparent pointer-events-none z-20 md:rounded-b-2xl" />
+
+            {currentStory.poll?.id && (
+              <div
+                className="absolute inset-x-4 bottom-28 z-50 pointer-events-auto"
+                onPointerDown={() => setIsPaused(true)}
+              >
+                <PollWidget pollId={currentStory.poll.id} />
+              </div>
+            )}
 
             {/* Progress Bars */}
             <div className="absolute top-0 left-0 right-0 z-40 flex gap-1 p-3 pt-safe-top">

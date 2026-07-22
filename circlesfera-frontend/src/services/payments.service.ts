@@ -25,6 +25,12 @@ export const paymentsApi = {
     return response.data; // { url: string }
   },
 
+  /** Get billing status for the current user */
+  getBillingStatus: async () => {
+    const response = await api.get('/payments/status');
+    return response.data;
+  },
+
   /** Download Financial Ledger (CSV) for the current user */
   getLedger: async () => {
     const response = await api.get('/payments/ledger', {

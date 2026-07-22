@@ -140,6 +140,17 @@ export const creatorApi = {
 
   cancelPromotion: (id: string) => apiClient.delete(`creator/promotions/${id}`),
 
+  updatePromotion: (
+    id: string,
+    data: {
+      objective?: string;
+      interests?: string;
+      countries?: string;
+      endDate?: string;
+      dailyBudget?: number;
+    },
+  ) => apiClient.patch(`creator/promotions/${id}`, data),
+
   getRevenueAnalytics: (period = '30d') =>
     apiClient.get<{
       period: string;
@@ -182,4 +193,13 @@ export const creatorApi = {
       params: { period },
       responseType: 'text' as unknown as undefined,
     }),
+
+  // Creator subscriptions
+  getMyCreatorSubscriptions: () => apiClient.get('creator/subscriptions/me'),
+
+  checkCreatorSubscription: (creatorId: string) =>
+    apiClient.get(`creator/subscription/${creatorId}`),
+
+  cancelCreatorSubscription: (creatorId: string) =>
+    apiClient.delete(`creator/subscription/${creatorId}`),
 };

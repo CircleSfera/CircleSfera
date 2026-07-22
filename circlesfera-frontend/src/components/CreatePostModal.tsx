@@ -70,6 +70,8 @@ export default function CreatePostModal() {
     setPrice,
     scheduledAt,
     setScheduledAt,
+    interactiveDraft,
+    setInteractiveDraft,
     isPending,
     isProcessingEdit,
   } = useCreatePost();
@@ -176,6 +178,8 @@ export default function CreatePostModal() {
         setPrice={setPrice}
         scheduledAt={scheduledAt}
         setScheduledAt={setScheduledAt}
+        interactiveDraft={interactiveDraft}
+        setInteractiveDraft={setInteractiveDraft}
       />
     );
   }
@@ -273,6 +277,7 @@ export default function CreatePostModal() {
                   setSelectedAudio={setSelectedAudio}
                   setShowMusicPicker={setShowMusicPicker}
                   isPremium={isPremium}
+                  interactiveDraft={interactiveDraft}
                 />
               </StepAnimationWrapper>
             )}

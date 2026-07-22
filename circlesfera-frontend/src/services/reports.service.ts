@@ -21,6 +21,8 @@ export const reportsApi = {
     details?: string;
   }) => apiClient.post('reports', data),
 
+  getMine: () => apiClient.get<Report[]>('reports/me'),
+
   getAll: () => apiClient.get<Report[]>('reports'),
 
   update: (id: string, status: string) =>
