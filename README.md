@@ -162,6 +162,8 @@ docker compose logs -f
 docker compose up --build -d
 ```
 
+Production (`docker-compose.prod.yml`) is deployed to an OVH VPS via GitHub Actions. **TLS terminates on the VPS host** (certs generated/renewed there); the compose nginx proxy only serves HTTP behind that host reverse proxy.
+
 ### Test Credentials (if seeded)
 
 ```
