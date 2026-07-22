@@ -42,9 +42,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     interface CsrfError extends Error {
       code?: string;
     }
+    const errObj = exception as CsrfError;
     const isCsrfError =
-      (exception as CsrfError).code === 'EBADCSRFTOKEN' ||
-      (exception as CsrfError).message === 'invalid csrf token';
+      errObj?.code === 'EBADCSRFTOKEN' ||
+      errObj?.message?.toLowerCase().includes('csrf') ||
+      errObj?.name?.toLowerCase().includes('csrf');
 
     if (
       httpStatus === (HttpStatus.INTERNAL_SERVER_ERROR as number) &&
@@ -82,6 +84,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
           : typeof exception === 'string'
             ? exception
             : JSON.stringify(exception);
+
+      responseBody.details = errorStack;
+
       this.logger.error(
         `Unhandled exception [${httpAdapter.getRequestMethod(request)}] ${httpAdapter.getRequestUrl(request)}: ${errorStack}`,
       );
