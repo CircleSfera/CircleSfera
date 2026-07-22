@@ -31,6 +31,8 @@ export class HealthController {
     const redisHost =
       this.configService.get<string>('REDIS_HOST') || 'localhost';
     const redisPort = this.configService.get<number>('REDIS_PORT') || 6379;
+    const redisPassword =
+      this.configService.get<string>('REDIS_PASSWORD') || undefined;
 
     return this.health.check([
       () => this.prismaHealth.pingCheck('database', this.prisma),
@@ -40,6 +42,7 @@ export class HealthController {
           options: {
             host: redisHost,
             port: redisPort,
+            ...(redisPassword ? { password: redisPassword } : {}),
           },
         }),
       () =>
