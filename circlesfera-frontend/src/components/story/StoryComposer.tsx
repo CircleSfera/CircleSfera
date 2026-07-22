@@ -5,6 +5,7 @@ import {
   AlignCenter,
   AlignLeft,
   AlignRight,
+  BarChart2,
   ChevronDown,
   ChevronUp,
   Copy,
@@ -520,7 +521,37 @@ function DraggableStoryElement({
         `}
         style={getTextStyleCSS(el)}
       >
-        {el.content}
+        {el.type === ('poll' as any) || el.content.startsWith('{"question"') ? (
+          (() => {
+            try {
+              const poll = JSON.parse(el.content);
+              return (
+                <div className="bg-zinc-900/90 backdrop-blur-2xl border border-white/15 p-4 rounded-2xl shadow-2xl text-left min-w-[220px] pointer-events-none select-none">
+                  <p className="text-white font-bold text-sm mb-3 tracking-tight">
+                    {poll.question}
+                  </p>
+                  <div className="space-y-2">
+                    {poll.options?.map((opt: string) => (
+                      <div
+                        key={`poll-opt-${opt}`}
+                        className="bg-white/10 border border-white/10 px-3.5 py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-between shadow-sm"
+                      >
+                        <span>{opt}</span>
+                        <span className="text-[10px] text-brand-primary font-bold">
+                          0%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            } catch {
+              return el.content;
+            }
+          })()
+        ) : (
+          el.content
+        )}
       </div>
     </motion.div>
   );
@@ -552,11 +583,14 @@ export default function StoryComposer({
   const [elements, setInternalElements] =
     useState<StoryElement[]>(initialElements);
   const [activeTab, setActiveTab] = useState<
-    'none' | 'text' | 'stickers' | 'background' | 'templates'
+    'none' | 'text' | 'stickers' | 'background' | 'templates' | 'poll'
   >('none');
   const [panelTab, setPanelTab] = useState<PanelTab>('style');
   const [isExporting, setIsExporting] = useState(false);
   const [textInput, setTextInput] = useState('');
+  const [pollQuestion, setPollQuestion] = useState('');
+  const [pollOption1, setPollOption1] = useState('Sí');
+  const [pollOption2, setPollOption2] = useState('No');
   const [textColor, setTextColor] = useState('#FFFFFF');
   const [textStyle, setTextStyle] = useState<StoryElement['textStyle']>('box');
   const [textFont, setTextFont] = useState('Outfit');
@@ -696,6 +730,33 @@ export default function StoryComposer({
     });
     setSelectedElementId(newElement.id);
     setTextInput('');
+    setActiveTab('none');
+  };
+
+  const addPoll = () => {
+    if (!pollQuestion.trim()) return;
+    const pollData = JSON.stringify({
+      question: pollQuestion.trim(),
+      options: [pollOption1.trim() || 'Sí', pollOption2.trim() || 'No'],
+    });
+    const newElement: StoryElement = {
+      id: crypto.randomUUID(),
+      type: 'poll' as any,
+      content: pollData,
+      x: 0,
+      y: 0,
+      scale: 1.0,
+      rotation: 0,
+      align: 'center',
+      opacity: 1,
+    };
+    setInternalElements((prev) => {
+      const next = [...prev, newElement];
+      pushHistory(next);
+      return next;
+    });
+    setSelectedElementId(newElement.id);
+    setPollQuestion('');
     setActiveTab('none');
   };
 
@@ -844,6 +905,7 @@ export default function StoryComposer({
               { tab: 'background' as const, icon: ImageIcon },
               { tab: 'text' as const, icon: Type },
               { tab: 'stickers' as const, icon: Smile },
+              { tab: 'poll' as const, icon: BarChart2 },
               { tab: 'templates' as const, icon: Sparkles },
             ] as const
           ).map(({ tab, icon: Icon }) => (
@@ -1663,6 +1725,56 @@ export default function StoryComposer({
                   </motion.button>
                 ))}
               </div>
+            </motion.div>
+          )}
+
+          {/* === POLL TAB === */}
+          {!selectedElementId && activeTab === 'poll' && (
+            <motion.div
+              key="poll-tab"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 16 }}
+              transition={{ duration: 0.25 }}
+              className="p-4 space-y-3 max-w-sm mx-auto"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <BarChart2 className="text-brand-primary" size={18} />
+                <span className="text-xs font-black text-white/50 uppercase tracking-[0.15em]">
+                  Encuesta Interactiva
+                </span>
+              </div>
+              <input
+                type="text"
+                value={pollQuestion}
+                onChange={(e) => setPollQuestion(e.target.value)}
+                placeholder="Escribe tu pregunta..."
+                className="w-full bg-white/5 text-white px-3 py-2 rounded-xl outline-none border border-white/10 text-sm font-semibold"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  value={pollOption1}
+                  onChange={(e) => setPollOption1(e.target.value)}
+                  placeholder="Opción 1"
+                  className="bg-white/5 text-white px-3 py-1.5 rounded-lg outline-none border border-white/10 text-xs"
+                />
+                <input
+                  type="text"
+                  value={pollOption2}
+                  onChange={(e) => setPollOption2(e.target.value)}
+                  placeholder="Opción 2"
+                  className="bg-white/5 text-white px-3 py-1.5 rounded-lg outline-none border border-white/10 text-xs"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={addPoll}
+                disabled={!pollQuestion.trim()}
+                className="w-full py-2 bg-brand-primary text-white font-bold text-xs uppercase tracking-wider rounded-xl disabled:opacity-30 transition-all shadow-lg shadow-brand-primary/20"
+              >
+                Añadir Encuesta a la Historia
+              </button>
             </motion.div>
           )}
 
