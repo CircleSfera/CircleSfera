@@ -55,6 +55,12 @@ export class PaymentsController {
     return this.paymentsService.getPortalUrl(req.user.userId);
   }
 
+  @Get('status')
+  @UseGuards(JwtAuthGuard)
+  async getBillingStatus(@Req() req: RequestWithUser) {
+    return this.paymentsService.getBillingStatus(req.user.userId);
+  }
+
   @Get('ledger')
   @UseGuards(JwtAuthGuard)
   @Header('Content-Type', 'text/csv')

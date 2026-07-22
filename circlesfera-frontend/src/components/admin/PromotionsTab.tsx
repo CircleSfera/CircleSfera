@@ -11,7 +11,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useState } from 'react';
-import { useDebounce } from '../../hooks/useDebounce';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { LoadingSpinner } from '../index';
@@ -54,7 +54,7 @@ export default function PromotionsTab({ onToast }: Props) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const debouncedSearch = useDebounce(search);
+  const debouncedSearch = useDebouncedValue(search, 400);
   const queryClient = useQueryClient();
 
   const [selectedPromoId, setSelectedPromoId] = useState<string | null>(null);

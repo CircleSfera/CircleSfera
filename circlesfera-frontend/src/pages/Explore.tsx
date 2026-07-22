@@ -148,7 +148,10 @@ export default function Explore() {
 
           <input
             type="text"
-            placeholder={t('explore.search_placeholder')}
+            placeholder={t(
+              'explore.search_placeholder',
+              'Search people, tags, or describe what you want…',
+            )}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full px-8 py-5 bg-white/5 border border-white/10 rounded-[24px] text-white placeholder-gray-500 focus:outline-none focus:border-white/20 focus:bg-white/10 backdrop-blur-2xl shadow-2xl transition-all text-lg font-medium"
@@ -235,6 +238,63 @@ export default function Explore() {
                     )}
                   </div>
                 )}
+
+                {/* AI Semantic Profiles */}
+                {debouncedQuery.length >= 3 &&
+                  searchResults?.semanticProfiles &&
+                  searchResults.semanticProfiles.length > 0 && (
+                    <div className="mb-10">
+                      <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        <Sparkles className="text-sky-400" size={22} />
+                        {t('explore.smart_people', 'People matching your idea')}
+                        <span className="text-xs bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded-full uppercase tracking-wide font-black ml-2">
+                          {t('explore.beta_ai')}
+                        </span>
+                      </h2>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {searchResults.semanticProfiles.map((profile: any) => (
+                          <Link
+                            key={profile.id}
+                            to={`/${profile.username}`}
+                            className="glass-panel p-3 rounded-xl flex items-center gap-3 hover:bg-white/10 transition-colors"
+                          >
+                            <UserAvatar
+                              src={profile.avatar || undefined}
+                              thumbnailUrl={profile.thumbnailUrl}
+                              standardUrl={profile.standardUrl}
+                              alt={profile.username}
+                              size="md"
+                              verificationLevel={
+                                profile.user
+                                  ?.verificationLevel as VerificationLevel
+                              }
+                            />
+                            <div className="min-w-0">
+                              <div className="font-bold truncate flex items-center gap-1">
+                                {profile.username}
+                                <VerificationBadge
+                                  level={
+                                    profile.user
+                                      ?.verificationLevel as VerificationLevel
+                                  }
+                                  size={12}
+                                />
+                              </div>
+                              <div className="text-xs text-gray-300 truncate">
+                                {profile.fullName}
+                              </div>
+                              {typeof profile.similarityScore === 'number' && (
+                                <div className="text-[10px] font-bold text-sky-400 uppercase tracking-wide mt-0.5">
+                                  {t('explore.match', 'Match')}{' '}
+                                  {Math.round(profile.similarityScore * 100)}%
+                                </div>
+                              )}
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                   {/* Users (Left Column) */}
@@ -337,7 +397,9 @@ export default function Explore() {
                   (!searchResults?.hashtags ||
                     searchResults.hashtags.length === 0) &&
                   (!searchResults?.semanticPosts ||
-                    searchResults.semanticPosts.length === 0) && (
+                    searchResults.semanticPosts.length === 0) &&
+                  (!searchResults?.semanticProfiles ||
+                    searchResults.semanticProfiles.length === 0) && (
                     <div className="text-center text-gray-500 py-10">
                       {t('explore.no_results')} "{debouncedQuery}"
                     </div>

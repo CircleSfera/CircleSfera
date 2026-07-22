@@ -53,13 +53,26 @@ export default function PostMedia({
       <div
         className={`relative bg-black overflow-hidden group ${aspectRatio} ${className}`}
       >
-        <Carousel
-          media={post.media}
-          aspectRatio={aspectRatio}
-          objectFit={objectFit}
-          isLocked={post.isLocked}
-          priority={priority}
-        />
+        <div
+          className={
+            post.shouldBlurSensitive ? 'blur-xl brightness-75 select-none' : ''
+          }
+        >
+          <Carousel
+            media={post.media}
+            aspectRatio={aspectRatio}
+            objectFit={objectFit}
+            isLocked={post.isLocked}
+            priority={priority}
+          />
+        </div>
+        {post.shouldBlurSensitive && !post.isLocked && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
+            <span className="text-xs font-bold uppercase tracking-wide text-white/90 px-3 py-2 rounded-lg bg-black/50 border border-white/10">
+              {t('post.media.sensitive', 'Sensitive content blurred')}
+            </span>
+          </div>
+        )}
         {post.isLocked && (
           <PaywallOverlay
             price={displayPrice}

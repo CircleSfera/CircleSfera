@@ -11,6 +11,7 @@ import {
   Plus,
   Settings,
   Star,
+  VolumeX,
   Wand2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -18,6 +19,7 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
+import { followsApi } from '../../services';
 import type { ProfileWithUser } from '../../types';
 import FollowButton from '../FollowButton';
 import UserAvatar from '../UserAvatar';
@@ -69,6 +71,8 @@ interface ProfileHeaderProps {
   setCreatorMode: (active: boolean) => void;
   openCreateMenu: () => void;
   subscribeMutation: UseMutationResult<any, any, any, any>;
+  cancelSubscribeMutation?: UseMutationResult<any, any, any, any>;
+  isSubscribedToCreator?: boolean;
   isCreatingChat: boolean;
   handleMessageClick: () => void;
   setShowFollowsModal: (modal: 'followers' | 'following' | null) => void;
@@ -89,6 +93,8 @@ export default function ProfileHeader({
   setCreatorMode,
   openCreateMenu,
   subscribeMutation,
+  cancelSubscribeMutation,
+  isSubscribedToCreator = false,
   isCreatingChat,
   handleMessageClick,
   setShowFollowsModal,
@@ -241,12 +247,36 @@ export default function ProfileHeader({
                   {profile.data.accountType === 'CREATOR' && (
                     <button
                       type="button"
-                      onClick={() => subscribeMutation.mutate(undefined)}
-                      disabled={subscribeMutation.isPending}
-                      className="px-4 py-2 bg-linear-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white rounded-lg font-black text-xs uppercase tracking-wide transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1 disabled:opacity-50"
+                      onClick={() => {
+                        if (isSubscribedToCreator) {
+                          if (
+                            window.confirm(
+                              t(
+                                'profile.actions.cancel_subscription_confirm',
+                                'Cancel your subscription to this creator?',
+                              ),
+                            )
+                          ) {
+                            cancelSubscribeMutation?.mutate(undefined);
+                          }
+                          return;
+                        }
+                        subscribeMutation.mutate(undefined);
+                      }}
+                      disabled={
+                        subscribeMutation.isPending ||
+                        cancelSubscribeMutation?.isPending
+                      }
+                      className={`px-4 py-2 rounded-lg font-black text-xs uppercase tracking-wide transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1 disabled:opacity-50 ${
+                        isSubscribedToCreator
+                          ? 'bg-white/10 hover:bg-white/15 text-white border border-white/10'
+                          : 'bg-linear-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white'
+                      }`}
                     >
                       <Star size={14} fill="currentColor" aria-hidden="true" />
-                      {t('profile.actions.subscribe')}
+                      {isSubscribedToCreator
+                        ? t('profile.actions.subscribed', 'Subscribed')
+                        : t('profile.actions.subscribe')}
                     </button>
                   )}
 
@@ -289,9 +319,35 @@ export default function ProfileHeader({
                           type="button"
                           onClick={() => {
                             setShowMenu(false);
+                            followsApi
+                              .mute(profile.data.username)
+                              .then(() => {
+                                toast.success(
+                                  t('profile.actions.muted', {
+                                    defaultValue: 'User muted',
+                                  }),
+                                );
+                              })
+                              .catch(() => {
+                                toast.error(
+                                  t('profile.actions.mute_error', {
+                                    defaultValue: 'Failed to mute user',
+                                  }),
+                                );
+                              });
+                          }}
+                          className="w-full text-left px-2 py-1 text-gray-300 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider"
+                        >
+                          {t('profile.actions.mute', { defaultValue: 'Mute' })}
+                          <VolumeX size={14} aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowMenu(false);
                             setShowReportModal(true);
                           }}
-                          className="w-full text-left px-2 py-1 text-red-400 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider"
+                          className="w-full text-left px-2 py-1 text-red-400 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider border-t border-white/5"
                         >
                           {t('profile.actions.report_profile')}
                           <Flag size={14} aria-hidden="true" />

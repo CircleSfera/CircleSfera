@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { AnswerQnaDto } from './dto/answer-qna.dto.js';
 import { CreatePollDto } from './dto/create-poll.dto.js';
 import { CreateQnaBoxDto } from './dto/create-qna.dto.js';
@@ -19,7 +20,7 @@ import { VotePollDto } from './dto/vote-poll.dto.js';
 import { InteractiveService } from './interactive.service.js';
 
 interface AuthRequest extends Request {
-  user: { userId: string; email: string; role: string };
+  user?: { userId: string; email: string; role: string };
 }
 
 @Controller('interactive')
@@ -33,13 +34,13 @@ export class InteractiveController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   async createPoll(@Req() req: AuthRequest, @Body() dto: CreatePollDto) {
-    return this.interactiveService.createPoll(req.user.userId, dto);
+    return this.interactiveService.createPoll(req.user!.userId, dto);
   }
 
   @Get('poll/:id')
-  async getPoll(@Param('id') id: string, @Req() req: Request) {
-    const userId = (req as unknown as AuthRequest).user?.userId;
-    return this.interactiveService.getPoll(id, userId);
+  @UseGuards(JwtOptionalGuard)
+  async getPoll(@Param('id') id: string, @Req() req: AuthRequest) {
+    return this.interactiveService.getPoll(id, req.user?.userId);
   }
 
   @Post('poll/vote')
@@ -47,7 +48,7 @@ export class InteractiveController {
   @HttpCode(HttpStatus.OK)
   async votePoll(@Req() req: AuthRequest, @Body() body: VotePollDto) {
     return this.interactiveService.votePoll(
-      req.user.userId,
+      req.user!.userId,
       body.pollId,
       body.optionIndex,
     );
@@ -57,7 +58,7 @@ export class InteractiveController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   async createQnaBox(@Req() req: AuthRequest, @Body() dto: CreateQnaBoxDto) {
-    return this.interactiveService.createQnaBox(req.user.userId, dto);
+    return this.interactiveService.createQnaBox(req.user!.userId, dto);
   }
 
   @Get('qna/:id')
@@ -70,7 +71,7 @@ export class InteractiveController {
   @HttpCode(HttpStatus.CREATED)
   async answerQna(@Req() req: AuthRequest, @Body() body: AnswerQnaDto) {
     return this.interactiveService.answerQna(
-      req.user.userId,
+      req.user!.userId,
       body.qnaBoxId,
       body.answerText,
     );

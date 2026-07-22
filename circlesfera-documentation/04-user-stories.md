@@ -1,392 +1,392 @@
 # 04-User-Stories
 ## CircleSfera
-**Versión:** 3.0 alineada al proyecto real  
-**Fecha:** Abril 2026  
-**Fuente de verdad:** alcance documental actualizado + `schema.prisma` actual
+**Version:** 3.0 aligned with the real project  
+**Date:** April 2026  
+**Source of truth:** updated documentation scope + current `schema.prisma`
 
 ---
 
-## 1. Criterio de corrección
+## 1. Correction criteria
 
-Este documento reemplaza la versión anterior de historias de usuario para ajustarla a la realidad del proyecto. La corrección principal es que ya no se documenta CircleSfera como un MVP reducido de posts y follows, sino como una plataforma cuyo modelo actual ya soporta stories, frames como variante de post, bookmarks, collections, highlights, chat, passkeys, promotions, reporting y planes de plataforma.
+This document replaces the previous version of user stories to align them with the project's reality. The main correction is that CircleSfera is no longer documented as a reduced MVP of posts and follows, but as a platform whose current model already supports stories, frames as a post variant, bookmarks, collections, highlights, chat, passkeys, promotions, reporting, and platform plans.
 
-También se eliminan historias que dependían de entidades no presentes en el schema actual, como `mutes` persistidos, `appeals` persistidas, `moderation_actions` persistidas, configuraciones de feed guardadas en tabla específica o analytics detalladas respaldadas por tablas propias.
+Stories that depended on entities not present in the current schema are also removed, such as persisted `mutes`, persisted `appeals`, persisted `moderation_actions`, feed settings stored in a dedicated table, or detailed analytics backed by their own tables.
 
 ---
 
-## 2. Épicas vigentes
+## 2. Current epics
 
-### EPIC-1: Identidad y acceso
-Incluye registro, login, refresh token, recuperación de contraseña, verificación de email y passkeys.
+### EPIC-1: Identity and access
+Includes registration, login, refresh token, password recovery, email verification, and passkeys.
 
-### EPIC-2: Perfil y cuenta
-Incluye edición de perfil, privacidad de cuenta, visibilidad pública/privada y estado social básico.
+### EPIC-2: Profile and account
+Includes profile editing, account privacy, public/private visibility, and basic social status.
 
-### EPIC-3: Publicación y contenido
-Incluye posts, frames como tipo de post, media, hashtags, tags, comentarios, likes y visibilidad.
+### EPIC-3: Publishing and content
+Includes posts, frames as a post type, media, hashtags, tags, comments, likes, and visibility.
 
-### EPIC-4: Stories y capas efímeras
-Incluye stories, vistas, reacciones, close friends y highlights.
+### EPIC-4: Stories and ephemeral layers
+Includes stories, views, reactions, close friends, and highlights.
 
-### EPIC-5: Interacción social
-Incluye follows, blocks, bookmarks, collections y notificaciones.
+### EPIC-5: Social interaction
+Includes follows, blocks, bookmarks, collections, and notifications.
 
 ### EPIC-6: Messaging
-Incluye conversaciones, mensajes, replies, reacciones y compartición de posts/stories en chat.
+Includes conversations, messages, replies, reactions, and sharing of posts/stories in chat.
 
-### EPIC-7: Monetización de plataforma
-Incluye planes, suscripciones, webhooks e iniciativas de promotion/boost.
+### EPIC-7: Platform monetization
+Includes plans, subscriptions, webhooks, and promotion/boost initiatives.
 
-### EPIC-8: Trust, safety y operación
-Incluye reports, auditoría administrativa, verificación, seguridad de cuentas y trazabilidad operativa.
+### EPIC-8: Trust, safety, and operations
+Includes reports, administrative audit, verification, account security, and operational traceability.
 
-### EPIC-9: Search y discovery
-Incluye búsqueda de usuarios/hashtags, historial de búsqueda y evolución hacia recomendaciones basadas en embeddings.
+### EPIC-9: Search and discovery
+Includes user/hashtag search, search history, and evolution toward embedding-based recommendations.
 
 ---
 
-## 3. Historias de usuario
+## 3. User stories
 
 ## 3.1 Auth
 
-### US-001 Registro
-**Como** visitante  
-**Quiero** crear una cuenta con email, contraseña y username  
-**Para** acceder a CircleSfera
+### US-001 Registration
+**As a** visitor  
+**I want** to create an account with email, password, and username  
+**So that** I can access CircleSfera
 
-**Criterios de aceptación**
-- El sistema valida email único.
-- El sistema valida username único.
-- Se crea `User` y `Profile` iniciales.
-- Se emite flujo de verificación de email.
-- La contraseña se guarda hasheada.
+**Acceptance criteria**
+- The system validates unique email.
+- The system validates unique username.
+- Initial `User` and `Profile` are created.
+- An email verification flow is issued.
+- The password is stored hashed.
 
 ### US-002 Login
-**Como** usuario registrado  
-**Quiero** iniciar sesión con email y contraseña, y más adelante con passkey  
-**Para** acceder de forma segura
+**As a** registered user  
+**I want** to sign in with email and password, and later with passkey  
+**So that** I can access securely
 
-**Criterios de aceptación**
-- El sistema permite login por email.
-- Se emite access token y refresh token.
-- El usuario puede cerrar sesión revocando sesiones activas.
-- El sistema puede incorporar login con passkey sin rediseñar la cuenta.
+**Acceptance criteria**
+- The system allows login by email.
+- An access token and refresh token are issued.
+- The user can sign out by revoking active sessions.
+- The system can incorporate passkey login without redesigning the account.
 
-### US-003 Recuperación de cuenta
-**Como** usuario  
-**Quiero** resetear mi contraseña  
-**Para** recuperar acceso si la olvido
+### US-003 Account recovery
+**As a** user  
+**I want** to reset my password  
+**So that** I can recover access if I forget it
 
-**Criterios de aceptación**
-- El sistema genera token temporal de reset.
-- El sistema invalida el token tras uso o expiración.
-- La contraseña nueva reemplaza la anterior de forma segura.
+**Acceptance criteria**
+- The system generates a temporary reset token.
+- The system invalidates the token after use or expiration.
+- The new password securely replaces the previous one.
 
-### US-004 Verificación con passkey
-**Como** usuario preocupado por la seguridad  
-**Quiero** registrar una passkey  
-**Para** mejorar autenticación y reducir riesgo de takeover
+### US-004 Passkey verification
+**As a** security-conscious user  
+**I want** to register a passkey  
+**So that** I can improve authentication and reduce takeover risk
 
-**Criterios de aceptación**
-- El sistema genera challenge temporal.
-- El sistema almacena credencial WebAuthn asociada al usuario.
-- El usuario puede iniciar sesión con passkey cuando la funcionalidad esté activada en interfaz.
-
----
-
-## 3.2 Perfil
-
-### US-005 Edición de perfil
-**Como** usuario  
-**Quiero** editar mi perfil público  
-**Para** mostrar identidad y contexto
-
-**Criterios de aceptación**
-- Puedo editar `fullName`, `bio`, `website` y `location`.
-- Puedo cambiar `username` según reglas de producto.
-- Puedo subir avatar y sus variantes optimizadas.
-- El perfil queda desacoplado de credenciales.
-
-### US-006 Privacidad de perfil
-**Como** usuario  
-**Quiero** marcar mi perfil como privado  
-**Para** controlar quién ve mi contenido
-
-**Criterios de aceptación**
-- Un perfil privado requiere follow aceptado.
-- Las solicitudes de follow usan el mismo modelo `Follow` con estado.
-- La UI muestra claramente si una relación está pendiente o aceptada.
+**Acceptance criteria**
+- The system generates a temporary challenge.
+- The system stores a WebAuthn credential associated with the user.
+- The user can sign in with a passkey when the feature is enabled in the interface.
 
 ---
 
-## 3.3 Posts y frames
+## 3.2 Profile
 
-### US-007 Crear post
-**Como** usuario  
-**Quiero** publicar texto y media  
-**Para** compartir contenido con mi audiencia
+### US-005 Profile editing
+**As a** user  
+**I want** to edit my public profile  
+**So that** I can show identity and context
 
-**Criterios de aceptación**
-- Puedo crear un post con caption opcional.
-- Puedo adjuntar varias piezas de media ordenadas.
-- Puedo definir ubicación y visibilidad.
-- Puedo ocultar likes o desactivar comentarios.
-- Puedo asociar audio si el producto lo habilita en UI.
+**Acceptance criteria**
+- I can edit `fullName`, `bio`, `website`, and `location`.
+- I can change `username` according to product rules.
+- I can upload an avatar and its optimized variants.
+- The profile remains decoupled from credentials.
 
-### US-008 Crear frame
-**Como** creador  
-**Quiero** publicar un frame  
-**Para** distribuir un contenido corto dentro del mismo núcleo de publicación
+### US-006 Profile privacy
+**As a** user  
+**I want** to mark my profile as private  
+**So that** I can control who sees my content
 
-**Criterios de aceptación**
-- El frame se modela como `Post.type = FRAME`.
-- El flujo reutiliza el sistema de media, hashtags, caption y visibilidad.
-- No existe una entidad separada de datos para frame.
+**Acceptance criteria**
+- A private profile requires an accepted follow.
+- Follow requests use the same `Follow` model with status.
+- The UI clearly shows whether a relationship is pending or accepted.
 
-### US-009 Etiquetar usuarios y hashtags
-**Como** usuario  
-**Quiero** etiquetar cuentas y asociar hashtags  
-**Para** aumentar contexto y descubrimiento
+---
 
-**Criterios de aceptación**
-- Puedo asociar hashtags al post.
-- Puedo etiquetar usuarios en coordenadas sobre el contenido.
-- El sistema persiste tags y hashtags como relaciones específicas.
+## 3.3 Posts and frames
 
-### US-010 Interactuar con posts
-**Como** usuario  
-**Quiero** dar like, comentar y guardar posts  
-**Para** participar y volver al contenido relevante
+### US-007 Create post
+**As a** user  
+**I want** to publish text and media  
+**So that** I can share content with my audience
 
-**Criterios de aceptación**
-- El like se registra en tabla específica de posts.
-- Los comentarios soportan replies anidados.
-- El guardado se registra como bookmark.
-- El bookmark puede asociarse a una collection.
+**Acceptance criteria**
+- I can create a post with an optional caption.
+- I can attach multiple ordered media pieces.
+- I can define location and visibility.
+- I can hide likes or disable comments.
+- I can associate audio if the product enables it in the UI.
+
+### US-008 Create frame
+**As a** creator  
+**I want** to publish a frame  
+**So that** I can distribute short-form content within the same publishing core
+
+**Acceptance criteria**
+- The frame is modeled as `Post.type = FRAME`.
+- The flow reuses the media, hashtags, caption, and visibility system.
+- There is no separate data entity for frame.
+
+### US-009 Tag users and hashtags
+**As a** user  
+**I want** to tag accounts and associate hashtags  
+**So that** I can increase context and discovery
+
+**Acceptance criteria**
+- I can associate hashtags with the post.
+- I can tag users at coordinates on the content.
+- The system persists tags and hashtags as specific relations.
+
+### US-010 Interact with posts
+**As a** user  
+**I want** to like, comment on, and save posts  
+**So that** I can participate and return to relevant content
+
+**Acceptance criteria**
+- The like is recorded in a post-specific table.
+- Comments support nested replies.
+- Saving is recorded as a bookmark.
+- The bookmark can be associated with a collection.
 
 ---
 
 ## 3.4 Stories
 
-### US-011 Crear story
-**Como** usuario  
-**Quiero** publicar una story efímera  
-**Para** compartir momentos temporales
+### US-011 Create story
+**As a** user  
+**I want** to publish an ephemeral story  
+**So that** I can share temporary moments
 
-**Criterios de aceptación**
-- La story tiene expiración a 24h o según regla de producto.
-- Puede incluir imagen o video.
-- Puede asociar audio.
-- Puede ser solo para close friends.
+**Acceptance criteria**
+- The story expires after 24h or according to product rules.
+- It can include image or video.
+- It can associate audio.
+- It can be close friends only.
 
-### US-012 Ver y reaccionar a stories
-**Como** usuario  
-**Quiero** ver stories y reaccionar a ellas  
-**Para** interactuar de forma ligera
+### US-012 View and react to stories
+**As a** user  
+**I want** to view stories and react to them  
+**So that** I can interact lightly
 
-**Criterios de aceptación**
-- El sistema registra `StoryView` por viewer.
-- El sistema registra `StoryReaction` por usuario.
-- La UI evita duplicados de reacción si así lo decide negocio.
+**Acceptance criteria**
+- The system records `StoryView` per viewer.
+- The system records `StoryReaction` per user.
+- The UI avoids duplicate reactions if business so decides.
 
-### US-013 Gestionar highlights
-**Como** usuario  
-**Quiero** guardar stories en highlights  
-**Para** hacer persistente parte de mi contenido efímero
+### US-013 Manage highlights
+**As a** user  
+**I want** to save stories in highlights  
+**So that** I can make part of my ephemeral content persistent
 
-**Criterios de aceptación**
-- Puedo crear un highlight.
-- Puedo añadir o quitar stories de un highlight.
-- Los highlights pertenecen al usuario.
+**Acceptance criteria**
+- I can create a highlight.
+- I can add or remove stories from a highlight.
+- Highlights belong to the user.
 
 ---
 
-## 3.5 Red social
+## 3.5 Social network
 
-### US-014 Seguir cuentas
-**Como** usuario  
-**Quiero** seguir otras cuentas  
-**Para** ver su contenido en mi experiencia social
+### US-014 Follow accounts
+**As a** user  
+**I want** to follow other accounts  
+**So that** I can see their content in my social experience
 
-**Criterios de aceptación**
-- Si el perfil es público, el follow puede aceptarse automáticamente.
-- Si el perfil es privado, la relación queda `PENDING` hasta aprobación.
-- El sistema impide duplicados.
+**Acceptance criteria**
+- If the profile is public, the follow may be accepted automatically.
+- If the profile is private, the relationship remains `PENDING` until approval.
+- The system prevents duplicates.
 
-### US-015 Bloquear cuentas
-**Como** usuario  
-**Quiero** bloquear otra cuenta  
-**Para** proteger mi experiencia y seguridad
+### US-015 Block accounts
+**As a** user  
+**I want** to block another account  
+**So that** I can protect my experience and safety
 
-**Criterios de aceptación**
-- El bloqueo queda persistido.
-- El sistema impide duplicados de block.
-- La lógica de producto limita visibilidad e interacción entre ambas partes.
+**Acceptance criteria**
+- The block is persisted.
+- The system prevents duplicate blocks.
+- Product logic limits visibility and interaction between both parties.
 
-### US-016 Recibir notificaciones
-**Como** usuario  
-**Quiero** recibir notificaciones relevantes  
-**Para** enterarme de actividad social y operativa
+### US-016 Receive notifications
+**As a** user  
+**I want** to receive relevant notifications  
+**So that** I can stay informed of social and operational activity
 
-**Criterios de aceptación**
-- El sistema genera notificaciones para eventos compatibles con el modelo.
-- Puedo marcar notificaciones como leídas.
-- Las notificaciones soportan remitente y, opcionalmente, referencia a post.
+**Acceptance criteria**
+- The system generates notifications for events compatible with the model.
+- I can mark notifications as read.
+- Notifications support a sender and, optionally, a post reference.
 
 ---
 
 ## 3.6 Messaging
 
-### US-017 Conversar por chat
-**Como** usuario  
-**Quiero** tener conversaciones privadas o grupales  
-**Para** comunicarme dentro de CircleSfera
+### US-017 Converse via chat
+**As a** user  
+**I want** to have private or group conversations  
+**So that** I can communicate within CircleSfera
 
-**Criterios de aceptación**
-- Puedo formar parte de una conversación.
-- Puedo enviar mensajes de texto.
-- Puedo responder a un mensaje anterior.
-- El sistema registra lectura por participante.
+**Acceptance criteria**
+- I can be part of a conversation.
+- I can send text messages.
+- I can reply to a previous message.
+- The system records read status per participant.
 
-### US-018 Compartir contenido en chat
-**Como** usuario  
-**Quiero** compartir posts o stories por mensaje  
-**Para** recomendar contenido sin salir del producto
+### US-018 Share content in chat
+**As a** user  
+**I want** to share posts or stories via message  
+**So that** I can recommend content without leaving the product
 
-**Criterios de aceptación**
-- Un mensaje puede referenciar un `postId` o `storyId`.
-- La conversación sigue funcionando aunque el mensaje no tenga texto.
-- La UI renderiza vista previa según permisos y existencia del contenido.
+**Acceptance criteria**
+- A message can reference a `postId` or `storyId`.
+- The conversation still works even if the message has no text.
+- The UI renders a preview according to permissions and content existence.
 
-### US-019 Reaccionar a mensajes
-**Como** usuario  
-**Quiero** reaccionar a un mensaje  
-**Para** responder de forma rápida
+### US-019 React to messages
+**As a** user  
+**I want** to react to a message  
+**So that** I can respond quickly
 
-**Criterios de aceptación**
-- Un usuario puede tener una reacción por mensaje si esa es la regla elegida.
-- La reacción queda persistida en `MessageReaction`.
-
----
-
-## 3.7 Monetización
-
-### US-020 Suscribirme a un plan
-**Como** usuario  
-**Quiero** contratar un plan de plataforma  
-**Para** acceder a beneficios asociados al tier
-
-**Criterios de aceptación**
-- Puedo consultar catálogo de `PlatformPlan`.
-- El alta se ejecuta con Stripe.
-- El estado de la suscripción se persiste en `PlatformSubscription`.
-- La sincronización final depende de webhook procesado correctamente.
-
-### US-021 Gestionar suscripción
-**Como** usuario  
-**Quiero** consultar o cancelar mi suscripción  
-**Para** mantener control sobre cobros y beneficios
-
-**Criterios de aceptación**
-- Puedo ver plan activo y periodos de facturación.
-- Puedo solicitar cancelación al final de periodo.
-- La UI refleja `cancelAtPeriodEnd` y estado final.
-
-### US-022 Lanzar una promotion
-**Como** usuario o creador elegible  
-**Quiero** promocionar un contenido  
-**Para** aumentar alcance de forma explícita y pagada
-
-**Criterios de aceptación**
-- La promotion referencia `targetType` y `targetId`.
-- Tiene presupuesto, moneda, estado y ventana temporal.
-- El sistema valida por aplicación que el target exista y sea promocionable.
+**Acceptance criteria**
+- A user can have one reaction per message if that is the chosen rule.
+- The reaction is persisted in `MessageReaction`.
 
 ---
 
-## 3.8 Moderación y operación
+## 3.7 Monetization
 
-### US-023 Reportar contenido o cuenta
-**Como** usuario  
-**Quiero** reportar un post o una cuenta  
-**Para** contribuir a la seguridad de la plataforma
+### US-020 Subscribe to a plan
+**As a** user  
+**I want** to purchase a platform plan  
+**So that** I can access benefits associated with the tier
 
-**Criterios de aceptación**
-- El reporte incluye `targetType`, `targetId`, razón y detalles opcionales.
-- El usuario recibe confirmación de envío.
-- El reporte queda disponible para revisión operativa.
+**Acceptance criteria**
+- I can browse the `PlatformPlan` catalog.
+- Signup is executed with Stripe.
+- Subscription status is persisted in `PlatformSubscription`.
+- Final synchronization depends on a correctly processed webhook.
 
-### US-024 Auditar acciones administrativas
-**Como** operador o admin  
-**Quiero** que ciertas acciones queden auditadas  
-**Para** tener trazabilidad interna
+### US-021 Manage subscription
+**As a** user  
+**I want** to view or cancel my subscription  
+**So that** I can keep control over charges and benefits
 
-**Criterios de aceptación**
-- Las acciones se registran en `AdminAuditLog`.
-- El log incluye actor, acción, target y detalles.
+**Acceptance criteria**
+- I can see the active plan and billing periods.
+- I can request cancellation at period end.
+- The UI reflects `cancelAtPeriodEnd` and final status.
 
-### US-025 Verificación de cuenta
-**Como** plataforma  
-**Quiero** diferenciar niveles de verificación  
-**Para** gestionar confianza, identidad y tipos de cuenta
+### US-022 Launch a promotion
+**As an** eligible user or creator  
+**I want** to promote content  
+**So that** I can increase reach in an explicit, paid way
 
-**Criterios de aceptación**
-- El usuario tiene `verificationLevel` y `accountType`.
-- La UI y negocio pueden derivar badges o capacidades desde esos campos.
-
----
-
-## 3.9 Search y discovery
-
-### US-026 Buscar usuarios y hashtags
-**Como** usuario  
-**Quiero** buscar cuentas y temas  
-**Para** descubrir contenido relevante
-
-**Criterios de aceptación**
-- Puedo buscar perfiles por username.
-- Puedo buscar hashtags.
-- El sistema puede guardar historial de búsqueda del usuario.
-
-### US-027 Descubrimiento futuro por similitud
-**Como** producto  
-**Quiero** poder recomendar contenido similar  
-**Para** mejorar discovery sin rehacer el modelo de datos
-
-**Criterios de aceptación**
-- Los posts pueden tener embedding asociado.
-- La funcionalidad puede activarse más adelante sin cambiar el modelo principal.
-
-### US-028 Configuración de privacidad y notificaciones [NEW]
-**Como** usuario  
-**Quiero** gestionar mis preferencias de privacidad, contenido y notificaciones  
-**Para** tener control sobre mi experiencia y cumplir con GDPR
-
-**Criterios de aceptación**
-- Puedo cambiar mi `privacy_level` (público, seguidores, privado).
-- Puedo elegir mi `content_preference` (general, mature).
-- Puedo activar/desactivar el desenfoque de contenido sensible.
-- Puedo gestionar alertas por email y notificaciones push.
-- El sistema persiste estos cambios en `UserSettings`.
+**Acceptance criteria**
+- The promotion references `targetType` and `targetId`.
+- It has budget, currency, status, and a time window.
+- The system validates at application level that the target exists and is promotable.
 
 ---
 
-## 4. Historias retiradas o reformuladas
+## 3.8 Moderation and operations
 
-Estas historias dejan de figurar como oficiales en su forma anterior:
+### US-023 Report content or account
+**As a** user  
+**I want** to report a post or an account  
+**So that** I can contribute to platform safety
 
-- Mute persistido como entidad propia.
-- Appeals persistidas como módulo cerrado.
-- Moderation actions como tabla ya implementada.
-- Feed preferences persistidas como recurso oficial.
-- Analytics detalladas respaldadas por tablas dedicadas ya disponibles.
-- Frames como entidad independiente de datos.
+**Acceptance criteria**
+- The report includes `targetType`, `targetId`, reason, and optional details.
+- The user receives submission confirmation.
+- The report is available for operational review.
+
+### US-024 Audit administrative actions
+**As an** operator or admin  
+**I want** certain actions to be audited  
+**So that** I have internal traceability
+
+**Acceptance criteria**
+- Actions are recorded in `AdminAuditLog`.
+- The log includes actor, action, target, and details.
+
+### US-025 Account verification
+**As a** platform  
+**I want** to differentiate verification levels  
+**So that** I can manage trust, identity, and account types
+
+**Acceptance criteria**
+- The user has `verificationLevel` and `accountType`.
+- UI and business logic can derive badges or capabilities from those fields.
 
 ---
 
-## 5. Prioridad recomendada
+## 3.9 Search and discovery
 
-### Prioridad inmediata
+### US-026 Search users and hashtags
+**As a** user  
+**I want** to search accounts and topics  
+**So that** I can discover relevant content
+
+**Acceptance criteria**
+- I can search profiles by username.
+- I can search hashtags.
+- The system can store the user's search history.
+
+### US-027 Future similarity-based discovery
+**As a** product  
+**I want** to be able to recommend similar content  
+**So that** I can improve discovery without reworking the data model
+
+**Acceptance criteria**
+- Posts can have an associated embedding.
+- The feature can be enabled later without changing the main model.
+
+### US-028 Privacy and notification settings [NEW]
+**As a** user  
+**I want** to manage my privacy, content, and notification preferences  
+**So that** I have control over my experience and comply with GDPR
+
+**Acceptance criteria**
+- I can change my `privacy_level` (public, followers, private).
+- I can choose my `content_preference` (general, mature).
+- I can enable/disable sensitive content blur.
+- I can manage email alerts and push notifications.
+- The system persists these changes in `UserSettings`.
+
+---
+
+## 4. Retired or reformulated stories
+
+These stories are no longer official in their previous form:
+
+- Persisted mute as its own entity.
+- Persisted appeals as a closed module.
+- Moderation actions as an already implemented table.
+- Feed preferences persisted as an official resource.
+- Detailed analytics backed by dedicated tables already available.
+- Frames as an independent data entity.
+
+---
+
+## 5. Recommended priority
+
+### Immediate priority
 - Auth.
 - Profile.
 - Posts.
@@ -394,19 +394,19 @@ Estas historias dejan de figurar como oficiales en su forma anterior:
 - Likes.
 - Follows.
 - Blocks.
-- User Settings (Privacidad y GDPR).
+- User Settings (Privacy and GDPR).
 - Stories.
 - Notifications.
 - Billing base.
 
-### Prioridad siguiente
-- Bookmarks y collections.
+### Next priority
+- Bookmarks and collections.
 - Messaging.
 - Highlights.
 - Search history.
 - Promotions.
 
-### Prioridad posterior
-- Passkeys UX completa.
+### Later priority
+- Full passkeys UX.
 - Embedding-based discovery.
-- Operativa avanzada de admin.
+- Advanced admin operations.

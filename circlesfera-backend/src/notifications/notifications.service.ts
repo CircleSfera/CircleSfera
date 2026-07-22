@@ -198,6 +198,14 @@ export class NotificationsService {
     // Skip immediate Push Notification for batchable events
     // They will be handled by NotificationsCronService (Option B)
     if (!isBatchableType) {
+      const settings = await this.prisma.userSettings.findUnique({
+        where: { userId: data.recipientId },
+        select: { pushNotifications: true },
+      });
+      if (settings?.pushNotifications === false) {
+        return notification;
+      }
+
       this.pushService
         .sendNotification(data.recipientId, {
           title: notification.sender?.profile?.username || 'CircleSfera',

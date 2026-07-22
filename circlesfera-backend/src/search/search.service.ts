@@ -9,7 +9,7 @@ export interface SearchResponse {
   users: any[];
   hashtags: Hashtag[];
   semanticPosts: any[];
-  semanticProfiles?: any[];
+  semanticProfiles: any[];
 }
 
 /**
@@ -43,19 +43,20 @@ export class SearchService {
     try {
       // 1. Generate embedding for the search query
       const queryEmbedding = await this.aiService.generateEmbedding(query);
+      const vectorLiteral = JSON.stringify(queryEmbedding);
 
-      // 2. Find similar posts using pgvector (Cosine distance)
+      // 2. Find similar posts via post_embeddings (pgvector cosine distance)
       let matches: any[];
 
       if (userId) {
         matches = await this.prisma.$queryRaw`
           SELECT p.id,
-                 (p.embedding <=> ${queryEmbedding}::vector) as distance
-          FROM "posts" p
+                 (pe.vector <=> ${vectorLiteral}::vector) as distance
+          FROM "post_embeddings" pe
+          JOIN "posts" p ON p.id = pe."postId"
           WHERE p.visibility = 'PUBLIC'
             AND p."moderationStatus" = 'VISIBLE'
-            AND p.embedding IS NOT NULL
-            AND p."userId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${userId}) 
+            AND p."userId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${userId})
             AND p."userId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${userId})
           ORDER BY distance ASC
           LIMIT ${limit}
@@ -63,20 +64,17 @@ export class SearchService {
       } else {
         matches = await this.prisma.$queryRaw`
           SELECT p.id,
-                 (p.embedding <=> ${queryEmbedding}::vector) as distance
-          FROM "posts" p
+                 (pe.vector <=> ${vectorLiteral}::vector) as distance
+          FROM "post_embeddings" pe
+          JOIN "posts" p ON p.id = pe."postId"
           WHERE p.visibility = 'PUBLIC'
             AND p."moderationStatus" = 'VISIBLE'
-            AND p.embedding IS NOT NULL
           ORDER BY distance ASC
           LIMIT ${limit}
         `;
       }
 
-      // Guard against undefined matches
       if (!matches || matches.length === 0) return [];
-
-      if (matches.length === 0) return [];
 
       // 3. Enrich the posts with details
       const posts = await Promise.all(
@@ -86,6 +84,8 @@ export class SearchService {
             include: {
               user: { include: { profile: true } },
               media: true,
+              poll: { select: { id: true } },
+              qnaBox: { select: { id: true } },
               _count: { select: { likes: true, comments: true } },
             },
           });
@@ -93,8 +93,9 @@ export class SearchService {
         }),
       );
 
-      await this.cacheManager.set(cacheKey, posts, 600000); // 10 min cache for semantic
-      return posts;
+      const filtered = posts.filter(Boolean);
+      await this.cacheManager.set(cacheKey, filtered, 600000); // 10 min cache for semantic
+      return filtered;
     } catch (error) {
       console.error('Semantic Search Error:', error);
       return [];
@@ -117,12 +118,13 @@ export class SearchService {
 
     try {
       const queryEmbedding = await this.aiService.generateEmbedding(query);
+      const vectorLiteral = JSON.stringify(queryEmbedding);
       let matches: any[];
 
       if (userId) {
         matches = await this.prisma.$queryRaw`
           SELECT pe."profileId",
-                 (pe.vector <=> ${queryEmbedding}::vector) as distance
+                 (pe.vector <=> ${vectorLiteral}::vector) as distance
           FROM "profile_embeddings" pe
           JOIN "profiles" pr ON pr.id = pe."profileId"
           WHERE pr."userId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${userId})
@@ -133,7 +135,7 @@ export class SearchService {
       } else {
         matches = await this.prisma.$queryRaw`
           SELECT pe."profileId",
-                 (pe.vector <=> ${queryEmbedding}::vector) as distance
+                 (pe.vector <=> ${vectorLiteral}::vector) as distance
           FROM "profile_embeddings" pe
           ORDER BY distance ASC
           LIMIT ${limit}
@@ -177,11 +179,16 @@ export class SearchService {
    */
   async search(query: string, userId?: string): Promise<SearchResponse> {
     if (!query || query.length < 2) {
-      return { users: [], hashtags: [], semanticPosts: [] };
+      return {
+        users: [],
+        hashtags: [],
+        semanticPosts: [],
+        semanticProfiles: [],
+      };
     }
 
     const sanitizedQuery = query.toLowerCase();
-    const cacheKey = `search:combined:${sanitizedQuery.replace(/\s/g, '_')}:${userId || 'guest'}`;
+    const cacheKey = `search:combined:v2:${sanitizedQuery.replace(/\s/g, '_')}:${userId || 'guest'}`;
     const cached = await this.cacheManager.get<SearchResponse>(cacheKey);
     if (cached) return cached;
 
@@ -199,27 +206,40 @@ export class SearchService {
         });
     }
 
-    const [users, hashtags, semanticPosts] = await Promise.all([
-      this.searchUsers(sanitizedQuery, userId),
-      this.prisma.hashtag.findMany({
-        where: {
-          tag: {
-            contains: sanitizedQuery,
-            mode: 'insensitive',
+    const [users, hashtags, semanticPosts, semanticProfiles] =
+      await Promise.all([
+        this.searchUsers(sanitizedQuery, userId),
+        this.prisma.hashtag.findMany({
+          where: {
+            tag: {
+              contains: sanitizedQuery,
+              mode: 'insensitive',
+            },
           },
-        },
-        take: 5,
-        orderBy: {
-          postCount: 'desc',
-        },
-      }),
-      this.semanticSearchPosts(sanitizedQuery, 3, userId), // Get top 3 semantic matches for combined view
-    ]);
+          take: 5,
+          orderBy: {
+            postCount: 'desc',
+          },
+        }),
+        this.semanticSearchPosts(sanitizedQuery, 3, userId),
+        query.length >= 3
+          ? this.semanticSearchProfiles(sanitizedQuery, 5, userId)
+          : Promise.resolve([]),
+      ]);
+
+    const keywordUserIds = new Set(users.map((u: { id: string }) => u.id));
+    const uniqueSemanticProfiles = (semanticProfiles || []).filter(
+      (p: { user?: { id?: string }; userId?: string }) => {
+        const id = p.user?.id || p.userId;
+        return id && !keywordUserIds.has(id);
+      },
+    );
 
     const result: SearchResponse = {
       users: users.slice(0, 5),
       hashtags,
       semanticPosts,
+      semanticProfiles: uniqueSemanticProfiles,
     };
 
     await this.cacheManager.set(cacheKey, result, 300000); // 5 min cache

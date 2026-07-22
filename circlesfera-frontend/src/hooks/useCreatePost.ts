@@ -21,7 +21,13 @@ export type SubScreen =
   | 'accessibility'
   | 'advanced'
   | 'tags'
-  | 'monetization';
+  | 'monetization'
+  | 'interactive';
+
+export type InteractiveDraft =
+  | { kind: 'poll'; question: string; options: [string, string] }
+  | { kind: 'qna'; prompt: string }
+  | null;
 
 export interface PostTagData {
   userId: string;
@@ -67,6 +73,8 @@ export function useCreatePost() {
   const [isPremium, setIsPremium] = useState(false);
   const [price, setPrice] = useState<number>(0);
   const [scheduledAt, setScheduledAt] = useState('');
+  const [interactiveDraft, setInteractiveDraft] =
+    useState<InteractiveDraft>(null);
 
   // Read seamless transfer state from UI Store
   useEffect(() => {
@@ -111,7 +119,6 @@ export function useCreatePost() {
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['frames'] });
-      navigate('/');
     },
   });
 
@@ -345,7 +352,30 @@ export function useCreatePost() {
             ? new Date(scheduledAt).toISOString()
             : undefined,
         };
-        await createPostMutation.mutateAsync(payload);
+        const created = await createPostMutation.mutateAsync(payload);
+        const postId = created?.id;
+        if (postId && interactiveDraft?.kind === 'poll') {
+          try {
+            await interactiveApi.createPoll({
+              question: interactiveDraft.question,
+              options: [...interactiveDraft.options],
+              postId,
+            });
+          } catch (pollError) {
+            logger.error('Failed to create post poll:', pollError);
+          }
+        }
+        if (postId && interactiveDraft?.kind === 'qna') {
+          try {
+            await interactiveApi.createQna({
+              prompt: interactiveDraft.prompt,
+              postId,
+            });
+          } catch (qnaError) {
+            logger.error('Failed to create post QnA:', qnaError);
+          }
+        }
+        navigate('/');
       }
     } catch (error: unknown) {
       logger.error('Error creating content:', error);
@@ -413,6 +443,8 @@ export function useCreatePost() {
     setPrice,
     scheduledAt,
     setScheduledAt,
+    interactiveDraft,
+    setInteractiveDraft,
     isUploading,
     fileInputRef,
     handleFileSelect,

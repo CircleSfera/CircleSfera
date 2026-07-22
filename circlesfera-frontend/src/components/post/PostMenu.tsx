@@ -1,5 +1,12 @@
 import { motion } from 'framer-motion';
-import { Bookmark, Flag, Megaphone, Pencil, Trash2 } from 'lucide-react';
+import {
+  Bookmark,
+  Flag,
+  Megaphone,
+  Pencil,
+  Trash2,
+  VolumeX,
+} from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -13,6 +20,7 @@ interface PostMenuProps {
   onReport: () => void;
   onAddToCollection: () => void;
   onPromote?: () => void;
+  onMute?: () => void;
 }
 
 export default function PostMenu({
@@ -25,6 +33,7 @@ export default function PostMenu({
   onReport,
   onAddToCollection,
   onPromote,
+  onMute,
 }: PostMenuProps) {
   const { t } = useTranslation();
   if (!showMenu) return null;
@@ -75,14 +84,26 @@ export default function PostMenu({
           </button>
         </>
       ) : (
-        <button
-          type="button"
-          onClick={onReport}
-          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-white/5 active:bg-white/10 transition-colors"
-        >
-          <Flag size={16} />
-          <span>{t('post.menu.report')}</span>
-        </button>
+        <>
+          {onMute && (
+            <button
+              type="button"
+              onClick={onMute}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-white hover:bg-white/5 active:bg-white/10 transition-colors"
+            >
+              <VolumeX size={16} />
+              <span>{t('post.menu.mute', 'Mute user')}</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onReport}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-white/5 active:bg-white/10 transition-colors"
+          >
+            <Flag size={16} />
+            <span>{t('post.menu.report')}</span>
+          </button>
+        </>
       )}
       <div className="mx-3 my-1 border-t border-white/5" />
       <button

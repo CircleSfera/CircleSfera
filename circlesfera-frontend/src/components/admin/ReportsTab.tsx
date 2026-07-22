@@ -12,7 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import { useState } from 'react';
-import { useDebounce } from '../../hooks/useDebounce';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminReport } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
@@ -43,7 +43,7 @@ export default function ReportsTab({ onToast }: Props) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('PENDING'); // Default to pending for moderation flow
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
-  const debouncedSearch = useDebounce(search);
+  const debouncedSearch = useDebouncedValue(search, 400);
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery<PaginatedResponse<AdminReport>>({

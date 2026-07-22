@@ -1,19 +1,19 @@
 # 02-Database-ER-Diagram
 ## CircleSfera
-**Versión:** 3.0 alineada al schema real  
-**Base de datos:** PostgreSQL  
+**Version:** 3.0 aligned with the real schema  
+**Database:** PostgreSQL  
 **ORM:** Prisma  
-**Fuente de verdad:** `schema.prisma` actual del proyecto
+**Source of truth:** current project `schema.prisma`
 
 ---
 
-## 1. Criterio de modelado
+## 1. Modeling criteria
 
-Este ERD describe la realidad del modelo actual del proyecto. No simplifica hacia un MVP antiguo ni añade entidades que no existan en el `schema.prisma` compartido.
+This ERD describes the reality of the project's current model. It does not simplify toward an outdated MVP, nor does it add entities that do not exist in the shared `schema.prisma`.
 
 ---
 
-## 2. Entidades de identidad
+## 2. Identity entities
 
 ### users
 - `id` (PK)
@@ -70,7 +70,7 @@ Este ERD describe la realidad del modelo actual del proyecto. No simplifica haci
 
 ---
 
-## 3. Contenido principal
+## 3. Primary content
 
 ### posts
 - `id` (PK)
@@ -117,11 +117,11 @@ Este ERD describe la realidad del modelo actual del proyecto. No simplifica haci
 - `postId` (FK → posts.id)
 - `hashtagId` (FK → hashtags.id)
 - `createdAt`
-- PK compuesta (`postId`, `hashtagId`)
+- Composite PK (`postId`, `hashtagId`)
 
 ### post_embeddings
 - `postId` (PK, FK → posts.id)
-- `vector` (`vector(1536)` vía pgvector)
+- `vector` (`vector(1536)` via pgvector)
 
 ### audio_tracks
 - `id` (PK)
@@ -135,7 +135,7 @@ Este ERD describe la realidad del modelo actual del proyecto. No simplifica haci
 
 ---
 
-## 4. Stories y derivados
+## 4. Stories and derivatives
 
 ### stories
 - `id` (PK)
@@ -188,7 +188,7 @@ Este ERD describe la realidad del modelo actual del proyecto. No simplifica haci
 
 ---
 
-## 5. Interacciones
+## 5. Interactions
 
 ### comments
 - `id` (PK)
@@ -235,7 +235,7 @@ Este ERD describe la realidad del modelo actual del proyecto. No simplifica haci
 
 ---
 
-## 6. Grafo social
+## 6. Social graph
 
 ### follows
 - `id` (PK)
@@ -254,7 +254,7 @@ Este ERD describe la realidad del modelo actual del proyecto. No simplifica haci
 
 ---
 
-## 7. Notificaciones
+## 7. Notifications
 
 ### notifications
 - `id` (PK)
@@ -273,7 +273,7 @@ Este ERD describe la realidad del modelo actual del proyecto. No simplifica haci
 
 ---
 
-## 8. Mensajería
+## 8. Messaging
 
 ### conversations
 - `id` (PK)
@@ -313,7 +313,7 @@ Este ERD describe la realidad del modelo actual del proyecto. No simplifica haci
 
 ---
 
-## 9. Monetización
+## 9. Monetization
 
 ### platform_plans
 - `id` (PK)
@@ -326,12 +326,12 @@ Este ERD describe la realidad del modelo actual del proyecto. No simplifica haci
 - `stripeProductId` (UNIQUE)
 - `stripePriceId` (UNIQUE)
 - `yearlyStripePriceId` (UNIQUE)
-- `features` (JSON — ver schema interno abajo)
+- `features` (JSON — see internal schema below)
 - `isActive`
 - `createdAt`
 - `updatedAt`
 
-**Schema interno del campo `features` (JSON array)**
+**Internal schema of the `features` field (JSON array)**
 
 ```json
 [
@@ -344,27 +344,27 @@ Este ERD describe la realidad del modelo actual del proyecto. No simplifica haci
 ]
 ```
 
-| Campo     | Tipo             | Descripción                                                             |
+| Field     | Type             | Description                                                             |
 |-----------|------------------|-------------------------------------------------------------------------|
-| `key`     | string (enum)    | Identificador de negocio del beneficio (ver tabla de feature keys)      |
-| `label`   | string           | Texto de UI para mostrar al usuario                                     |
-| `enabled` | boolean          | Si el beneficio está activo en este plan                                |
-| `limit`   | number \| null   | Límite numérico si aplica (ej: posts por día); null = sin límite        |
+| `key`     | string (enum)    | Business identifier for the benefit (see feature keys table)            |
+| `label`   | string           | UI text to show the user                                                |
+| `enabled` | boolean          | Whether the benefit is active on this plan                              |
+| `limit`   | number \| null   | Numeric limit if applicable (e.g. posts per day); null = unlimited      |
 
-**Feature keys válidos**
+**Valid feature keys**
 
-| Key                    | Descripción                                         |
+| Key                    | Description                                         |
 |------------------------|-----------------------------------------------------|
-| `verified_badge`       | Badge de verificación visible en perfil             |
-| `analytics_basic`      | Analytics básicas de posts y perfil                 |
-| `analytics_advanced`   | Analytics avanzadas con histórico y demografía      |
-| `priority_support`     | Soporte prioritario                                 |
-| `promotions_enabled`   | Acceso a lanzar promotions                          |
-| `extended_storage`     | Almacenamiento extendido para media                 |
-| `hide_ads`             | Sin publicidad en feed (si aplica en el futuro)     |
-| `early_access`         | Acceso anticipado a nuevas funciones                |
+| `verified_badge`       | Verification badge visible on profile               |
+| `analytics_basic`      | Basic analytics for posts and profile               |
+| `analytics_advanced`   | Advanced analytics with history and demographics    |
+| `priority_support`     | Priority support                                    |
+| `promotions_enabled`   | Access to launch promotions                         |
+| `extended_storage`     | Extended storage for media                          |
+| `hide_ads`             | No ads in feed (if applicable in the future)        |
+| `early_access`         | Early access to new features                        |
 
-**Ejemplo de valor real para un plan Premium**
+**Example real value for a Premium plan**
 ```json
 [
   { "key": "verified_badge", "label": "Verified badge", "enabled": true, "limit": null },
@@ -418,7 +418,7 @@ Este ERD describe la realidad del modelo actual del proyecto. No simplifica haci
 
 ---
 
-## 10. Moderación y operación
+## 10. Moderation and operations
 
 ### reports
 - `id` (PK)
@@ -428,8 +428,8 @@ Este ERD describe la realidad del modelo actual del proyecto. No simplifica haci
 - `status` (`PENDING | REVIEWING | RESOLVED | REJECTED`)
 - `targetType` (`post | comment | user | story | message`)
 - `targetId`
-- `reviewedBy` (nullable FK → users.id) — admin que gestionó el report
-- `resolvedAt` (nullable timestamp) — momento de cierre del report
+- `reviewedBy` (nullable FK → users.id) — admin who handled the report
+- `resolvedAt` (nullable timestamp) — when the report was closed
 - `createdAt`
 - `updatedAt`
 
@@ -468,7 +468,7 @@ Este ERD describe la realidad del modelo actual del proyecto. No simplifica haci
 
 ---
 
-## 11. Relaciones principales
+## 11. Main relationships
 
 - `users` 1 ── 1 `profiles`
 - `users` 1 ── N `refresh_tokens`
@@ -478,25 +478,25 @@ Este ERD describe la realidad del modelo actual del proyecto. No simplifica haci
 - `posts` 1 ── N `comments`
 - `posts` 1 ── N `likes`
 - `posts` 1 ── N `bookmarks`
-- `posts` N ── N `hashtags` vía `post_hashtags`
+- `posts` N ── N `hashtags` via `post_hashtags`
 - `posts` 1 ── 1 `post_embeddings`
-- `users` N ── N `posts` vía `post_tags`
+- `users` N ── N `posts` via `post_tags`
 - `users` 1 ── N `stories`
 - `stories` 1 ── N `story_views`
 - `stories` 1 ── N `story_reactions`
 - `users` 1 ── N `highlights`
-- `highlights` N ── N `stories` vía `highlight_stories`
+- `highlights` N ── N `stories` via `highlight_stories`
 - `users` 1 ── N `comments`
 - `comments` 1 ── N `comment_likes`
 - `comments` 1 ── N `comments` (self-reference)
 - `users` 1 ── N `bookmarks`
 - `users` 1 ── N `collections`
-- `users` 1 ── N `follows` como follower
-- `users` 1 ── N `follows` como following
-- `users` 1 ── N `blocks` como blocker
-- `users` 1 ── N `blocks` como blocked
-- `users` 1 ── N `notifications` como recipient
-- `users` 1 ── N `notifications` como sender
+- `users` 1 ── N `follows` as follower
+- `users` 1 ── N `follows` as following
+- `users` 1 ── N `blocks` as blocker
+- `users` 1 ── N `blocks` as blocked
+- `users` 1 ── N `notifications` as recipient
+- `users` 1 ── N `notifications` as sender
 - `conversations` 1 ── N `participants`
 - `conversations` 1 ── N `messages`
 - `messages` 1 ── N `message_reactions`
@@ -512,17 +512,17 @@ Este ERD describe la realidad del modelo actual del proyecto. No simplifica haci
 
 ---
 
-## 12. Diferencias respecto a la documentación anterior
+## 12. Differences from prior documentation
 
-### Se corrige
-- `frames` dejan de documentarse como tabla separada; pasan a ser `Post.type = FRAME`.
-- `likes` dejan de ser polimórficos; existen `Like` y `CommentLike` por separado.
-- `mutes` salen del ERD oficial actual.
-- `appeals` y `moderation_actions` salen del ERD oficial actual.
-- `user_settings`, `feed_preferences`, `feature_entitlements`, `platform_transactions` y tablas analíticas separadas salen del ERD oficial actual.
-- `chat`, `highlights`, `collections`, `passkeys`, `promotions`, `audio`, `search_history`, `whitelist_entries`, `user_settings` y `post_embeddings` pasan a figurar en el ERD oficial.
+### Corrected
+- `frames` are no longer documented as a separate table; they become `Post.type = FRAME`.
+- `likes` are no longer polymorphic; separate `Like` and `CommentLike` exist.
+- `mutes` are removed from the current official ERD.
+- `appeals` and `moderation_actions` are removed from the current official ERD.
+- `user_settings`, `feed_preferences`, `feature_entitlements`, `platform_transactions`, and separate analytics tables are removed from the current official ERD.
+- `chat`, `highlights`, `collections`, `passkeys`, `promotions`, `audio`, `search_history`, `whitelist_entries`, `user_settings`, and `post_embeddings` now appear in the official ERD.
 
-### Se mantiene como lógica de aplicación futura
-- Workflows avanzados de apelación.
-- Analítica agregada persistida en tablas dedicadas.
-- Communities y marketplace.
+### Kept as future application logic
+- Advanced appeal workflows.
+- Aggregated analytics persisted in dedicated tables.
+- Communities and marketplace.

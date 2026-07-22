@@ -25,7 +25,8 @@
     "prisma:seed:audio": "ts-node prisma/seed-audio.ts",
     "prisma:studio": "prisma studio",
     "prisma:generate": "prisma generate",
-    "check-user": "ts-node scripts/check-user.ts"
+    "check-user": "ts-node scripts/check-user.ts",
+    "embeddings:backfill": "tsx scripts/generate-embeddings.ts"
   },
   "overrides": {
     "js-yaml": "4.2.0",

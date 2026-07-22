@@ -1,175 +1,175 @@
-# Sistema de Diseño CircleSfera
-## Guía de Diseño Profesional - Nivel Meta
+# CircleSfera Design System
+## Professional Design Guide - Meta Level
 
-### Visión General
-Sistema de diseño unificado que establece principios, patrones y componentes reutilizables para crear experiencias consistentes, accesibles y hermosas en toda la plataforma CircleSfera.
-
----
-
-## 1. Filosofía de Diseño
-
-### Principios Fundamentales
-
-#### 1.1 Claridad y Simplicidad
-- **Eliminar fricción**: Cada elemento debe tener un propósito claro
-- **Jerarquía visual**: Usar tamaño, color y espaciado para guiar la atención
-- **Información progresiva**: Mostrar lo esencial primero, expandir cuando sea necesario
-
-#### 1.2 Consistencia
-- **Patrones unificados**: Componentes y comportamientos consistentes en toda la app
-- **Lenguaje visual coherente**: Colores, tipografías y espaciados estandarizados
-- **Experiencias familiares**: Usuarios deben sentirse cómodos al navegar
-
-#### 1.3 Elegancia Moderna
-- **Estética minimalista**: Menos es más - eliminar elementos innecesarios
-- **Micro-interacciones**: Animaciones sutiles que dan vida a la interfaz
-- **Glassmorphism refinado**: Efectos de vidrio esmerilado con buen gusto
-
-#### 1.4 Accesibilidad
-- **Contraste adecuado**: WCAG AA mínimo, AAA donde sea posible
-- **Navegación por teclado**: Todo debe ser accesible sin mouse
-- **Focus visible**: Indicadores claros de foco para navegación
-
-#### 1.5 Performance Visual
-- **Transiciones fluidas**: 60fps en todas las animaciones
-- **Carga progresiva**: Estados de carga elegantes
-- **Optimización de renders**: Componentes eficientes
+### Overview
+A unified design system that establishes principles, patterns, and reusable components to create consistent, accessible, and beautiful experiences across the CircleSfera platform.
 
 ---
 
-## 2. Paleta de Colores
+## 1. Design Philosophy
 
-### 2.1 Colores Primarios (Púrpura Cálido)
+### Core Principles
+
+#### 1.1 Clarity and Simplicity
+- **Eliminate friction**: Every element must have a clear purpose
+- **Visual hierarchy**: Use size, color, and spacing to guide attention
+- **Progressive disclosure**: Show the essentials first, expand when needed
+
+#### 1.2 Consistency
+- **Unified patterns**: Consistent components and behaviors throughout the app
+- **Coherent visual language**: Standardized colors, typography, and spacing
+- **Familiar experiences**: Users should feel comfortable navigating
+
+#### 1.3 Modern Elegance
+- **Minimalist aesthetic**: Less is more — remove unnecessary elements
+- **Micro-interactions**: Subtle animations that bring the interface to life
+- **Refined glassmorphism**: Frosted-glass effects used with good taste
+
+#### 1.4 Accessibility
+- **Adequate contrast**: WCAG AA minimum, AAA where possible
+- **Keyboard navigation**: Everything must be accessible without a mouse
+- **Visible focus**: Clear focus indicators for navigation
+
+#### 1.5 Visual Performance
+- **Smooth transitions**: 60fps on all animations
+- **Progressive loading**: Elegant loading states
+- **Render optimization**: Efficient components
+
+---
+
+## 2. Color Palette
+
+### 2.1 Primary Colors (Warm Purple)
 ```
-Primary Purple (Púrpura Principal)
-- 50:  #faf5ff  (Fondos muy claros)
-- 400: #c084fc  (Acciones secundarias)
-- 500: #a855f7  (Brand principal)
-- 600: #9333ea  (Hovers y estados activos)
-- 700: #7e22ce  (Énfasis fuerte)
-- 950: #3b0764  (Más oscuro)
+Primary Purple (Main Purple)
+- 50:  #faf5ff  (Very light backgrounds)
+- 400: #c084fc  (Secondary actions)
+- 500: #a855f7  (Primary brand)
+- 600: #9333ea  (Hovers and active states)
+- 700: #7e22ce  (Strong emphasis)
+- 950: #3b0764  (Darkest)
 ```
 
-### 2.2 Colores de Acento (Rosa Cálido)
+### 2.2 Accent Colors (Warm Pink)
 ```
-Accent Pink (Rosa Complementario)
-- 50:  #fdf2f8  (Fondos muy claros)
-- 400: #f472b6  (Acentos suaves)
-- 500: #ec4899  (Acento principal)
-- 600: #db2777  (Hovers y estados activos)
-- 700: #be185d  (Énfasis fuerte)
-- 950: #500724  (Más oscuro)
-```
-
-### 2.3 Colores Neutros
-```
-Slate (Escala de grises)
-- 50:  #f8fafc  (Texto sobre dark)
-- 400: #94a3b8  (Texto secundario)
-- 500: #64748b  (Texto terciario)
-- 800: #1e293b  (Fondos oscuros)
-- 900: #0f172a  (Fondos más oscuros)
-- 950: #020617  (Base casi negra)
+Accent Pink (Complementary Pink)
+- 50:  #fdf2f8  (Very light backgrounds)
+- 400: #f472b6  (Soft accents)
+- 500: #ec4899  (Primary accent)
+- 600: #db2777  (Hovers and active states)
+- 700: #be185d  (Strong emphasis)
+- 950: #500724  (Darkest)
 ```
 
-### 2.4 Colores Semánticos
-- **Success (Verde)**: Confirmaciones, acciones exitosas
-- **Warning (Amarillo)**: Advertencias, atención requerida
-- **Danger (Rojo)**: Errores, acciones destructivas
+### 2.3 Neutral Colors
+```
+Slate (Gray scale)
+- 50:  #f8fafc  (Text on dark)
+- 400: #94a3b8  (Secondary text)
+- 500: #64748b  (Tertiary text)
+- 800: #1e293b  (Dark backgrounds)
+- 900: #0f172a  (Darker backgrounds)
+- 950: #020617  (Near-black base)
+```
 
-### 2.5 Gradientes Principales
+### 2.4 Semantic Colors
+- **Success (Green)**: Confirmations, successful actions
+- **Warning (Yellow)**: Warnings, attention required
+- **Danger (Red)**: Errors, destructive actions
+
+### 2.5 Primary Gradients
 ```
 Primary Gradient: from-primary-600 via-primary-500 to-accent-500
 Text Gradient: from-primary-400 via-primary-500 to-accent-500
 Hover Gradient: from-primary-500 via-accent-500 to-primary-600
 ```
 
-### 2.6 Modo Oscuro
-- **Background Base**: `#000000` (Negro puro)
-- **Background Elevado**: `rgba(15, 23, 42, 0.4)` (Slate-900 con transparencia)
-- **Bordes**: `rgba(51, 65, 85, 0.3)` (Slate-700 con transparencia)
-- **Texto Principal**: `#ffffff` (Blanco puro)
-- **Texto Secundario**: `rgba(148, 163, 184, 1)` (Slate-400)
+### 2.6 Dark Mode
+- **Base Background**: `#000000` (Pure black)
+- **Elevated Background**: `rgba(15, 23, 42, 0.4)` (Slate-900 with transparency)
+- **Borders**: `rgba(51, 65, 85, 0.3)` (Slate-700 with transparency)
+- **Primary Text**: `#ffffff` (Pure white)
+- **Secondary Text**: `rgba(148, 163, 184, 1)` (Slate-400)
 
 ---
 
-## 3. Tipografía
+## 3. Typography
 
-### 3.1 Fuente Principal
-**Inter** - Variable font para máxima flexibilidad
+### 3.1 Primary Font
+**Inter** - Variable font for maximum flexibility
 - **Weights**: 400 (Regular), 500 (Medium), 600 (Semibold), 700 (Bold)
 - **Features**: cv02, cv03, cv04, cv11 (OpenType features)
 
-### 3.2 Escala Tipográfica
+### 3.2 Type Scale
 ```
-Display: 3rem-8rem   (Heroes, títulos principales)
-Heading: 1.5rem-3rem (Títulos de sección)
-Body:    0.875rem-1rem (Contenido, párrafos)
+Display: 3rem-8rem   (Heroes, main titles)
+Heading: 1.5rem-3rem (Section titles)
+Body:    0.875rem-1rem (Content, paragraphs)
 Small:   0.75rem-0.875rem (Metadata, labels)
 Tiny:    0.625rem (Badges, tags)
 ```
 
-### 3.3 Jerarquía de Texto
-- **Headings**: Semibold (600) o Bold (700)
-- **Body**: Regular (400) o Medium (500)
+### 3.3 Text Hierarchy
+- **Headings**: Semibold (600) or Bold (700)
+- **Body**: Regular (400) or Medium (500)
 - **Labels**: Medium (500)
 - **Captions**: Regular (400)
 
 ---
 
-## 4. Espaciado
+## 4. Spacing
 
-### 4.1 Sistema de Espaciado (8px base)
+### 4.1 Spacing System (8px base)
 ```
-0.5:  4px   (Espaciado mínimo)
+0.5:  4px   (Minimum spacing)
 1:    8px   (Base)
-1.5:  12px  (Compacto)
-2:    16px  (Estándar)
-3:    24px  (Cómodo)
-4:    32px  (Espacioso)
-6:    48px  (Secciones)
-8:    64px  (Márgenes grandes)
-12:   96px  (Separadores grandes)
+1.5:  12px  (Compact)
+2:    16px  (Standard)
+3:    24px  (Comfortable)
+4:    32px  (Spacious)
+6:    48px  (Sections)
+8:    64px  (Large margins)
+12:   96px  (Large separators)
 ```
 
-### 4.2 Padding por Componente
-- **Botones**: `px-4 py-2.5` (md), `px-6 py-3` (lg)
-- **Cards**: `p-4` (compacto), `p-6` (estándar), `p-8` (espacioso)
+### 4.2 Padding by Component
+- **Buttons**: `px-4 py-2.5` (md), `px-6 py-3` (lg)
+- **Cards**: `p-4` (compact), `p-6` (standard), `p-8` (spacious)
 - **Inputs**: `px-4 py-3`
 - **Sidebar**: `px-4 py-3` (items)
 
 ---
 
-## 5. Bordes y Radio
+## 5. Borders and Radius
 
-### 5.1 Radio de Bordes
+### 5.1 Border Radius
 ```
-sm:   8px   (Botones pequeños, badges)
-md:   12px  (Botones, inputs)
-lg:   16px  (Cards, modales)
-xl:   20px  (Contenedores grandes)
-2xl:  24px  (Contenedores extra grandes)
-full: 9999px (Botones circulares, avatares)
+sm:   8px   (Small buttons, badges)
+md:   12px  (Buttons, inputs)
+lg:   16px  (Cards, modals)
+xl:   20px  (Large containers)
+2xl:  24px  (Extra-large containers)
+full: 9999px (Circular buttons, avatars)
 ```
 
-### 5.2 Ancho de Bordes
+### 5.2 Border Width
 - **Default**: `1px`
-- **Énfasis**: `2px`
-- **Separadores**: `1px` con opacidad reducida
+- **Emphasis**: `2px`
+- **Separators**: `1px` with reduced opacity
 
 ---
 
-## 6. Sombras
+## 6. Shadows
 
-### 6.1 Sistema de Elevación
+### 6.1 Elevation System
 ```
-Elevation 1 (Suave):     0 2px 8px rgba(0, 0, 0, 0.15)
-Elevation 2 (Estándar):  0 4px 16px rgba(0, 0, 0, 0.2)
-Elevation 3 (Moderado):  0 10px 30px rgba(0, 0, 0, 0.25)
-Elevation 4 (Alto):      0 20px 50px rgba(0, 0, 0, 0.3)
+Elevation 1 (Soft):      0 2px 8px rgba(0, 0, 0, 0.15)
+Elevation 2 (Standard):  0 4px 16px rgba(0, 0, 0, 0.2)
+Elevation 3 (Moderate):  0 10px 30px rgba(0, 0, 0, 0.25)
+Elevation 4 (High):      0 20px 50px rgba(0, 0, 0, 0.3)
 ```
 
-### 6.2 Sombras con Color (Glow Effects)
+### 6.2 Colored Shadows (Glow Effects)
 ```
 Glow Primary: 0 0 20px rgba(168, 85, 247, 0.4)
 Glow Accent: 0 0 20px rgba(236, 72, 153, 0.4)
@@ -180,50 +180,50 @@ Glow Danger:  0 0 20px rgba(239, 68, 68, 0.4)
 
 ---
 
-## 7. Componentes Base
+## 7. Base Components
 
-### 7.1 Botones
+### 7.1 Buttons
 
-#### Variantes
-- **Primary**: Gradiente púrpura/rosa (`from-primary-600 via-primary-500 to-accent-500`), texto blanco, sombra con glow púrpura
-- **Secondary**: Glassmorphism oscuro (`glass-dark`), hover más brillante
-- **Ghost**: Transparente, hover con fondo `white/5` y backdrop-blur
-- **Danger**: Gradiente rojo, para acciones destructivas
-- **Success**: Gradiente verde, para confirmaciones
-- **Outline**: Borde púrpura, fondo transparente, hover con fondo `primary-500/10`
+#### Variants
+- **Primary**: Purple/pink gradient (`from-primary-600 via-primary-500 to-accent-500`), white text, purple glow shadow
+- **Secondary**: Dark glassmorphism (`glass-dark`), brighter hover
+- **Ghost**: Transparent, hover with `white/5` background and backdrop-blur
+- **Danger**: Red gradient, for destructive actions
+- **Success**: Green gradient, for confirmations
+- **Outline**: Purple border, transparent background, hover with `primary-500/10` background
 
-#### Estados
-- **Default**: Estado normal
-- **Hover**: Escala 1.02, sombra aumentada
-- **Active**: Escala 0.98, feedback táctil
-- **Disabled**: Opacidad 50%, cursor not-allowed
-- **Loading**: Spinner, texto opaco
+#### States
+- **Default**: Normal state
+- **Hover**: Scale 1.02, increased shadow
+- **Active**: Scale 0.98, tactile feedback
+- **Disabled**: 50% opacity, cursor not-allowed
+- **Loading**: Spinner, opaque text
 
 ### 7.2 Cards
-- **Fondo**: `bg-slate-900/40` con `backdrop-blur-sm`
-- **Borde**: `border border-slate-800/50`
-- **Radio**: `rounded-2xl`
-- **Sombra**: `shadow-elegant`
-- **Hover**: Escala sutil, borde más visible
+- **Background**: `bg-slate-900/40` with `backdrop-blur-sm`
+- **Border**: `border border-slate-800/50`
+- **Radius**: `rounded-2xl`
+- **Shadow**: `shadow-elegant`
+- **Hover**: Subtle scale, more visible border
 
 ### 7.3 Inputs
-- **Fondo**: `bg-slate-900/30`
-- **Borde**: `border border-slate-800/50`
-- **Focus**: Ring azul, borde azul, fondo más opaco
-- **Placeholder**: Color slate-500
+- **Background**: `bg-slate-900/30`
+- **Border**: `border border-slate-800/50`
+- **Focus**: Blue ring, blue border, more opaque background
+- **Placeholder**: Slate-500 color
 
 ### 7.4 Badges
-- **Tamaños**: sm, md, lg
-- **Variantes**: Primary, Success, Warning, Danger, Neutral
-- **Shape**: Píldora (full rounded)
+- **Sizes**: sm, md, lg
+- **Variants**: Primary, Success, Warning, Danger, Neutral
+- **Shape**: Pill (full rounded)
 
 ---
 
-## 8. Efectos Visuales
+## 8. Visual Effects
 
-### 8.1 Glassmorphism (Estilo VisionOS)
+### 8.1 Glassmorphism (VisionOS Style)
 
-#### Utilidades CSS
+#### CSS Utilities
 - **glass-light**: `bg-white/5 backdrop-blur-2xl border-white/10`
 - **glass-dark**: `bg-black/20 backdrop-blur-2xl border-white/5`
 - **glass-elevated**: `bg-white/8 backdrop-blur-2xl border-white/15`
@@ -234,66 +234,66 @@ Glow Danger:  0 0 20px rgba(239, 68, 68, 0.4)
 - **glass-modal**: `bg-black/40 backdrop-blur-3xl border-white/10`
 - **glass-bottom-nav**: `bg-black/40 backdrop-blur-2xl border-white/10`
 
-### 8.2 Gradientes
+### 8.2 Gradients
 - **Primary Gradient**: `from-primary-600 via-primary-500 to-accent-500`
 - **Text Gradient**: `from-primary-400 via-primary-500 to-accent-500` (`.text-gradient-primary`)
 - **Hover Gradient**: `from-primary-500 via-accent-500 to-primary-600`
 
-### 8.3 Animaciones
+### 8.3 Animations
 
-#### Duración Estándar
-- **Instant**: 0ms (Estados inmediatos)
-- **Fast**: 150ms (Hovers, micro-interacciones)
-- **Normal**: 300ms (Transiciones estándar)
-- **Slow**: 500ms (Transiciones importantes)
+#### Standard Duration
+- **Instant**: 0ms (Immediate states)
+- **Fast**: 150ms (Hovers, micro-interactions)
+- **Normal**: 300ms (Standard transitions)
+- **Slow**: 500ms (Important transitions)
 
 #### Easing
-- **Ease Out**: Para entradas (smooth landing)
-- **Ease In**: Para salidas (aceleración)
-- **Ease In Out**: Para transiciones bidireccionales
+- **Ease Out**: For entrances (smooth landing)
+- **Ease In**: For exits (acceleration)
+- **Ease In Out**: For bidirectional transitions
 
-#### Keyframes Principales
-- **fade-in**: Opacidad y translateY
-- **slide-up**: TranslateY desde abajo
-- **scale-in**: Escala desde 0.95
-- **shimmer**: Efecto de carga elegante
+#### Main Keyframes
+- **fade-in**: Opacity and translateY
+- **slide-up**: TranslateY from below
+- **scale-in**: Scale from 0.95
+- **shimmer**: Elegant loading effect
 
 ---
 
-## 9. Layout y Grid
+## 9. Layout and Grid
 
-### 9.1 Contenedores
-- **Max Width**: 935px (Feed principal)
-- **Sidebar**: 280px (Navegación)
-- **Padding**: 24px (px-6) en móvil, 32px en desktop
+### 9.1 Containers
+- **Max Width**: 935px (Main feed)
+- **Sidebar**: 280px (Navigation)
+- **Padding**: 24px (px-6) on mobile, 32px on desktop
 
 ### 9.2 Grid System
-- **Columns**: 12 columnas en desktop
-- **Gap**: 16px estándar, 24px espacioso
+- **Columns**: 12 columns on desktop
+- **Gap**: 16px standard, 24px spacious
 
 ---
 
-## 10. Estados de Interacción
+## 10. Interaction States
 
 ### 10.1 Hover
-- Escala sutil (1.01-1.02)
-- Sombra aumentada
-- Borde más visible
-- Color más brillante
+- Subtle scale (1.01-1.02)
+- Increased shadow
+- More visible border
+- Brighter color
 
 ### 10.2 Active
-- Escala hacia abajo (0.97-0.98)
-- Feedback visual inmediato
+- Scale down (0.97-0.98)
+- Immediate visual feedback
 
 ### 10.3 Focus
-- Ring visible (2px primary-500)
+- Visible ring (2px primary-500)
 - Outline offset
-- Sombra de focus
+- Focus shadow
 
 ### 10.4 Loading
-- Skeleton screens elegantes
-- Spinners sutiles
-- Shimmer effects para contenido
+- Elegant skeleton screens
+- Subtle spinners
+- Shimmer effects for content
 
 ---
 
@@ -301,156 +301,155 @@ Glow Danger:  0 0 20px rgba(239, 68, 68, 0.4)
 
 ### Breakpoints
 ```
-sm:  640px  (Móvil grande)
+sm:  640px  (Large mobile)
 md:  768px  (Tablet)
-lg:  1024px (Desktop pequeño)
+lg:  1024px (Small desktop)
 xl:  1280px (Desktop)
-2xl: 1536px (Desktop grande)
+2xl: 1536px (Large desktop)
 ```
 
-### Estrategia
-- **Mobile First**: Diseñar primero para móvil
-- **Progressive Enhancement**: Añadir funcionalidades en desktop
-- **Touch Targets**: Mínimo 44x44px
+### Strategy
+- **Mobile First**: Design for mobile first
+- **Progressive Enhancement**: Add functionality on desktop
+- **Touch Targets**: Minimum 44x44px
 
 ---
 
-## 12. Accesibilidad
+## 12. Accessibility
 
-### 12.1 Contraste
-- **Texto sobre fondo oscuro**: Mínimo 4.5:1
-- **Texto sobre fondo claro**: Mínimo 4.5:1
-- **Textos grandes**: Mínimo 3:1
+### 12.1 Contrast
+- **Text on dark background**: Minimum 4.5:1
+- **Text on light background**: Minimum 4.5:1
+- **Large text**: Minimum 3:1
 
-### 12.2 Navegación
-- **Tab Order**: Lógico y predecible
-- **Skip Links**: Para saltar navegación
-- **ARIA Labels**: Donde sea necesario
+### 12.2 Navigation
+- **Tab Order**: Logical and predictable
+- **Skip Links**: To skip navigation
+- **ARIA Labels**: Where necessary
 
 ### 12.3 Feedback
-- **Focus Visible**: Siempre visible
-- **Error States**: Claros y descriptivos
-- **Success States**: Confirmación visual
+- **Focus Visible**: Always visible
+- **Error States**: Clear and descriptive
+- **Success States**: Visual confirmation
 
 ---
 
 ## 13. Performance
 
-### 13.1 Optimizaciones Visuales
-- **Lazy Loading**: Para imágenes y componentes
-- **Will-change**: Solo donde sea necesario
-- **Transform/Opacity**: Para animaciones (GPU accelerated)
+### 13.1 Visual Optimizations
+- **Lazy Loading**: For images and components
+- **Will-change**: Only where necessary
+- **Transform/Opacity**: For animations (GPU accelerated)
 
 ### 13.2 Best Practices
-- Evitar animaciones en scroll pesadas
-- Usar `requestAnimationFrame` para animaciones
-- Debounce en resize y scroll
+- Avoid heavy scroll animations
+- Use `requestAnimationFrame` for animations
+- Debounce on resize and scroll
 
 ---
 
-## 14. Implementación Técnica
+## 14. Technical Implementation
 
 ### 14.1 Tailwind CSS
 - **Config**: `tailwind.config.ts`
 - **Custom Utilities**: `globals.css`
-- **JIT Mode**: Habilitado
+- **JIT Mode**: Enabled
 
-### 14.2 Componentes
-- **CVA**: Para variantes de componentes
-- **TypeScript**: Tipado estricto
-- **Composition**: Componentes compuestos
-
----
-
-## 15. Guías de Uso
-
-### 15.1 Cuándo Usar Glassmorphism
-- Cards elevadas
-- Modales y overlays
-- Sidebar y navegación
-- NO en elementos pequeños o de poca importancia
-
-### 15.2 Cuándo Usar Gradientes
-- CTAs principales
-- Títulos y headers
-- Elementos de énfasis
-- NO en texto largo o fondo de contenido
-
-### 15.3 Cuándo Usar Animaciones
-- Feedback de interacción (hover, click)
-- Transiciones de estado
-- Carga de contenido
-- NO en elementos estáticos o de baja importancia
+### 14.2 Components
+- **CVA**: For component variants
+- **TypeScript**: Strict typing
+- **Composition**: Compound components
 
 ---
 
-## 16. Herramientas y Recursos
+## 15. Usage Guidelines
+
+### 15.1 When to Use Glassmorphism
+- Elevated cards
+- Modals and overlays
+- Sidebar and navigation
+- NOT on small or low-importance elements
+
+### 15.2 When to Use Gradients
+- Primary CTAs
+- Titles and headers
+- Emphasis elements
+- NOT on long text or content backgrounds
+
+### 15.3 When to Use Animations
+- Interaction feedback (hover, click)
+- State transitions
+- Content loading
+- NOT on static or low-importance elements
+
+---
+
+## 16. Tools and Resources
 
 ### Design Tokens
-- Definidos en `tailwind.config.ts`
-- Accesibles vía clases Tailwind
-- Documentados en este sistema
+- Defined in `tailwind.config.ts`
+- Accessible via Tailwind classes
+- Documented in this system
 
 ### Component Library
-- Ubicación: `components/ui/`
-- Variantes documentadas
-- Ejemplos de uso
+- Location: `components/ui/`
+- Documented variants
+- Usage examples
 
 ---
 
 ## 17. Framer Motion
 
-### 17.1 Configuración Centralizada
-**Archivo**: `lib/motion-config.ts`
+### 17.1 Centralized Configuration
+**File**: `lib/motion-config.ts`
 
-#### Transiciones Estándar
+#### Standard Transitions
 - **smooth**: Tween 300ms easeOut
 - **gentle**: Tween 400ms easeOut
 - **quick**: Tween 200ms easeOut
-- **spring**: Spring natural (stiffness: 300, damping: 30)
-- **springGentle**: Spring suave (stiffness: 200, damping: 25)
+- **spring**: Natural spring (stiffness: 300, damping: 30)
+- **springGentle**: Soft spring (stiffness: 200, damping: 25)
 
-#### Variantes Reusables
-- **fadeVariants**: Fade in/out simple
-- **fadeUpVariants**: Fade in con movimiento vertical
+#### Reusable Variants
+- **fadeVariants**: Simple fade in/out
+- **fadeUpVariants**: Fade in with vertical movement
 - **scaleVariants**: Scale in/out
-- **staggerContainer**: Contenedor con stagger children
-- **staggerItem**: Item individual para stagger
-- **hoverScale**: Hover con escala
-- **hoverLift**: Hover con elevación
-- **buttonVariants**: Estados de botón (rest, hover, tap)
-- **modalVariants**: Animaciones de modal
-- **cardVariants**: Estados de card (rest, hover)
+- **staggerContainer**: Container with stagger children
+- **staggerItem**: Individual item for stagger
+- **hoverScale**: Hover with scale
+- **hoverLift**: Hover with elevation
+- **buttonVariants**: Button states (rest, hover, tap)
+- **modalVariants**: Modal animations
+- **cardVariants**: Card states (rest, hover)
 
-### 17.2 Principios de Animación
-- **Duración**: 200-400ms para transiciones normales
-- **Spring**: Usar para interacciones naturales
-- **Stagger**: 80ms delay entre items en listas
-- **Sutileza**: Animaciones discretas, no distractivas
+### 17.2 Animation Principles
+- **Duration**: 200-400ms for normal transitions
+- **Spring**: Use for natural interactions
+- **Stagger**: 80ms delay between items in lists
+- **Subtlety**: Discrete animations, not distracting
 
 ---
 
-## 18. Navegación Responsive
+## 18. Responsive Navigation
 
 ### 18.1 Desktop (≥768px)
-- **Sidebar**: Fijo a la izquierda, 260px de ancho
-- **Glassmorphism**: `glass-sidebar` con blur profundo
-- **Transiciones**: Hover con movimiento horizontal suave
+- **Sidebar**: Fixed left, 260px wide
+- **Glassmorphism**: `glass-sidebar` with deep blur
+- **Transitions**: Hover with smooth horizontal movement
 
-### 18.2 Móvil (<768px)
-- **Sidebar**: Oculto
-- **Bottom Nav**: Fijo en la parte inferior
-- **Glassmorphism**: `glass-bottom-nav` con blur y borde superior
-- **Indicadores**: Animación con `layoutId` para transición suave
+### 18.2 Mobile (<768px)
+- **Sidebar**: Hidden
+- **Bottom Nav**: Fixed at the bottom
+- **Glassmorphism**: `glass-bottom-nav` with blur and top border
+- **Indicators**: Animation with `layoutId` for smooth transition
 
 ---
 
 ## Changelog
-- **v2.0** (Diciembre 2024): Rediseño completo con paleta púrpura/rosa, glassmorphism estilo VisionOS, y Framer Motion
-- **v1.0** (2024): Sistema inicial establecido
+- **v2.0** (December 2024): Full redesign with purple/pink palette, VisionOS-style glassmorphism, and Framer Motion
+- **v1.0** (2024): Initial system established
 
 ---
 
-**Última actualización**: Diciembre 2024
-**Mantenido por**: Equipo de Diseño CircleSfera
-
+**Last updated**: December 2024
+**Maintained by**: CircleSfera Design Team

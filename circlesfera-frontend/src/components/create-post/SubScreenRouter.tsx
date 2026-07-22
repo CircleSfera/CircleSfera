@@ -2,6 +2,9 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { MediaFile } from '../../hooks/useCreatePost';
 import AccessibilitySubScreen from './AccessibilitySubScreen';
 import AdvancedSettingsSubScreen from './AdvancedSettingsSubScreen';
+import InteractiveSubScreen, {
+  type InteractiveDraft,
+} from './InteractiveSubScreen';
 import LocationSubScreen from './LocationSubScreen';
 import MonetizationSubScreen from './MonetizationSubScreen';
 import TagPeopleSubScreen from './TagPeopleSubScreen';
@@ -13,7 +16,8 @@ interface SubScreenRouterProps {
     | 'accessibility'
     | 'advanced'
     | 'tags'
-    | 'monetization';
+    | 'monetization'
+    | 'interactive';
   setSubScreen: (
     screen:
       | 'none'
@@ -21,7 +25,8 @@ interface SubScreenRouterProps {
       | 'accessibility'
       | 'advanced'
       | 'tags'
-      | 'monetization',
+      | 'monetization'
+      | 'interactive',
   ) => void;
   mediaFiles: MediaFile[];
   altTextMap: Record<number, string>;
@@ -42,6 +47,8 @@ interface SubScreenRouterProps {
   setPrice?: (val: number) => void;
   scheduledAt?: string;
   setScheduledAt?: (val: string) => void;
+  interactiveDraft?: InteractiveDraft;
+  setInteractiveDraft?: (val: InteractiveDraft) => void;
 }
 
 export default function SubScreenRouter({
@@ -66,6 +73,8 @@ export default function SubScreenRouter({
   setPrice,
   scheduledAt = '',
   setScheduledAt,
+  interactiveDraft = null,
+  setInteractiveDraft,
 }: SubScreenRouterProps) {
   if (subScreen === 'location') {
     return (
@@ -125,6 +134,16 @@ export default function SubScreenRouter({
         setIsPremium={setIsPremium!}
         price={price!}
         setPrice={setPrice!}
+        onClose={() => setSubScreen('none')}
+      />
+    );
+  }
+
+  if (subScreen === 'interactive' && setInteractiveDraft) {
+    return (
+      <InteractiveSubScreen
+        value={interactiveDraft}
+        onChange={setInteractiveDraft}
         onClose={() => setSubScreen('none')}
       />
     );
