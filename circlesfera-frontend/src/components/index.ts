@@ -1,8 +1,11 @@
 export { default as CommentList } from './CommentList';
+export { ContentCalendar } from './creator/ContentCalendar';
 export { CreatorAnalyticsDashboard } from './creator/CreatorAnalyticsDashboard';
 export { DataExportSettings } from './DataExportSettings';
 export { EmptyState, ErrorState } from './ErrorEmptyStates';
 export { default as FollowButton } from './FollowButton';
+export { PollWidget } from './interactive/PollWidget';
+export { QnaWidget } from './interactive/QnaWidget';
 export { default as LikeButton } from './LikeButton';
 export { LoadingPage, LoadingSpinner } from './LoadingStates';
 export { default as Sidebar } from './navigation/Sidebar';

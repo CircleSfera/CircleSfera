@@ -183,4 +183,38 @@ export class MaintenanceService {
       this.logger.error('Error during GDPR hard delete worker execution:', error);
     }
   }
+
+  /**
+   * Worker to publish scheduled posts whose scheduledAt <= now.
+   * Runs every minute.
+   */
+  @Cron(CronExpression.EVERY_MINUTE)
+  async publishScheduledPosts() {
+    try {
+      const now = new Date();
+      const scheduledPosts = await this.prisma.post.findMany({
+        where: {
+          scheduledStatus: 'SCHEDULED',
+          scheduledAt: { lte: now },
+        },
+        select: { id: true },
+      });
+
+      if (scheduledPosts.length === 0) return;
+
+      this.logger.log(`Publishing ${scheduledPosts.length} scheduled posts...`);
+
+      for (const p of scheduledPosts) {
+        await this.prisma.post.update({
+          where: { id: p.id },
+          data: {
+            scheduledStatus: 'PUBLISHED',
+            createdAt: now,
+          },
+        });
+      }
+    } catch (error) {
+      this.logger.error('Error during scheduled posts publishing worker:', error);
+    }
+  }
 }
