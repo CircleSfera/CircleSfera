@@ -42,4 +42,14 @@ export class LiveController {
   joinStream(@Req() req: RequestWithUser, @Param('streamId') streamId: string) {
     return this.liveService.getViewerToken(streamId, req.user.sub);
   }
+
+  @Post(':streamId/gift')
+  sendGift(
+    @Req() req: RequestWithUser,
+    @Param('streamId') streamId: string,
+    @Body('giftId') giftId: string,
+    @Body('price') price: number,
+  ) {
+    return this.liveService.sendGift(streamId, req.user.sub, giftId, price);
+  }
 }
