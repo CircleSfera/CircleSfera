@@ -1,5 +1,9 @@
 -- Sync scheduling fields already present in schema.prisma but missing from DB.
-CREATE TYPE "ScheduledPostStatus" AS ENUM ('SCHEDULED', 'PUBLISHED', 'CANCELLED');
+DO $$ BEGIN
+  CREATE TYPE "ScheduledPostStatus" AS ENUM ('SCHEDULED', 'PUBLISHED', 'CANCELLED');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 ALTER TABLE "posts"
   ADD COLUMN IF NOT EXISTS "scheduledAt" TIMESTAMP(3),

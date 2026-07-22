@@ -24,7 +24,7 @@ services:
       - uploads_data:/usr/share/nginx/html/uploads:ro
     depends_on:
       backend:
-        condition: service_healthy
+        condition: service_started
       frontend:
         condition: service_started
     restart: unless-stopped
@@ -93,11 +93,18 @@ services:
     command: >
       sh -c "npx prisma migrate deploy && node dist/main"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/v1/health || exit 1"]
+      # node:alpine images do not include wget/curl by default
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://127.0.0.1:3000/api/v1/health',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
       interval: 15s
       timeout: 5s
-      retries: 5
-      start_period: 40s
+      retries: 8
+      start_period: 90s
     restart: unless-stopped
     networks:
       - circlesfera-network
