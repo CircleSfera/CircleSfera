@@ -1,21 +1,29 @@
+import { useTranslation } from 'react-i18next';
+
 interface AdvancedSettingsSubScreenProps {
   hideLikes: boolean;
   setHideLikes: (value: boolean) => void;
   turnOffComments: boolean;
   setTurnOffComments: (value: boolean) => void;
+  scheduledAt: string;
+  setScheduledAt: (value: string) => void;
   onClose: () => void;
 }
-
-import { useTranslation } from 'react-i18next';
 
 export default function AdvancedSettingsSubScreen({
   hideLikes,
   setHideLikes,
   turnOffComments,
   setTurnOffComments,
+  scheduledAt,
+  setScheduledAt,
   onClose,
 }: AdvancedSettingsSubScreenProps) {
   const { t } = useTranslation();
+  const minSchedule = new Date(Date.now() + 5 * 60 * 1000)
+    .toISOString()
+    .slice(0, 16);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="bg-neutral-900 border border-white/10 w-full max-w-md rounded-lg overflow-hidden shadow-2xl flex flex-col">
@@ -90,6 +98,34 @@ export default function AdvancedSettingsSubScreen({
                 className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${turnOffComments ? 'left-7' : 'left-1'}`}
               />
             </button>
+          </div>
+
+          <div className="space-y-2">
+            <div className="font-medium text-white">
+              {t('createPost.caption.schedule', 'Schedule publish')}
+            </div>
+            <div className="text-xs text-gray-300">
+              {t(
+                'createPost.caption.schedule_desc',
+                'Leave empty to publish immediately.',
+              )}
+            </div>
+            <input
+              type="datetime-local"
+              min={minSchedule}
+              value={scheduledAt}
+              onChange={(e) => setScheduledAt(e.target.value)}
+              className="w-full rounded-lg bg-neutral-800 border border-white/10 px-3 py-2 text-white text-sm"
+            />
+            {scheduledAt ? (
+              <button
+                type="button"
+                onClick={() => setScheduledAt('')}
+                className="text-xs text-brand-primary hover:underline"
+              >
+                {t('createPost.caption.clear_schedule', 'Clear schedule')}
+              </button>
+            ) : null}
           </div>
         </div>
       </div>

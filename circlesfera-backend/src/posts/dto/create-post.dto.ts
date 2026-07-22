@@ -101,4 +101,8 @@ export class CreatePostDto {
   @IsNumber()
   @IsOptional()
   priceCents?: number;
+
+  @IsOptional()
+  @Type(() => Date)
+  scheduledAt?: Date;
 }
