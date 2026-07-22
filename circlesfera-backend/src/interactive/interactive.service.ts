@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 
+/** Service for interactive polls and Q&A features. */
 @Injectable()
 export class InteractiveService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
