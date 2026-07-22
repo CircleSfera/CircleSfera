@@ -15,7 +15,6 @@ import {
 import { Queue } from 'bullmq';
 import type { Cache } from 'cache-manager';
 
-import { AIService } from '../ai/ai.service.js';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -57,7 +56,6 @@ export class AdminService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
     @InjectQueue('analytics-processing') private readonly analyticsQueue: Queue,
-    @Inject(AIService) private readonly aiService: AIService,
   ) {}
 
   // ─── Audit Log Helper ─────────────────────────────────────────────
