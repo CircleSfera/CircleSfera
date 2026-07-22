@@ -1,216 +1,216 @@
 # 07-Content-Moderation-Policy
 ## CircleSfera
-**Versión:** 3.0 alineada al proyecto real  
-**Fecha:** Abril 2026  
-**Fuente de verdad:** posicionamiento de producto + capacidades reales del sistema actual
+**Version:** 3.0 aligned with the real project  
+**Date:** April 2026  
+**Source of truth:** product positioning + real capabilities of the current system
 
 ---
 
-## 1. Objetivo
+## 1. Purpose
 
-Esta política sustituye la versión anterior para hacerla más realista y alineada con el proyecto. La corrección principal es que la política ya no debe depender de una estructura de datos que hoy no existe formalmente en el schema, como `appeals` o `moderation_actions` persistidas, aunque sí puede definir principios, plazos objetivo y procedimientos operativos.
+This policy replaces the previous version to make it more realistic and aligned with the project. The main correction is that the policy must no longer depend on a data structure that does not formally exist in the schema today, such as persisted `appeals` or `moderation_actions`, although it may still define principles, target timelines, and operational procedures.
 
-CircleSfera mantiene una postura de moderación transparente, trazable y orientada a seguridad, legalidad y confianza del ecosistema.
-
----
-
-## 2. Principios
-
-- Reglas públicas y comprensibles.
-- Enforcement consistente.
-- Decisiones explicables.
-- Trazabilidad interna.
-- Priorización de seguridad de usuarios.
-- No usar reducciones opacas de visibilidad como mecanismo normalizado de producto.
+CircleSfera maintains a moderation stance that is transparent, traceable, and oriented toward safety, legality, and ecosystem trust.
 
 ---
 
-## 3. Ámbito real de moderación
+## 2. Principles
 
-CircleSfera debe moderar, como mínimo, estos espacios actualmente coherentes con el sistema real:
+- Public and understandable rules.
+- Consistent enforcement.
+- Explainable decisions.
+- Internal traceability.
+- Prioritization of user safety.
+- Do not use opaque visibility reductions as a normalized product mechanism.
+
+---
+
+## 3. Real moderation scope
+
+CircleSfera must moderate, at minimum, these spaces currently consistent with the real system:
 
 - Posts.
 - Comments.
 - Stories.
-- Media adjunta.
-- Profiles y usernames.
-- Mensajes y comparticiones en chat, según política interna y obligaciones legales aplicables.
+- Attached media.
+- Profiles and usernames.
+- Messages and shares in chat, according to internal policy and applicable legal obligations.
 
-La versión anterior se centraba mucho en posts y cuentas, pero el producto real ya tiene stories y messaging, así que la política debe contemplarlos expresamente.
+The previous version focused heavily on posts and accounts, but the real product already has stories and messaging, so the policy must expressly cover them.
 
 ---
 
-## 4. Contenido prohibido
+## 4. Prohibited content
 
-### Tolerancia cero
+### Zero tolerance
 - CSAM.
-- Explotación sexual infantil.
-- Terrorismo y reclutamiento terrorista.
-- Trata de personas.
-- Imágenes íntimas no consentidas.
-- Violencia extrema con finalidad de glorificación o instrucción.
-- Fraude grave, phishing o abuso financiero operativo.
+- Child sexual exploitation.
+- Terrorism and terrorist recruitment.
+- Human trafficking.
+- Non-consensual intimate images.
+- Extreme violence for glorification or instruction.
+- Serious fraud, phishing, or operational financial abuse.
 
-### Normalmente prohibido
-- Suplantación de identidad.
-- Acoso dirigido grave.
-- Amenazas creíbles.
-- Discurso de odio punible.
-- Spam abusivo.
-- Venta o promoción de actividades claramente ilícitas.
-- Violaciones claras de propiedad intelectual tras revisión adecuada.
+### Normally prohibited
+- Impersonation.
+- Severe targeted harassment.
+- Credible threats.
+- Punishable hate speech.
+- Abusive spam.
+- Sale or promotion of clearly illicit activities.
+- Clear intellectual property violations after adequate review.
 
-### Contenido sexual y sensible
-- **MATURE (Sensible)**: Contenido que incluye desnudez artística, lenguaje fuerte o temas sugestivos legales. Este contenido debe clasificarse bajo el rating `MATURE` y solo será visible para usuarios que hayan habilitado explícitamente dicha preferencia.
-- **GENERAL**: Contenido apto para todos los públicos.
-- **Prohibición Estricta**: Dado el posicionamiento de CircleSfera, el contenido sexual explícito, pornografía o explotación queda terminantemente prohibido, independientemente de su rating.
-
----
-
-## 5. Contenido sensible o contextual
-
-Puede requerir restricción, aviso o revisión adicional:
-
-- Violencia gráfica en contexto documental, periodístico o artístico.
-- Autolesión o suicidio en contexto de prevención o testimonio.
-- Temas políticos intensos.
-- Contenido religioso o ideológico conflictivo pero legal.
-- Desnudez artística no sexualizada, si la política final decide permitirla en ciertos supuestos.
-
-La decisión aquí no debe reducirse a “permitido/prohibido” sin contexto. Debe existir criterio de contexto, riesgo y daño potencial.
+### Sexual and sensitive content
+- **MATURE (Sensitive)**: Content that includes artistic nudity, strong language, or legal suggestive themes. This content must be classified under the `MATURE` rating and will only be visible to users who have explicitly enabled that preference.
+- **GENERAL**: Content suitable for all audiences.
+- **Strict Prohibition**: Given CircleSfera’s positioning, explicit sexual content, pornography, or exploitation is strictly prohibited, regardless of rating.
 
 ---
 
-## 6. Speech protegido
+## 5. Sensitive or contextual content
 
-CircleSfera debe proteger, dentro de la legalidad y de sus reglas públicas:
+May require restriction, notice, or additional review:
 
-- Crítica política.
-- Sátira y parodia.
-- Debate religioso.
-- Expresión identitaria.
-- Debate social duro pero no ilegal.
+- Graphic violence in documentary, journalistic, or artistic context.
+- Self-harm or suicide in a prevention or testimony context.
+- Intense political topics.
+- Conflictive but legal religious or ideological content.
+- Non-sexualized artistic nudity, if the final policy decides to allow it in certain cases.
 
-La plataforma no debe confundir desacuerdo, incorrección o impopularidad con violación automática de reglas.
-
----
-
-## 7. Señales y fuentes de revisión
-
-Las decisiones pueden originarse por:
-
-- Reporte de usuario.
-- Detección automática sobre texto.
-- Detección automática sobre media.
-- Señales de abuso de cuenta o spam.
-- Revisión administrativa o legal.
+The decision here must not be reduced to “allowed/prohibited” without context. There must be criteria for context, risk, and potential harm.
 
 ---
 
-## 8. Proceso operativo realista
+## 6. Protected speech
 
-### 8.1 Flujo mínimo
-1. El contenido o cuenta recibe una señal.
-2. Se crea un `Report` con un `targetType` específico (`USER`, `POST`, `COMMENT`, `STORY`, `MESSAGE`).
-3. El estado inicial es `PENDING`.
-4. Un administrador cambia el estado a `REVIEWING` mientras evalúa.
-5. El equipo toma una decisión y marca el reporte como `RESOLVED` o `REJECTED`.
-6. Se registra la trazabilidad en `AdminAuditLog`.
-7. Se notifica al usuario cuando el tipo de acción lo requiera.
+CircleSfera must protect, within legality and its public rules:
 
-### 8.2 Estados Formales de Reporte
-Para garantizar coherencia técnica, el sistema utiliza estos estados cerrados:
-- **PENDING**: Reporte recibido, pendiente de triaje.
-- **REVIEWING**: En revisión activa por un moderador.
-- **RESOLVED**: Acción tomada y reporte cerrado.
-- **REJECTED**: Reporte desestimado (no se encontró violación).
+- Political criticism.
+- Satire and parody.
+- Religious debate.
+- Identity expression.
+- Hard but not illegal social debate.
 
-### Razones Estándar de Reporte (Enum)
-Para garantizar trazabilidad, las razones deben ser: `SPAM`, `HARASSMENT`, `ILLEGAL_CONTENT`, `VIOLENCE`, `HATE_SPEECH`, `IMPERSONATION`, `CSAM`, `OTHER`.
+The platform must not confuse disagreement, incorrectness, or unpopularity with an automatic rules violation.
 
 ---
 
-## 9. Medidas posibles
+## 7. Signals and review sources
 
-- Sin acción.
-- Etiquetado o aviso.
-- Restricción temporal de contenido.
-- Eliminación de contenido.
-- Limitación de funciones de cuenta.
-- Suspensión temporal.
-- Desactivación o baneo de cuenta en casos graves.
-- Escalado legal cuando aplique.
+Decisions may originate from:
 
-La severidad debe ser proporcional al riesgo, la reincidencia y el daño potencial.
+- User report.
+- Automatic detection on text.
+- Automatic detection on media.
+- Account abuse or spam signals.
+- Administrative or legal review.
 
 ---
 
-## 10. Transparencia y notificación
+## 8. Realistic operational process
 
-Cuando CircleSfera actúe sobre contenido o cuenta, debe intentar comunicar de forma clara:
+### 8.1 Minimum flow
+1. The content or account receives a signal.
+2. A `Report` is created with a specific `targetType` (`USER`, `POST`, `COMMENT`, `STORY`, `MESSAGE`).
+3. The initial status is `PENDING`.
+4. An administrator changes the status to `REVIEWING` while evaluating.
+5. The team makes a decision and marks the report as `RESOLVED` or `REJECTED`.
+6. Traceability is recorded in `AdminAuditLog`.
+7. The user is notified when the type of action requires it.
 
-- Qué se hizo.
-- Qué parte del contenido o conducta causó la intervención.
-- Qué regla pública se considera aplicable.
-- Si existe o no posibilidad de revisión posterior.
+### 8.2 Formal Report Statuses
+To ensure technical consistency, the system uses these closed statuses:
+- **PENDING**: Report received, pending triage.
+- **REVIEWING**: Under active review by a moderator.
+- **RESOLVED**: Action taken and report closed.
+- **REJECTED**: Report dismissed (no violation found).
 
-No conviene prometer siempre “cita legal exacta” en todos los casos de producto, porque muchas decisiones serán de reglas de plataforma y seguridad operativa, no solo de derecho penal estricto.
-
----
-
-## 11. Revisión o reconsideración
-
-CircleSfera puede mantener un proceso de reconsideración de decisiones. Pero la política oficial, alineada al sistema actual, debe describirlo como proceso operativo y SLA objetivo, no como módulo persistido garantizado en base de datos si todavía no existe así.
-
-### SLA objetivo recomendado
-- Contenido presuntamente ilegal o muy grave: prioridad alta.
-- Casos estándar: revisión en ventana razonable.
-- Reconsideraciones: objetivo de resolución en 72 horas cuando sea viable.
-
----
-
-## 12. Moderación automatizada
-
-### Uso permitido
-- Clasificación preliminar y asignación automática de `contentRating`.
-- Priorización de revisión.
-- Detección de patrones evidentes.
-- Scoring de riesgo en media.
-
-### Uso no recomendado como regla única
-- Baneo definitivo totalmente automático en casos no evidentes.
-- Decisiones complejas de contexto sin revisión humana.
-
-La automatización debe asistir, no sustituir totalmente, la revisión humana en casos ambiguos.
+### Standard Report Reasons (Enum)
+To ensure traceability, reasons must be: `SPAM`, `HARASSMENT`, `ILLEGAL_CONTENT`, `VIOLENCE`, `HATE_SPEECH`, `IMPERSONATION`, `CSAM`, `OTHER`.
 
 ---
 
-## 13. Historias, chat y contenido efímero
+## 9. Possible measures
 
-La política anterior no integraba del todo la realidad del producto actual.
+- No action.
+- Labeling or notice.
+- Temporary content restriction.
+- Content removal.
+- Limitation of account features.
+- Temporary suspension.
+- Account deactivation or ban in serious cases.
+- Legal escalation when applicable.
+
+Severity must be proportional to risk, recidivism, and potential harm.
+
+---
+
+## 10. Transparency and notification
+
+When CircleSfera acts on content or an account, it should attempt to communicate clearly:
+
+- What was done.
+- Which part of the content or conduct caused the intervention.
+- Which public rule is considered applicable.
+- Whether or not there is a possibility of later review.
+
+It is not advisable to always promise an “exact legal citation” in every product case, because many decisions will be based on platform rules and operational safety, not only strict criminal law.
+
+---
+
+## 11. Review or reconsideration
+
+CircleSfera may maintain a reconsideration process for decisions. But the official policy, aligned with the current system, must describe it as an operational process and target SLA, not as a persisted module guaranteed in the database if it does not yet exist that way.
+
+### Recommended target SLA
+- Presumably illegal or very serious content: high priority.
+- Standard cases: review within a reasonable window.
+- Reconsiderations: resolution target of 72 hours when viable.
+
+---
+
+## 12. Automated moderation
+
+### Permitted use
+- Preliminary classification and automatic assignment of `contentRating`.
+- Review prioritization.
+- Detection of evident patterns.
+- Risk scoring on media.
+
+### Not recommended as a sole rule
+- Fully automatic definitive bans in non-evident cases.
+- Complex contextual decisions without human review.
+
+Automation must assist, not fully replace, human review in ambiguous cases.
+
+---
+
+## 13. Stories, chat, and ephemeral content
+
+The previous policy did not fully integrate the reality of the current product.
 
 ### Stories
-- Deben moderarse aunque expiren.
-- Las vistas y reacciones no sustituyen la revisión del contenido.
-- Los highlights vuelven persistente una story y pueden requerir reevaluación.
+- Must be moderated even if they expire.
+- Views and reactions do not replace content review.
+- Highlights make a story persistent and may require reevaluation.
 
 ### Messaging
-- El chat introduce un área sensible de privacidad.
-- Cualquier revisión de mensajes debe tener base clara, controles internos y proporcionalidad.
-- La compartición de post/story en chat debe seguir respetando disponibilidad y permisos del contenido fuente.
+- Chat introduces a sensitive privacy area.
+- Any review of messages must have a clear basis, internal controls, and proportionality.
+- Sharing a post/story in chat must continue to respect availability and permissions of the source content.
 
 ---
 
-## 14. Registro interno y accountability
+## 14. Internal logging and accountability
 
-Aunque el schema actual no modele una entidad formal de `ModerationAction`, CircleSfera sí debe mantener trazabilidad operativa usando `Report`, `AdminAuditLog` y registros internos complementarios. La política no debe depender de nomenclatura técnica concreta, sino de capacidad real de explicar y auditar decisiones.
+Although the current schema does not model a formal `ModerationAction` entity, CircleSfera must still maintain operational traceability using `Report`, `AdminAuditLog`, and complementary internal records. The policy must not depend on specific technical nomenclature, but on the real ability to explain and audit decisions.
 
 ---
 
-## 15. Decisiones cerradas
+## 15. Closed decisions
 
-- La política oficial pasa a cubrir posts, comments, stories, profiles y chat.
-- El contenido sexual explícito queda fuera de plataforma como regla general.
-- Las reconsideraciones se documentan como proceso operativo, no como entidad persistida garantizada.
-- La moderación automatizada se usa como apoyo, no como reemplazo ciego del juicio humano.
-- La política pública debe ser compatible con la realidad operativa del producto y con asesoramiento legal específico cuando toque DSA, GDPR o derecho penal aplicable.
+- The official policy now covers posts, comments, stories, profiles, and chat.
+- Explicit sexual content is out of platform as a general rule.
+- Reconsiderations are documented as an operational process, not as a guaranteed persisted entity.
+- Automated moderation is used as support, not as a blind replacement for human judgment.
+- The public policy must be compatible with the product’s operational reality and with specific legal advice when DSA, GDPR, or applicable criminal law is involved.

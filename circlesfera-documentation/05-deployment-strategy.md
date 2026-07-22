@@ -1,209 +1,209 @@
 # 05-Deployment-Strategy
 ## CircleSfera
-**Versión:** 3.0 alineada al proyecto real  
-**Fecha:** Abril 2026  
-**Fuente de verdad:** stack real del proyecto + capacidades del schema actual
+**Version:** 3.0 aligned with the real project  
+**Date:** April 2026  
+**Source of truth:** real project stack + current schema capabilities
 
 ---
 
-## 1. Objetivo
+## 1. Objective
 
-Este documento sustituye la estrategia de despliegue anterior para alinearla con la arquitectura real de CircleSfera. La corrección principal es operativa: la estrategia ya no puede asumir un backend MVP pequeño sin stories, chat o promociones, y tampoco puede seguir mezclando Prisma con instrucciones de migración de TypeORM.
+This document replaces the previous deployment strategy to align it with CircleSfera's real architecture. The main correction is operational: the strategy can no longer assume a small MVP backend without stories, chat, or promotions, and it can no longer mix Prisma with TypeORM migration instructions.
 
-CircleSfera requiere una infraestructura preparada para una app social con media, feeds, stories, chat, billing con Stripe, notificaciones, búsqueda y soporte futuro para embeddings con pgvector.
+CircleSfera requires infrastructure ready for a social app with media, feeds, stories, chat, Stripe billing, notifications, search, and future support for embeddings with pgvector.
 
 ---
 
-## 2. Arquitectura objetivo
+## 2. Target architecture
 
-### 2.1 Capas
-- Cloudflare para DNS, CDN, WAF y protección DDoS.
-- Frontend web desplegado en hosting estático/CDN.
-- Backend NestJS desplegado en contenedores.
-- PostgreSQL gestionado como base de datos principal.
-- Redis para cache, colas y operaciones efímeras.
-- Object storage compatible S3/R2 para media.
-- Stripe como proveedor de billing.
-- Proveedor transaccional de email.
+### 2.1 Layers
+- Cloudflare for DNS, CDN, WAF, and DDoS protection.
+- Web frontend deployed on static hosting/CDN.
+- NestJS backend deployed in containers.
+- Managed PostgreSQL as the primary database.
+- Redis for cache, queues, and ephemeral operations.
+- S3/R2-compatible object storage for media.
+- Stripe as the billing provider.
+- Transactional email provider.
 
-### 2.2 Recomendación de despliegue
+### 2.2 Deployment recommendation
 
-Para CircleSfera conviene una estrategia simple y reversible:
+For CircleSfera, a simple and reversible strategy is preferable:
 
-- **Frontend**: Cloudflare Pages o S3 + CloudFront.
-- **Backend**: ECS Fargate o Render/Fly/railway-like solo si buscas velocidad temprana; para producción seria, mejor ECS Fargate o EC2 con Docker.
-- **PostgreSQL**: RDS PostgreSQL o Neon/Supabase en etapa muy temprana; para producción con más control, RDS.
+- **Frontend**: Cloudflare Pages or S3 + CloudFront.
+- **Backend**: ECS Fargate, or Render/Fly/railway-like only if you need early speed; for serious production, prefer ECS Fargate or EC2 with Docker.
+- **PostgreSQL**: RDS PostgreSQL, or Neon/Supabase at a very early stage; for production with more control, RDS.
 - **Redis**: ElastiCache Redis.
-- **Media**: Cloudflare R2 o S3.
+- **Media**: Cloudflare R2 or S3.
 
-La opción más equilibrada para CircleSfera hoy es **Cloudflare + ECS Fargate + RDS PostgreSQL + ElastiCache + R2/S3**, porque reduce carga operativa respecto a Kubernetes y evita dependencia de un stack demasiado artesanal.
-
----
-
-## 3. Regiones y residencia de datos
-
-### 3.1 Regiones recomendadas
-- Primaria: UE, preferiblemente `eu-west-1` o `eu-central-1`.
-- Secundaria futura: otra región UE para DR.
-- Evitar usar región EEUU como primaria si tu foco regulatorio y de residencia es UE.
-
-### 3.2 Regla de residencia
-
-Si CircleSfera procesa datos de usuarios europeos y quiere una postura fuerte de cumplimiento, los datos primarios de usuarios, perfiles, mensajes, reports y billing metadata deben residir en la UE. Esto afecta a base de datos, backups, logs y proveedores de email o analítica. Esta parte toca cumplimiento y debe validarse legalmente con DPA y flujos reales de transferencia internacional.
+The most balanced option for CircleSfera today is **Cloudflare + ECS Fargate + RDS PostgreSQL + ElastiCache + R2/S3**, because it reduces operational load compared to Kubernetes and avoids dependence on an overly handmade stack.
 
 ---
 
-## 4. Entornos
+## 3. Regions and data residency
+
+### 3.1 Recommended regions
+- Primary: EU, preferably `eu-west-1` or `eu-central-1`.
+- Future secondary: another EU region for DR.
+- Avoid using a US region as primary if your regulatory and residency focus is the EU.
+
+### 3.2 Residency rule
+
+If CircleSfera processes European user data and wants a strong compliance posture, primary user data, profiles, messages, reports, and billing metadata must reside in the EU. This affects the database, backups, logs, and email or analytics providers. This area touches compliance and must be validated legally with DPAs and real international transfer flows.
+
+---
+
+## 4. Environments
 
 ### Development
-- Docker Compose local.
-- PostgreSQL local.
-- Redis local.
-- Bucket/localstack opcional o mocks.
+- Local Docker Compose.
+- Local PostgreSQL.
+- Local Redis.
+- Optional bucket/localstack or mocks.
 - Stripe test mode.
 
 ### Staging
-- Infra casi idéntica a producción.
-- Base de datos separada.
+- Infrastructure nearly identical to production.
+- Separate database.
 - Stripe test keys.
-- Webhooks y email en sandbox.
-- Datos sintéticos o anonimizados.
+- Webhooks and email in sandbox.
+- Synthetic or anonymized data.
 
 ### Production
-- Alta disponibilidad básica.
-- Observabilidad completa.
-- Secret management centralizado.
-- Backups automatizados.
-- Runbooks operativos.
+- Basic high availability.
+- Full observability.
+- Centralized secret management.
+- Automated backups.
+- Operational runbooks.
 
 ---
 
 ## 5. Backend deployment
 
-### 5.1 Empaquetado
+### 5.1 Packaging
 
-El backend NestJS debe desplegarse como contenedor Docker. No debe depender de despliegues manuales sobre servidores sin pipeline repetible.
+The NestJS backend must be deployed as a Docker container. It must not depend on manual deployments onto servers without a repeatable pipeline.
 
-### 5.2 Estrategia de runtime
+### 5.2 Runtime strategy
 
-- 2 tareas mínimas en producción para evitar punto único de fallo.
-- Auto-scaling horizontal por CPU, memoria y latencia, pero con límites iniciales conservadores.
-- Tareas separadas para workers/colas si procesas media, expiración de stories, notificaciones o jobs de embeddings.
+- At least 2 tasks in production to avoid a single point of failure.
+- Horizontal auto-scaling by CPU, memory, and latency, but with conservative initial limits.
+- Separate tasks for workers/queues if you process media, story expiration, notifications, or embedding jobs.
 
-### 5.3 Workers recomendados
+### 5.3 Recommended workers
 
-Separar estos jobs del API principal:
+Separate these jobs from the main API:
 
-- Procesado de imágenes y thumbnails.
-- Procesado de video.
-- Expiración y limpieza de stories.
-- Envío de emails.
-- Procesado de webhooks Stripe.
-- Reintentos de notificaciones.
-- Generación de embeddings si se activa.
+- Image and thumbnail processing.
+- Video processing.
+- Story expiration and cleanup.
+- Email sending.
+- Stripe webhook processing.
+- Notification retries.
+- Embedding generation if enabled.
 
 ---
 
-## 6. Base de datos
+## 6. Database
 
-### 6.1 Motor y extensiones
-- PostgreSQL gestionado.
-- Extensión `pgvector` habilitada por `PostEmbedding`.
+### 6.1 Engine and extensions
+- Managed PostgreSQL.
+- `pgvector` extension enabled for `PostEmbedding`.
 
-### 6.2 Migraciones
+### 6.2 Migrations
 
-La estrategia anterior mencionaba TypeORM. Eso queda corregido: CircleSfera usa Prisma, por lo que las migraciones deben ejecutarse con Prisma Migrate.
+The previous strategy mentioned TypeORM. That is corrected: CircleSfera uses Prisma, so migrations must be run with Prisma Migrate.
 
-**Comandos de referencia**
+**Reference commands**
 ```bash
 npx prisma migrate deploy
 npx prisma generate
 ```
 
-### 6.3 Reglas de despliegue de migraciones
-- Nunca generar migraciones en producción.
-- Las migraciones se generan en desarrollo y se revisan en PR.
-- En staging se prueban antes de producción.
-- Toda migración destructiva requiere plan de rollback o migración expand-contract.
+### 6.3 Migration deployment rules
+- Never generate migrations in production.
+- Migrations are generated in development and reviewed in PRs.
+- They are tested in staging before production.
+- Every destructive migration requires a rollback plan or an expand-contract migration.
 
 ### 6.4 Backups
-- Snapshots automáticos diarios.
-- PITR activado.
-- Pruebas regulares de restore.
-- Retención ajustada a riesgo y coste.
+- Daily automatic snapshots.
+- PITR enabled.
+- Regular restore tests.
+- Retention adjusted to risk and cost.
 
 ---
 
-## 7. Redis y colas
+## 7. Redis and queues
 
-Redis no debe verse solo como cache. En CircleSfera también tiene sentido para:
+Redis must not be seen only as a cache. In CircleSfera it also makes sense for:
 
 - Rate limiting.
-- Jobs y colas.
+- Jobs and queues.
 - Presence/transient online state.
-- Invalidación de sesiones o tokens revocados.
-- Cache de feed y perfiles calientes.
+- Invalidation of sessions or revoked tokens.
+- Cache for feed and hot profiles.
 
-Si el volumen sube, separar cache de cola puede ser razonable, pero no es obligatorio al inicio.
+If volume grows, separating cache from queue may be reasonable, but it is not mandatory at the start.
 
 ---
 
 ## 8. Media pipeline
 
-### 8.1 Necesidades reales del producto
-CircleSfera ya modela posts con media, stories, chat con media, avatares y miniaturas. La estrategia de media no puede ser un anexo menor.
+### 8.1 Real product needs
+CircleSfera already models posts with media, stories, chat with media, avatars, and thumbnails. The media strategy cannot be a minor add-on.
 
-### 8.2 Pipeline recomendado
-1. Upload inicial a bucket privado o URL firmada.
-2. Validación MIME real y tamaño.
-3. Escaneo antivirus.
-4. Moderación automatizada básica.
-5. Generación de variantes (`standard`, `thumbnail`).
-6. Persistencia de metadatos en PostgreSQL.
-7. Entrega mediante CDN con URLs firmadas o controladas según caso.
+### 8.2 Recommended pipeline
+1. Initial upload to a private bucket or signed URL.
+2. Real MIME and size validation.
+3. Antivirus scan.
+4. Basic automated moderation.
+5. Variant generation (`standard`, `thumbnail`).
+6. Metadata persistence in PostgreSQL.
+7. Delivery via CDN with signed or controlled URLs as appropriate.
 
 ### 8.3 Tradeoffs
-- **Bucket privado + signed URLs**: mejor control, más complejidad.
-- **Bucket público con paths difíciles**: peor seguridad, menos complejidad.
+- **Private bucket + signed URLs**: better control, more complexity.
+- **Public bucket with hard-to-guess paths**: worse security, less complexity.
 
-Para CircleSfera, por contenido social y mensajes, conviene **bucket privado + firma controlada**.
+For CircleSfera, given social content and messages, **private bucket + controlled signing** is preferable.
 
 ---
 
 ## 9. CI/CD
 
-### 9.1 Pipeline recomendado
+### 9.1 Recommended pipeline
 - Lint.
-- Tests unitarios.
-- Tests de integración.
+- Unit tests.
+- Integration tests.
 - `prisma validate`.
 - `prisma generate`.
-- Build de backend y frontend.
-- Build de imagen Docker.
-- Scan de dependencias e imagen.
-- Deploy a staging.
+- Backend and frontend build.
+- Docker image build.
+- Dependency and image scan.
+- Deploy to staging.
 - Smoke tests.
-- Aprobación manual para producción.
-- Deploy producción.
+- Manual approval for production.
+- Production deploy.
 
 ### 9.2 Branching
-- `main`: producción.
-- `develop`: integración.
-- `feature/*`: trabajo en curso.
-- `hotfix/*`: correcciones urgentes.
+- `main`: production.
+- `develop`: integration.
+- `feature/*`: work in progress.
+- `hotfix/*`: urgent fixes.
 
-### 9.3 Política de rollout
-- Blue/green o rolling deployment con health checks.
-- Rollback rápido si fallan smoke tests o métricas clave.
+### 9.3 Rollout policy
+- Blue/green or rolling deployment with health checks.
+- Fast rollback if smoke tests or key metrics fail.
 
 ---
 
-## 10. Secrets y configuración
+## 10. Secrets and configuration
 
 ### 10.1 Secret management
-Usar un gestor centralizado, como AWS Secrets Manager o SSM Parameter Store.
+Use a centralized manager, such as AWS Secrets Manager or SSM Parameter Store.
 
-### 10.2 Secretos críticos
+### 10.2 Critical secrets
 - `DATABASE_URL`
 - JWT secrets
 - Stripe secret key
@@ -211,90 +211,90 @@ Usar un gestor centralizado, como AWS Secrets Manager o SSM Parameter Store.
 - Email API keys
 - Redis credentials
 - Bucket credentials
-- Encryption keys adicionales si aplican
+- Additional encryption keys if applicable
 
-### 10.3 Regla operativa
-- Nunca secretos en git.
-- Nunca secretos en variables de frontend.
-- Rotación programada para claves sensibles.
+### 10.3 Operational rule
+- Never secrets in git.
+- Never secrets in frontend variables.
+- Scheduled rotation for sensitive keys.
 
 ---
 
-## 11. Observabilidad
+## 11. Observability
 
 ### 11.1 Logs
-- Logs JSON estructurados.
-- Correlation/request ID por request.
-- Separación entre app logs y audit/security logs.
+- Structured JSON logs.
+- Correlation/request ID per request.
+- Separation between app logs and audit/security logs.
 
-### 11.2 Métricas mínimas
-- Latencia API p50/p95/p99.
-- Error rate por endpoint.
+### 11.2 Minimum metrics
+- API latency p50/p95/p99.
+- Error rate per endpoint.
 - Throughput.
 - Queue lag.
-- Tiempo de procesado de media.
+- Media processing time.
 - Webhook success/failure rate.
 - Story expiration lag.
-- DB connections y slow queries.
+- DB connections and slow queries.
 
-### 11.3 Alertas críticas
-- Fallo de conexión a DB.
-- Fallo de Redis.
-- Error rate API > umbral.
-- Jobs atascados.
-- Fallo de webhooks Stripe.
-- Saturación CPU/RAM en backend.
-- Caída de procesado de media.
+### 11.3 Critical alerts
+- DB connection failure.
+- Redis failure.
+- API error rate above threshold.
+- Stuck jobs.
+- Stripe webhook failure.
+- CPU/RAM saturation on backend.
+- Media processing drop.
 
 ---
 
-## 12. Seguridad operacional
+## 12. Operational security
 
-- HTTPS obligatorio.
-- WAF activo.
-- Rate limiting per IP y per user.
+- Mandatory HTTPS.
+- Active WAF.
+- Rate limiting per IP and per user.
 - Security headers.
-- Acceso mínimo a recursos productivos.
-- MFA para cuentas cloud críticas.
-- Logs de administración y cambios sensibles.
-- Segmentación entre servicios públicos y privados.
+- Least privilege access to production resources.
+- MFA for critical cloud accounts.
+- Administration logs and sensitive change logs.
+- Segmentation between public and private services.
 
 ---
 
 ## 13. Disaster recovery
 
-### Objetivos iniciales razonables
-- RTO: 1-4 horas según severidad.
-- RPO: 15-60 minutos.
+### Reasonable initial objectives
+- RTO: 1-4 hours depending on severity.
+- RPO: 15-60 minutes.
 
-### Runbook mínimo
-- Restauración de DB.
-- Revalidación de webhooks.
-- Recuperación de workers.
-- Verificación de buckets y URLs firmadas.
-- Smoke tests críticos: auth, posts, stories, chat, billing.
+### Minimum runbook
+- DB restore.
+- Webhook revalidation.
+- Worker recovery.
+- Bucket and signed URL verification.
+- Critical smoke tests: auth, posts, stories, chat, billing.
 
 ---
 
-## 14. Coste y escalado
+## 14. Cost and scaling
 
-La estrategia anterior estaba orientada a un backend social clásico, pero ahora el coste real debe contemplar también media, chat y stories. Los costes más sensibles serán:
+The previous strategy was oriented toward a classic social backend, but real cost must now also account for media, chat, and stories. The most sensitive costs will be:
 
-- Storage y egress de media.
-- Postgres gestionado.
+- Media storage and egress.
+- Managed Postgres.
 - Redis.
-- Procesado de media/video.
-- Observabilidad.
+- Media/video processing.
+- Observability.
 - WAF/CDN.
 
-La prioridad de CircleSfera no debe ser optimización extrema de coste en esta fase, sino evitar arquitectura cara de operar y difícil de revertir.
+CircleSfera's priority at this stage should not be extreme cost optimization, but avoiding architecture that is expensive to operate and hard to reverse.
 
 ---
 
-## 15. Decisiones cerradas
+## 15. Closed decisions
 
-- Se elimina cualquier referencia oficial a TypeORM migrations.
-- Prisma Migrate pasa a ser la única estrategia de migración documentada.
-- La infraestructura debe dar soporte explícito a stories, chat, media processing, Stripe webhooks y pgvector.
-- Kubernetes/EKS no es prioridad inicial; ECS Fargate o equivalente gestionado es preferible.
-- Los datos de usuarios europeos deben mantenerse en infraestructura UE salvo excepción jurídica y contractual validada.
+- Any official reference to TypeORM migrations is removed.
+- Prisma Migrate becomes the only documented migration strategy.
+- Infrastructure must explicitly support stories, chat, media processing, Stripe webhooks, and pgvector.
+- Kubernetes/EKS is not an initial priority; ECS Fargate or a managed equivalent is preferred.
+- European user data must remain on EU infrastructure unless a validated legal and contractual exception applies.
