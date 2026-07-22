@@ -57,7 +57,9 @@ export class AuthController {
   @Post('register')
   @Throttle({
     short: {
-      limit: process.env.NODE_ENV !== 'production' ? 1000 : 5,
+      limit:
+        Number(process.env.THROTTLE_AUTH_LIMIT) ||
+        (process.env.NODE_ENV !== 'production' ? 1000 : 30),
       ttl: 60000,
     },
   })
@@ -84,7 +86,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Throttle({
     short: {
-      limit: process.env.NODE_ENV !== 'production' ? 1000 : 5,
+      limit:
+        Number(process.env.THROTTLE_AUTH_LIMIT) ||
+        (process.env.NODE_ENV !== 'production' ? 1000 : 30),
       ttl: 60000,
     },
   })
@@ -111,7 +115,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Throttle({
     short: {
-      limit: process.env.NODE_ENV !== 'production' ? 1000 : 5,
+      limit:
+        Number(process.env.THROTTLE_AUTH_LIMIT) ||
+        (process.env.NODE_ENV !== 'production' ? 1000 : 60),
       ttl: 60000,
     },
   })

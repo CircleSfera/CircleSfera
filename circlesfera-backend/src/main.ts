@@ -33,6 +33,9 @@ async function bootstrap(): Promise<void> {
 
   app.useLogger(app.get(Logger));
 
+  // Trust reverse proxies (Nginx / Cloudflare / Docker ingress) for correct IP rate-limiting
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
   // Enable CORS with strict origin check
   const configService = app.get(ConfigService);
   const corsOrigin = configService.get<string>('CORS_ORIGIN');
