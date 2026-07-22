@@ -153,7 +153,13 @@
     },
     "security": {
       "title": "Seguridad",
-      "subtitle": "Protección de Última Generación"
+      "subtitle": "Protección de Última Generación",
+      "sessions_title": "Dispositivos Conectados y Sesiones Activas",
+      "sessions_subtitle": "Gestiona y revoca los accesos activos en tus dispositivos",
+      "revoke_others": "Cerrar otras sesiones",
+      "current_device": "Este dispositivo",
+      "loading_sessions": "Cargando sesiones activas...",
+      "no_other_sessions": "No hay sesiones activas adicionales en este momento."
     },
     "back_to_profile": "← Volver al perfil",
     "notifications_tab": {
