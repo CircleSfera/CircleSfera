@@ -1,6 +1,6 @@
 # Documentation status
 
-**Last status note:** Jul 2026 — PRD v4.0 gap remediation (Sprints A–C) landed in code
+**Last status note:** Jul 2026 — PRD v4.0 remediation on `main`; prod schema catch-up for polls/QnA/live/voice
 
 ## Remediation vs PRD v4.0 (implemented)
 
@@ -9,6 +9,10 @@
 - Monetization contracts: one active platform plan enforced; `GET /payments/status`; creator sub list/check/cancel; Elite guard scoped
 - Discovery: ProfileEmbedding writer on profile update + `npm run embeddings:backfill`; recommendation signals; poll/QnA create (posts) + display
 - Promotions: cancel → `CANCELLED`; `PATCH` edit targeting/endDate; no dedicated `PAUSED` / Stripe auto-refunds (deferred by product)
+
+## Production incident (Jul 2026)
+
+After merging feed hydration for `poll` / `qnaBox`, prod returned feed/stories **500** because `polls`, `qna_boxes`, `live_streams`, and message/comment voice columns existed in `schema.prisma` but had **no prior Prisma migration**. Fixed by migration `20260723010000_add_interactive_live_voice_fields` plus hybrid-feed vector reads from `post_embeddings`.
 
 ## Still deferred / out of scope
 
