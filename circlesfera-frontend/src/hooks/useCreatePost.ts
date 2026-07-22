@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { CropData, VideoData } from '../components/PhotoEditor';
-import { api, storiesApi } from '../services';
+import { api, interactiveApi, storiesApi } from '../services';
 import type {
   Audio as AudioTrack,
   CreatePostDto,
@@ -66,6 +66,7 @@ export function useCreatePost() {
   const [tagsMap, setTagsMap] = useState<Record<number, PostTagData[]>>({});
   const [isPremium, setIsPremium] = useState(false);
   const [price, setPrice] = useState<number>(0);
+  const [scheduledAt, setScheduledAt] = useState('');
 
   // Read seamless transfer state from UI Store
   useEffect(() => {
@@ -278,7 +279,7 @@ export function useCreatePost() {
       const uploadedMedia = await uploadFiles(finalMediaFiles, altTextMap);
 
       if (mode === 'STORY') {
-        await Promise.all(
+        const createdStories = await Promise.all(
           finalMediaFiles.map((_, idx) =>
             createStoryMutation.mutateAsync({
               url: uploadedMedia[idx].url,
@@ -289,9 +290,39 @@ export function useCreatePost() {
               audioId: selectedAudio?.id,
               isPremium,
               priceCents: isPremium ? Math.round(price * 100) : 0,
+              scheduledAt: scheduledAt
+                ? new Date(scheduledAt).toISOString()
+                : undefined,
             }),
           ),
         );
+
+        // Persist interactive poll stickers against the first created story
+        const pollElement = storyElements.find((el) => {
+          const type = el.type as string;
+          return (
+            type === 'poll' ||
+            (typeof el.content === 'string' &&
+              el.content.startsWith('{"question"'))
+          );
+        });
+        if (pollElement && createdStories[0]?.data?.id) {
+          try {
+            const pollPayload =
+              typeof pollElement.content === 'string'
+                ? JSON.parse(pollElement.content)
+                : pollElement.content;
+            if (pollPayload?.question && Array.isArray(pollPayload?.options)) {
+              await interactiveApi.createPoll({
+                question: pollPayload.question,
+                options: pollPayload.options,
+                storyId: createdStories[0].data.id,
+              });
+            }
+          } catch (pollError) {
+            logger.error('Failed to create story poll:', pollError);
+          }
+        }
       } else {
         const payload: CreatePostDto = {
           caption,
@@ -310,6 +341,9 @@ export function useCreatePost() {
             })),
           isPremium,
           priceCents: isPremium ? Math.round(price * 100) : 0,
+          scheduledAt: scheduledAt
+            ? new Date(scheduledAt).toISOString()
+            : undefined,
         };
         await createPostMutation.mutateAsync(payload);
       }
@@ -377,6 +411,8 @@ export function useCreatePost() {
     setIsPremium,
     price,
     setPrice,
+    scheduledAt,
+    setScheduledAt,
     isUploading,
     fileInputRef,
     handleFileSelect,

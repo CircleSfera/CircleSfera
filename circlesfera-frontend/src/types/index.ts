@@ -135,6 +135,7 @@ export type CreatePostDto = {
   }[];
   isPremium?: boolean;
   priceCents?: number;
+  scheduledAt?: string | Date;
 };
 
 export type CreateStoryDto = {
@@ -146,6 +147,7 @@ export type CreateStoryDto = {
   audioId?: string;
   isPremium?: boolean;
   priceCents?: number;
+  scheduledAt?: string | Date;
 };
 
 export type Message = Omit<

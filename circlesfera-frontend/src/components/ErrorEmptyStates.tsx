@@ -10,8 +10,8 @@ export function ErrorState({
   onRetry,
 }: ErrorStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-      <div className="w-16 h-16 mb-4 text-red-500">
+    <div className="flex flex-col items-center justify-center py-12 px-4 text-center glass-panel rounded-lg mx-auto max-w-sm">
+      <div className="w-16 h-16 mb-4 text-red-400">
         <svg
           aria-hidden="true"
           fill="none"
@@ -27,13 +27,13 @@ export function ErrorState({
           />
         </svg>
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-      <p className="text-gray-500 mb-6 max-w-md">{message}</p>
+      <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
+      <p className="text-zinc-400 mb-6 max-w-md text-sm">{message}</p>
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="px-6 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+          className="px-6 py-2 bg-white/10 border border-white/10 text-white rounded-full font-medium hover:bg-white/20 transition-colors"
         >
           Try Again
         </button>
@@ -164,15 +164,17 @@ export function EmptyState({
   action,
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-      <div className="w-16 h-16 mb-4 text-gray-300">{icons[icon]}</div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-      {message && <p className="text-gray-500 mb-6 max-w-md">{message}</p>}
+    <div className="flex flex-col items-center justify-center py-12 px-4 text-center glass-panel rounded-lg mx-auto max-w-sm">
+      <div className="w-16 h-16 mb-4 text-zinc-500">{icons[icon]}</div>
+      <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
+      {message && (
+        <p className="text-zinc-400 mb-6 max-w-md text-sm">{message}</p>
+      )}
       {action && (
         <button
           type="button"
           onClick={action.onClick}
-          className="px-6 py-2 bg-linear-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-colors"
+          className="px-6 py-2 bg-white/10 border border-white/10 text-white rounded-full font-medium hover:bg-white/20 transition-colors"
         >
           {action.label}
         </button>
