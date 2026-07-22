@@ -188,7 +188,10 @@ describe('AppGateway', () => {
         recipientId: 'recipient-1',
         reaction: '👍',
       };
-      mockChatService.addReaction.mockResolvedValue({ id: 'reaction-1' });
+      mockChatService.addReaction.mockResolvedValue({
+        id: 'reaction-1',
+        reaction: '👍',
+      });
 
       await gateway.handleSendReaction(payload, mockClient);
 

@@ -730,7 +730,7 @@ export class ChatService {
     if (!isParticipant) {
       throw new ForbiddenException('Not a participant in this conversation');
     }
-    // Check if reaction exists
+    // Check if reaction exists for toggle logic
     const existing = await this.prisma.messageReaction.findUnique({
       where: {
         messageId_userId: {
@@ -741,6 +741,21 @@ export class ChatService {
     });
 
     if (existing) {
+      if (existing.reaction === reaction) {
+        // Toggle OFF: Delete existing reaction
+        await this.prisma.messageReaction.delete({
+          where: { id: existing.id },
+        });
+        return {
+          id: existing.id,
+          messageId,
+          userId,
+          reaction: null as unknown as string,
+          createdAt: existing.createdAt,
+        };
+      }
+
+      // Update with new emoji
       return await this.prisma.messageReaction.update({
         where: { id: existing.id },
         data: { reaction },
