@@ -16,6 +16,8 @@ export { default as StoryViewer } from './StoryViewer';
 export { ActiveSessionsSettings } from './settings/ActiveSessionsSettings';
 export * from './settings/MonetizationSettings';
 export { default as PasskeySettings } from './settings/PasskeySettings';
+export { VoicePlayer } from './audio/VoicePlayer';
+export { VoiceRecorder } from './audio/VoiceRecorder';
 export { TwoFactorSettings } from './TwoFactorSettings';
 export { default as UserAvatar } from './UserAvatar';
 export { default as VerificationBadge } from './VerificationBadge';

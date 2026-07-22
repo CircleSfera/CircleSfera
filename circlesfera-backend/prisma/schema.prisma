@@ -549,6 +549,11 @@ model Comment {
   moderationStatus ModerationStatus @default(VISIBLE)
   moderationNote   String?
 
+  // Voice Notes Support
+  voiceUrl      String?
+  voiceDuration Int?
+  voiceWaveform Json?
+
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -822,6 +827,11 @@ model Message {
   standardUrl    String? // New: Optimized variant (HLS)
   thumbnailUrl   String? // New: Optimized variant
   mediaType      String? // New: "image", "video", "file"
+
+  // Voice Notes Support
+  voiceUrl      String?
+  voiceDuration Int?
+  voiceWaveform Json?
 
   // GDPR: Retention
   expiresAt DateTime?

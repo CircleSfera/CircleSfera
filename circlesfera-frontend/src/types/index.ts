@@ -43,6 +43,9 @@ export type Comment = IComment & {
     verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
   };
   replies?: Comment[];
+  voiceUrl?: string | null;
+  voiceDuration?: number | null;
+  voiceWaveform?: unknown;
 };
 export type Story = IStory;
 export type Collection = ICollection;
@@ -111,7 +114,11 @@ export type LoginDto = ILoginDto;
 export type UpdateProfileDto = IUpdateProfileDto & {
   accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
 };
-export type CreateCommentDto = ICreateCommentDto;
+export type CreateCommentDto = ICreateCommentDto & {
+  voiceUrl?: string;
+  voiceDuration?: number;
+  voiceWaveform?: number[];
+};
 
 export type CreatePostDto = {
   caption?: string;
@@ -175,6 +182,9 @@ export type Message = Omit<
   post?: Post;
   storyId?: string;
   story?: Story;
+  voiceUrl?: string | null;
+  voiceDuration?: number | null;
+  voiceWaveform?: unknown;
 };
 
 export interface UserWithProfile {

@@ -16,4 +16,14 @@ export class CreateCommentDto {
   @IsString()
   @IsOptional()
   mediaType?: string;
+
+  @IsString()
+  @IsOptional()
+  voiceUrl?: string;
+
+  @IsOptional()
+  voiceDuration?: number;
+
+  @IsOptional()
+  voiceWaveform?: number[];
 }

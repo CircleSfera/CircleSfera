@@ -20,6 +20,9 @@ export const chatApi = {
     postId?: string;
     storyId?: string;
     replyToId?: string;
+    voiceUrl?: string;
+    voiceDuration?: number;
+    voiceWaveform?: number[];
   }) => apiClient.post<Message>('/chat/messages', data),
 
   markAsRead: (conversationId: string) =>
