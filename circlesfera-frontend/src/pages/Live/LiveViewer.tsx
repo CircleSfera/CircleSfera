@@ -7,12 +7,20 @@ import {
 import { Heart, Send, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import CoHostInviteBanner from '../../components/live/CoHostInviteBanner';
 import { apiClient as api } from '../../services/api';
 import { useSocketStore } from '../../stores/socketStore';
 
 export default function LiveViewer() {
   const { streamId } = useParams<{ streamId: string }>();
   const [token, setToken] = useState('');
+  const [coHostToken, setCoHostToken] = useState<string | null>(null);
+  const [coHostStreamId, setCoHostStreamId] = useState<string | null>(null);
+  const [pendingInvite, setPendingInvite] = useState<{
+    streamId: string;
+    streamTitle?: string | null;
+    host: { id?: string; username?: string; avatar?: string | null };
+  } | null>(null);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const [hearts, setHearts] = useState<{ id: string; x: number }[]>([]);
@@ -53,10 +61,15 @@ export default function LiveViewer() {
       }, 2000);
     });
 
+    socket.on('live:cohost_invite', (data: any) => {
+      setPendingInvite(data);
+    });
+
     return () => {
       socket.emit('live:leave', { streamId });
       socket.off('live:chat_message');
       socket.off('live:heart_received');
+      socket.off('live:cohost_invite');
     };
   }, [streamId, navigate]);
 
@@ -76,7 +89,10 @@ export default function LiveViewer() {
     socket.emit('live:heart', { streamId });
   };
 
-  if (token === '') {
+  // If co-host accepted: switch LiveKitRoom to publisher mode
+  const activeToken = coHostToken || token;
+
+  if (activeToken === '') {
     return (
       <div className="flex h-screen items-center justify-center">
         Conectando al directo...
@@ -105,11 +121,22 @@ export default function LiveViewer() {
         </button>
       </div>
 
+      {/* Co-Host Invite Banner */}
+      <CoHostInviteBanner
+        invite={pendingInvite}
+        onAccepted={(t, sid) => {
+          setCoHostToken(t);
+          setCoHostStreamId(sid);
+          setPendingInvite(null);
+        }}
+        onDismiss={() => setPendingInvite(null)}
+      />
+
       <div className="flex-1 overflow-hidden relative">
         <LiveKitRoom
-          video={false} // Viewers don't publish
-          audio={false}
-          token={token}
+          video={!!coHostToken} // Publish video only when co-host
+          audio={!!coHostToken} // Publish audio only when co-host
+          token={activeToken}
           serverUrl={serverUrl}
           data-lk-theme="default"
           className="h-full w-full"

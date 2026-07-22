@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -38,9 +39,39 @@ export class LiveController {
     return this.liveService.getActiveStreams();
   }
 
+  @Get(':streamId')
+  getStream(@Param('streamId') streamId: string) {
+    return this.liveService.getStream(streamId);
+  }
+
   @Get('join/:streamId')
   joinStream(@Req() req: RequestWithUser, @Param('streamId') streamId: string) {
     return this.liveService.getViewerToken(streamId, req.user.sub);
+  }
+
+  @Post(':streamId/cohost/invite')
+  inviteCoHost(
+    @Req() req: RequestWithUser,
+    @Param('streamId') streamId: string,
+    @Body('coHostUserId') coHostUserId: string,
+  ) {
+    return this.liveService.inviteCoHost(streamId, req.user.sub, coHostUserId);
+  }
+
+  @Post(':streamId/cohost/accept')
+  acceptCoHostInvite(
+    @Req() req: RequestWithUser,
+    @Param('streamId') streamId: string,
+  ) {
+    return this.liveService.acceptCoHostInvite(streamId, req.user.sub);
+  }
+
+  @Delete(':streamId/cohost')
+  removeCoHost(
+    @Req() req: RequestWithUser,
+    @Param('streamId') streamId: string,
+  ) {
+    return this.liveService.removeCoHost(streamId, req.user.sub);
   }
 
   @Post(':streamId/gift')
