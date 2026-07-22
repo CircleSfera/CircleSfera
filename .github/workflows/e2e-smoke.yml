@@ -1,20 +1,18 @@
 # Manual E2E smoke — Actions → E2E Smoke → Run workflow.
-# Credentials are passed as workflow inputs (avoids undeclared-secret linter warnings).
-#
-# Optional: also store the same creds as repo secrets for other tooling:
-#   gh auth login && ./scripts/setup-github-e2e.sh
+# Prefers workflow inputs when provided; otherwise uses repo secrets
+# E2E_USER_EMAIL / E2E_USER_PASSWORD (set via ./scripts/setup-github-e2e.sh).
 name: E2E Smoke
 
 on:
   workflow_dispatch:
     inputs:
       e2e_user_email:
-        description: E2E user email
-        required: true
+        description: E2E user email (optional if repo secret E2E_USER_EMAIL is set)
+        required: false
         type: string
       e2e_user_password:
-        description: E2E user password
-        required: true
+        description: E2E user password (optional if repo secret E2E_USER_PASSWORD is set)
+        required: false
         type: string
       base_url:
         description: Frontend base URL
@@ -53,8 +51,13 @@ jobs:
 
       - name: Run smoke e2e
         env:
-          E2E_USER_EMAIL: ${{ inputs.e2e_user_email }}
-          E2E_USER_PASSWORD: ${{ inputs.e2e_user_password }}
+          E2E_USER_EMAIL: ${{ inputs.e2e_user_email || secrets.E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ inputs.e2e_user_password || secrets.E2E_USER_PASSWORD }}
           BASE_URL: ${{ inputs.base_url }}
           BACKEND_URL: ${{ inputs.backend_url }}
-        run: npx playwright test e2e/smoke.spec.ts --project=chromium
+        run: |
+          if [ -z "$E2E_USER_EMAIL" ] || [ -z "$E2E_USER_PASSWORD" ]; then
+            echo "Missing E2E credentials. Pass workflow inputs or set secrets E2E_USER_EMAIL / E2E_USER_PASSWORD."
+            exit 1
+          fi
+          npx playwright test e2e/smoke.spec.ts --project=chromium
