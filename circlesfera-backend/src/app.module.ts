@@ -36,6 +36,7 @@ import { FeedModule } from './feed/feed.module.js';
 import { FollowsModule } from './follows/follows.module.js';
 import { HealthModule } from './health/health.module.js';
 import { HighlightsModule } from './highlights/highlights.module.js';
+import { InteractiveModule } from './interactive/interactive.module.js';
 import { LikesModule } from './likes/likes.module.js';
 import { LiveModule } from './live/live.module.js';
 import { MaintenanceModule } from './maintenance/maintenance.module.js';
@@ -142,6 +143,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
           }),
         ]),
     HighlightsModule,
+    InteractiveModule,
     CloseFriendsModule,
     ReportsModule,
     UsersModule,

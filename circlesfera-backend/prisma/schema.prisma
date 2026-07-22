@@ -148,6 +148,10 @@ model User {
   // A/B Testing
   userExperiments UserExperiment[]
 
+  // Interactive Features
+  pollVotes  PollVote[]
+  qnaAnswers QnaAnswer[]
+
   @@index([isOnline])
   @@index([verificationToken])
   @@index([resetToken])
@@ -283,6 +287,12 @@ model Post {
   priceCents  Int          @default(0) // Price in fiat cents (e.g., 500 = $5.00)
   postUnlocks PostUnlock[]
 
+  // Scheduling & Interactive Features
+  scheduledAt     DateTime?
+  scheduledStatus ScheduledPostStatus @default(PUBLISHED)
+  poll            Poll?
+  qnaBox          QnaBox?
+
   @@index([userId, type, visibility, createdAt, moderationStatus])
   @@index([userId])
   @@index([type])
@@ -401,6 +411,12 @@ model Story {
   // Premium Content
   isPremium  Boolean @default(false)
   priceCents Int     @default(0)
+
+  // Scheduling & Interactive Features
+  scheduledAt     DateTime?
+  scheduledStatus ScheduledPostStatus @default(PUBLISHED)
+  poll            Poll?
+  qnaBox          QnaBox?
 
   @@index([userId, expiresAt])
   @@index([userId, createdAt])
@@ -1423,4 +1439,70 @@ model LiveStream {
 enum LiveStatus {
   LIVE
   ENDED
+}
+
+enum ScheduledPostStatus {
+  SCHEDULED
+  PUBLISHED
+  CANCELLED
+}
+
+model Poll {
+  id        String   @id @default(uuid())
+  postId    String?  @unique
+  storyId   String?  @unique
+  question  String
+  options   String[]
+  createdAt DateTime @default(now())
+
+  post  Post?  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  story Story? @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  votes PollVote[]
+
+  @@map("polls")
+}
+
+model PollVote {
+  id          String   @id @default(uuid())
+  pollId      String
+  userId      String
+  optionIndex Int
+  createdAt   DateTime @default(now())
+
+  poll Poll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId])
+  @@index([pollId])
+  @@map("poll_votes")
+}
+
+model QnaBox {
+  id        String   @id @default(uuid())
+  postId    String?  @unique
+  storyId   String?  @unique
+  prompt    String
+  createdAt DateTime @default(now())
+
+  post  Post?  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  story Story? @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  answers QnaAnswer[]
+
+  @@map("qna_boxes")
+}
+
+model QnaAnswer {
+  id         String   @id @default(uuid())
+  qnaBoxId   String
+  userId     String
+  answerText String   @db.Text
+  createdAt  DateTime @default(now())
+
+  qnaBox QnaBox @relation(fields: [qnaBoxId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([qnaBoxId])
+  @@map("qna_answers")
 }
