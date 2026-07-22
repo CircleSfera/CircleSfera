@@ -14,6 +14,7 @@ import { JwtService } from '@nestjs/jwt';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { AppealsService } from './appeals.service.js';
 import { CreateAppealDto } from './dto/create-appeal.dto.js';
 import { UpdateAppealDto } from './dto/update-appeal.dto.js';
@@ -27,6 +28,7 @@ export class AppealsController {
   ) {}
 
   @Post()
+  @UseGuards(JwtOptionalGuard)
   create(@Req() req: any, @Body() createAppealDto: CreateAppealDto) {
     let userId: string | undefined;
 

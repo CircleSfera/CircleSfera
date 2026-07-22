@@ -1,4 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { NotificationType } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SlackService } from '../slack/slack.service.js';
 import { CreateAppealDto } from './dto/create-appeal.dto.js';
@@ -9,6 +11,8 @@ export class AppealsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(SlackService) private readonly slackService: SlackService,
+    @Inject(NotificationsService)
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(userId: string, dto: CreateAppealDto) {
@@ -112,6 +116,31 @@ export class AppealsService {
         reason: `Appeal Status Updated: ${dto.status}. Notes: ${dto.adminNotes || 'None'}`,
       })
       .catch((e) => console.error(e));
+
+    const outcomeLabel =
+      dto.status === 'APPROVED'
+        ? 'approved'
+        : dto.status === 'REJECTED'
+          ? 'rejected'
+          : dto.status.toLowerCase();
+    const adminSender = await this.prisma.user.findFirst({
+      where: { role: 'ADMIN' },
+      select: { id: true },
+    });
+    if (adminSender) {
+      await this.notificationsService
+        .create({
+          recipientId: appeal.userId,
+          senderId: adminSender.id,
+          type: NotificationType.MODERATION,
+          content: `Your appeal was ${outcomeLabel}.${dto.adminNotes ? ` Notes: ${dto.adminNotes}` : ''}`,
+          postId:
+            appeal.targetType === 'POST_REMOVAL'
+              ? (appeal.targetId ?? undefined)
+              : undefined,
+        })
+        .catch((e) => console.error(e));
+    }
 
     return updatedAppeal;
   }

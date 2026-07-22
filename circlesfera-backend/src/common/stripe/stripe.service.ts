@@ -93,6 +93,18 @@ export class StripeService implements OnModuleInit {
     return this.stripe.subscriptions.retrieve(subscriptionId);
   }
 
+  async cancelSubscription(
+    subscriptionId: string,
+    atPeriodEnd = false,
+  ): Promise<Stripe.Subscription> {
+    if (atPeriodEnd) {
+      return this.stripe.subscriptions.update(subscriptionId, {
+        cancel_at_period_end: true,
+      });
+    }
+    return this.stripe.subscriptions.cancel(subscriptionId);
+  }
+
   // --- Stripe Connect Methods ---
 
   /**
