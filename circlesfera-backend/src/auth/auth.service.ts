@@ -385,9 +385,12 @@ export class AuthService {
           await job.remove();
         }
       } else {
+        const secret =
+          this.configService.get<string>('JWT_SECRET') ||
+          'circlesfera_default_secret_key';
         const appealToken = this.jwtService.sign(
           { sub: user.id, isAppealToken: true },
-          { expiresIn: '15m', secret: this.configService.get('JWT_SECRET') },
+          { expiresIn: '15m', secret },
         );
         throw new UnauthorizedException({
           message: 'ACCOUNT_BANNED',
@@ -413,7 +416,9 @@ export class AuthService {
       const payload = this.jwtService.verify<{ sub: string; email: string }>(
         dto.refreshToken,
         {
-          secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+          secret:
+            this.configService.get<string>('JWT_REFRESH_SECRET') ||
+            'circlesfera_default_refresh_secret_key',
         },
       );
 
