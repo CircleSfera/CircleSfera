@@ -78,7 +78,11 @@ services:
         - VITE_API_URL=/api/v1
     container_name: CircleSfera-Frontend
     command: npm run dev -- --host
-    # Port 8080 will be served by the proxy now
+    ports:
+      - '5173:5173'
+    environment:
+      - VITE_API_PROXY_TARGET=http://backend:3000
+    # Port 8080 is also served by the proxy
     volumes:
       - ./circlesfera-frontend:/app/circlesfera-frontend
       - ./circlesfera-shared:/app/circlesfera-shared
@@ -90,43 +94,20 @@ services:
     networks:
       - circlesfera-network
 
-  landing:
-    build:
-      context: .
-      dockerfile: ./circlesfera-landing/Dockerfile
-      target: build
-      args:
-        - VITE_API_URL=/api/v1
-    container_name: CircleSfera-Landing
-    command: npm run dev -- --host
-    # Port 8081 will be served by the proxy now
-    volumes:
-      - ./circlesfera-landing:/app/circlesfera-landing
-      - ./circlesfera-shared:/app/circlesfera-shared
-      - /app/circlesfera-landing/node_modules
-      - /app/circlesfera-shared/node_modules
-    restart: unless-stopped
-    networks:
-      - circlesfera-network
-
   proxy:
     image: nginx:alpine
     container_name: CircleSfera-Proxy
     ports:
       - '8080:80'
-      - '8081:81'
     environment:
       - FRONTEND_PORT=5173
       - BACKEND_PORT=3000
-      - LANDING_PORT=5173
     volumes:
       - ./nginx/master.conf.template:/etc/nginx/templates/default.conf.template:ro
-      - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
       - ./circlesfera-backend/uploads:/usr/share/nginx/html/uploads:ro
     depends_on:
       - frontend
       - backend
-      - landing
     restart: unless-stopped
     networks:
       - circlesfera-network
