@@ -132,7 +132,7 @@ export class InteractiveService {
       include: {
         answers: {
           include: {
-            user: { select: { id: true, username: true, profile: { select: { avatar: true, fullName: true } } } },
+            user: { select: { id: true, profile: { select: { username: true, avatar: true, fullName: true } } } },
           },
           orderBy: { createdAt: 'desc' },
         },
@@ -147,17 +147,20 @@ export class InteractiveService {
       id: qnaBox.id,
       prompt: qnaBox.prompt,
       totalAnswers: qnaBox.answers.length,
-      answers: qnaBox.answers.map((a: { id: string; answerText: string; createdAt: Date; user: { id: string; username: string; profile: { avatar: string | null; fullName: string | null } | null } }) => ({
-        id: a.id,
-        answerText: a.answerText,
-        createdAt: a.createdAt,
-        user: {
-          id: a.user.id,
-          username: a.user.username,
-          fullName: a.user.profile?.fullName || a.user.username,
-          avatar: a.user.profile?.avatar || null,
-        },
-      })),
+      answers: qnaBox.answers.map((a) => {
+        const username = a.user.profile?.username || 'usuario';
+        return {
+          id: a.id,
+          answerText: a.answerText,
+          createdAt: a.createdAt,
+          user: {
+            id: a.user.id,
+            username,
+            fullName: a.user.profile?.fullName || username,
+            avatar: a.user.profile?.avatar || null,
+          },
+        };
+      }),
     };
   }
 }
