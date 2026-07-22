@@ -34,6 +34,11 @@ describe('PaymentsService', () => {
               upsert: vi.fn(),
               updateMany: vi.fn(),
               findFirst: vi.fn(),
+              findMany: vi.fn().mockResolvedValue([]),
+              update: vi.fn(),
+            },
+            creatorSubscription: {
+              updateMany: vi.fn().mockResolvedValue({ count: 0 }),
             },
             platformPlan: { findUnique: vi.fn() },
             user: { update: vi.fn(), findUnique: vi.fn() },
@@ -44,6 +49,7 @@ describe('PaymentsService', () => {
           provide: StripeService,
           useValue: {
             getSubscription: vi.fn(),
+            cancelSubscription: vi.fn().mockResolvedValue(undefined),
           },
         },
         {
@@ -55,6 +61,7 @@ describe('PaymentsService', () => {
           useValue: {
             sendTipReceivedEmail: vi.fn(),
             sendSubscriptionStartedEmail: vi.fn(),
+            sendSubscriptionReceipt: vi.fn().mockResolvedValue(undefined),
           },
         },
         {

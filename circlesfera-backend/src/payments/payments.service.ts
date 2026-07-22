@@ -1,5 +1,11 @@
 /** Trigger re-index */
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { SubscriptionStatus } from '@prisma/client';
 import type Stripe from 'stripe';
 import { StripeService } from '../common/stripe/stripe.service.js';
@@ -98,6 +104,26 @@ export class PaymentsService {
 
     if (!plan) throw new NotFoundException('Plan not found');
 
+    const activeStatuses: SubscriptionStatus[] = [
+      SubscriptionStatus.ACTIVE,
+      SubscriptionStatus.TRIALING,
+    ];
+    const activeSubs = user.platformSubscriptions.filter((s) =>
+      activeStatuses.includes(s.status),
+    );
+
+    if (activeSubs.some((s) => s.planId === plan.id)) {
+      throw new BadRequestException(
+        'You already have an active subscription to this plan. Manage it in the billing portal.',
+      );
+    }
+
+    if (activeSubs.length > 0) {
+      throw new ConflictException(
+        'You already have an active platform plan. Cancel or change it via the billing portal before starting another.',
+      );
+    }
+
     const stripePriceId =
       billingCycle === 'YEARLY' ? plan.yearlyStripePriceId : plan.stripePriceId;
 
@@ -128,10 +154,95 @@ export class PaymentsService {
       cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/edit?success=false`,
       metadata: {
         userId,
-        planId,
+        planId: plan.id,
         billingCycle,
       },
     });
+  }
+
+  async getBillingStatus(userId: string) {
+    const subscription = await this.prisma.platformSubscription.findFirst({
+      where: {
+        userId,
+        status: {
+          in: [
+            SubscriptionStatus.ACTIVE,
+            SubscriptionStatus.TRIALING,
+            SubscriptionStatus.PAST_DUE,
+          ],
+        },
+      },
+      include: {
+        plan: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            currency: true,
+          },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    return {
+      hasActiveSubscription:
+        !!subscription &&
+        (subscription.status === SubscriptionStatus.ACTIVE ||
+          subscription.status === SubscriptionStatus.TRIALING),
+      subscription: subscription
+        ? {
+            id: subscription.id,
+            planId: subscription.planId,
+            planName: subscription.plan.name,
+            status: subscription.status,
+            currentPeriodStart: subscription.currentPeriodStart,
+            currentPeriodEnd: subscription.currentPeriodEnd,
+            cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+            price: subscription.plan.price,
+            currency: subscription.plan.currency,
+          }
+        : null,
+    };
+  }
+
+  /** Heal races: keep only the newly activated plan as ACTIVE. */
+  private async enforceSingleActivePlatformPlan(
+    userId: string,
+    keepPlanId: string,
+  ) {
+    const others = await this.prisma.platformSubscription.findMany({
+      where: {
+        userId,
+        status: {
+          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+        },
+        NOT: { planId: keepPlanId },
+      },
+    });
+
+    for (const other of others) {
+      if (other.stripeSubscriptionId) {
+        try {
+          await this.stripeService.cancelSubscription(
+            other.stripeSubscriptionId,
+            false,
+          );
+        } catch (err) {
+          console.error(
+            `Failed to cancel Stripe sub ${other.stripeSubscriptionId}`,
+            err,
+          );
+        }
+      }
+      await this.prisma.platformSubscription.update({
+        where: { id: other.id },
+        data: {
+          status: SubscriptionStatus.CANCELLED,
+          cancelAtPeriodEnd: false,
+        },
+      });
+    }
   }
 
   async getPortalUrl(
@@ -463,6 +574,8 @@ export class PaymentsService {
             await this.usersService.syncUserTier(userId);
           }
 
+          await this.enforceSingleActivePlatformPlan(userId, planId);
+
           console.log(
             `Successfully processed checkout for user ${userId}, plan ${planId}`,
           );
@@ -520,6 +633,32 @@ export class PaymentsService {
             cancelAtPeriodEnd: subscription.cancel_at_period_end,
           },
         });
+
+        const creatorSubStatus =
+          subscription.status === 'active' || subscription.status === 'trialing'
+            ? 'ACTIVE'
+            : 'CANCELLED';
+        await this.prisma.creatorSubscription.updateMany({
+          where: { stripeSubscriptionId: subscription.id },
+          data: {
+            status: creatorSubStatus,
+            autoRenew: !subscription.cancel_at_period_end,
+            ...(creatorSubStatus === 'CANCELLED'
+              ? { expiresAt: new Date() }
+              : {
+                  expiresAt: new Date(subscription.current_period_end * 1000),
+                }),
+          },
+        });
+
+        // Sync user tier if this was a platform subscription
+        const platformSub = await this.prisma.platformSubscription.findFirst({
+          where: { stripeSubscriptionId: subscription.id },
+          select: { userId: true },
+        });
+        if (platformSub) {
+          await this.usersService.syncUserTier(platformSub.userId);
+        }
 
         // Sync user tier after subscription status changes (handles downgrades dynamically)
         const sub = await this.prisma.platformSubscription.findFirst({
