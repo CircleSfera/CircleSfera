@@ -10,7 +10,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
-import { useDebounce } from '../../hooks/useDebounce';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminUser } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
@@ -38,7 +38,7 @@ export default function UsersTab({ onToast }: Props) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const debouncedSearch = useDebounce(search);
+  const debouncedSearch = useDebouncedValue(search, 400);
   const queryClient = useQueryClient();
 
   const [confirmAction, setConfirmAction] = useState<{
