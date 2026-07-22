@@ -22,8 +22,8 @@ import { useSocketStore } from '../../stores/socketStore';
 import { useCallStore } from '../../stores/useCallStore';
 import type { Conversation, Message, Participant } from '../../types';
 import { logger } from '../../utils/logger';
+import { VoiceRecorder } from '../audio/VoiceRecorder';
 import UserAvatar from '../UserAvatar';
-import AudioRecorder from './AudioRecorder';
 import GroupDetailsModal from './GroupDetailsModal';
 import MessageBubble from './MessageBubble';
 
@@ -61,52 +61,38 @@ export default function ChatWindow() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const handleAudioSend = async (audioBlob: Blob) => {
+  const handleVoiceSend = async (voiceData: {
+    voiceUrl: string;
+    voiceDuration: number;
+    voiceWaveform: number[];
+  }) => {
     setIsRecording(false);
-    setIsUploading(true);
+    const tempId =
+      Date.now().toString() + Math.random().toString(36).substring(2, 9);
+    const tempMsg: Message = {
+      id: tempId,
+      content: '🎤 Nota de Voz',
+      conversationId: id || '',
+      senderId: profile?.userId || profile?.id || '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      voiceUrl: voiceData.voiceUrl,
+      voiceDuration: voiceData.voiceDuration,
+      voiceWaveform: voiceData.voiceWaveform,
+      reactions: [],
+    };
+    setMessages((prev) => [...prev, tempMsg]);
+
     try {
-      const file = new File([audioBlob], 'voice-message.webm', {
-        type: 'audio/webm',
-      });
-      const formData = new FormData();
-      formData.append('file', file);
-      const uploadRes = await uploadApi.upload(formData);
-
-      const mediaPayload = {
-        text: '🎤 Voice Message',
-        originalName: 'voice-message.webm',
-        originalType: 'audio/webm',
-      };
-
-      const finalContent = JSON.stringify(mediaPayload);
-
-      const tempId =
-        Date.now().toString() + Math.random().toString(36).substring(2, 9);
-
-      const tempMsg: Message = {
-        id: tempId,
-        content: JSON.stringify(mediaPayload), // plaintext locally
-        conversationId: id || '',
-        senderId: profile?.userId || profile?.id || '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        url: uploadRes.data.url,
-        mediaType: 'audio', // UI fallback
-        reactions: [],
-      };
-      setMessages((prev) => [...prev, tempMsg]);
-
-      await apiClient.post('/chat/messages', {
+      await chatApi.sendMessage({
         conversationId: id,
-        content: finalContent,
-        mediaUrl: uploadRes.data.url,
-        mediaType: 'audio',
-        tempId,
+        content: '🎤 Nota de Voz',
+        voiceUrl: voiceData.voiceUrl,
+        voiceDuration: voiceData.voiceDuration,
+        voiceWaveform: voiceData.voiceWaveform,
       });
     } catch (err) {
-      logger.error('Audio upload failed', err);
-    } finally {
-      setIsUploading(false);
+      logger.error('Failed to send voice message:', err);
     }
   };
 
@@ -1070,8 +1056,8 @@ export default function ChatWindow() {
 
         <div className="relative z-10">
           {isRecording ? (
-            <AudioRecorder
-              onSend={handleAudioSend}
+            <VoiceRecorder
+              onSendVoice={handleVoiceSend}
               onCancel={() => setIsRecording(false)}
             />
           ) : (

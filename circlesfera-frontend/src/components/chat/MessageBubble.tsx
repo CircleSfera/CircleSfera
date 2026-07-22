@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useStoryStore } from '../../stores/storyStore';
 import type { Message } from '../../types';
 import UserAvatar from '../UserAvatar';
+import { VoicePlayer } from '../audio/VoicePlayer';
 import AudioPlayer from './AudioPlayer';
 import SharedPost from './SharedPost';
 
@@ -168,7 +169,13 @@ export default memo(function MessageBubble({
             )}
 
             {/* Media Content */}
-            {msg.mediaType === 'audio' && mediaUrl ? (
+            {msg.voiceUrl ? (
+              <VoicePlayer
+                voiceUrl={msg.voiceUrl}
+                durationSeconds={msg.voiceDuration || 0}
+                waveform={msg.voiceWaveform as number[] | undefined}
+              />
+            ) : msg.mediaType === 'audio' && mediaUrl ? (
               <AudioPlayer src={mediaUrl} created={false} />
             ) : (
               mediaUrl && (

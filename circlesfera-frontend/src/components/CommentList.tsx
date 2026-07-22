@@ -11,6 +11,8 @@ import { useTranslation } from 'react-i18next';
 import { commentsApi, uploadApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { Comment, CreateCommentDto } from '../types';
+import { VoicePlayer } from './audio/VoicePlayer';
+import { VoiceRecorder } from './audio/VoiceRecorder';
 import UserAvatar from './UserAvatar';
 import { Button } from './ui';
 import VerificationBadge, { type VerificationLevel } from './VerificationBadge';
@@ -84,6 +86,15 @@ const CommentItem = ({
               <span className="text-gray-300 wrap-break-word">
                 {comment.content}
               </span>
+              {comment.voiceUrl && (
+                <div className="mt-1">
+                  <VoicePlayer
+                    voiceUrl={comment.voiceUrl}
+                    durationSeconds={comment.voiceDuration}
+                    waveform={comment.voiceWaveform as number[] | undefined}
+                  />
+                </div>
+              )}
               {comment.url && (
                 <div className="mt-2 rounded-lg overflow-hidden border border-white/10 max-w-xs bg-black">
                   {comment.mediaType === 'video' ? (
@@ -411,6 +422,18 @@ export default function CommentList({
             >
               {!isUploading && <ImageIcon size={20} />}
             </Button>
+            <VoiceRecorder
+              onSendVoice={(voiceData) => {
+                const commentDto: CreateCommentDto = {
+                  content: '🎤 Nota de voz',
+                  parentId: replyingTo?.id,
+                  voiceUrl: voiceData.voiceUrl,
+                  voiceDuration: voiceData.voiceDuration,
+                  voiceWaveform: voiceData.voiceWaveform,
+                };
+                commentMutation.mutate(commentDto);
+              }}
+            />
             <input
               ref={inputRef}
               type="text"

@@ -322,6 +322,9 @@ export class ChatService {
     postId?: string,
     storyId?: string,
     replyToId?: string,
+    voiceUrl?: string,
+    voiceDuration?: number,
+    voiceWaveform?: number[],
   ): Promise<Message> {
     let conversation: any;
 
@@ -414,6 +417,9 @@ export class ChatService {
         postId,
         storyId,
         replyToId,
+        voiceUrl,
+        voiceDuration,
+        voiceWaveform: voiceWaveform ? JSON.parse(JSON.stringify(voiceWaveform)) : undefined,
       },
       include: {
         sender: {
