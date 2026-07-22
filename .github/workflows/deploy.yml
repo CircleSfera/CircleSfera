@@ -116,6 +116,15 @@ jobs:
               echo "⚠️  WARNING: ENV_PRODUCTION_B64 secret not set. Using existing .env.production."
             fi
 
+            if [ ! -f .env.production ]; then
+              echo "❌ .env.production is missing."
+              exit 1
+            fi
+            if ! grep -q '^REDIS_PASSWORD=.\+' .env.production; then
+              echo "❌ REDIS_PASSWORD is missing/empty in .env.production (required for compose interpolation)."
+              exit 1
+            fi
+
             # Extract the deployment webhook directly from the .env file to bypass IDE schema warnings
             DEPLOY_WEBHOOK=$(grep '^SLACK_WEBHOOK_DEPLOYMENTS=' .env.production | cut -d '=' -f2- || echo "")
 
@@ -126,22 +135,17 @@ jobs:
             git fetch origin
             git reset --hard origin/main
 
+            # Compose interpolates ${VAR} from --env-file (not from service env_file).
+            COMPOSE="docker compose -f docker-compose.prod.yml --env-file .env.production"
+            export REGISTRY=ghcr.io/circlesfera/circlesfera
+
             # Pull latest images
-            REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml pull
+            $COMPOSE pull
 
-            # Start only postgres first to allow migrations resolution
-            REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml up -d postgres
-            echo "Waiting for postgres to be ready..."
-            sleep 10
-
-            # Resolve failed migrations using a temporary backend container
-            echo "Resolving Prisma migrations..."
-            REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml run --rm backend sh -c "npx prisma migrate resolve --applied 20260716000000_update_stripe_ids || true"
-            REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml run --rm backend sh -c "npx prisma migrate resolve --applied 20260716000001_cleanup_mock_plans || true"
-
-            # Restart containers (container command runs migrations then starts app)
-            REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml down
-            REGISTRY=ghcr.io/circlesfera/circlesfera docker compose -f docker-compose.prod.yml up -d
+            # Restart stack; backend command runs `prisma migrate deploy` then starts the app.
+            # Do not use `migrate resolve || true` here — it hides real migration failures.
+            $COMPOSE down
+            $COMPOSE up -d
 
             # Wait for backend to stabilise (give it 20s to either start or crash)
             echo "Waiting 20s for backend to stabilise..."
