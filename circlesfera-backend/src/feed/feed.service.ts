@@ -22,6 +22,90 @@ export class FeedService {
     @Inject(FeedInboxService) private readonly feedInbox: FeedInboxService,
   ) {}
 
+  private postHydrationInclude(userId?: string | null) {
+    return {
+      user: { include: { profile: true } },
+      media: true,
+      poll: { select: { id: true } },
+      qnaBox: { select: { id: true } },
+      _count: { select: { likes: true, comments: true } },
+      likes: userId ? { where: { userId }, take: 1 } : false,
+    };
+  }
+
+  private async getViewerContentSettings(userId: string | null) {
+    if (!userId) {
+      return {
+        allowMature: false,
+        blurSensitiveContent: true,
+      };
+    }
+    const settings = await this.prisma.userSettings.findUnique({
+      where: { userId },
+      select: {
+        contentPreference: true,
+        blurSensitiveContent: true,
+      },
+    });
+    return {
+      allowMature: settings?.contentPreference === 'MATURE',
+      blurSensitiveContent: settings?.blurSensitiveContent ?? true,
+    };
+  }
+
+  private buildRecommendationMeta(
+    rawData: {
+      social_weight?: number;
+      ai_score?: number;
+      final_score?: number;
+    } | null,
+    performanceScore: number,
+    fallbackReason?: string,
+  ) {
+    const signals: string[] = [];
+    let recommendationReason = fallbackReason || 'new';
+
+    if (rawData) {
+      if (rawData.social_weight === 2.0) {
+        recommendationReason = 'close_friend';
+        signals.push('close_friend');
+      } else if (rawData.social_weight === 1.5) {
+        recommendationReason = 'following';
+        signals.push('following');
+      }
+
+      if (rawData.ai_score && Number(rawData.ai_score) > 0.65) {
+        signals.push('interest_match');
+        if (recommendationReason === 'new') {
+          recommendationReason = 'interest';
+        }
+      }
+
+      if (performanceScore > 20) {
+        signals.push('high_engagement');
+        if (recommendationReason === 'new') {
+          recommendationReason = 'popular';
+        }
+      }
+
+      if (rawData.final_score != null) {
+        signals.push('ranked_for_you');
+      }
+    } else if (fallbackReason) {
+      signals.push(fallbackReason);
+    }
+
+    if (signals.length === 0) {
+      signals.push(recommendationReason);
+    }
+
+    return {
+      recommendationReason,
+      recommendationSignals: signals,
+      algScore: rawData?.final_score,
+    };
+  }
+
   /**
    * Generates a hybrid "For You" feed using an advanced mathematical algorithm.
    * Score = (AI_Similarity * 0.4) + (Social_Graph * 0.3) + (Popularity * 0.3) * Time_Decay
@@ -35,7 +119,8 @@ export class FeedService {
       return this.getTrendingFeed(page, limit, skip);
     }
 
-    const cacheKey = `feed:hybrid:user_${userId}:page_${page}:limit_${limit}`;
+    const viewerSettings = await this.getViewerContentSettings(userId);
+    const cacheKey = `feed:hybrid:user_${userId}:page_${page}:limit_${limit}:mature_${viewerSettings.allowMature}`;
     const cachedFeed = await this.cacheManager.get(cacheKey);
     if (cachedFeed) {
       return cachedFeed;
@@ -119,6 +204,7 @@ export class FeedService {
             AND p."userId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${userId})
             AND p."userId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${userId})
             AND p."userId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${userId})
+            AND (${viewerSettings.allowMature} OR p."contentRating" = 'GENERAL')
             
           ORDER BY final_score DESC
           LIMIT ${limit}
@@ -162,6 +248,7 @@ export class FeedService {
             AND p."userId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${userId})
             AND p."userId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${userId})
             AND p."userId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${userId})
+            AND (${viewerSettings.allowMature} OR p."contentRating" = 'GENERAL')
             
           ORDER BY final_score DESC
           LIMIT ${limit}
@@ -177,12 +264,7 @@ export class FeedService {
       const postIds = postsRaw.map((p) => p.id);
       const hydratedPosts = await this.prisma.post.findMany({
         where: { id: { in: postIds } },
-        include: {
-          user: { include: { profile: true } },
-          media: true,
-          _count: { select: { likes: true, comments: true } },
-          likes: { where: { userId }, take: 1 },
-        },
+        include: this.postHydrationInclude(userId),
       });
 
       // Sort back to algorithm order
@@ -215,26 +297,18 @@ export class FeedService {
 
         // Attach algorithm reasoning score for debugging
         const rawData = postsRaw.find((r) => r.id === post.id);
-
-        // Determine recommendation reason
-        let recommendationReason = 'new';
-        if (rawData) {
-          if (rawData.social_weight === 2.0) {
-            recommendationReason = 'close_friend';
-          } else if (rawData.social_weight === 1.5) {
-            recommendationReason = 'following';
-          } else if (rawData.ai_score && rawData.ai_score > 0.65) {
-            recommendationReason = 'interest';
-          } else if (post.performanceScore > 20) {
-            recommendationReason = 'popular';
-          }
-        }
+        const recommendationMeta = this.buildRecommendationMeta(
+          rawData,
+          post.performanceScore || 0,
+        );
 
         let finalPost = {
           ...rest,
           isLiked,
-          algScore: rawData?.final_score,
-          recommendationReason,
+          ...recommendationMeta,
+          shouldBlurSensitive:
+            viewerSettings.blurSensitiveContent &&
+            post.contentRating === 'MATURE',
         };
 
         if (finalPost.isPremium && finalPost.userId !== userId) {
@@ -288,6 +362,10 @@ export class FeedService {
   async getFollowingFeed(userId: string, pagination: PaginationDto) {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
+    const viewerSettings = await this.getViewerContentSettings(userId);
+    const matureFilter = viewerSettings.allowMature
+      ? {}
+      : { contentRating: 'GENERAL' as const };
 
     let posts: any[] = [];
     let total = 0;
@@ -305,13 +383,9 @@ export class FeedService {
           id: { in: inboxPostIds },
           moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
           scheduledStatus: 'PUBLISHED',
+          ...matureFilter,
         },
-        include: {
-          user: { include: { profile: true } },
-          media: true,
-          _count: { select: { likes: true, comments: true } },
-          likes: { where: { userId }, take: 1 },
-        },
+        include: this.postHydrationInclude(userId),
       });
 
       // Maintain Redis order (chronological by push time)
@@ -351,6 +425,7 @@ export class FeedService {
             type: 'POST',
             moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
             scheduledStatus: 'PUBLISHED',
+            ...matureFilter,
             OR: [
               { visibility: Visibility.PUBLIC },
               { visibility: Visibility.FOLLOWERS },
@@ -360,12 +435,7 @@ export class FeedService {
           skip,
           take: limit,
           orderBy: { createdAt: 'desc' },
-          include: {
-            user: { include: { profile: true } },
-            media: true,
-            _count: { select: { likes: true, comments: true } },
-            likes: { where: { userId }, take: 1 },
-          },
+          include: this.postHydrationInclude(userId),
         }),
         this.prisma.post.count({
           where: {
@@ -373,6 +443,7 @@ export class FeedService {
             type: 'POST',
             moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
             scheduledStatus: 'PUBLISHED',
+            ...matureFilter,
           },
         }),
       ]);
@@ -406,8 +477,20 @@ export class FeedService {
     const formattedPosts = posts.map((post: any) => {
       const { likes, ...rest } = post;
       const isLiked = Array.isArray(likes) ? likes.length > 0 : false;
+      const recommendationMeta = this.buildRecommendationMeta(
+        null,
+        post.performanceScore || 0,
+        'following',
+      );
 
-      let finalPost = { ...rest, isLiked, recommendationReason: 'following' };
+      let finalPost = {
+        ...rest,
+        isLiked,
+        ...recommendationMeta,
+        shouldBlurSensitive:
+          viewerSettings.blurSensitiveContent &&
+          post.contentRating === 'MATURE',
+      };
 
       if (finalPost.isPremium && finalPost.userId !== userId) {
         const isSubscribed = subscribedCreatorIds.has(finalPost.userId);
@@ -446,7 +529,10 @@ export class FeedService {
     skip: number,
     currentUserId?: string | null,
   ) {
-    const cacheKey = `feed:trending:user_${currentUserId || 'guest'}:page_${page}:limit_${limit}`;
+    const viewerSettings = await this.getViewerContentSettings(
+      currentUserId ?? null,
+    );
+    const cacheKey = `feed:trending:user_${currentUserId || 'guest'}:page_${page}:limit_${limit}:mature_${viewerSettings.allowMature}`;
     const cachedFeed = await this.cacheManager.get(cacheKey);
     if (cachedFeed) {
       return cachedFeed;
@@ -467,18 +553,12 @@ export class FeedService {
         moderationStatus: 'VISIBLE',
         scheduledStatus: 'PUBLISHED',
         ...(mutedIds.length > 0 ? { userId: { notIn: mutedIds } } : {}),
+        ...(viewerSettings.allowMature ? {} : { contentRating: 'GENERAL' }),
       },
       orderBy: [{ performanceScore: 'desc' }, { createdAt: 'desc' }],
       skip,
       take: limit,
-      include: {
-        user: { include: { profile: true } },
-        media: true,
-        _count: { select: { likes: true, comments: true } },
-        likes: currentUserId
-          ? { where: { userId: currentUserId }, take: 1 }
-          : false,
-      },
+      include: this.postHydrationInclude(currentUserId),
     });
 
     let subscribedCreatorIds = new Set<string>();
@@ -503,8 +583,20 @@ export class FeedService {
       const { likes, ...rest } = post;
       const isLiked =
         currentUserId && Array.isArray(likes) ? likes.length > 0 : false;
+      const recommendationMeta = this.buildRecommendationMeta(
+        null,
+        post.performanceScore || 0,
+        'popular',
+      );
 
-      let finalPost = { ...rest, isLiked, recommendationReason: 'popular' };
+      let finalPost = {
+        ...rest,
+        isLiked,
+        ...recommendationMeta,
+        shouldBlurSensitive:
+          viewerSettings.blurSensitiveContent &&
+          post.contentRating === 'MATURE',
+      };
 
       if (finalPost.isPremium && finalPost.userId !== currentUserId) {
         const isSubscribed = subscribedCreatorIds.has(finalPost.userId);
@@ -593,12 +685,7 @@ export class FeedService {
     const promotedPostIds = activePromotions.map((p) => p.targetId);
     const promotedPostsRaw = await this.prisma.post.findMany({
       where: { id: { in: promotedPostIds } },
-      include: {
-        user: { include: { profile: true } },
-        media: true,
-        _count: { select: { likes: true, comments: true } },
-        likes: userId ? { where: { userId }, take: 1 } : false,
-      },
+      include: this.postHydrationInclude(userId),
     });
 
     const promotedPostsDict = new Map();

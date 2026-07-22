@@ -32,6 +32,9 @@ describe('FeedService', () => {
     promotion: {
       findMany: vi.fn().mockResolvedValue([]),
     },
+    userSettings: {
+      findUnique: vi.fn().mockResolvedValue(null),
+    },
     $queryRaw: vi.fn(),
   };
 
