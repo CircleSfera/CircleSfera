@@ -96,27 +96,24 @@ async function bootstrap(): Promise<void> {
 
   // CSRF Protection
   app.use((req: Request, res: Response, next: NextFunction) => {
-    // Normalize path: Remove double slashes and trailing slashes
+    const pathToCheck = (req.originalUrl || req.path || '').split('?')[0];
     const normalizedPath =
-      req.path.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
-    const excludedPaths = [
-      '/api/v1/auth/login',
-      '/api/v1/auth/register',
-      '/api/v1/auth/refresh',
-      '/api/v1/auth/verify-email',
-      '/api/v1/auth/request-reset',
-      '/api/v1/auth/reset-password',
-      '/api/v1/auth/passkey/login-options',
-      '/api/v1/auth/passkey/login-verify',
-      '/api/v1/csrf-token',
-      '/api/v1/payments/webhook',
-    ];
+      pathToCheck.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
 
-    if (
-      excludedPaths.includes(normalizedPath) ||
-      normalizedPath.startsWith('/socket.io') ||
-      normalizedPath.startsWith('/api/v1/socket.io')
-    ) {
+    const isExcluded =
+      normalizedPath.includes('/auth/login') ||
+      normalizedPath.includes('/auth/register') ||
+      normalizedPath.includes('/auth/refresh') ||
+      normalizedPath.includes('/auth/verify-email') ||
+      normalizedPath.includes('/auth/request-reset') ||
+      normalizedPath.includes('/auth/reset-password') ||
+      normalizedPath.includes('/auth/passkey/login-options') ||
+      normalizedPath.includes('/auth/passkey/login-verify') ||
+      normalizedPath.includes('/csrf-token') ||
+      normalizedPath.includes('/payments/webhook') ||
+      normalizedPath.includes('/socket.io');
+
+    if (isExcluded) {
       next();
     } else {
       doubleCsrfProtection(req, res, next);
