@@ -204,6 +204,8 @@ model RefreshToken {
   id        String   @id @default(uuid())
   token     String   @unique
   userId    String
+  userAgent String?
+  ipAddress String?
   expiresAt DateTime
   createdAt DateTime @default(now())
 
@@ -230,7 +232,8 @@ model Profile {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  embedding ProfileEmbedding?
 
   @@index([username])
   @@map("profiles")
@@ -889,6 +892,14 @@ model PostEmbedding {
   @@map("post_embeddings")
 }
 
+model ProfileEmbedding {
+  profileId String                      @id
+  vector    Unsupported("vector(1536)") // Native pgvector storage
+  profile   Profile                     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("profile_embeddings")
+}
+
 model Passkey {
   id           String   @id @default(uuid())
   userId       String
@@ -1400,6 +1411,8 @@ model LiveStream {
   viewerCount Int        @default(0)
   startedAt   DateTime   @default(now())
   endedAt     DateTime?
+  hlsUrl      String?
+  replayUrl   String?
 
   host User @relation(fields: [hostId], references: [id])
 
