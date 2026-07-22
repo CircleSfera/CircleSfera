@@ -4,6 +4,8 @@
 **Fecha:** Abril 2026  
 **Fuente de verdad funcional y de datos:** `schema.prisma` actual del proyecto
 
+> **Estado (Jul 2026):** este PRD (Abr 2026) está **parcialmente desactualizado** frente al schema vigente. Existen, entre otros, **Appeals**, **Mutes** y **CreatorSubscription** que pueden no estar reflejados aquí. Ver [00-status.md](./00-status.md). Preferir `schema.prisma` y el código implementado.
+
 ---
 
 ## 1. Resumen

@@ -4,6 +4,12 @@
 **Fecha:** Abril 2026  
 **Objetivo del documento:** Definir los endpoints del MVP real alineados con PRD, TRD y modelo de datos corregido.
 
+> **STALE / incomplete (Jul 2026):** This catalog is **not** the source of truth for the live API. Prefer NestJS controllers under `circlesfera-backend/src/**/**.controller.ts` and the current `schema.prisma`.
+>
+> Major domains **missing or under-documented** here include (non-exhaustive): `/admin`, `/passkey`, `/2fa`, `/creator`, `/monetization`, `/payments`, `/live`, `/appeals`, `/webrtc`, `/ai`, `/push`, `/close-friends`, `/highlights`, `/experiments`, `/interactive`.
+>
+> A full rewrite of this document is intentionally out of scope for the current remediation pass. See [00-status.md](./00-status.md) and the [documentation index](./README.md).
+
 ---
 
 ## 1. Criterios de corrección
