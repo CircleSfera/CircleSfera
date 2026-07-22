@@ -1,4 +1,4 @@
-import { IsIn, IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import { IsIn, IsNotEmpty, IsUUID } from 'class-validator';
 
 export class CheckoutDto {
   @IsUUID()

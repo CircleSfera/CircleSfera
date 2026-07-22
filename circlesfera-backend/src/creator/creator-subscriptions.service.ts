@@ -137,7 +137,7 @@ export class CreatorSubscriptionsService {
       where: { subscriberId_creatorId: { subscriberId, creatorId } },
     });
 
-    if (!sub || sub.status !== 'ACTIVE') {
+    if (sub?.status !== 'ACTIVE') {
       throw new NotFoundException('Active subscription not found');
     }
 
