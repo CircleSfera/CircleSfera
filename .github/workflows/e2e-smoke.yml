@@ -1,0 +1,60 @@
+# Manual E2E smoke — Actions → E2E Smoke → Run workflow.
+# Credentials are passed as workflow inputs (avoids undeclared-secret linter warnings).
+#
+# Optional: also store the same creds as repo secrets for other tooling:
+#   gh auth login && ./scripts/setup-github-e2e.sh
+name: E2E Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      e2e_user_email:
+        description: E2E user email
+        required: true
+        type: string
+      e2e_user_password:
+        description: E2E user password
+        required: true
+        type: string
+      base_url:
+        description: Frontend base URL
+        required: false
+        default: http://localhost:5173
+        type: string
+      backend_url:
+        description: Backend API base URL
+        required: false
+        default: http://localhost:3005/api/v1
+        type: string
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  NODE_OPTIONS: "--no-deprecation"
+
+jobs:
+  e2e-smoke:
+    name: Playwright smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run smoke e2e
+        env:
+          E2E_USER_EMAIL: ${{ inputs.e2e_user_email }}
+          E2E_USER_PASSWORD: ${{ inputs.e2e_user_password }}
+          BASE_URL: ${{ inputs.base_url }}
+          BACKEND_URL: ${{ inputs.backend_url }}
+        run: npx playwright test e2e/smoke.spec.ts --project=chromium

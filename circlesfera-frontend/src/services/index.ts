@@ -16,6 +16,7 @@ export * from './data-export.service';
 export * from './feed.service';
 export * from './follows.service';
 export * from './highlights.service';
+export * from './interactive.service';
 export * from './likes.service';
 export * from './live';
 export * from './monetization.service';

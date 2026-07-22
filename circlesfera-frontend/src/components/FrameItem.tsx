@@ -16,7 +16,7 @@ import { toast } from 'react-hot-toast';
 import { Link, useLocation } from 'react-router-dom';
 import { bookmarksApi, followsApi, postsApi } from '../services';
 import { creatorApi } from '../services/creator.service';
-import { paymentsApi } from '../services/payments.service';
+import { monetizationApi } from '../services/monetization.service';
 import { useAuthStore } from '../stores/authStore';
 import { useFrameStore } from '../stores/frameStore';
 import type { Post } from '../types';
@@ -80,8 +80,8 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
   const isBookmarked = bookmarkData?.data?.bookmarked ?? false;
 
   const unlockMutation = useMutation({
-    mutationFn: () => paymentsApi.createPostUnlockSession(post.id),
-    onSuccess: (response: any) => {
+    mutationFn: () => monetizationApi.unlockPost(post.id, window.location.href),
+    onSuccess: (response: { url?: string }) => {
       if (response?.url) {
         window.location.href = response.url;
       } else {
@@ -90,7 +90,7 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
         queryClient.invalidateQueries({ queryKey: ['feed'] });
       }
     },
-    onError: (error: any) => {
+    onError: (error: { response?: { data?: { message?: string } } }) => {
       toast.error(error.response?.data?.message || 'Error unlocking post');
     },
   });

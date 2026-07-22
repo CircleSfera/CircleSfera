@@ -1,7 +1,10 @@
+// Prisma enums in circlesfera-backend/prisma/schema.prisma are canonical for the backend.
+
 export enum ReportStatus {
   PENDING = 'PENDING',
+  REVIEWING = 'REVIEWING',
   RESOLVED = 'RESOLVED',
-  DISMISSED = 'DISMISSED',
+  REJECTED = 'REJECTED',
 }
 
 export enum PostType {
@@ -26,10 +29,12 @@ export enum NotificationType {
 export enum ReportReason {
   SPAM = 'SPAM',
   HARASSMENT = 'HARASSMENT',
-  INAPPROPRIATE = 'INAPPROPRIATE',
   ILLEGAL_CONTENT = 'ILLEGAL_CONTENT',
+  VIOLENCE = 'VIOLENCE',
   HATE_SPEECH = 'HATE_SPEECH',
-  SELF_HARM = 'SELF_HARM',
+  IMPERSONATION = 'IMPERSONATION',
+  CSAM = 'CSAM',
+  SCAM = 'SCAM',
   OTHER = 'OTHER',
 }
 

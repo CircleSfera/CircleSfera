@@ -1,27 +1,61 @@
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/common/SEO';
-import { PostSkeleton, StorySkeleton } from '../components/LoadingStates';
+import { ErrorState } from '../components/ErrorEmptyStates';
+import {
+  LoadingSpinner,
+  PostSkeleton,
+  StorySkeleton,
+} from '../components/LoadingStates';
 import PostCard from '../components/PostCard';
 import StoryList from '../components/StoryList';
 import { SuggestionsList } from '../components/suggestions/SuggestionsList';
 import { PullToRefresh } from '../components/ui';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { feedApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
+import type { PaginatedResponse, Post } from '../types';
 
 export default function Home() {
   const { t } = useTranslation();
   const { isAuthenticated } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'foryou' | 'following'>('foryou');
 
-  const { data, isLoading, refetch } = useQuery({
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<PaginatedResponse<Post>>({
     queryKey: ['feed', activeTab],
-    queryFn: () =>
-      activeTab === 'foryou' ? feedApi.getForYou() : feedApi.getFollowing(),
+    queryFn: async ({ pageParam }) => {
+      const res =
+        activeTab === 'foryou'
+          ? await feedApi.getForYou(pageParam as number)
+          : await feedApi.getFollowing(pageParam as number);
+      return res.data;
+    },
+    getNextPageParam: (lastPage) => {
+      if (lastPage.meta.page < lastPage.meta.totalPages) {
+        return lastPage.meta.page + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
     enabled: activeTab === 'foryou' || isAuthenticated,
   });
+
+  const posts = data?.pages.flatMap((page) => page.data) ?? [];
+  const loadMoreRef = useInfiniteScroll(
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  );
 
   const handleRefresh = async () => {
     await refetch();
@@ -123,20 +157,37 @@ export default function Home() {
                   </div>
                 ) : isLoading ? (
                   ['p1', 'p2', 'p3'].map((id) => <PostSkeleton key={id} />)
-                ) : data?.data.data.length === 0 ? (
+                ) : isError ? (
+                  <ErrorState
+                    title={t('feed.error_title', "Couldn't load feed")}
+                    message={t(
+                      'feed.error_message',
+                      'Something went wrong while loading posts. Please try again.',
+                    )}
+                    onRetry={() => refetch()}
+                  />
+                ) : posts.length === 0 ? (
                   <div className="text-center py-6 glass-panel rounded-lg px-4 mx-auto max-w-sm mb-6">
                     <p className="text-zinc-400 text-sm">
                       {t('feed.no_posts')}
                     </p>
                   </div>
                 ) : (
-                  data?.data.data.map((post, index) => (
-                    <PostCard
-                      key={post.id}
-                      post={post}
-                      priority={index === 0}
-                    />
-                  ))
+                  <>
+                    {posts.map((post, index) => (
+                      <PostCard
+                        key={post.id}
+                        post={post}
+                        priority={index === 0}
+                      />
+                    ))}
+                    <div ref={loadMoreRef} className="h-1" aria-hidden="true" />
+                    {isFetchingNextPage && (
+                      <div className="flex justify-center py-6">
+                        <LoadingSpinner size="md" />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>

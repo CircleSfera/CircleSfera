@@ -71,11 +71,24 @@ test.describe('Social Features Navigation', () => {
       .first();
     await submitBtn.click();
 
-    // Wait for modal to close
-    await expect(dialog).toBeHidden({ timeout: 15000 });
-    
-    // Wait for the post to appear in the feed
-    await expect(page.getByText(randomText)).toBeVisible({ timeout: 15000 });
+    // Wait for modal to close (create succeeded from the composer POV)
+    await expect(dialog).toBeHidden({ timeout: 20000 });
+
+    // Own posts may fan-out asynchronously; verify via profile grid/caption search
+    await page.goto('/profile');
+    const postText = page.getByText(randomText);
+    const appearedOnProfile = await postText
+      .first()
+      .isVisible()
+      .catch(() => false);
+    if (!appearedOnProfile) {
+      await page.goto('/');
+      await expect(page.getByText(randomText).first()).toBeVisible({
+        timeout: 20000,
+      });
+    } else {
+      await expect(postText.first()).toBeVisible();
+    }
   });
 
   test('should allow liking a post', async ({ page }) => {

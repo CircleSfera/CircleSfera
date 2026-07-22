@@ -68,6 +68,8 @@ export default function CreatePostModal() {
     setIsPremium,
     price,
     setPrice,
+    scheduledAt,
+    setScheduledAt,
     isPending,
     isProcessingEdit,
   } = useCreatePost();
@@ -172,6 +174,8 @@ export default function CreatePostModal() {
         setIsPremium={setIsPremium}
         price={price}
         setPrice={setPrice}
+        scheduledAt={scheduledAt}
+        setScheduledAt={setScheduledAt}
       />
     );
   }

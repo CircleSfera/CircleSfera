@@ -1,10 +1,121 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import type { CreatePollDto } from './dto/create-poll.dto.js';
+import type { CreateQnaBoxDto } from './dto/create-qna.dto.js';
 
 /** Service for interactive polls and Q&A features. */
 @Injectable()
 export class InteractiveService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+
+  /**
+   * Create a poll attached to a post or story owned by the user.
+   */
+  async createPoll(userId: string, dto: CreatePollDto) {
+    if (!dto.postId && !dto.storyId) {
+      throw new BadRequestException('Either postId or storyId is required');
+    }
+    if (dto.postId && dto.storyId) {
+      throw new BadRequestException(
+        'Provide either postId or storyId, not both',
+      );
+    }
+
+    const options = dto.options.map((o) => o.trim()).filter(Boolean);
+    if (options.length < 2) {
+      throw new BadRequestException(
+        'At least 2 non-empty options are required',
+      );
+    }
+
+    if (dto.postId) {
+      const post = await this.prisma.post.findUnique({
+        where: { id: dto.postId },
+      });
+      if (!post) throw new NotFoundException('Post not found');
+      if (post.userId !== userId) throw new ForbiddenException('Not your post');
+      const existing = await this.prisma.poll.findUnique({
+        where: { postId: dto.postId },
+      });
+      if (existing) throw new BadRequestException('Post already has a poll');
+    }
+
+    if (dto.storyId) {
+      const story = await this.prisma.story.findUnique({
+        where: { id: dto.storyId },
+      });
+      if (!story) throw new NotFoundException('Story not found');
+      if (story.userId !== userId)
+        throw new ForbiddenException('Not your story');
+      const existing = await this.prisma.poll.findUnique({
+        where: { storyId: dto.storyId },
+      });
+      if (existing) throw new BadRequestException('Story already has a poll');
+    }
+
+    return this.prisma.poll.create({
+      data: {
+        question: dto.question.trim(),
+        options,
+        postId: dto.postId,
+        storyId: dto.storyId,
+      },
+    });
+  }
+
+  /**
+   * Create a Q&A box attached to a post or story owned by the user.
+   */
+  async createQnaBox(userId: string, dto: CreateQnaBoxDto) {
+    if (!dto.postId && !dto.storyId) {
+      throw new BadRequestException('Either postId or storyId is required');
+    }
+    if (dto.postId && dto.storyId) {
+      throw new BadRequestException(
+        'Provide either postId or storyId, not both',
+      );
+    }
+
+    if (dto.postId) {
+      const post = await this.prisma.post.findUnique({
+        where: { id: dto.postId },
+      });
+      if (!post) throw new NotFoundException('Post not found');
+      if (post.userId !== userId) throw new ForbiddenException('Not your post');
+      const existing = await this.prisma.qnaBox.findUnique({
+        where: { postId: dto.postId },
+      });
+      if (existing) throw new BadRequestException('Post already has a Q&A box');
+    }
+
+    if (dto.storyId) {
+      const story = await this.prisma.story.findUnique({
+        where: { id: dto.storyId },
+      });
+      if (!story) throw new NotFoundException('Story not found');
+      if (story.userId !== userId)
+        throw new ForbiddenException('Not your story');
+      const existing = await this.prisma.qnaBox.findUnique({
+        where: { storyId: dto.storyId },
+      });
+      if (existing)
+        throw new BadRequestException('Story already has a Q&A box');
+    }
+
+    return this.prisma.qnaBox.create({
+      data: {
+        prompt: dto.prompt.trim(),
+        postId: dto.postId,
+        storyId: dto.storyId,
+      },
+    });
+  }
 
   /**
    * Cast or change a user vote in a poll.
@@ -71,7 +182,8 @@ export class InteractiveService {
 
     const optionsBreakdown = poll.options.map((option: string, idx: number) => {
       const votes = optionCounts[idx] || 0;
-      const percentage = totalVotes > 0 ? Number(((votes / totalVotes) * 100).toFixed(1)) : 0;
+      const percentage =
+        totalVotes > 0 ? Number(((votes / totalVotes) * 100).toFixed(1)) : 0;
       return {
         index: idx,
         text: option,
@@ -132,7 +244,14 @@ export class InteractiveService {
       include: {
         answers: {
           include: {
-            user: { select: { id: true, profile: { select: { username: true, avatar: true, fullName: true } } } },
+            user: {
+              select: {
+                id: true,
+                profile: {
+                  select: { username: true, avatar: true, fullName: true },
+                },
+              },
+            },
           },
           orderBy: { createdAt: 'desc' },
         },

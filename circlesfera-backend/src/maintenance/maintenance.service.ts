@@ -166,7 +166,9 @@ export class MaintenanceService {
         return;
       }
 
-      this.logger.log(`Found ${usersToPurge.length} users for GDPR physical deletion.`);
+      this.logger.log(
+        `Found ${usersToPurge.length} users for GDPR physical deletion.`,
+      );
 
       for (const user of usersToPurge) {
         try {
@@ -180,7 +182,10 @@ export class MaintenanceService {
         }
       }
     } catch (error) {
-      this.logger.error('Error during GDPR hard delete worker execution:', error);
+      this.logger.error(
+        'Error during GDPR hard delete worker execution:',
+        error,
+      );
     }
   }
 
@@ -200,9 +205,19 @@ export class MaintenanceService {
         select: { id: true },
       });
 
-      if (scheduledPosts.length === 0) return;
+      const scheduledStories = await this.prisma.story.findMany({
+        where: {
+          scheduledStatus: 'SCHEDULED',
+          scheduledAt: { lte: now },
+        },
+        select: { id: true },
+      });
 
-      this.logger.log(`Publishing ${scheduledPosts.length} scheduled posts...`);
+      if (scheduledPosts.length === 0 && scheduledStories.length === 0) return;
+
+      this.logger.log(
+        `Publishing ${scheduledPosts.length} scheduled posts and ${scheduledStories.length} scheduled stories...`,
+      );
 
       for (const p of scheduledPosts) {
         await this.prisma.post.update({
@@ -213,8 +228,22 @@ export class MaintenanceService {
           },
         });
       }
+
+      for (const s of scheduledStories) {
+        await this.prisma.story.update({
+          where: { id: s.id },
+          data: {
+            scheduledStatus: 'PUBLISHED',
+            createdAt: now,
+            expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
+          },
+        });
+      }
     } catch (error) {
-      this.logger.error('Error during scheduled posts publishing worker:', error);
+      this.logger.error(
+        'Error during scheduled posts publishing worker:',
+        error,
+      );
     }
   }
 }

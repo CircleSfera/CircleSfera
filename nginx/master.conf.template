@@ -4,8 +4,12 @@
 server {
     listen 80;
     server_name circlesfera.com www.circlesfera.com;
-    client_max_body_size 500m;
-    client_body_buffer_size 100M;
+    client_max_body_size 100m;
+    client_body_buffer_size 16M;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     client_body_timeout 300s;
     send_timeout 300s;
     proxy_read_timeout 300s;
@@ -109,8 +113,10 @@ server {
 server {
     listen 80;
     server_name api.circlesfera.com;
-
-    client_max_body_size 500m;
+    client_max_body_size 100m;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     resolver 127.0.0.11 valid=30s;
     set $backend_upstream http://backend:${BACKEND_PORT};
 
@@ -131,8 +137,11 @@ server {
 server {
     listen 80;
     server_name dev.circlesfera.com;
-    client_max_body_size 500M;
-    client_body_buffer_size 100M;
+    client_max_body_size 100M;
+    client_body_buffer_size 16M;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     client_body_timeout 300s;
     send_timeout 300s;
     proxy_read_timeout 300s;
@@ -207,8 +216,8 @@ server {
 server {
     listen 80 default_server;
     server_name localhost 127.0.0.1;
-    client_max_body_size 500M;
-    client_body_buffer_size 100M;
+    client_max_body_size 100M;
+    client_body_buffer_size 16M;
     client_body_timeout 300s;
     send_timeout 300s;
     proxy_read_timeout 300s;
@@ -270,20 +279,4 @@ server {
     }
 }
 
-# 3. Landing Page Local Listener (Port 81)
-server {
-    listen 81;
-    server_name localhost 127.0.0.1;
-
-    resolver 127.0.0.11 valid=30s;
-    set $landing_upstream http://landing:${LANDING_PORT};
-
-    location / {
-        proxy_pass $landing_upstream;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
+# Landing page listener removed — circlesfera-landing is deprecated.

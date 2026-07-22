@@ -26,8 +26,7 @@ export default function PostMedia({
 
   const unlockMutation = useMutation({
     mutationFn: () => monetizationApi.unlockPost(post.id, window.location.href),
-    onSuccess: (response: any) => {
-      console.log('[BROWSER] MUTATION SUCCESS', response);
+    onSuccess: (response: { url?: string }) => {
       if (response?.url) {
         window.location.href = response.url;
       } else {
@@ -38,8 +37,7 @@ export default function PostMedia({
         queryClient.invalidateQueries({ queryKey: ['wallet'] });
       }
     },
-    onError: (error: any) => {
-      console.log('[BROWSER] MUTATION ERROR', error);
+    onError: (error: { response?: { data?: { message?: string } } }) => {
       toast.error(
         error.response?.data?.message || t('post.media.unlock_error'),
       );

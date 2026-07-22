@@ -85,7 +85,7 @@ function ReferralsSettings() {
   const referrals = data?.data?.referrals || [];
   const maxReferrals = data?.data?.maxReferrals || 3;
   const referralCount = data?.data?.referralCount || 0;
-  const inviteLink = `${window.location.origin}/accounts/register?inviteCode=${inviteCode}`;
+  const inviteLink = `${window.location.origin}/accounts/emailsignup?inviteCode=${inviteCode}`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(inviteLink);

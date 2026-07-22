@@ -29,18 +29,30 @@ describe('LiveController', () => {
 
   describe('startStream', () => {
     it('should call liveService.startStream', async () => {
-      const mockReq = { user: { sub: 'user-1', email: 'test@example.com' } } as any;
-      mockLiveService.startStream.mockResolvedValue({ stream: { id: 'stream-1' }, token: 'jwt' });
+      const mockReq = {
+        user: { userId: 'user-1', email: 'test@example.com', role: 'USER' },
+      } as any;
+      mockLiveService.startStream.mockResolvedValue({
+        stream: { id: 'stream-1' },
+        token: 'jwt',
+      });
 
-      const result = await controller.startStream(mockReq, 'My Stream');
-      expect(mockLiveService.startStream).toHaveBeenCalledWith('user-1', 'My Stream');
+      const result = await controller.startStream(mockReq, {
+        title: 'My Stream',
+      });
+      expect(mockLiveService.startStream).toHaveBeenCalledWith(
+        'user-1',
+        'My Stream',
+      );
       expect(result).toEqual({ stream: { id: 'stream-1' }, token: 'jwt' });
     });
   });
 
   describe('endStream', () => {
     it('should call liveService.endStream', async () => {
-      const mockReq = { user: { sub: 'user-1', email: 'test@example.com' } } as any;
+      const mockReq = {
+        user: { userId: 'user-1', email: 'test@example.com', role: 'USER' },
+      } as any;
       mockLiveService.endStream.mockResolvedValue({ success: true });
 
       const result = await controller.endStream(mockReq);
@@ -61,11 +73,16 @@ describe('LiveController', () => {
 
   describe('joinStream', () => {
     it('should call liveService.getViewerToken', async () => {
-      const mockReq = { user: { sub: 'user-2', email: 'viewer@example.com' } } as any;
+      const mockReq = {
+        user: { userId: 'user-2', email: 'viewer@example.com', role: 'USER' },
+      } as any;
       mockLiveService.getViewerToken.mockResolvedValue({ token: 'jwt-viewer' });
 
       const result = await controller.joinStream(mockReq, 'stream-1');
-      expect(mockLiveService.getViewerToken).toHaveBeenCalledWith('stream-1', 'user-2');
+      expect(mockLiveService.getViewerToken).toHaveBeenCalledWith(
+        'stream-1',
+        'user-2',
+      );
       expect(result).toEqual({ token: 'jwt-viewer' });
     });
   });

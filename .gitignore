@@ -43,3 +43,11 @@ redis_data/
 coverage/
 playwright-report/
 test-results/
+
+# Secrets / local artifacts (must never be committed)
+storageState.json
+nginx/.htpasswd
+scratch/
+deploy_jobs.json
+deploy_runs.json
+.local/

@@ -17,16 +17,15 @@ services:
     environment:
       - FRONTEND_PORT=80
       - BACKEND_PORT=3000
-      - LANDING_PORT=80
     volumes:
       - ./nginx/master.conf.template:/etc/nginx/templates/default.conf.template:ro
-      - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - uploads_data:/usr/share/nginx/html/uploads:ro
     depends_on:
-      - landing
-      - backend
-      - frontend
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
     restart: unless-stopped
     networks:
       - circlesfera-network
@@ -54,10 +53,17 @@ services:
     <<: *default-logging
     image: redis:7-alpine
     container_name: CircleSfera-Redis
-    command: redis-server --appendonly yes
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env.production}"]
     volumes:
       - redis_data:/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     networks:
       - circlesfera-network
 
@@ -73,6 +79,7 @@ services:
       - DB_HOST=postgres
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       # DATABASE_URL mapped via postgres credentials
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     volumes:
@@ -80,16 +87,17 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     command: >
       sh -c "npx prisma migrate deploy && node dist/main"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/v1/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     restart: unless-stopped
-    networks:
-      - circlesfera-network
-
-  landing:
-    <<: *default-logging
-    image: ${REGISTRY:-ghcr.io/circlesfera/circlesfera}/landing:latest
-    container_name: CircleSfera-Landing
     networks:
       - circlesfera-network
 
@@ -97,6 +105,12 @@ services:
     <<: *default-logging
     image: ${REGISTRY:-ghcr.io/circlesfera/circlesfera}/frontend:latest
     container_name: CircleSfera-Frontend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
     networks:
       - circlesfera-network

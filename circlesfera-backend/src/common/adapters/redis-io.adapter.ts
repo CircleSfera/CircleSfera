@@ -22,9 +22,13 @@ export class RedisIoAdapter extends IoAdapter {
 
     this.logger.log(`Connecting to Redis for WebSockets at ${host}:${port}...`);
 
+    const password =
+      this.configService.get<string>('REDIS_PASSWORD') || undefined;
+
     const pubClient = new Redis({
       host,
       port,
+      password,
       lazyConnect: true,
       retryStrategy(times) {
         const delay = Math.min(times * 50, 2000);

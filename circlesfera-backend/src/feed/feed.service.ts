@@ -304,6 +304,7 @@ export class FeedService {
         where: {
           id: { in: inboxPostIds },
           moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+          scheduledStatus: 'PUBLISHED',
         },
         include: {
           user: { include: { profile: true } },
@@ -349,6 +350,7 @@ export class FeedService {
             userId: { in: followingIds },
             type: 'POST',
             moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+            scheduledStatus: 'PUBLISHED',
             OR: [
               { visibility: Visibility.PUBLIC },
               { visibility: Visibility.FOLLOWERS },
@@ -370,6 +372,7 @@ export class FeedService {
             userId: { in: followingIds },
             type: 'POST',
             moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+            scheduledStatus: 'PUBLISHED',
           },
         }),
       ]);
@@ -462,6 +465,7 @@ export class FeedService {
       where: {
         visibility: Visibility.PUBLIC,
         moderationStatus: 'VISIBLE',
+        scheduledStatus: 'PUBLISHED',
         ...(mutedIds.length > 0 ? { userId: { notIn: mutedIds } } : {}),
       },
       orderBy: [{ performanceScore: 'desc' }, { createdAt: 'desc' }],
