@@ -64,18 +64,33 @@ export class LiveService {
 
   async sendGift(
     streamId: string,
-    _userId: string,
+    userId: string,
     giftId: string,
     price: number,
   ) {
-    const stream = await this.prisma.liveStream.findUnique({
-      where: { id: streamId },
-    });
+    const [stream, user] = await Promise.all([
+      this.prisma.liveStream.findUnique({
+        where: { id: streamId },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, profile: { select: { username: true } } },
+      }),
+    ]);
+
     if (stream?.status !== 'LIVE') {
       throw new NotFoundException('Live stream not active');
     }
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
     return {
       success: true,
+      streamId,
+      senderId: user.id,
+      senderUsername: user.profile?.username,
       giftId,
       price,
       sentAt: new Date().toISOString(),
