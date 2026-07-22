@@ -21,6 +21,10 @@ describe('AppGateway', () => {
       if (key === 'JWT_SECRET') return 'test-secret';
       return null;
     }),
+    getOrThrow: vi.fn((key: string) => {
+      if (key === 'JWT_SECRET') return 'test-secret';
+      throw new Error(`Missing key ${key}`);
+    }),
   };
 
   const mockPrismaService = {

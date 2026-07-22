@@ -49,6 +49,11 @@ describe('AuthService', () => {
       if (key === 'JWT_REFRESH_SECRET') return 'refresh-secret';
       return null;
     }),
+    getOrThrow: vi.fn((key: string) => {
+      if (key === 'JWT_SECRET') return 'secret';
+      if (key === 'JWT_REFRESH_SECRET') return 'refresh-secret';
+      throw new Error(`Missing key ${key}`);
+    }),
   };
 
   const mockEmailService = {

@@ -385,9 +385,7 @@ export class AuthService {
           await job.remove();
         }
       } else {
-        const secret =
-          this.configService.get<string>('JWT_SECRET') ||
-          'circlesfera_default_secret_key';
+        const secret = this.configService.getOrThrow<string>('JWT_SECRET');
         const appealToken = this.jwtService.sign(
           { sub: user.id, isAppealToken: true },
           { expiresIn: '15m', secret },
@@ -416,9 +414,7 @@ export class AuthService {
       const payload = this.jwtService.verify<{ sub: string; email: string }>(
         dto.refreshToken,
         {
-          secret:
-            this.configService.get<string>('JWT_REFRESH_SECRET') ||
-            'circlesfera_default_refresh_secret_key',
+          secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
         },
       );
 
@@ -528,20 +524,13 @@ export class AuthService {
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const payload = { sub: userId, email, jti: randomUUID() };
 
-    const jwtSecret =
-      this.configService.get<string>('JWT_SECRET') ||
-      'circlesfera_default_secret_key';
-    const refreshSecret =
-      this.configService.get<string>('JWT_REFRESH_SECRET') ||
-      'circlesfera_default_refresh_secret_key';
-
     const accessToken = this.jwtService.sign(payload, {
-      secret: jwtSecret,
+      secret: this.configService.getOrThrow<string>('JWT_SECRET'),
       expiresIn: '15m',
     });
 
     const refreshToken = this.jwtService.sign(payload, {
-      secret: refreshSecret,
+      secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
       expiresIn: '7d',
     });
 
