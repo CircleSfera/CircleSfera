@@ -26,7 +26,9 @@ import {
   WhitelistTab,
 } from '../components/admin';
 import { AdminMobileNav } from '../components/admin/AdminMobileNav';
-import AdminSidebar, { type AdminTab as Tab } from '../components/admin/AdminSidebar';
+import AdminSidebar, {
+  type AdminTab as Tab,
+} from '../components/admin/AdminSidebar';
 import { CommandPalette } from '../components/admin/CommandPalette';
 import { useAuthStore } from '../stores/authStore';
 
@@ -119,7 +121,9 @@ export default function Admin() {
           >
             <div className="flex items-center gap-2">
               <Search size={15} className="text-gray-400" />
-              <span className="text-gray-400 font-normal">Buscar en el admin...</span>
+              <span className="text-gray-400 font-normal">
+                Buscar en el admin...
+              </span>
             </div>
             <kbd className="flex items-center gap-1 text-[10px] font-mono font-bold border border-white/10 bg-white/10 text-gray-300 rounded px-1.5 py-0.5">
               <Command size={10} /> K
@@ -159,13 +163,21 @@ export default function Admin() {
               {activeTab === 'audio' && <AudioTab onToast={addToast} />}
               {activeTab === 'whitelist' && <WhitelistTab />}
               {activeTab === 'audit' && <AuditLogTab />}
-              {activeTab === 'moderation' && <ModerationTab onToast={addToast} />}
+              {activeTab === 'moderation' && (
+                <ModerationTab onToast={addToast} />
+              )}
               {activeTab === 'firewall' && <FirewallTab onToast={addToast} />}
               {activeTab === 'monetization' && <MonetizationTab />}
-              {activeTab === 'promotions' && <PromotionsTab onToast={addToast} />}
-              {activeTab === 'verification' && <UserVerificationTab onToast={addToast} />}
+              {activeTab === 'promotions' && (
+                <PromotionsTab onToast={addToast} />
+              )}
+              {activeTab === 'verification' && (
+                <UserVerificationTab onToast={addToast} />
+              )}
               {activeTab === 'experiments' && <ExperimentsTab />}
-              {activeTab === 'newsletter' && <NewsletterTab onToast={addToast} />}
+              {activeTab === 'newsletter' && (
+                <NewsletterTab onToast={addToast} />
+              )}
               {activeTab === 'system-health' && <SystemHealthTab />}
             </motion.div>
           </AnimatePresence>
@@ -194,7 +206,9 @@ function AdminBadge() {
       <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse" />
       <span className="text-xs text-gray-300 font-bold">
         {t('admin.connected_as', 'Admin')}:{' '}
-        <span className="text-brand-primary font-black">@{profile.username}</span>
+        <span className="text-brand-primary font-black">
+          @{profile.username}
+        </span>
       </span>
     </div>
   );
