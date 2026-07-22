@@ -213,10 +213,14 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     };
 
     // Notify recipient
-    this.server.to(`user:${payload.recipientId}`).emit('message_reaction', eventPayload);
+    this.server
+      .to(`user:${payload.recipientId}`)
+      .emit('message_reaction', eventPayload);
 
     // Notify sender back
-    this.server.to(`user:${client.data.user.sub}`).emit('message_reaction', eventPayload);
+    this.server
+      .to(`user:${client.data.user.sub}`)
+      .emit('message_reaction', eventPayload);
   }
 
   @SubscribeMessage('mark_read')
@@ -333,11 +337,20 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await client.join(`live:${payload.streamId}`);
 
     // Update DB viewer count & broadcast
-    const updatedStream = await this.prisma.liveStream.update({
-      where: { id: payload.streamId },
-      data: { viewerCount: { increment: 1 } },
-      select: { viewerCount: true },
-    }).catch(() => null);
+    const updatedStream = await this.prisma.liveStream
+      .update({
+        where: { id: payload.streamId },
+        data: { viewerCount: { increment: 1 } },
+        select: { viewerCount: true },
+      })
+      .catch((error) => {
+        this.logger.warn(
+          `Failed to increment viewer count for ${payload.streamId}: ${
+            error instanceof Error ? error.message : 'Unknown'
+          }`,
+        );
+        return null;
+      });
 
     const count = updatedStream?.viewerCount ?? 1;
 
@@ -346,10 +359,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       viewerCount: count,
     });
 
-    this.server.to(`live:${payload.streamId}`).emit('live:viewer_count_update', {
-      streamId: payload.streamId,
-      viewerCount: count,
-    });
+    this.server
+      .to(`live:${payload.streamId}`)
+      .emit('live:viewer_count_update', {
+        streamId: payload.streamId,
+        viewerCount: count,
+      });
   }
 
   @SubscribeMessage('live:leave')
@@ -359,11 +374,20 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     await client.leave(`live:${payload.streamId}`);
 
-    const updatedStream = await this.prisma.liveStream.update({
-      where: { id: payload.streamId },
-      data: { viewerCount: { decrement: 1 } },
-      select: { viewerCount: true },
-    }).catch(() => null);
+    const updatedStream = await this.prisma.liveStream
+      .update({
+        where: { id: payload.streamId },
+        data: { viewerCount: { decrement: 1 } },
+        select: { viewerCount: true },
+      })
+      .catch((error) => {
+        this.logger.warn(
+          `Failed to decrement viewer count for ${payload.streamId}: ${
+            error instanceof Error ? error.message : 'Unknown'
+          }`,
+        );
+        return null;
+      });
 
     const count = Math.max(0, updatedStream?.viewerCount ?? 0);
 
@@ -372,10 +396,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       viewerCount: count,
     });
 
-    this.server.to(`live:${payload.streamId}`).emit('live:viewer_count_update', {
-      streamId: payload.streamId,
-      viewerCount: count,
-    });
+    this.server
+      .to(`live:${payload.streamId}`)
+      .emit('live:viewer_count_update', {
+        streamId: payload.streamId,
+        viewerCount: count,
+      });
   }
 
   @SubscribeMessage('live:chat')
@@ -423,9 +449,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('live:unpin_comment')
-  async handleLiveUnpinComment(
-    @MessageBody() payload: { streamId: string },
-  ) {
+  async handleLiveUnpinComment(@MessageBody() payload: { streamId: string }) {
     this.server.to(`live:${payload.streamId}`).emit('live:comment_unpinned', {
       streamId: payload.streamId,
     });
