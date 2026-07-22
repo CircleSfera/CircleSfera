@@ -32,7 +32,7 @@ export const QnaWidget: React.FC<{ qnaBoxId: string; prompt?: string }> = ({
   };
 
   return (
-    <div className="p-4 bg-gradient-to-br from-purple-900/30 to-indigo-900/20 border border-purple-500/20 rounded-2xl space-y-3 shadow-lg">
+    <div className="p-4 bg-linear-to-br from-purple-900/30 to-indigo-900/20 border border-purple-500/20 rounded-2xl space-y-3 shadow-lg">
       <div className="flex items-center space-x-2 text-purple-400">
         <HelpCircle className="w-4 h-4" />
         <h4 className="text-xs font-bold uppercase tracking-wider">

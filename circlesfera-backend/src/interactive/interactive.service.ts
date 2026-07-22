@@ -68,7 +68,7 @@ export class InteractiveService {
       }
     }
 
-    const optionsBreakdown = poll.options.map((option, idx) => {
+    const optionsBreakdown = poll.options.map((option: string, idx: number) => {
       const votes = optionCounts[idx] || 0;
       const percentage = totalVotes > 0 ? Number(((votes / totalVotes) * 100).toFixed(1)) : 0;
       return {
@@ -146,7 +146,7 @@ export class InteractiveService {
       id: qnaBox.id,
       prompt: qnaBox.prompt,
       totalAnswers: qnaBox.answers.length,
-      answers: qnaBox.answers.map((a) => ({
+      answers: qnaBox.answers.map((a: { id: string; answerText: string; createdAt: Date; user: { id: string; username: string; profile: { avatar: string | null; fullName: string | null } | null } }) => ({
         id: a.id,
         answerText: a.answerText,
         createdAt: a.createdAt,
