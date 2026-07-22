@@ -102,6 +102,42 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * Smart Fan-out strategy:
+   * Standard creators (< 5000 followers) get fan-out on write (push to all followers).
+   * Celebrity creators (>= 5000 followers) skip write fanout to avoid thundering herd.
+   */
+  async fanoutHybrid(
+    authorId: string,
+    followerIds: string[],
+    postId: string,
+  ): Promise<{ strategy: 'WRITE' | 'READ_HYBRID'; fannedOutCount: number }> {
+    const CELEBRITY_THRESHOLD = 5000;
+    if (followerIds.length >= CELEBRITY_THRESHOLD) {
+      this.logger.log(
+        `Author ${authorId} has ${followerIds.length} followers (>= ${CELEBRITY_THRESHOLD}). Using Fan-out on Read strategy for post ${postId}.`,
+      );
+      return { strategy: 'READ_HYBRID', fannedOutCount: 0 };
+    }
+
+    await this.fanoutToFollowers(followerIds, postId);
+    return { strategy: 'WRITE', fannedOutCount: followerIds.length };
+  }
+
+  /**
+   * Invalidates Redis feed cache for a user.
+   */
+  async invalidateUserFeedCache(userId: string): Promise<void> {
+    if (!this.redisClient) return;
+    try {
+      const key = `user:${userId}:inbox`;
+      await this.redisClient.del(key);
+      this.logger.debug(`Invalidated feed inbox cache for user ${userId}`);
+    } catch (error) {
+      this.logger.error(`Failed to invalidate feed cache for user ${userId}: ${error}`);
+    }
+  }
+
+  /**
    * Gets the total count of posts in the user's inbox
    */
   async getInboxCount(userId: string): Promise<number> {
