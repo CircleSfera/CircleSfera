@@ -248,7 +248,7 @@ export interface Report {
   targetId: string;
   reason: string;
   details?: string | null;
-  status: 'PENDING' | 'RESOLVED' | 'DISMISSED';
+  status: 'PENDING' | 'REVIEWING' | 'RESOLVED' | 'REJECTED';
   createdAt: Date | string;
   updatedAt: Date | string;
   reporter?: {
