@@ -7,6 +7,7 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { AdminController } from './admin.controller.js';
 import { AdminService } from './admin.service.js';
+import { AdminOpsService } from './admin-ops.service.js';
 
 @Module({
   imports: [
@@ -21,6 +22,6 @@ import { AdminService } from './admin.service.js';
     ),
   ],
   controllers: [AdminController],
-  providers: [AdminService],
+  providers: [AdminService, AdminOpsService],
 })
 export class AdminModule {}

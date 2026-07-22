@@ -1,28 +1,32 @@
 # Manual E2E smoke — Actions → E2E Smoke → Run workflow.
 # Prefers workflow inputs when provided; otherwise uses repo secrets
 # E2E_USER_EMAIL / E2E_USER_PASSWORD (set via ./scripts/setup-github-e2e.sh).
+#
+# Production example:
+#   base_url=https://circlesfera.com
+#   backend_url=https://circlesfera.com/api/v1
 name: E2E Smoke
 
 on:
   workflow_dispatch:
     inputs:
       e2e_user_email:
-        description: E2E user email (optional if repo secret E2E_USER_EMAIL is set)
+        description: E2E user email (optional if repo secret E2E_USER_EMAIL is set; unused by smoke.spec itself)
         required: false
         type: string
       e2e_user_password:
-        description: E2E user password (optional if repo secret E2E_USER_PASSWORD is set)
+        description: E2E user password (optional if repo secret E2E_USER_PASSWORD is set; unused by smoke.spec itself)
         required: false
         type: string
       base_url:
         description: Frontend base URL
         required: false
-        default: http://localhost:5173
+        default: https://circlesfera.com
         type: string
       backend_url:
-        description: Backend API base URL
+        description: Backend API base URL (must include /api/v1)
         required: false
-        default: http://localhost:3005/api/v1
+        default: https://circlesfera.com/api/v1
         type: string
 
 env:
@@ -55,9 +59,7 @@ jobs:
           E2E_USER_PASSWORD: ${{ inputs.e2e_user_password || secrets.E2E_USER_PASSWORD }}
           BASE_URL: ${{ inputs.base_url }}
           BACKEND_URL: ${{ inputs.backend_url }}
+          SKIP_GLOBAL_SETUP: 'true'
         run: |
-          if [ -z "$E2E_USER_EMAIL" ] || [ -z "$E2E_USER_PASSWORD" ]; then
-            echo "Missing E2E credentials. Pass workflow inputs or set secrets E2E_USER_EMAIL / E2E_USER_PASSWORD."
-            exit 1
-          fi
+          # Smoke does not require credentials; keep secrets optional for future gated suites.
           npx playwright test e2e/smoke.spec.ts --project=chromium

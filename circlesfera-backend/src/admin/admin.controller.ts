@@ -25,6 +25,7 @@ import { CreateAudioDto } from '../audio/dto/create-audio.dto.js';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { AdminService } from './admin.service.js';
+import { AdminOpsService } from './admin-ops.service.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
 import { BroadcastEmailDto } from './dto/broadcast-email.dto.js';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto.js';
@@ -40,6 +41,7 @@ interface AuthRequest extends Request {
 export class AdminController {
   constructor(
     @Inject(AdminService) private readonly adminService: AdminService,
+    @Inject(AdminOpsService) private readonly adminOpsService: AdminOpsService,
     @Inject(AudioService) private readonly audioService: AudioService,
   ) {}
 
@@ -440,7 +442,7 @@ export class AdminController {
   /** Get paginated AI Vector Firewall signatures */
   @Get('firewall')
   async getFirewallSignatures(@Query() query: AdminQueryDto) {
-    return this.adminService.getFirewallSignatures(
+    return this.adminOpsService.getFirewallSignatures(
       query.page ?? 1,
       query.limit ?? 20,
     );
@@ -452,7 +454,7 @@ export class AdminController {
     @Body() body: { text: string; category: string },
     @Req() req: AuthRequest,
   ) {
-    return this.adminService.addFirewallSignature(
+    return this.adminOpsService.addFirewallSignature(
       req.user.userId,
       body.text,
       body.category,
@@ -465,14 +467,14 @@ export class AdminController {
     @Param('id') id: string,
     @Req() req: AuthRequest,
   ) {
-    return this.adminService.deleteFirewallSignature(req.user.userId, id);
+    return this.adminOpsService.deleteFirewallSignature(req.user.userId, id);
   }
 
   // ─── User Experiments (A/B Testing) ───────────────────────────────
 
   @Get('experiments/users')
   async getUserExperiments(@Query() query: AdminQueryDto) {
-    return this.adminService.getUserExperiments(
+    return this.adminOpsService.getUserExperiments(
       query.page ?? 1,
       query.limit ?? 20,
       query.search,
@@ -484,7 +486,7 @@ export class AdminController {
     @Body() body: { userId: string; experimentKey: string; variant: string },
     @Req() req: AuthRequest,
   ) {
-    return this.adminService.assignUserExperiment(
+    return this.adminOpsService.assignUserExperiment(
       req.user.userId,
       body.userId,
       body.experimentKey,
@@ -494,6 +496,6 @@ export class AdminController {
 
   @Delete('experiments/users/:id')
   async removeUserExperiment(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.adminService.removeUserExperiment(req.user.userId, id);
+    return this.adminOpsService.removeUserExperiment(req.user.userId, id);
   }
 }
