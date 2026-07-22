@@ -648,4 +648,145 @@ export class CreatorService {
       where: { id: promotionId },
     });
   }
+
+  // ─── Advanced Analytics ──────────────────────────────────────────
+
+  async getRevenueAnalytics(userId: string, period: '7d' | '30d' | '90d' | '1y' = '30d') {
+    const daysMap = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 };
+    const days = daysMap[period] || 30;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const [transactions, activeSubscribersCount, totalFollowersCount] = await Promise.all([
+      this.prisma.transaction.findMany({
+        where: {
+          receiverId: userId,
+          status: 'COMPLETED',
+          createdAt: { gte: startDate },
+        },
+      }),
+      this.prisma.creatorSubscription.count({
+        where: { creatorId: userId, status: 'ACTIVE' },
+      }),
+      this.prisma.follow.count({
+        where: { followingId: userId, status: 'ACCEPTED' },
+      }),
+    ]);
+
+    let subscriptionsTotal = 0;
+    let tipsTotal = 0;
+    let postUnlocksTotal = 0;
+    const giftsTotal = 0;
+
+    for (const tx of transactions) {
+      const amountEur = tx.amount > 0 ? tx.amount / 100 : 0; // stored in cents/tokens
+      if (tx.type === 'STRIPE_SUBSCRIPTION') subscriptionsTotal += amountEur;
+      else if (tx.type === 'DIRECT_TIP') tipsTotal += amountEur;
+      else if (tx.type === 'DIRECT_POST_UNLOCK') postUnlocksTotal += amountEur;
+    }
+
+    const grossRevenue = subscriptionsTotal + tipsTotal + postUnlocksTotal + giftsTotal;
+    const conversionRate = totalFollowersCount > 0
+      ? Number(((activeSubscribersCount / totalFollowersCount) * 100).toFixed(2))
+      : 0;
+
+    return {
+      period,
+      grossRevenue,
+      subscriptionsTotal,
+      tipsTotal,
+      postUnlocksTotal,
+      giftsTotal,
+      activeSubscribersCount,
+      totalFollowersCount,
+      conversionRate,
+      currency: 'EUR',
+    };
+  }
+
+  async getAudienceRetentionAnalytics(userId: string) {
+    const posts = await this.prisma.post.findMany({
+      where: { userId },
+      select: { id: true, performanceScore: true, views: true },
+    });
+
+    const postIds = posts.map((p) => p.id);
+
+    const events = postIds.length > 0
+      ? await this.prisma.interactionEvent.findMany({
+          where: {
+            targetId: { in: postIds },
+            targetType: 'POST',
+            dwellTime: { not: null },
+          },
+          select: { dwellTime: true, createdAt: true },
+          take: 500,
+        })
+      : [];
+
+    const totalDwell = events.reduce((sum, e) => sum + (e.dwellTime || 0), 0);
+    const avgDwellSeconds = events.length > 0 ? Math.round(totalDwell / events.length) : 0;
+
+    // Build hourly activity distribution (24 hours)
+    const hourlyMap = new Array(24).fill(0);
+    for (const e of events) {
+      const hour = new Date(e.createdAt).getHours();
+      hourlyMap[hour] += 1;
+    }
+
+    const peakHour = hourlyMap.indexOf(Math.max(...hourlyMap));
+
+    return {
+      avgDwellSeconds,
+      totalInteractionsSampled: events.length,
+      peakActivityHourUTC: peakHour,
+      hourlyDistribution: hourlyMap,
+    };
+  }
+
+  async getTopPerformingContent(userId: string, limit = 5) {
+    const topPosts = await this.prisma.post.findMany({
+      where: { userId, type: 'POST' },
+      take: limit,
+      orderBy: { performanceScore: 'desc' },
+      include: {
+        media: { select: { url: true, type: true } },
+        _count: { select: { likes: true, comments: true, bookmarks: true } },
+      },
+    });
+
+    return topPosts.map((post) => ({
+      id: post.id,
+      caption: post.caption,
+      views: post.views,
+      performanceScore: post.performanceScore,
+      likes: post._count.likes,
+      comments: post._count.comments,
+      bookmarks: post._count.bookmarks,
+      thumbnailUrl: post.media[0]?.url || null,
+      createdAt: post.createdAt,
+    }));
+  }
+
+  async exportAnalyticsCsv(userId: string, period = '30d'): Promise<string> {
+    const revenue = await this.getRevenueAnalytics(userId, period as '7d' | '30d' | '90d' | '1y');
+    const retention = await this.getAudienceRetentionAnalytics(userId);
+
+    const rows = [
+      ['Metric', 'Value', 'Unit/Currency'],
+      ['Period', revenue.period, ''],
+      ['Gross Revenue', revenue.grossRevenue.toFixed(2), revenue.currency],
+      ['Subscriptions Revenue', revenue.subscriptionsTotal.toFixed(2), revenue.currency],
+      ['Tips Revenue', revenue.tipsTotal.toFixed(2), revenue.currency],
+      ['Post Unlocks Revenue', revenue.postUnlocksTotal.toFixed(2), revenue.currency],
+      ['Gifts Revenue', revenue.giftsTotal.toFixed(2), revenue.currency],
+      ['Active Subscribers', revenue.activeSubscribersCount, 'users'],
+      ['Total Followers', revenue.totalFollowersCount, 'users'],
+      ['Subscriber Conversion Rate', `${revenue.conversionRate}%`, 'percent'],
+      ['Average Dwell Time', retention.avgDwellSeconds, 'seconds'],
+      ['Peak Activity Hour', `${retention.peakActivityHourUTC}:00 UTC`, 'hour'],
+    ];
+
+    return rows.map((r) => r.join(',')).join('\n');
+  }
 }

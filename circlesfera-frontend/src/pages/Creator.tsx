@@ -102,7 +102,10 @@ export default function Creator() {
                 </span>
               </div>
               <p className="text-gray-400 text-xs mt-0.5">
-                {t('creator.subtitle', 'Panel de analítica, monetización y contenido')}
+                {t(
+                  'creator.subtitle',
+                  'Panel de analítica, monetización y contenido',
+                )}
               </p>
             </div>
           </div>
@@ -173,7 +176,9 @@ export default function Creator() {
                 {activeTab === 'overview' && (
                   <CreatorDashboard
                     onPromote={(post) => setPromotePost(post)}
-                    onNavigate={(target) => handleTabChange(target as CreatorTab)}
+                    onNavigate={(target) =>
+                      handleTabChange(target as CreatorTab)
+                    }
                     stats={stats}
                     chartData={chartData}
                   />

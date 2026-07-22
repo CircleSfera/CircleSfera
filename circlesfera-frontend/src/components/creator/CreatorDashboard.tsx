@@ -20,6 +20,7 @@ import type {
 import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse } from '../../types';
 import PostInsightsModal from '../modals/PostInsightsModal';
+import { CreatorAnalyticsDashboard } from './CreatorAnalyticsDashboard';
 import CreatorHeroCard from './CreatorHeroCard';
 
 function SectionHeader({
@@ -99,10 +100,16 @@ export default function CreatorDashboard({
       {/* Content Performance Section */}
       <section>
         <SectionHeader
-          title={t('creator.dashboard.content_performance', 'Rendimiento de Contenido')}
+          title={t(
+            'creator.dashboard.content_performance',
+            'Rendimiento de Contenido',
+          )}
           icon={Zap}
           onSeeAll={() => onNavigate('content')}
-          seeAllLabel={t('creator.dashboard.see_all_content', 'Ver todo el contenido')}
+          seeAllLabel={t(
+            'creator.dashboard.see_all_content',
+            'Ver todo el contenido',
+          )}
         />
 
         {postsLoading ? (
@@ -142,7 +149,10 @@ export default function CreatorDashboard({
                       onPromote(post);
                     }}
                     className="absolute inset-0 bg-brand-primary/40 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center justify-center hover:bg-brand-primary/60"
-                    title={t('creator.dashboard.promote_post', 'Promocionar publicación')}
+                    title={t(
+                      'creator.dashboard.promote_post',
+                      'Promocionar publicación',
+                    )}
                   >
                     <Megaphone size={20} className="text-white" />
                   </button>
@@ -151,7 +161,8 @@ export default function CreatorDashboard({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1.5">
                     <p className="text-white font-bold text-sm truncate">
-                      {post.caption || t('creator.dashboard.untitled_post', 'Sin título')}
+                      {post.caption ||
+                        t('creator.dashboard.untitled_post', 'Sin título')}
                     </p>
                     <span className="text-brand-primary text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-brand-primary/10 border border-brand-primary/20 rounded-md">
                       {post.type}
@@ -189,7 +200,10 @@ export default function CreatorDashboard({
         {/* Tool Cards */}
         <section className="lg:col-span-2 space-y-4">
           <SectionHeader
-            title={t('creator.dashboard.studio_management', 'Herramientas del Studio')}
+            title={t(
+              'creator.dashboard.studio_management',
+              'Herramientas del Studio',
+            )}
             icon={BarChart3}
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -203,10 +217,16 @@ export default function CreatorDashboard({
               </div>
               <div>
                 <h4 className="text-white font-black text-base mb-1 tracking-tight">
-                  {t('creator.dashboard.finance_earnings', 'Gestión de Ingresos')}
+                  {t(
+                    'creator.dashboard.finance_earnings',
+                    'Gestión de Ingresos',
+                  )}
                 </h4>
                 <p className="text-gray-400 text-xs leading-relaxed">
-                  {t('creator.dashboard.finance_desc', 'Consulta tus métricas de suscripciones, propinas y payouts.')}
+                  {t(
+                    'creator.dashboard.finance_desc',
+                    'Consulta tus métricas de suscripciones, propinas y payouts.',
+                  )}
                 </p>
               </div>
             </button>
@@ -221,10 +241,16 @@ export default function CreatorDashboard({
               </div>
               <div>
                 <h4 className="text-white font-black text-base mb-1 tracking-tight">
-                  {t('creator.dashboard.ads_promotions', 'Promoción y Campañas')}
+                  {t(
+                    'creator.dashboard.ads_promotions',
+                    'Promoción y Campañas',
+                  )}
                 </h4>
                 <p className="text-gray-400 text-xs leading-relaxed">
-                  {t('creator.dashboard.ads_desc', 'Impulsa tus publicaciones para llegar a más audiencia.')}
+                  {t(
+                    'creator.dashboard.ads_desc',
+                    'Impulsa tus publicaciones para llegar a más audiencia.',
+                  )}
                 </p>
               </div>
             </button>
@@ -233,7 +259,10 @@ export default function CreatorDashboard({
 
         {/* Audience Retention Gauge */}
         <section className="space-y-4">
-          <SectionHeader title={t('creator.dashboard.audience', 'Audiencia')} icon={Users} />
+          <SectionHeader
+            title={t('creator.dashboard.audience', 'Audiencia')}
+            icon={Users}
+          />
           <div className="bg-black/40 backdrop-blur-xl p-5 rounded-2xl border border-white/10 flex flex-col items-center text-center shadow-lg">
             <div
               className="relative w-32 h-32 mb-4"
@@ -283,14 +312,25 @@ export default function CreatorDashboard({
             </div>
 
             <p className="text-white font-bold text-xs mb-1">
-              Mejor día: <span className="text-brand-primary">{stats?.insights.bestDayToPost || 'Lunes'}</span>
+              Mejor día:{' '}
+              <span className="text-brand-primary">
+                {stats?.insights.bestDayToPost || 'Lunes'}
+              </span>
             </p>
             <p className="text-gray-400 text-xs">
-              Hora pico: <span className="text-white font-bold">{stats?.insights.bestHourToPost || '20:00'}</span>
+              Hora pico:{' '}
+              <span className="text-white font-bold">
+                {stats?.insights.bestHourToPost || '20:00'}
+              </span>
             </p>
           </div>
         </section>
       </div>
+
+      {/* Advanced Creator Analytics Section */}
+      <section className="pt-4 border-t border-white/5">
+        <CreatorAnalyticsDashboard />
+      </section>
     </div>
   );
 }
