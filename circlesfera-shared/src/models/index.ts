@@ -239,6 +239,16 @@ export interface SearchResult {
     postCount: number;
   }>;
   semanticPosts?: Post[];
+  semanticProfiles?: Array<
+    Profile & {
+      user?: {
+        id: string;
+        verificationLevel?: string;
+        accountType?: string;
+      };
+      similarityScore?: number;
+    }
+  >;
 }
 
 export interface Report {

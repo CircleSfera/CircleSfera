@@ -459,6 +459,8 @@ export class PostsService {
           ? { where: { userId: currentUserId }, take: 1 }
           : false,
         media: true,
+        poll: { select: { id: true } },
+        qnaBox: { select: { id: true } },
       },
     });
 

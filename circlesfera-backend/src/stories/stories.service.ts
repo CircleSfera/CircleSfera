@@ -124,6 +124,8 @@ export class StoriesService {
             profile: true,
           },
         },
+        poll: { select: { id: true } },
+        qnaBox: { select: { id: true } },
         _count: {
           select: { views: true },
         },

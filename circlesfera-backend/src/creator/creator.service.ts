@@ -406,12 +406,9 @@ export class CreatorService {
       data: { status: PromotionStatus.COMPLETED },
     });
 
-    // 2. Delete all cancelled promotions (cleanup)
-    await this.prisma.promotion.deleteMany({
-      where: { userId, status: PromotionStatus.CANCELLED },
-    });
+    // 2. Keep cancelled promotions in history (no hard delete)
 
-    // 3. Fetch only active + completed + pending, with related post/story data
+    // 3. Fetch active + completed + pending + cancelled, with related post/story data
     const where = {
       userId,
       status: {
@@ -419,6 +416,7 @@ export class CreatorService {
           PromotionStatus.ACTIVE,
           PromotionStatus.COMPLETED,
           PromotionStatus.PENDING,
+          PromotionStatus.CANCELLED,
         ],
       },
     };
@@ -642,36 +640,90 @@ export class CreatorService {
     if (promo.status === PromotionStatus.COMPLETED) {
       throw new Error('Cannot cancel completed promotion');
     }
+    if (promo.status === PromotionStatus.CANCELLED) {
+      return promo;
+    }
 
-    // Permanently delete cancelled promotions
-    return this.prisma.promotion.delete({
+    return this.prisma.promotion.update({
       where: { id: promotionId },
+      data: {
+        status: PromotionStatus.CANCELLED,
+        endDate: new Date(),
+      },
+    });
+  }
+
+  async updatePromotion(
+    userId: string,
+    promotionId: string,
+    data: {
+      objective?: string;
+      interests?: string;
+      countries?: string;
+      endDate?: string;
+      dailyBudget?: number;
+    },
+  ) {
+    const promo = await this.prisma.promotion.findFirst({
+      where: { id: promotionId, userId },
+    });
+    if (!promo) throw new Error('Promotion not found');
+    if (
+      promo.status !== PromotionStatus.ACTIVE &&
+      promo.status !== PromotionStatus.PENDING
+    ) {
+      throw new Error('Only active or pending promotions can be edited');
+    }
+
+    let endDate: Date | undefined;
+    if (data.endDate) {
+      endDate = new Date(data.endDate);
+      if (Number.isNaN(endDate.getTime()) || endDate <= new Date()) {
+        throw new Error('endDate must be a future date');
+      }
+    }
+
+    return this.prisma.promotion.update({
+      where: { id: promotionId },
+      data: {
+        ...(data.objective !== undefined ? { objective: data.objective } : {}),
+        ...(data.interests !== undefined ? { interests: data.interests } : {}),
+        ...(data.countries !== undefined ? { countries: data.countries } : {}),
+        ...(data.dailyBudget !== undefined
+          ? { dailyBudget: data.dailyBudget }
+          : {}),
+        ...(endDate ? { endDate } : {}),
+      },
     });
   }
 
   // ─── Advanced Analytics ──────────────────────────────────────────
 
-  async getRevenueAnalytics(userId: string, period: '7d' | '30d' | '90d' | '1y' = '30d') {
+  async getRevenueAnalytics(
+    userId: string,
+    period: '7d' | '30d' | '90d' | '1y' = '30d',
+  ) {
     const daysMap = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 };
     const days = daysMap[period] || 30;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const [transactions, activeSubscribersCount, totalFollowersCount] = await Promise.all([
-      this.prisma.transaction.findMany({
-        where: {
-          receiverId: userId,
-          status: 'COMPLETED',
-          createdAt: { gte: startDate },
-        },
-      }),
-      this.prisma.creatorSubscription.count({
-        where: { creatorId: userId, status: 'ACTIVE' },
-      }),
-      this.prisma.follow.count({
-        where: { followingId: userId, status: 'ACCEPTED' },
-      }),
-    ]);
+    const [transactions, activeSubscribersCount, totalFollowersCount] =
+      await Promise.all([
+        this.prisma.transaction.findMany({
+          where: {
+            receiverId: userId,
+            status: 'COMPLETED',
+            createdAt: { gte: startDate },
+          },
+        }),
+        this.prisma.creatorSubscription.count({
+          where: { creatorId: userId, status: 'ACTIVE' },
+        }),
+        this.prisma.follow.count({
+          where: { followingId: userId, status: 'ACCEPTED' },
+        }),
+      ]);
 
     let subscriptionsTotal = 0;
     let tipsTotal = 0;
@@ -685,10 +737,14 @@ export class CreatorService {
       else if (tx.type === 'DIRECT_POST_UNLOCK') postUnlocksTotal += amountEur;
     }
 
-    const grossRevenue = subscriptionsTotal + tipsTotal + postUnlocksTotal + giftsTotal;
-    const conversionRate = totalFollowersCount > 0
-      ? Number(((activeSubscribersCount / totalFollowersCount) * 100).toFixed(2))
-      : 0;
+    const grossRevenue =
+      subscriptionsTotal + tipsTotal + postUnlocksTotal + giftsTotal;
+    const conversionRate =
+      totalFollowersCount > 0
+        ? Number(
+            ((activeSubscribersCount / totalFollowersCount) * 100).toFixed(2),
+          )
+        : 0;
 
     return {
       period,
@@ -712,20 +768,22 @@ export class CreatorService {
 
     const postIds = posts.map((p) => p.id);
 
-    const events = postIds.length > 0
-      ? await this.prisma.interactionEvent.findMany({
-          where: {
-            targetId: { in: postIds },
-            targetType: 'POST',
-            dwellTime: { not: null },
-          },
-          select: { dwellTime: true, createdAt: true },
-          take: 500,
-        })
-      : [];
+    const events =
+      postIds.length > 0
+        ? await this.prisma.interactionEvent.findMany({
+            where: {
+              targetId: { in: postIds },
+              targetType: 'POST',
+              dwellTime: { not: null },
+            },
+            select: { dwellTime: true, createdAt: true },
+            take: 500,
+          })
+        : [];
 
     const totalDwell = events.reduce((sum, e) => sum + (e.dwellTime || 0), 0);
-    const avgDwellSeconds = events.length > 0 ? Math.round(totalDwell / events.length) : 0;
+    const avgDwellSeconds =
+      events.length > 0 ? Math.round(totalDwell / events.length) : 0;
 
     // Build hourly activity distribution (24 hours)
     const hourlyMap = new Array(24).fill(0);
@@ -769,16 +827,27 @@ export class CreatorService {
   }
 
   async exportAnalyticsCsv(userId: string, period = '30d'): Promise<string> {
-    const revenue = await this.getRevenueAnalytics(userId, period as '7d' | '30d' | '90d' | '1y');
+    const revenue = await this.getRevenueAnalytics(
+      userId,
+      period as '7d' | '30d' | '90d' | '1y',
+    );
     const retention = await this.getAudienceRetentionAnalytics(userId);
 
     const rows = [
       ['Metric', 'Value', 'Unit/Currency'],
       ['Period', revenue.period, ''],
       ['Gross Revenue', revenue.grossRevenue.toFixed(2), revenue.currency],
-      ['Subscriptions Revenue', revenue.subscriptionsTotal.toFixed(2), revenue.currency],
+      [
+        'Subscriptions Revenue',
+        revenue.subscriptionsTotal.toFixed(2),
+        revenue.currency,
+      ],
       ['Tips Revenue', revenue.tipsTotal.toFixed(2), revenue.currency],
-      ['Post Unlocks Revenue', revenue.postUnlocksTotal.toFixed(2), revenue.currency],
+      [
+        'Post Unlocks Revenue',
+        revenue.postUnlocksTotal.toFixed(2),
+        revenue.currency,
+      ],
       ['Gifts Revenue', revenue.giftsTotal.toFixed(2), revenue.currency],
       ['Active Subscribers', revenue.activeSubscribersCount, 'users'],
       ['Total Followers', revenue.totalFollowersCount, 'users'],

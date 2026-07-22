@@ -38,6 +38,12 @@ export class ReportsController {
     return await this.reportsService.create(user.userId, dto);
   }
 
+  /** List reports filed by the current user. */
+  @Get('me')
+  async findMyReports(@CurrentUser() user: CurrentUserData) {
+    return this.reportsService.findMyReports(user.userId);
+  }
+
   /** List all reports (admin only). */
   @Get()
   @UseGuards(AdminGuard)
@@ -51,7 +57,8 @@ export class ReportsController {
   async update(
     @Param('id') id: string,
     @Body('status') status: ReportStatus,
+    @CurrentUser() user: CurrentUserData,
   ): Promise<Report> {
-    return this.reportsService.update(id, status);
+    return this.reportsService.update(id, status, user.userId);
   }
 }
