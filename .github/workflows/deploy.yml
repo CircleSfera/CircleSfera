@@ -3,6 +3,7 @@ name: Deploy to OVH VPS
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -80,18 +81,6 @@ jobs:
           file: ./circlesfera-frontend/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
-          build-args: |
-            VITE_API_URL=${{ secrets.VITE_API_URL }}
-          # cache-from: type=gha
-          # cache-to: type=gha,mode=max
-
-      - name: Build and push Landing
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./circlesfera-landing/Dockerfile
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/landing:latest
           build-args: |
             VITE_API_URL=${{ secrets.VITE_API_URL }}
           # cache-from: type=gha

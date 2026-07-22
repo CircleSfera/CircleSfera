@@ -33,8 +33,10 @@ jobs:
           npm run lint
           npm run test
 
-      - name: "Frontend: Install and Lint"
+      - name: "Frontend: Install, Lint, Test and Build"
         run: |
           cd circlesfera-frontend
           npm install
           npm run lint
+          npm run test
+          npm run build

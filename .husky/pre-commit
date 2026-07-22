@@ -1,18 +1,16 @@
 #!/bin/sh
 
+# Pre-commit hook: block secrets and run Biome on staged files
 
-# Pre-commit hook to prevent secret leaks
-
-echo "🛡️ CircleSfera Security: Scanning for secrets..."
+echo "CircleSfera Security: Scanning for secrets..."
 
 # 1. Prevent .env files from being committed entirely
 STAGED_ENV_FILES=$(git diff --cached --name-only | grep -E '^\.env$|\.env\.' || true)
 
 if [ -n "$STAGED_ENV_FILES" ]; then
-  # .env.example is usually fine, but let's exclude it from the error if it's strictly .env.example
   for file in $STAGED_ENV_FILES; do
     if [ "$file" != ".env.example" ]; then
-      echo "❌ ERROR: You are trying to commit a sensitive environment file: $file"
+      echo "ERROR: You are trying to commit a sensitive environment file: $file"
       echo "Please run: git reset HEAD $file"
       echo "And ensure it is in your .gitignore file."
       exit 1
@@ -20,13 +18,36 @@ if [ -n "$STAGED_ENV_FILES" ]; then
   done
 fi
 
-# 2. Simple regex scan for hardcoded secrets (disabled - no secrets detected)
-# git diff --cached -G"(sk-[a-zA-Z0-9]{32,}|xkeysib-[a-zA-Z0-9]{50,})" --name-only | while read file; do
-#     if [ "$file" != ".env.example" ]; then
-#         echo "❌ ERROR: Possible secret leak detected in file: $file"
-#         echo "Please remove hardcoded secrets (API keys, etc.) before committing."
-#         exit 1
-#     fi
-# done || true
+# 2. Block known sensitive artifacts (allow deletions so they can leave the repo)
+STAGED_SENSITIVE=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(storageState\.json|nginx/\.htpasswd$|scratch/|deploy_jobs\.json|deploy_runs\.json)' || true)
+if [ -n "$STAGED_SENSITIVE" ]; then
+  echo "ERROR: Refusing to commit sensitive/local artifacts:"
+  echo "$STAGED_SENSITIVE"
+  exit 1
+fi
 
-echo "✅ Security scan passed."
+# 3. Simple regex scan for hardcoded secrets in staged diffs
+LEAKS=$(git diff --cached -G'(sk-[a-zA-Z0-9]{20,}|xkeysib-[a-zA-Z0-9]{40,}|AKIA[0-9A-Z]{16}|BEGIN (RSA |OPENSSH )?PRIVATE KEY)' --name-only | grep -v '\.env\.example$' || true)
+if [ -n "$LEAKS" ]; then
+  echo "ERROR: Possible secret leak detected in staged files:"
+  echo "$LEAKS"
+  echo "Please remove hardcoded secrets (API keys, private keys, etc.) before committing."
+  exit 1
+fi
+
+echo "Security scan passed."
+
+# 4. Biome check on staged JS/TS files (if biome is available)
+STAGED_CODE=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(js|jsx|ts|tsx|json)$' || true)
+if [ -n "$STAGED_CODE" ] && command -v npx >/dev/null 2>&1; then
+  echo "Running Biome on staged files..."
+  # shellcheck disable=SC2086
+  echo "$STAGED_CODE" | xargs npx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true -- || {
+    echo "ERROR: Biome check failed. Fix lint/format issues before committing."
+    exit 1
+  }
+  # Re-stage files Biome may have reformatted
+  echo "$STAGED_CODE" | xargs git add --
+fi
+
+echo "Pre-commit checks passed."
