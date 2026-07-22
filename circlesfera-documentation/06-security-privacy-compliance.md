@@ -1,357 +1,357 @@
 # 06-Security-Privacy-Compliance
 ## CircleSfera
-**Versión:** 3.0 alineada al proyecto real  
-**Fecha:** Abril 2026  
-**Fuente de verdad:** producto real documentado + stack técnico actual + schema actual
+**Version:** 3.0 aligned with the real project  
+**Date:** April 2026  
+**Source of truth:** documented real product + current technical stack + current schema
 
 ---
 
-## 1. Objetivo
+## 1. Purpose
 
-Este documento sustituye la versión anterior de seguridad, privacidad y compliance para alinearla con el sistema real de CircleSfera. La corrección principal es doble:
+This document replaces the previous security, privacy, and compliance version to align it with CircleSfera's real system. The main correction is twofold:
 
-1. Debe reflejar las capacidades reales del modelo actual, incluyendo passkeys, refresh tokens, reports, admin audit logs, stories, chat, promotions y billing con Stripe.
-2. No debe prometer mecanismos persistidos que el schema actual no modela explícitamente, como `mutes`, `appeals`, `moderation_actions`, `feed_preferences` o analítica persistida detallada.
+1. It must reflect the real capabilities of the current model, including passkeys, refresh tokens, reports, admin audit logs, stories, chat, promotions, and billing with Stripe.
+2. It must not promise persisted mechanisms that the current schema does not explicitly model, such as `mutes`, `appeals`, `moderation_actions`, `feed_preferences`, or detailed persisted analytics.
 
 ---
 
-## 2. Principios
+## 2. Principles
 
 - Security by design.
 - Privacy by design.
 - Least privilege.
 - Defense in depth.
-- Auditabilidad de acciones sensibles.
-- Datos mínimos necesarios.
-- Cumplimiento pragmático y documentado.
+- Auditability of sensitive actions.
+- Minimum necessary data.
+- Pragmatic and documented compliance.
 
 ---
 
-## 3. Superficie real a proteger
+## 3. Real surface to protect
 
-CircleSfera no es solo auth + posts. La superficie real incluye:
+CircleSfera is not just auth + posts. The real surface includes:
 
-- Cuentas de usuario y perfiles.
+- User accounts and profiles.
 - Refresh tokens.
 - Passkeys.
-- Media uploads para posts, stories, avatar y mensajes.
-- Conversations y messages.
-- Billing metadata con Stripe.
+- Media uploads for posts, stories, avatar, and messages.
+- Conversations and messages.
+- Billing metadata with Stripe.
 - Webhook events.
 - Reports.
 - Admin audit logs.
 - Search history.
-- Presence básica (`isOnline`, `lastSeenAt`).
+- Basic presence (`isOnline`, `lastSeenAt`).
 - Promotions.
 - Post embeddings.
 
-Esto implica que los riesgos de seguridad y privacidad son mayores que en un MVP documental reducido.
+This means security and privacy risks are greater than in a reduced documentary MVP.
 
 ---
 
-## 4. Autenticación y autorización
+## 4. Authentication and authorization
 
-### 4.1 Autenticación soportada
+### 4.1 Supported authentication
 - Password + JWT access token.
-- Refresh tokens persistidos.
-- Flujos de verificación de email.
-- Reset de contraseña.
+- Persisted refresh tokens.
+- Email verification flows.
+- Password reset.
 - Passkeys/WebAuthn.
 
-### 4.2 Reglas recomendadas
-- Access tokens cortos.
-- Refresh tokens revocables y rotables.
-- Hashing fuerte de contraseña.
-- Revocación de sesiones en eventos sensibles.
-- MFA mediante passkeys como evolución prioritaria frente a SMS.
+### 4.2 Recommended rules
+- Short-lived access tokens.
+- Revocable and rotatable refresh tokens.
+- Strong password hashing.
+- Session revocation on sensitive events.
+- MFA via passkeys as a priority evolution over SMS.
 
-### 4.3 Autorización
+### 4.3 Authorization
 
-El schema actual solo muestra `Role` a nivel usuario y no modela un RBAC complejo por tabla. La política oficial debe decir que:
+The current schema only shows `Role` at the user level and does not model complex per-table RBAC. The official policy must state that:
 
-- Existe al menos rol `USER` y `ADMIN`.
-- Cualquier permiso adicional por plan o verificación debe resolverse en aplicación, no asumirse como RBAC persistido completo.
-- No se debe documentar un sistema de permisos finos como si ya existiera persistido si no está implementado realmente.
+- There is at least a `USER` and `ADMIN` role.
+- Any additional permission by plan or verification must be resolved in the application, not assumed as complete persisted RBAC.
+- Fine-grained permission systems must not be documented as if they already exist in persistence if they are not actually implemented.
 
 ---
 
-## 5. Protección de datos
+## 5. Data protection
 
-### 5.1 Datos especialmente sensibles o delicados
+### 5.1 Especially sensitive or delicate data
 - Email.
 - Password hash.
 - Refresh tokens.
 - Verification/reset tokens.
 - Stripe customer/subscription metadata.
-- Mensajes privados.
+- Private messages.
 - Reports.
 - Audit logs.
-- Historial de búsqueda.
-- Datos de presencia.
+- Search history.
+- Presence data.
 
-### 5.2 Medidas mínimas
-- Cifrado en tránsito con TLS.
-- Cifrado en reposo para base de datos y object storage.
-- Secret management centralizado.
-- Logging sin exponer PII innecesaria.
-- Acceso restringido a tablas de reports, audit y billing.
+### 5.2 Minimum measures
+- Encryption in transit with TLS.
+- Encryption at rest for database and object storage.
+- Centralized secret management.
+- Logging without exposing unnecessary PII.
+- Restricted access to reports, audit, and billing tables.
 
-### 5.3 Datos que no deben prometerse como cifrados campo a campo sin implementación real
-La versión anterior listaba cifrado específico en ciertos campos sensibles, pero eso debe documentarse con precisión. Si no hay implementación real de cifrado a nivel aplicación o columna, debe decirse “protegido por cifrado en reposo y controles de acceso”, no “cifrado campo a campo” como hecho consumado.
+### 5.3 Data that must not be promised as field-level encrypted without real implementation
+The previous version listed specific encryption on certain sensitive fields, but that must be documented accurately. If there is no real application-level or column-level encryption implementation, it should say “protected by encryption at rest and access controls,” not “field-level encryption” as an established fact.
 
 ---
 
-## 6. Privacidad y GDPR
+## 6. Privacy and GDPR
 
-### 6.1 Principios aplicables
-- Minimización.
-- Limitación de propósito.
-- Conservación limitada.
-- Transparencia.
-- Control del usuario cuando sea viable.
-- **Privacy by Default**: Los perfiles privados requieren aprobación explícita de solicitudes de seguimiento (`PENDING` -> `ACCEPTED`).
+### 6.1 Applicable principles
+- Minimization.
+- Purpose limitation.
+- Storage limitation.
+- Transparency.
+- User control where viable.
+- **Privacy by Default**: Private profiles require explicit approval of follow requests (`PENDING` -> `ACCEPTED`).
 
-### 6.2 Derechos del usuario
-CircleSfera debe poder soportar operativamente:
+### 6.2 User rights
+CircleSfera must be able to operationally support:
 
-- Acceso a datos personales.
-- Rectificación de perfil y cuenta.
-- Borrado o soft-delete con proceso de purge posterior.
-- Portabilidad razonable de datos.
-- Oposición a tratamientos opcionales.
+- Access to personal data.
+- Rectification of profile and account.
+- Deletion or soft-delete with a subsequent purge process.
+- Reasonable data portability.
+- Objection to optional processing.
 
-### 6.3 Lo que debe corregirse respecto a la documentación anterior
-- No afirmar endpoints concretos de exportación o dashboard GDPR como si ya existieran si no están definidos realmente en API actual.
-- No afirmar un “DPO designado” o auditorías formales si todavía no existen de verdad.
-- No afirmar “consent preferences persistidas” si no existe modelo específico de almacenamiento y gestión.
+### 6.3 What must be corrected relative to prior documentation
+- Do not assert concrete export endpoints or a GDPR dashboard as if they already exist if they are not actually defined in the current API.
+- Do not assert a “designated DPO” or formal audits if they do not yet truly exist.
+- Do not assert “persisted consent preferences” if there is no specific storage and management model.
 
-### 6.4 Retención de datos
+### 6.4 Data retention
 
-> ⚠️ Esta sección tiene implicaciones legales y fiscales. Debe revisarse con asesoría especializada antes de publicarse como política final. Los plazos aquí son recomendaciones operativas iniciales.
+> ⚠️ This section has legal and tax implications. It must be reviewed with specialized counsel before being published as a final policy. The timelines here are initial operational recommendations.
 
-| Tipo de dato                    | Retención recomendada                                            | Mecanismo                                    |
+| Data type                       | Recommended retention                                            | Mechanism                                    |
 |---------------------------------|------------------------------------------------------------------|----------------------------------------------|
-| Cuenta activa                   | Mientras exista base legítima de tratamiento                    | Ninguno — retención indefinida mientras activo|
-| Cuenta eliminada (soft delete)  | **Grace period de 30 días** antes de eliminación física completa | Soft delete vía `deletedAt`; purge automático a los 30 días |
-| Refresh tokens                  | Hasta expiración o revocación explícita                         | TTL en base de datos                          |
-| Verification / reset tokens     | Hasta uso o expiración (máx. 24h-72h)                           | TTL en base de datos                          |
-| Mensajes privados               | **Retención configurable por mensaje (`expiresAt`)**            | **Purge automático tras expiración**          |
-| Search history                  | Máximo 90 días desde creación; purge automático                 | Job periódico sobre campo `expiresAt`        |
-| Reports                         | 2 años desde `resolvedAt` o `createdAt` si no resuelto          | Retención larga por obligaciones de seguridad |
-| Admin audit logs                | 3 años mínimo                                                    | Sin purge automático; archivado tras año 1    |
-| Logs operativos (request/error) | 30–90 días según nivel de sensibilidad                          | Política de log rotation                      |
-| Billing records                 | Según obligación legal aplicable (mínimo 5 años en ES/UE)       | Sin purge; archivado en frío tras año 1       |
-| Webhook events (payload)        | Ver sección 9.4                                                  | Ver sección 9.4                              |
-| Post embeddings                 | Mientras el post exista                                          | Cascade delete con post                       |
-| Presencia (`isOnline`, `lastSeenAt`) | Solo valor actual; no histórico persistido                 | Sobreescritura directa                        |
+| Active account                  | While a legitimate basis for processing exists                  | None — indefinite retention while active      |
+| Deleted account (soft delete)   | **30-day grace period** before full physical deletion            | Soft delete via `deletedAt`; automatic purge at 30 days |
+| Refresh tokens                  | Until expiration or explicit revocation                         | TTL in database                               |
+| Verification / reset tokens     | Until use or expiration (max. 24h–72h)                          | TTL in database                               |
+| Private messages                | **Configurable retention per message (`expiresAt`)**            | **Automatic purge after expiration**          |
+| Search history                  | Maximum 90 days from creation; automatic purge                  | Periodic job on `expiresAt` field             |
+| Reports                         | 2 years from `resolvedAt` or `createdAt` if unresolved          | Long retention for security obligations       |
+| Admin audit logs                | Minimum 3 years                                                  | No automatic purge; archive after year 1      |
+| Operational logs (request/error)| 30–90 days depending on sensitivity level                       | Log rotation policy                           |
+| Billing records                 | Per applicable legal obligation (minimum 5 years in ES/EU)      | No purge; cold archive after year 1           |
+| Webhook events (payload)        | See section 9.4                                                  | See section 9.4                               |
+| Post embeddings                 | While the post exists                                            | Cascade delete with post                      |
+| Presence (`isOnline`, `lastSeenAt`) | Current value only; no persisted history                   | Direct overwrite                              |
 
 ---
 
-## 7. Seguridad de media
+## 7. Media security
 
-### 7.1 Riesgos
-- Malware en archivos.
-- Contenido ilegal o sensible.
-- Exposición pública accidental.
-- Enumeración de URLs.
-- Reuso no autorizado de media privada.
+### 7.1 Risks
+- Malware in files.
+- Illegal or sensitive content.
+- Accidental public exposure.
+- URL enumeration.
+- Unauthorized reuse of private media.
 
-### 7.2 Controles
-- Validación MIME real.
-- Límite de tamaño y duración.
-- Escaneo antivirus.
-- Pipeline de moderación automatizada.
-- Variantes de imagen/video procesadas en backend.
-- Buckets privados y entrega controlada cuando aplique.
-- **Content Rating System**: Clasificación de contenido en `GENERAL` y `MATURE` para filtrar contenido sensible según preferencia del usuario.
+### 7.2 Controls
+- Real MIME validation.
+- Size and duration limits.
+- Antivirus scanning.
+- Automated moderation pipeline.
+- Image/video variants processed in the backend.
+- Private buckets and controlled delivery where applicable.
+- **Content Rating System**: Content classification as `GENERAL` and `MATURE` to filter sensitive content according to user preference.
 
-### 7.3 Áreas especialmente sensibles
+### 7.3 Especially sensitive areas
 - Stories.
-- Mensajes con media.
-- Avatares y uploads de perfil.
-- Compartición de contenido por chat.
+- Messages with media.
+- Avatars and profile uploads.
+- Content sharing via chat.
 
 ---
 
-## 8. Chat y contenido privado
+## 8. Chat and private content
 
-El producto actual ya contempla mensajería. Eso cambia de forma importante el marco de seguridad y privacidad.
+The current product already includes messaging. That significantly changes the security and privacy framework.
 
-### Reglas mínimas
-- Los mensajes deben tratarse como datos privados.
-- El acceso debe estar limitado a participantes y personal autorizado bajo políticas claras.
-- Los attachments en mensajería deben pasar controles de seguridad equivalentes a los del resto de media.
-- Debe existir política interna de acceso a mensajes para soporte, abuso o requerimientos legales.
+### Minimum rules
+- Messages must be treated as private data.
+- Access must be limited to participants and authorized staff under clear policies.
+- Messaging attachments must pass security controls equivalent to those for other media.
+- There must be an internal policy for message access for support, abuse, or legal requirements.
 
-Si en el futuro se decide moderación proactiva de DMs, eso debe documentarse con cuidado por impacto legal y reputacional.
+If proactive DM moderation is decided in the future, that must be documented carefully due to legal and reputational impact.
 
-### Privacidad de Perfil
-- **Perfil Público**: Todo el contenido es visible para cualquier usuario (o invitado). Los seguidores se aceptan automáticamente.
-- **Perfil Privado**: Solo los seguidores con estado `ACCEPTED` pueden ver posts y stories. Las nuevas solicitudes quedan en estado `PENDING` hasta que el usuario las aprueba o rechaza.
-
----
-
-## 9. Billing y fraude
-
-### 9.1 Modelo real
-CircleSfera usa Stripe y persiste `PlatformPlan`, `PlatformSubscription` y `WebhookEvent`.
-
-### 9.2 Controles clave
-- Verificación de firma de webhook (`Stripe-Signature` header).
-- Idempotencia por `externalId` único en `webhook_events`.
-- Reconciliación periódica de estados entre Stripe y base de datos.
-- Separación clara entre éxito de checkout y activación definitiva tras webhook procesado.
-- Alertas sobre webhooks en estado `failed` o no procesados tras ventana de tiempo.
-
-### 9.3 Riesgos operativos
-- Suscripción activa en Stripe pero no reflejada en BD (webhook perdido o fallido).
-- Duplicado de webhooks procesados dos veces (mitigado por idempotencia en `externalId`).
-- Webhooks retrasados que llegan fuera de orden respecto a acciones del usuario.
-- Soporte complejo por cancelaciones, reembolsos y cargos disputados.
-
-### 9.4 Retención y seguridad de `webhook_events`
-
-Los eventos de Stripe persisten el payload completo, que puede contener metadatos de pago, IDs de suscripción e información financiera sensible.
-
-**Política de retención de `webhook_events`**
-
-| Campo          | Acción tras procesado                                                     |
-|----------------|---------------------------------------------------------------------------|
-| `payload`      | Purge del contenido a los **30 días** desde `processedAt`; conservar solo `externalId`, `status`, `processedAt` |
-| `provider`     | Conservar indefinidamente                                                 |
-| `externalId`   | Conservar indefinidamente (necesario para idempotencia futura)            |
-| `status`       | Conservar indefinidamente                                                 |
-| `createdAt`    | Conservar indefinidamente                                                 |
-| `processedAt`  | Conservar indefinidamente                                                 |
-
-**Controles adicionales sobre `webhook_events`**
-- El payload no debe loggearse en ningún sistema de observabilidad externo completo.
-- El acceso a la tabla `webhook_events` debe estar restringido a rol ADMIN y al servicio de billing.
-- Si se decide retener el payload más de 30 días, debe justificarse operativamente y documentarse como decisión explícita.
-- Evaluar ofuscar o excluir del payload campos especialmente sensibles antes de persistir (ej: últimos 4 dígitos de tarjeta, datos de cliente en eventos de Stripe que lo incluyan).
-
-> ⚠️ La política exacta de retención de datos de facturación tiene implicaciones legales y fiscales. Revisar con asesoría antes de fijarla como política pública. En España, la Ley del IVA y normativa mercantil pueden exigir conservar registros de facturación por plazos de 4–10 años, pero eso no implica necesariamente conservar el payload JSON completo de Stripe.
+### Profile Privacy
+- **Public Profile**: All content is visible to any user (or guest). Followers are accepted automatically.
+- **Private Profile**: Only followers with `ACCEPTED` status can see posts and stories. New requests remain in `PENDING` status until the user approves or rejects them.
 
 ---
 
-## 10. Moderación y reporting
+## 9. Billing and fraud
 
-### 10.1 Realidad actual del modelo
-El schema actual soporta `Report` y `AdminAuditLog`, pero no una estructura persistida completa de `Appeal` ni `ModerationAction` como modelos separados.
+### 9.1 Real model
+CircleSfera uses Stripe and persists `PlatformPlan`, `PlatformSubscription`, and `WebhookEvent`.
 
-### 10.2 Implicación documental
-- La política pública puede hablar de revisión, notificación y reconsideración.
-- La política interna no debe presentar un sistema persistido de apelaciones como si ya existiera en datos si todavía no está modelado.
+### 9.2 Key controls
+- Webhook signature verification (`Stripe-Signature` header).
+- Idempotency via unique `externalId` in `webhook_events`.
+- Periodic reconciliation of states between Stripe and the database.
+- Clear separation between checkout success and definitive activation after a processed webhook.
+- Alerts on webhooks in `failed` status or unprocessed after a time window.
+
+### 9.3 Operational risks
+- Subscription active in Stripe but not reflected in the DB (lost or failed webhook).
+- Duplicate webhooks processed twice (mitigated by idempotency on `externalId`).
+- Delayed webhooks that arrive out of order relative to user actions.
+- Complex support for cancellations, refunds, and disputed charges.
+
+### 9.4 Retention and security of `webhook_events`
+
+Stripe events persist the full payload, which may contain payment metadata, subscription IDs, and sensitive financial information.
+
+**Retention policy for `webhook_events`**
+
+| Field          | Action after processing                                                       |
+|----------------|-------------------------------------------------------------------------------|
+| `payload`      | Purge content **30 days** after `processedAt`; keep only `externalId`, `status`, `processedAt` |
+| `provider`     | Retain indefinitely                                                           |
+| `externalId`   | Retain indefinitely (needed for future idempotency)                           |
+| `status`       | Retain indefinitely                                                           |
+| `createdAt`    | Retain indefinitely                                                           |
+| `processedAt`  | Retain indefinitely                                                           |
+
+**Additional controls on `webhook_events`**
+- The payload must not be logged in full to any external observability system.
+- Access to the `webhook_events` table must be restricted to the ADMIN role and the billing service.
+- If the payload is retained beyond 30 days, it must be operationally justified and documented as an explicit decision.
+- Consider obfuscating or excluding especially sensitive fields from the payload before persisting (e.g., last 4 digits of a card, customer data in Stripe events that include it).
+
+> ⚠️ The exact billing data retention policy has legal and tax implications. Review with counsel before setting it as a public policy. In Spain, VAT law and commercial regulations may require keeping billing records for 4–10 years, but that does not necessarily imply retaining the full Stripe JSON payload.
+
+---
+
+## 10. Moderation and reporting
+
+### 10.1 Current model reality
+The current schema supports `Report` and `AdminAuditLog`, but not a complete persisted structure for `Appeal` or `ModerationAction` as separate models.
+
+### 10.2 Documentary implication
+- The public policy may discuss review, notification, and reconsideration.
+- The internal policy must not present a persisted appeals system as if it already exists in data if it is not yet modeled.
 
 ### 10.3 Anti-shadowbanning
-Si CircleSfera quiere defender una postura de transparencia, cualquier reducción artificial de visibilidad debería ser excepcional, documentada y trazable. Esa promesa tiene implicaciones legales y reputacionales y debe formularse con precisión, no como slogan absoluto imposible de cumplir operativamente.
+If CircleSfera wants to defend a transparency stance, any artificial reduction of visibility should be exceptional, documented, and traceable. That promise has legal and reputational implications and must be stated precisely, not as an absolute slogan that is impossible to fulfill operationally.
 
 ---
 
-## 11. Logs y auditoría
+## 11. Logs and auditing
 
-### 11.1 Logs operativos
+### 11.1 Operational logs
 - Request logs.
 - Error logs.
 - Security event logs.
 - Billing logs.
 
-### 11.2 Auditabilidad real
+### 11.2 Real auditability
 
-`AdminAuditLog` es la base de trazabilidad administrativa. Debe usarse obligatoriamente para:
+`AdminAuditLog` is the foundation of administrative traceability. It must be used mandatorily for:
 
-- Cambios de estado de cuenta (suspensión, desactivación, baneo).
-- Acciones sobre reports (resolución, rechazo, escalado).
-- Intervenciones sobre contenido (eliminación, restricción, etiquetado).
-- Decisiones manuales de soporte sobre suscripciones o pagos.
-- Modificaciones administrativas sobre perfiles u otros recursos sensibles.
+- Account status changes (suspension, deactivation, ban).
+- Actions on reports (resolution, rejection, escalation).
+- Interventions on content (deletion, restriction, labeling).
+- Manual support decisions on subscriptions or payments.
+- Administrative modifications to profiles or other sensitive resources.
 
-### 11.3 Vocabulario obligatorio de `AdminAuditLog`
+### 11.3 Mandatory vocabulary for `AdminAuditLog`
 
-Para garantizar trazabilidad real y auditable, los valores del campo `action` y `targetType` deben seguir este contrato cerrado. Valores fuera de este vocabulario no deben registrarse en producción sin revisión.
+To ensure real and auditable traceability, values of the `action` and `targetType` fields must follow this closed contract. Values outside this vocabulary must not be recorded in production without review.
 
-**Valores válidos para `action`**
+**Valid values for `action`**
 
-| Valor                      | Descripción                                                  |
+| Value                      | Description                                                  |
 |----------------------------|--------------------------------------------------------------|
-| `BAN_USER`                 | Desactiva la cuenta de forma permanente                      |
-| `UNBAN_USER`               | Reactiva una cuenta previamente baneada                      |
-| `DELETE_USER`              | Borrado físico o soft-delete definitivo de usuario            |
-| `UPDATE_USER_STATUS`       | Cambio manual de estado (verificado, tipo de cuenta, etc.)   |
-| `DELETE_POST`              | Eliminación física de un post por moderación                 |
-| `DELETE_COMMENT`           | Eliminación de comentario por moderación                     |
-| `DELETE_STORY`             | Eliminación de story por moderación                          |
-| `CONTENT_REMOVED`          | Genérico: contenido retirado tras reporte                    |
-| `CONTENT_RESTRICTED`       | Contenido oculto o con visibilidad reducida                  |
-| `CONTENT_LABELED`          | Etiquetado con advertencia de contenido sensible             |
-| `REPORT_REVIEWED`          | Reporte marcado como visto por un admin                      |
-| `REPORT_RESOLVED`          | Reporte cerrado con una acción tomada                        |
-| `REPORT_DISMISSED`         | Reporte cerrado sin acción (falso positivo)                  |
-| `REPORT_ESCALATED`         | Escalado a un nivel superior de moderación                   |
-| `UPDATE_WHITELIST`         | Modificación manual de entrada en whitelist                  |
-| `DELETE_WHITELIST`         | Eliminación de entrada en whitelist                          |
-| `ACCOUNT_WARNED`           | Envío de advertencia formal al usuario                       |
-| `ACCOUNT_SUSPENDED`        | Suspensión temporal de funciones                             |
-| `ACCOUNT_RESTORED`         | Restauración de privilegios tras sanción                     |
-| `SUBSCRIPTION_ADJUSTED`    | Ajuste manual de plan o fechas de suscripción                |
-| `SUBSCRIPTION_CANCELLED`   | Cancelación administrativa de suscripción                    |
-| `PROMOTION_REJECTED`       | Rechazo de solicitud de promoción                            |
-| `CREATE_AUDIO`             | Creación de track de audio oficial                           |
-| `UPDATE_AUDIO`             | Edición de metadatos de audio                                |
-| `DELETE_AUDIO`             | Retirada de audio del catálogo público                       |
-| `MANUAL_OVERRIDE`          | Acción de emergencia o no categorizada                       |
+| `BAN_USER`                 | Permanently deactivates the account                          |
+| `UNBAN_USER`               | Reactivates a previously banned account                      |
+| `DELETE_USER`              | Physical deletion or definitive soft-delete of a user        |
+| `UPDATE_USER_STATUS`       | Manual status change (verified, account type, etc.)          |
+| `DELETE_POST`              | Physical deletion of a post for moderation                   |
+| `DELETE_COMMENT`           | Deletion of a comment for moderation                         |
+| `DELETE_STORY`             | Deletion of a story for moderation                           |
+| `CONTENT_REMOVED`          | Generic: content removed after a report                      |
+| `CONTENT_RESTRICTED`       | Content hidden or with reduced visibility                    |
+| `CONTENT_LABELED`          | Labeled with a sensitive content warning                     |
+| `REPORT_REVIEWED`          | Report marked as seen by an admin                            |
+| `REPORT_RESOLVED`          | Report closed with an action taken                           |
+| `REPORT_DISMISSED`         | Report closed with no action (false positive)                |
+| `REPORT_ESCALATED`         | Escalated to a higher moderation level                       |
+| `UPDATE_WHITELIST`         | Manual modification of a whitelist entry                     |
+| `DELETE_WHITELIST`         | Deletion of a whitelist entry                                |
+| `ACCOUNT_WARNED`           | Formal warning sent to the user                              |
+| `ACCOUNT_SUSPENDED`        | Temporary suspension of functions                            |
+| `ACCOUNT_RESTORED`         | Restoration of privileges after a sanction                   |
+| `SUBSCRIPTION_ADJUSTED`    | Manual adjustment of plan or subscription dates              |
+| `SUBSCRIPTION_CANCELLED`   | Administrative cancellation of a subscription                |
+| `PROMOTION_REJECTED`       | Rejection of a promotion request                             |
+| `CREATE_AUDIO`             | Creation of an official audio track                          |
+| `UPDATE_AUDIO`             | Editing of audio metadata                                    |
+| `DELETE_AUDIO`             | Removal of audio from the public catalog                     |
+| `MANUAL_OVERRIDE`          | Emergency or uncategorized action                            |
 
-**Valores válidos para `targetType`**
+**Valid values for `targetType`**
 
-| Valor          | Descripción                          |
+| Value          | Description                          |
 |----------------|--------------------------------------|
-| `user`         | Acción sobre una cuenta de usuario   |
-| `post`         | Acción sobre un post o frame         |
-| `comment`      | Acción sobre un comentario           |
-| `story`        | Acción sobre una story               |
-| `message`      | Acción sobre un mensaje              |
-| `report`       | Acción sobre un report               |
-| `subscription` | Acción sobre una suscripción         |
-| `promotion`    | Acción sobre una promotion           |
+| `user`         | Action on a user account             |
+| `post`         | Action on a post or frame            |
+| `comment`      | Action on a comment                  |
+| `story`        | Action on a story                    |
+| `message`      | Action on a message                  |
+| `report`       | Action on a report                   |
+| `subscription` | Action on a subscription             |
+| `promotion`    | Action on a promotion                |
 
-### 11.4 Regla
-No registrar secretos ni payloads innecesarios en logs. Evitar especialmente: tokens, passwords, credenciales, contenidos privados completos o PII excesiva en el campo `details`.
+### 11.4 Rule
+Do not log secrets or unnecessary payloads. Especially avoid: tokens, passwords, credentials, full private contents, or excessive PII in the `details` field.
 
 ---
 
-## 12. Compliance aplicable
+## 12. Applicable compliance
 
 ### 12.1 GDPR / LOPDGDD
-Aplica claramente por tratamiento de datos personales de usuarios UE.
+Clearly applies due to processing of personal data of EU users.
 
 ### 12.2 DSA
-Si CircleSfera opera como plataforma online con contenido de usuarios en la UE, la transparencia de moderación, reportes y mecanismos de reclamación será relevante. La documentación debe ser prudente: una cosa es aspiración de producto y otra cumplimiento formal completo.
+If CircleSfera operates as an online platform with user content in the EU, moderation transparency, reports, and complaint mechanisms will be relevant. Documentation must be prudent: product aspiration is one thing; complete formal compliance is another.
 
 ### 12.3 ePrivacy / cookies
-Solo debe prometerse gestión granular de cookies y consent si la implementación real existe.
+Granular cookie and consent management must only be promised if the real implementation exists.
 
 ### 12.4 PCI DSS
-Stripe reduce alcance, pero no elimina obligaciones de seguridad sobre webhooks, control de accesos y metadatos de suscripción.
+Stripe reduces scope, but does not eliminate security obligations around webhooks, access control, and subscription metadata.
 
 ---
 
-## 13. Testing y validación
+## 13. Testing and validation
 
-### Mínimos exigibles
-- SAST y dependency scanning en CI.
-- Scan de contenedores si hay Docker.
-- Tests de auth y autorización.
-- Tests de webhooks.
-- Tests de upload seguro.
-- Revisión periódica de dependencias.
-- Pentest o revisión externa cuando el producto y tráfico lo justifiquen.
+### Minimum requirements
+- SAST and dependency scanning in CI.
+- Container scanning if Docker is used.
+- Auth and authorization tests.
+- Webhook tests.
+- Secure upload tests.
+- Periodic dependency review.
+- Pentest or external review when the product and traffic justify it.
 
 ---
 
-## 14. Decisiones cerradas
+## 14. Closed decisions
 
-- Se incorpora passkeys al documento oficial de seguridad.
-- Se incorpora chat como superficie explícita de privacidad y seguridad.
-- Se incorpora billing real con webhooks como flujo crítico.
-- Se elimina del documento oficial cualquier afirmación cerrada sobre `mutes`, `appeals`, `moderation_actions`, `feed_preferences` y dashboards GDPR no implementados como realidad técnica actual.
-- Toda promesa pública de transparencia o cumplimiento debe poder sostenerse operativamente.
+- Passkeys are incorporated into the official security document.
+- Chat is incorporated as an explicit privacy and security surface.
+- Real billing with webhooks is incorporated as a critical flow.
+- Any closed assertion about `mutes`, `appeals`, `moderation_actions`, `feed_preferences`, and unimplemented GDPR dashboards is removed from the official document as current technical reality.
+- Every public promise of transparency or compliance must be operationally sustainable.

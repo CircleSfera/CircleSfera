@@ -1,15 +1,23 @@
 # Documentation status
 
-**Last status note:** Jul 2026 remediation pass
+**Last status note:** Jul 2026 — PRD v4.0 gap remediation (Sprints A–C) landed in code
 
-Documents **01–08** (Abr 2026) are **partially stale** relative to the current `schema.prisma` and backend modules.
+## Remediation vs PRD v4.0 (implemented)
 
-Verified gaps vs Abr 2026 snapshots include (non-exhaustive):
+- Moderation transparency: author notify on AI/admin hide/restore; appeals UI (`Settings → Appeals`); appeal outcome notify
+- User control: mute entry on profile/post menus; `UserSettings` prefs applied to feed (content rating) + push
+- Monetization contracts: one active platform plan enforced; `GET /payments/status`; creator sub list/check/cancel; Elite guard scoped
+- Discovery: ProfileEmbedding writer on profile update + `npm run embeddings:backfill`; recommendation signals; poll/QnA create (posts) + display
+- Promotions: cancel → `CANCELLED`; `PATCH` edit targeting/endDate; no dedicated `PAUSED` / Stripe auto-refunds (deferred by product)
 
-- **Appeals** — modeled and implemented; older docs may omit or under-specify them
-- **Mutes** — present in schema/product; may be missing from older PRD/ER/API text
-- **CreatorSubscription** — exists in schema and creator flows; older monetization/API docs lag
-- **Live**, **Polls / interactive**, and related domains — prefer Nest controllers + schema over doc 03
+## Still deferred / out of scope
+
+- Promotion `PAUSED` status + Stripe proportional refunds (schema fields exist for refunds; not wired)
+- Feed-preference domain tables (absent by design in PRD future)
+
+## Doc / source of truth
+
+Documents **01–08** (Abr 2026 origins) remain **partially stale** in places relative to the current `schema.prisma` and backend modules, except where explicitly revised (e.g. **01 PRD v4.0**, **03 API inventory**, **ADR-0001**).
 
 When in doubt: `schema.prisma` → implemented code → API contracts → these markdown files.
 
@@ -19,4 +27,4 @@ When in doubt: `schema.prisma` → implemented code → API contracts → these 
 - **TLS/SSL**: certificates are generated and renewed **on the VPS host**; the compose nginx proxy is HTTP-only behind the host reverse proxy.
 - Doc **05-deployment-strategy** still describes a longer-term target (Cloudflare/ECS/etc.) and should not be read as the live topology.
 - API inventory regenerated in [03-api-detailed-endpoints.md](./03-api-detailed-endpoints.md) (Jul 2026).
-- [ADR-0001](./adr/0001-profile-embedding-retention.md): keep `ProfileEmbedding`; writer/backfill still pending.
+- [ADR-0001](./adr/0001-profile-embedding-retention.md): keep `ProfileEmbedding`; writer on update + backfill script available.

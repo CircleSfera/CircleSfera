@@ -1,283 +1,381 @@
-# 01-Product-Requirements-Document
+# 01 — Product Requirements Document
 ## CircleSfera
-**Versión:** 3.0 alineada al proyecto real  
-**Fecha:** Abril 2026  
-**Fuente de verdad funcional y de datos:** `schema.prisma` actual del proyecto
+**Version:** 4.0 — philosophy + schema-aligned product scope  
+**Date:** July 2026  
+**Functional and data source of truth:** current project `schema.prisma` and implemented Nest/React code  
 
-> **Estado (Jul 2026):** este PRD (Abr 2026) está **parcialmente desactualizado** frente al schema vigente. Existen, entre otros, **Appeals**, **Mutes** y **CreatorSubscription** que pueden no estar reflejados aquí. Ver [00-status.md](./00-status.md). Preferir `schema.prisma` y el código implementado.
-
----
-
-## 1. Resumen
-
-CircleSfera es una red social multiformato con foco en contenido social, identidad, mensajería, monetización de plataforma, transparencia operativa y evolución progresiva hacia experiencias más ricas que una red centrada solo en posts. El producto real, según el schema actual, ya contempla posts, stories, frames, chat, bookmarks, collections, highlights, follows, blocks, notificaciones, promociones, suscripciones de plataforma, reporting, auditoría, audio, búsqueda y capacidades de embeddings para ranking o discovery. 
-
-La documentación debe reflejar esa realidad: CircleSfera no es ya solo un MVP mínimo de posts+likes+follows, sino una plataforma social con varios subsistemas ya modelados. Por tanto, el roadmap documental debe distinguir entre **capacidades implementadas en el modelo**, **capacidades activadas en producto** y **capacidades preparadas para evolución**.
+> Prefer `schema.prisma` and implemented controllers when this document and older Abr 2026 snapshots disagree. See [00-status.md](./00-status.md).
 
 ---
 
-## 2. Visión de producto
+## 1. Philosophy and fundamental principles
 
-CircleSfera busca competir en el mercado mediante una propuesta más clara para usuarios y creadores: identidad controlada, relaciones sociales explícitas, experiencias de contenido mixto, monetización first-party y una operativa de confianza más auditable.
+CircleSfera is built on the premise that a modern social network must not merely distribute content; it must provide a social experience grounded in **user control**, **operational transparency**, and **trust**. These principles are structural product decisions. They must guide platform evolution, feature design, internal policies, and technical implementation across systems.
 
-La diferenciación no depende solo del feed, sino de combinar:
+### 1.1 User control comes first
 
-- Publicación de posts y formatos cortos.
-- Stories efímeras y highlights persistentes.
-- Mensajería privada y compartición de contenido en chat.
-- Monetización por planes de plataforma.
-- Capas de seguridad y autenticación modernas, incluyendo passkeys.
-- Moderación y reporting trazables.
-- Infraestructura preparada para discovery avanzado con embeddings.
+The user is the primary decision agent on the platform. CircleSfera must provide mechanisms to configure and personalize the social experience in an explicit, predictable, and understandable way.
+
+This implies that, as far as reasonably possible, the user should be able to determine:
+
+- What content they want to consume.
+- Whom they follow and who may interact with them.
+- What kind of recommendations they receive.
+- What information they share and with whom.
+- How privacy, notifications, and content preferences are managed.
+
+Platform decisions must not unnecessarily replace user decisions. Automated systems should **complement** the social experience, not impose it.
+
+### 1.2 Algorithmic transparency
+
+Recommendation, ranking, and discovery systems are essential to CircleSfera and must operate in a comprehensible, explainable way.
+
+The platform should aim for users to reasonably understand:
+
+- Why they are seeing a given piece of content.
+- Why certain profiles are recommended.
+- Which signals influenced the recommendations they received.
+- Which of their own actions can change future experience.
+
+Recommendations may use multiple signals (social relationships, interests, recent activity, prior interactions, topical affinity, content popularity). Those signals must not become opaque or arbitrary processes.
+
+Algorithmic transparency is both a trust mechanism and a product differentiator.
+
+### 1.3 No hidden suppression
+
+CircleSfera does not adopt internal policies of hidden or arbitrary visibility reduction for users or content. The platform does not use shadow banning as an ordinary ecosystem management tool.
+
+Content visibility must follow explicit, verifiable criteria such as:
+
+- The consuming user’s own preferences.
+- Post privacy settings.
+- Existing social relationships.
+- The declared behavior of discovery systems.
+- Legal or safety obligations that are duly justified.
+
+When content or an account is limited, restrictions must rest on objective, communicable, and traceable grounds. User trust requires that decisions affecting distribution are not kept hidden.
+
+### 1.4 Strict and explicit moderation
+
+Moderation protects the social ecosystem and must operate under transparency, consistency, and traceability.
+
+Whenever reasonably possible, the platform should inform the user:
+
+- What action was applied.
+- Why it was applied.
+- Which rule, policy, or legal requirement motivated it.
+- What options exist to request review or provide additional information.
+
+Moderation actions must be internally auditable and aligned with public platform policies. Trust increases when moderation decisions are understandable and justifiable, not arbitrary or opaque.
+
+### 1.5 Responsible data handling
+
+CircleSfera processes information needed to operate, protect, personalize, improve, and monetize the service in a responsible and transparent manner.
+
+Users retain the rights that apply to their content and personal data.
+
+The platform may collect and process data proportionally to legitimate purposes, including service operation, storage, security, recommendation, discovery, analytics, support, legal compliance, and commercial uses compatible with applicable law.
+
+Processing must follow purpose limitation, proportionality, transparency, security, data minimization, and storage limitation. CircleSfera must not collect more information than needed for each concrete purpose, nor retain it longer than required for that purpose. Where data has a commercial use, that use must be clearly defined, legally valid, and respect applicable licenses, consents, and preferences.
+
+Uses of data that significantly affect user experience must pursue legitimate aims, remain reasonably explainable, and balance personalization, monetization, transparency, and user rights.
+
+The platform must be able to justify **what** data it collects, **why**, **for how long**, and **under what basis or authorization**.
+
+### 1.6 Guiding principle
+
+Every product, architecture, moderation, recommendation, or data-processing decision in CircleSfera must clearly answer three questions:
+
+1. Is the user reasonably in control of this experience?
+2. Can we explain why the system made this decision?
+3. Is the action transparent, traceable, and consistent with the platform’s declared policies?
+
+If a feature cannot satisfactorily answer these questions, its design must be revised before it ships.
 
 ---
 
-## 3. Alcance real del producto
+## 2. Summary
 
-## 3.1 Capacidades modeladas en el proyecto
+CircleSfera is a multi-format social network focused on social content, identity, messaging, platform monetization, operational transparency, and progressive evolution toward richer experiences than a posts-only network. According to the current schema, the product already covers posts, stories, frames, chat, bookmarks, collections, highlights, follows, blocks, mutes, notifications, promotions, platform subscriptions, creator subscriptions, reporting, appeals, auditing, audio, search, live, interactive polls/QnA, and embedding capabilities for ranking or discovery.
 
-Según el `schema.prisma` actual, el producto contempla estas áreas funcionales:
+Documentation must reflect that reality: CircleSfera is no longer a minimal MVP of posts + likes + follows, but a social platform with multiple modeled subsystems. The documentary roadmap must distinguish:
 
-- Cuentas de usuario con estado, roles, verificación y tipo de cuenta.
-- Perfil desacoplado de credenciales.
-- Autenticación con refresh tokens, reset tokens, verification tokens y passkeys.
-- Publicación de posts con media múltiple, hashtags, etiquetas de usuarios, visibilidad, audio y tipo `POST` o `FRAME`.
-- Stories con expiración, close friends, audio, vistas, reacciones y highlights.
-- Likes en posts y likes en comentarios como entidades separadas.
-- Comments anidados.
-- Bookmarks y collections.
-- Follows y blocks.
-- Notificaciones entre usuarios.
-- Conversaciones, participantes, mensajes, respuestas y reacciones.
-- Compartición de posts y stories en chat.
-- Suscripciones de plataforma y planes.
-- Webhooks para billing.
-- Promotions o boosts.
+- **Capabilities implemented in the data model**
+- **Capabilities activated in product/UI**
+- **Capabilities prepared for evolution**
+
+---
+
+## 3. Product vision
+
+CircleSfera aims to compete with Instagram and TikTok through a clearer proposition for users and creators: controlled identity, explicit social relationships, mixed content experiences, first-party monetization, and a more auditable trust operation.
+
+Differentiation does not depend only on the feed, but on combining:
+
+- Post publishing and short formats.
+- Ephemeral stories and persistent highlights.
+- Private messaging and content sharing in chat.
+- Monetization via platform plans (and modeled creator subscriptions).
+- Modern security and authentication, including passkeys.
+- Traceable moderation, reporting, and appeals.
+- Infrastructure prepared for advanced discovery with embeddings.
+
+---
+
+## 4. Real product scope
+
+### 4.1 Capabilities modeled in the project
+
+According to the current `schema.prisma`, the product includes these functional areas:
+
+- User accounts with status, roles, verification, and account type.
+- Profile decoupled from credentials.
+- Authentication with refresh tokens, reset tokens, verification tokens, and passkeys.
+- Posts with multi-media, hashtags, user tags, visibility, audio, and type `POST` or `FRAME`.
+- Stories with expiry, close friends, audio, views, reactions, and highlights.
+- Separate like entities for posts and comments.
+- Nested comments.
+- Bookmarks and collections.
+- Follows, blocks, and mutes.
+- Inter-user notifications.
+- Conversations, participants, messages, replies, and reactions.
+- Sharing posts and stories in chat.
+- Platform subscriptions and plans; creator subscriptions.
+- Billing webhooks and ledger/transaction models where present.
+- Promotions / boosts.
 - Search history.
-- Reportes de contenido.
+- Content reports and appeals.
 - Admin audit logs.
-- Audio reutilizable.
-- Post embeddings con pgvector.
-- Whitelist para acceso temprano.
+- Reusable audio.
+- Post embeddings (and profile embeddings for semantic search) with pgvector.
+- Live streams and interactive polls / QnA boxes.
+- Early-access whitelist.
+- User settings (privacy / notification-oriented configuration).
 
-## 3.2 Capacidades no soportadas por el schema actual
+### 4.2 Capabilities not supported by the current schema
 
-No deben figurar como parte del producto actual si no existen en el schema:
+Do **not** present the following as current product reality unless/until they exist in `schema.prisma`:
 
-- Communities o grupos.
-- Marketplace marca-creador.
-- Fan-to-creator subscriptions.
-- Mutes como entidad persistida.
-- Appeals y moderation_actions como modelos separados.
-- Feed preferences persistidas en base de datos.
-- Analytics diarios modelados como tablas específicas.
-- Transactions y entitlements como entidades persistidas en el schema mostrado.
+- Communities or groups as first-class social spaces.
+- Brand–creator marketplace.
+- Persisted feed-preference profiles as dedicated tables.
+- Entitlements as a separate persisted entity (beyond what subscriptions/transactions already cover).
+- Fully separate “moderation_actions” case-management tables beyond reports, appeals, and admin audit logs.
 
----
-
-## 4. Objetivos de producto
-
-### 4.1 Objetivos principales
-
-- Construir una experiencia social completa basada en identidad, contenido y mensajería.
-- Dar soporte a publicación visual estándar, incluyendo stories, colecciones y highlights.
-- Permitir evolución hacia recomendaciones y discovery con embeddings.
-- Mantener una base apta para monetización first-party con Stripe.
-- Sostener capacidades de moderación, auditoría y seguridad que den credibilidad al producto.
-
-### 4.2 Objetivos secundarios
-
-- Facilitar futuras capas de ranking, búsqueda semántica y personalización.
-- Habilitar growth loops mediante compartición en chat, follows, stories y promociones.
-- Preparar la plataforma para identidad fuerte con passkeys y niveles de verificación.
+> **Schema correction vs older drafts:** `Mute`, `Appeal`, `CreatorSubscription`, and `Transaction` **are** present in the current schema and must be documented as modeled capabilities (see §4.1), even when UI/activation is gradual.
 
 ---
 
-## 5. Usuarios y roles
+## 5. Product objectives
 
-### 5.1 Usuario estándar
+### 5.1 Primary objectives
 
-Publica posts o stories, sigue cuentas, comenta, da like, guarda contenido, conversa por chat y consume media.
+- Build a complete social experience around identity, content, and messaging.
+- Support Instagram-like visual publishing, including stories, collections, and highlights.
+- Enable evolution toward recommendations and discovery with embeddings.
+- Keep a foundation suitable for first-party monetization with Stripe.
+- Sustain moderation, auditing, and security capabilities that make the product credible.
 
-### 5.2 Creador
+### 5.2 Secondary objectives
 
-Publica con mayor frecuencia, usa frames, promociones, audio, tags, colecciones y busca crecimiento y monetización indirecta dentro de la plataforma.
-
-### 5.3 Cuenta verificada o business
-
-Utiliza niveles de verificación y suscripciones de plataforma para obtener mayor confianza, posicionamiento comercial o capacidades premium.
-
-### 5.4 Administrador
-
-Opera sobre reporting, auditoría y acciones administrativas. El schema ya contempla `Role.ADMIN` y `AdminAuditLog`.
-
-> **Nota de Implementación**: Al registrar un nuevo usuario, el sistema crea automáticamente un registro en `UserSettings` con valores por defecto (`privacyLevel: PUBLIC`, `contentPreference: GENERAL`, `blurSensitiveContent: true`).
+- Facilitate future ranking, semantic search, and personalization layers.
+- Enable growth loops via chat sharing, follows, stories, and promotions.
+- Prepare the platform for strong identity with passkeys and verification levels.
 
 ---
 
-## 6. Módulos funcionales
+## 6. Users and roles
 
-### 6.1 Identidad y acceso
+### 6.1 Standard user
 
-- Registro y login.
+Publishes posts or stories, follows accounts, comments, likes, saves content, chats, and consumes media.
+
+### 6.2 Creator
+
+Publishes more frequently; uses frames, promotions, audio, tags, collections; seeks growth and monetization within the platform.
+
+### 6.3 Verified or business account
+
+Uses verification levels and platform subscriptions for greater trust, commercial positioning, or premium capabilities.
+
+### 6.4 Administrator
+
+Operates reporting, auditing, and administrative actions. The schema includes `Role.ADMIN` and `AdminAuditLog`.
+
+---
+
+## 7. Functional modules
+
+### 7.1 Identity and access
+
+- Registration and login.
 - Refresh tokens.
-- Verificación email.
-- Recuperación de cuenta.
+- Email verification.
+- Account recovery.
 - Passkeys / WebAuthn.
-- Estados de cuenta: activa, eliminada lógicamente.
+- Account states: active, soft-deleted (`deletedAt`).
 - Roles: `USER`, `ADMIN`.
 - Verification levels: `BASIC`, `VERIFIED`, `BUSINESS`, `ELITE`.
+- Account types: `PERSONAL`, `CREATOR`, `BUSINESS`.
 
-### 6.2 Perfil social
+### 7.2 Social profile
 
-- Username único en `Profile`.
-- Nombre público, bio, web y ubicación.
-- Avatar con variantes optimizadas.
-- Privacidad de perfil centralizada en `UserSettings.privacyLevel`.
+- Unique username on `Profile`.
+- Public name, bio, website, and location.
+- Avatar with optimized variants.
+- Private profile via `UserSettings.privacyLevel` (exposed to clients as `isPrivate` where mapped).
 
-### 6.3 Contenido
+### 7.3 Content
 
-- Posts con caption, media múltiple, hashtags y tags.
-- Stories con expiración.
-- Frames mediante `Post.type = FRAME`.
-- Audio opcional en posts y stories.
-- Visibilidad `PUBLIC`, `FOLLOWERS`, `PRIVATE`.
-- Variantes de imagen/video por post.
-- Clasificación de sensibilidad mediante `ContentRating` (`GENERAL` | `MATURE`).
-- Contador de views por post.
+- Posts with caption, multi-media, hashtags, and tags.
+- Stories with expiry.
+- Frames via `Post.type = FRAME`.
+- Optional audio on posts and stories.
+- Visibility `PUBLIC`, `FOLLOWERS`, `PRIVATE`.
+- Per-post view counters.
 
-### 6.4 Interacción
+### 7.4 Interaction
 
-- Likes en posts.
-- Likes en comentarios.
-- Comentarios anidados.
-- Bookmarks.
-- Collections.
-- Story views y story reactions.
-- Compartición de posts y stories en chat.
+- Post likes.
+- Comment likes.
+- Nested comments.
+- Bookmarks and collections.
+- Story views and reactions.
+- Sharing posts and stories in chat.
+- Polls and QnA (interactive module).
 
-### 6.5 Relaciones sociales
+### 7.5 Social relationships
 
-- Follows con estado `PENDING` (solicitud) o `ACCEPTED` (aprobado). Las cuentas privadas requieren aprobación manual.
+- Follows with `PENDING` or `ACCEPTED`.
 - Blocks.
-- Close friends para stories restringidas.
-- Tagged users en posts.
+- Mutes.
+- Close friends for restricted stories.
+- Tagged users on posts.
 
-### 6.6 Mensajería
+### 7.6 Messaging
 
-- Conversations.
-- Participants.
-- Messages con reply.
-- Shared post/story in message.
+- Conversations and participants.
+- Messages with reply.
+- Shared post/story in a message.
 - Message reactions.
-- lastReadAt por participante.
+- `lastReadAt` per participant.
 
-### 6.7 Monetización
+### 7.7 Monetization
 
 - Platform plans.
 - Platform subscriptions.
-- Stripe customer ID en usuario.
-- Webhook event log para idempotencia.
-- Promotions: cargo inmediato vía Stripe PaymentIntent al crear la promoción. El estado pasa a `ACTIVE` solo tras el cobro exitoso. Reembolsos proporcionales si se cancela antes de tiempo.
-- Pay-Per-View (PPV): monetización de contenido exclusivo fan-to-creator gestionado a través de Stripe Connect.
+- Creator subscriptions (modeled).
+- Stripe customer ID on the user.
+- Webhook event log for idempotency.
+- Promotions for boosts.
+- Transactions / ledger where modeled.
 
+#### Design decision: one active platform plan per user
 
-### Decisión de diseño: un plan activo por usuario
+CircleSfera adopts **one active platform plan per user at a time**. A user must not hold two simultaneous **active** subscriptions to different platform plans. This rule is enforced in application logic before creating a new subscription.
 
-CircleSfera adopta el modelo **un plan activo por usuario en cada momento**. Un usuario no puede tener dos suscripciones activas simultáneas a diferentes planes. Esta regla se aplica en lógica de aplicación antes de crear una nueva suscripción.
+**Consequences:**
 
-**Consecuencias:**
-- Al suscribirse a un plan nuevo, si existe una suscripción activa previa, el sistema debe cancelar la anterior (al final de periodo) antes de activar la nueva.
-- La constraint `UNIQUE(userId, planId)` del schema previene duplicados del mismo plan, pero no previene planes distintos simultáneos. La regla de unicidad de plan activo se aplica por código.
-- `GET /billing/subscription` devuelve un objeto único (no array) porque el contrato de producto garantiza máximo 1 suscripción activa.
+- When subscribing to a new plan, if a prior active subscription exists, the system must cancel the previous one (at period end, as applicable) before activating the new one.
+- Schema `UNIQUE(userId, planId)` prevents duplicates of the **same** plan, but not two different plans at once; active-plan uniqueness is enforced in code.
+- Product contract: at most one active platform subscription; billing UI/API should expose a single active subscription view (not an array of concurrent actives).
 
-**Estados válidos de `platform_subscriptions.status`**
+**Valid `platform_subscriptions.status` values** (`SubscriptionStatus` in Prisma):
 
-| Estado        | Descripción                                              |
-|---------------|----------------------------------------------------------|
-| `active`      | Suscripción vigente y al día de pago                    |
-| `trialing`    | En periodo de prueba gratuito                            |
-| `past_due`    | Pago fallido; Stripe reintentará                         |
-| `incomplete`  | Checkout iniciado pero no completado                     |
-| `cancelled`   | Cancelada; acceso hasta fin de periodo si aplica         |
-| `expired`     | Periodo finalizado sin renovación                        |
+| Status | Description |
+| --- | --- |
+| `ACTIVE` | Subscription current and in good standing |
+| `TRIALING` | Free trial period |
+| `PAST_DUE` | Payment failed; Stripe will retry |
+| `INCOMPLETE` | Checkout started but not completed |
+| `CANCELLED` | Cancelled; access may continue until period end |
+| `EXPIRED` | Period ended without renewal |
 
-### 6.8 Confianza, seguridad y operación
+### 7.8 Trust, security, and operations
 
-- Reports.
+- Reports and appeals.
 - Admin audit log.
-- Email verification.
-- Reset tokens.
+- Email verification and reset tokens.
 - Passkeys.
-- User Settings (GDPR compliance): configuración de privacidad, preferencias de contenido y notificaciones.
-- DeletedAt para soft delete.
+- User settings (GDPR-oriented privacy, content, and notification preferences).
+- Soft delete via `deletedAt`.
 - Activity status: online / last seen.
+- Live streaming controls where modeled.
 
-### 6.9 Search y discovery
+### 7.9 Search and discovery
 
 - Hashtags.
 - Search history.
-- Post embeddings con `pgvector`.
+- Post embeddings with `pgvector`.
+- Profile embeddings for semantic profile search (read path; writer/backfill still evolving — see [ADR-0001](./adr/0001-profile-embedding-retention.md)).
 
 ---
 
-## 7. Alcance por fases revisado
+## 8. Revised phase scope
 
-La documentación anterior separaba stories y frames como fase 2. Eso ya no refleja el modelo actual del producto. La adecuación correcta es esta:
+Older documentation treated stories and frames as “phase 2.” That no longer matches the product model. The correct framing is:
 
-### Fase actual del proyecto
+### Current project phase (modeled)
 
-- Posts: sí.
-- Stories: sí.
-- Frames: sí, como variante de `Post`.
-- Chat: sí.
-- Bookmarks y collections: sí.
-- Highlights: sí.
-- Subscriptions de plataforma: sí.
-- Promotions: sí.
-- Passkeys: sí.
-- Analytics Básicos: sí, calculados en tiempo real (sin histórico persistido por ahora). Se prioriza la agilidad de consulta sobre el almacenamiento masivo de snapshots diarios en esta fase.
-- Embeddings: sí como capacidad técnica.
+- Posts: yes.
+- Stories: yes.
+- Frames: yes, as a `Post` variant.
+- Chat: yes.
+- Bookmarks and collections: yes.
+- Highlights: yes.
+- Platform subscriptions: yes.
+- Creator subscriptions: yes (modeled).
+- Promotions: yes.
+- Passkeys: yes.
+- Mutes, appeals, live, interactive: yes (modeled).
+- Embeddings: yes as a technical capability.
 
-### Fase activable / no necesariamente expuesta completa en UI
+### Activatable / not necessarily fully exposed in UI
 
-- Discovery semántico basado en embeddings.
-- Promociones con gestión avanzada.
-- Workflows administrativos más sofisticados sobre reports.
-- Capas premium más ricas sobre planes de plataforma.
+- Semantic discovery based on embeddings (including profile embedding backfill).
+- Advanced promotion management.
+- Richer admin workflows over reports and appeals.
+- Richer premium layers on platform plans.
+- Full creator-subscription product surface.
 
-### Fase futura no modelada todavía
+### Future / not yet modeled as first-class product domains
 
 - Communities.
-- Marketplace marca-creador.
-- Payouts complejos a creadores.
-- Moderation case management más detallado con appeals persistidas.
+- Brand–creator marketplace.
+- Complex creator payouts.
+- Dedicated feed-preference tables.
+- Deeper moderation case management beyond reports + appeals + audit logs.
 
 ---
 
-## 8. Principios de producto revisados
+## 9. Revised product principles
 
-1. La documentación debe seguir al sistema real, no a una simplificación conceptual antigua.
-2. Lo implementado en el schema debe figurar como capacidad del producto, aunque su exposición en UI pueda ser gradual.
-3. Las funciones de confianza deben explicarse sin prometer modelos que aún no existen en base de datos.
-4. Las decisiones de monetización deben considerar fraude, soporte, webhooks e idempotencia.
-5. Las decisiones de contenido deben considerar crecimiento, retención, creador, chat y discovery.
-
----
-
-## 9. Riesgos actuales
-
-- La documentación previa subestima el alcance real del producto.
-- Hay riesgo de desalineación entre UI activa y capacidades persistidas en base de datos.
-- El modelo incluye funciones avanzadas que exigen priorización clara para no aumentar complejidad operativa sin retorno.
-- Promotions y billing necesitan controles anti-fraude, reconciliación y soporte.
-- Reporting existe, pero no hay aún un modelo de appeals persistido en el schema actual.
+1. Documentation must follow the real system, not an outdated conceptual simplification.
+2. What is implemented in the schema is a product capability, even if UI exposure is gradual.
+3. Trust features must be explained without claiming models that do not exist in the database.
+4. Monetization decisions must consider fraud, support, webhooks, and idempotency.
+5. Content decisions must consider growth, retention, creators, chat, and discovery.
+6. Every major feature must pass the three guiding questions in §1.6.
 
 ---
 
-## 10. Decisiones documentales cerradas
+## 10. Current risks
 
-- El schema actual es la fuente principal de realidad del producto.
-- Stories, frames, chat, highlights, bookmarks, collections, passkeys, subscriptions y promotions pasan a formar parte de la documentación oficial.
-- Se eliminan del PRD oficial las referencias a entidades no presentes en el schema como si ya fueran parte del sistema actual.
-- Las futuras capacidades se documentarán como roadmap, no como realidad implementada.
+- Prior documentation underestimates real product scope.
+- Risk of misalignment between active UI and capabilities persisted in the database.
+- The model includes advanced features that need clear prioritization to avoid operational complexity without return.
+- Promotions and billing need anti-fraud controls, reconciliation, and support.
+- Appeals and mutes exist in schema; product/UX completeness may still lag.
+- Profile embedding search can return empty until writers/backfill ship (ADR-0001).
+
+---
+
+## 11. Closed documentary decisions
+
+- The current schema is the primary source of product reality.
+- Stories, frames, chat, highlights, bookmarks, collections, passkeys, platform subscriptions, creator subscriptions, promotions, mutes, appeals, live, and interactive features belong in official documentation as modeled capabilities.
+- Official PRD content must not present absent entities as if they were already part of the live system.
+- Future capabilities are documented as roadmap, not as implemented reality.
+- Philosophy in §1 is binding for product and engineering decisions.
+
+---
