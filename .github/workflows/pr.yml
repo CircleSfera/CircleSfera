@@ -25,6 +25,12 @@ jobs:
       - name: Install Monorepo Dependencies
         run: npm install
 
+      - name: "Shared: Install and Build"
+        run: |
+          cd circlesfera-shared
+          npm install
+          npm run build
+
       - name: "Backend: Install, Lint and Test"
         run: |
           cd circlesfera-backend
