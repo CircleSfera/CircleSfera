@@ -108,7 +108,16 @@ jobs:
             # Navigate to project directory
             cd /srv/circlesfera
 
-            # Write .env.production from GitHub Secret (base64-encoded to handle newlines safely)
+            # Login to GHCR on the VPS
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Pull latest code (for docker-compose.prod.yml and nginx config)
+            git fetch origin
+            git reset --hard origin/main
+
+            # Write secrets AFTER reset so they are never affected by checkout.
+            # Compose interpolates ${VAR} from the project `.env` file by default;
+            # service `env_file:` does NOT feed interpolation.
             if [ -n "$ENV_PRODUCTION_B64" ]; then
               echo "$ENV_PRODUCTION_B64" | base64 -d > .env.production
               echo "✅ .env.production written from secret."
@@ -125,27 +134,21 @@ jobs:
               exit 1
             fi
 
+            # Ensure default Compose env file exists for ${REDIS_PASSWORD} / ${POSTGRES_*} interpolation
+            cp .env.production .env
+
             # Extract the deployment webhook directly from the .env file to bypass IDE schema warnings
             DEPLOY_WEBHOOK=$(grep '^SLACK_WEBHOOK_DEPLOYMENTS=' .env.production | cut -d '=' -f2- || echo "")
 
-            # Login to GHCR on the VPS
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-            # Pull latest code (for docker-compose.prod.yml and nginx config)
-            git fetch origin
-            git reset --hard origin/main
-
-            # Compose interpolates ${VAR} from --env-file (not from service env_file).
-            COMPOSE="docker compose -f docker-compose.prod.yml --env-file .env.production"
             export REGISTRY=ghcr.io/circlesfera/circlesfera
 
             # Pull latest images
-            $COMPOSE pull
+            docker compose -f docker-compose.prod.yml --env-file .env.production pull
 
             # Restart stack; backend command runs `prisma migrate deploy` then starts the app.
             # Do not use `migrate resolve || true` here — it hides real migration failures.
-            $COMPOSE down
-            $COMPOSE up -d
+            docker compose -f docker-compose.prod.yml --env-file .env.production down
+            docker compose -f docker-compose.prod.yml --env-file .env.production up -d
 
             # Wait for backend to stabilise (give it 20s to either start or crash)
             echo "Waiting 20s for backend to stabilise..."
