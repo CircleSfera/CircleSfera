@@ -526,7 +526,7 @@ function DraggableStoryElement({
             try {
               const poll = JSON.parse(el.content);
               return (
-                <div className="bg-zinc-900/90 backdrop-blur-2xl border border-white/15 p-4 rounded-2xl shadow-2xl text-left min-w-[220px] pointer-events-none select-none">
+                <div className="bg-zinc-900/90 backdrop-blur-2xl border border-white/15 p-4 rounded-2xl shadow-2xl text-left min-w-55 pointer-events-none select-none">
                   <p className="text-white font-bold text-sm mb-3 tracking-tight">
                     {poll.question}
                   </p>
@@ -1547,7 +1547,7 @@ export default function StoryComposer({
                       setBackground(null);
                       setBackgroundUrl(null);
                     }}
-                    className={`w-12 h-[72px] rounded-xl shrink-0 border-2 transition-all duration-200 ${
+                    className={`w-12 h-18 rounded-xl shrink-0 border-2 transition-all duration-200 ${
                       bgStyle === grad
                         ? 'border-white scale-105 shadow-lg'
                         : 'border-transparent hover:border-white/20 opacity-80 hover:opacity-100'
