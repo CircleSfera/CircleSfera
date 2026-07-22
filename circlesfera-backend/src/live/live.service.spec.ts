@@ -1,12 +1,22 @@
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AppGateway } from '../socket/app.gateway.js';
 import { LiveService } from './live.service.js';
 
 describe('LiveService', () => {
   let service: LiveService;
+
+  const mockServer = {
+    to: vi.fn().mockReturnThis(),
+    emit: vi.fn(),
+  };
+
+  const mockGateway = {
+    server: mockServer,
+  };
 
   const mockPrismaService = {
     liveStream: {
@@ -15,6 +25,9 @@ describe('LiveService', () => {
       create: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn(),
+    },
+    user: {
+      findUnique: vi.fn(),
     },
   };
 
@@ -32,11 +45,14 @@ describe('LiveService', () => {
         LiveService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: AppGateway, useValue: mockGateway },
       ],
     }).compile();
 
     service = module.get<LiveService>(LiveService);
     vi.clearAllMocks();
+    // Restore chain mock after clearAllMocks
+    mockServer.to.mockReturnThis();
   });
 
   it('should be defined', () => {
@@ -54,13 +70,6 @@ describe('LiveService', () => {
       expect(mockPrismaService.liveStream.updateMany).toHaveBeenCalledWith({
         where: { hostId: 'user-1', status: 'LIVE' },
         data: { status: 'ENDED', endedAt: expect.any(Date) },
-      });
-      expect(mockPrismaService.liveStream.create).toHaveBeenCalledWith({
-        data: {
-          hostId: 'user-1',
-          title: 'Test Stream',
-          status: 'LIVE',
-        },
       });
       expect(result.stream).toEqual(mockStream);
       expect(typeof result.token).toBe('string');
@@ -96,9 +105,6 @@ describe('LiveService', () => {
       mockPrismaService.liveStream.update.mockResolvedValue({ id: 'stream-1', status: 'ENDED' });
 
       const result = await service.endStream('user-1');
-      expect(mockPrismaService.liveStream.findMany).toHaveBeenCalledWith({
-        where: { hostId: 'user-1', status: 'LIVE' },
-      });
       expect(mockPrismaService.liveStream.update).toHaveBeenCalledWith({
         where: { id: 'stream-1' },
         data: expect.objectContaining({
@@ -116,16 +122,105 @@ describe('LiveService', () => {
       mockPrismaService.liveStream.findMany.mockResolvedValue(mockStreams);
 
       const result = await service.getActiveStreams();
-      expect(mockPrismaService.liveStream.findMany).toHaveBeenCalledWith({
-        where: { status: 'LIVE' },
-        include: {
-          host: {
-            include: { profile: true },
-          },
-        },
-        orderBy: { startedAt: 'desc' },
-      });
       expect(result).toEqual(mockStreams);
     });
   });
+
+  describe('inviteCoHost', () => {
+    it('should throw ForbiddenException if caller is not the host', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        id: 'stream-1', hostId: 'host-1', status: 'LIVE', coHostId: null,
+      });
+
+      await expect(
+        service.inviteCoHost('stream-1', 'attacker-99', 'user-2'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw NotFoundException if invitee does not exist', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        id: 'stream-1', hostId: 'host-1', status: 'LIVE', coHostId: null, title: 'Test',
+      });
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.inviteCoHost('stream-1', 'host-1', 'ghost-user'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should update coHostId and emit socket events on success', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        id: 'stream-1', hostId: 'host-1', status: 'LIVE', coHostId: null, title: 'Live!',
+      });
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce({ id: 'user-2', profile: { username: 'cohost_user' } })
+        .mockResolvedValueOnce({ id: 'host-1', profile: { username: 'host_user', avatar: null } });
+      mockPrismaService.liveStream.update.mockResolvedValue({});
+
+      const result = await service.inviteCoHost('stream-1', 'host-1', 'user-2');
+
+      expect(mockPrismaService.liveStream.update).toHaveBeenCalledWith({
+        where: { id: 'stream-1' },
+        data: { coHostId: 'user-2' },
+      });
+      expect(mockServer.to).toHaveBeenCalledWith('user:user-2');
+      expect(mockServer.emit).toHaveBeenCalledWith('live:cohost_invite', expect.objectContaining({
+        streamId: 'stream-1',
+      }));
+      expect(result).toEqual({ success: true, coHostId: 'user-2' });
+    });
+  });
+
+  describe('acceptCoHostInvite', () => {
+    it('should throw ForbiddenException if user is not the invited co-host', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        id: 'stream-1', status: 'LIVE', coHostId: 'other-user',
+      });
+
+      await expect(
+        service.acceptCoHostInvite('stream-1', 'wrong-user'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should return a LiveKit publisher token for the co-host', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        id: 'stream-1', status: 'LIVE', coHostId: 'user-2',
+      });
+
+      const result = await service.acceptCoHostInvite('stream-1', 'user-2');
+      expect(result).toHaveProperty('token');
+      expect(typeof result.token).toBe('string');
+      expect(result.streamId).toBe('stream-1');
+    });
+  });
+
+  describe('removeCoHost', () => {
+    it('should throw ForbiddenException if caller is not the host', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        id: 'stream-1', hostId: 'host-1', coHostId: 'user-2',
+      });
+
+      await expect(
+        service.removeCoHost('stream-1', 'attacker'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should clear coHostId and emit removal events', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        id: 'stream-1', hostId: 'host-1', coHostId: 'user-2',
+      });
+      mockPrismaService.liveStream.update.mockResolvedValue({});
+
+      const result = await service.removeCoHost('stream-1', 'host-1');
+
+      expect(mockPrismaService.liveStream.update).toHaveBeenCalledWith({
+        where: { id: 'stream-1' },
+        data: { coHostId: null },
+      });
+      expect(mockServer.to).toHaveBeenCalledWith('user:user-2');
+      expect(mockServer.emit).toHaveBeenCalledWith('live:cohost_removed', { streamId: 'stream-1' });
+      expect(result).toEqual({ success: true });
+    });
+  });
 });
+

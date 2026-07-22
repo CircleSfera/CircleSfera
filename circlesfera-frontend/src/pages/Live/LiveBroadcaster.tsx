@@ -4,10 +4,11 @@ import {
   RoomAudioRenderer,
   VideoConference,
 } from '@livekit/components-react';
-import { Heart, Send, X } from 'lucide-react';
+import { Heart, Send, UserMinus, UserPlus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient as api } from '../../services/api';
+import { liveApi } from '../../services/live';
 import { useSocketStore } from '../../stores/socketStore';
 
 export default function LiveBroadcaster() {
@@ -16,6 +17,9 @@ export default function LiveBroadcaster() {
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const [hearts, setHearts] = useState<{ id: string; x: number }[]>([]);
+  const [coHostUsernameInput, setCoHostUsernameInput] = useState('');
+  const [coHostUsername, setCoHostUsername] = useState<string | null>(null);
+  const [isInviting, setIsInviting] = useState(false);
   const navigate = useNavigate();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -70,6 +74,37 @@ export default function LiveBroadcaster() {
     setMessageInput('');
   };
 
+  const handleInviteCoHost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!streamId || !coHostUsernameInput.trim()) return;
+    setIsInviting(true);
+    try {
+      // Resolve userId from username via profile search
+      const profileRes = await api.get(
+        `/users/profile/${coHostUsernameInput.trim()}`,
+      );
+      const userId = profileRes.data?.id;
+      if (!userId) throw new Error('User not found');
+      await liveApi.inviteCoHost(streamId, userId);
+      setCoHostUsername(coHostUsernameInput.trim());
+      setCoHostUsernameInput('');
+    } catch {
+      // Silent — socket will handle the real error path
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
+  const handleRemoveCoHost = async () => {
+    if (!streamId) return;
+    try {
+      await liveApi.removeCoHost(streamId);
+      setCoHostUsername(null);
+    } catch {
+      // Silent
+    }
+  };
+
   const handleDoubleTap = () => {
     if (!streamId) return;
     const socket = useSocketStore.getState().socket;
@@ -96,7 +131,8 @@ export default function LiveBroadcaster() {
       onDoubleClick={handleDoubleTap}
       onKeyDown={(e) => e.key === 'Enter' && handleDoubleTap()}
     >
-      <div className="absolute top-4 left-4 z-50">
+      {/* Top controls */}
+      <div className="absolute top-4 left-4 z-50 flex items-center gap-2">
         <button
           type="button"
           onClick={() => navigate(-1)}
@@ -104,6 +140,52 @@ export default function LiveBroadcaster() {
         >
           <X className="w-6 h-6" />
         </button>
+      </div>
+
+      {/* Co-Host panel — top right */}
+      <div className="absolute top-4 right-4 z-50 flex flex-col items-end gap-2">
+        {coHostUsername ? (
+          // Co-host active indicator
+          <div className="flex items-center gap-2 bg-purple-700/80 backdrop-blur-sm px-3 py-1.5 rounded-full text-white text-sm">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
+            </span>
+            <span>
+              Co-host: <strong>@{coHostUsername}</strong>
+            </span>
+            <button
+              type="button"
+              onClick={handleRemoveCoHost}
+              className="ml-1 text-red-300 hover:text-red-100 transition-colors"
+              title="Expulsar co-anfitrión"
+            >
+              <UserMinus size={14} />
+            </button>
+          </div>
+        ) : (
+          // Invite form
+          <form
+            onSubmit={handleInviteCoHost}
+            className="flex items-center gap-1.5 bg-black/60 backdrop-blur-sm border border-white/20 rounded-full px-3 py-1.5"
+          >
+            <UserPlus size={14} className="text-purple-300 shrink-0" />
+            <input
+              type="text"
+              placeholder="@usuario co-host"
+              value={coHostUsernameInput}
+              onChange={(e) => setCoHostUsernameInput(e.target.value)}
+              className="bg-transparent text-white text-xs placeholder-white/40 outline-none w-28"
+            />
+            <button
+              type="submit"
+              disabled={isInviting || !coHostUsernameInput.trim()}
+              className="text-purple-300 hover:text-purple-100 transition-colors disabled:opacity-40"
+            >
+              <Send size={13} />
+            </button>
+          </form>
+        )}
       </div>
 
       <div className="flex-1 overflow-hidden relative">

@@ -26,7 +26,8 @@ model User {
   profile           Profile?
   posts             Post[]
   stories           Story[]
-  liveStreams       LiveStream[]
+  liveStreams       LiveStream[]   @relation("LiveStreamHost")
+  coHostedStreams   LiveStream[]   @relation("LiveStreamCoHost")
   comments          Comment[]
   likes             Like[]
   commentLikes      CommentLike[]
@@ -1432,6 +1433,7 @@ enum AppealStatus {
 model LiveStream {
   id          String     @id @default(uuid())
   hostId      String
+  coHostId    String?
   title       String?
   status      LiveStatus @default(LIVE)
   viewerCount Int        @default(0)
@@ -1440,9 +1442,11 @@ model LiveStream {
   hlsUrl      String?
   replayUrl   String?
 
-  host User @relation(fields: [hostId], references: [id])
+  host   User  @relation("LiveStreamHost",   fields: [hostId],   references: [id])
+  coHost User? @relation("LiveStreamCoHost", fields: [coHostId], references: [id])
 
   @@index([status])
+  @@index([coHostId])
   @@map("live_streams")
 }
 
