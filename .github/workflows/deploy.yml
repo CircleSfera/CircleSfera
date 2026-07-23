@@ -47,6 +47,12 @@ jobs:
       - name: Install Monorepo Dependencies
         run: npm install
 
+      - name: "Shared: Install and Build"
+        run: |
+          cd circlesfera-shared
+          npm install
+          npm run build
+
       - name: "Backend: Install, Lint and Test"
         run: |
           cd circlesfera-backend
@@ -60,11 +66,13 @@ jobs:
           DATABASE_URL: postgresql://prisma:prisma@localhost:5432/schema_check
         run: ./scripts/check-prisma-schema-migrations.sh
 
-      - name: "Frontend: Install and Lint"
+      - name: "Frontend: Install, Lint, Test and Build"
         run: |
           cd circlesfera-frontend
           npm install
           npm run lint
+          npm run test
+          npm run build
 
   build:
     name: Build and Push Docker Images
@@ -88,6 +96,59 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Resolve frontend Vite build args
+        id: vite_args
+        env:
+          ENV_PRODUCTION_B64: ${{ secrets.ENV_PRODUCTION_B64 }}
+          SECRET_VITE_API_URL: ${{ secrets.VITE_API_URL }}
+        run: |
+          set -euo pipefail
+          LIVEKIT_URL=""
+          API_URL="${SECRET_VITE_API_URL:-}"
+
+          if [ -z "${ENV_PRODUCTION_B64:-}" ]; then
+            echo "❌ Secret ENV_PRODUCTION_B64 is missing. Run ./scripts/upload-prod-env.sh locally."
+            exit 1
+          fi
+
+          ENV_FILE="$(mktemp)"
+          echo "$ENV_PRODUCTION_B64" | base64 -d > "$ENV_FILE"
+
+          # Prefer VITE_LIVEKIT_URL; fall back to LIVEKIT_URL (same WSS endpoint).
+          LIVEKIT_URL="$(
+            grep -E '^(VITE_LIVEKIT_URL|LIVEKIT_URL)=' "$ENV_FILE" \
+              | head -1 \
+              | cut -d= -f2- \
+              | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"
+          )"
+
+          if [ -z "$API_URL" ]; then
+            API_URL="$(
+              grep -E '^VITE_API_URL=' "$ENV_FILE" \
+                | head -1 \
+                | cut -d= -f2- \
+                | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"
+            )"
+          fi
+
+          rm -f "$ENV_FILE"
+
+          if [ -z "$API_URL" ]; then
+            echo "❌ VITE_API_URL missing (GitHub secret VITE_API_URL or key in .env.production)."
+            exit 1
+          fi
+          if [ -z "$LIVEKIT_URL" ]; then
+            echo "❌ LIVEKIT_URL (or VITE_LIVEKIT_URL) missing in .env.production."
+            echo "   Re-run ./scripts/upload-prod-env.sh after adding it."
+            exit 1
+          fi
+
+          {
+            echo "api_url=$API_URL"
+            echo "livekit_url=$LIVEKIT_URL"
+          } >> "$GITHUB_OUTPUT"
+          echo "✅ Vite build args resolved (API + LiveKit URL)."
+
       - name: Build and push Backend
         uses: docker/build-push-action@v6
         with:
@@ -106,7 +167,8 @@ jobs:
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
           build-args: |
-            VITE_API_URL=${{ secrets.VITE_API_URL }}
+            VITE_API_URL=${{ steps.vite_args.outputs.api_url }}
+            VITE_LIVEKIT_URL=${{ steps.vite_args.outputs.livekit_url }}
           # cache-from: type=gha
           # cache-to: type=gha,mode=max
 
