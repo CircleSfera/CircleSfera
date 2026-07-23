@@ -1,9 +1,21 @@
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, Plus, Sparkles, Wand2 } from 'lucide-react';
-import { lazy, Suspense, useCallback, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import { CreatorMobileNav } from '../components/creator/CreatorMobileNav';
 import type { CreatorTab } from '../components/creator/CreatorSidebar';
 import CreatorSidebar from '../components/creator/CreatorSidebar';
@@ -43,10 +55,12 @@ const MonetizationDashboard = lazy(
 export default function Creator() {
   const { tab } = useParams<{ tab: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const activeTab = (tab as CreatorTab) || 'overview';
   const openCreateMenu = useUIStore((state) => state.openCreateMenu);
   const profile = useAuthStore((state) => state.profile);
   const { t } = useTranslation();
+  const handledPromoReturn = useRef(false);
 
   const handleTabChange = useCallback(
     (newTab: CreatorTab) => {
@@ -75,10 +89,32 @@ export default function Creator() {
     const id = crypto.randomUUID();
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(
-      () => setToasts((prev) => prev.filter((t) => t.id !== id)),
+      () => setToasts((prev) => prev.filter((toast) => toast.id !== id)),
       3000,
     );
   }, []);
+
+  // Stripe Checkout return (?promotion=success|cancelled)
+  useEffect(() => {
+    const status = searchParams.get('promotion');
+    if (!status || handledPromoReturn.current) return;
+    handledPromoReturn.current = true;
+
+    if (status === 'success') {
+      addToast(t('creator.promotions.payment_success'), 'success');
+    } else if (status === 'cancelled') {
+      addToast(t('creator.promotions.payment_cancelled'), 'error');
+    }
+
+    const next = new URLSearchParams(searchParams);
+    next.delete('promotion');
+    next.delete('id');
+    const qs = next.toString();
+    navigate(
+      { pathname: `/creator/${activeTab}`, search: qs ? `?${qs}` : '' },
+      { replace: true },
+    );
+  }, [activeTab, addToast, navigate, searchParams, t]);
 
   return (
     <div className="min-h-screen px-3 py-4 sm:px-6 sm:py-6 lg:px-8 max-w-425 mx-auto text-gray-100">

@@ -1,5 +1,11 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { Navigate, Route, Routes, useParams } from 'react-router-dom';
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useParams,
+} from 'react-router-dom';
 import AdminGuard from './components/auth/AdminGuard';
 import AuthGuard from './components/auth/AuthGuard';
 import GuestGuard from './components/auth/GuestGuard';
@@ -66,6 +72,17 @@ function ProfileRedirect() {
 function RedirectToProfile() {
   const { username } = useParams<{ username: string }>();
   return <Navigate to={`/${username}`} replace />;
+}
+
+/** Keep Stripe return query params when bouncing /creator → /creator/overview. */
+function CreatorRootRedirect() {
+  const location = useLocation();
+  return (
+    <Navigate
+      to={`/creator/overview${location.search}${location.hash}`}
+      replace
+    />
+  );
 }
 
 function App() {
@@ -312,11 +329,8 @@ function App() {
             }
           />
 
-          {/* Creator Studio */}
-          <Route
-            path="/creator"
-            element={<Navigate to="/creator/overview" replace />}
-          />
+          {/* Creator Studio — preserve query (e.g. Stripe return ?promotion=) */}
+          <Route path="/creator" element={<CreatorRootRedirect />} />
           <Route
             path="/creator/:tab"
             element={

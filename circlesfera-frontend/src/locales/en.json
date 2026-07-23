@@ -758,6 +758,9 @@
     },
     "promotions": {
       "created": "Promotion created",
+      "redirecting": "Redirecting to secure checkout...",
+      "payment_success": "Promotion payment received. The campaign will activate shortly.",
+      "payment_cancelled": "Promotion payment cancelled. The campaign remains pending.",
       "error_create": "Error creating promotion",
       "select_content": "Select Content",
       "configure_reach": "Configure Reach",
