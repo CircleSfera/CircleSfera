@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import type { StoryElement } from '../../types';
 import { logger } from '../../utils/logger';
 import ColorPicker from './ColorPicker';
@@ -855,7 +856,7 @@ export default function StoryComposer({
       onClose();
     } catch (err: unknown) {
       logger.error('Story export failed:', err);
-      alert(
+      toast.error(
         `Failed to create story image: ${err instanceof Error ? err.message : String(err)}`,
       );
     } finally {
