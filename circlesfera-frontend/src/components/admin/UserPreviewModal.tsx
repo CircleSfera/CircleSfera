@@ -20,6 +20,10 @@ interface UserPreviewModalProps {
   onClose: () => void;
 }
 
+/**
+ * Admin user detail drawer (file name kept for import stability).
+ * Renders via AdminDrawer — not a centered modal.
+ */
 export default function UserPreviewModal({
   userId,
   isOpen,

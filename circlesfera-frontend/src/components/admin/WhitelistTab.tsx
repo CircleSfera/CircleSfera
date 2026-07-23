@@ -5,6 +5,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { WhitelistEntry } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Input, Select } from '../ui';
 import AdminDrawer from './AdminDrawer';
 import { AdminFilterBar } from './AdminFilterBar';
@@ -23,6 +24,7 @@ export default function WhitelistTab() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [editingEntry, setEditingEntry] = useState<WhitelistEntry | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(search, 400);
 
   const { data, isLoading } = useQuery<PaginatedResponse<WhitelistEntry>>({
@@ -50,9 +52,7 @@ export default function WhitelistTab() {
   });
 
   const handleDelete = (id: string) => {
-    if (confirm('¿Estás seguro de que deseas eliminar este registro?')) {
-      deleteMutation.mutate(id);
-    }
+    setConfirmDeleteId(id);
   };
 
   return (
@@ -84,14 +84,14 @@ export default function WhitelistTab() {
         </div>
       </AdminFilterBar>
 
-      <div className="glass-panel rounded-lg border border-white/10">
+      <div className="rounded-xl border border-white/10 lg:overflow-clip">
         <AdminList
           loading={isLoading}
           isEmpty={!data || data.data.length === 0}
           emptyTitle="No hay registros en whitelist"
           emptyDescription="No se encontraron interesados con los filtros seleccionados."
           mobile={
-            <div className="space-y-2">
+            <div className="space-y-2 p-2 lg:p-0">
               {data?.data.map((entry) => (
                 <AdminListRow
                   key={entry.id}
@@ -121,6 +121,13 @@ export default function WhitelistTab() {
           desktop={
             <Table
               headers={['Nombre', 'Email', 'Estado', 'Fecha', 'Acciones']}
+              columnWidths={[
+                'min-w-[8rem]',
+                'min-w-[10rem]',
+                'w-[6rem]',
+                'hidden lg:table-cell w-[7rem]',
+                'w-[5.5rem]',
+              ]}
               loading={false}
               isEmpty={false}
             >
@@ -129,29 +136,33 @@ export default function WhitelistTab() {
                   key={entry.id}
                   className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
                 >
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-2 text-white font-semibold text-xs">
-                      <User size={14} className="text-gray-500" />
-                      {entry.name || 'Sin nombre'}
+                  <td className="px-2 py-2">
+                    <div className="flex items-center gap-2 text-white font-semibold text-sm min-w-0">
+                      <User size={14} className="text-gray-500 shrink-0" />
+                      <span className="truncate">
+                        {entry.name || 'Sin nombre'}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-2 py-1 text-gray-300 text-xs">
-                    <div className="flex items-center gap-2">
-                      <Mail size={13} className="text-gray-500" />
-                      {entry.email}
+                  <td className="px-2 py-2 text-gray-300 text-sm">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Mail size={13} className="text-gray-500 shrink-0" />
+                      <span className="truncate" title={entry.email}>
+                        {entry.email}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-2 py-2">
                     <StatusBadge status={entry.status} />
                   </td>
-                  <td className="px-2 py-1 text-gray-500 text-xs whitespace-nowrap">
+                  <td className="px-2 py-2 text-gray-500 text-sm hidden lg:table-cell">
                     <div className="flex items-center gap-2">
-                      <Calendar size={13} className="text-gray-500" />
+                      <Calendar size={13} className="text-gray-500 shrink-0" />
                       {new Date(entry.createdAt).toLocaleDateString()}
                     </div>
                   </td>
-                  <td className="px-2 py-1 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
+                  <td className="px-2 py-2">
+                    <div className="flex items-center gap-1">
                       <ActionButton
                         variant="ghost"
                         label="Editar"
@@ -271,6 +282,22 @@ export default function WhitelistTab() {
           </form>
         )}
       </AdminDrawer>
+
+      <ConfirmModal
+        isOpen={confirmDeleteId !== null}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={() => {
+          if (confirmDeleteId) {
+            deleteMutation.mutate(confirmDeleteId);
+          }
+          setConfirmDeleteId(null);
+        }}
+        title="¿Eliminar registro?"
+        message="¿Estás seguro de que deseas eliminar este registro de la whitelist?"
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        isDestructive={true}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, Music, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminAudio } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import ConfirmModal from '../modals/ConfirmModal';
@@ -34,6 +35,7 @@ const EMPTY_FORM: AudioForm = {
 export default function AudioTab({ onToast }: AudioTabProps) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 400);
   const [showForm, setShowForm] = useState(false);
   const [editingTrack, setEditingTrack] = useState<AdminAudio | null>(null);
   const [form, setForm] = useState<AudioForm>(EMPTY_FORM);
@@ -41,9 +43,13 @@ export default function AudioTab({ onToast }: AudioTabProps) {
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'audio', page, search],
+    queryKey: ['admin', 'audio', page, debouncedSearch],
     queryFn: async () => {
-      const res = await adminApi.getAudio(page, 10, search || undefined);
+      const res = await adminApi.getAudio(
+        page,
+        10,
+        debouncedSearch || undefined,
+      );
       return res.data;
     },
   });
@@ -130,6 +136,13 @@ export default function AudioTab({ onToast }: AudioTabProps) {
   const isSaving = createMutation.isPending || updateMutation.isPending;
   const tracks = data?.data ?? [];
   const meta = data?.meta;
+  const isFiltered = debouncedSearch.length > 0;
+
+  const openAddForm = () => {
+    setEditingTrack(null);
+    setForm(EMPTY_FORM);
+    setShowForm(true);
+  };
 
   return (
     <div className="space-y-4">
@@ -138,11 +151,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
         subtitle="Gestiona las pistas de audio disponibles para stories y posts"
         actions={
           <Button
-            onClick={() => {
-              setEditingTrack(null);
-              setForm(EMPTY_FORM);
-              setShowForm(true);
-            }}
+            onClick={openAddForm}
             variant="primary"
             className="text-sm font-semibold min-h-11 w-full sm:w-auto shadow-lg shadow-brand-primary/20 px-5"
           >
@@ -156,7 +165,10 @@ export default function AudioTab({ onToast }: AudioTabProps) {
         <div className="flex-1 min-w-0">
           <SearchInput
             value={search}
-            onChange={setSearch}
+            onChange={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
             placeholder="Buscar por título o artista..."
           />
         </div>
@@ -166,8 +178,21 @@ export default function AudioTab({ onToast }: AudioTabProps) {
         <AdminList
           loading={isLoading}
           isEmpty={tracks.length === 0}
-          emptyTitle="No hay pistas"
-          emptyDescription="No se encontraron pistas con los filtros seleccionados."
+          emptyTitle={isFiltered ? 'Sin resultados' : 'No hay pistas'}
+          emptyDescription={
+            isFiltered
+              ? 'Prueba con otro título o artista.'
+              : 'Añade la primera pista para la biblioteca de música.'
+          }
+          emptyIcon={Music}
+          emptyAction={
+            !isFiltered ? (
+              <Button onClick={openAddForm} className="min-h-11">
+                <Plus size={16} className="mr-2" />
+                Añadir pista
+              </Button>
+            ) : undefined
+          }
           mobile={
             <div className="space-y-2">
               {tracks.map((track) => (
@@ -221,6 +246,13 @@ export default function AudioTab({ onToast }: AudioTabProps) {
           desktop={
             <Table
               headers={['Pista', 'Artista', 'Duración', 'Fecha', 'Acciones']}
+              columnWidths={[
+                'min-w-[10rem]',
+                'min-w-[6rem]',
+                'w-[4.5rem]',
+                'hidden lg:table-cell w-[6rem]',
+                'w-[6rem]',
+              ]}
               loading={false}
               isEmpty={false}
             >
@@ -243,7 +275,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                         )}
                       </div>
                       <div
-                        className="font-medium text-sm break-all"
+                        className="font-semibold text-sm truncate max-w-[10rem] xl:max-w-[14rem]"
                         title={track.title}
                       >
                         {track.title}
@@ -254,7 +286,10 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                     className="px-2 py-1 text-sm text-zinc-400"
                     data-label="Artista"
                   >
-                    <div className="break-all" title={track.artist}>
+                    <div
+                      className="truncate max-w-[8rem] xl:max-w-[12rem]"
+                      title={track.artist}
+                    >
                       {track.artist}
                     </div>
                   </td>
@@ -265,7 +300,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                     </div>
                   </td>
                   <td
-                    className="px-2 py-1 text-sm text-zinc-400"
+                    className="px-2 py-1 text-sm text-zinc-400 hidden lg:table-cell"
                     data-label="Subido el"
                   >
                     {new Date(track.createdAt).toLocaleDateString()}
@@ -405,7 +440,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
             <Button
               onClick={closeForm}
               variant="secondary"
-              className="flex-1 py-3 font-bold bg-white/5 border-transparent text-gray-300"
+              className="flex-1 py-3 font-semibold bg-white/5 border-transparent text-gray-300"
             >
               Cancelar
             </Button>
@@ -413,7 +448,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
               type="submit"
               isLoading={isSaving}
               variant="primary"
-              className="flex-1 py-3 font-bold shadow-lg shadow-brand-primary/20"
+              className="flex-1 py-3 font-semibold shadow-lg shadow-brand-primary/20"
             >
               {editingTrack ? 'Guardar cambios' : 'Añadir pista'}
             </Button>

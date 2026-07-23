@@ -6,6 +6,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { UserExperiment } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Input, Select } from '../ui';
 import AdminDrawer from './AdminDrawer';
 import { AdminFilterBar } from './AdminFilterBar';
@@ -26,6 +27,7 @@ export default function ExperimentsTab() {
   const [search, setSearch] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
   const [editingEntry, setEditingEntry] = useState<UserExperiment | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(search, 400);
 
   const { data, isLoading } = useQuery<PaginatedResponse<UserExperiment>>({
@@ -64,13 +66,7 @@ export default function ExperimentsTab() {
   });
 
   const handleDelete = (id: string) => {
-    if (
-      confirm(
-        '¿Estás seguro de que deseas eliminar este experimento de usuario?',
-      )
-    ) {
-      deleteMutation.mutate(id);
-    }
+    setConfirmDeleteId(id);
   };
 
   return (
@@ -99,7 +95,7 @@ export default function ExperimentsTab() {
         />
       </AdminFilterBar>
 
-      <div className="rounded-xl border border-white/10 lg:overflow-clip">
+      <div className="rounded-xl border border-white/10 overflow-x-auto">
         <AdminList
           loading={isLoading}
           isEmpty={!data || data.data.length === 0}
@@ -156,6 +152,13 @@ export default function ExperimentsTab() {
                 'Fecha',
                 'Acciones',
               ]}
+              columnWidths={[
+                'min-w-32',
+                'min-w-40 max-w-xs',
+                'whitespace-nowrap',
+                'whitespace-nowrap',
+                'whitespace-nowrap',
+              ]}
               loading={false}
               isEmpty={false}
             >
@@ -164,32 +167,34 @@ export default function ExperimentsTab() {
                   key={entry.id}
                   className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
                 >
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-2 text-white font-semibold text-xs">
-                      <User size={14} className="text-gray-500" />@
-                      {entry.user.username}
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-2 text-white font-semibold text-xs min-w-0">
+                      <User size={14} className="text-gray-500 shrink-0" />
+                      <span className="truncate">@{entry.user.username}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-2 text-white font-semibold text-xs uppercase tracking-wide">
-                      <Key size={14} className="text-gray-500" />
-                      {entry.experimentKey}
+                  <td className="px-3 py-3 max-w-xs">
+                    <div className="flex items-center gap-2 text-white font-semibold text-xs uppercase tracking-wide min-w-0">
+                      <Key size={14} className="text-gray-500 shrink-0" />
+                      <span className="truncate" title={entry.experimentKey}>
+                        {entry.experimentKey}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-xs font-semibold">
+                  <td className="px-3 py-3 text-xs font-semibold whitespace-nowrap">
                     <span
                       className={`px-2 py-1 rounded-md bg-white/5 border border-white/10 ${variantColorClass(entry.variant)}`}
                     >
                       {entry.variant}
                     </span>
                   </td>
-                  <td className="px-4 py-4 text-gray-500 text-xs whitespace-nowrap">
+                  <td className="px-3 py-3 text-gray-500 text-xs whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <Calendar size={13} className="text-gray-500" />
                       {new Date(entry.createdAt).toLocaleDateString()}
                     </div>
                   </td>
-                  <td className="px-4 py-4">
+                  <td className="px-3 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <ActionButton
                         icon={Edit2}
@@ -216,7 +221,9 @@ export default function ExperimentsTab() {
           }
         />
         {data && data.meta?.totalPages > 1 && (
-          <Pagination meta={data.meta} onPageChange={setPage} />
+          <div className="p-2 border-t border-white/5">
+            <Pagination meta={data.meta} onPageChange={setPage} />
+          </div>
         )}
       </div>
 
@@ -234,6 +241,22 @@ export default function ExperimentsTab() {
           isSubmitting={assignMutation.isPending}
         />
       </AdminDrawer>
+
+      <ConfirmModal
+        isOpen={confirmDeleteId !== null}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={() => {
+          if (confirmDeleteId) {
+            deleteMutation.mutate(confirmDeleteId);
+          }
+          setConfirmDeleteId(null);
+        }}
+        title="¿Eliminar experimento?"
+        message="¿Estás seguro de que deseas eliminar este experimento de usuario?"
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        isDestructive={true}
+      />
     </div>
   );
 }

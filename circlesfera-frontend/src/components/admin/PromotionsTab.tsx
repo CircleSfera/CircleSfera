@@ -13,13 +13,14 @@ import { useState } from 'react';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
-import { LoadingSpinner } from '../index';
+import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
+import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import {
   FilterDropdown,
@@ -62,6 +63,7 @@ export default function PromotionsTab({ onToast }: Props) {
   const queryClient = useQueryClient();
 
   const [selectedPromoId, setSelectedPromoId] = useState<string | null>(null);
+  const [confirmRejectOpen, setConfirmRejectOpen] = useState(false);
 
   const { data, isLoading } = useQuery<PaginatedResponse<AdminPromotion>>({
     queryKey: ['admin', 'promotions', page, debouncedSearch, statusFilter],
@@ -78,6 +80,15 @@ export default function PromotionsTab({ onToast }: Props) {
 
   const promos = data?.data || [];
   const selectedPromo = promos.find((p) => p.id === selectedPromoId);
+
+  const isFiltered = debouncedSearch.length > 0 || statusFilter.length > 0;
+
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter('');
+    setPage(1);
+    setSelectedPromoId(null);
+  };
 
   const updateMutation = useMutation({
     mutationFn: ({
@@ -122,14 +133,16 @@ export default function PromotionsTab({ onToast }: Props) {
       />
 
       <AdminFilterBar>
-        <SearchInput
-          value={search}
-          onChange={(val) => {
-            setSearch(val);
-            setPage(1);
-          }}
-          placeholder="Buscar usuario..."
-        />
+        <div className="flex-1 min-w-0">
+          <SearchInput
+            value={search}
+            onChange={(val) => {
+              setSearch(val);
+              setPage(1);
+            }}
+            placeholder="Buscar usuario..."
+          />
+        </div>
         <FilterDropdown
           label="Estado"
           value={statusFilter}
@@ -162,14 +175,31 @@ export default function PromotionsTab({ onToast }: Props) {
 
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
               {isLoading ? (
-                <div className="flex justify-center p-8">
-                  <LoadingSpinner />
-                </div>
+                <AdminListSkeleton rows={5} />
               ) : promos.length === 0 ? (
                 <AdminEmptyState
                   icon={Megaphone}
-                  title="No hay promociones encontradas"
-                  description="Intenta ajustar los filtros de búsqueda"
+                  title={
+                    isFiltered
+                      ? 'Sin promociones con estos filtros'
+                      : 'No hay promociones encontradas'
+                  }
+                  description={
+                    isFiltered
+                      ? 'Prueba otro término o ajusta el filtro de estado.'
+                      : 'No hay solicitudes de promoción en este momento.'
+                  }
+                  action={
+                    isFiltered ? (
+                      <Button
+                        onClick={clearFilters}
+                        variant="secondary"
+                        className="min-h-11"
+                      >
+                        Limpiar filtros
+                      </Button>
+                    ) : undefined
+                  }
                   compact
                 />
               ) : (
@@ -225,8 +255,8 @@ export default function PromotionsTab({ onToast }: Props) {
                 transition={{ duration: 0.15 }}
                 className="flex flex-col h-full"
               >
-                <div className="p-4 border-b border-white/5 flex items-center justify-between shrink-0 gap-2 flex-wrap">
-                  <div className="flex items-center gap-3">
+                <div className="p-3 sm:p-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between shrink-0 gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <UserAvatar
                       src={selectedPromo.user.profile.avatar || undefined}
                       alt={selectedPromo.user.profile.username}
@@ -241,22 +271,11 @@ export default function PromotionsTab({ onToast }: Props) {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
                     {selectedPromo.status === 'PENDING' && (
                       <>
                         <Button
-                          onClick={() => {
-                            const reason = window.prompt(
-                              'Motivo del rechazo (opcional):',
-                            );
-                            if (reason !== null) {
-                              updateMutation.mutate({
-                                id: selectedPromo.id,
-                                status: 'REJECTED',
-                                note: reason,
-                              });
-                            }
-                          }}
+                          onClick={() => setConfirmRejectOpen(true)}
                           isLoading={updateMutation.isPending}
                           variant="danger"
                           className="min-h-11 px-3 md:px-4 py-2 text-sm font-semibold border-red-500/20"
@@ -289,7 +308,7 @@ export default function PromotionsTab({ onToast }: Props) {
                       href={`/post/${selectedPromo.targetId}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors"
+                      className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors shrink-0"
                       title="Abrir en nueva pestaña"
                     >
                       <ExternalLink size={18} />
@@ -297,10 +316,10 @@ export default function PromotionsTab({ onToast }: Props) {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
-                  <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-lg p-4 mb-6 grid grid-cols-2 sm:grid-cols-4 gap-4 divide-x divide-white/5">
-                    <div className="px-2">
-                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">
+                <div className="flex-1 overflow-y-auto p-3 sm:p-4 flex flex-col items-center">
+                  <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-lg p-3 sm:p-4 mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:divide-x sm:divide-white/5">
+                    <div className="px-1 sm:px-2">
+                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">
                         Presupuesto
                       </p>
                       <p className="text-lg font-semibold text-white">
@@ -310,25 +329,25 @@ export default function PromotionsTab({ onToast }: Props) {
                         </span>
                       </p>
                     </div>
-                    <div className="px-4">
-                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">
+                    <div className="px-2 sm:px-4">
+                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">
                         Alcance Est.
                       </p>
-                      <p className="text-lg font-semibold text-emerald-400 flex items-center gap-2">
-                        <TrendingUp size={16} />
+                      <p className="text-base sm:text-lg font-semibold text-emerald-400 flex items-center gap-1.5">
+                        <TrendingUp size={14} />
                         {selectedPromo.reach.toLocaleString()}
                       </p>
                     </div>
-                    <div className="px-4">
-                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">
+                    <div className="px-2 sm:px-4">
+                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">
                         Fecha Inicio
                       </p>
-                      <p className="text-sm font-bold text-white">
+                      <p className="text-sm font-semibold text-white">
                         {new Date(selectedPromo.startDate).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="px-4">
-                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">
+                    <div className="px-2 sm:px-4">
+                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">
                         Estado
                       </p>
                       <StatusBadge status={selectedPromo.status} />
@@ -370,7 +389,7 @@ export default function PromotionsTab({ onToast }: Props) {
                         </div>
                       )}
 
-                    <div className="p-4">
+                    <div className="p-3 sm:p-4">
                       {selectedPromo.target?.caption ||
                       selectedPromo.target?.text ? (
                         <p className="text-white text-sm whitespace-pre-wrap leading-relaxed">
@@ -397,6 +416,30 @@ export default function PromotionsTab({ onToast }: Props) {
             )}
           </AnimatePresence>
         }
+      />
+
+      <ConfirmModal
+        isOpen={confirmRejectOpen}
+        onClose={() => setConfirmRejectOpen(false)}
+        onConfirm={(reason) => {
+          if (selectedPromo) {
+            updateMutation.mutate({
+              id: selectedPromo.id,
+              status: 'REJECTED',
+              note: reason || '',
+            });
+          }
+          setConfirmRejectOpen(false);
+        }}
+        title="¿Rechazar promoción?"
+        message="Opcionalmente puedes proporcionar un motivo para el rechazo."
+        confirmText="Rechazar"
+        cancelText="Cancelar"
+        isDestructive={true}
+        showInput={true}
+        inputLabel="Motivo del rechazo"
+        inputPlaceholder="Escribe el motivo del rechazo..."
+        inputRequired={false}
       />
     </div>
   );

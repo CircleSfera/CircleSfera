@@ -5,6 +5,7 @@ export { AdminList, AdminListRow } from './AdminList';
 export { AdminPageHeader } from './AdminPageHeader';
 export { default as AdminShell } from './AdminShell';
 export { default as AdminSidebar } from './AdminSidebar';
+export { AdminDetailSkeleton, AdminListSkeleton } from './AdminSkeletons';
 export { AdminSplitView } from './AdminSplitView';
 export type { Toast } from './AdminTable';
 export {

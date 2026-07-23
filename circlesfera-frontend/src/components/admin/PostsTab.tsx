@@ -153,10 +153,10 @@ export default function PostsTab({ onToast }: Props) {
                         {new Date(post.createdAt).toLocaleDateString()}
                       </span>
                       {post._count && (
-                        <>
-                          <span>{post._count.likes} likes</span>
-                          <span>{post._count.comments} comentarios</span>
-                        </>
+                        <span className="hidden sm:inline">
+                          {post._count.likes} likes · {post._count.comments}{' '}
+                          comentarios
+                        </span>
                       )}
                     </>
                   }
@@ -193,6 +193,14 @@ export default function PostsTab({ onToast }: Props) {
                 'Stats',
                 'Acciones',
               ]}
+              columnWidths={[
+                'min-w-[12rem]',
+                'w-[7rem]',
+                'hidden lg:table-cell w-[6rem]',
+                'w-[5rem]',
+                'hidden xl:table-cell w-[6rem]',
+                'w-[8rem]',
+              ]}
               loading={false}
               isEmpty={false}
             >
@@ -221,20 +229,23 @@ export default function PostsTab({ onToast }: Props) {
                           />
                         )}
                       </div>
-                      <p className="text-white text-sm truncate max-w-[200px] group-hover:text-brand-primary transition-colors">
+                      <p
+                        className="text-white text-sm truncate max-w-[12rem] xl:max-w-[16rem] group-hover:text-brand-primary transition-colors"
+                        title={post.caption || '(Sin pie de foto)'}
+                      >
                         {post.caption || '(Sin pie de foto)'}
                       </p>
                     </button>
                   </td>
                   <td className="px-2 py-1">
                     <span
-                      className="text-gray-300 text-sm max-w-[100px] lg:max-w-[150px] truncate block"
-                      title={post.user?.profile?.username}
+                      className="text-gray-300 text-sm truncate block max-w-[7rem]"
+                      title={`@${post.user?.profile?.username}`}
                     >
                       @{post.user?.profile?.username}
                     </span>
                   </td>
-                  <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap">
+                  <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap hidden lg:table-cell">
                     {new Date(post.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-2 py-1">
@@ -242,21 +253,17 @@ export default function PostsTab({ onToast }: Props) {
                       {post.type}
                     </span>
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-2 py-1 hidden xl:table-cell">
                     {post._count && (
-                      <div className="text-xs text-gray-500 space-y-0.5">
-                        <p>
-                          <span className="text-white font-semibold">
-                            {post._count.likes}
-                          </span>{' '}
-                          likes
-                        </p>
-                        <p>
-                          <span className="text-white font-semibold">
-                            {post._count.comments}
-                          </span>{' '}
-                          comentarios
-                        </p>
+                      <div className="text-xs text-gray-500">
+                        <span className="text-white font-semibold">
+                          {post._count.likes}
+                        </span>{' '}
+                        likes ·{' '}
+                        <span className="text-white font-semibold">
+                          {post._count.comments}
+                        </span>{' '}
+                        com.
                       </div>
                     )}
                   </td>

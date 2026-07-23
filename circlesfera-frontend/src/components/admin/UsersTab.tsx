@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   ShieldOff,
   Trash2,
+  Users,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
@@ -197,6 +198,14 @@ export default function UsersTab({ onToast }: Props) {
     ? confirmConfig[confirmAction.type]
     : null;
 
+  const isFiltered = debouncedSearch.length > 0 || statusFilter.length > 0;
+
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter('');
+    setPage(1);
+  };
+
   return (
     <div className="space-y-4">
       <AdminPageHeader
@@ -245,8 +254,24 @@ export default function UsersTab({ onToast }: Props) {
         <AdminList
           loading={isLoading}
           isEmpty={!data || data.data.length === 0}
-          emptyTitle="No hay usuarios"
-          emptyDescription="No se encontraron usuarios con los filtros seleccionados."
+          emptyIcon={Users}
+          emptyTitle={isFiltered ? 'Sin resultados' : 'No hay usuarios'}
+          emptyDescription={
+            isFiltered
+              ? 'Prueba con otro término o ajusta el filtro de estado.'
+              : 'Aún no hay usuarios registrados en la plataforma.'
+          }
+          emptyAction={
+            isFiltered ? (
+              <Button
+                onClick={clearFilters}
+                variant="secondary"
+                className="min-h-11"
+              >
+                Limpiar filtros
+              </Button>
+            ) : undefined
+          }
           mobile={
             <div className="p-2 space-y-2 lg:p-0">
               {data?.data.map((user) => (
@@ -361,19 +386,19 @@ export default function UsersTab({ onToast }: Props) {
                 'Usuario',
                 'Email',
                 'Rol',
-                'Unido el',
+                'Unido',
                 'Posts',
                 'Estado',
                 'Acciones',
               ]}
               columnWidths={[
-                'w-auto',
-                'w-auto',
-                'w-[8%] whitespace-nowrap',
-                'w-[10%] whitespace-nowrap',
-                'w-[8%] whitespace-nowrap',
-                'w-[10%] whitespace-nowrap',
-                'w-[160px] whitespace-nowrap',
+                'min-w-[12rem]',
+                'hidden xl:table-cell min-w-[10rem]',
+                'w-[7rem]',
+                'hidden lg:table-cell w-[7rem]',
+                'w-[4.5rem]',
+                'w-[6rem]',
+                'min-w-[12rem]',
               ]}
               loading={false}
               isEmpty={false}
@@ -411,17 +436,19 @@ export default function UsersTab({ onToast }: Props) {
                             size={14}
                           />
                         </div>
-                        <p className="text-gray-500 text-xs">
+                        <p className="text-gray-500 text-xs truncate">
                           {user.profile?.fullName || ''}
                         </p>
                       </div>
                     </div>
                   </td>
                   <td
-                    className="px-2 py-2 text-gray-300 text-sm"
+                    className="px-2 py-2 text-gray-300 text-sm hidden xl:table-cell max-w-[12rem]"
                     data-label="Email"
                   >
-                    {user.email}
+                    <span className="block truncate" title={user.email}>
+                      {user.email}
+                    </span>
                   </td>
                   <td className="px-2 py-2 text-right" data-label="Rol">
                     {user.role === 'ADMIN' ? (
@@ -434,7 +461,7 @@ export default function UsersTab({ onToast }: Props) {
                     )}
                   </td>
                   <td
-                    className="px-2 py-2 text-gray-500 text-sm whitespace-nowrap"
+                    className="px-2 py-2 text-gray-500 text-sm hidden lg:table-cell"
                     data-label="Unido el"
                   >
                     {new Date(user.createdAt).toLocaleDateString()}
@@ -449,7 +476,7 @@ export default function UsersTab({ onToast }: Props) {
                     <StatusBadge status={user.isActive ? 'active' : 'banned'} />
                   </td>
                   <td className="px-2 py-2" data-label="Acciones">
-                    <div className="flex gap-1.5 items-center">
+                    <div className="flex gap-1 items-center flex-wrap sm:flex-nowrap">
                       <ActionButton
                         onClick={() => setPreviewUserId(user.id)}
                         label="Ver Detalle"
@@ -538,7 +565,7 @@ export default function UsersTab({ onToast }: Props) {
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Ver perfil"
-                        className="p-2 rounded-lg text-brand-primary bg-brand-primary/10 hover:bg-brand-primary hover:text-white transition-all"
+                        className="inline-flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-lg text-brand-primary bg-brand-primary/10 hover:bg-brand-primary hover:text-white transition-all shrink-0"
                         aria-label="Ver perfil del usuario"
                       >
                         <ExternalLink size={14} />

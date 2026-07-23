@@ -6,7 +6,6 @@ import {
   BrainCircuit,
   CheckCircle2,
   Database,
-  Loader2,
   RefreshCw,
   Server,
   Webhook,
@@ -31,33 +30,48 @@ export default function SystemHealthTab() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <Loader2 className="animate-spin text-brand-primary" size={32} />
-        <p className="text-sm font-bold text-zinc-400 uppercase tracking-wide">
-          Analizando infraestructura...
-        </p>
+      <div className="space-y-4">
+        <AdminPageHeader
+          title="Estado del Sistema"
+          subtitle="Monitoreo de infraestructura"
+        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 animate-pulse">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-44 rounded-lg border border-white/5 bg-white/5"
+            />
+          ))}
+          <div className="col-span-full h-28 rounded-lg border border-white/5 bg-white/5" />
+        </div>
       </div>
     );
   }
 
   if (isError || !health) {
     return (
-      <AdminEmptyState
-        icon={AlertTriangle}
-        title="Error Crítico de Monitoreo"
-        description="No se ha podido conectar con el servicio de monitoreo de infraestructura de CircleSfera."
-        className="bg-red-500/10 border-red-500/20"
-        action={
-          <Button
-            variant="danger"
-            onClick={() => refetch()}
-            className="uppercase tracking-wide text-xs min-h-11"
-          >
-            <RefreshCw size={16} className="mr-2" />
-            Reintentar Conexión
-          </Button>
-        }
-      />
+      <div className="space-y-4">
+        <AdminPageHeader
+          title="Estado del Sistema"
+          subtitle="Monitoreo de infraestructura"
+        />
+        <AdminEmptyState
+          icon={AlertTriangle}
+          title="Error Crítico de Monitoreo"
+          description="No se ha podido conectar con el servicio de monitoreo de infraestructura de CircleSfera."
+          className="bg-red-500/10 border-red-500/20"
+          action={
+            <Button
+              variant="danger"
+              onClick={() => refetch()}
+              className="uppercase tracking-wide text-xs min-h-11"
+            >
+              <RefreshCw size={16} className="mr-2" />
+              Reintentar Conexión
+            </Button>
+          }
+        />
+      </div>
     );
   }
 
@@ -80,7 +94,7 @@ export default function SystemHealthTab() {
         100;
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4">
       <AdminPageHeader
         title="Estado del Sistema"
         subtitle={`God View de Infraestructura · Última actualización: ${new Date(health.timestamp).toLocaleTimeString()}`}
@@ -97,14 +111,14 @@ export default function SystemHealthTab() {
         }
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
         {/* PostgreSQL Database */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`p-6 rounded-lg border ${dbBorder} ${dbBg} relative overflow-hidden`}
+          className={`p-4 sm:p-5 rounded-lg border ${dbBorder} ${dbBg} relative overflow-hidden`}
         >
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div
                 className={`w-10 h-10 rounded-lg flex items-center justify-center ${dbColor} bg-black/20`}
@@ -127,7 +141,7 @@ export default function SystemHealthTab() {
             )}
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex justify-between items-end">
               <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wide">
                 Estado
@@ -154,9 +168,9 @@ export default function SystemHealthTab() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className={`p-6 rounded-lg border ${isAiQueueHealthy ? 'border-indigo-500/20 bg-indigo-500/10' : 'border-amber-500/20 bg-amber-500/10'} relative overflow-hidden`}
+          className={`p-4 sm:p-5 rounded-lg border ${isAiQueueHealthy ? 'border-indigo-500/20 bg-indigo-500/10' : 'border-amber-500/20 bg-amber-500/10'} relative overflow-hidden`}
         >
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div
                 className={`w-10 h-10 rounded-lg flex items-center justify-center ${isAiQueueHealthy ? 'text-indigo-400' : 'text-amber-400'} bg-black/20`}
@@ -174,8 +188,8 @@ export default function SystemHealthTab() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-black/20 rounded-xl p-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <div className="bg-black/20 rounded-lg p-2.5 sm:p-3">
               <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-1">
                 En Cola
               </p>
@@ -183,7 +197,7 @@ export default function SystemHealthTab() {
                 {health.queues.ai.wait}
               </p>
             </div>
-            <div className="bg-black/20 rounded-xl p-3 border border-red-500/20">
+            <div className="bg-black/20 rounded-lg p-2.5 sm:p-3 border border-red-500/20">
               <p className="text-xs font-semibold text-red-500 uppercase tracking-wide mb-1">
                 Fallidos
               </p>
@@ -191,7 +205,7 @@ export default function SystemHealthTab() {
                 {health.queues.ai.failed}
               </p>
             </div>
-            <div className="bg-black/20 rounded-xl p-3">
+            <div className="bg-black/20 rounded-lg p-2.5 sm:p-3">
               <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-1">
                 Completados
               </p>
@@ -199,7 +213,7 @@ export default function SystemHealthTab() {
                 {health.queues.ai.completed}
               </p>
             </div>
-            <div className="bg-black/20 rounded-xl p-3">
+            <div className="bg-black/20 rounded-lg p-2.5 sm:p-3">
               <p className="text-xs font-semibold text-brand-primary uppercase tracking-wide mb-1">
                 Activos
               </p>
@@ -215,9 +229,9 @@ export default function SystemHealthTab() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className={`p-6 rounded-lg border ${isAnalyticsQueueHealthy ? 'border-brand-primary/20 bg-brand-primary/10' : 'border-amber-500/20 bg-amber-500/10'} relative overflow-hidden`}
+          className={`p-4 sm:p-5 rounded-lg border ${isAnalyticsQueueHealthy ? 'border-brand-primary/20 bg-brand-primary/10' : 'border-amber-500/20 bg-amber-500/10'} relative overflow-hidden`}
         >
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div
                 className={`w-10 h-10 rounded-lg flex items-center justify-center ${isAnalyticsQueueHealthy ? 'text-brand-primary' : 'text-amber-400'} bg-black/20`}
@@ -235,8 +249,8 @@ export default function SystemHealthTab() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-black/20 rounded-xl p-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <div className="bg-black/20 rounded-lg p-2.5 sm:p-3">
               <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-1">
                 En Cola
               </p>
@@ -244,7 +258,7 @@ export default function SystemHealthTab() {
                 {health.queues.analytics.wait}
               </p>
             </div>
-            <div className="bg-black/20 rounded-xl p-3 border border-red-500/20">
+            <div className="bg-black/20 rounded-lg p-2.5 sm:p-3 border border-red-500/20">
               <p className="text-xs font-semibold text-red-500 uppercase tracking-wide mb-1">
                 Fallidos
               </p>
@@ -252,7 +266,7 @@ export default function SystemHealthTab() {
                 {health.queues.analytics.failed}
               </p>
             </div>
-            <div className="bg-black/20 rounded-xl p-3">
+            <div className="bg-black/20 rounded-lg p-2.5 sm:p-3">
               <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-1">
                 Completados
               </p>
@@ -260,7 +274,7 @@ export default function SystemHealthTab() {
                 {health.queues.analytics.completed}
               </p>
             </div>
-            <div className="bg-black/20 rounded-xl p-3">
+            <div className="bg-black/20 rounded-lg p-2.5 sm:p-3">
               <p className="text-xs font-semibold text-brand-primary uppercase tracking-wide mb-1">
                 Activos
               </p>
@@ -276,24 +290,24 @@ export default function SystemHealthTab() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="col-span-full p-6 rounded-lg glass-panel border border-white/5 relative overflow-hidden flex flex-col md:flex-row items-center gap-8"
+          className="col-span-full p-4 sm:p-5 rounded-lg glass-panel border border-white/5 relative overflow-hidden flex flex-col md:flex-row items-center gap-4 sm:gap-6"
         >
-          <div className="flex items-center gap-4 md:w-1/3">
-            <div className="w-16 h-16 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white shadow-xl">
-              <Webhook size={32} />
+          <div className="flex items-center gap-3 md:w-1/3">
+            <div className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0">
+              <Webhook size={24} />
             </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-semibold text-white uppercase tracking-wide">
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-semibold text-white uppercase tracking-wide">
                 Stripe Webhooks
               </h3>
-              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mt-1">
+              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mt-0.5">
                 Sincronización (Últimas 24h)
               </p>
             </div>
           </div>
 
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 w-full">
-            <div className="bg-black/30 rounded-xl p-4 border border-white/5">
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 w-full">
+            <div className="bg-black/30 rounded-lg p-3 border border-white/5">
               <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-2 flex items-center gap-2">
                 <CheckCircle2 size={12} /> Procesados Exitosamente
               </p>
@@ -302,7 +316,7 @@ export default function SystemHealthTab() {
               </p>
             </div>
 
-            <div className="bg-black/30 rounded-xl p-4 border border-red-500/20 relative overflow-hidden">
+            <div className="bg-black/30 rounded-lg p-3 border border-red-500/20 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-16 h-16 bg-red-500/10 blur-xl rounded-full" />
               <p className="text-xs font-semibold text-red-500 uppercase tracking-wide mb-2 flex items-center gap-2 relative z-10">
                 <AlertCircle size={12} /> Webhooks Fallidos
@@ -312,7 +326,7 @@ export default function SystemHealthTab() {
               </p>
             </div>
 
-            <div className="sm:col-span-2 xl:col-span-1 bg-black/30 rounded-xl p-4 border border-white/5 flex flex-col justify-center">
+            <div className="sm:col-span-2 xl:col-span-1 bg-black/30 rounded-lg p-3 border border-white/5 flex flex-col justify-center">
               <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-2">
                 Tasa de Éxito
               </p>

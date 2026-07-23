@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { AdminStory } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import ConfirmModal from '../modals/ConfirmModal';
 import { AdminList, AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
 import { ActionButton, Pagination, Table } from './AdminTable';
@@ -15,6 +16,7 @@ interface Props {
 export default function StoriesTab({ onToast }: Props) {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<PaginatedResponse<AdminStory>>({
     queryKey: ['admin', 'stories', page],
@@ -85,19 +87,17 @@ export default function StoriesTab({ onToast }: Props) {
                     )
                   }
                   meta={
-                    <>
-                      <span className="flex items-center gap-1">
-                        <Eye size={12} /> {story._count?.views || 0} vistas
+                    <span className="flex items-center gap-1">
+                      <Eye size={12} /> {story._count?.views || 0} vistas
+                      <span className="hidden sm:inline text-pink-400">
+                        · <Heart size={12} className="inline" />{' '}
+                        {story._count?.reactions || 0}
                       </span>
-                      <span className="flex items-center gap-1 text-pink-400">
-                        <Heart size={12} /> {story._count?.reactions || 0}{' '}
-                        reacciones
-                      </span>
-                    </>
+                    </span>
                   }
                   primaryAction={
                     <ActionButton
-                      onClick={() => deleteMutation.mutate(story.id)}
+                      onClick={() => setConfirmDeleteId(story.id)}
                       label="Eliminar"
                       variant="danger"
                       icon={Trash2}
@@ -118,6 +118,15 @@ export default function StoriesTab({ onToast }: Props) {
                 'Vistas',
                 'Reacciones',
                 'Acciones',
+              ]}
+              columnWidths={[
+                'w-[3rem]',
+                'min-w-[6rem]',
+                'w-[5rem]',
+                'w-[5.5rem]',
+                'w-[4.5rem]',
+                'hidden xl:table-cell w-[5rem]',
+                'w-[4rem]',
               ]}
               loading={false}
               isEmpty={false}
@@ -145,7 +154,10 @@ export default function StoriesTab({ onToast }: Props) {
                     </div>
                   </td>
                   <td className="px-2 py-1">
-                    <span className="text-white font-medium text-sm">
+                    <span
+                      className="text-white font-medium text-sm truncate block max-w-[6rem]"
+                      title={`@${story.user?.profile?.username || 'unknown'}`}
+                    >
                       @{story.user?.profile?.username || 'unknown'}
                     </span>
                   </td>
@@ -170,14 +182,14 @@ export default function StoriesTab({ onToast }: Props) {
                       <Eye size={12} /> {story._count?.views || 0}
                     </span>
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-2 py-1 hidden xl:table-cell">
                     <span className="flex items-center gap-1 text-pink-400 text-sm">
                       <Heart size={12} /> {story._count?.reactions || 0}
                     </span>
                   </td>
                   <td className="px-2 py-1">
                     <ActionButton
-                      onClick={() => deleteMutation.mutate(story.id)}
+                      onClick={() => setConfirmDeleteId(story.id)}
                       label="Eliminar"
                       variant="danger"
                       icon={Trash2}
@@ -192,6 +204,22 @@ export default function StoriesTab({ onToast }: Props) {
         />
         <Pagination meta={data?.meta} onPageChange={setPage} />
       </div>
+
+      <ConfirmModal
+        isOpen={confirmDeleteId !== null}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={() => {
+          if (confirmDeleteId) {
+            deleteMutation.mutate(confirmDeleteId);
+          }
+          setConfirmDeleteId(null);
+        }}
+        title="¿Eliminar historia?"
+        message="¿Estás seguro de que deseas eliminar esta historia permanentemente?"
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        isDestructive={true}
+      />
     </div>
   );
 }
