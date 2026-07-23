@@ -240,10 +240,11 @@
       "success": "¡Cuenta creada exitosamente! Por favor, revisa tu email para verificar tu cuenta."
     },
     "verify": {
+      "no_token": "Token de verificación no encontrado.",
       "success": "Tu email ha sido verificado con éxito.",
       "error": "Fallo al verificar el email.",
       "loading_title": "Verificando Identidad",
-
+      "loading_desc": "Por favor, espera mientras validamos tu token seguro...",
       "success_title": "Acceso Concedido",
       "success_desc": "Serás redirigido a la página de inicio de sesión en un momento...",
       "error_title": "Verificación Fallida",
@@ -265,7 +266,7 @@
     },
     "reset_password": {
       "error_mismatch": "Las contraseñas no coinciden",
-
+      "error_token": "Token inválido o expirado",
       "default_error": "Error al restablecer la contraseña.",
       "success_title": "Contraseña Actualizada",
       "success_desc": "Tu contraseña ha sido cambiada con éxito. Ya puedes iniciar sesión con tus nuevas credenciales.",
@@ -385,6 +386,16 @@
     "for_you": "Para Ti",
     "trending": "Trending",
     "discover_content": "Descubre contenido nuevo aquí basado en tus gustos.",
+    "cold_start": {
+      "title_foryou": "Descubre tu propio espacio",
+      "title_trending": "Las tendencias te esperan",
+      "desc_foryou": "Nuestro motor de Inteligencia Artificial aprende de ti. Dale \"Me Gusta\" y sigue a otros usuarios para que tu feed cobre vida con contenido personalizado.",
+      "desc_trending": "Parece que no hay tendencias activas en este momento o necesitas explorar más contenido para destapar el flujo.",
+      "view_trending": "Ver Tendencias Globales",
+      "post_now": "Publicar Ahora",
+      "people_to_follow": "Personas a las que seguir",
+      "no_suggestions": "No hay sugerencias en este momento."
+    },
     "landing": {
       "title": "Explora CircleSfera - La Red Social de Próxima Generación",
       "desc": "Descubre las funciones, la filosofía y las herramientas detrás de CircleSfera. Construido para conexiones auténticas y excelencia visual.",
@@ -452,6 +463,7 @@
     }
   },
   "story": {
+    "delete_error": "Error al eliminar la historia",
     "highlight_not_found": "Historia destacada no encontrada",
     "go_back": "Volver",
     "views": "Vistas",
@@ -477,6 +489,7 @@
     "add_comment": "Añadir un comentario...",
     "reply_to_user": "Responder a @{{username}}...",
     "post": "Publicar",
+    "upload_error": "Error al subir el archivo",
     "delete_title": "Eliminar Comentario",
     "delete_warning": "¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer."
   },
@@ -680,6 +693,7 @@
     "started_chat": "Inició una conversación",
     "sent_voice": "Envió un mensaje de voz",
     "sent_image": "Envió una imagen",
+    "file_too_large": "Para garantizar el cifrado E2E, los archivos no pueden superar los 50 MB.",
     "sent_attachment": "Envió un archivo adjunto",
     "chat": "Chat",
     "group_chat": "Chat de Grupo",
@@ -874,7 +888,22 @@
     "error_send_tip": "Error al enviar propina",
     "send_gift": "Enviar Regalo",
     "send_tip": "Enviar Propina",
-    "processing": "Procesando..."
+    "processing": "Procesando...",
+    "error_checkout": "Error al iniciar el pago",
+    "error_portal": "Error al acceder al portal",
+    "loading_plans": "Cargando planes...",
+    "subscription_status": "Estatus de Suscripción",
+    "current_plan": "Plan Actual",
+    "select_plan_start": "Selecciona un plan abajo para comenzar.",
+    "manage_subscription": "Gestionar Suscripción",
+    "active": "Activo",
+    "per_month": "/ mes",
+    "per_year": "/ año",
+    "upgrade_now": "Mejorar Ahora",
+    "growth_analytics": "Analíticas de Crecimiento",
+    "growth_desc": "Descubre patrones de interacción y optimiza tu alcance con nuestras herramientas de IA propietarias.",
+    "vip_community": "Comunidad VIP",
+    "vip_desc": "Acceso exclusivo a círculos de otros creadores certificados y prioridad en el descubrimiento global."
   },
   "admin": {
     "panel": "Panel de Control",
@@ -1747,6 +1776,78 @@
     "saved_title": "Guardados",
     "no_saved": "Aún no hay posts guardados",
     "no_saved_desc": "Guarda posts para verlos más tarde tocando el icono de marcador."
+  },
+  "supportPage": {
+    "title": "Centro de Soporte",
+    "description": "¿Tienes algún problema con tu cuenta o necesitas ayuda con un pago? Escríbenos y te responderemos por correo electrónico.",
+    "success_title": "¡Ticket enviado!",
+    "success_body": "Nuestro equipo lo revisará y te contactará pronto al correo: {{email}}",
+    "login_required": "Debes iniciar sesión para que podamos contactarte.",
+    "subject_label": "Asunto",
+    "subject_placeholder": "Ej: Problema con una suscripción",
+    "message_label": "Mensaje",
+    "message_placeholder": "Describe tu problema con el mayor detalle posible...",
+    "submit": "Enviar Ticket",
+    "submitting": "Enviando...",
+    "error_generic": "Error al enviar el ticket. Inténtalo de nuevo."
+  },
+  "pricingPage": {
+    "badge": "Planes de Precios",
+    "heading": "Elige tu",
+    "heading_highlight": "Experiencia",
+    "subtitle": "Selecciona el plan que se ajuste a tus necesidades creativas. Desde creadores individuales hasta marcas globales.",
+    "most_popular": "Más Popular",
+    "current_plan": "Plan Actual",
+    "manage_subscription": "Gestionar Suscripción",
+    "default_description": "Desbloquea más de CircleSfera.",
+    "default_button": "Mejorar a {{plan}}",
+    "desc_premium": "Eleva tu identidad y presencia.",
+    "desc_elite": "Herramientas profesionales para creadores en crecimiento.",
+    "desc_business": "Máximo impacto para marcas y equipos.",
+    "button_premium": "Mejorar Experiencia",
+    "button_elite": "Hazte Elite",
+    "button_business": "Iniciar Business",
+    "identity_verified": "¡Tu identidad ha sido verificada!",
+    "verification_required_title": "Verificación Requerida",
+    "verification_required_desc": "Debes verificar tu identidad antes de realizar compras.",
+    "verify_button": "Verificar Identidad con Stripe",
+    "verify_error": "No se pudo iniciar la verificación de identidad.",
+    "checkout_error": "Error al iniciar el pago. Inténtalo de nuevo."
+  },
+  "studio": {
+    "default_project_name": "Nuevo Proyecto",
+    "default_track_name": "Pista Principal",
+    "default_text": "Nuevo Texto",
+    "select_clip_hint": "Selecciona un clip para ver sus propiedades",
+    "media": "Media",
+    "text": "Texto",
+    "audio": "Audio",
+    "split_title": "Dividir en el playhead",
+    "split": "Dividir",
+    "delete": "Borrar",
+    "export_error": "Error exportando el video. Inténtalo de nuevo."
+  },
+  "referralsSettings": {
+    "title": "Invitaciones Beta",
+    "subtitle": "Invita a tus amigos a CircleSfera",
+    "your_invite_link": "Tu Enlace de Invitación",
+    "used_count": "{{count}} / {{max}} Usados",
+    "copy": "Copiar",
+    "copied": "¡Enlace de invitación copiado!",
+    "max_reached": "Has alcanzado el número máximo de invitaciones para esta fase beta.",
+    "users_invited": "Usuarios que invitaste",
+    "no_invites": "Todavía no has invitado a nadie.",
+    "joined_on": "• Se unió el {{date}}"
+  },
+  "live": {
+    "connecting": "Conectando al directo...",
+    "starting": "Iniciando directo...",
+    "ended_or_not_found": "Transmisión finalizada o no encontrada.",
+    "chat_placeholder": "Escribe un comentario...",
+    "send_reaction": "Enviar {{emoji}}",
+    "cohost_label": "Co-host:",
+    "cohost_remove": "Expulsar co-anfitrión",
+    "cohost_input_placeholder": "@usuario co-host"
   },
   "common": {
     "footer": {

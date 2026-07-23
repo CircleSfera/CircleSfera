@@ -386,6 +386,16 @@
     "for_you": "For You",
     "trending": "Trending",
     "discover_content": "Discover new content here based on your tastes.",
+    "cold_start": {
+      "title_foryou": "Discover your own space",
+      "title_trending": "Trends are waiting for you",
+      "desc_foryou": "Our AI engine learns from you. Like and follow other users so your feed comes alive with personalized content.",
+      "desc_trending": "It looks like there are no active trends right now, or you need to explore more content to unlock the flow.",
+      "view_trending": "View Global Trends",
+      "post_now": "Post Now",
+      "people_to_follow": "People to follow",
+      "no_suggestions": "No suggestions available right now."
+    },
     "landing": {
       "title": "Explore CircleSfera - The Next Generation Social Network",
       "desc": "Discover the features, philosophy, and tools behind CircleSfera. Built for authentic connection and visual excellence.",
@@ -453,6 +463,7 @@
     }
   },
   "story": {
+    "delete_error": "Failed to delete story",
     "highlight_not_found": "Highlight not found",
     "go_back": "Go Back",
     "views": "Views",
@@ -478,6 +489,7 @@
     "add_comment": "Add a comment...",
     "reply_to_user": "Reply to @{{username}}...",
     "post": "Post",
+    "upload_error": "Failed to upload media",
     "delete_title": "Delete Comment",
     "delete_warning": "Are you sure you want to delete this comment? This action cannot be undone."
   },
@@ -681,6 +693,7 @@
     "started_chat": "Started a chat",
     "sent_voice": "Sent a voice message",
     "sent_image": "Sent an image",
+    "file_too_large": "To ensure E2E encryption, files cannot exceed 50 MB.",
     "sent_attachment": "Sent an attachment",
     "chat": "Chat",
     "group_chat": "Group Chat",
@@ -835,6 +848,23 @@
       "error_cancel": "Error cancelling",
       "restarted": "Campaign restarted",
       "error_repeat": "Error repeating"
+    },
+    "monetization": {
+      "error_checkout": "Error starting checkout",
+      "error_portal": "Error accessing portal",
+      "loading_plans": "Loading plans...",
+      "subscription_status": "Subscription Status",
+      "current_plan": "Current Plan",
+      "select_plan_start": "Select a plan below to start.",
+      "manage_subscription": "Manage Subscription",
+      "active": "Active",
+      "per_month": "/ month",
+      "per_year": "/ year",
+      "upgrade_now": "Upgrade Now",
+      "growth_analytics": "Growth Analytics",
+      "growth_desc": "Discover interaction patterns and optimize your reach with our proprietary AI tools.",
+      "vip_community": "VIP Community",
+      "vip_desc": "Exclusive access to circles of other certified creators and priority in global discovery."
     }
   },
   "wallet": {
@@ -871,7 +901,9 @@
     "growth_analytics": "Growth Analytics",
     "growth_desc": "Discover interaction patterns and optimize your reach with our proprietary AI tools.",
     "vip_community": "VIP Community",
-    "vip_desc": "Exclusive access to circles of other certified creators and priority in global discovery."
+    "vip_desc": "Exclusive access to circles of other certified creators and priority in global discovery.",
+    "send_gift": "Send Gift",
+    "send_tip": "Send Tip"
   },
   "admin": {
     "panel": "Control Panel",
@@ -1744,6 +1776,78 @@
     "saved_title": "Saved",
     "no_saved": "No saved posts yet",
     "no_saved_desc": "Save posts to view them later by tapping the bookmark icon."
+  },
+  "supportPage": {
+    "title": "Support Center",
+    "description": "Do you have an issue with your account or need help with a payment? Write to us and we'll reply by email.",
+    "success_title": "Ticket sent!",
+    "success_body": "Our team will review it and contact you soon at: {{email}}",
+    "login_required": "You must be logged in so we can contact you.",
+    "subject_label": "Subject",
+    "subject_placeholder": "E.g: Issue with a subscription",
+    "message_label": "Message",
+    "message_placeholder": "Describe your issue in as much detail as possible...",
+    "submit": "Send Ticket",
+    "submitting": "Sending...",
+    "error_generic": "Failed to send the ticket. Please try again."
+  },
+  "pricingPage": {
+    "badge": "Pricing Plans",
+    "heading": "Choose your",
+    "heading_highlight": "Experience",
+    "subtitle": "Select the plan that fits your creative needs. From individual creators to global brands.",
+    "most_popular": "Most Popular",
+    "current_plan": "Current Plan",
+    "manage_subscription": "Manage Subscription",
+    "default_description": "Unlock more of CircleSfera.",
+    "default_button": "Upgrade to {{plan}}",
+    "desc_premium": "Elevate your identity and presence.",
+    "desc_elite": "Professional tools for growing creators.",
+    "desc_business": "Maximum impact for brands and teams.",
+    "button_premium": "Upgrade Experience",
+    "button_elite": "Become Elite",
+    "button_business": "Start Business",
+    "identity_verified": "Your identity has been verified!",
+    "verification_required_title": "Verification Required",
+    "verification_required_desc": "You must verify your identity before making purchases.",
+    "verify_button": "Verify Identity with Stripe",
+    "verify_error": "Could not start identity verification.",
+    "checkout_error": "Failed to start checkout. Please try again."
+  },
+  "studio": {
+    "default_project_name": "New Project",
+    "default_track_name": "Main Track",
+    "default_text": "New Text",
+    "select_clip_hint": "Select a clip to view its properties",
+    "media": "Media",
+    "text": "Text",
+    "audio": "Audio",
+    "split_title": "Split at playhead",
+    "split": "Split",
+    "delete": "Delete",
+    "export_error": "Error exporting the video. Please try again."
+  },
+  "referralsSettings": {
+    "title": "Beta Invites",
+    "subtitle": "Invite your friends to CircleSfera",
+    "your_invite_link": "Your Invite Link",
+    "used_count": "{{count}} / {{max}} Used",
+    "copy": "Copy",
+    "copied": "Invite link copied!",
+    "max_reached": "You have reached the maximum number of invites for this beta phase.",
+    "users_invited": "Users you invited",
+    "no_invites": "You haven't invited anyone yet.",
+    "joined_on": "• Joined {{date}}"
+  },
+  "live": {
+    "connecting": "Connecting to live stream...",
+    "starting": "Starting live stream...",
+    "ended_or_not_found": "Live stream ended or not found.",
+    "chat_placeholder": "Write a comment...",
+    "send_reaction": "Send {{emoji}}",
+    "cohost_label": "Co-host:",
+    "cohost_remove": "Remove co-host",
+    "cohost_input_placeholder": "@cohost username"
   },
   "common": {
     "footer": {
