@@ -99,7 +99,16 @@ export default function AppealsList({
           title={t('admin.appeals.user_label', {
             email: appeal.user?.email || '—',
           })}
-          subtitle={appeal.reason}
+          subtitle={
+            <>
+              <span>{appeal.reason}</span>
+              {appeal.adminNotes ? (
+                <span className="block text-xs text-gray-400 mt-1">
+                  {t('admin.appeals.admin_notes', 'Notes')}: {appeal.adminNotes}
+                </span>
+              ) : null}
+            </>
+          }
           badge={
             <span
               className={`px-2 py-1 rounded text-xs font-medium ${
@@ -126,12 +135,19 @@ export default function AppealsList({
                   label={t('admin.appeals.approve')}
                   variant="success"
                   iconOnly
-                  onClick={() =>
+                  onClick={() => {
+                    const note = window.prompt(
+                      t(
+                        'admin.appeals.notes_prompt',
+                        'Optional admin notes (leave empty to skip):',
+                      ),
+                    );
                     updateMutation.mutate({
                       id: appeal.id,
                       status: 'APPROVED',
-                    })
-                  }
+                      adminNotes: note || undefined,
+                    });
+                  }}
                   disabled={updateMutation.isPending}
                 />
                 <ActionButton
@@ -139,12 +155,19 @@ export default function AppealsList({
                   label={t('admin.appeals.reject')}
                   variant="danger"
                   iconOnly
-                  onClick={() =>
+                  onClick={() => {
+                    const note = window.prompt(
+                      t(
+                        'admin.appeals.notes_prompt_reject',
+                        'Reason for rejection (optional):',
+                      ),
+                    );
                     updateMutation.mutate({
                       id: appeal.id,
                       status: 'REJECTED',
-                    })
-                  }
+                      adminNotes: note || undefined,
+                    });
+                  }}
                   disabled={updateMutation.isPending}
                 />
               </div>
