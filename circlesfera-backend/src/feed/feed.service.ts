@@ -9,6 +9,7 @@ import {
 } from '../common/dto/pagination.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FeedInboxService } from './feed-inbox.service.js';
+import { FeedPreferencesService } from './feed-preferences.service.js';
 
 @Injectable()
 export class FeedService {
@@ -20,6 +21,8 @@ export class FeedService {
     // biome-ignore lint/correctness/noUnusedPrivateClassMembers: aiService injected for future use
     @Inject(AIService) private readonly aiService: AIService,
     @Inject(FeedInboxService) private readonly feedInbox: FeedInboxService,
+    @Inject(FeedPreferencesService)
+    private readonly feedPreferences: FeedPreferencesService,
   ) {}
 
   private postHydrationInclude(userId?: string | null) {
@@ -206,6 +209,14 @@ export class FeedService {
             AND p."userId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${userId})
             AND p."userId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${userId})
             AND p."userId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${userId})
+            AND p.id NOT IN (SELECT "postId" FROM "feed_hidden_posts" WHERE "userId" = ${userId})
+            AND p."userId" NOT IN (SELECT "authorId" FROM "feed_hidden_authors" WHERE "userId" = ${userId})
+            AND NOT EXISTS (
+              SELECT 1 FROM "feed_muted_keywords" fmk
+              WHERE fmk."userId" = ${userId}
+                AND p.caption IS NOT NULL
+                AND POSITION(fmk.keyword IN LOWER(p.caption)) > 0
+            )
             AND (${viewerSettings.allowMature} OR p."contentRating" = 'GENERAL')
             
           ORDER BY final_score DESC
@@ -250,6 +261,14 @@ export class FeedService {
             AND p."userId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${userId})
             AND p."userId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${userId})
             AND p."userId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${userId})
+            AND p.id NOT IN (SELECT "postId" FROM "feed_hidden_posts" WHERE "userId" = ${userId})
+            AND p."userId" NOT IN (SELECT "authorId" FROM "feed_hidden_authors" WHERE "userId" = ${userId})
+            AND NOT EXISTS (
+              SELECT 1 FROM "feed_muted_keywords" fmk
+              WHERE fmk."userId" = ${userId}
+                AND p.caption IS NOT NULL
+                AND POSITION(fmk.keyword IN LOWER(p.caption)) > 0
+            )
             AND (${viewerSettings.allowMature} OR p."contentRating" = 'GENERAL')
             
           ORDER BY final_score DESC
@@ -402,7 +421,7 @@ export class FeedService {
         `Redis inbox empty for ${userId}, falling back to SQL...`,
       );
 
-      const [following, mutes] = await Promise.all([
+      const [following, mutes, prefs] = await Promise.all([
         this.prisma.follow.findMany({
           where: { followerId: userId, status: 'ACCEPTED' },
           select: { followingId: true },
@@ -411,14 +430,23 @@ export class FeedService {
           where: { muterId: userId },
           select: { mutedId: true },
         }),
+        this.feedPreferences.getFilterSets(userId),
       ]);
 
-      const mutedIds = new Set(mutes.map((m) => m.mutedId));
+      const mutedIds = new Set([
+        ...mutes.map((m) => m.mutedId),
+        ...prefs.hiddenAuthorIds,
+      ]);
       const followingIds = following
         .map((f) => f.followingId)
         .filter((id) => !mutedIds.has(id));
 
       followingIds.push(userId); // Include own posts
+
+      const preferenceFilter =
+        prefs.hiddenPostIds.length > 0
+          ? { id: { notIn: prefs.hiddenPostIds } }
+          : {};
 
       const [fallbackPosts, fallbackTotal] = await Promise.all([
         this.prisma.post.findMany({
@@ -427,6 +455,7 @@ export class FeedService {
             type: 'POST',
             moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
             scheduledStatus: 'PUBLISHED',
+            ...preferenceFilter,
             ...matureFilter,
             OR: [
               { visibility: Visibility.PUBLIC },
@@ -445,12 +474,19 @@ export class FeedService {
             type: 'POST',
             moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
             scheduledStatus: 'PUBLISHED',
+            ...preferenceFilter,
             ...matureFilter,
           },
         }),
       ]);
 
-      posts = fallbackPosts;
+      posts =
+        prefs.mutedKeywords.length > 0
+          ? fallbackPosts.filter((p) => {
+              const caption = (p.caption || '').toLowerCase();
+              return !prefs.mutedKeywords.some((kw) => caption.includes(kw));
+            })
+          : fallbackPosts;
       total = fallbackTotal;
 
       // Optional: We could trigger a background job to rebuild their inbox here,
