@@ -139,6 +139,14 @@ model User {
   creatorSubscribers   CreatorSubscription[] @relation("CreatorSubscribers")
   postUnlocks          PostUnlock[]
   storyUnlocks         StoryUnlock[]
+  sentLiveGifts        LiveGift[]            @relation("LiveGiftSender")
+  receivedLiveGifts    LiveGift[]            @relation("LiveGiftReceiver")
+
+  // Feed preferences (hide post/author, mute keywords)
+  feedHiddenPosts      FeedHiddenPost[]
+  feedHiddenAuthors    FeedHiddenAuthor[]    @relation("FeedHidingAuthor")
+  feedHiddenByAuthors  FeedHiddenAuthor[]    @relation("FeedHiddenAsAuthor")
+  feedMutedKeywords    FeedMutedKeyword[]
 
   // Support
   supportTickets SupportTicket[]
@@ -296,6 +304,9 @@ model Post {
   scheduledStatus ScheduledPostStatus @default(PUBLISHED)
   poll            Poll?
   qnaBox          QnaBox?
+
+  // Feed preferences
+  hiddenByUsers FeedHiddenPost[]
 
   @@index([userId, type, visibility, createdAt, moderationStatus])
   @@index([userId])
@@ -1266,21 +1277,25 @@ model Transaction {
   receiverId String?
 
   // Associated entities
-  postId      String?
-  storyId     String?
-  promotionId String?
+  postId       String?
+  storyId      String?
+  promotionId  String?
+  liveStreamId String?
 
   stripePaymentIntentId String? @unique
 
   description String?
   createdAt   DateTime @default(now())
 
-  sender   User? @relation("SentTransactions", fields: [senderId], references: [id], onDelete: SetNull)
-  receiver User? @relation("ReceivedTransactions", fields: [receiverId], references: [id], onDelete: SetNull)
+  sender     User?       @relation("SentTransactions", fields: [senderId], references: [id], onDelete: SetNull)
+  receiver   User?       @relation("ReceivedTransactions", fields: [receiverId], references: [id], onDelete: SetNull)
+  liveStream LiveStream? @relation(fields: [liveStreamId], references: [id], onDelete: SetNull)
+  liveGift   LiveGift?
 
   @@index([senderId])
   @@index([receiverId])
   @@index([type])
+  @@index([liveStreamId])
   @@map("transactions")
 }
 
@@ -1288,6 +1303,7 @@ enum TransactionType {
   DIRECT_POST_UNLOCK
   DIRECT_STORY_UNLOCK
   DIRECT_TIP
+  DIRECT_LIVE_GIFT
   STRIPE_SUBSCRIPTION
   PROMOTION_PAYMENT
 }
@@ -1468,12 +1484,85 @@ model LiveStream {
   hlsUrl      String?
   replayUrl   String?
 
-  host   User  @relation("LiveStreamHost",   fields: [hostId],   references: [id])
-  coHost User? @relation("LiveStreamCoHost", fields: [coHostId], references: [id])
+  host         User          @relation("LiveStreamHost", fields: [hostId], references: [id])
+  coHost       User?         @relation("LiveStreamCoHost", fields: [coHostId], references: [id])
+  gifts        LiveGift[]
+  transactions Transaction[]
 
   @@index([status])
+  @@index([hostId])
   @@index([coHostId])
   @@map("live_streams")
+}
+
+/// Paid virtual gift sent during a live stream (Stripe Checkout + webhook).
+model LiveGift {
+  id                      String            @id @default(uuid())
+  streamId                String
+  senderId                String
+  receiverId              String
+  giftId                  String // catalog key: star | flame | crown | gem | rocket
+  amountCents             Int
+  currency                String            @default("EUR")
+  status                  TransactionStatus @default(PENDING)
+  stripeCheckoutSessionId String?           @unique
+  transactionId           String?           @unique
+  createdAt               DateTime          @default(now())
+  completedAt             DateTime?
+
+  stream      LiveStream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  sender      User         @relation("LiveGiftSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    User         @relation("LiveGiftReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([streamId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([status])
+  @@map("live_gifts")
+}
+
+// FEED PREFERENCES
+// -----------------------------------------------------------------------------
+model FeedHiddenPost {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@map("feed_hidden_posts")
+}
+
+model FeedHiddenAuthor {
+  id        String   @id @default(uuid())
+  userId    String
+  authorId  String
+  createdAt DateTime @default(now())
+
+  user   User @relation("FeedHidingAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  author User @relation("FeedHiddenAsAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, authorId])
+  @@index([userId])
+  @@map("feed_hidden_authors")
+}
+
+model FeedMutedKeyword {
+  id        String   @id @default(uuid())
+  userId    String
+  keyword   String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, keyword])
+  @@index([userId])
+  @@map("feed_muted_keywords")
 }
 
 enum LiveStatus {
