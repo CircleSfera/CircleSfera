@@ -12,6 +12,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { ConnectStripeDto } from './dto/connect-stripe.dto.js';
 import { SendTipDto } from './dto/send-tip.dto.js';
 import { UnlockPostDto } from './dto/unlock-post.dto.js';
+import { UnlockStoryDto } from './dto/unlock-story.dto.js';
 import { MonetizationService } from './monetization.service.js';
 
 interface AuthRequest extends Request {
@@ -75,6 +76,17 @@ export class MonetizationController {
     return this.monetizationService.createPostUnlockSession(
       req.user.userId,
       body.postId,
+      body.returnUrl,
+      body.idempotencyKey,
+    );
+  }
+
+  @Post('unlock-story')
+  @UseGuards(IdentityVerifiedGuard)
+  async unlockStory(@Req() req: AuthRequest, @Body() body: UnlockStoryDto) {
+    return this.monetizationService.createStoryUnlockSession(
+      req.user.userId,
+      body.storyId,
       body.returnUrl,
       body.idempotencyKey,
     );

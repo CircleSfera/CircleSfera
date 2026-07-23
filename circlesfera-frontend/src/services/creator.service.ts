@@ -219,4 +219,10 @@ export const creatorApi = {
 
   cancelCreatorSubscription: (creatorId: string) =>
     apiClient.delete(`creator/subscription/${creatorId}`),
+
+  setSubscriptionPrice: (priceCents: number) =>
+    apiClient.patch<{ subscriptionPriceCents: number; username: string }>(
+      'creator/subscription-price',
+      { priceCents },
+    ),
 };

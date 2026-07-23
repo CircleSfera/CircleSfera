@@ -37,6 +37,14 @@ export const monetizationApi = {
     });
     return data;
   },
+
+  unlockStory: async (storyId: string, returnUrl: string) => {
+    const { data } = await api.post('/monetization/unlock-story', {
+      storyId,
+      returnUrl,
+    });
+    return data;
+  },
   getTransactions: async (page = 1, limit = 20) => {
     const { data } = await api.get('/monetization/transactions', {
       params: { page, limit },

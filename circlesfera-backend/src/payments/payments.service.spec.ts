@@ -27,8 +27,13 @@ describe('PaymentsService', () => {
               update: vi.fn(),
               findUnique: vi.fn().mockResolvedValue(null),
             },
-            postUnlock: { upsert: vi.fn() },
-            transaction: { create: vi.fn() },
+            postUnlock: { upsert: vi.fn(), deleteMany: vi.fn() },
+            storyUnlock: { upsert: vi.fn(), deleteMany: vi.fn() },
+            transaction: {
+              create: vi.fn(),
+              findUnique: vi.fn(),
+              update: vi.fn(),
+            },
             monetization: { upsert: vi.fn() },
             promotion: { update: vi.fn(), updateMany: vi.fn() },
             platformSubscription: {
@@ -42,7 +47,7 @@ describe('PaymentsService', () => {
               updateMany: vi.fn().mockResolvedValue({ count: 0 }),
             },
             platformPlan: { findUnique: vi.fn() },
-            user: { update: vi.fn(), findUnique: vi.fn() },
+            user: { update: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn() },
             $transaction: vi.fn((callback) => callback(prisma)),
           },
         },
@@ -398,6 +403,100 @@ describe('PaymentsService', () => {
             type: 'DIRECT_TIP',
             senderId: 'tipper1',
             receiverId: 'creator2',
+          }),
+        }),
+      );
+    });
+
+    it('8b. should handle checkout.session.completed for DIRECT_STORY_UNLOCK', async () => {
+      const event = {
+        id: 'evt_story_unlock_1',
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: 'cs_story_1',
+            client_reference_id: 'buyer1',
+            amount_total: 250,
+            currency: 'eur',
+            payment_intent: 'pi_story_1',
+            metadata: {
+              type: 'DIRECT_STORY_UNLOCK',
+              storyId: 'story1',
+              creatorId: 'creator1',
+            },
+          },
+        },
+      };
+
+      await service.processWebhookEvent(event);
+
+      expect(prisma.storyUnlock.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId_storyId: { userId: 'buyer1', storyId: 'story1' } },
+        }),
+      );
+      expect(prisma.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            type: 'DIRECT_STORY_UNLOCK',
+            storyId: 'story1',
+            stripePaymentIntentId: 'pi_story_1',
+          }),
+        }),
+      );
+    });
+
+    it('8c. should revoke story unlock on charge.refunded', async () => {
+      (prisma.transaction.findUnique as any).mockResolvedValue({
+        id: 'tx1',
+        type: 'DIRECT_STORY_UNLOCK',
+        senderId: 'buyer1',
+        storyId: 'story1',
+        stripePaymentIntentId: 'pi_story_1',
+      });
+
+      await service.processWebhookEvent({
+        id: 'evt_refund_1',
+        type: 'charge.refunded',
+        data: {
+          object: {
+            payment_intent: 'pi_story_1',
+          },
+        },
+      });
+
+      expect(prisma.transaction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'tx1' },
+          data: { status: 'REFUNDED' },
+        }),
+      );
+      expect(prisma.storyUnlock.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'buyer1', storyId: 'story1' },
+      });
+    });
+
+    it('8d. should sync Connect flags on account.updated', async () => {
+      (prisma.user.findFirst as any).mockResolvedValue({ id: 'creator1' });
+
+      await service.processWebhookEvent({
+        id: 'evt_acct_1',
+        type: 'account.updated',
+        data: {
+          object: {
+            id: 'acct_1',
+            charges_enabled: true,
+            capabilities: { transfers: 'active' },
+          },
+        },
+      });
+
+      expect(prisma.monetization.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'creator1' },
+          update: expect.objectContaining({
+            transfersEnabled: true,
+            chargesEnabled: true,
           }),
         }),
       );

@@ -218,6 +218,8 @@ export class StripeService implements OnModuleInit {
 
   /**
    * Create a Transfer to a connected account.
+   * Prefer destination charges / application_fee on Checkout (tips, unlocks, VIP).
+   * Kept for rare manual ops; not used by primary monetization flows.
    */
   async createTransfer(
     amountInCents: number,

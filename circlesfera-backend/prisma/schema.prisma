@@ -138,6 +138,7 @@ model User {
   subscribedToCreator  CreatorSubscription[] @relation("SubscribedToCreator")
   creatorSubscribers   CreatorSubscription[] @relation("CreatorSubscribers")
   postUnlocks          PostUnlock[]
+  storyUnlocks         StoryUnlock[]
 
   // Support
   supportTickets SupportTicket[]
@@ -414,6 +415,7 @@ model Story {
   // Premium Content
   isPremium  Boolean @default(false)
   priceCents Int     @default(0)
+  storyUnlocks StoryUnlock[]
 
   // Scheduling & Interactive Features
   scheduledAt     DateTime?
@@ -1208,9 +1210,11 @@ model Monetization {
   id     String @id @default(uuid())
   userId String @unique
 
-  // En el nuevo modelo Directo (Stripe Connect), los fondos van directamente a Stripe.
-  // Mantenemos esto solo como un ledger estadístico visual (en centavos de dólar).
+  // Statistical ledger (platform fee share credited locally; funds settle in Connect)
   lifetimeEarningsCents Int @default(0)
+  // Cached from Stripe account.updated webhook
+  transfersEnabled Boolean @default(false)
+  chargesEnabled   Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1234,11 +1238,25 @@ model PostUnlock {
   @@map("post_unlocks")
 }
 
+model StoryUnlock {
+  id        String   @id @default(uuid())
+  userId    String
+  storyId   String
+  pricePaid Int
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, storyId])
+  @@map("story_unlocks")
+}
+
 model Transaction {
   id       String            @id @default(uuid())
   type     TransactionType
   amount   Int // Positive for incoming, negative for outgoing
-  currency String            @default("TOKEN")
+  currency String            @default("EUR")
   status   TransactionStatus @default(COMPLETED)
 
   // Participants
@@ -1249,6 +1267,8 @@ model Transaction {
   postId      String?
   storyId     String?
   promotionId String?
+
+  stripePaymentIntentId String? @unique
 
   description String?
   createdAt   DateTime @default(now())
@@ -1264,6 +1284,7 @@ model Transaction {
 
 enum TransactionType {
   DIRECT_POST_UNLOCK
+  DIRECT_STORY_UNLOCK
   DIRECT_TIP
   STRIPE_SUBSCRIPTION
   PROMOTION_PAYMENT

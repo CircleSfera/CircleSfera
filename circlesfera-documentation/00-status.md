@@ -17,9 +17,11 @@
 - Promotion views: viewer JWT required; owner cannot burn own budget; row lock via `FOR UPDATE`
 - Admin reject of charged promo triggers proportional refund
 - Unlock requires IdentityVerifiedGuard; Checkout return query append safe when URL already has `?`
-- Ledger: `PROMOTION_PAYMENT` / `STRIPE_SUBSCRIPTION` transactions written; tip/unlock currency set from Stripe
-- Ops handlers: `checkout.session.expired` (promo → FAILED), `invoice.payment_failed` → PAST_DUE / sync tiers
-- Platform fee: **20%** application fee on Connect tips/unlocks/creator subs (docs that said 15% are stale)
+- Ledger: `PROMOTION_PAYMENT` / `STRIPE_SUBSCRIPTION` / story unlocks; tip/unlock currency **EUR**
+- Ops handlers: `checkout.session.expired`, `invoice.payment_failed`, `charge.refunded`, `charge.dispute.created` (revoke unlocks), `account.updated` (Connect capability cache)
+- Story PPV: persist `isPremium`/`priceCents`; `StoryUnlock` + `POST /monetization/unlock-story`; feed redacts locked media
+- Creator VIP price UI in Creator finance tab (`PATCH /creator/subscription-price`)
+- Platform fee: **20%** application fee on Connect tips/unlocks/creator subs
 
 ## Production incident (Jul 2026)
 
@@ -30,7 +32,7 @@ Follow-up: CI runs `scripts/check-prisma-schema-migrations.sh`; catch-up `202607
 ## Still deferred / out of scope
 
 - Feed-preference domain tables (absent by design in PRD future)
-- Live gifts billing (stub only); Story PPV billing path; `TransactionType.PAYOUT` writers; dispute webhooks
+- Live gifts billing (stub only); `TransactionType.PAYOUT` writers (Connect Express is payout path)
 
 ## Doc / source of truth
 

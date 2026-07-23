@@ -52,6 +52,8 @@ export class StoriesService {
         thumbnailUrl: dto.thumbnailUrl,
         mediaType: dto.mediaType || 'image',
         isCloseFriendsOnly: dto.isCloseFriendsOnly || false,
+        isPremium: dto.isPremium || false,
+        priceCents: dto.isPremium ? dto.priceCents || 0 : 0,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
         audioId: dto.audioId,
         scheduledAt: scheduledAt ?? null,
@@ -171,11 +173,56 @@ export class StoriesService {
         }),
       );
 
-      return allowedStories.filter((s) => s !== null);
+      const visible = allowedStories.filter((s) => s !== null);
+      return this.applyStoryPremiumLocks(visible, userId);
     }
 
     // Guest cannot view close friends
-    return mappedStories.filter((s) => !s.isCloseFriendsOnly);
+    return this.applyStoryPremiumLocks(
+      mappedStories.filter((s) => !s.isCloseFriendsOnly),
+      undefined,
+    );
+  }
+
+  /** Redact media URLs for premium stories the viewer has not unlocked. */
+  private async applyStoryPremiumLocks<
+    T extends {
+      id: string;
+      userId: string;
+      isPremium?: boolean;
+      url?: string;
+      standardUrl?: string | null;
+      thumbnailUrl?: string | null;
+    },
+  >(stories: T[], viewerId?: string): Promise<(T & { isLocked?: boolean })[]> {
+    const premiumIds = stories
+      .filter((s) => s.isPremium && s.userId !== viewerId)
+      .map((s) => s.id);
+    if (premiumIds.length === 0) {
+      return stories.map((s) => ({ ...s, isLocked: false }));
+    }
+
+    const unlocked = viewerId
+      ? await this.prisma.storyUnlock.findMany({
+          where: { userId: viewerId, storyId: { in: premiumIds } },
+          select: { storyId: true },
+        })
+      : [];
+    const unlockedSet = new Set(
+      unlocked.map((u: { storyId: string }) => u.storyId),
+    );
+
+    return stories.map((s) => {
+      if (!s.isPremium || s.userId === viewerId || unlockedSet.has(s.id)) {
+        return { ...s, isLocked: false };
+      }
+      return {
+        ...s,
+        isLocked: true,
+        url: s.thumbnailUrl || '',
+        standardUrl: null,
+      };
+    });
   }
 
   /**
@@ -244,13 +291,14 @@ export class StoriesService {
       },
     });
 
-    return stories.map((s: any) => {
+    const mapped = stories.map((s: any) => {
       const { views, ...storyData } = s;
       return {
         ...storyData,
         isViewed: currentUserId ? (views as unknown[]).length > 0 : false,
       };
     });
+    return this.applyStoryPremiumLocks(mapped, currentUserId);
   }
 
   /**

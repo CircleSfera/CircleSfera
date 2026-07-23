@@ -399,7 +399,7 @@ export class PaymentsService {
             .sendPaymentAlert({
               eventType: 'Promotion Payment',
               amount,
-              currency: session.currency || 'usd',
+              currency: session.currency || 'eur',
               description: `Promotion ID: ${promotionId}`,
             })
             .catch((e) => console.error(e));
@@ -429,10 +429,14 @@ export class PaymentsService {
                 data: {
                   type: 'DIRECT_POST_UNLOCK',
                   amount: amount,
-                  currency: (session.currency || 'usd').toUpperCase(),
+                  currency: (session.currency || 'eur').toUpperCase(),
                   senderId: clientReferenceId,
                   receiverId: creatorId,
                   postId: postId,
+                  stripePaymentIntentId:
+                    typeof session.payment_intent === 'string'
+                      ? session.payment_intent
+                      : session.payment_intent?.id || null,
                   status: 'COMPLETED',
                   description: `Direct Post Unlock (Intent: ${paymentIntentId})`,
                 },
@@ -458,11 +462,65 @@ export class PaymentsService {
               .sendPaymentAlert({
                 eventType: 'Post Unlock',
                 amount: amount,
-                currency: session.currency || 'usd',
+                currency: session.currency || 'eur',
                 description: `User ${clientReferenceId} unlocked post ${postId} by creator ${creatorId}`,
                 userId: clientReferenceId,
               })
               .catch((e) => console.error(e));
+          }
+        } else if (metadata?.type === 'DIRECT_STORY_UNLOCK') {
+          const clientReferenceId = session.client_reference_id;
+          const { storyId, creatorId } = metadata;
+          const amount = session.amount_total || 0;
+          const paymentIntentId =
+            typeof session.payment_intent === 'string'
+              ? session.payment_intent
+              : session.payment_intent?.id || session.id;
+
+          if (clientReferenceId && storyId && creatorId) {
+            await this.prisma.$transaction(async (tx) => {
+              await tx.storyUnlock.upsert({
+                where: {
+                  userId_storyId: { userId: clientReferenceId, storyId },
+                },
+                update: {},
+                create: {
+                  userId: clientReferenceId,
+                  storyId,
+                  pricePaid: amount,
+                },
+              });
+
+              await tx.transaction.create({
+                data: {
+                  type: 'DIRECT_STORY_UNLOCK',
+                  amount,
+                  currency: (session.currency || 'eur').toUpperCase(),
+                  senderId: clientReferenceId,
+                  receiverId: creatorId,
+                  storyId,
+                  stripePaymentIntentId:
+                    typeof session.payment_intent === 'string'
+                      ? session.payment_intent
+                      : session.payment_intent?.id || null,
+                  status: 'COMPLETED',
+                  description: `Direct Story Unlock (Intent: ${paymentIntentId})`,
+                },
+              });
+
+              await tx.monetization.upsert({
+                where: { userId: creatorId },
+                update: {
+                  lifetimeEarningsCents: {
+                    increment: Math.floor(amount * 0.8),
+                  },
+                },
+                create: {
+                  userId: creatorId,
+                  lifetimeEarningsCents: Math.floor(amount * 0.8),
+                },
+              });
+            });
           }
         } else if (metadata?.type === 'DIRECT_TIP') {
           // Handle Direct Tips
@@ -480,10 +538,14 @@ export class PaymentsService {
                 data: {
                   type: 'DIRECT_TIP',
                   amount: amount,
-                  currency: (session.currency || 'usd').toUpperCase(),
+                  currency: (session.currency || 'eur').toUpperCase(),
                   senderId: clientReferenceId,
                   receiverId: creatorId,
                   postId: postId || null,
+                  stripePaymentIntentId:
+                    typeof session.payment_intent === 'string'
+                      ? session.payment_intent
+                      : session.payment_intent?.id || null,
                   status: 'COMPLETED',
                   description: `Creator Tip (Intent: ${paymentIntentId})`,
                 },
@@ -509,7 +571,7 @@ export class PaymentsService {
               .sendPaymentAlert({
                 eventType: 'Creator Tip',
                 amount: amount,
-                currency: session.currency || 'usd',
+                currency: session.currency || 'eur',
                 description: `User ${clientReferenceId} tipped creator ${creatorId}`,
                 userId: clientReferenceId,
               })
@@ -547,7 +609,7 @@ export class PaymentsService {
               data: {
                 type: 'STRIPE_SUBSCRIPTION',
                 amount: session.amount_total || parseInt(priceCents, 10) || 0,
-                currency: (session.currency || 'usd').toUpperCase(),
+                currency: (session.currency || 'eur').toUpperCase(),
                 status: 'COMPLETED',
                 senderId: subscriberId,
                 receiverId: creatorId,
@@ -586,7 +648,7 @@ export class PaymentsService {
               .sendPaymentAlert({
                 eventType: 'Creator Subscription',
                 amount: parseInt(priceCents, 10),
-                currency: session.currency || 'usd',
+                currency: session.currency || 'eur',
                 description: `User ${subscriberId} subscribed to creator ${creatorId}`,
                 userId: subscriberId,
               })
@@ -677,7 +739,7 @@ export class PaymentsService {
             .sendPaymentAlert({
               eventType: 'Platform Subscription Checkout',
               amount: session.amount_total || 0,
-              currency: session.currency || 'usd',
+              currency: session.currency || 'eur',
               description: `User ${userId} subscribed to plan ${planId}`,
               userId: userId,
             })
@@ -784,8 +846,76 @@ export class PaymentsService {
         break;
       }
 
+      case 'charge.refunded':
+      case 'charge.dispute.created': {
+        const charge = data.object as {
+          payment_intent?: string | { id: string } | null;
+        };
+        const paymentIntentId =
+          typeof charge.payment_intent === 'string'
+            ? charge.payment_intent
+            : charge.payment_intent?.id;
+        if (paymentIntentId) {
+          await this.revokeAccessForPaymentIntent(paymentIntentId);
+        }
+        break;
+      }
+
+      case 'account.updated': {
+        const account = data.object as {
+          id: string;
+          charges_enabled?: boolean;
+          capabilities?: { transfers?: string };
+        };
+        const user = await this.prisma.user.findFirst({
+          where: { stripeConnectAccountId: account.id },
+          select: { id: true },
+        });
+        if (user) {
+          await this.prisma.monetization.upsert({
+            where: { userId: user.id },
+            update: {
+              transfersEnabled: account.capabilities?.transfers === 'active',
+              chargesEnabled: account.charges_enabled === true,
+            },
+            create: {
+              userId: user.id,
+              transfersEnabled: account.capabilities?.transfers === 'active',
+              chargesEnabled: account.charges_enabled === true,
+            },
+          });
+        }
+        break;
+      }
+
       default:
         console.log(`Unhandled event type: ${type}`);
+    }
+  }
+
+  /** Revoke unlock entitlements after refund or dispute. */
+  private async revokeAccessForPaymentIntent(paymentIntentId: string) {
+    const tx = await this.prisma.transaction.findUnique({
+      where: { stripePaymentIntentId: paymentIntentId },
+    });
+    if (!tx) {
+      return;
+    }
+
+    await this.prisma.transaction.update({
+      where: { id: tx.id },
+      data: { status: 'REFUNDED' },
+    });
+
+    if (tx.type === 'DIRECT_POST_UNLOCK' && tx.senderId && tx.postId) {
+      await this.prisma.postUnlock.deleteMany({
+        where: { userId: tx.senderId, postId: tx.postId },
+      });
+    }
+    if (tx.type === 'DIRECT_STORY_UNLOCK' && tx.senderId && tx.storyId) {
+      await this.prisma.storyUnlock.deleteMany({
+        where: { userId: tx.senderId, storyId: tx.storyId },
+      });
     }
   }
 }
