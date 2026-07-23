@@ -108,24 +108,21 @@ describe('AIService', () => {
       expect(result).toEqual([0.1, 0.2, 0.3]);
     });
 
-    it('should fallback to mock embedding if API key is missing', async () => {
+    it('should fail-fast in production if API key is missing', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'OPENAI_API_KEY') return undefined;
         if (key === 'NODE_ENV') return 'production';
         return null;
       });
 
-      const module = await Test.createTestingModule({
-        providers: [
-          AIService,
-          { provide: ConfigService, useValue: mockConfigService },
-        ],
-      }).compile();
-      const prodServiceWithoutKey = module.get<AIService>(AIService);
-
-      const result = await prodServiceWithoutKey.generateEmbedding('test text');
-      expect(result).toHaveLength(1536);
-      expect(typeof result[0]).toBe('number');
+      await expect(
+        Test.createTestingModule({
+          providers: [
+            AIService,
+            { provide: ConfigService, useValue: mockConfigService },
+          ],
+        }).compile(),
+      ).rejects.toThrow(/OPENAI_API_KEY is required in production/);
     });
 
     it('should fallback to mock embedding if OpenAI errors', async () => {
@@ -196,22 +193,20 @@ describe('AIService', () => {
       expect(result.categories).toEqual({});
     });
 
-    it('should fallback to empty moderation if missing key', async () => {
+    it('should fail-fast constructing AIService in production without key', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'OPENAI_API_KEY') return undefined;
         if (key === 'NODE_ENV') return 'production';
         return null;
       });
-      const module = await Test.createTestingModule({
-        providers: [
-          AIService,
-          { provide: ConfigService, useValue: mockConfigService },
-        ],
-      }).compile();
-      const devServiceWithoutKey = module.get<AIService>(AIService);
-
-      const result = await devServiceWithoutKey.moderateContent('test');
-      expect(result.flagged).toBe(false);
+      await expect(
+        Test.createTestingModule({
+          providers: [
+            AIService,
+            { provide: ConfigService, useValue: mockConfigService },
+          ],
+        }).compile(),
+      ).rejects.toThrow(/OPENAI_API_KEY is required in production/);
     });
   });
 
