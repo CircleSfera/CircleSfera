@@ -1,4 +1,4 @@
-import { Bookmark, Gift, Send } from 'lucide-react';
+import { Bookmark, Gift, MessageCircle, Send } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { Post } from '../../types';
@@ -13,6 +13,10 @@ interface PostActionsProps {
   onLikeToggle: (newLiked: boolean) => void;
   onShare: () => void;
   onTip: () => void;
+  /** Larger touch targets and icons for detail view */
+  size?: 'default' | 'lg';
+  /** Hide comment link when already on the detail page */
+  hideCommentLink?: boolean;
 }
 
 export default function PostActions({
@@ -23,49 +27,61 @@ export default function PostActions({
   onLikeToggle,
   onShare,
   onTip,
+  size = 'default',
+  hideCommentLink = false,
 }: PostActionsProps) {
   const { t } = useTranslation();
+  const isLg = size === 'lg';
+  const iconClass = isLg ? 'w-6 h-6' : 'w-5 h-5';
+  const btnClass = isLg
+    ? 'w-11 h-11 hover:scale-110 active:scale-95'
+    : 'hover:scale-110 active:scale-95';
+
   return (
-    <div className="flex items-center justify-between mb-2">
-      <div className="flex items-center gap-3">
-        <LikeButton postId={post.id} onToggle={onLikeToggle} />
-        <Link
-          to={`/p/${post.id}`}
-          className="hover:scale-110 active:scale-95 transition-all text-white/60 hover:text-white"
-          aria-label={t('post.actions.comments')}
-        >
-          <svg
-            aria-hidden="true"
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+    <div
+      className={`flex items-center justify-between ${isLg ? 'mb-1' : 'mb-2'}`}
+    >
+      <div className={`flex items-center ${isLg ? 'gap-1' : 'gap-3'}`}>
+        <LikeButton
+          postId={post.id}
+          onToggle={onLikeToggle}
+          iconClassName={iconClass}
+          className={isLg ? 'w-11 h-11' : undefined}
+        />
+        {!hideCommentLink && (
+          <Link
+            to={`/p/${post.id}`}
+            className={`${btnClass} inline-flex items-center justify-center text-white/60 hover:text-white transition-all`}
+            aria-label={t('post.actions.comments')}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.8}
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-            />
-          </svg>
-        </Link>
+            <MessageCircle className={iconClass} strokeWidth={1.8} />
+          </Link>
+        )}
+        {hideCommentLink && (
+          <span
+            className={`${btnClass} inline-flex items-center justify-center text-white/60`}
+            aria-hidden="true"
+          >
+            <MessageCircle className={iconClass} strokeWidth={1.8} />
+          </span>
+        )}
         <Button
           onClick={onShare}
           variant="ghost"
           size="icon"
-          className="hover:scale-110 active:scale-95 text-white/60 hover:text-white bg-transparent border-none"
+          className={`${btnClass} text-white/60 hover:text-white bg-transparent border-none`}
           aria-label={t('post.actions.share')}
         >
-          <Send className="w-5 h-5" />
+          <Send className={iconClass} />
         </Button>
         <Button
           onClick={onTip}
           variant="ghost"
           size="icon"
-          className="hover:scale-110 active:scale-95 text-yellow-500 hover:text-yellow-400 drop-shadow-[0_0_5px_rgba(234,179,8,0.5)] bg-transparent border-none"
+          className={`${btnClass} text-yellow-500 hover:text-yellow-400 drop-shadow-[0_0_5px_rgba(234,179,8,0.5)] bg-transparent border-none`}
           aria-label={t('post.actions.tip')}
         >
-          <Gift className="w-5 h-5" />
+          <Gift className={iconClass} />
         </Button>
       </div>
       <Button
@@ -73,7 +89,7 @@ export default function PostActions({
         isLoading={isBookmarkPending}
         variant="ghost"
         size="icon"
-        className="hover:scale-110 active:scale-95 bg-transparent border-none"
+        className={`${btnClass} bg-transparent border-none`}
         aria-label={
           isBookmarked
             ? t('post.actions.remove_bookmark')
@@ -81,7 +97,7 @@ export default function PostActions({
         }
       >
         <Bookmark
-          size={20}
+          size={isLg ? 24 : 20}
           className={`transition-all ${isBookmarked ? 'text-white fill-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]' : 'text-white/60 hover:text-white'}`}
         />
       </Button>

@@ -3,6 +3,7 @@ import {
   Heart,
   Image as ImageIcon,
   MessageCircle,
+  Send,
   Trash2,
   X,
 } from 'lucide-react';
@@ -11,8 +12,10 @@ import { useTranslation } from 'react-i18next';
 import { commentsApi, uploadApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { Comment, CreateCommentDto } from '../types';
+import { logger } from '../utils/logger';
 import { VoicePlayer } from './audio/VoicePlayer';
 import { VoiceRecorder } from './audio/VoiceRecorder';
+import ConfirmModal from './modals/ConfirmModal';
 import UserAvatar from './UserAvatar';
 import { Button } from './ui';
 import VerificationBadge, { type VerificationLevel } from './VerificationBadge';
@@ -71,11 +74,11 @@ const CommentItem = ({
           standardUrl={comment.standardUrl}
           alt={comment.user.profile.username}
           size="sm"
-          className="w-8 h-8 rounded-full object-cover shrink-0"
+          className="w-9 h-9 rounded-full object-cover shrink-0"
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <div className="text-sm">
+            <div className="text-sm leading-relaxed">
               <span className="font-semibold text-white mr-1 inline-flex items-center gap-1">
                 {comment.user.profile.username}
                 <VerificationBadge
@@ -112,12 +115,12 @@ const CommentItem = ({
               )}
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5 shrink-0">
               <Button
                 onClick={() => onLike(comment.id, isLiked)}
                 variant="ghost"
                 size="icon"
-                className={`w-6 h-6 p-0 transition-colors ${isLiked ? 'text-red-500' : 'text-gray-300 hover:text-red-400'}`}
+                className={`w-8 h-8 p-0 transition-colors ${isLiked ? 'text-red-500' : 'text-gray-300 hover:text-red-400'}`}
                 title={isLiked ? t('comments.unlike') : t('comments.like')}
               >
                 <Heart size={14} fill={isLiked ? 'currentColor' : 'none'} />
@@ -127,7 +130,7 @@ const CommentItem = ({
                 onClick={() => onReply(comment)}
                 variant="ghost"
                 size="icon"
-                className="w-6 h-6 p-0 text-gray-300 hover:text-purple-400 transition-colors"
+                className="w-8 h-8 p-0 text-gray-300 hover:text-purple-400 transition-colors"
                 title={t('comments.reply')}
               >
                 <MessageCircle size={14} />
@@ -139,7 +142,7 @@ const CommentItem = ({
                   disabled={isDeleting}
                   variant="ghost"
                   size="icon"
-                  className="w-6 h-6 p-0 text-gray-300 hover:text-red-400 transition-colors"
+                  className="w-8 h-8 p-0 text-gray-300 hover:text-red-400 transition-colors"
                   title={t('comments.delete')}
                 >
                   <Trash2 size={14} />
@@ -148,7 +151,7 @@ const CommentItem = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-4 mt-1">
+          <div className="flex items-center gap-4 mt-1.5">
             <span className="text-xs text-gray-500">
               {new Date(comment.createdAt).toLocaleDateString()}
             </span>
@@ -173,7 +176,6 @@ const CommentItem = ({
         </div>
       </div>
 
-      {/* Render Replies */}
       {hasReplies && (
         <div className="space-y-3">
           {comment.replies!.map((reply: Comment) => (
@@ -194,9 +196,6 @@ const CommentItem = ({
     </div>
   );
 };
-
-import { logger } from '../utils/logger';
-import ConfirmModal from './modals/ConfirmModal';
 
 export default function CommentList({
   postId,
@@ -263,8 +262,6 @@ export default function CommentList({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (newComment.trim() || media) {
-      // Flatten threading: If replying to a reply (which has a parentId), use THAT parentId (the root).
-      // If replying to a root comment (no parentId), use the comment's own ID.
       const actualParentId = replyingTo?.parentId || replyingTo?.id;
 
       commentMutation.mutate({
@@ -312,13 +309,115 @@ export default function CommentList({
   const handleReply = (comment: Comment) => {
     setReplyingTo(comment);
 
-    // If replying to a reply (child), pre-fill the username
     if (comment.parentId) {
       setNewComment(`@${comment.user.profile.username} `);
     }
 
     inputRef.current?.focus();
   };
+
+  const composerForm = (
+    <form onSubmit={handleSubmit} className={isDetailMode ? 'p-3 pt-2' : ''}>
+      {replyingTo && (
+        <div className="flex items-center justify-between bg-white/5 px-2.5 py-1.5 rounded-lg mb-2 text-sm border border-white/10">
+          <span className="text-gray-300 truncate">
+            {t('comments.replying_to')}{' '}
+            <span className="font-bold text-purple-400">
+              @{replyingTo.user.profile.username}
+            </span>
+          </span>
+          <Button
+            onClick={() => setReplyingTo(null)}
+            variant="ghost"
+            size="icon"
+            className="w-7 h-7 text-gray-300 hover:text-white rounded-full shrink-0"
+          >
+            <X size={14} />
+          </Button>
+        </div>
+      )}
+
+      {media && (
+        <div className="relative inline-block mb-3 group">
+          <img
+            src={media.url}
+            alt="Preview"
+            className="w-20 h-20 object-cover rounded-lg border border-white/20"
+          />
+          <Button
+            onClick={() => setMedia(null)}
+            variant="danger"
+            size="icon"
+            className="absolute -top-2 -right-2 w-6 h-6 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <X size={12} />
+          </Button>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          accept="image/*,video/*"
+          onChange={handleFileUpload}
+        />
+        <Button
+          type="button"
+          disabled={commentMutation.isPending}
+          isLoading={isUploading}
+          onClick={() => fileInputRef.current?.click()}
+          variant="ghost"
+          size="icon"
+          className="w-10 h-10 bg-white/5 border border-white/10 rounded-full text-gray-300 hover:text-white hover:bg-white/10 shrink-0"
+          aria-label={t('comments.add_media', 'Add media')}
+        >
+          {!isUploading && <ImageIcon size={18} />}
+        </Button>
+        <VoiceRecorder
+          compact
+          onSendVoice={(voiceData) => {
+            const commentDto: CreateCommentDto = {
+              content: '🎤 Nota de voz',
+              parentId: replyingTo?.id,
+              voiceUrl: voiceData.voiceUrl,
+              voiceDuration: voiceData.voiceDuration,
+              voiceWaveform: voiceData.voiceWaveform,
+            };
+            commentMutation.mutate(commentDto);
+          }}
+        />
+        <input
+          ref={inputRef}
+          type="text"
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          placeholder={
+            replyingTo
+              ? t('comments.reply_to_user', {
+                  username: replyingTo.user.profile.username,
+                })
+              : t('comments.add_comment')
+          }
+          className="flex-1 min-w-0 px-4 py-2.5 bg-white/5 border border-white/10 rounded-full focus:ring-2 focus:ring-purple-500/50 focus:border-transparent text-sm text-white placeholder-gray-500 outline-none transition-all"
+        />
+        <Button
+          type="submit"
+          disabled={!newComment.trim() && !media}
+          isLoading={commentMutation.isPending}
+          variant="primary"
+          className="w-10 h-10 shrink-0 !p-0 rounded-full bg-linear-to-r from-purple-600 to-pink-600 border-transparent shadow-lg shadow-purple-500/20 sm:w-auto sm:!px-5 sm:h-10"
+          aria-label={t('comments.post')}
+        >
+          <Send size={16} className="sm:hidden" />
+          <span className="hidden sm:inline text-sm font-semibold">
+            {t('comments.post')}
+          </span>
+        </Button>
+      </div>
+    </form>
+  );
 
   return (
     <div
@@ -327,7 +426,7 @@ export default function CommentList({
       <div
         className={
           isDetailMode
-            ? 'flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4 border-t border-white/5'
+            ? 'flex-1 overflow-y-auto px-4 py-3 pb-28 md:pb-3 custom-scrollbar space-y-5 border-t border-white/5 md:border-t-0'
             : 'space-y-4'
         }
       >
@@ -347,7 +446,7 @@ export default function CommentList({
         ))}
 
         {comments.length === 0 && (
-          <div className="text-center py-8 text-gray-500 text-sm">
+          <div className="text-center py-10 text-gray-500 text-sm">
             {t('comments.no_comments')}
           </div>
         )}
@@ -356,109 +455,14 @@ export default function CommentList({
       <div
         className={
           isDetailMode
-            ? 'shrink-0 border-t border-white/10'
+            ? 'shrink-0 border-t border-white/10 bg-black/90 backdrop-blur-xl md:bg-transparent md:backdrop-blur-none sticky bottom-14 md:static z-20 pb-[env(safe-area-inset-bottom)] md:pb-0'
             : 'mt-6 pt-4 border-t border-white/10 sticky bottom-14 lg:bottom-0 bg-black/95 backdrop-blur-md p-4 lg:-mx-4 rounded-t-xl lg:rounded-b-2xl z-20 shadow-2xl'
         }
       >
         {isDetailMode && actionsComponent && (
-          <div className="p-3 pb-0">{actionsComponent}</div>
+          <div className="px-3 pt-3 pb-0">{actionsComponent}</div>
         )}
-        <form
-          onSubmit={handleSubmit}
-          className={isDetailMode ? 'p-3 pt-2' : ''}
-        >
-          {replyingTo && (
-            <div className="flex items-center justify-between bg-white/5 px-2 py-1 rounded-lg mb-2 text-sm border border-white/10">
-              <span className="text-gray-300">
-                {t('comments.replying_to')}{' '}
-                <span className="font-bold text-purple-400">
-                  @{replyingTo.user.profile.username}
-                </span>
-              </span>
-              <Button
-                onClick={() => setReplyingTo(null)}
-                variant="ghost"
-                size="icon"
-                className="w-6 h-6 text-gray-300 hover:text-white rounded-full"
-              >
-                <X size={14} />
-              </Button>
-            </div>
-          )}
-
-          {media && (
-            <div className="relative inline-block mb-3 group">
-              <img
-                src={media.url}
-                alt="Preview"
-                className="w-20 h-20 object-cover rounded-lg border border-white/20"
-              />
-              <Button
-                onClick={() => setMedia(null)}
-                variant="danger"
-                size="icon"
-                className="absolute -top-2 -right-2 w-6 h-6 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <X size={12} />
-              </Button>
-            </div>
-          )}
-
-          <div className="flex gap-3">
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              accept="image/*,video/*"
-              onChange={handleFileUpload}
-            />
-            <Button
-              disabled={commentMutation.isPending}
-              isLoading={isUploading}
-              onClick={() => fileInputRef.current?.click()}
-              variant="ghost"
-              size="icon"
-              className="w-12 h-12 bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 shrink-0"
-            >
-              {!isUploading && <ImageIcon size={20} />}
-            </Button>
-            <VoiceRecorder
-              onSendVoice={(voiceData) => {
-                const commentDto: CreateCommentDto = {
-                  content: '🎤 Nota de voz',
-                  parentId: replyingTo?.id,
-                  voiceUrl: voiceData.voiceUrl,
-                  voiceDuration: voiceData.voiceDuration,
-                  voiceWaveform: voiceData.voiceWaveform,
-                };
-                commentMutation.mutate(commentDto);
-              }}
-            />
-            <input
-              ref={inputRef}
-              type="text"
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder={
-                replyingTo
-                  ? t('comments.reply_to_user', {
-                      username: replyingTo.user.profile.username,
-                    })
-                  : t('comments.add_comment')
-              }
-              className="flex-1 px-2 py-1 bg-white/5 border border-white/10 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-gray-500 outline-none transition-all"
-            />
-            <Button
-              type="submit"
-              disabled={!newComment.trim()}
-              isLoading={commentMutation.isPending}
-              variant="primary"
-              className="px-6 py-2 bg-linear-to-r from-purple-600 to-pink-600 font-semibold hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/20 border-transparent"
-            >
-              {t('comments.post')}
-            </Button>
-          </div>
-        </form>
+        {composerForm}
       </div>
 
       <ConfirmModal
