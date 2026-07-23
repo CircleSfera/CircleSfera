@@ -1,7 +1,10 @@
 import { clsx } from 'clsx';
+import type { LucideIcon } from 'lucide-react';
 import { MoreHorizontal } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '../ui';
+import { AdminEmptyState } from './AdminEmptyState';
 
 interface AdminListRowAction {
   label: string;
@@ -22,6 +25,12 @@ interface AdminListRowProps {
   className?: string;
 }
 
+interface MenuPosition {
+  top: number;
+  left: number;
+  openUp: boolean;
+}
+
 /** Touch-friendly card row for mobile admin lists. */
 export function AdminListRow({
   title,
@@ -35,17 +44,67 @@ export function AdminListRow({
   className,
 }: AdminListRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<MenuPosition | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!menuOpen || !triggerRef.current) {
+      setMenuPos(null);
+      return;
+    }
+
+    const update = () => {
+      const rect = triggerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const menuWidth = 176; // min-w-44
+      const estimatedHeight = Math.min(
+        (secondaryActions?.length || 1) * 44 + 8,
+        280,
+      );
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const openUp = spaceBelow < estimatedHeight + 12 && rect.top > spaceBelow;
+      const left = Math.min(
+        Math.max(8, rect.right - menuWidth),
+        window.innerWidth - menuWidth - 8,
+      );
+      setMenuPos({
+        top: openUp ? rect.top - 4 : rect.bottom + 4,
+        left,
+        openUp,
+      });
+    };
+
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [menuOpen, secondaryActions?.length]);
 
   useEffect(() => {
     if (!menuOpen) return;
     const handle = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
+      const target = e.target as Node;
+      if (
+        menuRef.current?.contains(target) ||
+        triggerRef.current?.contains(target)
+      ) {
+        return;
       }
+      setMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
     };
     document.addEventListener('mousedown', handle);
-    return () => document.removeEventListener('mousedown', handle);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', handle);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [menuOpen]);
 
   // Interactive card uses role=button only when onClick is provided
@@ -103,40 +162,60 @@ export function AdminListRow({
           >
             {primaryAction}
             {secondaryActions && secondaryActions.length > 0 && (
-              <div className="relative ml-auto" ref={menuRef}>
+              <div className="relative ml-auto">
                 <Button
+                  ref={triggerRef}
                   type="button"
                   variant="ghost"
                   size="icon"
                   className="w-11 h-11 text-gray-400 hover:text-white"
                   aria-label="Más acciones"
+                  aria-expanded={menuOpen}
+                  aria-haspopup="menu"
                   onClick={() => setMenuOpen((o) => !o)}
                 >
                   <MoreHorizontal size={18} />
                 </Button>
-                {menuOpen && (
-                  <div className="absolute right-0 top-full mt-1 z-30 min-w-44 py-1 rounded-xl border border-white/10 bg-[rgb(22,22,24)] shadow-2xl">
-                    {secondaryActions.map((action) => (
-                      <button
-                        type="button"
-                        key={action.label}
-                        disabled={action.disabled}
-                        onClick={(e) => {
-                          action.onClick(e);
-                          setMenuOpen(false);
-                        }}
-                        className={clsx(
-                          'w-full text-left px-3.5 py-2.5 text-sm font-medium transition-colors disabled:opacity-40 min-h-11',
-                          action.variant === 'danger'
-                            ? 'text-red-400 hover:bg-red-500/10'
-                            : 'text-gray-200 hover:bg-white/5',
-                        )}
-                      >
-                        {action.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                {menuOpen &&
+                  menuPos &&
+                  createPortal(
+                    <div
+                      ref={menuRef}
+                      role="menu"
+                      style={{
+                        position: 'fixed',
+                        top: menuPos.openUp ? undefined : menuPos.top,
+                        bottom: menuPos.openUp
+                          ? window.innerHeight - menuPos.top
+                          : undefined,
+                        left: menuPos.left,
+                        zIndex: 100,
+                      }}
+                      className="min-w-44 py-1 rounded-xl border border-white/10 bg-[rgb(22,22,24)] shadow-2xl"
+                    >
+                      {secondaryActions.map((action) => (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          key={action.label}
+                          disabled={action.disabled}
+                          onClick={(e) => {
+                            action.onClick(e);
+                            setMenuOpen(false);
+                          }}
+                          className={clsx(
+                            'w-full text-left px-3.5 py-2.5 text-sm font-medium transition-colors disabled:opacity-40 min-h-11',
+                            action.variant === 'danger'
+                              ? 'text-red-400 hover:bg-red-500/10'
+                              : 'text-gray-200 hover:bg-white/5',
+                          )}
+                        >
+                          {action.label}
+                        </button>
+                      ))}
+                    </div>,
+                    document.body,
+                  )}
               </div>
             )}
           </div>
@@ -151,6 +230,8 @@ interface AdminListProps {
   isEmpty?: boolean;
   emptyTitle?: string;
   emptyDescription?: string;
+  emptyAction?: React.ReactNode;
+  emptyIcon?: LucideIcon;
   /** Mobile cards */
   mobile: React.ReactNode;
   /** Desktop table (already wrapped in Table or raw) */
@@ -164,6 +245,8 @@ export function AdminList({
   isEmpty,
   emptyTitle = 'No hay datos disponibles',
   emptyDescription = 'No se encontraron registros con los filtros seleccionados.',
+  emptyAction,
+  emptyIcon,
   mobile,
   desktop,
   className,
@@ -183,15 +266,13 @@ export function AdminList({
 
   if (isEmpty) {
     return (
-      <div
-        className={clsx(
-          'py-16 flex flex-col items-center gap-2 text-center text-gray-500 border border-white/10 rounded-2xl bg-black/30',
-          className,
-        )}
-      >
-        <p className="font-semibold text-white text-sm">{emptyTitle}</p>
-        <p className="text-xs text-gray-400 max-w-xs">{emptyDescription}</p>
-      </div>
+      <AdminEmptyState
+        className={className}
+        icon={emptyIcon}
+        title={emptyTitle}
+        description={emptyDescription}
+        action={emptyAction}
+      />
     );
   }
 

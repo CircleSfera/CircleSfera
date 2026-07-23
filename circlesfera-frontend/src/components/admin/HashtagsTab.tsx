@@ -5,7 +5,9 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminHashtag } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { AdminFilterBar } from './AdminFilterBar';
 import { AdminList, AdminListRow } from './AdminList';
+import { AdminPageHeader } from './AdminPageHeader';
 import { Pagination, SearchInput, Table } from './AdminTable';
 
 export default function HashtagsTab() {
@@ -23,18 +25,25 @@ export default function HashtagsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-4 items-center">
-        <SearchInput
-          value={search}
-          onChange={(v) => {
-            setSearch(v);
-            setPage(1);
-          }}
-          placeholder="Buscar hashtags..."
-        />
-      </div>
+      <AdminPageHeader
+        title="Hashtags"
+        subtitle="Explora tendencias y uso de etiquetas"
+      />
 
-      <div className="glass-panel rounded-lg overflow-clip border border-white/10">
+      <AdminFilterBar>
+        <div className="flex-1 min-w-0">
+          <SearchInput
+            value={search}
+            onChange={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
+            placeholder="Buscar hashtags..."
+          />
+        </div>
+      </AdminFilterBar>
+
+      <div className="rounded-xl border border-white/10 lg:overflow-clip">
         <AdminList
           loading={isLoading}
           isEmpty={!data?.data?.length}
@@ -72,13 +81,13 @@ export default function HashtagsTab() {
                   key={tag.id}
                   className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
                 >
-                  <td className="px-2 py-1 text-gray-600 text-sm font-bold">
+                  <td className="px-2 py-1 text-gray-600 text-sm font-semibold">
                     {(page - 1) * 20 + i + 1}
                   </td>
                   <td className="px-2 py-1">
                     <div className="flex items-center gap-2">
                       <Hash size={14} className="text-brand-primary" />
-                      <span className="text-white font-bold text-sm">
+                      <span className="text-white font-semibold text-sm">
                         {tag.tag}
                       </span>
                     </div>

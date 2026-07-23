@@ -5,6 +5,7 @@ import type { AdminStory } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { AdminList, AdminListRow } from './AdminList';
+import { AdminPageHeader } from './AdminPageHeader';
 import { ActionButton, Pagination, Table } from './AdminTable';
 
 interface Props {
@@ -33,7 +34,12 @@ export default function StoriesTab({ onToast }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="glass-panel rounded-lg overflow-clip border border-white/10">
+      <AdminPageHeader
+        title="Historias"
+        subtitle="Revisa y elimina historias activas o expiradas"
+      />
+
+      <div className="rounded-xl border border-white/10 lg:overflow-clip">
         <AdminList
           loading={isLoading}
           isEmpty={!data?.data?.length}
@@ -150,11 +156,11 @@ export default function StoriesTab({ onToast }: Props) {
                   </td>
                   <td className="px-2 py-1">
                     {isExpired(story.expiresAt) ? (
-                      <span className="text-gray-500 text-xs font-bold flex items-center gap-1">
+                      <span className="text-gray-500 text-xs font-semibold flex items-center gap-1">
                         <Clock size={10} /> Expirada
                       </span>
                     ) : (
-                      <span className="text-green-400 text-xs font-bold flex items-center gap-1">
+                      <span className="text-green-400 text-xs font-semibold flex items-center gap-1">
                         <Clock size={10} /> Activa
                       </span>
                     )}

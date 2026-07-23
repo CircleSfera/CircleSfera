@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
-  Activity,
   AlertCircle,
   AlertTriangle,
   BrainCircuit,
@@ -14,6 +13,8 @@ import {
 } from 'lucide-react';
 import { adminApi } from '../../services/admin.service';
 import { Button } from '../ui';
+import { AdminEmptyState } from './AdminEmptyState';
+import { AdminPageHeader } from './AdminPageHeader';
 
 export default function SystemHealthTab() {
   const {
@@ -41,24 +42,22 @@ export default function SystemHealthTab() {
 
   if (isError || !health) {
     return (
-      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-8 text-center flex flex-col items-center">
-        <AlertTriangle className="text-red-500 mb-4" size={48} />
-        <h3 className="text-xl font-bold text-white mb-2">
-          Error Crítico de Monitoreo
-        </h3>
-        <p className="text-red-400/80 mb-6 max-w-md mx-auto">
-          No se ha podido conectar con el servicio de monitoreo de
-          infraestructura de CircleSfera.
-        </p>
-        <Button
-          variant="danger"
-          onClick={() => refetch()}
-          className="uppercase tracking-wide text-xs"
-        >
-          <RefreshCw size={16} />
-          Reintentar Conexión
-        </Button>
-      </div>
+      <AdminEmptyState
+        icon={AlertTriangle}
+        title="Error Crítico de Monitoreo"
+        description="No se ha podido conectar con el servicio de monitoreo de infraestructura de CircleSfera."
+        className="bg-red-500/10 border-red-500/20"
+        action={
+          <Button
+            variant="danger"
+            onClick={() => refetch()}
+            className="uppercase tracking-wide text-xs min-h-11"
+          >
+            <RefreshCw size={16} className="mr-2" />
+            Reintentar Conexión
+          </Button>
+        }
+      />
     );
   }
 
@@ -82,33 +81,21 @@ export default function SystemHealthTab() {
 
   return (
     <div className="space-y-4 pb-20">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold text-white uppercase tracking-tight flex items-center gap-3">
-            <Activity className="text-brand-primary" />
-            Estado del Sistema
-          </h2>
-          <p className="text-zinc-400 text-xs font-bold uppercase tracking-wide mt-1">
-            "God View" de Infraestructura CircleSfera
-          </p>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <p className="text-xs text-zinc-400 font-mono">
-            Última vez: {new Date(health.timestamp).toLocaleTimeString()}
-          </p>
+      <AdminPageHeader
+        title="Estado del Sistema"
+        subtitle={`God View de Infraestructura · Última actualización: ${new Date(health.timestamp).toLocaleTimeString()}`}
+        actions={
           <Button
             variant="secondary"
             size="icon"
             onClick={() => refetch()}
             isLoading={isRefetching}
-            className="text-gray-300 hover:text-white"
+            className="text-gray-300 hover:text-white min-h-11 min-w-11"
           >
             <RefreshCw size={20} />
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {/* PostgreSQL Database */}
@@ -125,7 +112,7 @@ export default function SystemHealthTab() {
                 <Database size={20} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white uppercase tracking-wide">
+                <h3 className="text-sm font-semibold text-white uppercase tracking-wide">
                   Base de Datos
                 </h3>
                 <p className="text-xs font-mono text-zinc-400">
@@ -142,7 +129,7 @@ export default function SystemHealthTab() {
 
           <div className="space-y-4">
             <div className="flex justify-between items-end">
-              <span className="text-xs text-zinc-400 font-bold uppercase tracking-wide">
+              <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wide">
                 Estado
               </span>
               <span className={`text-xl font-semibold ${dbColor}`}>
@@ -151,7 +138,7 @@ export default function SystemHealthTab() {
             </div>
             <div className="w-full h-px bg-white/5" />
             <div className="flex justify-between items-end">
-              <span className="text-xs text-zinc-400 font-bold uppercase tracking-wide">
+              <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wide">
                 Latencia Raw
               </span>
               <span className="text-xl font-semibold text-white font-mono">
@@ -177,7 +164,7 @@ export default function SystemHealthTab() {
                 <BrainCircuit size={20} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white uppercase tracking-wide">
+                <h3 className="text-sm font-semibold text-white uppercase tracking-wide">
                   Cola IA
                 </h3>
                 <p className="text-xs font-mono text-zinc-400">
@@ -189,7 +176,7 @@ export default function SystemHealthTab() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-black/20 rounded-xl p-3">
-              <p className="text-xs font-bold text-zinc-400 uppercase tracking-wide mb-1">
+              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-1">
                 En Cola
               </p>
               <p className="text-xl font-semibold text-white font-mono">
@@ -197,7 +184,7 @@ export default function SystemHealthTab() {
               </p>
             </div>
             <div className="bg-black/20 rounded-xl p-3 border border-red-500/20">
-              <p className="text-xs font-bold text-red-500 uppercase tracking-wide mb-1">
+              <p className="text-xs font-semibold text-red-500 uppercase tracking-wide mb-1">
                 Fallidos
               </p>
               <p className="text-xl font-semibold text-red-400 font-mono">
@@ -205,7 +192,7 @@ export default function SystemHealthTab() {
               </p>
             </div>
             <div className="bg-black/20 rounded-xl p-3">
-              <p className="text-xs font-bold text-emerald-500 uppercase tracking-wide mb-1">
+              <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-1">
                 Completados
               </p>
               <p className="text-xl font-semibold text-emerald-400 font-mono">
@@ -213,7 +200,7 @@ export default function SystemHealthTab() {
               </p>
             </div>
             <div className="bg-black/20 rounded-xl p-3">
-              <p className="text-xs font-bold text-brand-primary uppercase tracking-wide mb-1">
+              <p className="text-xs font-semibold text-brand-primary uppercase tracking-wide mb-1">
                 Activos
               </p>
               <p className="text-xl font-semibold text-white font-mono">
@@ -238,7 +225,7 @@ export default function SystemHealthTab() {
                 <Server size={20} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white uppercase tracking-wide">
+                <h3 className="text-sm font-semibold text-white uppercase tracking-wide">
                   Cola Analytics
                 </h3>
                 <p className="text-xs font-mono text-zinc-400">
@@ -250,7 +237,7 @@ export default function SystemHealthTab() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-black/20 rounded-xl p-3">
-              <p className="text-xs font-bold text-zinc-400 uppercase tracking-wide mb-1">
+              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-1">
                 En Cola
               </p>
               <p className="text-xl font-semibold text-white font-mono">
@@ -258,7 +245,7 @@ export default function SystemHealthTab() {
               </p>
             </div>
             <div className="bg-black/20 rounded-xl p-3 border border-red-500/20">
-              <p className="text-xs font-bold text-red-500 uppercase tracking-wide mb-1">
+              <p className="text-xs font-semibold text-red-500 uppercase tracking-wide mb-1">
                 Fallidos
               </p>
               <p className="text-xl font-semibold text-red-400 font-mono">
@@ -266,7 +253,7 @@ export default function SystemHealthTab() {
               </p>
             </div>
             <div className="bg-black/20 rounded-xl p-3">
-              <p className="text-xs font-bold text-emerald-500 uppercase tracking-wide mb-1">
+              <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-1">
                 Completados
               </p>
               <p className="text-xl font-semibold text-emerald-400 font-mono">
@@ -274,7 +261,7 @@ export default function SystemHealthTab() {
               </p>
             </div>
             <div className="bg-black/20 rounded-xl p-3">
-              <p className="text-xs font-bold text-brand-primary uppercase tracking-wide mb-1">
+              <p className="text-xs font-semibold text-brand-primary uppercase tracking-wide mb-1">
                 Activos
               </p>
               <p className="text-xl font-semibold text-white font-mono">
@@ -296,10 +283,10 @@ export default function SystemHealthTab() {
               <Webhook size={32} />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white uppercase tracking-wide">
+              <h3 className="text-base sm:text-lg font-semibold text-white uppercase tracking-wide">
                 Stripe Webhooks
               </h3>
-              <p className="text-xs font-bold text-zinc-400 uppercase tracking-wide mt-1">
+              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mt-1">
                 Sincronización (Últimas 24h)
               </p>
             </div>
@@ -307,7 +294,7 @@ export default function SystemHealthTab() {
 
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 w-full">
             <div className="bg-black/30 rounded-xl p-4 border border-white/5">
-              <p className="text-xs font-bold text-emerald-500 uppercase tracking-wide mb-2 flex items-center gap-2">
+              <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-2 flex items-center gap-2">
                 <CheckCircle2 size={12} /> Procesados Exitosamente
               </p>
               <p className="text-xl font-semibold text-white font-mono">
@@ -317,7 +304,7 @@ export default function SystemHealthTab() {
 
             <div className="bg-black/30 rounded-xl p-4 border border-red-500/20 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-16 h-16 bg-red-500/10 blur-xl rounded-full" />
-              <p className="text-xs font-bold text-red-500 uppercase tracking-wide mb-2 flex items-center gap-2 relative z-10">
+              <p className="text-xs font-semibold text-red-500 uppercase tracking-wide mb-2 flex items-center gap-2 relative z-10">
                 <AlertCircle size={12} /> Webhooks Fallidos
               </p>
               <p className="text-xl font-semibold text-red-400 font-mono relative z-10">
@@ -326,14 +313,16 @@ export default function SystemHealthTab() {
             </div>
 
             <div className="sm:col-span-2 xl:col-span-1 bg-black/30 rounded-xl p-4 border border-white/5 flex flex-col justify-center">
-              <p className="text-xs font-bold text-zinc-400 uppercase tracking-wide mb-2">
+              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-2">
                 Tasa de Éxito
               </p>
               <div className="flex items-end gap-2">
                 <p className="text-xl font-semibold text-white font-mono">
                   {webhookSuccessRate.toFixed(1)}
                 </p>
-                <span className="text-sm font-bold text-zinc-400 mb-1">%</span>
+                <span className="text-sm font-semibold text-zinc-400 mb-1">
+                  %
+                </span>
               </div>
               <div className="w-full h-1 bg-white/10 rounded-full mt-3 overflow-hidden">
                 <div

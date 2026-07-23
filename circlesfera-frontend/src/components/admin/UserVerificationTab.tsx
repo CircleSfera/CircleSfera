@@ -16,7 +16,10 @@ import { Button, Select } from '../ui';
 import VerificationBadge, {
   type VerificationLevel,
 } from '../VerificationBadge';
+import { AdminEmptyState } from './AdminEmptyState';
+import { AdminFilterBar } from './AdminFilterBar';
 import { AdminListRow } from './AdminList';
+import { AdminPageHeader } from './AdminPageHeader';
 import { AdminSplitView } from './AdminSplitView';
 import { Pagination, SearchInput } from './AdminTable';
 
@@ -132,27 +135,23 @@ export default function UserVerificationTab({
 
   return (
     <div className="flex flex-col min-h-0 space-y-4">
-      {/* Header & Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
-        <div>
-          <h2 className="text-2xl font-semibold text-white flex items-center gap-2">
-            <ShieldCheck className="text-brand-primary" />
-            KYC & Verificación
-          </h2>
-          <p className="text-gray-300 text-sm">
-            Estado de Stripe Identity y niveles de cuenta de los creadores.
-          </p>
-        </div>
+      <AdminPageHeader
+        title="KYC & Verificación"
+        subtitle="Estado de Stripe Identity y niveles de cuenta de los creadores."
+      />
 
-        <SearchInput
-          value={searchTerm}
-          onChange={(v) => {
-            setSearchTerm(v);
-            setPage(1);
-          }}
-          placeholder="Buscar usuarios..."
-        />
-      </div>
+      <AdminFilterBar>
+        <div className="flex-1 min-w-0">
+          <SearchInput
+            value={searchTerm}
+            onChange={(v) => {
+              setSearchTerm(v);
+              setPage(1);
+            }}
+            placeholder="Buscar usuarios..."
+          />
+        </div>
+      </AdminFilterBar>
 
       <AdminSplitView
         hasSelection={!!selectedUserId}
@@ -166,9 +165,12 @@ export default function UserVerificationTab({
                   <LoadingSpinner />
                 </div>
               ) : users.length === 0 ? (
-                <div className="text-center p-8 text-gray-500 text-sm">
-                  No se encontraron usuarios.
-                </div>
+                <AdminEmptyState
+                  icon={UserX}
+                  title="No se encontraron usuarios"
+                  description="Intenta ajustar los filtros de búsqueda."
+                  compact
+                />
               ) : (
                 users.map((user) => {
                   const isVerified = !!user.identityVerifiedAt;
@@ -248,8 +250,8 @@ export default function UserVerificationTab({
                 className="flex flex-col h-full"
               >
                 {/* Header Action Bar */}
-                <div className="p-4 border-b border-white/5 bg-white/2 flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-4">
+                <div className="p-4 border-b border-white/5 bg-white/2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
+                  <div className="flex items-center gap-3 min-w-0">
                     <UserAvatar
                       src={selectedUser.profile?.avatar || undefined}
                       thumbnailUrl={
@@ -261,9 +263,11 @@ export default function UserVerificationTab({
                       alt={selectedUser.profile?.username || 'User'}
                       size="md"
                     />
-                    <div>
-                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        @{selectedUser.profile?.username}
+                    <div className="min-w-0">
+                      <h3 className="text-base sm:text-lg font-semibold text-white flex items-center gap-2">
+                        <span className="truncate">
+                          @{selectedUser.profile?.username}
+                        </span>
                         <VerificationBadge
                           level={
                             selectedUser.verificationLevel as VerificationLevel
@@ -271,18 +275,18 @@ export default function UserVerificationTab({
                           size={18}
                         />
                       </h3>
-                      <p className="text-xs text-gray-300">
+                      <p className="text-xs text-gray-400 truncate">
                         ID: {selectedUser.id}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     {hasChanges && (
                       <Button
                         onClick={handleSave}
                         isLoading={updateVerificationMutation.isPending}
                         variant="primary"
-                        className="text-sm font-bold shadow-lg shadow-brand-primary/20"
+                        className="text-sm font-semibold shadow-lg shadow-brand-primary/20 min-h-11 w-full sm:w-auto"
                       >
                         <Check size={16} className="mr-2" /> Guardar Cambios
                       </Button>
@@ -290,20 +294,20 @@ export default function UserVerificationTab({
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
                   {/* Stripe Identity KYC Status Card */}
                   <div>
                     <h4 className="text-white font-semibold text-sm uppercase tracking-wide mb-4">
                       Estado de Stripe Identity (KYC)
                     </h4>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       {selectedUser.identityVerifiedAt ? (
                         <div className="p-6 bg-green-500/10 border border-green-500/20 rounded-lg flex flex-col items-center justify-center text-center">
                           <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mb-4">
                             <CheckCircle2 size={32} />
                           </div>
-                          <h5 className="text-green-400 font-bold text-lg mb-1">
+                          <h5 className="text-green-400 font-semibold text-lg mb-1">
                             Identidad Verificada
                           </h5>
                           <p className="text-xs text-gray-300">
@@ -319,7 +323,7 @@ export default function UserVerificationTab({
                           <div className="w-16 h-16 bg-yellow-500/20 text-yellow-400 rounded-full flex items-center justify-center mb-4">
                             <Clock size={32} />
                           </div>
-                          <h5 className="text-yellow-400 font-bold text-lg mb-1">
+                          <h5 className="text-yellow-400 font-semibold text-lg mb-1">
                             Sesión Creada (Pendiente)
                           </h5>
                           <p className="text-xs text-gray-300">
@@ -332,7 +336,7 @@ export default function UserVerificationTab({
                           <div className="w-16 h-16 bg-white/10 text-gray-300 rounded-full flex items-center justify-center mb-4">
                             <UserX size={32} />
                           </div>
-                          <h5 className="text-gray-300 font-bold text-lg mb-1">
+                          <h5 className="text-gray-300 font-semibold text-lg mb-1">
                             No Iniciado
                           </h5>
                           <p className="text-xs text-gray-500">
@@ -360,7 +364,7 @@ export default function UserVerificationTab({
                               }
                               isLoading={syncKycMutation.isPending}
                               variant="secondary"
-                              className="w-full text-sm font-bold mt-4"
+                              className="w-full text-sm font-semibold mt-4 min-h-11"
                             >
                               <RefreshCw size={16} className="mr-2" />{' '}
                               Sincronizar desde Stripe
@@ -382,7 +386,7 @@ export default function UserVerificationTab({
                               }}
                               isLoading={revokeKycMutation.isPending}
                               variant="danger"
-                              className="w-full text-sm font-bold border-red-500/30"
+                              className="w-full text-sm font-semibold border-red-500/30 min-h-11"
                             >
                               <RefreshCw size={16} className="mr-2" /> Revocar
                               Verificación y Forzar KYC
@@ -402,7 +406,7 @@ export default function UserVerificationTab({
                     <h4 className="text-white font-semibold text-sm uppercase tracking-wide mb-4">
                       Control de Nivel y Permisos
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       <div className="p-4 bg-white/2 rounded-xl border border-white/5 space-y-2">
                         <Select
                           label="Nivel de Verificación de Perfil"
@@ -451,13 +455,13 @@ export default function UserVerificationTab({
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex-1 flex flex-col items-center justify-center text-gray-500 min-h-48"
+                className="flex-1 flex items-center justify-center p-6"
               >
-                <ShieldCheck size={48} className="mb-4 text-white/10" />
-                <p className="font-bold">Selecciona un usuario de la cola</p>
-                <p className="text-sm">
-                  Para revisar su estado de KYC y niveles
-                </p>
+                <AdminEmptyState
+                  icon={ShieldCheck}
+                  title="Selecciona un usuario de la cola"
+                  description="Para revisar su estado de KYC y niveles"
+                />
               </motion.div>
             )}
           </AnimatePresence>

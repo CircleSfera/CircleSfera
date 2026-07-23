@@ -8,7 +8,9 @@ import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
+import { AdminFilterBar } from './AdminFilterBar';
 import { AdminList, AdminListRow } from './AdminList';
+import { AdminPageHeader } from './AdminPageHeader';
 import {
   ActionButton,
   FilterDropdown,
@@ -74,8 +76,24 @@ export default function PostsTab({ onToast }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div className="flex flex-col sm:flex-row gap-3">
+      <AdminPageHeader
+        title="Publicaciones"
+        subtitle="Modera posts y frames de la plataforma"
+        actions={
+          <Button
+            onClick={handleExport}
+            variant="outline"
+            className="text-sm font-semibold text-gray-300 hover:text-white border-white/10 px-4 min-h-11 w-full sm:w-auto"
+            aria-label="Exportar publicaciones como CSV"
+          >
+            <Download size={16} className="mr-2" />
+            Exportar CSV
+          </Button>
+        }
+      />
+
+      <AdminFilterBar>
+        <div className="flex-1 min-w-0">
           <SearchInput
             value={search}
             onChange={(v) => {
@@ -84,32 +102,23 @@ export default function PostsTab({ onToast }: Props) {
             }}
             placeholder="Buscar publicaciones..."
           />
-          <FilterDropdown
-            label="Filtrar por tipo"
-            value={typeFilter}
-            onChange={(v) => {
-              setTypeFilter(v);
-              setPage(1);
-            }}
-            options={[
-              { value: '', label: 'Todos los tipos' },
-              { value: 'POST', label: 'Posts' },
-              { value: 'FRAME', label: 'Frames' },
-            ]}
-          />
         </div>
-        <Button
-          onClick={handleExport}
-          variant="outline"
-          className="text-sm font-bold text-gray-300 hover:text-white border-white/10 px-4 py-2.5"
-          aria-label="Exportar publicaciones como CSV"
-        >
-          <Download size={16} className="mr-2" />
-          Exportar CSV
-        </Button>
-      </div>
+        <FilterDropdown
+          label="Filtrar por tipo"
+          value={typeFilter}
+          onChange={(v) => {
+            setTypeFilter(v);
+            setPage(1);
+          }}
+          options={[
+            { value: '', label: 'Todos los tipos' },
+            { value: 'POST', label: 'Posts' },
+            { value: 'FRAME', label: 'Frames' },
+          ]}
+        />
+      </AdminFilterBar>
 
-      <div className="glass-panel rounded-lg overflow-clip border border-white/10">
+      <div className="rounded-xl border border-white/10 lg:overflow-clip">
         <AdminList
           loading={isLoading}
           isEmpty={!data || data.data.length === 0}
@@ -237,13 +246,13 @@ export default function PostsTab({ onToast }: Props) {
                     {post._count && (
                       <div className="text-xs text-gray-500 space-y-0.5">
                         <p>
-                          <span className="text-white font-bold">
+                          <span className="text-white font-semibold">
                             {post._count.likes}
                           </span>{' '}
                           likes
                         </p>
                         <p>
-                          <span className="text-white font-bold">
+                          <span className="text-white font-semibold">
                             {post._count.comments}
                           </span>{' '}
                           comentarios

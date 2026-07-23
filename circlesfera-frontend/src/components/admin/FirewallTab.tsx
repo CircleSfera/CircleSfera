@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ShieldCheck, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { adminApi, type FirewallSignature } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminList, AdminListRow } from './AdminList';
+import { AdminPageHeader } from './AdminPageHeader';
 import { ActionButton, Pagination, Table } from './AdminTable';
 
 interface Props {
@@ -70,51 +71,43 @@ export default function FirewallTab({ onToast }: Props) {
 
   return (
     <div className="flex flex-col space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-2.5 bg-brand-primary/10 border border-brand-primary/20 rounded-xl">
-          <ShieldCheck size={20} className="text-brand-primary" />
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold text-white">
-            Escudo de IA (Vector Firewall)
-          </h2>
-          <p className="text-xs text-gray-500">
-            Reglas vectoriales que bloquean automáticamente contenido antes de
-            publicarse.
-          </p>
-        </div>
-      </div>
+      <AdminPageHeader
+        title="Escudo de IA (Vector Firewall)"
+        subtitle="Reglas vectoriales que bloquean automáticamente contenido antes de publicarse."
+      />
 
       {/* Add New Rule Form */}
       <div className="glass-panel p-4 rounded-xl border border-white/5 space-y-4">
-        <h3 className="text-sm font-bold text-white">Añadir nueva regla</h3>
-        <div className="flex flex-col sm:flex-row gap-3">
+        <h3 className="text-sm font-semibold text-white">Añadir nueva regla</h3>
+        <div className="flex flex-col gap-3">
           <input
             type="text"
             value={newText}
             onChange={(e) => setNewText(e.target.value)}
             placeholder="Ej: Gana dinero gratis haciendo click en este link..."
-            className="flex-1 bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-primary"
+            className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2.5 min-h-11 text-sm text-white focus:outline-none focus:border-brand-primary"
           />
-          <select
-            value={newCategory}
-            onChange={(e) => setNewCategory(e.target.value)}
-            className="bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-primary"
-          >
-            <option value="SPAM">SPAM</option>
-            <option value="HATE">HATE</option>
-            <option value="SEXUAL">SEXUAL</option>
-            <option value="VIOLENCE">VIOLENCE</option>
-            <option value="SCAM">SCAM</option>
-          </select>
-          <Button
-            onClick={() => addMutation.mutate()}
-            disabled={!newText.trim() || addMutation.isPending}
-            isLoading={addMutation.isPending}
-          >
-            Generar Vector
-          </Button>
+          <div className="flex flex-col xs:flex-row gap-3">
+            <select
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              className="flex-1 bg-black/50 border border-white/10 rounded-lg px-3 py-2.5 min-h-11 text-sm text-white focus:outline-none focus:border-brand-primary"
+            >
+              <option value="SPAM">SPAM</option>
+              <option value="HATE">HATE</option>
+              <option value="SEXUAL">SEXUAL</option>
+              <option value="VIOLENCE">VIOLENCE</option>
+              <option value="SCAM">SCAM</option>
+            </select>
+            <Button
+              onClick={() => addMutation.mutate()}
+              disabled={!newText.trim() || addMutation.isPending}
+              isLoading={addMutation.isPending}
+              className="min-h-11 w-full xs:w-auto"
+            >
+              Generar Vector
+            </Button>
+          </div>
         </div>
         <p className="text-xs text-gray-500">
           Al generar el vector, el sistema bloqueará textos futuros que tengan
@@ -123,7 +116,7 @@ export default function FirewallTab({ onToast }: Props) {
       </div>
 
       {/* Rules List */}
-      <div className="glass-panel rounded-xl border border-white/5 overflow-hidden">
+      <div className="glass-panel rounded-xl border border-white/5">
         <AdminList
           loading={isLoading}
           isEmpty={items.length === 0}

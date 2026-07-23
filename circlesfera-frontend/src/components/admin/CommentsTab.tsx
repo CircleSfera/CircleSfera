@@ -5,7 +5,9 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminComment } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { AdminFilterBar } from './AdminFilterBar';
 import { AdminList, AdminListRow } from './AdminList';
+import { AdminPageHeader } from './AdminPageHeader';
 import { ActionButton, Pagination, SearchInput, Table } from './AdminTable';
 
 interface Props {
@@ -37,18 +39,25 @@ export default function CommentsTab({ onToast }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-4 items-center">
-        <SearchInput
-          value={search}
-          onChange={(v) => {
-            setSearch(v);
-            setPage(1);
-          }}
-          placeholder="Buscar comentarios..."
-        />
-      </div>
+      <AdminPageHeader
+        title="Comentarios"
+        subtitle="Modera comentarios reportados o inapropiados"
+      />
 
-      <div className="glass-panel rounded-lg overflow-clip border border-white/10">
+      <AdminFilterBar>
+        <div className="flex-1 min-w-0">
+          <SearchInput
+            value={search}
+            onChange={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
+            placeholder="Buscar comentarios..."
+          />
+        </div>
+      </AdminFilterBar>
+
+      <div className="rounded-xl border border-white/10 lg:overflow-clip">
         <AdminList
           loading={isLoading}
           isEmpty={!data?.data?.length}

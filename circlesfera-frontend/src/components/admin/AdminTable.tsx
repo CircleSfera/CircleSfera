@@ -185,8 +185,10 @@ export function ActionButton({
       title={label}
       aria-label={label}
       className={clsx(
-        'font-bold text-xs whitespace-nowrap',
-        iconOnly ? 'w-8 h-8' : '',
+        'font-semibold text-xs whitespace-nowrap',
+        iconOnly
+          ? 'w-11 h-11 sm:w-9 sm:h-9 min-w-11 sm:min-w-9'
+          : 'min-h-11 sm:min-h-9',
       )}
     >
       {!loading && Icon && (
@@ -341,7 +343,7 @@ export function ToastContainer({ toasts }: { toasts: Toast[] }) {
         <div
           key={toast.id}
           className={clsx(
-            'px-6 py-4 rounded-lg text-[13px] font-black tracking-wide shadow-2xl animate-in slide-in-from-right-10 duration-500 backdrop-blur-2xl relative overflow-hidden border border-white/10 group',
+            'px-6 py-4 rounded-lg text-[13px] font-semibold tracking-wide shadow-2xl animate-in slide-in-from-right-10 duration-500 backdrop-blur-2xl relative overflow-hidden border border-white/10 group',
             toast.type === 'success' && 'bg-green-500/10 text-white',
             toast.type === 'error' && 'bg-red-500/10 text-white',
             toast.type === 'info' && 'bg-white/5 text-white',

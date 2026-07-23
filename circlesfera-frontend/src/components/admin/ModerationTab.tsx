@@ -10,7 +10,10 @@ import { LoadingSpinner } from '../index';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
+import { AdminEmptyState } from './AdminEmptyState';
+import { AdminFilterBar } from './AdminFilterBar';
 import { AdminListRow } from './AdminList';
+import { AdminPageHeader } from './AdminPageHeader';
 import { AdminSplitView } from './AdminSplitView';
 import {
   ActionButton,
@@ -140,41 +143,32 @@ export default function ModerationTab({ onToast }: Props) {
 
   return (
     <div className="flex flex-col min-h-0 space-y-4">
-      {/* Header & Controls */}
-      <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-            <ShieldAlert size={20} className="text-amber-500" />
+      <AdminPageHeader
+        title="Cola de Moderación AI"
+        subtitle="Contenido marcado automáticamente por el sistema"
+        actions={
+          <div className="flex gap-2 bg-white/5 p-1 rounded-lg w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setViewMode('queue')}
+              className={`px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors ${viewMode === 'queue' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              Cola de Moderación
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('appeals')}
+              className={`px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors ${viewMode === 'appeals' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              Apelaciones
+            </button>
           </div>
-          <div>
-            <h2 className="text-lg font-semibold text-white">
-              Cola de Moderación AI
-            </h2>
-            <p className="text-xs text-gray-500">
-              Contenido marcado automáticamente por el sistema
-            </p>
-          </div>
-        </div>
+        }
+      />
 
-        <div className="flex gap-2 mb-4 bg-white/5 p-1 rounded-lg self-start">
-          <button
-            type="button"
-            onClick={() => setViewMode('queue')}
-            className={`px-4 py-1.5 rounded-md text-sm font-bold transition-colors ${viewMode === 'queue' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'}`}
-          >
-            Cola de Moderación
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('appeals')}
-            className={`px-4 py-1.5 rounded-md text-sm font-bold transition-colors ${viewMode === 'appeals' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'}`}
-          >
-            Apelaciones
-          </button>
-        </div>
-
-        {viewMode === 'queue' && (
-          <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+      {viewMode === 'queue' && (
+        <AdminFilterBar>
+          <div className="flex-1 min-w-0">
             <SearchInput
               value={search}
               onChange={(val) => {
@@ -183,23 +177,23 @@ export default function ModerationTab({ onToast }: Props) {
               }}
               placeholder="Buscar..."
             />
-            <FilterDropdown
-              label="Tipo"
-              value={typeFilter}
-              onChange={(v) => {
-                setTypeFilter(v);
-                setPage(1);
-              }}
-              options={[
-                { value: '', label: 'Todos' },
-                { value: 'POST', label: 'Posts' },
-                { value: 'STORY', label: 'Historias' },
-                { value: 'COMMENT', label: 'Comentarios' },
-              ]}
-            />
           </div>
-        )}
-      </div>
+          <FilterDropdown
+            label="Tipo"
+            value={typeFilter}
+            onChange={(v) => {
+              setTypeFilter(v);
+              setPage(1);
+            }}
+            options={[
+              { value: '', label: 'Todos' },
+              { value: 'POST', label: 'Posts' },
+              { value: 'STORY', label: 'Historias' },
+              { value: 'COMMENT', label: 'Comentarios' },
+            ]}
+          />
+        </AdminFilterBar>
+      )}
 
       {viewMode === 'appeals' ? (
         <AppealsList />
@@ -272,9 +266,12 @@ export default function ModerationTab({ onToast }: Props) {
                       <LoadingSpinner />
                     </div>
                   ) : items.length === 0 ? (
-                    <div className="text-center p-8 text-gray-500 text-sm">
-                      No hay contenido pendiente de moderación
-                    </div>
+                    <AdminEmptyState
+                      icon={ShieldAlert}
+                      title="No hay contenido pendiente"
+                      description="La cola de moderación está vacía."
+                      compact
+                    />
                   ) : (
                     items.map((item) => (
                       <AdminListRow
@@ -348,7 +345,7 @@ export default function ModerationTab({ onToast }: Props) {
                     transition={{ duration: 0.15 }}
                     className="flex flex-col h-full"
                   >
-                    <div className="p-4 border-b border-white/5 flex items-center justify-between shrink-0 gap-2 flex-wrap">
+                    <div className="p-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between shrink-0 gap-3">
                       <div className="flex items-center gap-3">
                         <UserAvatar
                           src={selectedItem.user?.profile?.avatar || undefined}
@@ -364,7 +361,7 @@ export default function ModerationTab({ onToast }: Props) {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col xs:flex-row gap-2 w-full sm:w-auto">
                         <Button
                           onClick={() =>
                             moderationMutation.mutate({
@@ -379,16 +376,10 @@ export default function ModerationTab({ onToast }: Props) {
                           }
                           isLoading={moderationMutation.isPending}
                           variant="success"
-                          className="p-2 md:px-4 md:py-2 text-sm font-semibold border-green-500/20"
+                          className="min-h-11 text-sm font-semibold border-green-500/20 w-full sm:w-auto"
                         >
-                          <CheckCircle
-                            size={16}
-                            className="mr-2 hidden md:block"
-                          />{' '}
-                          <span className="hidden md:inline">
-                            Aprobar (Seguro)
-                          </span>
-                          <CheckCircle size={16} className="md:hidden" />
+                          <CheckCircle size={16} className="mr-2" />
+                          Aprobar (Seguro)
                         </Button>
                         <Button
                           onClick={() =>
@@ -399,11 +390,10 @@ export default function ModerationTab({ onToast }: Props) {
                             })
                           }
                           variant="danger"
-                          className="p-2 md:px-4 md:py-2 text-sm font-semibold border-red-500/20"
+                          className="min-h-11 text-sm font-semibold border-red-500/20 w-full sm:w-auto"
                         >
-                          <Trash2 size={16} className="mr-2 hidden md:block" />{' '}
-                          <span className="hidden md:inline">Eliminar</span>
-                          <Trash2 size={16} className="md:hidden" />
+                          <Trash2 size={16} className="mr-2" />
+                          Eliminar
                         </Button>
                       </div>
                     </div>
@@ -425,7 +415,7 @@ export default function ModerationTab({ onToast }: Props) {
                         </div>
                       </div>
 
-                      <div className="w-full max-w-md bg-zinc-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl">
+                      <div className="w-full bg-zinc-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl">
                         {selectedItem.media &&
                           selectedItem.media.length > 0 && (
                             <div className="relative aspect-4/5 bg-black">
@@ -470,15 +460,13 @@ export default function ModerationTab({ onToast }: Props) {
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="flex-1 flex flex-col items-center justify-center text-gray-500 min-h-48"
+                    className="flex-1 flex items-center justify-center p-6"
                   >
-                    <ShieldAlert size={48} className="mb-4 text-white/10" />
-                    <p className="font-semibold">
-                      Selecciona un elemento de la cola
-                    </p>
-                    <p className="text-sm">
-                      Para revisar el contenido reportado por la IA
-                    </p>
+                    <AdminEmptyState
+                      icon={ShieldAlert}
+                      title="Selecciona un elemento de la cola"
+                      description="Para revisar el contenido reportado por la IA"
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>
