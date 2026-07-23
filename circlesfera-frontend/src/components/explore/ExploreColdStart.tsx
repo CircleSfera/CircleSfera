@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Sparkles, TrendingUp, UserPlus, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { usersApi } from '../../services/users.service';
 import UserAvatar from '../UserAvatar';
@@ -17,6 +18,7 @@ export default function ExploreColdStart({
   activeTab,
   setActiveTab,
 }: ExploreColdStartProps) {
+  const { t } = useTranslation();
   const { data: suggestedUsers, isLoading } = useQuery({
     queryKey: ['suggestedUsers', 'explore'],
     queryFn: async () => {
@@ -40,14 +42,14 @@ export default function ExploreColdStart({
 
         <h2 className="text-lg md:text-xl font-bold text-white tracking-tight leading-tight">
           {activeTab === 'foryou'
-            ? 'Descubre tu propio espacio'
-            : 'Las tendencias te esperan'}
+            ? t('explore.cold_start.title_foryou')
+            : t('explore.cold_start.title_trending')}
         </h2>
 
         <p className="text-zinc-400 text-sm leading-relaxed font-medium">
           {activeTab === 'foryou'
-            ? 'Nuestro motor de Inteligencia Artificial aprende de ti. Dale "Me Gusta" y sigue a otros usuarios para que tu feed cobre vida con contenido personalizado.'
-            : 'Parece que no hay tendencias activas en este momento o necesitas explorar más contenido para destapar el flujo.'}
+            ? t('explore.cold_start.desc_foryou')
+            : t('explore.cold_start.desc_trending')}
         </p>
 
         <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
@@ -58,7 +60,7 @@ export default function ExploreColdStart({
               className="px-5 py-2.5 text-sm bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold transition-all flex items-center gap-2 active:scale-95 border border-white/5"
             >
               <TrendingUp size={16} />
-              Ver Tendencias Globales
+              {t('explore.cold_start.view_trending')}
             </button>
           )}
           <button
@@ -72,7 +74,7 @@ export default function ExploreColdStart({
             className="px-5 py-2.5 text-sm bg-brand-primary hover:bg-brand-primary/90 text-white rounded-lg font-bold transition-all flex items-center gap-2 shadow-lg shadow-brand-primary/30 active:scale-95"
           >
             <Sparkles size={16} />
-            Publicar Ahora
+            {t('explore.cold_start.post_now')}
           </button>
         </div>
       </div>
@@ -82,7 +84,7 @@ export default function ExploreColdStart({
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold text-white flex items-center gap-2">
             <Users size={18} className="text-brand-primary" />
-            Personas a las que seguir
+            {t('explore.cold_start.people_to_follow')}
           </h3>
         </div>
 
@@ -132,7 +134,7 @@ export default function ExploreColdStart({
                   className="w-full py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-wide rounded-xl transition-colors flex items-center justify-center gap-2"
                 >
                   <UserPlus size={14} />
-                  Seguir
+                  {t('suggestions.follow')}
                 </button>
               </div>
             ))}
@@ -140,7 +142,7 @@ export default function ExploreColdStart({
         ) : (
           <div className="py-12 bg-white/5 rounded-xl border border-dashed border-white/10">
             <p className="text-zinc-400 font-medium">
-              No hay sugerencias en este momento.
+              {t('explore.cold_start.no_suggestions')}
             </p>
           </div>
         )}

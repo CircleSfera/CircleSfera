@@ -1,10 +1,12 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Outlet, useParams } from 'react-router-dom';
 import ConversationList from '../components/chat/ConversationList';
 import SEO from '../components/common/SEO';
 import { useSocketStore } from '../stores/socketStore';
 
 export default function Messages() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const { connect } = useSocketStore();
 
@@ -16,7 +18,7 @@ export default function Messages() {
 
   return (
     <div className="h-full md:h-[calc(100vh-80px)] md:mt-8 px-0 md:px-4 max-w-6xl mx-auto overflow-hidden bg-transparent">
-      <SEO title="Mensajes" />
+      <SEO title={t('chat.messages')} />
       <div className="flex h-full md:glass-panel bg-transparent md:rounded-lg overflow-hidden border-b md:border border-white/5 md:border-white/10">
         {/* Conversation List - Smart visibility on mobile */}
         <div

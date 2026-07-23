@@ -88,7 +88,18 @@ function CreatorRootRedirect() {
 
 function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isSessionChecked = useAuthStore((state) => state.isSessionChecked);
+  const checkSession = useAuthStore((state) => state.checkSession);
   const fetchFlags = useExperimentStore((state) => state.fetchFlags);
+
+  useEffect(() => {
+    // Bootstrap once per app load: the persisted `isAuthenticated` flag can be
+    // stale (e.g. the HTTP-only session cookie expired while the app was
+    // closed). Validate it against the backend before trusting it for route
+    // decisions, so protected/guest routes don't briefly render with the
+    // wrong auth state.
+    checkSession();
+  }, [checkSession]);
 
   useEffect(() => {
     // Fetch flags when app initializes. If auth changes, we might want to refetch,
@@ -97,6 +108,17 @@ function App() {
       fetchFlags();
     }
   }, [fetchFlags, isAuthenticated]);
+
+  // Hold route rendering until we know whether a persisted "logged in" state
+  // is still valid, to avoid a flash of protected/guest content followed by
+  // an immediate redirect.
+  if (isAuthenticated && !isSessionChecked) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <LayoutWrapper>
