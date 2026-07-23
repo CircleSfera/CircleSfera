@@ -10,8 +10,10 @@
 
 This document replaces the previous security, privacy, and compliance version to align it with CircleSfera's real system. The main correction is twofold:
 
-1. It must reflect the real capabilities of the current model, including passkeys, refresh tokens, reports, admin audit logs, stories, chat, promotions, and billing with Stripe.
-2. It must not promise persisted mechanisms that the current schema does not explicitly model, such as `mutes`, `appeals`, `moderation_actions`, `feed_preferences`, or detailed persisted analytics.
+1. It must reflect the real capabilities of the current model, including passkeys, refresh tokens, reports, admin audit logs, stories, chat, promotions, mutes, appeals, live streaming, and billing with Stripe.
+2. It must not promise persisted mechanisms that the current schema does not explicitly model, such as `moderation_actions`, `feed_preferences`, or detailed persisted analytics.
+
+> **Jul 2026 correction:** an earlier revision of this document listed `mutes` and `appeals` alongside unmodeled mechanisms. Both are real, persisted models (`Mute`, `Appeal`) with shipped endpoints — see §10.1. What genuinely remains unmodeled is a dedicated `moderation_actions` table and persisted `feed_preferences`.
 
 ---
 
@@ -43,7 +45,10 @@ CircleSfera is not just auth + posts. The real surface includes:
 - Search history.
 - Basic presence (`isOnline`, `lastSeenAt`).
 - Promotions.
-- Post embeddings.
+- Post embeddings and profile embeddings.
+- Mutes and appeals.
+- Live streams (with co-hosts and gifting).
+- Creator subscriptions (Stripe Connect).
 
 This means security and privacy risks are greater than in a reduced documentary MVP.
 
@@ -237,11 +242,11 @@ Stripe events persist the full payload, which may contain payment metadata, subs
 ## 10. Moderation and reporting
 
 ### 10.1 Current model reality
-The current schema supports `Report` and `AdminAuditLog`, but not a complete persisted structure for `Appeal` or `ModerationAction` as separate models.
+The current schema supports `Report`, `AdminAuditLog`, and `Appeal` (`targetType`: `ACCOUNT_BAN` | `POST_REMOVAL`; `status`: `PENDING` | `APPROVED` | `REJECTED`), exposed at `POST /appeals`, `GET /appeals/my-appeals`, `GET /appeals/admin`, `PATCH /appeals/admin/:id`, and surfaced in-app under `Settings → Appeals`. There is still no separate `ModerationAction` model — `Report` + `AdminAuditLog` remain the general moderation-trace surface.
 
 ### 10.2 Documentary implication
-- The public policy may discuss review, notification, and reconsideration.
-- The internal policy must not present a persisted appeals system as if it already exists in data if it is not yet modeled.
+- The public policy may discuss review, notification, and reconsideration, and may now reference a real, persisted appeals flow.
+- The internal policy must not present a `ModerationAction`-style structured action log as if it already exists in data if it is not yet modeled — appeal outcomes and content actions are still traced via `Appeal.status`/`adminNotes` and `AdminAuditLog`, not a dedicated action table.
 
 ### 10.3 Anti-shadowbanning
 If CircleSfera wants to defend a transparency stance, any artificial reduction of visibility should be exceptional, documented, and traceable. That promise has legal and reputational implications and must be stated precisely, not as an absolute slogan that is impossible to fulfill operationally.
@@ -353,5 +358,6 @@ Stripe reduces scope, but does not eliminate security obligations around webhook
 - Passkeys are incorporated into the official security document.
 - Chat is incorporated as an explicit privacy and security surface.
 - Real billing with webhooks is incorporated as a critical flow.
-- Any closed assertion about `mutes`, `appeals`, `moderation_actions`, `feed_preferences`, and unimplemented GDPR dashboards is removed from the official document as current technical reality.
+- `Mute` and `Appeal` are recognized as real, persisted mechanisms (§10.1) and removed from the "does not exist" list.
+- Any closed assertion about `moderation_actions`, `feed_preferences`, and unimplemented GDPR dashboards is removed from the official document as current technical reality.
 - Every public promise of transparency or compliance must be operationally sustainable.

@@ -85,6 +85,7 @@ Hover Gradient: from-primary-500 via-accent-500 to-primary-600
 ```
 
 ### 2.6 Dark Mode
+CircleSfera is **dark-first with no light-theme toggle** — this is the app's only theme, not an alternate mode (confirmed against `circlesfera-frontend/src/index.css`, `--background: 0 0% 3.9%`).
 - **Base Background**: `#000000` (Pure black)
 - **Elevated Background**: `rgba(15, 23, 42, 0.4)` (Slate-900 with transparency)
 - **Borders**: `rgba(51, 65, 85, 0.3)` (Slate-700 with transparency)
@@ -446,10 +447,11 @@ xl:  1280px (Desktop)
 ---
 
 ## Changelog
+- **v2.1** (Jul 2026): Confirmed dark-first theme still matches the live frontend (`--background: 0 0% 3.9%`, black base in `index.css`); no light-mode toggle exists. No palette/token changes in this pass.
 - **v2.0** (December 2024): Full redesign with purple/pink palette, VisionOS-style glassmorphism, and Framer Motion
 - **v1.0** (2024): Initial system established
 
 ---
 
-**Last updated**: December 2024
+**Last updated**: Jul 2026
 **Maintained by**: CircleSfera Design Team
