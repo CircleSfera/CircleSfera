@@ -1,6 +1,8 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import FrameItem from '../components/FrameItem';
 import { LoadingSpinner } from '../components/LoadingStates';
 import { postsApi } from '../services';
@@ -8,6 +10,9 @@ import type { PaginatedResponse, Post } from '../types';
 
 export default function Frames() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const handledCheckoutReturn = useRef(false);
   const [activeFrameIndex, setActiveFrameIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -29,6 +34,33 @@ export default function Frames() {
     });
 
   const frames = data?.pages.flatMap((page) => page.data) || [];
+
+  useEffect(() => {
+    if (handledCheckoutReturn.current) return;
+    const success = searchParams.get('success') === 'true';
+    const canceled = searchParams.get('canceled') === 'true';
+    if (!success && !canceled) return;
+
+    handledCheckoutReturn.current = true;
+
+    if (success) {
+      toast.success(
+        t(
+          'frames.checkout_success',
+          'Payment successful. Content will unlock shortly.',
+        ),
+      );
+      queryClient.invalidateQueries({ queryKey: ['frames'] });
+    } else {
+      toast.error(t('frames.checkout_canceled', 'Checkout was canceled.'));
+    }
+
+    const next = new URLSearchParams(searchParams);
+    next.delete('success');
+    next.delete('canceled');
+    next.delete('session_id');
+    setSearchParams(next, { replace: true });
+  }, [queryClient, searchParams, setSearchParams, t]);
 
   // Use IntersectionObserver to track the active frame
   useEffect(() => {

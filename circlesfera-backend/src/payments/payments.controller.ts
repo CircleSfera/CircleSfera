@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -6,6 +7,7 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  InternalServerErrorException,
   Post,
   Req,
   UseGuards,
@@ -83,21 +85,29 @@ export class PaymentsController {
     const sig = req.headers['stripe-signature'] as string | undefined;
 
     if (!sig) {
-      return { received: false, error: 'Missing stripe-signature header' };
+      throw new BadRequestException('Missing stripe-signature header');
+    }
+
+    const rawBody = (req as { rawBody?: Buffer }).rawBody;
+    if (!rawBody) {
+      throw new BadRequestException('rawBody not found');
     }
 
     try {
-      const rawBody = (req as any).rawBody;
-      if (!rawBody) {
-        return { received: false, error: 'rawBody not found' };
-      }
       const event = this.paymentsService.constructEvent(rawBody, sig);
       await this.paymentsService.processWebhookEvent(event);
       return { received: true };
     } catch (err: unknown) {
+      if (
+        err instanceof BadRequestException ||
+        err instanceof InternalServerErrorException
+      ) {
+        throw err;
+      }
       const message = err instanceof Error ? err.message : 'Unknown error';
       console.error(`Webhook Error: ${message}`);
-      return { received: false, error: message };
+      // 5xx so Stripe retries; processWebhookEvent marks FAILED for reprocess
+      throw new InternalServerErrorException(message);
     }
   }
 }

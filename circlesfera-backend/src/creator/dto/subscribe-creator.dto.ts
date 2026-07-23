@@ -1,6 +1,7 @@
 import {
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsUrl,
   IsUUID,
@@ -12,12 +13,20 @@ export class SubscribeCreatorDto {
   @IsNotEmpty()
   creatorId!: string;
 
+  /** @deprecated Ignored — server uses profile.subscriptionPriceCents */
+  @IsOptional()
   @IsInt()
   @Min(100)
-  priceCents!: number;
+  priceCents?: number;
 
   @IsString()
   @IsNotEmpty()
   @IsUrl({ require_tld: false })
   returnUrl!: string;
+}
+
+export class SetCreatorSubscriptionPriceDto {
+  @IsInt()
+  @Min(100)
+  priceCents!: number;
 }

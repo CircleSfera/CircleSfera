@@ -2,6 +2,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { AIModule } from '../ai/ai.module.js';
 import { AudioModule } from '../audio/audio.module.js';
+import { CreatorModule } from '../creator/creator.module.js';
 import { EmailModule } from '../email/email.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
@@ -16,6 +17,7 @@ import { AdminOpsService } from './admin-ops.service.js';
     AIModule,
     EmailModule,
     NotificationsModule,
+    CreatorModule,
     BullModule.registerQueue(
       { name: 'ai-processing' },
       { name: 'analytics-processing' },

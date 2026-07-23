@@ -1,7 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import CommentList from '../components/CommentList';
 import SEO from '../components/common/SEO';
 import PostCard from '../components/PostCard';
@@ -10,6 +12,9 @@ import { commentsApi, postsApi } from '../services';
 export default function PostDetail() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const handledCheckoutReturn = useRef(false);
 
   const { data: post, isLoading } = useQuery({
     queryKey: ['post', id],
@@ -22,6 +27,35 @@ export default function PostDetail() {
     queryFn: () => commentsApi.getByPost(id!),
     enabled: !!id,
   });
+
+  useEffect(() => {
+    if (handledCheckoutReturn.current) return;
+    const success = searchParams.get('success') === 'true';
+    const canceled = searchParams.get('canceled') === 'true';
+    if (!success && !canceled) return;
+
+    handledCheckoutReturn.current = true;
+
+    if (success) {
+      toast.success(
+        t(
+          'post.checkout_success',
+          'Payment successful. Content will unlock shortly.',
+        ),
+      );
+      queryClient.invalidateQueries({ queryKey: ['post', id] });
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    } else {
+      toast.error(t('post.checkout_canceled', 'Checkout was canceled.'));
+    }
+
+    const next = new URLSearchParams(searchParams);
+    next.delete('success');
+    next.delete('canceled');
+    next.delete('session_id');
+    setSearchParams(next, { replace: true });
+  }, [id, queryClient, searchParams, setSearchParams, t]);
 
   if (isLoading || !post) {
     return (

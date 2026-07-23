@@ -13,27 +13,41 @@ export class CreatorSubscriptionsService {
     private stripeService: StripeService,
   ) {}
 
+  /**
+   * Creates a Stripe Checkout subscription using the creator's canonical
+   * `profile.subscriptionPriceCents`. Client-supplied prices are ignored.
+   */
   async createSubscriptionSession(
     subscriberId: string,
     creatorId: string,
-    priceCents: number,
     returnUrl: string,
   ) {
     if (subscriberId === creatorId) {
       throw new BadRequestException('Cannot subscribe to yourself');
     }
 
-    if (priceCents < 100) {
-      throw new BadRequestException('Minimum subscription is $1.00 USD/month');
+    const creatorProfile = await this.prisma.profile.findUnique({
+      where: { userId: creatorId },
+      select: { subscriptionPriceCents: true, username: true },
+    });
+    const priceCents = creatorProfile?.subscriptionPriceCents;
+    if (priceCents == null || priceCents < 100) {
+      throw new BadRequestException(
+        'Creator has not set a valid VIP subscription price',
+      );
     }
 
-    if (process.env.NODE_ENV !== 'production') {
+    // Dev-only free path requires explicit opt-in (never accidental in staging)
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      process.env.ALLOW_DEV_CREATOR_SUBS === 'true'
+    ) {
       const expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + 1);
 
       await this.prisma.creatorSubscription.upsert({
         where: { subscriberId_creatorId: { subscriberId, creatorId } },
-        update: { status: 'ACTIVE', expiresAt },
+        update: { status: 'ACTIVE', expiresAt, priceCents },
         create: {
           subscriberId,
           creatorId,
@@ -69,7 +83,6 @@ export class CreatorSubscriptionsService {
       throw new BadRequestException('Already actively subscribed');
     }
 
-    // Usamos Stripe Checkout en modo "subscription"
     const session = await this.stripeService.createCheckoutSession({
       payment_method_types: ['card'],
       mode: 'subscription',
@@ -81,7 +94,7 @@ export class CreatorSubscriptionsService {
             currency: 'usd',
             recurring: { interval: 'month' },
             product_data: {
-              name: `VIP Subscription to ${creator.email}`,
+              name: `VIP Subscription to @${creatorProfile.username}`,
               description: 'Monthly premium content access',
             },
             unit_amount: priceCents,
@@ -100,11 +113,22 @@ export class CreatorSubscriptionsService {
         creatorId: creatorId,
         priceCents: priceCents.toString(),
       },
-      success_url: `${returnUrl}?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${returnUrl}?canceled=true`,
+      success_url: `${returnUrl}${returnUrl.includes('?') ? '&' : '?'}success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${returnUrl}${returnUrl.includes('?') ? '&' : '?'}canceled=true`,
     });
 
     return { url: session.url };
+  }
+
+  async setSubscriptionPrice(creatorId: string, priceCents: number) {
+    if (priceCents < 100) {
+      throw new BadRequestException('Minimum subscription is $1.00 USD/month');
+    }
+    return this.prisma.profile.update({
+      where: { userId: creatorId },
+      data: { subscriptionPriceCents: priceCents },
+      select: { subscriptionPriceCents: true, username: true },
+    });
   }
 
   async checkSubscription(subscriberId: string, creatorId: string) {

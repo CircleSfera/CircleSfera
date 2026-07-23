@@ -9,8 +9,11 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
+import { useAuthStore } from '../../stores/authStore';
 import type { PaginatedResponse } from '../../types';
 import PostInsightsModal from '../modals/PostInsightsModal';
 import { Button } from '../ui';
@@ -20,6 +23,11 @@ interface Props {
 }
 
 export default function CreatorPostsTab({ onPromote }: Props) {
+  const { t } = useTranslation();
+  const { profile } = useAuthStore();
+  const verificationLevel =
+    profile?.user?.verificationLevel || profile?.verificationLevel;
+  const canPromote = verificationLevel === 'ELITE';
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [insightsPostId, setInsightsPostId] = useState<string | null>(null);
@@ -163,7 +171,19 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                   </Button>
                   <Button
                     variant="secondary"
-                    onClick={() => onPromote(post)}
+                    onClick={() => {
+                      if (!canPromote) {
+                        toast(
+                          t(
+                            'creator.promotions.elite_required',
+                            'Promotions are available on the Elite plan.',
+                          ),
+                          { icon: '✨' },
+                        );
+                        return;
+                      }
+                      onPromote(post);
+                    }}
                     className="flex-1 bg-white/5 text-white border-white/10 hover:bg-white/10 group/btn"
                   >
                     <Megaphone

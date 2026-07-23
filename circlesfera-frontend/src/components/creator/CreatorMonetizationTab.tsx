@@ -24,6 +24,25 @@ interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
 }
 
+interface MonetizationSummary {
+  hasStripeAccount?: boolean;
+  lifetimeEarningsCents?: number;
+}
+
+interface MonetizationConnectStatus {
+  connected?: boolean;
+  transfersEnabled?: boolean;
+  detailsSubmitted?: boolean;
+}
+
+interface BillingStatus {
+  hasActiveSubscription?: boolean;
+  subscription?: {
+    planName?: string;
+    status?: string;
+  };
+}
+
 export default function CreatorMonetizationTab({ onToast }: Props) {
   const { t } = useTranslation();
   const { profile } = useAuthStore();
@@ -38,19 +57,34 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
     queryFn: paymentsApi.getPlans,
   });
 
-  const { data: monetizationStatus, isLoading: isLoadingMonetization } =
-    useQuery({
-      queryKey: ['monetization-status'],
-      queryFn: monetizationApi.getStatus,
+  const { data: monetization, isLoading: isLoadingMonetization } =
+    useQuery<MonetizationSummary>({
+      queryKey: ['monetization'],
+      queryFn: monetizationApi.getMonetization,
     });
+
+  const hasStripeAccount = !!monetization?.hasStripeAccount;
+
+  const { data: connectStatus } = useQuery<MonetizationConnectStatus>({
+    queryKey: ['monetization-status'],
+    queryFn: monetizationApi.getStatus,
+    enabled: hasStripeAccount,
+  });
+
+  const { data: billingStatus } = useQuery<BillingStatus>({
+    queryKey: ['billingStatus'],
+    queryFn: paymentsApi.getBillingStatus,
+    retry: false,
+  });
 
   const connectMutation = useMutation({
     mutationFn: () => {
-      const returnUrl = window.location.href;
-      return monetizationApi.connectAccount(returnUrl, returnUrl);
+      const returnUrl = `${window.location.origin}/creator/monetization?connect_success=true`;
+      const refreshUrl = `${window.location.origin}/creator/monetization`;
+      return monetizationApi.connectAccount(returnUrl, refreshUrl);
     },
-    onSuccess: (data: any) => {
-      window.location.href = data.url;
+    onSuccess: (data: { url?: string }) => {
+      if (data.url) window.location.href = data.url;
     },
     onError: (err: Error) => {
       onToast(err.message || 'Error connecting to Stripe', 'error');
@@ -99,12 +133,20 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
   };
 
   const isTierActive = (planName: string) => {
+    const billingPlan = billingStatus?.subscription?.planName?.toLowerCase();
+    if (billingPlan && billingStatus?.hasActiveSubscription) {
+      return billingPlan.includes(planName.toLowerCase());
+    }
     const lower = planName.toLowerCase();
     if (lower.includes('premium')) return currentLevel === 'VERIFIED';
     if (lower.includes('elite')) return currentLevel === 'ELITE';
     if (lower.includes('business')) return currentLevel === 'BUSINESS';
     return false;
   };
+
+  const currentPlanLabel =
+    billingStatus?.subscription?.planName ||
+    (currentLevel === 'BASIC' ? 'Free Experience' : currentLevel);
 
   if (isLoadingPlans || isLoadingMonetization) {
     return (
@@ -120,7 +162,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
   return (
     <div className="space-y-12 pb-20">
       {/* 1. Direct Earnings (Stripe Connect) OR Creator Sandbox */}
-      {monetizationStatus?.hasStripeAccount ? (
+      {hasStripeAccount ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -143,10 +185,23 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                 </p>
                 <h2 className="text-2xl font-bold text-white tracking-tight uppercase">
                   $
-                  {(
-                    (monetizationStatus?.lifetimeEarningsCents || 0) / 100
-                  ).toFixed(2)}
+                  {((monetization?.lifetimeEarningsCents || 0) / 100).toFixed(
+                    2,
+                  )}
                 </h2>
+                {connectStatus && (
+                  <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-wide mt-2">
+                    {connectStatus.transfersEnabled
+                      ? t(
+                          'creator.monetization.transfers_enabled',
+                          'Transfers enabled',
+                        )
+                      : t(
+                          'creator.monetization.transfers_pending',
+                          'Transfers pending setup',
+                        )}
+                  </p>
+                )}
               </div>
 
               <Button
@@ -195,7 +250,7 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
                 {t('creator.monetization.current_plan')}
               </p>
               <h2 className="text-xl font-bold text-white tracking-tight uppercase">
-                {currentLevel === 'BASIC' ? 'Free Experience' : currentLevel}
+                {currentPlanLabel}
               </h2>
             </div>
             <Button
@@ -203,7 +258,10 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
               disabled={portalMutation.isPending}
               isLoading={portalMutation.isPending}
               onClick={() => {
-                if (currentLevel === 'BASIC') {
+                if (
+                  !billingStatus?.hasActiveSubscription &&
+                  currentLevel === 'BASIC'
+                ) {
                   onToast(
                     t('creator.monetization.select_plan_start'),
                     'success',

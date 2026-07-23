@@ -244,41 +244,47 @@ export default function ProfileHeader({
                 <>
                   <FollowButton username={profile.data.username} />
 
-                  {profile.data.accountType === 'CREATOR' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (isSubscribedToCreator) {
-                          if (
-                            window.confirm(
-                              t(
-                                'profile.actions.cancel_subscription_confirm',
-                                'Cancel your subscription to this creator?',
-                              ),
-                            )
-                          ) {
-                            cancelSubscribeMutation?.mutate(undefined);
+                  {profile.data.accountType === 'CREATOR' &&
+                    (isSubscribedToCreator ||
+                      !!profile.data.subscriptionPriceCents) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isSubscribedToCreator) {
+                            if (
+                              window.confirm(
+                                t(
+                                  'profile.actions.cancel_subscription_confirm',
+                                  'Cancel your subscription to this creator?',
+                                ),
+                              )
+                            ) {
+                              cancelSubscribeMutation?.mutate(undefined);
+                            }
+                            return;
                           }
-                          return;
+                          subscribeMutation.mutate(undefined);
+                        }}
+                        disabled={
+                          subscribeMutation.isPending ||
+                          cancelSubscribeMutation?.isPending
                         }
-                        subscribeMutation.mutate(undefined);
-                      }}
-                      disabled={
-                        subscribeMutation.isPending ||
-                        cancelSubscribeMutation?.isPending
-                      }
-                      className={`px-4 py-2 rounded-lg font-black text-xs uppercase tracking-wide transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1 disabled:opacity-50 ${
-                        isSubscribedToCreator
-                          ? 'bg-white/10 hover:bg-white/15 text-white border border-white/10'
-                          : 'bg-linear-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white'
-                      }`}
-                    >
-                      <Star size={14} fill="currentColor" aria-hidden="true" />
-                      {isSubscribedToCreator
-                        ? t('profile.actions.subscribed', 'Subscribed')
-                        : t('profile.actions.subscribe')}
-                    </button>
-                  )}
+                        className={`px-4 py-2 rounded-lg font-black text-xs uppercase tracking-wide transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1 disabled:opacity-50 ${
+                          isSubscribedToCreator
+                            ? 'bg-white/10 hover:bg-white/15 text-white border border-white/10'
+                            : 'bg-linear-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white'
+                        }`}
+                      >
+                        <Star
+                          size={14}
+                          fill="currentColor"
+                          aria-hidden="true"
+                        />
+                        {isSubscribedToCreator
+                          ? t('profile.actions.subscribed', 'Subscribed')
+                          : t('profile.actions.subscribe')}
+                      </button>
+                    )}
 
                   <button
                     type="button"

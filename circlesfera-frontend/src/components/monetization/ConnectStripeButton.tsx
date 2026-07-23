@@ -10,8 +10,8 @@ export default function ConnectStripeButton() {
 
   const connectMutation = useMutation({
     mutationFn: async () => {
-      const returnUrl = `${window.location.origin}/creator?activeTab=monetization&connect_success=true`;
-      const refreshUrl = `${window.location.origin}/creator?activeTab=monetization&connect_refresh=true`;
+      const returnUrl = `${window.location.origin}/creator/monetization?connect_success=true`;
+      const refreshUrl = `${window.location.origin}/creator/monetization`;
       const response = await api.post('/monetization/connect', {
         returnUrl,
         refreshUrl,
