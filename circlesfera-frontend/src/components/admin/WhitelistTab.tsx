@@ -7,6 +7,7 @@ import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { Button, Input, Select } from '../ui';
 import AdminDrawer from './AdminDrawer';
+import { AdminList, AdminListRow } from './AdminList';
 import {
   ActionButton,
   Pagination,
@@ -71,58 +72,94 @@ export default function WhitelistTab() {
       </div>
 
       <div className="glass-panel rounded-lg overflow-clip border border-white/10">
-        <Table
-          headers={['Nombre', 'Email', 'Estado', 'Fecha', 'Acciones']}
+        <AdminList
           loading={isLoading}
           isEmpty={!data || data.data.length === 0}
-        >
-          {data?.data.map((entry) => (
-            <tr
-              key={entry.id}
-              className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
+          emptyTitle="No hay registros en whitelist"
+          emptyDescription="No se encontraron interesados con los filtros seleccionados."
+          mobile={
+            <div className="space-y-2">
+              {data?.data.map((entry) => (
+                <AdminListRow
+                  key={entry.id}
+                  title={entry.name || 'Sin nombre'}
+                  subtitle={entry.email}
+                  badge={<StatusBadge status={entry.status} />}
+                  meta={new Date(entry.createdAt).toLocaleDateString()}
+                  primaryAction={
+                    <ActionButton
+                      variant="ghost"
+                      label="Editar"
+                      icon={Edit2}
+                      onClick={() => setEditingEntry(entry)}
+                    />
+                  }
+                  secondaryActions={[
+                    {
+                      label: 'Eliminar',
+                      variant: 'danger',
+                      onClick: () => handleDelete(entry.id),
+                    },
+                  ]}
+                />
+              ))}
+            </div>
+          }
+          desktop={
+            <Table
+              headers={['Nombre', 'Email', 'Estado', 'Fecha', 'Acciones']}
+              loading={false}
+              isEmpty={false}
             >
-              <td className="px-4 py-4">
-                <div className="flex items-center gap-2 text-white font-bold text-xs">
-                  <User size={14} className="text-gray-500" />
-                  {entry.name || 'Sin nombre'}
-                </div>
-              </td>
-              <td className="px-2 py-1 text-gray-300 text-xs">
-                <div className="flex items-center gap-2">
-                  <Mail size={13} className="text-gray-500" />
-                  {entry.email}
-                </div>
-              </td>
-              <td className="px-4 py-4">
-                <StatusBadge status={entry.status} />
-              </td>
-              <td className="px-2 py-1 text-gray-500 text-xs whitespace-nowrap">
-                <div className="flex items-center gap-2">
-                  <Calendar size={13} className="text-gray-500" />
-                  {new Date(entry.createdAt).toLocaleDateString()}
-                </div>
-              </td>
-              <td className="px-2 py-1 whitespace-nowrap">
-                <div className="flex items-center gap-2">
-                  <ActionButton
-                    variant="ghost"
-                    label="Editar"
-                    icon={Edit2}
-                    iconOnly
-                    onClick={() => setEditingEntry(entry)}
-                  />
-                  <ActionButton
-                    variant="danger"
-                    label="Eliminar"
-                    icon={Trash2}
-                    iconOnly
-                    onClick={() => handleDelete(entry.id)}
-                  />
-                </div>
-              </td>
-            </tr>
-          ))}
-        </Table>
+              {data?.data.map((entry) => (
+                <tr
+                  key={entry.id}
+                  className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
+                >
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-2 text-white font-bold text-xs">
+                      <User size={14} className="text-gray-500" />
+                      {entry.name || 'Sin nombre'}
+                    </div>
+                  </td>
+                  <td className="px-2 py-1 text-gray-300 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Mail size={13} className="text-gray-500" />
+                      {entry.email}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <StatusBadge status={entry.status} />
+                  </td>
+                  <td className="px-2 py-1 text-gray-500 text-xs whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <Calendar size={13} className="text-gray-500" />
+                      {new Date(entry.createdAt).toLocaleDateString()}
+                    </div>
+                  </td>
+                  <td className="px-2 py-1 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <ActionButton
+                        variant="ghost"
+                        label="Editar"
+                        icon={Edit2}
+                        iconOnly
+                        onClick={() => setEditingEntry(entry)}
+                      />
+                      <ActionButton
+                        variant="danger"
+                        label="Eliminar"
+                        icon={Trash2}
+                        iconOnly
+                        onClick={() => handleDelete(entry.id)}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </Table>
+          }
+        />
         <Pagination meta={data?.meta} onPageChange={setPage} />
       </div>
 
@@ -150,7 +187,7 @@ export default function WhitelistTab() {
             <div className="space-y-1.5">
               <label
                 htmlFor="whitelist-name"
-                className="text-xs font-black uppercase tracking-wide text-gray-500 ml-1"
+                className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
               >
                 Nombre
               </label>
@@ -166,7 +203,7 @@ export default function WhitelistTab() {
             <div className="space-y-1.5">
               <label
                 htmlFor="whitelist-email"
-                className="text-xs font-black uppercase tracking-wide text-gray-500 ml-1"
+                className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
               >
                 Email
               </label>
@@ -183,7 +220,7 @@ export default function WhitelistTab() {
             <div className="space-y-1.5">
               <label
                 htmlFor="whitelist-status"
-                className="text-xs font-black uppercase tracking-wide text-gray-500 ml-1"
+                className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
               >
                 Estado
               </label>

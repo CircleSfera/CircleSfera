@@ -27,6 +27,7 @@ import type {
 } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import SafeResponsiveContainer from '../common/SafeResponsiveContainer';
+import { AdminListRow } from './AdminList';
 import StatCard from './StatCard';
 
 export default function StatsTab() {
@@ -48,7 +49,7 @@ export default function StatsTab() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'].map((id) => (
           <div
             key={id}
@@ -62,7 +63,7 @@ export default function StatsTab() {
   return (
     <div className="space-y-4">
       {/* Primary Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
           label="Usuarios Totales"
           value={stats?.users || 0}
@@ -96,7 +97,7 @@ export default function StatsTab() {
       </div>
 
       {/* Secondary Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
           label="Usuarios Activos Hoy"
           value={stats?.activeUsersToday || 0}
@@ -140,7 +141,7 @@ export default function StatsTab() {
         <div className="lg:col-span-2 glass-panel rounded-lg border border-white/5 p-6">
           <div className="flex items-center gap-2 mb-6">
             <BarChart3 size={18} className="text-brand-primary" />
-            <h3 className="text-white font-bold text-sm">
+            <h3 className="text-white font-semibold text-sm">
               Actividad (últimos 14 días)
             </h3>
           </div>
@@ -208,57 +209,98 @@ export default function StatsTab() {
         </div>
 
         {/* Top Users */}
-        <div className="glass-panel rounded-lg border border-white/5 p-6">
-          <div className="flex items-center gap-2 mb-6">
+        <div className="glass-panel rounded-lg border border-white/5 p-4 sm:p-6">
+          <div className="flex items-center gap-2 mb-4 sm:mb-6">
             <UserCheck size={18} className="text-brand-primary" />
-            <h3 className="text-white font-bold text-sm">Top Engagement</h3>
+            <h3 className="text-white font-semibold text-sm">Top Engagement</h3>
           </div>
-          <div className="space-y-4">
-            {topUsers && topUsers.length > 0 ? (
-              topUsers.map((user, i) => (
-                <div key={user.id} className="flex items-center gap-3">
-                  <span className="text-gray-600 font-black text-sm w-5">
-                    {i + 1}
-                  </span>
-                  <div className="w-8 h-8 rounded-full bg-white/10 overflow-hidden shrink-0">
-                    {user.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs font-bold">
-                        {user.username[0]?.toUpperCase()}
+          {topUsers && topUsers.length > 0 ? (
+            <>
+              <div className="lg:hidden space-y-2">
+                {topUsers.map((user, i) => (
+                  <AdminListRow
+                    key={user.id}
+                    title={`@${user.username}`}
+                    subtitle={`#${i + 1} · engagement ${user.engagement}`}
+                    meta={
+                      <>
+                        <span className="flex items-center gap-1">
+                          <Heart size={12} className="text-pink-400" />
+                          {user.totalLikes}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MessageCircle size={12} className="text-blue-400" />
+                          {user.totalComments}
+                        </span>
+                      </>
+                    }
+                    avatar={
+                      <div className="w-10 h-10 rounded-full bg-white/10 overflow-hidden">
+                        {user.avatar ? (
+                          <img
+                            src={user.avatar}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs font-semibold">
+                            {user.username[0]?.toUpperCase()}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-white text-sm font-bold truncate">
-                      @{user.username}
-                    </p>
-                    <div className="flex items-center gap-3 text-xs text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <Heart size={10} className="text-pink-400" />
-                        {user.totalLikes}
+                    }
+                    badge={
+                      <span className="text-brand-primary font-semibold text-sm">
+                        {user.engagement}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <MessageCircle size={10} className="text-blue-400" />
-                        {user.totalComments}
-                      </span>
+                    }
+                  />
+                ))}
+              </div>
+              <div className="hidden lg:block space-y-4">
+                {topUsers.map((user, i) => (
+                  <div key={user.id} className="flex items-center gap-3">
+                    <span className="text-gray-600 font-semibold text-sm w-5">
+                      {i + 1}
+                    </span>
+                    <div className="w-8 h-8 rounded-full bg-white/10 overflow-hidden shrink-0">
+                      {user.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs font-semibold">
+                          {user.username[0]?.toUpperCase()}
+                        </div>
+                      )}
                     </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-white text-sm font-semibold truncate">
+                        @{user.username}
+                      </p>
+                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Heart size={10} className="text-pink-400" />
+                          {user.totalLikes}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MessageCircle size={10} className="text-blue-400" />
+                          {user.totalComments}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-brand-primary font-semibold text-sm">
+                      {user.engagement}
+                    </span>
                   </div>
-                  <span className="text-brand-primary font-black text-sm">
-                    {user.engagement}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-600 text-sm text-center py-4">
-                Sin datos
-              </p>
-            )}
-          </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-gray-600 text-sm text-center py-4">Sin datos</p>
+          )}
         </div>
       </div>
 
@@ -267,7 +309,7 @@ export default function StatsTab() {
         <div className="glass-panel rounded-lg border border-white/5 overflow-hidden">
           <div className="px-6 py-4 border-b border-white/5 flex items-center gap-2">
             <BarChart3 size={18} className="text-brand-primary" />
-            <h3 className="text-white font-bold text-sm">
+            <h3 className="text-white font-semibold text-sm">
               Actividad Reciente del Admin
             </h3>
           </div>

@@ -6,6 +6,7 @@ import { adminApi } from '../../services/admin.service';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import AdminDrawer from './AdminDrawer';
+import { AdminList, AdminListRow } from './AdminList';
 import { ActionButton, Pagination, SearchInput, Table } from './AdminTable';
 
 interface AudioTabProps {
@@ -159,77 +160,134 @@ export default function AudioTab({ onToast }: AudioTabProps) {
         placeholder="Buscar por título o artista..."
       />
 
-      {/* Table */}
-      <Table
-        headers={['Pista', 'Artista', 'Duración', 'Fecha', 'Acciones']}
+      <AdminList
         loading={isLoading}
         isEmpty={tracks.length === 0}
-      >
-        {tracks.map((track) => (
-          <tr
-            key={track.id}
-            className="border-b border-white/5 hover:bg-white/2 transition-colors"
+        emptyTitle="No hay pistas"
+        emptyDescription="No se encontraron pistas con los filtros seleccionados."
+        mobile={
+          <div className="space-y-2">
+            {tracks.map((track) => (
+              <AdminListRow
+                key={track.id}
+                title={track.title}
+                subtitle={track.artist}
+                meta={
+                  <>
+                    <span className="inline-flex items-center gap-1">
+                      <Clock size={12} />
+                      {formatDuration(track.duration)}
+                    </span>
+                    <span>
+                      {new Date(track.createdAt).toLocaleDateString()}
+                    </span>
+                  </>
+                }
+                avatar={
+                  <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0 overflow-hidden">
+                    {track.thumbnailUrl ? (
+                      <img
+                        src={track.thumbnailUrl}
+                        alt={track.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Music size={16} className="text-zinc-400" />
+                    )}
+                  </div>
+                }
+                primaryAction={
+                  <ActionButton
+                    icon={Pencil}
+                    label="Editar"
+                    variant="ghost"
+                    onClick={() => openEdit(track)}
+                  />
+                }
+                secondaryActions={[
+                  {
+                    label: 'Eliminar',
+                    variant: 'danger',
+                    onClick: () => setDeleteTarget(track),
+                  },
+                ]}
+              />
+            ))}
+          </div>
+        }
+        desktop={
+          <Table
+            headers={['Pista', 'Artista', 'Duración', 'Fecha', 'Acciones']}
+            loading={false}
+            isEmpty={false}
           >
-            <td className="px-2 py-1">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0 overflow-hidden">
-                  {track.thumbnailUrl ? (
-                    <img
-                      src={track.thumbnailUrl}
-                      alt={track.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Music size={16} className="text-zinc-400" />
-                  )}
-                </div>
-                <div
-                  className="font-medium text-sm break-all"
-                  title={track.title}
+            {tracks.map((track) => (
+              <tr
+                key={track.id}
+                className="border-b border-white/5 hover:bg-white/2 transition-colors"
+              >
+                <td className="px-2 py-1">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0 overflow-hidden">
+                      {track.thumbnailUrl ? (
+                        <img
+                          src={track.thumbnailUrl}
+                          alt={track.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Music size={16} className="text-zinc-400" />
+                      )}
+                    </div>
+                    <div
+                      className="font-medium text-sm break-all"
+                      title={track.title}
+                    >
+                      {track.title}
+                    </div>
+                  </div>
+                </td>
+                <td
+                  className="px-2 py-1 text-sm text-zinc-400"
+                  data-label="Artista"
                 >
-                  {track.title}
-                </div>
-              </div>
-            </td>
-            <td
-              className="px-2 py-1 text-sm text-zinc-400"
-              data-label="Artista"
-            >
-              <div className="break-all" title={track.artist}>
-                {track.artist}
-              </div>
-            </td>
-            <td className="px-2 py-1">
-              <div className="flex items-center gap-1 text-sm text-zinc-400">
-                <Clock size={12} />
-                {formatDuration(track.duration)}
-              </div>
-            </td>
-            <td
-              className="px-2 py-1 text-sm text-zinc-400"
-              data-label="Subido el"
-            >
-              {new Date(track.createdAt).toLocaleDateString()}
-            </td>
-            <td className="px-2 py-1">
-              <div className="flex items-center gap-1">
-                <ActionButton
-                  icon={Pencil}
-                  label="Editar"
-                  variant="ghost"
-                  onClick={() => openEdit(track)}
-                />
-                <ActionButton
-                  icon={Trash2}
-                  label="Eliminar"
-                  variant="danger"
-                  onClick={() => setDeleteTarget(track)}
-                />
-              </div>
-            </td>
-          </tr>
-        ))}
-      </Table>
+                  <div className="break-all" title={track.artist}>
+                    {track.artist}
+                  </div>
+                </td>
+                <td className="px-2 py-1">
+                  <div className="flex items-center gap-1 text-sm text-zinc-400">
+                    <Clock size={12} />
+                    {formatDuration(track.duration)}
+                  </div>
+                </td>
+                <td
+                  className="px-2 py-1 text-sm text-zinc-400"
+                  data-label="Subido el"
+                >
+                  {new Date(track.createdAt).toLocaleDateString()}
+                </td>
+                <td className="px-2 py-1">
+                  <div className="flex items-center gap-1">
+                    <ActionButton
+                      icon={Pencil}
+                      label="Editar"
+                      variant="ghost"
+                      onClick={() => openEdit(track)}
+                    />
+                    <ActionButton
+                      icon={Trash2}
+                      label="Eliminar"
+                      variant="danger"
+                      onClick={() => setDeleteTarget(track)}
+                    />
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </Table>
+        }
+      />
 
       {/* Pagination */}
       {meta && meta.totalPages > 1 && (
@@ -246,7 +304,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
           <div className="space-y-1.5">
             <label
               htmlFor="audio-title"
-              className="text-xs font-black uppercase tracking-wide text-gray-500 ml-1"
+              className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
             >
               Título *
             </label>
@@ -264,7 +322,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
           <div className="space-y-1.5">
             <label
               htmlFor="audio-artist"
-              className="text-xs font-black uppercase tracking-wide text-gray-500 ml-1"
+              className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
             >
               Artista *
             </label>
@@ -282,7 +340,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
           <div className="space-y-1.5">
             <label
               htmlFor="audio-url"
-              className="text-xs font-black uppercase tracking-wide text-gray-500 ml-1"
+              className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
             >
               URL del audio *
             </label>
@@ -300,7 +358,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
           <div className="space-y-1.5">
             <label
               htmlFor="audio-thumbnail"
-              className="text-xs font-black uppercase tracking-wide text-gray-500 ml-1"
+              className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
             >
               Thumbnail URL
             </label>
@@ -319,7 +377,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
           <div className="space-y-1.5">
             <label
               htmlFor="audio-duration"
-              className="text-xs font-black uppercase tracking-wide text-gray-500 ml-1"
+              className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
             >
               Duración (seg) *
             </label>

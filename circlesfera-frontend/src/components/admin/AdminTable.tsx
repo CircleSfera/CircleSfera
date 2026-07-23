@@ -29,14 +29,14 @@ export function Table({
   return (
     <div className="relative w-full overflow-hidden rounded-2xl border border-white/10 bg-black/40 backdrop-blur-2xl shadow-2xl">
       <div className="w-full overflow-x-auto custom-scrollbar">
-        <table className="w-full text-left border-collapse min-w-187.5">
+        <table className="w-full text-left border-collapse min-w-0 lg:min-w-150">
           <thead className="bg-white/5 border-b border-white/10">
             <tr>
               {headers.map((h, idx) => (
                 <th
                   key={typeof h === 'string' ? h : idx}
                   className={clsx(
-                    'px-4 py-3 text-[11px] font-black uppercase tracking-wider text-gray-400 whitespace-nowrap',
+                    'px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400 whitespace-nowrap',
                     columnWidths?.[idx],
                   )}
                 >
@@ -94,24 +94,49 @@ export function Table({
 
 // ─── Status Badge ───────────────────────────────────────────────────
 
-export function StatusBadge({ status }: { status: string }) {
-  const config: Record<string, { color: string; icon: React.ElementType }> = {
-    pending: { color: 'yellow', icon: Clock },
-    valid: { color: 'blue', icon: CheckCircle },
-    resolved: { color: 'green', icon: CheckCircle },
-    dismissed: { color: 'gray', icon: CheckCircle },
-    active: { color: 'green', icon: CheckCircle },
-    banned: { color: 'red', icon: Clock },
-    registered: { color: 'green', icon: CheckCircle },
-  };
+const STATUS_STYLES: Record<
+  string,
+  { className: string; icon: React.ElementType }
+> = {
+  pending: {
+    className: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
+    icon: Clock,
+  },
+  valid: {
+    className: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+    icon: CheckCircle,
+  },
+  resolved: {
+    className: 'text-green-400 bg-green-400/10 border-green-400/20',
+    icon: CheckCircle,
+  },
+  dismissed: {
+    className: 'text-gray-400 bg-gray-400/10 border-gray-400/20',
+    icon: CheckCircle,
+  },
+  active: {
+    className: 'text-green-400 bg-green-400/10 border-green-400/20',
+    icon: CheckCircle,
+  },
+  banned: {
+    className: 'text-red-400 bg-red-400/10 border-red-400/20',
+    icon: Clock,
+  },
+  registered: {
+    className: 'text-green-400 bg-green-400/10 border-green-400/20',
+    icon: CheckCircle,
+  },
+};
 
-  const { color, icon: Icon } = config[status.toLowerCase()] || config.pending;
+export function StatusBadge({ status }: { status: string }) {
+  const entry = STATUS_STYLES[status.toLowerCase()] || STATUS_STYLES.pending;
+  const Icon = entry.icon;
 
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider',
-        `text-${color}-400 bg-${color}-400/10 border border-${color}-400/20`,
+        'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border',
+        entry.className,
       )}
     >
       <Icon size={12} />
@@ -188,8 +213,8 @@ export function Pagination({ meta, onPageChange }: PaginationProps) {
   if (!meta || meta.totalPages <= 1) return null;
 
   return (
-    <div className="px-6 py-4 flex items-center justify-between border-t border-white/5 bg-white/2">
-      <p className="text-xs text-gray-500">
+    <div className="px-3 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 bg-white/2">
+      <p className="text-xs text-gray-500 hidden sm:block">
         Mostrando{' '}
         <span className="text-white font-bold">
           {meta.total > 0 ? (meta.page - 1) * meta.limit + 1 : 0}
@@ -200,14 +225,17 @@ export function Pagination({ meta, onPageChange }: PaginationProps) {
         </span>{' '}
         de <span className="text-white font-bold">{meta.total}</span>
       </p>
-      <div className="flex gap-2">
+      <p className="text-xs text-gray-400 sm:hidden font-semibold">
+        Pág. {meta.page}/{meta.totalPages}
+      </p>
+      <div className="flex gap-2 ml-auto">
         <Button
           onClick={() => onPageChange(meta.page - 1)}
           disabled={meta.page <= 1}
           variant="secondary"
           size="icon"
           aria-label="Página anterior"
-          className="w-8 h-8"
+          className="w-11 h-11 sm:w-8 sm:h-8"
         >
           <ChevronLeft size={18} />
         </Button>
@@ -217,7 +245,7 @@ export function Pagination({ meta, onPageChange }: PaginationProps) {
           variant="secondary"
           size="icon"
           aria-label="Página siguiente"
-          className="w-8 h-8"
+          className="w-11 h-11 sm:w-8 sm:h-8"
         >
           <ChevronRight size={18} />
         </Button>

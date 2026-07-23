@@ -2,8 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertOctagon,
-  AlertTriangle,
-  ArrowLeft,
   Bot,
   Check,
   Gavel,
@@ -18,6 +16,8 @@ import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { LoadingSpinner } from '../index';
 import { Button } from '../ui';
+import { AdminListRow } from './AdminList';
+import { AdminSplitView } from './AdminSplitView';
 import { FilterDropdown, Pagination, SearchInput } from './AdminTable';
 
 function timeAgo(date: string | Date): string {
@@ -98,7 +98,7 @@ export default function ReportsTab({ onToast }: Props) {
   // Keyboard shortcuts could be added here in a useEffect listening to 'A', 'D', 'X'
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] gap-4">
+    <div className="flex flex-col min-h-0 gap-4">
       <div className="flex flex-col sm:flex-row gap-3 shrink-0">
         <SearchInput
           value={search}
@@ -125,87 +125,65 @@ export default function ReportsTab({ onToast }: Props) {
         />
       </div>
 
-      <div className="flex flex-1 min-h-0 gap-4">
-        {/* Left Pane: Queue */}
-        <div
-          className={`w-full lg:w-1/3 flex-col glass-panel rounded-lg border border-white/5 overflow-hidden shadow-lg ${selectedReportId ? 'hidden lg:flex' : 'flex'}`}
-        >
-          <div className="p-4 border-b border-white/5 shrink-0 bg-white/2">
-            <h3 className="font-bold text-white flex items-center gap-2">
-              <AlertTriangle size={16} className="text-red-400" />
-              Cola de Moderación
-              <span className="bg-white/10 text-xs px-2 py-0.5 rounded-full text-gray-300 ml-auto">
-                {data?.meta.total || 0}
-              </span>
-            </h3>
-          </div>
+      <AdminSplitView
+        hasSelection={!!selectedReportId}
+        onBack={() => setSelectedReportId(null)}
+        listTitle="Cola de Moderación"
+        list={
+          <div className="flex flex-col h-full min-h-0">
+            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+              {isLoading ? (
+                <div className="flex justify-center p-8">
+                  <LoadingSpinner />
+                </div>
+              ) : !data || data.data.length === 0 ? (
+                <div className="text-center p-8 text-gray-500 text-sm">
+                  No hay reportes en la cola
+                </div>
+              ) : (
+                data.data.map((report) => (
+                  <AdminListRow
+                    key={report.id}
+                    onClick={() => setSelectedReportId(report.id)}
+                    className={
+                      selectedReportId === report.id
+                        ? 'border-brand-primary/30 bg-brand-primary/10'
+                        : undefined
+                    }
+                    title={`@${report.targetContent?.author || 'Desconocido'}`}
+                    subtitle={report.targetType}
+                    badge={
+                      <span className="text-xs font-semibold uppercase tracking-wide text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">
+                        {report.reason}
+                      </span>
+                    }
+                    meta={timeAgo(report.createdAt)}
+                    avatar={
+                      <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden shrink-0">
+                        {report.targetContent?.thumbnail ? (
+                          <img
+                            src={report.targetContent.thumbnail}
+                            className="w-full h-full object-cover"
+                            alt=""
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                            <Ghost size={16} />
+                          </div>
+                        )}
+                      </div>
+                    }
+                  />
+                ))
+              )}
+            </div>
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
-            {isLoading ? (
-              <div className="flex justify-center p-8">
-                <LoadingSpinner />
-              </div>
-            ) : !data || data.data.length === 0 ? (
-              <div className="text-center p-8 text-gray-500 text-sm">
-                No hay reportes en la cola
-              </div>
-            ) : (
-              data.data.map((report) => (
-                <button
-                  type="button"
-                  key={report.id}
-                  onClick={() => setSelectedReportId(report.id)}
-                  className={`w-full text-left p-3 rounded-xl border transition-all ${
-                    selectedReportId === report.id
-                      ? 'bg-brand-primary/10 border-brand-primary/30'
-                      : 'bg-white/2 border-transparent hover:bg-white/5 hover:border-white/10'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-xs font-black uppercase tracking-wide text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">
-                      {report.reason}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {timeAgo(report.createdAt)}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden shrink-0">
-                      {report.targetContent?.thumbnail ? (
-                        <img
-                          src={report.targetContent.thumbnail}
-                          className="w-full h-full object-cover"
-                          alt=""
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-zinc-700">
-                          <Ghost size={16} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-white text-xs font-bold truncate">
-                        @{report.targetContent?.author || 'Desconocido'}
-                      </p>
-                      <p className="text-zinc-400 text-xs truncate">
-                        {report.targetType}
-                      </p>
-                    </div>
-                  </div>
-                </button>
-              ))
-            )}
+            <div className="p-2 border-t border-white/5 shrink-0">
+              <Pagination meta={data?.meta} onPageChange={setPage} />
+            </div>
           </div>
-
-          <div className="p-2 border-t border-white/5 shrink-0 bg-white/2">
-            <Pagination meta={data?.meta} onPageChange={setPage} />
-          </div>
-        </div>
-
-        {/* Right Pane: Details & Resolution */}
-        <div
-          className={`flex-1 glass-panel rounded-lg border border-white/5 overflow-hidden shadow-lg flex-col relative ${selectedReportId ? 'flex' : 'hidden lg:flex'}`}
-        >
+        }
+        detail={
           <AnimatePresence mode="wait">
             {selectedReport ? (
               <motion.div
@@ -218,43 +196,34 @@ export default function ReportsTab({ onToast }: Props) {
               >
                 {/* Header Action Bar */}
                 <div className="p-4 border-b border-white/5 bg-white/2 flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedReportId(null)}
-                      className="lg:hidden p-2 -ml-2 text-gray-300 hover:text-white"
-                    >
-                      <ArrowLeft size={20} />
-                    </button>
-                    <div>
-                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        Detalles del Reporte
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (selectedReport.targetType === 'POST')
-                              window.open(
-                                `/p/${selectedReport.targetId}`,
-                                '_blank',
-                              );
-                            if (
-                              selectedReport.targetType === 'USER' &&
-                              selectedReport.targetContent?.author
-                            )
-                              window.open(
-                                `/${selectedReport.targetContent.author}`,
-                                '_blank',
-                              );
-                          }}
-                          className="text-xs font-bold bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 px-2 py-1 rounded transition-colors"
-                        >
-                          Ver Original
-                        </button>
-                      </h3>
-                      <p className="text-xs text-gray-300">
-                        ID: {selectedReport.id}
-                      </p>
-                    </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                      Detalles del Reporte
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (selectedReport.targetType === 'POST')
+                            window.open(
+                              `/p/${selectedReport.targetId}`,
+                              '_blank',
+                            );
+                          if (
+                            selectedReport.targetType === 'USER' &&
+                            selectedReport.targetContent?.author
+                          )
+                            window.open(
+                              `/${selectedReport.targetContent.author}`,
+                              '_blank',
+                            );
+                        }}
+                        className="text-xs font-bold bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 px-2 py-1 rounded transition-colors"
+                      >
+                        Ver Original
+                      </button>
+                    </h3>
+                    <p className="text-xs text-gray-300">
+                      ID: {selectedReport.id}
+                    </p>
                   </div>
                   {selectedReport.status === 'PENDING' && (
                     <div className="flex items-center gap-2">
@@ -395,14 +364,14 @@ export default function ReportsTab({ onToast }: Props) {
                   {/* Metadata */}
                   <div className="w-1/2 space-y-4">
                     <div className="p-4 bg-white/2 rounded-xl border border-white/5">
-                      <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-1">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
                         Motivo del Reporte
                       </p>
                       <p className="text-red-400 font-bold text-lg mb-4">
                         {selectedReport.reason}
                       </p>
 
-                      <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-1">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
                         Reportado por
                       </p>
                       {selectedReport.details?.includes(
@@ -422,7 +391,7 @@ export default function ReportsTab({ onToast }: Props) {
 
                     {selectedReport.details && (
                       <div className="p-4 bg-white/2 rounded-xl border border-white/5">
-                        <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-2">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                           Detalles Adicionales
                         </p>
                         <div className="text-sm text-gray-300 whitespace-pre-wrap">
@@ -435,11 +404,11 @@ export default function ReportsTab({ onToast }: Props) {
                     )}
 
                     <div className="p-4 bg-white/2 rounded-xl border border-white/5">
-                      <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-2">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                         Estado Actual
                       </p>
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
+                        className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${
                           selectedReport.status === 'PENDING'
                             ? 'bg-yellow-500/20 text-yellow-500'
                             : selectedReport.status === 'RESOLVED'
@@ -465,8 +434,8 @@ export default function ReportsTab({ onToast }: Props) {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-      </div>
+        }
+      />
     </div>
   );
 }

@@ -1,222 +1,156 @@
 import { clsx } from 'clsx';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  Activity,
-  ChevronDown,
-  Clock,
-  DollarSign,
-  Flag,
-  FlaskConical,
-  FolderTree,
-  Hash,
-  ImageIcon,
-  LayoutDashboard,
-  Mail,
-  Megaphone,
-  MessageCircle,
-  Music,
-  ScrollText,
-  Settings,
-  ShieldAlert,
-  ShieldCheck,
-  Users,
-  X,
-} from 'lucide-react';
-import { useState } from 'react';
-import type { AdminTab } from './AdminSidebar';
+import { ArrowLeft, ChevronRight, Menu, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
+import logoSrc from '../../assets/logo.png';
+import { ADMIN_NAV_GROUPS, type AdminTab, findAdminNavItem } from './adminNav';
 
-interface Group {
-  label: string;
-  icon: React.ElementType;
-  items: { id: AdminTab; label: string; icon: React.ElementType }[];
-}
-
-const GROUPS: Group[] = [
-  {
-    label: 'Dashboard',
-    icon: LayoutDashboard,
-    items: [
-      { id: 'analytics', label: 'Estadísticas', icon: LayoutDashboard },
-      { id: 'monetization', label: 'Monetización', icon: DollarSign },
-      { id: 'promotions', label: 'Promociones', icon: Megaphone },
-      { id: 'verification', label: 'Verificación', icon: ShieldCheck },
-      { id: 'whitelist', label: 'Whitelist', icon: ShieldAlert },
-      { id: 'newsletter', label: 'Newsletter', icon: Mail },
-    ],
-  },
-  {
-    label: 'Moderación',
-    icon: ShieldAlert,
-    items: [
-      { id: 'users', label: 'Usuarios', icon: Users },
-      { id: 'moderation', label: 'Cola AI', icon: ShieldAlert },
-      { id: 'firewall', label: 'Escudo AI', icon: ShieldCheck },
-      { id: 'posts', label: 'Publicaciones', icon: ImageIcon },
-      { id: 'stories', label: 'Historias', icon: Clock },
-      { id: 'comments', label: 'Comentarios', icon: MessageCircle },
-    ],
-  },
-  {
-    label: 'Contenido',
-    icon: FolderTree,
-    items: [
-      { id: 'hashtags', label: 'Hashtags', icon: Hash },
-      { id: 'audio', label: 'Música', icon: Music },
-    ],
-  },
-  {
-    label: 'Sistema',
-    icon: Settings,
-    items: [
-      { id: 'system-health', label: 'Estado', icon: Activity },
-      { id: 'experiments', label: 'Experimentos', icon: FlaskConical },
-      { id: 'reports', label: 'Reportes', icon: Flag },
-      { id: 'audit', label: 'Audit Log', icon: ScrollText },
-    ],
-  },
-];
-
-interface AdminMobileNavProps {
+interface Props {
   activeTab: AdminTab;
   onTabChange: (tab: AdminTab) => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export function AdminMobileNav({
+/** Left drawer navigation for mobile (< lg). */
+export function AdminMobileDrawer({
   activeTab,
   onTabChange,
-}: AdminMobileNavProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  // Find currently active item info
-  const activeItem = GROUPS.flatMap((g) => g.items).find(
-    (i) => i.id === activeTab,
-  );
-  const ActiveIcon = activeItem?.icon || LayoutDashboard;
+  isOpen,
+  onClose,
+}: Props) {
+  const { t } = useTranslation();
 
   const handleSelect = (tab: AdminTab) => {
     onTabChange(tab);
-    setIsOpen(false);
+    onClose();
   };
 
   return (
-    <div className="lg:hidden mb-4">
-      {/* Mobile Selector Bar */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-3.5 bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl shadow-lg hover:border-white/20 transition-all"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary">
-            <ActiveIcon size={18} />
-          </div>
-          <div className="text-left">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-              Sección Admin
-            </p>
-            <p className="text-sm font-black text-white">
-              {activeItem?.label || activeTab}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold px-2.5 py-1 bg-white/5 border border-white/10 rounded-full text-gray-300">
-            Cambiar
-          </span>
-          <ChevronDown
-            size={18}
-            className={clsx(
-              'text-gray-400 transition-transform duration-200',
-              isOpen && 'rotate-180',
-            )}
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md lg:hidden"
           />
-        </div>
-      </button>
+          <motion.aside
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+            className="fixed inset-y-0 left-0 z-50 w-[min(100vw-3rem,20rem)] bg-[rgb(18,18,20)] border-r border-white/10 shadow-2xl flex flex-col lg:hidden pt-[env(safe-area-inset-top)]"
+          >
+            <div className="px-4 py-4 border-b border-white/10 flex items-center justify-between shrink-0">
+              <Link to="/" className="block" onClick={onClose}>
+                <img src={logoSrc} alt="CircleSfera" className="h-7 w-auto" />
+              </Link>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-white rounded-xl hover:bg-white/5"
+                aria-label={t('common.close', 'Cerrar')}
+              >
+                <X size={20} />
+              </button>
+            </div>
 
-      {/* Modal Bottom Sheet / Overlay */}
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
-              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md"
-            />
-
-            {/* Bottom Sheet Drawer */}
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] bg-[rgb(18,18,20)] border-t border-white/10 rounded-t-3xl p-5 overflow-y-auto shadow-2xl flex flex-col"
+            <Link
+              to="/"
+              onClick={onClose}
+              className="mx-4 mt-3 mb-2 flex items-center gap-2 text-sm font-semibold text-gray-400 hover:text-white transition-colors"
             >
-              {/* Header */}
-              <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse" />
-                  <h2 className="text-base font-black text-white">
-                    Navegación del Panel
-                  </h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/5"
-                >
-                  <X size={20} />
-                </button>
-              </div>
+              <ArrowLeft size={14} className="text-brand-primary" />
+              {t('admin.back_to_app', 'Volver a CircleSfera')}
+            </Link>
 
-              {/* Groups Accordion / List */}
-              <div className="space-y-5 pb-6">
-                {GROUPS.map((group) => (
-                  <div key={group.label} className="space-y-2">
-                    <div className="flex items-center gap-2 px-1 text-xs font-black uppercase tracking-wider text-gray-400">
-                      <group.icon size={13} className="text-brand-primary" />
-                      <span>{group.label}</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      {group.items.map((item) => {
-                        const ItemIcon = item.icon;
-                        const isSelected = activeTab === item.id;
-                        return (
-                          <button
-                            type="button"
-                            key={item.id}
-                            onClick={() => handleSelect(item.id)}
-                            className={clsx(
-                              'flex items-center gap-2.5 p-3 rounded-xl text-xs font-bold transition-all border text-left',
-                              isSelected
-                                ? 'bg-brand-primary/20 text-white border-brand-primary/40 shadow-[0_0_15px_rgba(var(--brand-primary),0.2)]'
-                                : 'bg-white/5 text-gray-300 border-white/5 hover:bg-white/10 hover:text-white',
-                            )}
-                          >
+            <nav className="flex-1 overflow-y-auto custom-scrollbar px-3 py-2 space-y-5 pb-8">
+              {ADMIN_NAV_GROUPS.map((group) => (
+                <div key={group.labelKey} className="space-y-1.5">
+                  <h3 className="px-2 text-xs font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                    <group.icon size={12} className="text-brand-primary" />
+                    {t(group.labelKey, group.labelFallback)}
+                  </h3>
+                  <div className="space-y-1">
+                    {group.items.map((item) => {
+                      const isSelected = activeTab === item.id;
+                      const ItemIcon = item.icon;
+                      return (
+                        <button
+                          type="button"
+                          key={item.id}
+                          onClick={() => handleSelect(item.id)}
+                          className={clsx(
+                            'w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm font-semibold transition-all border text-left min-h-11',
+                            isSelected
+                              ? 'bg-brand-primary/20 text-white border-brand-primary/40'
+                              : 'bg-transparent text-gray-300 border-transparent hover:bg-white/5 hover:text-white',
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
                             <ItemIcon
-                              size={16}
-                              className={clsx(
+                              size={18}
+                              className={
                                 isSelected
                                   ? 'text-brand-primary'
-                                  : 'text-gray-400',
-                              )}
+                                  : 'text-gray-400'
+                              }
                             />
-                            <span className="truncate">{item.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                            <span>{t(item.labelKey, item.labelFallback)}</span>
+                          </div>
+                          {item.badge && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary border border-brand-primary/30">
+                              {item.badge}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
+                </div>
+              ))}
+            </nav>
+          </motion.aside>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+interface MobileHeaderTriggerProps {
+  activeTab: AdminTab;
+  onOpen: () => void;
+}
+
+export function AdminMobileNavTrigger({
+  activeTab,
+  onOpen,
+}: MobileHeaderTriggerProps) {
+  const { t } = useTranslation();
+  const activeItem = findAdminNavItem(activeTab);
+  const ActiveIcon = activeItem?.icon;
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="lg:hidden flex items-center gap-2.5 min-h-11 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-left hover:bg-white/10 transition-colors"
+      aria-label={t('admin.open_nav', 'Abrir navegación')}
+    >
+      <Menu size={18} className="text-gray-300 shrink-0" />
+      {ActiveIcon && (
+        <ActiveIcon size={16} className="text-brand-primary shrink-0" />
+      )}
+      <span className="text-sm font-semibold text-white truncate max-w-32">
+        {activeItem
+          ? t(activeItem.labelKey, activeItem.labelFallback)
+          : activeTab}
+      </span>
+      <ChevronRight size={14} className="text-gray-500 shrink-0 ml-auto" />
+    </button>
   );
 }

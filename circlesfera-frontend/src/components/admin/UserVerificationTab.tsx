@@ -1,12 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  ArrowLeft,
   Check,
   CheckCircle2,
   Clock,
   RefreshCw,
-  ShieldAlert,
   ShieldCheck,
   UserX,
 } from 'lucide-react';
@@ -18,6 +16,8 @@ import { Button, Select } from '../ui';
 import VerificationBadge, {
   type VerificationLevel,
 } from '../VerificationBadge';
+import { AdminListRow } from './AdminList';
+import { AdminSplitView } from './AdminSplitView';
 import { Pagination, SearchInput } from './AdminTable';
 
 function timeAgo(date: string | Date): string {
@@ -124,12 +124,18 @@ export default function UserVerificationTab({
     });
   };
 
+  const handleSelectUser = (user: (typeof users)[number]) => {
+    setSelectedUserId(user.id);
+    setDraftLevel((user.verificationLevel as VerificationLevel) || 'BASIC');
+    setDraftType(user.accountType || 'PERSONAL');
+  };
+
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)] space-y-4">
+    <div className="flex flex-col min-h-0 space-y-4">
       {/* Header & Controls */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
         <div>
-          <h2 className="text-2xl font-black text-white flex items-center gap-2">
+          <h2 className="text-2xl font-semibold text-white flex items-center gap-2">
             <ShieldCheck className="text-brand-primary" />
             KYC & Verificación
           </h2>
@@ -148,109 +154,89 @@ export default function UserVerificationTab({
         />
       </div>
 
-      {/* Split Pane Layout */}
-      <div className="flex flex-1 min-h-0 gap-4">
-        {/* Left Pane: Queue */}
-        <div
-          className={`w-full lg:w-1/3 flex-col glass-panel rounded-lg border border-white/5 overflow-hidden shadow-lg ${selectedUserId ? 'hidden lg:flex' : 'flex'}`}
-        >
-          <div className="p-4 border-b border-white/5 shrink-0 bg-white/2">
-            <h3 className="font-bold text-white flex items-center gap-2">
-              <ShieldAlert size={16} className="text-brand-primary" />
-              Cola de Usuarios
-            </h3>
-          </div>
+      <AdminSplitView
+        hasSelection={!!selectedUserId}
+        onBack={() => setSelectedUserId(null)}
+        listTitle="Cola de Usuarios"
+        list={
+          <div className="flex flex-col h-full min-h-0">
+            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+              {isLoading ? (
+                <div className="flex justify-center p-8">
+                  <LoadingSpinner />
+                </div>
+              ) : users.length === 0 ? (
+                <div className="text-center p-8 text-gray-500 text-sm">
+                  No se encontraron usuarios.
+                </div>
+              ) : (
+                users.map((user) => {
+                  const isVerified = !!user.identityVerifiedAt;
+                  const isPending =
+                    !isVerified && !!user.stripeIdentitySessionId;
 
-          <div className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
-            {isLoading ? (
-              <div className="flex justify-center p-8">
-                <LoadingSpinner />
-              </div>
-            ) : users.length === 0 ? (
-              <div className="text-center p-8 text-gray-500 text-sm">
-                No se encontraron usuarios.
-              </div>
-            ) : (
-              users.map((user) => {
-                const isVerified = !!user.identityVerifiedAt;
-                const isPending = !isVerified && !!user.stripeIdentitySessionId;
-
-                return (
-                  <button
-                    type="button"
-                    key={user.id}
-                    onClick={() => {
-                      setSelectedUserId(user.id);
-                      setDraftLevel(
-                        (user.verificationLevel as VerificationLevel) ||
-                          'BASIC',
-                      );
-                      setDraftType(user.accountType || 'PERSONAL');
-                    }}
-                    className={`w-full text-left p-3 rounded-xl border transition-all ${
-                      selectedUserId === user.id
-                        ? 'bg-brand-primary/10 border-brand-primary/30'
-                        : 'bg-white/2 border-transparent hover:bg-white/5 hover:border-white/10'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span
-                        className={`text-xs font-black uppercase tracking-wide px-1.5 py-0.5 rounded ${
-                          isVerified
-                            ? 'text-green-400 bg-green-400/10'
-                            : isPending
-                              ? 'text-yellow-400 bg-yellow-400/10'
-                              : 'text-zinc-400 bg-zinc-400/10'
-                        }`}
-                      >
-                        {isVerified
-                          ? 'KYC Completado'
-                          : isPending
-                            ? 'KYC en Proceso'
-                            : 'KYC No Iniciado'}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {timeAgo(user.createdAt)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <UserAvatar
-                        src={user.profile?.avatar || undefined}
-                        thumbnailUrl={user.profile?.thumbnailUrl || undefined}
-                        standardUrl={user.profile?.standardUrl || undefined}
-                        alt={user.profile?.username || 'User'}
-                        size="sm"
-                      />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1">
-                          <p className="text-white text-sm font-bold truncate">
-                            @{user.profile?.username || 'Desconocido'}
-                          </p>
+                  return (
+                    <AdminListRow
+                      key={user.id}
+                      onClick={() => handleSelectUser(user)}
+                      className={
+                        selectedUserId === user.id
+                          ? 'border-brand-primary/30 bg-brand-primary/10'
+                          : undefined
+                      }
+                      title={
+                        <span className="flex items-center gap-1">
+                          @{user.profile?.username || 'Desconocido'}
                           <VerificationBadge
                             level={user.verificationLevel as VerificationLevel}
                             size={14}
                           />
-                        </div>
-                        <p className="text-zinc-400 text-xs truncate uppercase tracking-wide font-black">
+                        </span>
+                      }
+                      subtitle={
+                        <span className="uppercase tracking-wide">
                           {user.accountType}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </div>
+                        </span>
+                      }
+                      badge={
+                        <span
+                          className={`text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                            isVerified
+                              ? 'text-green-400 bg-green-400/10'
+                              : isPending
+                                ? 'text-yellow-400 bg-yellow-400/10'
+                                : 'text-zinc-400 bg-zinc-400/10'
+                          }`}
+                        >
+                          {isVerified
+                            ? 'KYC Completado'
+                            : isPending
+                              ? 'KYC en Proceso'
+                              : 'KYC No Iniciado'}
+                        </span>
+                      }
+                      meta={timeAgo(user.createdAt)}
+                      avatar={
+                        <UserAvatar
+                          src={user.profile?.avatar || undefined}
+                          thumbnailUrl={user.profile?.thumbnailUrl || undefined}
+                          standardUrl={user.profile?.standardUrl || undefined}
+                          alt={user.profile?.username || 'User'}
+                          size="sm"
+                        />
+                      }
+                    />
+                  );
+                })
+              )}
+            </div>
 
-          <div className="p-2 border-t border-white/5 shrink-0 bg-white/2">
-            <Pagination meta={usersData?.data?.meta} onPageChange={setPage} />
+            <div className="p-2 border-t border-white/5 shrink-0">
+              <Pagination meta={usersData?.data?.meta} onPageChange={setPage} />
+            </div>
           </div>
-        </div>
-
-        {/* Right Pane: Details & Actions */}
-        <div
-          className={`flex-1 glass-panel rounded-lg border border-white/5 overflow-hidden shadow-lg flex-col relative ${selectedUserId ? 'flex' : 'hidden lg:flex'}`}
-        >
+        }
+        detail={
           <AnimatePresence mode="wait">
             {selectedUser ? (
               <motion.div
@@ -264,13 +250,6 @@ export default function UserVerificationTab({
                 {/* Header Action Bar */}
                 <div className="p-4 border-b border-white/5 bg-white/2 flex items-center justify-between shrink-0">
                   <div className="flex items-center gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedUserId(null)}
-                      className="lg:hidden p-2 -ml-2 text-gray-300 hover:text-white"
-                    >
-                      <ArrowLeft size={20} />
-                    </button>
                     <UserAvatar
                       src={selectedUser.profile?.avatar || undefined}
                       thumbnailUrl={
@@ -314,7 +293,7 @@ export default function UserVerificationTab({
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
                   {/* Stripe Identity KYC Status Card */}
                   <div>
-                    <h4 className="text-white font-black text-sm uppercase tracking-wide mb-4">
+                    <h4 className="text-white font-semibold text-sm uppercase tracking-wide mb-4">
                       Estado de Stripe Identity (KYC)
                     </h4>
 
@@ -341,7 +320,7 @@ export default function UserVerificationTab({
                             <Clock size={32} />
                           </div>
                           <h5 className="text-yellow-400 font-bold text-lg mb-1">
-                            Sesión Creadada (Pendiente)
+                            Sesión Creada (Pendiente)
                           </h5>
                           <p className="text-xs text-gray-300">
                             El usuario ha iniciado el proceso pero aún no lo ha
@@ -365,7 +344,7 @@ export default function UserVerificationTab({
 
                       <div className="p-6 bg-white/2 border border-white/5 rounded-lg flex flex-col justify-between">
                         <div>
-                          <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-1">
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
                             Session ID
                           </p>
                           <p className="text-white text-xs font-mono break-all bg-black/50 p-2 rounded-lg border border-white/10">
@@ -420,7 +399,7 @@ export default function UserVerificationTab({
 
                   {/* Profile Level Controls */}
                   <div>
-                    <h4 className="text-white font-black text-sm uppercase tracking-wide mb-4">
+                    <h4 className="text-white font-semibold text-sm uppercase tracking-wide mb-4">
                       Control de Nivel y Permisos
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -472,7 +451,7 @@ export default function UserVerificationTab({
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex-1 flex flex-col items-center justify-center text-gray-500"
+                className="flex-1 flex flex-col items-center justify-center text-gray-500 min-h-48"
               >
                 <ShieldCheck size={48} className="mb-4 text-white/10" />
                 <p className="font-bold">Selecciona un usuario de la cola</p>
@@ -482,8 +461,8 @@ export default function UserVerificationTab({
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-      </div>
+        }
+      />
     </div>
   );
 }

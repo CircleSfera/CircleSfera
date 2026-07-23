@@ -145,10 +145,10 @@ export default function StatCard({
 
       <div className="flex items-start justify-between gap-3 relative z-10">
         <div className="min-w-0">
-          <p className="text-white/40 text-xs font-black uppercase tracking-wider mb-0.5">
+          <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-0.5">
             {label}
           </p>
-          <p className="text-2xl font-black text-white tabular-nums tracking-tight">
+          <p className="text-2xl font-bold text-white tabular-nums tracking-tight">
             {prefix}
             {formattedValue.toLocaleString()}
             {suffix}
