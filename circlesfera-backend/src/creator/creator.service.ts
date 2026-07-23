@@ -590,8 +590,8 @@ export class CreatorService {
         },
       ],
       mode: 'payment',
-      success_url: `${frontendUrl}/creator?promotion=success&id=${promotion.id}`,
-      cancel_url: `${frontendUrl}/creator?promotion=cancelled`,
+      success_url: `${frontendUrl}/creator/ads?promotion=success&id=${promotion.id}`,
+      cancel_url: `${frontendUrl}/creator/ads?promotion=cancelled`,
       metadata: {
         promotionId: promotion.id,
         userId: userId,

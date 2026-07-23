@@ -57,6 +57,13 @@ function formatDate(dateStr: string): string {
   });
 }
 
+function redirectToCheckout(url: string | null | undefined) {
+  if (!url) {
+    throw new Error('Missing checkout URL');
+  }
+  window.location.href = url;
+}
+
 // ─── New Promotion Modal ────────────────────────────────────────
 
 interface NewPromoModalProps {
@@ -85,14 +92,19 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
         targetType:
           selectedPost?.type?.toLowerCase() === 'frame' ? 'frame' : 'post',
         targetId: selectedPost!.id,
-        budget,
+        dailyBudget: budget,
         durationDays: duration,
         currency: 'EUR',
       }),
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['creator', 'promotions'] });
-      onToast(t('creator.promotions.created'), 'success');
-      onClose();
+      const url = response.data?.url;
+      if (!url) {
+        onToast(t('creator.promotions.error_create'), 'error');
+        return;
+      }
+      onToast(t('creator.promotions.redirecting'), 'success');
+      redirectToCheckout(url);
     },
     onError: () => onToast(t('creator.promotions.error_create'), 'error'),
   });
@@ -351,6 +363,11 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
     ) || [];
 
   const handleRepeat = (promo: CreatorPromotion) => {
+    if (promo.budget <= 0) {
+      onToast(t('creator.promotions.error_repeat'), 'error');
+      return;
+    }
+
     creatorApi
       .createPromotion({
         targetType: promo.targetType,
@@ -359,9 +376,15 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
         durationDays: 7,
         currency: promo.currency,
       })
-      .then(() => {
+      .then((response) => {
         queryClient.invalidateQueries({ queryKey: ['creator', 'promotions'] });
-        onToast(t('creator.promotions.restarted'), 'success');
+        const url = response.data?.url;
+        if (!url) {
+          onToast(t('creator.promotions.error_repeat'), 'error');
+          return;
+        }
+        onToast(t('creator.promotions.redirecting'), 'success');
+        redirectToCheckout(url);
       })
       .catch(() => onToast(t('creator.promotions.error_repeat'), 'error'));
   };

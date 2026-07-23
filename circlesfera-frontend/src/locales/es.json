@@ -757,6 +757,9 @@
     },
     "promotions": {
       "created": "Promoción creada",
+      "redirecting": "Redirigiendo a pago seguro...",
+      "payment_success": "Pago de promoción recibido. La campaña se activará en breve.",
+      "payment_cancelled": "Pago de promoción cancelado. La campaña sigue pendiente.",
       "error_create": "Error al crear promoción",
       "select_content": "Seleccionar Contenido",
       "configure_reach": "Configurar Alcance",

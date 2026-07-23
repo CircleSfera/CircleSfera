@@ -9,6 +9,7 @@ import {
   X,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import type { Post } from '../../types';
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export default function PromoteModal({ post, onClose, onToast }: Props) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const [objective, setObjective] = useState('PROFILE_VISITS');
@@ -45,13 +47,25 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
       }),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['creator', 'promotions'] });
-      onToast('Redirigiendo a pago seguro...', 'success');
+      onToast(
+        t('creator.promotions.redirecting', 'Redirigiendo a pago seguro...'),
+        'success',
+      );
       const { url } = response.data;
       if (url) {
         window.location.href = url;
+      } else {
+        onToast(
+          t('creator.promotions.error_create', 'Error creating promotion'),
+          'error',
+        );
       }
     },
-    onError: () => onToast('Error al crear promoción', 'error'),
+    onError: () =>
+      onToast(
+        t('creator.promotions.error_create', 'Error creating promotion'),
+        'error',
+      ),
   });
 
   return (
