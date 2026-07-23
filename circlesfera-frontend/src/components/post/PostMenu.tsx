@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion';
 import {
   Bookmark,
+  EyeOff,
   Flag,
   Megaphone,
   Pencil,
   Trash2,
+  UserX,
   VolumeX,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -21,6 +23,8 @@ interface PostMenuProps {
   onAddToCollection: () => void;
   onPromote?: () => void;
   onMute?: () => void;
+  onHidePost?: () => void;
+  onHideAuthor?: () => void;
 }
 
 export default function PostMenu({
@@ -34,6 +38,8 @@ export default function PostMenu({
   onAddToCollection,
   onPromote,
   onMute,
+  onHidePost,
+  onHideAuthor,
 }: PostMenuProps) {
   const { t } = useTranslation();
   if (!showMenu) return null;
@@ -85,6 +91,26 @@ export default function PostMenu({
         </>
       ) : (
         <>
+          {onHidePost && (
+            <button
+              type="button"
+              onClick={onHidePost}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-white hover:bg-white/5 active:bg-white/10 transition-colors"
+            >
+              <EyeOff size={16} />
+              <span>{t('post.menu.not_interested', 'Not interested')}</span>
+            </button>
+          )}
+          {onHideAuthor && (
+            <button
+              type="button"
+              onClick={onHideAuthor}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-white hover:bg-white/5 active:bg-white/10 transition-colors"
+            >
+              <UserX size={16} />
+              <span>{t('post.menu.hide_author', 'Hide author')}</span>
+            </button>
+          )}
           {onMute && (
             <button
               type="button"

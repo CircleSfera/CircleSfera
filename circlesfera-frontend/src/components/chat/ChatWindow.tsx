@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { apiClient, chatApi, uploadApi } from '../../services/index';
@@ -457,10 +458,7 @@ export default function ChatWindow() {
     if (!file || !id || !profile) return;
 
     if (file.size > 50 * 1024 * 1024) {
-      alert(
-        t('chat.file_too_large') ||
-          'Para garantizar el cifrado E2E, los archivos no pueden superar los 50 MB.',
-      );
+      toast.error(t('chat.file_too_large'));
       return;
     }
 

@@ -1,7 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Crown, Flame, Gem, Rocket, Sparkles, Star, X } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { liveApi } from '../../services/live';
 
 export interface VirtualGift {
   id: string;
@@ -52,13 +54,13 @@ const VIRTUAL_GIFTS: VirtualGift[] = [
 interface LiveGiftModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSendGift: (gift: VirtualGift) => void;
+  streamId: string;
 }
 
 export default function LiveGiftModal({
   isOpen,
   onClose,
-  onSendGift,
+  streamId,
 }: LiveGiftModalProps) {
   const { t } = useTranslation();
   const [selectedGift, setSelectedGift] = useState<VirtualGift>(
@@ -69,8 +71,23 @@ export default function LiveGiftModal({
   const handleSend = async () => {
     setIsSending(true);
     try {
-      await onSendGift(selectedGift);
-      onClose();
+      const result = await liveApi.sendGift(
+        streamId,
+        selectedGift.id,
+        window.location.href,
+      );
+      if (result?.url) {
+        window.location.href = result.url;
+        return;
+      }
+      toast.error(
+        t('live.gift_checkout_missing', 'No se pudo iniciar el pago'),
+      );
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || t('live.gift_error', 'Error al enviar el regalo');
+      toast.error(message);
     } finally {
       setIsSending(false);
     }

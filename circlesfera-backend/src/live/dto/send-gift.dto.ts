@@ -1,11 +1,13 @@
-import { IsNotEmpty, IsNumber, IsString, Min } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
 
 export class SendGiftDto {
   @IsString()
   @IsNotEmpty()
   giftId!: string;
 
-  @IsNumber()
-  @Min(0)
-  price!: number;
+  /** Return URL after Stripe Checkout (defaults to current origin live page). */
+  @IsOptional()
+  @IsString()
+  @IsUrl({ require_tld: false })
+  returnUrl?: string;
 }

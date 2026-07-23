@@ -199,7 +199,7 @@ export default function StoryViewer({
       onClose();
     } catch (error) {
       logger.error('Failed to delete story:', error);
-      alert('Failed to delete story');
+      toast.error(t('story.delete_error'));
       setShowDeleteConfirm(false);
     }
   };

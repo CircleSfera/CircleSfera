@@ -1,7 +1,9 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
 import { lazy, Suspense } from 'react';
 import toast from 'react-hot-toast';
 import type { UsePostInteractionsReturn } from '../../hooks/usePostInteractions';
+import { api } from '../../services';
 import type { Post } from '../../types';
 import AddToCollectionModal from '../modals/AddToCollectionModal';
 import ReportModal from '../modals/ReportModal';
@@ -51,6 +53,34 @@ export default function PostOverlays({
     collectionId,
   } = interactions;
 
+  const queryClient = useQueryClient();
+
+  const hidePost = async () => {
+    setShowMenu(false);
+    try {
+      await api.post(`/feed/preferences/hide-post/${post.id}`);
+      toast.success('Post hidden from your feed');
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+      queryClient.invalidateQueries({ queryKey: ['forYou'] });
+    } catch {
+      toast.error('Could not hide post');
+    }
+  };
+
+  const hideAuthor = async () => {
+    setShowMenu(false);
+    const authorId = post.userId || post.user?.id;
+    if (!authorId) return;
+    try {
+      await api.post(`/feed/preferences/hide-author/${authorId}`);
+      toast.success('Author hidden from your feed');
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+      queryClient.invalidateQueries({ queryKey: ['forYou'] });
+    } catch {
+      toast.error('Could not hide author');
+    }
+  };
+
   return (
     <>
       <AnimatePresence>
@@ -86,6 +116,8 @@ export default function PostOverlays({
               setShowAddToCollectionModal(true);
             }}
             onMute={!isOwner ? handleMute : undefined}
+            onHidePost={!isOwner ? hidePost : undefined}
+            onHideAuthor={!isOwner ? hideAuthor : undefined}
           />
         )}
       </AnimatePresence>

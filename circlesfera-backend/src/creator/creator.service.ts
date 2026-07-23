@@ -980,13 +980,18 @@ export class CreatorService {
     let subscriptionsTotal = 0;
     let tipsTotal = 0;
     let postUnlocksTotal = 0;
-    const giftsTotal = 0;
+    let giftsTotal = 0;
 
     for (const tx of transactions) {
       const amountEur = tx.amount > 0 ? tx.amount / 100 : 0; // stored in cents/tokens
       if (tx.type === 'STRIPE_SUBSCRIPTION') subscriptionsTotal += amountEur;
       else if (tx.type === 'DIRECT_TIP') tipsTotal += amountEur;
-      else if (tx.type === 'DIRECT_POST_UNLOCK') postUnlocksTotal += amountEur;
+      else if (
+        tx.type === 'DIRECT_POST_UNLOCK' ||
+        tx.type === 'DIRECT_STORY_UNLOCK'
+      )
+        postUnlocksTotal += amountEur;
+      else if (tx.type === 'DIRECT_LIVE_GIFT') giftsTotal += amountEur;
     }
 
     const grossRevenue =

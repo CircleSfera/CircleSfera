@@ -8,6 +8,7 @@ import {
   X,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { commentsApi, uploadApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
@@ -285,7 +286,7 @@ export default function CommentList({
       setMedia(res.data);
     } catch (err) {
       logger.error('Failed to upload media:', err);
-      alert('Failed to upload media');
+      toast.error(t('comments.upload_error'));
     } finally {
       setIsUploading(false);
     }

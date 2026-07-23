@@ -12,7 +12,9 @@ export const liveApi = {
   },
 
   inviteCoHost: async (streamId: string, coHostUserId: string) => {
-    const response = await api.post(`/live/${streamId}/cohost/invite`, { coHostUserId });
+    const response = await api.post(`/live/${streamId}/cohost/invite`, {
+      coHostUserId,
+    });
     return response.data;
   },
 
@@ -26,11 +28,17 @@ export const liveApi = {
     return response.data;
   },
 
-  sendGift: async (streamId: string, giftId: string, price: number) => {
+  /** Starts Stripe Checkout for a catalog gift; returns { url, liveGiftId, amountCents }. */
+  sendGift: async (streamId: string, giftId: string, returnUrl?: string) => {
     const response = await api.post(`/live/${streamId}/gift`, {
       giftId,
-      price,
+      returnUrl: returnUrl || window.location.href,
     });
-    return response.data;
+    return response.data as {
+      url: string;
+      liveGiftId: string;
+      giftId: string;
+      amountCents: number;
+    };
   },
 };

@@ -5,6 +5,7 @@ import {
   ChevronUp,
   CreditCard,
   DollarSign,
+  EyeOff,
   FileText,
   Flag,
   Key,
@@ -31,6 +32,7 @@ export type SettingsTabId =
   | 'referrals'
   | 'close_friends'
   | 'mutes'
+  | 'feed_prefs'
   | 'appeals'
   | 'reports'
   | 'account';
@@ -98,6 +100,11 @@ export default function SettingsMobileNav({
       id: 'mutes',
       label: t('settings.tabs.mutes.label', 'Bloqueados & Silenciados'),
       icon: UserX,
+    },
+    {
+      id: 'feed_prefs',
+      label: t('settings.tabs.feed_prefs.label', 'Preferencias del feed'),
+      icon: EyeOff,
     },
     {
       id: 'referrals',

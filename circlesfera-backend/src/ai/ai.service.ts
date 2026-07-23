@@ -19,11 +19,17 @@ export class AIService {
 
   constructor(@Inject(ConfigService) private configService: ConfigService) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
+    const isProd = this.configService.get('NODE_ENV') === 'production';
+
     if (apiKey) {
       this.openai = new OpenAI({ apiKey });
+    } else if (isProd) {
+      throw new Error(
+        'SECURITY ALERT: OPENAI_API_KEY is required in production (embeddings, moderation, alt-text).',
+      );
     } else {
       this.logger.warn(
-        'OPENAI_API_KEY not found. AIService will operate in MOCK mode.',
+        'OPENAI_API_KEY not found. AIService will operate in MOCK mode (non-production only).',
       );
     }
   }

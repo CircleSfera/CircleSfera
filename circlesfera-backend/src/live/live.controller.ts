@@ -3,12 +3,14 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Post,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { InviteCoHostDto } from './dto/invite-cohost.dto.js';
 import { SendGiftDto } from './dto/send-gift.dto.js';
@@ -83,16 +85,21 @@ export class LiveController {
   }
 
   @Post(':streamId/gift')
+  @UseGuards(IdentityVerifiedGuard)
   sendGift(
     @Req() req: RequestWithUser,
     @Param('streamId') streamId: string,
     @Body() dto: SendGiftDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
+    const returnUrl =
+      dto.returnUrl || `${req.protocol}://${req.get('host')}/live/${streamId}`;
     return this.liveService.sendGift(
       streamId,
       req.user.userId,
       dto.giftId,
-      dto.price,
+      returnUrl,
+      idempotencyKey,
     );
   }
 }

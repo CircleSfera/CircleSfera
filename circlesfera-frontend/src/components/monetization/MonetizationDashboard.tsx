@@ -66,6 +66,15 @@ export default function MonetizationDashboard() {
       api.get('/monetization/transactions').then((r) => r.data.data),
   });
 
+  const hasConnect = !!profile?.user?.stripeConnectAccountId;
+
+  const { data: payoutsSummary } = useQuery({
+    queryKey: ['monetization-payouts'],
+    queryFn: () => api.get('/monetization/payouts').then((r) => r.data),
+    enabled: hasConnect,
+    retry: false,
+  });
+
   const handleConnectStripe = async () => {
     setIsConnecting(true);
     try {
@@ -182,6 +191,83 @@ export default function MonetizationDashboard() {
           </ul>
         </div>
       </div>
+
+      {/* Stripe Connect balance & payouts (read-only) */}
+      {hasConnect && payoutsSummary && (
+        <div className="modal-glass rounded-xl p-6">
+          <h3 className="text-xl font-bold text-white mb-4">
+            {t('wallet.stripe_payouts_title', 'Stripe Balance & Payouts')}
+          </h3>
+          <p className="text-sm text-gray-400 mb-4">
+            {t(
+              'wallet.stripe_payouts_hint',
+              'Read-only view from your Stripe Connect account. Payouts are managed by Stripe.',
+            )}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <div className="p-4 rounded-lg bg-white/5">
+              <p className="text-xs uppercase text-gray-400 font-bold mb-1">
+                {t('wallet.available', 'Available')}
+              </p>
+              <p className="text-2xl font-black text-emerald-400">
+                {(
+                  (payoutsSummary.available?.[0]?.amountCents || 0) / 100
+                ).toFixed(2)}{' '}
+                <span className="text-sm font-semibold">
+                  {payoutsSummary.available?.[0]?.currency || 'EUR'}
+                </span>
+              </p>
+            </div>
+            <div className="p-4 rounded-lg bg-white/5">
+              <p className="text-xs uppercase text-gray-400 font-bold mb-1">
+                {t('wallet.pending', 'Pending')}
+              </p>
+              <p className="text-2xl font-black text-amber-400">
+                {(
+                  (payoutsSummary.pending?.[0]?.amountCents || 0) / 100
+                ).toFixed(2)}{' '}
+                <span className="text-sm font-semibold">
+                  {payoutsSummary.pending?.[0]?.currency || 'EUR'}
+                </span>
+              </p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {(payoutsSummary.payouts || []).length === 0 ? (
+              <p className="text-gray-400 text-sm">
+                {t('wallet.no_payouts', 'No recent payouts.')}
+              </p>
+            ) : (
+              payoutsSummary.payouts.map(
+                (p: {
+                  id: string;
+                  amountCents: number;
+                  currency: string;
+                  status: string;
+                  arrivalDate: string | null;
+                }) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-white/5"
+                  >
+                    <div>
+                      <p className="text-white font-semibold text-sm">
+                        {(p.amountCents / 100).toFixed(2)} {p.currency}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {p.status}
+                        {p.arrivalDate
+                          ? ` · ${new Date(p.arrivalDate).toLocaleDateString()}`
+                          : ''}
+                      </p>
+                    </div>
+                  </div>
+                ),
+              )
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Transactions */}
       <div className="modal-glass rounded-xl p-6 mt-8">

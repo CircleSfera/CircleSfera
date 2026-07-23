@@ -123,6 +123,11 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `postId` (PK, FK → posts.id)
 - `vector` (`vector(1536)` via pgvector)
 
+### profile_embeddings
+- `profileId` (PK, FK → profiles.id)
+- `vector` (`vector(1536)` via pgvector)
+- Read path: `SearchService.semanticSearchProfiles` (`GET /search/ai/profiles`). Write path: `ProfilesService` enqueues `generate-profile-embedding` on profile update (`username`/`fullName`/`bio` change); backfill via `npm run embeddings:backfill`. See [ADR-0001](./adr/0001-profile-embedding-retention.md).
+
 ### audio_tracks
 - `id` (PK)
 - `title`
@@ -251,6 +256,14 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `blockedId` (FK → users.id)
 - `createdAt`
 - UNIQUE (`blockerId`, `blockedId`)
+
+### mutes
+- `id` (PK)
+- `muterId` (FK → users.id)
+- `mutedId` (FK → users.id)
+- `createdAt`
+- UNIQUE (`muterId`, `mutedId`)
+- Excludes the muted user's posts from `FeedService` queries (`foryou` and `following`); exposed via `POST/DELETE /users/:username/follow/mute` and `GET /users/me/follow/muted`. Full-account mute only — no per-keyword or per-post muting yet (see [ADR-0004](./adr/0004-feed-preferences.md)).
 
 ---
 
@@ -416,9 +429,73 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `createdAt`
 - `updatedAt`
 
+### creator_subscriptions
+- `id` (PK)
+- `subscriberId` (FK → users.id)
+- `creatorId` (FK → users.id)
+- `status` (`SubscriptionStatus`)
+- `priceCents`
+- `stripeSubscriptionId` (UNIQUE, nullable)
+- `expiresAt`
+- `autoRenew`
+- `createdAt`
+- `updatedAt`
+- UNIQUE (`subscriberId`, `creatorId`)
+- Creator-to-creator VIP subscription (distinct from `platform_subscriptions`, which is the platform tier). Canonical price is `Profile.subscriptionPriceCents`, editable via `PATCH /creator/subscription-price`.
+
 ---
 
-## 10. Moderation and operations
+## 10. Live, polls, and Q&A
+
+### live_streams
+- `id` (PK)
+- `hostId` (FK → users.id)
+- `coHostId` (nullable FK → users.id)
+- `title` (nullable)
+- `status` (`LiveStatus`: `LIVE | ENDED`)
+- `viewerCount`
+- `startedAt`
+- `endedAt` (nullable)
+- `hlsUrl` (nullable)
+- `replayUrl` (nullable)
+- Endpoints: `POST /live/start`, `POST /live/end`, `GET /live/active`, `GET /live/:streamId`, `GET /live/join/:streamId`, co-host invite/accept/remove, `POST /live/:streamId/gift`.
+- **Gifts are not billed**: `LiveService.sendGift` broadcasts a gift event only; it does not create a `Transaction` or charge Stripe (`CreatorService.giftsTotal` is hardcoded `0`).
+
+### polls
+- `id` (PK)
+- `postId` (nullable, UNIQUE, FK → posts.id)
+- `storyId` (nullable, UNIQUE, FK → stories.id)
+- `question`
+- `options` (string array)
+- `createdAt`
+- A poll belongs to exactly one post or story.
+
+### poll_votes
+- `id` (PK)
+- `pollId` (FK → polls.id)
+- `userId` (FK → users.id)
+- `optionIndex`
+- `createdAt`
+- UNIQUE (`pollId`, `userId`)
+
+### qna_boxes
+- `id` (PK)
+- `postId` (nullable, UNIQUE, FK → posts.id)
+- `storyId` (nullable, UNIQUE, FK → stories.id)
+- `prompt`
+- `createdAt`
+
+### qna_answers
+- `id` (PK)
+- `qnaBoxId` (FK → qna_boxes.id)
+- `userId` (FK → users.id)
+- `answerText`
+- `createdAt`
+- Endpoints: `POST /interactive/poll`, `GET /interactive/poll/:id`, `POST /interactive/poll/vote`, `POST /interactive/qna`, `GET /interactive/qna/:id`, `POST /interactive/qna/answer`.
+
+---
+
+## 11. Moderation and operations
 
 ### reports
 - `id` (PK)
@@ -441,6 +518,18 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `targetId`
 - `details`
 - `createdAt`
+
+### appeals
+- `id` (PK)
+- `userId` (FK → users.id)
+- `targetType` (`AppealTargetType`: `ACCOUNT_BAN | POST_REMOVAL`)
+- `targetId` (nullable)
+- `reason`
+- `status` (`AppealStatus`: `PENDING | APPROVED | REJECTED`)
+- `adminNotes` (nullable)
+- `createdAt`
+- `updatedAt`
+- Persisted appeals module, exposed at `POST /appeals`, `GET /appeals/my-appeals`, `GET /appeals/admin`, `PATCH /appeals/admin/:id`; surfaced in the app under `Settings → Appeals`. Note: `AdminAuditLog`/`Report` still model general moderation trace; there is no separate `ModerationAction` table.
 
 ### search_history
 - `id` (PK)
@@ -468,7 +557,7 @@ This ERD describes the reality of the project's current model. It does not simpl
 
 ---
 
-## 11. Main relationships
+## 12. Main relationships
 
 - `users` 1 ── 1 `profiles`
 - `users` 1 ── N `refresh_tokens`
@@ -509,20 +598,32 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `users` 1 ── 1 `user_settings`
 - `audio_tracks` 1 ── N `posts`
 - `audio_tracks` 1 ── N `stories`
+- `users` 1 ── N `mutes` as muter
+- `users` 1 ── N `mutes` as muted
+- `users` 1 ── N `appeals`
+- `users` 1 ── N `live_streams` as host
+- `users` 1 ── N `live_streams` as co-host
+- `posts` 1 ── 0..1 `polls` / `qna_boxes`
+- `stories` 1 ── 0..1 `polls` / `qna_boxes`
+- `users` 1 ── N `creator_subscriptions` as subscriber
+- `users` 1 ── N `creator_subscriptions` as creator
+- `profiles` 1 ── 1 `profile_embeddings`
 
 ---
 
-## 12. Differences from prior documentation
+## 13. Differences from prior documentation
 
-### Corrected
+### Corrected (superseded — see revision note below)
 - `frames` are no longer documented as a separate table; they become `Post.type = FRAME`.
 - `likes` are no longer polymorphic; separate `Like` and `CommentLike` exist.
-- `mutes` are removed from the current official ERD.
-- `appeals` and `moderation_actions` are removed from the current official ERD.
-- `user_settings`, `feed_preferences`, `feature_entitlements`, `platform_transactions`, and separate analytics tables are removed from the current official ERD.
+- `user_settings`, `feature_entitlements`, and separate analytics tables are removed from the current official ERD.
 - `chat`, `highlights`, `collections`, `passkeys`, `promotions`, `audio`, `search_history`, `whitelist_entries`, `user_settings`, and `post_embeddings` now appear in the official ERD.
 
+### Revision note (Jul 2026)
+An earlier revision of this document stated that `mutes`, `appeals`, and `moderation_actions` were "removed from the official ERD." That was inaccurate for `mutes` and `appeals`: both are real, persisted models in the live `schema.prisma` (`mutes` → §6, `appeals` → §11) and are wired to shipped API endpoints and UI (mute/unmute on profile and post menus; `Settings → Appeals`). There is still **no** separate `moderation_actions` table — `Report` + `AdminAuditLog` (+ `Appeal`) remain the persisted moderation surface. `feed_preferences` (hide post/author, mute keywords) genuinely does not exist yet; see [ADR-0004](./adr/0004-feed-preferences.md).
+
 ### Kept as future application logic
-- Advanced appeal workflows.
+- A dedicated `ModerationAction` table (currently unmodeled; traceability lives in `AdminAuditLog`/`Report`).
+- Feed-preference domain tables (hide post/author, mute keywords) — see [ADR-0004](./adr/0004-feed-preferences.md).
 - Aggregated analytics persisted in dedicated tables.
 - Communities and marketplace.

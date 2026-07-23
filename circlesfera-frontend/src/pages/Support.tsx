@@ -1,9 +1,11 @@
 import axios from 'axios';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 
 export const Support: React.FC = () => {
+  const { t } = useTranslation();
   const { profile } = useAuthStore();
   const userEmail = profile?.user?.email || '';
   const userId = profile?.userId || profile?.user?.id;
@@ -33,11 +35,10 @@ export const Support: React.FC = () => {
       setStatus('error');
       if (axios.isAxiosError(error)) {
         setErrorMessage(
-          error.response?.data?.message ||
-            'Error al enviar el ticket. Inténtalo de nuevo.',
+          error.response?.data?.message || t('supportPage.error_generic'),
         );
       } else {
-        setErrorMessage('Error al enviar el ticket. Inténtalo de nuevo.');
+        setErrorMessage(t('supportPage.error_generic'));
       }
     }
   };
@@ -46,11 +47,10 @@ export const Support: React.FC = () => {
     <div className="max-w-2xl mx-auto p-6 mt-10 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
       <div className="mb-8">
         <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-          Centro de Soporte
+          {t('supportPage.title')}
         </h1>
         <p className="text-gray-600 dark:text-gray-300">
-          ¿Tienes algún problema con tu cuenta o necesitas ayuda con un pago?
-          Escríbenos y te responderemos por correo electrónico.
+          {t('supportPage.description')}
         </p>
       </div>
 
@@ -59,14 +59,14 @@ export const Support: React.FC = () => {
           className="p-4 mb-6 text-sm text-green-800 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400"
           role="alert"
         >
-          <span className="font-medium">¡Ticket enviado!</span> Nuestro equipo
-          lo revisará y te contactará pronto al correo: {userEmail}
+          <span className="font-medium">{t('supportPage.success_title')}</span>{' '}
+          {t('supportPage.success_body', { email: userEmail })}
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           {!userEmail && (
             <div className="p-4 mb-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 dark:bg-gray-800 dark:text-yellow-300">
-              Debes iniciar sesión para que podamos contactarte.
+              {t('supportPage.login_required')}
             </div>
           )}
 
@@ -75,7 +75,7 @@ export const Support: React.FC = () => {
               htmlFor="subject"
               className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
             >
-              Asunto
+              {t('supportPage.subject_label')}
             </label>
             <input
               type="text"
@@ -83,7 +83,7 @@ export const Support: React.FC = () => {
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
-              placeholder="Ej: Problema con una suscripción"
+              placeholder={t('supportPage.subject_placeholder')}
               required
               disabled={!userEmail || status === 'loading'}
             />
@@ -94,7 +94,7 @@ export const Support: React.FC = () => {
               htmlFor="message"
               className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
             >
-              Mensaje
+              {t('supportPage.message_label')}
             </label>
             <textarea
               id="message"
@@ -102,7 +102,7 @@ export const Support: React.FC = () => {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               className="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
-              placeholder="Describe tu problema con el mayor detalle posible..."
+              placeholder={t('supportPage.message_placeholder')}
               required
               disabled={!userEmail || status === 'loading'}
             />
@@ -119,7 +119,9 @@ export const Support: React.FC = () => {
             disabled={!userEmail || status === 'loading'}
             className="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 disabled:opacity-50"
           >
-            {status === 'loading' ? 'Enviando...' : 'Enviar Ticket'}
+            {status === 'loading'
+              ? t('supportPage.submitting')
+              : t('supportPage.submit')}
           </button>
         </form>
       )}

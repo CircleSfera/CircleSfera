@@ -8,7 +8,9 @@
 
 ## 1. Purpose
 
-This policy replaces the previous version to make it more realistic and aligned with the project. The main correction is that the policy must no longer depend on a data structure that does not formally exist in the schema today, such as persisted `appeals` or `moderation_actions`, although it may still define principles, target timelines, and operational procedures.
+This policy replaces the previous version to make it more realistic and aligned with the project. The main correction is that the policy must no longer depend on a data structure that does not formally exist in the schema today, such as `moderation_actions`, although it may still define principles, target timelines, and operational procedures.
+
+> **Jul 2026 correction:** an earlier revision of this document said the policy could not depend on persisted `appeals` because that model didn't exist. It now does — see §11. What remains unmodeled is a dedicated `moderation_actions` table (§14).
 
 CircleSfera maintains a moderation stance that is transparent, traceable, and oriented toward safety, legality, and ecosystem trust.
 
@@ -160,7 +162,7 @@ It is not advisable to always promise an “exact legal citation” in every pro
 
 ## 11. Review or reconsideration
 
-CircleSfera may maintain a reconsideration process for decisions. But the official policy, aligned with the current system, must describe it as an operational process and target SLA, not as a persisted module guaranteed in the database if it does not yet exist that way.
+CircleSfera maintains a reconsideration process backed by a persisted `Appeal` model (`targetType`: `ACCOUNT_BAN` | `POST_REMOVAL`; `status`: `PENDING` | `APPROVED` | `REJECTED`; `adminNotes`). Users submit appeals via `POST /appeals` and track them under `Settings → Appeals` (`GET /appeals/my-appeals`); admins review and resolve via `GET /appeals/admin` / `PATCH /appeals/admin/:id`, and the outcome triggers a user notification. The SLA targets below remain operational targets, not schema guarantees — `Appeal` has no built-in SLA/deadline field.
 
 ### Recommended target SLA
 - Presumably illegal or very serious content: high priority.
@@ -199,11 +201,15 @@ The previous policy did not fully integrate the reality of the current product.
 - Any review of messages must have a clear basis, internal controls, and proportionality.
 - Sharing a post/story in chat must continue to respect availability and permissions of the source content.
 
+### Live streaming
+- Live streams (`LiveStream`, with optional co-host) are real-time and harder to review pre-publication; moderation here relies primarily on reports and host/co-host accountability.
+- The gifting flow (`POST /live/:streamId/gift`) is a social interaction, not a payment — it does not move money, so it carries no billing-fraud risk today, but abusive or misleading gift-related messaging is still in scope for moderation.
+
 ---
 
 ## 14. Internal logging and accountability
 
-Although the current schema does not model a formal `ModerationAction` entity, CircleSfera must still maintain operational traceability using `Report`, `AdminAuditLog`, and complementary internal records. The policy must not depend on specific technical nomenclature, but on the real ability to explain and audit decisions.
+Although the current schema does not model a formal `ModerationAction` entity, CircleSfera maintains operational traceability using `Report`, `AdminAuditLog`, `Appeal`, and complementary internal records. The policy must not depend on specific technical nomenclature, but on the real ability to explain and audit decisions.
 
 ---
 
@@ -211,6 +217,6 @@ Although the current schema does not model a formal `ModerationAction` entity, C
 
 - The official policy now covers posts, comments, stories, profiles, and chat.
 - Explicit sexual content is out of platform as a general rule.
-- Reconsiderations are documented as an operational process, not as a guaranteed persisted entity.
+- Reconsiderations are backed by a persisted `Appeal` entity (§11) with an operational SLA on top; there is still no dedicated `ModerationAction` table (§14).
 - Automated moderation is used as support, not as a blind replacement for human judgment.
 - The public policy must be compatible with the product’s operational reality and with specific legal advice when DSA, GDPR, or applicable criminal law is involved.

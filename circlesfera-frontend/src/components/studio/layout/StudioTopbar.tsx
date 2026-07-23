@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Cloud, Download, FolderOpen, Scissors, X } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { editsService } from '../../../services/edits.service';
 import { useStudioStore } from '../../../stores/studioStore';
@@ -42,7 +43,7 @@ export default function StudioTopbar({
       if (data?.id) {
         setCloudProjectId(data.id);
         queryClient.invalidateQueries({ queryKey: ['studioDrafts'] });
-        alert('Borrador guardado en la nube exitosamente');
+        toast.success('Borrador guardado en la nube exitosamente');
       }
     },
   });

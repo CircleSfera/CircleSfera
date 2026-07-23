@@ -177,6 +177,22 @@ async function bootstrap(): Promise<void> {
         );
       }
     }
+
+    if (configService.get('NODE_ENV') === 'production') {
+      const openAi = configService.get<string>('OPENAI_API_KEY');
+      if (!openAi || openAi.includes('CHANGE_ME') || openAi.includes('dummy')) {
+        throw new Error(
+          'SECURITY ALERT: OPENAI_API_KEY is required in production.',
+        );
+      }
+      const livekitKey = configService.get<string>('LIVEKIT_API_KEY');
+      const livekitSecret = configService.get<string>('LIVEKIT_API_SECRET');
+      if (!livekitKey || !livekitSecret) {
+        throw new Error(
+          'SECURITY ALERT: LIVEKIT_API_KEY and LIVEKIT_API_SECRET are required in production.',
+        );
+      }
+    }
   }
 
   await app.listen(port, '0.0.0.0');

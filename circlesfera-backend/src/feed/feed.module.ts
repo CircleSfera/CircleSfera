@@ -5,6 +5,8 @@ import { AIService } from '../ai/ai.service.js';
 import { FeedController } from './feed.controller.js';
 import { FeedService } from './feed.service.js';
 import { FeedInboxService } from './feed-inbox.service.js';
+import { FeedPreferencesController } from './feed-preferences.controller.js';
+import { FeedPreferencesService } from './feed-preferences.service.js';
 import { FeedFanoutProcessor } from './processors/feed-fanout.processor.js';
 
 @Module({
@@ -14,8 +16,14 @@ import { FeedFanoutProcessor } from './processors/feed-fanout.processor.js';
       name: 'feed-fanout',
     }),
   ],
-  controllers: [FeedController],
-  providers: [FeedService, AIService, FeedInboxService, FeedFanoutProcessor],
-  exports: [FeedService],
+  controllers: [FeedController, FeedPreferencesController],
+  providers: [
+    FeedService,
+    AIService,
+    FeedInboxService,
+    FeedFanoutProcessor,
+    FeedPreferencesService,
+  ],
+  exports: [FeedService, FeedPreferencesService],
 })
 export class FeedModule {}

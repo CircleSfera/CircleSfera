@@ -4,11 +4,14 @@ import {
   RoomAudioRenderer,
   VideoConference,
 } from '@livekit/components-react';
-import { Eye, Heart, Send, X } from 'lucide-react';
+import { Eye, Gift, Heart, Send, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import CoHostInviteBanner from '../../components/live/CoHostInviteBanner';
+import LiveGiftModal from '../../components/live/LiveGiftModal';
 import LivePinnedComment, {
   type PinnedCommentData,
 } from '../../components/live/LivePinnedComment';
@@ -24,11 +27,14 @@ interface FloatingReaction {
 }
 
 export default function LiveViewer() {
+  const { t } = useTranslation();
   const { streamId } = useParams<{ streamId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [token, setToken] = useState('');
   const [coHostToken, setCoHostToken] = useState<string | null>(null);
   const [coHostStreamId, setCoHostStreamId] = useState<string | null>(null);
   const [viewerCount, setViewerCount] = useState<number>(1);
+  const [giftModalOpen, setGiftModalOpen] = useState(false);
   const [pinnedComment, setPinnedComment] = useState<PinnedCommentData | null>(
     null,
   );
@@ -44,6 +50,20 @@ export default function LiveViewer() {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (searchParams.get('gift_success') === 'true') {
+      toast.success(t('live.gift_sent', '¡Regalo enviado!'));
+      searchParams.delete('gift_success');
+      searchParams.delete('session_id');
+      setSearchParams(searchParams, { replace: true });
+    }
+    if (searchParams.get('gift_canceled') === 'true') {
+      toast.error(t('live.gift_canceled', 'Pago de regalo cancelado'));
+      searchParams.delete('gift_canceled');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, t]);
+
+  useEffect(() => {
     if (!streamId) return;
 
     api
@@ -52,7 +72,7 @@ export default function LiveViewer() {
         setToken(res.data.token);
       })
       .catch(() => {
-        alert('Transmisión finalizada o no encontrada.');
+        toast.error(t('live.ended_or_not_found'));
         navigate(-1);
       });
 
@@ -91,6 +111,24 @@ export default function LiveViewer() {
       }, 2000);
     };
 
+    socket.on(
+      'live:gift',
+      (data: {
+        giftId?: string;
+        senderUsername?: string;
+        amountCents?: number;
+      }) => {
+        toast.success(
+          t('live.gift_received_toast', {
+            user: data.senderUsername || 'Someone',
+            gift: data.giftId || 'gift',
+            defaultValue: `${data.senderUsername || 'Someone'} sent a ${data.giftId || 'gift'}!`,
+          }),
+        );
+        triggerFloatingReaction('🎁');
+      },
+    );
+
     socket.on('live:heart_received', (data: any) => {
       triggerFloatingReaction(data?.reaction || '❤️');
     });
@@ -109,11 +147,12 @@ export default function LiveViewer() {
       socket.off('live:chat_message');
       socket.off('live:comment_pinned');
       socket.off('live:comment_unpinned');
+      socket.off('live:gift');
       socket.off('live:heart_received');
       socket.off('live:reaction_received');
       socket.off('live:cohost_invite');
     };
-  }, [streamId, navigate]);
+  }, [streamId, navigate, t]);
 
   // If co-host accepted: switch LiveKitRoom to publisher mode
   const activeToken = coHostToken || token;
@@ -135,7 +174,10 @@ export default function LiveViewer() {
     if (!activeStreamId) return;
     const socket = useSocketStore.getState().socket;
     if (!socket) return;
-    socket.emit('live:send_reaction', { streamId: activeStreamId, reaction: emoji });
+    socket.emit('live:send_reaction', {
+      streamId: activeStreamId,
+      reaction: emoji,
+    });
   };
 
   const handleDoubleTap = () => {
@@ -145,7 +187,7 @@ export default function LiveViewer() {
   if (activeToken === '') {
     return (
       <div className="flex h-screen items-center justify-center bg-black text-white font-bold">
-        Conectando al directo...
+        {t('live.connecting')}
       </div>
     );
   }
@@ -248,7 +290,7 @@ export default function LiveViewer() {
           <form onSubmit={handleSend} className="flex gap-2 items-center">
             <input
               type="text"
-              placeholder="Escribe un comentario..."
+              placeholder={t('live.chat_placeholder')}
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
               className="flex-1 rounded-full bg-white/15 px-4 py-2 text-sm text-white placeholder-white/50 outline-none backdrop-blur-md border border-white/10 focus:border-accent-blue/50 transition-all"
@@ -262,21 +304,39 @@ export default function LiveViewer() {
           </form>
 
           {/* Quick Reaction Bar */}
-          <div className="flex items-center justify-end space-x-1.5 pt-1">
-            {REACTION_EMOJIS.map((emoji) => (
-              <button
-                type="button"
-                key={emoji}
-                onClick={() => sendQuickReaction(emoji)}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 flex items-center justify-center text-base transition-all backdrop-blur-md border border-white/5"
-                title={`Enviar ${emoji}`}
-              >
-                {emoji}
-              </button>
-            ))}
+          <div className="flex items-center justify-between pt-1">
+            <button
+              type="button"
+              onClick={() => setGiftModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-full bg-brand-primary/90 hover:bg-brand-primary text-white text-xs font-bold transition-all shadow-lg"
+            >
+              <Gift className="w-3.5 h-3.5" />
+              {t('live.send_gift_btn', 'Regalo')}
+            </button>
+            <div className="flex items-center justify-end space-x-1.5">
+              {REACTION_EMOJIS.map((emoji) => (
+                <button
+                  type="button"
+                  key={emoji}
+                  onClick={() => sendQuickReaction(emoji)}
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 flex items-center justify-center text-base transition-all backdrop-blur-md border border-white/5"
+                  title={t('live.send_reaction', { emoji })}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
+
+      {streamId && (
+        <LiveGiftModal
+          isOpen={giftModalOpen}
+          onClose={() => setGiftModalOpen(false)}
+          streamId={streamId}
+        />
+      )}
 
       <style>{`
         .animate-float-up {

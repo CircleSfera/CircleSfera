@@ -132,7 +132,27 @@ async function main() {
       }
     }
 
-    console.log('Backfill complete.');
+    console.log('Backfill batch complete.');
+
+    const [profileCoverage, postCoverage] = await Promise.all([
+      prisma.$queryRaw<{ total: bigint; with_embedding: bigint }[]>`
+        SELECT
+          (SELECT COUNT(*) FROM profiles)::bigint AS total,
+          (SELECT COUNT(*) FROM profile_embeddings)::bigint AS with_embedding
+      `,
+      prisma.$queryRaw<{ total: bigint; with_embedding: bigint }[]>`
+        SELECT
+          (SELECT COUNT(*) FROM posts WHERE "moderationStatus" = 'VISIBLE' AND COALESCE(caption, '') <> '')::bigint AS total,
+          (SELECT COUNT(*) FROM post_embeddings)::bigint AS with_embedding
+      `,
+    ]);
+
+    const pc = profileCoverage[0];
+    const po = postCoverage[0];
+    console.log('Coverage summary:', {
+      profiles: `${pc?.with_embedding ?? 0}/${pc?.total ?? 0}`,
+      posts: `${po?.with_embedding ?? 0}/${po?.total ?? 0}`,
+    });
   } finally {
     await prisma.$disconnect();
     await pool.end();

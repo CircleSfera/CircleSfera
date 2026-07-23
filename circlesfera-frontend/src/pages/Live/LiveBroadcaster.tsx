@@ -6,12 +6,14 @@ import {
 } from '@livekit/components-react';
 import { Heart, Send, UserMinus, UserPlus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { apiClient as api } from '../../services/api';
 import { liveApi } from '../../services/live';
 import { useSocketStore } from '../../stores/socketStore';
 
 export default function LiveBroadcaster() {
+  const { t } = useTranslation();
   const [token, setToken] = useState('');
   const [streamId, setStreamId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
@@ -115,7 +117,7 @@ export default function LiveBroadcaster() {
   if (token === '') {
     return (
       <div className="flex h-screen items-center justify-center">
-        Iniciando directo...
+        {t('live.starting')}
       </div>
     );
   }
@@ -152,13 +154,13 @@ export default function LiveBroadcaster() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-400" />
             </span>
             <span>
-              Co-host: <strong>@{coHostUsername}</strong>
+              {t('live.cohost_label')} <strong>@{coHostUsername}</strong>
             </span>
             <button
               type="button"
               onClick={handleRemoveCoHost}
               className="ml-1 text-red-300 hover:text-red-100 transition-colors"
-              title="Expulsar co-anfitrión"
+              title={t('live.cohost_remove')}
             >
               <UserMinus size={14} />
             </button>
@@ -172,7 +174,7 @@ export default function LiveBroadcaster() {
             <UserPlus size={14} className="text-purple-300 shrink-0" />
             <input
               type="text"
-              placeholder="@usuario co-host"
+              placeholder={t('live.cohost_input_placeholder')}
               value={coHostUsernameInput}
               onChange={(e) => setCoHostUsernameInput(e.target.value)}
               className="bg-transparent text-white text-xs placeholder-white/40 outline-none w-28"
@@ -231,7 +233,7 @@ export default function LiveBroadcaster() {
         <form onSubmit={handleSend} className="flex gap-2 items-center">
           <input
             type="text"
-            placeholder="Escribe un comentario..."
+            placeholder={t('live.chat_placeholder')}
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
             className="flex-1 rounded-full bg-white/20 px-4 py-2 text-sm text-white placeholder-white/50 outline-none backdrop-blur-md"

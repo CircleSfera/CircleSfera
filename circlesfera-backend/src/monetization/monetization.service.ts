@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { StripeService } from '../common/stripe/stripe.service.js';
@@ -13,6 +14,8 @@ function appendCheckoutQuery(returnUrl: string, query: string): string {
 
 @Injectable()
 export class MonetizationService {
+  private readonly logger = new Logger(MonetizationService.name);
+
   constructor(
     private prisma: PrismaService,
     private stripeService: StripeService,
@@ -341,7 +344,7 @@ export class MonetizationService {
       );
       return { url: link.url };
     } catch (error: unknown) {
-      console.error('Stripe Connect Onboarding Error:', error);
+      this.logger.error('Stripe Connect Onboarding Error:', error);
       throw new BadRequestException(
         error instanceof Error
           ? error.message
@@ -385,7 +388,7 @@ export class MonetizationService {
         detailsSubmitted: account.details_submitted,
       };
     } catch (error) {
-      console.error('Stripe Get Account Error:', error);
+      this.logger.error('Stripe Get Account Error:', error);
       return {
         connected: true,
         transfersEnabled: cached?.transfersEnabled ?? false,
@@ -407,5 +410,60 @@ export class MonetizationService {
       user.stripeConnectAccountId,
     );
     return { url: link.url };
+  }
+
+  /**
+   * Read-only Stripe Connect balance + recent payouts (no internal payout ledger).
+   */
+  async getConnectPayoutsSummary(userId: string): Promise<{
+    available: { amountCents: number; currency: string }[];
+    pending: { amountCents: number; currency: string }[];
+    payouts: {
+      id: string;
+      amountCents: number;
+      currency: string;
+      status: string;
+      arrivalDate: string | null;
+      createdAt: string;
+      method: string;
+      type: string;
+    }[];
+  }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { stripeConnectAccountId: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    if (!user.stripeConnectAccountId) {
+      throw new BadRequestException('Stripe Connect account not set up yet');
+    }
+
+    const [balance, payouts] = await Promise.all([
+      this.stripeService.getConnectBalance(user.stripeConnectAccountId),
+      this.stripeService.listConnectPayouts(user.stripeConnectAccountId, 10),
+    ]);
+
+    const mapAmount = (amounts: { amount: number; currency: string }[]) =>
+      amounts.map((a) => ({
+        amountCents: a.amount,
+        currency: a.currency.toUpperCase(),
+      }));
+
+    return {
+      available: mapAmount(balance.available),
+      pending: mapAmount(balance.pending),
+      payouts: payouts.data.map((p) => ({
+        id: p.id,
+        amountCents: p.amount,
+        currency: p.currency.toUpperCase(),
+        status: p.status,
+        arrivalDate: p.arrival_date
+          ? new Date(p.arrival_date * 1000).toISOString()
+          : null,
+        createdAt: new Date(p.created * 1000).toISOString(),
+        method: p.method,
+        type: p.type,
+      })),
+    };
   }
 }

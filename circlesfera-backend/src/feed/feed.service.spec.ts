@@ -5,6 +5,7 @@ import { AIService } from '../ai/ai.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FeedService } from './feed.service.js';
 import { FeedInboxService } from './feed-inbox.service.js';
+import { FeedPreferencesService } from './feed-preferences.service.js';
 
 describe('FeedService', () => {
   let service: FeedService;
@@ -46,6 +47,15 @@ describe('FeedService', () => {
 
   const mockFeedInboxService = {
     getInbox: vi.fn().mockResolvedValue([]),
+    getInboxCount: vi.fn().mockResolvedValue(0),
+  };
+
+  const mockFeedPreferences = {
+    getFilterSets: vi.fn().mockResolvedValue({
+      hiddenPostIds: [],
+      hiddenAuthorIds: [],
+      mutedKeywords: [],
+    }),
   };
 
   beforeEach(async () => {
@@ -56,6 +66,7 @@ describe('FeedService', () => {
         { provide: AIService, useValue: mockAIService },
         { provide: CACHE_MANAGER, useValue: mockCache },
         { provide: FeedInboxService, useValue: mockFeedInboxService },
+        { provide: FeedPreferencesService, useValue: mockFeedPreferences },
       ],
     }).compile();
 

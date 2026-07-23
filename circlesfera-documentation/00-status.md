@@ -1,6 +1,16 @@
 # Documentation status
 
-**Last status note:** Jul 2026 — Payments/Stripe monetization hardening (webhook integrity, creator sub price, promo views)
+**Last status note:** Jul 2026 — Closure-to-100% hardening: live gifts billing, feed preferences, Stripe payouts read-only UI, auth session bootstrap, AI/LiveKit prod fail-fast
+
+## Jul 2026 closure-to-100% (implemented)
+
+- **Live gifts billing**: Stripe Checkout + `LiveGift` + `TransactionType.DIRECT_LIVE_GIFT` (20% application fee); webhook completion emits `live:gift`; catalog prices server-side (`gift-catalog.ts`)
+- **Feed preferences**: `feed_hidden_posts` / `feed_hidden_authors` / `feed_muted_keywords` + `/feed/preferences` API; integrated into hybrid + following feeds; Settings UI + Post menu actions. See [ADR-0004](./adr/0004-feed-preferences.md) (Accepted)
+- **Stripe payouts (read-only)**: `GET /monetization/payouts` returns Connect balance available/pending + recent payouts; Creator MonetizationDashboard surfaces them. No internal payout ledger. See [ADR-0002](./adr/0002-stripe-connect-payouts.md)
+- **Auth bootstrap (frontend)**: `authStore.checkSession()` validates persisted session via `profileApi.getMyProfile()` on cold start
+- **Prod fail-fast**: `OPENAI_API_KEY` + LiveKit credentials required in production (`main.ts` / `AIService` / `LiveService`)
+- **Logging**: payments webhooks use Nest `Logger`; unhandled Stripe events → warn + Sentry
+- **CI**: backend e2e + Playwright smoke on PRs; deploy runs frontend tests + shared build
 
 ## Remediation vs PRD v4.0 (implemented)
 
@@ -17,11 +27,11 @@
 - Promotion views: viewer JWT required; owner cannot burn own budget; row lock via `FOR UPDATE`
 - Admin reject of charged promo triggers proportional refund
 - Unlock requires IdentityVerifiedGuard; Checkout return query append safe when URL already has `?`
-- Ledger: `PROMOTION_PAYMENT` / `STRIPE_SUBSCRIPTION` / story unlocks; tip/unlock currency **EUR**
+- Ledger: `PROMOTION_PAYMENT` / `STRIPE_SUBSCRIPTION` / story unlocks / **live gifts**; tip/unlock/gift currency **EUR**
 - Ops handlers: `checkout.session.expired`, `invoice.payment_failed`, `charge.refunded`, `charge.dispute.created` (revoke unlocks), `account.updated` (Connect capability cache)
 - Story PPV: persist `isPremium`/`priceCents`; `StoryUnlock` + `POST /monetization/unlock-story`; feed redacts locked media
 - Creator VIP price UI in Creator finance tab (`PATCH /creator/subscription-price`)
-- Platform fee: **20%** application fee on Connect tips/unlocks/creator subs
+- Platform fee: **20%** application fee on Connect tips/unlocks/creator subs/**live gifts**
 
 ## Production incident (Jul 2026)
 
@@ -31,13 +41,12 @@ Follow-up: CI runs `scripts/check-prisma-schema-migrations.sh`; catch-up `202607
 
 ## Still deferred / out of scope
 
-- Feed-preference domain tables (absent by design in PRD future)
-- Live gifts billing (stub only)
-- Creator payouts: Stripe Connect Express only (`TransactionType.PAYOUT` removed; no internal payout ledger)
+- Creator payouts: Stripe Connect Express only (`TransactionType.PAYOUT` removed; no internal payout ledger) — see [ADR-0002](./adr/0002-stripe-connect-payouts.md). Read-only balance UI is shipped; initiating payouts stays in Stripe Express dashboard.
+- Native apps, Communities/forums, B2B Business Manager, public OAuth APIs (doc 12 Later horizon)
 
 ## Doc / source of truth
 
-Documents **01–08** (Abr 2026 origins) remain **partially stale** in places relative to the current `schema.prisma` and backend modules, except where explicitly revised (e.g. **01 PRD v4.0**, **03 API inventory**, **ADR-0001**).
+Documents **01–08** (Abr 2026 origins) remain **partially stale** in places relative to the current `schema.prisma` and backend modules, except where explicitly revised (e.g. **01 PRD v4.0**, **03 API inventory**, **ADR-0001**, and the Jul 2026 sync of **02, 04, 06, 07, 08** for `Mute`/`Appeal`/`LiveStream`/`Poll`/`QnaBox`). **08-schema-prisma.md** is a point-in-time snapshot, not a live mirror — always defer to `circlesfera-backend/prisma/schema.prisma`.
 
 When in doubt: `schema.prisma` → implemented code → API contracts → these markdown files.
 
@@ -48,3 +57,6 @@ When in doubt: `schema.prisma` → implemented code → API contracts → these 
 - Doc **05-deployment-strategy**: §2 = live OVH topology; Cloudflare/ECS/AWS described only as a **future** target (not in use).
 - API inventory regenerated in [03-api-detailed-endpoints.md](./03-api-detailed-endpoints.md) (Jul 2026).
 - [ADR-0001](./adr/0001-profile-embedding-retention.md): keep `ProfileEmbedding`; writer on update + backfill script available.
+- [ADR-0002](./adr/0002-stripe-connect-payouts.md): Connect Express only; read-only payouts UI OK.
+- [ADR-0003](./adr/0003-one-active-platform-plan.md): one active platform plan enforced.
+- [ADR-0004](./adr/0004-feed-preferences.md): feed preference tables (Accepted).

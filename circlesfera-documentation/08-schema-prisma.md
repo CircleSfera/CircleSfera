@@ -1,3 +1,14 @@
+# 08 — Prisma schema (STALE SNAPSHOT)
+
+> ⚠️ **STALE SNAPSHOT — do not trust as current.** This file is a point-in-time copy of `schema.prisma` and is **not** kept in sync automatically. The canonical, always-current source of truth is `circlesfera-backend/prisma/schema.prisma` in the repo — read that file directly for any real implementation work.
+>
+> Known gaps in this snapshot vs. the live schema (non-exhaustive): `Mute`, `Appeal`, `LiveStream`, `Poll`/`PollVote`, `QnaBox`/`QnaAnswer`, `ProfileEmbedding`, and `CreatorSubscription` all exist in the live schema and are used by shipped features (mute/unmute, `Settings → Appeals`, live co-host/gifts, poll/QnA on posts and stories, semantic profile search, creator subscriptions). Do not assume this document's model list is exhaustive or current — always diff against the real `schema.prisma` before relying on any model shown below.
+>
+> This snapshot is kept only for historical/onboarding reference to the shape of the schema at capture time. **Do not paste an updated full schema here again** — link to the source file instead when it needs to be referenced.
+
+---
+
+```prisma
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
@@ -960,3 +971,4 @@ enum PromotionTargetType {
   STORY
   PROFILE
 }
+```

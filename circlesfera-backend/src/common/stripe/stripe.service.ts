@@ -242,6 +242,23 @@ export class StripeService implements OnModuleInit {
     return this.stripe.accounts.createLoginLink(accountId);
   }
 
+  /**
+   * Read-only Connect balance (available + pending) for a connected account.
+   */
+  async getConnectBalance(accountId: string): Promise<Stripe.Balance> {
+    return this.stripe.balance.retrieve({}, { stripeAccount: accountId });
+  }
+
+  /**
+   * Recent payouts for a connected Express account (read-only).
+   */
+  async listConnectPayouts(
+    accountId: string,
+    limit = 10,
+  ): Promise<Stripe.ApiList<Stripe.Payout>> {
+    return this.stripe.payouts.list({ limit }, { stripeAccount: accountId });
+  }
+
   // --- Stripe Identity Methods ---
 
   /**

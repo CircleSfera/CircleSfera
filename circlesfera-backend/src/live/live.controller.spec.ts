@@ -1,5 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { LiveController } from './live.controller.js';
 import { LiveService } from './live.service.js';
 
@@ -11,13 +12,17 @@ describe('LiveController', () => {
     endStream: vi.fn(),
     getActiveStreams: vi.fn(),
     getViewerToken: vi.fn(),
+    sendGift: vi.fn(),
   };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [LiveController],
       providers: [{ provide: LiveService, useValue: mockLiveService }],
-    }).compile();
+    })
+      .overrideGuard(IdentityVerifiedGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<LiveController>(LiveController);
     vi.clearAllMocks();

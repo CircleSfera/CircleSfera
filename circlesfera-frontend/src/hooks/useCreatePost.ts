@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { CropData, VideoData } from '../components/PhotoEditor';
 import { api, interactiveApi, storiesApi } from '../services';
@@ -383,7 +384,7 @@ export function useCreatePost() {
         error instanceof Error
           ? error.message
           : 'Failed to create content. Please try again.';
-      alert(message);
+      toast.error(message);
     } finally {
       setIsProcessingEdit(false);
     }

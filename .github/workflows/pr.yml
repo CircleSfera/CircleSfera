@@ -26,6 +26,15 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -58,6 +67,30 @@ jobs:
           DATABASE_URL: postgresql://prisma:prisma@localhost:5432/schema_check
         run: ./scripts/check-prisma-schema-migrations.sh
 
+      # Reuses the schema_check Postgres DB, which is now fully migrated by the
+      # step above. Redis is required by BullMQ / the cache module used across
+      # AppModule. Secrets below are non-production dummies; NODE_ENV=test
+      # bypasses the production-only secret-strength check in src/main.ts
+      # (e2e specs build AppModule directly and never call bootstrap()).
+      - name: "Backend: E2E Tests"
+        env:
+          DATABASE_URL: postgresql://prisma:prisma@localhost:5432/schema_check
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          NODE_ENV: test
+          JWT_SECRET: ci-e2e-jwt-secret-not-for-production-use-only-testing-1234567890
+          JWT_REFRESH_SECRET: ci-e2e-refresh-secret-not-for-production-use-only-testing-0987654321
+          CSRF_SECRET: ci-e2e-csrf-secret-not-for-production-use-only-testing-abcdefghijklmno
+          STRIPE_SECRET_KEY: sk_test_dummy
+          STRIPE_WEBHOOK_SECRET: whsec_dummy
+          CLOUDINARY_NAME: dummy
+          CLOUDINARY_API_KEY: dummy
+          CLOUDINARY_API_SECRET: dummy
+          CORS_ORIGIN: http://localhost:5173
+        run: |
+          cd circlesfera-backend
+          npm run test:e2e
+
       - name: "Frontend: Install, Lint, Test and Build"
         run: |
           cd circlesfera-frontend
@@ -65,3 +98,116 @@ jobs:
           npm run lint
           npm run test
           npm run build
+
+  playwright-smoke:
+    name: Playwright Smoke (unauthenticated)
+    needs: test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: prisma
+          POSTGRES_PASSWORD: prisma
+          POSTGRES_DB: circlesfera_smoke
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U prisma -d circlesfera_smoke"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://prisma:prisma@localhost:5432/circlesfera_smoke
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      NODE_ENV: test
+      PORT: 3005
+      JWT_SECRET: ci-smoke-jwt-secret-not-for-production-use-only-testing-1234567890
+      JWT_REFRESH_SECRET: ci-smoke-refresh-secret-not-for-production-use-only-testing-0987654321
+      CSRF_SECRET: ci-smoke-csrf-secret-not-for-production-use-only-testing-abcdefghijklmno
+      STRIPE_SECRET_KEY: sk_test_dummy
+      STRIPE_WEBHOOK_SECRET: whsec_dummy
+      CLOUDINARY_NAME: dummy
+      CLOUDINARY_API_KEY: dummy
+      CLOUDINARY_API_SECRET: dummy
+      CORS_ORIGIN: http://localhost:5173
+      # No E2E_USER_EMAIL/PASSWORD secrets required: smoke.spec.ts runs fully
+      # unauthenticated (empty storageState) and SKIP_GLOBAL_SETUP skips the
+      # Playwright global-setup login flow that needs those credentials.
+      SKIP_GLOBAL_SETUP: 'true'
+      BASE_URL: http://localhost:5173
+      BACKEND_URL: http://localhost:3005/api/v1
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install Monorepo Dependencies
+        run: npm install
+
+      - name: "Shared: Install and Build"
+        run: |
+          cd circlesfera-shared
+          npm install
+          npm run build
+
+      - name: "Backend: Install, Migrate and Build"
+        run: |
+          cd circlesfera-backend
+          npm install
+          npx prisma generate
+          npx prisma migrate deploy
+          npm run build
+
+      - name: "Frontend: Install Dependencies"
+        run: |
+          cd circlesfera-frontend
+          npm install
+
+      - name: Start backend in background
+        run: |
+          cd circlesfera-backend
+          nohup node dist/main.js > /tmp/backend.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sS -o /dev/null "http://localhost:3005/api/v1/csrf-token"; then
+              echo "Backend is up."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend failed to start in time."
+          cat /tmp/backend.log
+          exit 1
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright smoke tests
+        run: npm run test:e2e -- e2e/smoke.spec.ts
+
+      - name: Dump backend logs on failure
+        if: failure()
+        run: cat /tmp/backend.log || true
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

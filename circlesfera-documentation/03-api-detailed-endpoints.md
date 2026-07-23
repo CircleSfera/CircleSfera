@@ -574,4 +574,4 @@ Source: `whitelist/whitelist.controller.ts`
 
 - WebSocket gateway routes are **not** listed (`socket/app.gateway.ts`).
 - SEO paths (`sitemap.xml`, `robots.txt`, `og*`) may be exposed outside `/api/v1` via nginx; verify `seo.controller.ts` + nginx templates.
-- `GET /search/ai/profiles` reads `ProfileEmbedding`; write path is not implemented yet — see [ADR-0001](./adr/0001-profile-embedding-retention.md).
+- `GET /search/ai/profiles` reads `ProfileEmbedding`; the writer **is implemented** (profile update enqueues `generate-profile-embedding` on the `ai-processing` queue) plus a manual `npm run embeddings:backfill` for historical rows — see [ADR-0001](./adr/0001-profile-embedding-retention.md).

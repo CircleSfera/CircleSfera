@@ -11,6 +11,7 @@ import {
   CreditCard,
   DollarSign,
   Download,
+  EyeOff,
   Flag,
   Globe,
   Key,
@@ -39,6 +40,7 @@ import {
 import CloseFriendsModal from '../components/modals/CloseFriendsModal';
 import AppealsSettings from '../components/settings/AppealsSettings';
 import CreatorSubscriptionsList from '../components/settings/CreatorSubscriptionsList';
+import FeedPreferencesSettings from '../components/settings/FeedPreferencesSettings';
 import MyReportsSettings from '../components/settings/MyReportsSettings';
 import NotificationsSettings from '../components/settings/NotificationsSettings';
 import ReferralsSettings from '../components/settings/ReferralsSettings';
@@ -137,6 +139,7 @@ export default function Settings() {
     | 'monetization'
     | 'appeals'
     | 'reports'
+    | 'feed_prefs'
   >('profile');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { t, i18n } = useTranslation();
@@ -597,6 +600,15 @@ export default function Settings() {
       label: t('settings.tabs.mutes.label'),
       desc: t('settings.tabs.mutes.desc'),
       icon: UserX,
+    },
+    {
+      id: 'feed_prefs',
+      label: t('settings.tabs.feed_prefs.label', 'Feed preferences'),
+      desc: t(
+        'settings.tabs.feed_prefs.desc',
+        'Hide posts, authors, and keywords',
+      ),
+      icon: EyeOff,
     },
     {
       id: 'account',
@@ -1517,6 +1529,7 @@ export default function Settings() {
             {activeTab === 'notifications' && <NotificationsSettings />}
             {activeTab === 'appeals' && <AppealsSettings />}
             {activeTab === 'reports' && <MyReportsSettings />}
+            {activeTab === 'feed_prefs' && <FeedPreferencesSettings />}
           </div>
         </div>
 

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Check, Loader2, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { paymentsApi } from '../../services/payments.service';
 import { usersApi } from '../../services/users.service';
@@ -17,25 +18,26 @@ const planVerificationMap: Record<string, string> = {
   Business: 'BUSINESS',
 };
 
-const planDescriptions: Record<string, string> = {
-  Premium: 'Elevate your identity and presence.',
-  'Elite Creator': 'Professional tools for growing creators.',
-  Elite: 'Professional tools for growing creators.',
-  Business: 'Maximum impact for brands and teams.',
-};
-
-const planButtonText: Record<string, string> = {
-  Premium: 'Upgrade Experience',
-  'Elite Creator': 'Become Elite',
-  Elite: 'Become Elite',
-  Business: 'Start Business',
-};
-
 export default function Pricing() {
+  const { t } = useTranslation();
   const { isAuthenticated, profile: currentUser } = useAuthStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
+
+  const planDescriptions: Record<string, string> = {
+    Premium: t('pricingPage.desc_premium'),
+    'Elite Creator': t('pricingPage.desc_elite'),
+    Elite: t('pricingPage.desc_elite'),
+    Business: t('pricingPage.desc_business'),
+  };
+
+  const planButtonText: Record<string, string> = {
+    Premium: t('pricingPage.button_premium'),
+    'Elite Creator': t('pricingPage.button_elite'),
+    Elite: t('pricingPage.button_elite'),
+    Business: t('pricingPage.button_business'),
+  };
 
   useEffect(() => {
     if (!isAuthenticated || !currentUser || currentUser.identityVerifiedAt) {
@@ -46,11 +48,11 @@ export default function Pricing() {
       .then((res) => {
         if (res?.status === 'verified') {
           queryClient.invalidateQueries({ queryKey: ['myProfile'] });
-          toast.success('Your identity has been verified!');
+          toast.success(t('pricingPage.identity_verified'));
         }
       })
       .catch((err) => logger.error('Failed to sync identity session:', err));
-  }, [isAuthenticated, currentUser, queryClient]);
+  }, [isAuthenticated, currentUser, queryClient, t]);
 
   const { data: plans, isLoading } = useQuery<PlatformPlanDto[]>({
     queryKey: ['platform-plans'],
@@ -99,10 +101,10 @@ export default function Pricing() {
           (toastItem) => (
             <div className="flex flex-col gap-2 p-1 text-left">
               <span className="font-bold text-sm text-zinc-900">
-                Verificación Requerida
+                {t('pricingPage.verification_required_title')}
               </span>
               <span className="text-xs text-zinc-600">
-                Debes verificar tu identidad antes de realizar compras.
+                {t('pricingPage.verification_required_desc')}
               </span>
               <button
                 type="button"
@@ -117,20 +119,18 @@ export default function Pricing() {
                       window.location.href = res.url;
                     }
                   } catch {
-                    toast.error(
-                      'No se pudo iniciar la verificación de identidad.',
-                    );
+                    toast.error(t('pricingPage.verify_error'));
                   }
                 }}
               >
-                Verificar Identidad con Stripe
+                {t('pricingPage.verify_button')}
               </button>
             </div>
           ),
           { duration: 8000 },
         );
       } else {
-        toast.error('Failed to start checkout. Please try again.');
+        toast.error(t('pricingPage.checkout_error'));
       }
     },
     onSettled: () => setLoadingPlanId(null),
@@ -158,16 +158,16 @@ export default function Pricing() {
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-wide text-brand-primary mb-4"
           >
             <Sparkles size={14} />
-            Pricing Plans
+            {t('pricingPage.badge')}
           </motion.div>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-xl md:text-3xl font-black tracking-tighter mb-6 text-white"
           >
-            Choose your{' '}
+            {t('pricingPage.heading')}{' '}
             <span className="bg-clip-text text-transparent bg-linear-to-r from-brand-secondary to-brand-primary">
-              Experience
+              {t('pricingPage.heading_highlight')}
             </span>
           </motion.h2>
           <motion.p
@@ -176,8 +176,7 @@ export default function Pricing() {
             transition={{ delay: 0.2 }}
             className="text-white/40 max-w-lg mx-auto font-light"
           >
-            Select the plan that fits your creative needs. From individual
-            creators to global brands.
+            {t('pricingPage.subtitle')}
           </motion.p>
         </div>
 
@@ -204,9 +203,10 @@ export default function Pricing() {
               const description =
                 plan.description ||
                 planDescriptions[plan.name] ||
-                'Unlock more of CircleSfera.';
+                t('pricingPage.default_description');
               const buttonText =
-                planButtonText[plan.name] || `Upgrade to ${plan.name}`;
+                planButtonText[plan.name] ||
+                t('pricingPage.default_button', { plan: plan.name });
 
               return (
                 <motion.div
@@ -222,7 +222,7 @@ export default function Pricing() {
                 >
                   {isPopular && (
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-brand-primary rounded-full text-xs font-black tracking-wide uppercase shadow-xl shadow-brand-primary/20 text-white">
-                      Most Popular
+                      {t('pricingPage.most_popular')}
                     </div>
                   )}
 
@@ -240,7 +240,7 @@ export default function Pricing() {
                       </span>
                       {isActive && (
                         <span className="ml-auto text-xs px-2.5 py-1 bg-brand-primary/20 text-brand-primary border border-brand-primary/30 rounded-full font-bold uppercase tracking-wider">
-                          Current Plan
+                          {t('pricingPage.current_plan')}
                         </span>
                       )}
                     </div>
@@ -275,7 +275,7 @@ export default function Pricing() {
                     {loadingPlanId === plan.id ? (
                       <Loader2 className="w-4 h-4 animate-spin text-white" />
                     ) : isActive ? (
-                      'Manage Subscription'
+                      t('pricingPage.manage_subscription')
                     ) : (
                       buttonText
                     )}

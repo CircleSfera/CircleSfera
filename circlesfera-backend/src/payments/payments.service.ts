@@ -1,28 +1,36 @@
-/** Trigger re-index */
 import {
   BadRequestException,
   ConflictException,
+  forwardRef,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { SubscriptionStatus } from '@prisma/client';
+import * as Sentry from '@sentry/nestjs';
 import type Stripe from 'stripe';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
+import { LiveService } from '../live/live.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SlackService } from '../slack/slack.service.js';
 import { UsersService } from '../users/users.service.js';
 
-/** Trigger re-index */
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(StripeService) private readonly stripeService: StripeService,
     @Inject(SlackService) private readonly slackService: SlackService,
     @Inject(EmailService) private readonly emailService: EmailService,
     @Inject(UsersService) private readonly usersService: UsersService,
+    @Optional()
+    @Inject(forwardRef(() => LiveService))
+    private readonly liveService?: LiveService,
   ) {}
 
   /** Map Stripe status to our SubscriptionStatus enum. */
@@ -230,7 +238,7 @@ export class PaymentsService {
             false,
           );
         } catch (err) {
-          console.error(
+          this.logger.error(
             `Failed to cancel Stripe sub ${other.stripeSubscriptionId}`,
             err,
           );
@@ -343,7 +351,7 @@ export class PaymentsService {
   private async dispatchStripeEvent(event: any) {
     const { type, data } = event;
 
-    console.log(`Processing Stripe webhook event: ${type}`);
+    this.logger.log(`Processing Stripe webhook event: ${type}`);
 
     switch (type) {
       case 'checkout.session.completed': {
@@ -392,7 +400,7 @@ export class PaymentsService {
             },
           });
 
-          console.log(
+          this.logger.log(
             `Successfully processed promotion payment for ${promotionId}`,
           );
           this.slackService
@@ -402,7 +410,7 @@ export class PaymentsService {
               currency: session.currency || 'eur',
               description: `Promotion ID: ${promotionId}`,
             })
-            .catch((e) => console.error(e));
+            .catch((e) => this.logger.error(e));
         } else if (metadata?.type === 'DIRECT_POST_UNLOCK') {
           // Handle Pay-Per-View Unlock
           const clientReferenceId = session.client_reference_id;
@@ -455,7 +463,7 @@ export class PaymentsService {
                 },
               });
             });
-            console.log(
+            this.logger.log(
               `Successfully processed Post Unlock for user ${clientReferenceId}`,
             );
             this.slackService
@@ -466,7 +474,7 @@ export class PaymentsService {
                 description: `User ${clientReferenceId} unlocked post ${postId} by creator ${creatorId}`,
                 userId: clientReferenceId,
               })
-              .catch((e) => console.error(e));
+              .catch((e) => this.logger.error(e));
           }
         } else if (metadata?.type === 'DIRECT_STORY_UNLOCK') {
           const clientReferenceId = session.client_reference_id;
@@ -564,7 +572,7 @@ export class PaymentsService {
                 },
               });
             });
-            console.log(
+            this.logger.log(
               `Successfully processed Tip from user ${clientReferenceId} to ${creatorId}`,
             );
             this.slackService
@@ -575,7 +583,51 @@ export class PaymentsService {
                 description: `User ${clientReferenceId} tipped creator ${creatorId}`,
                 userId: clientReferenceId,
               })
-              .catch((e) => console.error(e));
+              .catch((e) => this.logger.error(e));
+          }
+        } else if (metadata?.type === 'DIRECT_LIVE_GIFT') {
+          const clientReferenceId = session.client_reference_id;
+          const { liveGiftId, streamId, giftId, creatorId } = metadata;
+          const amount = session.amount_total || 0;
+          const paymentIntentId =
+            typeof session.payment_intent === 'string'
+              ? session.payment_intent
+              : session.payment_intent?.id || null;
+
+          if (
+            clientReferenceId &&
+            liveGiftId &&
+            streamId &&
+            giftId &&
+            creatorId &&
+            this.liveService
+          ) {
+            await this.liveService.completeGiftPayment({
+              liveGiftId,
+              senderId: clientReferenceId,
+              streamId,
+              giftId,
+              creatorId,
+              amountCents: amount,
+              currency: session.currency || 'eur',
+              paymentIntentId,
+            });
+            this.logger.log(
+              `Successfully processed Live Gift ${liveGiftId} from ${clientReferenceId}`,
+            );
+            this.slackService
+              .sendPaymentAlert({
+                eventType: 'Live Gift',
+                amount,
+                currency: session.currency || 'eur',
+                description: `User ${clientReferenceId} gifted ${giftId} on stream ${streamId}`,
+                userId: clientReferenceId,
+              })
+              .catch((e) => this.logger.error(e));
+          } else if (!this.liveService) {
+            this.logger.error(
+              'LiveService not available to complete DIRECT_LIVE_GIFT',
+            );
           }
         } else if (metadata?.type === 'STRIPE_SUBSCRIPTION') {
           // Handle Creator Subscriptions
@@ -617,7 +669,7 @@ export class PaymentsService {
               },
             });
 
-            console.log(
+            this.logger.log(
               `Successfully processed Creator Subscription from ${subscriberId} to ${creatorId}`,
             );
 
@@ -641,7 +693,7 @@ export class PaymentsService {
                   `Suscripción a ${creator.profile.username}`,
                   formattedAmount,
                 )
-                .catch((e) => console.error(e));
+                .catch((e) => this.logger.error(e));
             }
 
             this.slackService
@@ -652,7 +704,7 @@ export class PaymentsService {
                 description: `User ${subscriberId} subscribed to creator ${creatorId}`,
                 userId: subscriberId,
               })
-              .catch((e) => console.error(e));
+              .catch((e) => this.logger.error(e));
           }
         } else {
           // Handle Subscriptions (Existing logic)
@@ -661,7 +713,7 @@ export class PaymentsService {
           const stripeSubscriptionId = session.subscription as string;
 
           if (!userId || !planId || !stripeSubscriptionId) {
-            console.warn(
+            this.logger.warn(
               'Checkout session completed but missing metadata or subscription ID',
             );
             return;
@@ -715,7 +767,7 @@ export class PaymentsService {
 
           await this.enforceSingleActivePlatformPlan(userId, planId);
 
-          console.log(
+          this.logger.log(
             `Successfully processed checkout for user ${userId}, plan ${planId}`,
           );
 
@@ -731,7 +783,7 @@ export class PaymentsService {
               }).format((session.amount_total || 0) / 100);
               this.emailService
                 .sendSubscriptionReceipt(user.email, plan.name, formattedAmount)
-                .catch((e) => console.error(e));
+                .catch((e) => this.logger.error(e));
             }
           }
 
@@ -743,7 +795,7 @@ export class PaymentsService {
               description: `User ${userId} subscribed to plan ${planId}`,
               userId: userId,
             })
-            .catch((e) => console.error(e));
+            .catch((e) => this.logger.error(e));
         }
 
         break;
@@ -891,7 +943,8 @@ export class PaymentsService {
       }
 
       default:
-        console.log(`Unhandled event type: ${type}`);
+        this.logger.warn(`Unhandled Stripe event type: ${type}`);
+        Sentry.captureMessage(`Unhandled Stripe event: ${type}`, 'warning');
     }
   }
 
