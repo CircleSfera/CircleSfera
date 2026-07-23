@@ -1,84 +1,114 @@
 # 05-Deployment-Strategy
 ## CircleSfera
-**Version:** 3.0 aligned with the real project  
-**Date:** April 2026  
-**Source of truth:** real project stack + current schema capabilities
+**Version:** 3.1 — current production vs future target  
+**Date:** July 2026  
+**Source of truth:** live OVH stack + `docker-compose.prod.yml` + `.github/workflows/deploy.yml`
+
+---
+
+## 0. How to read this document
+
+| Horizon | Status | Topology |
+| -------- | ------ | -------- |
+| **Current production** | **In use** | OVH VPS, Docker Compose, GitHub Actions, host-terminated TLS |
+| **Future target** | **Not in use yet** | Cloudflare + ECS/AWS (or equivalent). Planned later; do not treat as live |
+
+Cloudflare Pages, ECS Fargate, RDS, ElastiCache, etc. appear below only as a **future** option. Operators and agents must not assume they are deployed today.
 
 ---
 
 ## 1. Objective
 
-This document replaces the previous deployment strategy to align it with CircleSfera's real architecture. The main correction is operational: the strategy can no longer assume a small MVP backend without stories, chat, or promotions, and it can no longer mix Prisma with TypeORM migration instructions.
-
-CircleSfera requires infrastructure ready for a social app with media, feeds, stories, chat, Stripe billing, notifications, search, and future support for embeddings with pgvector.
+Document how CircleSfera is deployed **today**, and separately record a longer-term cloud topology that may be adopted later. The stack includes media, feeds, stories, chat, Stripe, notifications, search, and pgvector embeddings — all already running on the current VPS composition.
 
 ---
 
-## 2. Target architecture
+## 2. Current production (OVH VPS) — source of truth
 
-### 2.1 Layers
+### 2.1 Topology
+
+- **Host:** OVH VPS.
+- **Orchestration:** `docker-compose.prod.yml` (Postgres/pgvector, Redis, NestJS backend, Vite/nginx frontend, compose nginx proxy on HTTP).
+- **CI/CD:** GitHub Actions workflow `Deploy to OVH VPS` on push to `main` (lint/tests, Prisma schema↔migration check, build/push GHCR images, SSH deploy, post-deploy API smoke).
+- **TLS/SSL:** certificates generated and renewed **on the VPS host** reverse proxy. The compose nginx service only listens on HTTP (e.g. `8082→80`) behind that host proxy.
+- **Secrets:** `.env.production` on the VPS (often written from `ENV_PRODUCTION_B64` at deploy time).
+- **Migrations:** `prisma migrate deploy` in the backend container entrypoint before Nest boots.
+- **Media:** uploads volume / Cloudinary (or S3-compatible) as configured in env — not Cloudflare R2 in the current default.
+
+### 2.2 Local development
+
+- `docker-compose.yml` for Postgres, Redis, backend, frontend.
+- Stripe test mode and local env files (never commit secrets).
+
+### 2.3 What “healthy deploy” means today
+
+1. Backend container `running` + Docker healthcheck `healthy`.
+2. Post-deploy smoke against nginx: `/api/v1/health`, `/feed/foryou`, `/stories`, `/live/active` must not return 5xx.
+3. Schema drift check in CI: migrations must match `schema.prisma` before images are built.
+
+---
+
+## 3. Future target architecture (not deployed)
+
+> **Deferred.** Do not implement or operate as if this were production until product explicitly migrates off the OVH VPS.
+
+### 3.1 Layers (aspirational)
+
 - Cloudflare for DNS, CDN, WAF, and DDoS protection.
-- Web frontend deployed on static hosting/CDN.
-- NestJS backend deployed in containers.
+- Web frontend on static hosting/CDN.
+- NestJS backend in containers.
 - Managed PostgreSQL as the primary database.
 - Redis for cache, queues, and ephemeral operations.
 - S3/R2-compatible object storage for media.
 - Stripe as the billing provider.
 - Transactional email provider.
 
-### 2.2 Deployment recommendation
-
-For CircleSfera, a simple and reversible strategy is preferable:
+### 3.2 Possible cloud mapping (later)
 
 - **Frontend**: Cloudflare Pages or S3 + CloudFront.
-- **Backend**: ECS Fargate, or Render/Fly/railway-like only if you need early speed; for serious production, prefer ECS Fargate or EC2 with Docker.
-- **PostgreSQL**: RDS PostgreSQL, or Neon/Supabase at a very early stage; for production with more control, RDS.
+- **Backend**: ECS Fargate (or similar managed containers).
+- **PostgreSQL**: RDS PostgreSQL (EU region preferred).
 - **Redis**: ElastiCache Redis.
 - **Media**: Cloudflare R2 or S3.
 
-The most balanced option for CircleSfera today is **Cloudflare + ECS Fargate + RDS PostgreSQL + ElastiCache + R2/S3**, because it reduces operational load compared to Kubernetes and avoids dependence on an overly handmade stack.
+A balanced future option is **Cloudflare + ECS Fargate + RDS + ElastiCache + R2/S3**, to reduce hand-operated load versus a single VPS — only when the team chooses that migration.
 
 ---
 
-## 3. Regions and data residency
+## 4. Regions and data residency
 
-### 3.1 Recommended regions
+### 4.1 Recommended regions (when on managed cloud)
+
 - Primary: EU, preferably `eu-west-1` or `eu-central-1`.
 - Future secondary: another EU region for DR.
-- Avoid using a US region as primary if your regulatory and residency focus is the EU.
+- Avoid using a US region as primary if regulatory focus is the EU.
 
-### 3.2 Residency rule
+### 4.2 Residency rule
 
-If CircleSfera processes European user data and wants a strong compliance posture, primary user data, profiles, messages, reports, and billing metadata must reside in the EU. This affects the database, backups, logs, and email or analytics providers. This area touches compliance and must be validated legally with DPAs and real international transfer flows.
+If CircleSfera processes European user data and wants a strong compliance posture, primary user data, profiles, messages, reports, and billing metadata must reside in the EU. This affects the database, backups, logs, and email or analytics providers. Validate legally with DPAs and transfer flows.
+
+**Today on OVH:** keep the VPS and backups in an EU location consistent with this rule.
 
 ---
 
-## 4. Environments
+## 5. Environments
 
 ### Development
 - Local Docker Compose.
-- Local PostgreSQL.
-- Local Redis.
-- Optional bucket/localstack or mocks.
+- Local PostgreSQL + Redis.
 - Stripe test mode.
 
-### Staging
-- Infrastructure nearly identical to production.
-- Separate database.
-- Stripe test keys.
-- Webhooks and email in sandbox.
-- Synthetic or anonymized data.
+### Staging (optional / when available)
+- Infrastructure as close as practical to production.
+- Separate database and Stripe test keys.
 
-### Production
-- Basic high availability.
-- Full observability.
-- Centralized secret management.
-- Automated backups.
-- Operational runbooks.
+### Production (current)
+- OVH VPS + Compose as in §2.
+- Observability and backups as implemented on that host (see also backups doc; treat AWS-specific wording there as future-oriented where it conflicts).
 
 ---
 
-## 5. Backend deployment
+## 6. Backend deployment (applies to current Compose and any future container host)
 
 ### 5.1 Packaging
 
@@ -172,36 +202,33 @@ For CircleSfera, given social content and messages, **private bucket + controlle
 
 ## 9. CI/CD
 
-### 9.1 Recommended pipeline
-- Lint.
-- Unit tests.
-- Integration tests.
-- `prisma validate`.
-- `prisma generate`.
-- Backend and frontend build.
-- Docker image build.
-- Dependency and image scan.
-- Deploy to staging.
-- Smoke tests.
-- Manual approval for production.
-- Production deploy.
+### 9.1 Current pipeline (OVH)
+- Trigger: push to `main` (and optional `workflow_dispatch`).
+- Lint + unit tests (backend; frontend lint on deploy workflow).
+- Prisma schema ↔ migrations alignment check (shadow Postgres).
+- Build and push images to GHCR.
+- SSH deploy on the VPS: pull images, `compose up`, wait for healthy, API smoke (`/health`, feed, stories, live).
+- Slack webhook notifications when configured.
 
-### 9.2 Branching
-- `main`: production.
-- `develop`: integration.
-- `feature/*`: work in progress.
-- `hotfix/*`: urgent fixes.
+### 9.2 Future enhancements (optional)
+- Dedicated staging environment and manual approval before production.
+- Broader Playwright suite in CI (today e2e is local / optional).
+- Image vulnerability scanning as a hard gate.
 
-### 9.3 Rollout policy
-- Blue/green or rolling deployment with health checks.
-- Fast rollback if smoke tests or key metrics fail.
+### 9.3 Branching (practical today)
+- `main`: production (direct pushes are the usual path for this repo).
+- Feature branches / PRs optional; `pr.yml` still runs lint/tests/build when used.
+
+### 9.4 Rollout policy (current)
+- Replace containers via Compose; rely on healthcheck + post-deploy smoke; roll back by redeploying a previous image/commit if smoke fails.
 
 ---
 
 ## 10. Secrets and configuration
 
 ### 10.1 Secret management
-Use a centralized manager, such as AWS Secrets Manager or SSM Parameter Store.
+- **Today:** GitHub Actions secrets (e.g. `ENV_PRODUCTION_B64`, VPS SSH) and `.env.production` on the VPS (not in git).
+- **Future (if migrating to AWS):** AWS Secrets Manager or SSM Parameter Store.
 
 ### 10.2 Critical secrets
 - `DATABASE_URL`
@@ -294,7 +321,8 @@ CircleSfera's priority at this stage should not be extreme cost optimization, bu
 ## 15. Closed decisions
 
 - Any official reference to TypeORM migrations is removed.
-- Prisma Migrate becomes the only documented migration strategy.
-- Infrastructure must explicitly support stories, chat, media processing, Stripe webhooks, and pgvector.
-- Kubernetes/EKS is not an initial priority; ECS Fargate or a managed equivalent is preferred.
+- Prisma Migrate is the only documented migration strategy.
+- **Current production is OVH VPS + Docker Compose + GitHub Actions**; Cloudflare/ECS/AWS is a **future** target only.
+- Infrastructure must support stories, chat, media processing, Stripe webhooks, and pgvector (already on the VPS stack).
+- Kubernetes/EKS is not a near-term priority; if leaving the VPS later, prefer ECS Fargate or a managed equivalent.
 - European user data must remain on EU infrastructure unless a validated legal and contractual exception applies.

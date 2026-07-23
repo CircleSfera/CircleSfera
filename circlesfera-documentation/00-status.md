@@ -29,8 +29,8 @@ When in doubt: `schema.prisma` → implemented code → API contracts → these 
 
 ## Production infra (current)
 
-- Deploy target: OVH VPS via GitHub Actions + `docker-compose.prod.yml`.
+- Deploy target: **OVH VPS** via GitHub Actions + `docker-compose.prod.yml` (this is production today).
 - **TLS/SSL**: certificates are generated and renewed **on the VPS host**; the compose nginx proxy is HTTP-only behind the host reverse proxy.
-- Doc **05-deployment-strategy** still describes a longer-term target (Cloudflare/ECS/etc.) and should not be read as the live topology.
+- Doc **05-deployment-strategy**: §2 = live OVH topology; Cloudflare/ECS/AWS described only as a **future** target (not in use).
 - API inventory regenerated in [03-api-detailed-endpoints.md](./03-api-detailed-endpoints.md) (Jul 2026).
 - [ADR-0001](./adr/0001-profile-embedding-retention.md): keep `ProfileEmbedding`; writer on update + backfill script available.
