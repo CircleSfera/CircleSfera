@@ -725,10 +725,30 @@
     "remote_user": "Usuario remoto"
   },
   "creator": {
-    "title": "Panel de Creador",
+    "title": "Creator Studio",
     "subtitle": "Gestiona tu contenido, finanzas y audiencia",
     "new_content": "Nuevo Contenido",
     "monetization_label": "Monetización",
+    "back_to_app": "Volver a CircleSfera",
+    "back_short": "App",
+    "open_nav": "Abrir navegación",
+    "loading_module": "Cargando módulo...",
+    "nav": {
+      "dashboard": "Dashboard",
+      "overview": "Resumen",
+      "analytics": "Analíticas",
+      "monetization": "Monetización",
+      "ads": "Publicidad",
+      "content_group": "Contenido",
+      "content": "Publicaciones",
+      "stories": "Historias"
+    },
+    "money": {
+      "sections": "Secciones de monetización",
+      "income": "Ingresos",
+      "wallet": "Wallet",
+      "plans": "Planes"
+    },
     "dashboard": {
       "see_all": "Ver todo",
       "content_performance": "Rendimiento del Contenido",
@@ -746,7 +766,10 @@
       "retention": "Retención",
       "most_active_day": "Tu audiencia es más activa los {{day}}",
       "most_active_hour": "A las {{hour}}:00 (Local)",
-      "retention_chart_aria": "Gráfico circular de retención de audiencia: {{rate}}%"
+      "retention_chart_aria": "Gráfico circular de retención de audiencia: {{rate}}%",
+      "analytics_teaser_title": "Analíticas avanzadas",
+      "analytics_teaser_desc": "Explora evolución de audiencia, geografía, retención y horas pico.",
+      "see_analytics": "Ver analíticas"
     },
     "analytics": {
       "audience_evolution": "Evolución de Audiencia",
@@ -776,6 +799,9 @@
       "center": "Centro de Publicidad",
       "marketing": "Performance Marketing para Creadores",
       "new_campaign": "Nueva Campaña",
+      "campaigns": "Campañas",
+      "select_campaign": "Selecciona una campaña de la lista",
+      "repeat": "Repetir",
       "no_active": "Sin campañas activas",
       "boost_desc": "Impulsa tus mejores publicaciones para llegar a miles de personas nuevas y multiplicar tus seguidores.",
       "create_first": "Crear mi primera campaña",

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import type { CreatorStory } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse } from '../../types';
+import { Button } from '../ui';
 
 export default function CreatorStoriesTab() {
   const [page, setPage] = useState(1);
@@ -25,7 +26,7 @@ export default function CreatorStoriesTab() {
   return (
     <div className="space-y-4 pb-10">
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
           {['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9', 's10'].map(
             (id) => (
               <div
@@ -36,7 +37,7 @@ export default function CreatorStoriesTab() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
           {data?.data?.map((story) => (
             <motion.div
               layout
@@ -72,11 +73,11 @@ export default function CreatorStoriesTab() {
               {/* Top Bar: Status */}
               <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
                 {isExpired(story.expiresAt) ? (
-                  <span className="px-2.5 py-1 bg-zinc-900/80 backdrop-blur-xl border border-white/5 rounded-lg text-xs font-black uppercase tracking-wide text-zinc-400">
+                  <span className="px-2.5 py-1 bg-zinc-900/80 backdrop-blur-xl border border-white/5 rounded-lg text-xs font-semibold uppercase tracking-wide text-zinc-400">
                     Expirada
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1 px-2.5 py-1 bg-brand-primary text-white backdrop-blur-xl rounded-lg text-xs font-black uppercase tracking-wide shadow-lg shadow-brand-primary/20">
+                  <span className="flex items-center gap-1 px-2.5 py-1 bg-brand-primary text-white backdrop-blur-xl rounded-lg text-xs font-semibold uppercase tracking-wide">
                     <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
                     Activa
                   </span>
@@ -94,7 +95,7 @@ export default function CreatorStoriesTab() {
                     <div className="p-1 bg-white/10 backdrop-blur-md rounded-lg border border-white/5">
                       <Eye size={12} className="text-white" />
                     </div>
-                    <span className="text-white font-black text-xs tracking-tight">
+                    <span className="text-white font-semibold text-xs tracking-tight">
                       {story._count.views.toLocaleString()}
                     </span>
                   </div>
@@ -102,7 +103,7 @@ export default function CreatorStoriesTab() {
                     <div className="p-1 bg-pink-500/20 backdrop-blur-md rounded-lg border border-pink-500/20">
                       <Heart size={12} className="text-pink-400" />
                     </div>
-                    <span className="text-white font-black text-xs tracking-tight">
+                    <span className="text-white font-semibold text-xs tracking-tight">
                       {story._count.reactions.toLocaleString()}
                     </span>
                   </div>
@@ -139,7 +140,7 @@ export default function CreatorStoriesTab() {
           <div className="p-6 bg-white/5 rounded-full w-fit mx-auto mb-6">
             <Clock size={48} className="text-zinc-700" />
           </div>
-          <h4 className="text-white font-black uppercase text-xl mb-2">
+          <h4 className="text-white font-semibold text-xl mb-2">
             No hay historias
           </h4>
           <p className="text-zinc-400 text-sm max-w-xs mx-auto">
@@ -150,23 +151,30 @@ export default function CreatorStoriesTab() {
       )}
 
       {data?.meta && data.meta.totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-12">
-          {Array.from({ length: data.meta.totalPages }, (_, i) => i + 1).map(
-            (p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPage(p)}
-                className={`w-10 h-10 rounded-xl text-xs font-black uppercase transition-all ${
-                  page === p
-                    ? 'bg-white text-black shadow-xl shadow-white/5'
-                    : 'bg-white/5 text-zinc-400 hover:text-white border border-white/5'
-                }`}
-              >
-                {p}
-              </button>
-            ),
-          )}
+        <div className="flex items-center justify-center gap-2 mt-8 flex-wrap">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="min-h-11"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Anterior
+          </Button>
+          <span className="text-xs font-semibold text-gray-400 px-2">
+            {page} / {data.meta.totalPages}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="min-h-11"
+            disabled={page >= data.meta.totalPages}
+            onClick={() =>
+              setPage((p) => Math.min(data.meta.totalPages, p + 1))
+            }
+          >
+            Siguiente
+          </Button>
         </div>
       )}
     </div>

@@ -43,34 +43,35 @@ export default function CreatorPostsTab({ onPromote }: Props) {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex gap-2">
-        {['', 'POST', 'FRAME'].map((t) => (
+      <div className="flex flex-col sm:flex-row gap-2 w-full">
+        {['', 'POST', 'FRAME'].map((filter) => (
           <Button
-            key={t}
-            variant={typeFilter === t ? 'primary' : 'ghost'}
+            key={filter || 'all'}
+            variant={typeFilter === filter ? 'primary' : 'ghost'}
             size="sm"
+            className="w-full sm:w-auto min-h-11"
             onClick={() => {
-              setTypeFilter(t);
+              setTypeFilter(filter);
               setPage(1);
             }}
           >
-            {t === '' ? 'Todos' : t === 'POST' ? 'Posts' : 'Frames'}
+            {filter === '' ? 'Todos' : filter === 'POST' ? 'Posts' : 'Frames'}
           </Button>
         ))}
       </div>
 
       {/* Posts Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-          {['s1', 's2', 's3', 's4', 's5', 's6'].map((id) => (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          {['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'].map((id) => (
             <div
               key={id}
-              className="glass-panel rounded-lg h-48 md:h-64 animate-pulse bg-white/5"
+              className="glass-panel rounded-lg aspect-4/5 animate-pulse bg-white/5"
             />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {data?.data?.map((post) => (
             <div
               key={post.id}
@@ -157,14 +158,14 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col xs:flex-row items-stretch gap-2">
                   <Button
                     variant="secondary"
                     onClick={() => setInsightsPostId(post.id)}
-                    className="flex-1 bg-brand-primary/10 text-brand-primary border-brand-primary/20 hover:bg-brand-primary/20 group/btn"
+                    className="flex-1 min-h-11 bg-brand-primary/10 text-brand-primary border-brand-primary/20 hover:bg-brand-primary/20 group/btn"
                   >
                     <BarChart3
-                      size={12}
+                      size={14}
                       className="group-hover:scale-110 transition-transform mr-2"
                     />
                     Insights
@@ -184,10 +185,10 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                       }
                       onPromote(post);
                     }}
-                    className="flex-1 bg-white/5 text-white border-white/10 hover:bg-white/10 group/btn"
+                    className="flex-1 min-h-11 bg-white/5 text-white border-white/10 hover:bg-white/10 group/btn"
                   >
                     <Megaphone
-                      size={12}
+                      size={14}
                       className="group-hover:rotate-12 transition-transform mr-2"
                     />
                     Boost
@@ -209,23 +210,30 @@ export default function CreatorPostsTab({ onPromote }: Props) {
 
       {/* Pagination */}
       {data?.meta && data.meta.totalPages > 1 && (
-        <div className="flex justify-center gap-2">
-          {Array.from({ length: data.meta.totalPages }, (_, i) => i + 1).map(
-            (p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPage(p)}
-                className={`w-8 h-8 rounded-lg text-sm font-bold transition-all ${
-                  page === p
-                    ? 'bg-brand-primary text-white'
-                    : 'bg-white/5 text-gray-500 hover:bg-white/10'
-                }`}
-              >
-                {p}
-              </button>
-            ),
-          )}
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="min-h-11"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Anterior
+          </Button>
+          <span className="text-xs font-semibold text-gray-400 px-2">
+            {page} / {data.meta.totalPages}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="min-h-11"
+            disabled={page >= data.meta.totalPages}
+            onClick={() =>
+              setPage((p) => Math.min(data.meta.totalPages, p + 1))
+            }
+          >
+            Siguiente
+          </Button>
         </div>
       )}
 

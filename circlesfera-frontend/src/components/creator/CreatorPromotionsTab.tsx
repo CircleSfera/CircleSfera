@@ -4,28 +4,26 @@ import {
   CheckCircle2,
   DollarSign,
   Image as ImageIcon,
-  Megaphone,
   Pause,
   Play,
   Plus,
   RefreshCw,
   TrendingUp,
-  X,
   XCircle,
   Zap,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type {
   CancelPromotionResult,
-  CreatorPost,
   CreatorPromotion,
 } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse } from '../../types';
+import { AdminListRow } from '../admin/AdminList';
+import { AdminSplitView } from '../admin/AdminSplitView';
 import { Button } from '../ui';
-
-// ─── Helpers ────────────────────────────────────────────────────
+import NewPromoModal from './NewPromoModal';
 
 function computeProgress(startDate: string, endDate: string): number {
   const start = new Date(startDate).getTime();
@@ -64,293 +62,23 @@ function redirectToCheckout(url: string | null | undefined) {
   window.location.href = url;
 }
 
-// ─── New Promotion Modal ────────────────────────────────────────
-
-interface NewPromoModalProps {
-  onClose: () => void;
-  onToast: (msg: string, type: 'success' | 'error') => void;
+function isActiveStatus(status: string) {
+  return [
+    'ACTIVE',
+    'PENDING',
+    'PAUSED',
+    'active',
+    'pending',
+    'paused',
+  ].includes(status);
 }
 
-function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const [step, setStep] = useState<'select' | 'configure'>('select');
-  const [selectedPost, setSelectedPost] = useState<CreatorPost | null>(null);
-  const [budget, setBudget] = useState(5);
-  const [duration, setDuration] = useState(7);
-  const [objective, setObjective] = useState('PROFILE_VISITS');
-  const [countries, setCountries] = useState('');
-  const [interests, setInterests] = useState('');
-
-  const { data: postsData, isLoading: loadingPosts } = useQuery<
-    PaginatedResponse<CreatorPost>
-  >({
-    queryKey: ['creator', 'posts', 'promo-select'],
-    queryFn: () => creatorApi.getPosts(1, 20).then((r) => r.data),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: () =>
-      creatorApi.createPromotion({
-        targetType:
-          selectedPost?.type?.toLowerCase() === 'frame' ? 'frame' : 'post',
-        targetId: selectedPost!.id,
-        dailyBudget: budget,
-        durationDays: duration,
-        currency: 'EUR',
-        objective,
-        countries: countries.trim() || undefined,
-        interests: interests.trim() || undefined,
-      }),
-    onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['creator', 'promotions'] });
-      const url = response.data?.url;
-      if (!url) {
-        onToast(t('creator.promotions.error_create'), 'error');
-        return;
-      }
-      onToast(t('creator.promotions.redirecting'), 'success');
-      redirectToCheckout(url);
-    },
-    onError: () => onToast(t('creator.promotions.error_create'), 'error'),
-  });
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
-    >
-      <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        className="w-full max-w-xl bg-zinc-950 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-8 border-b border-white/5">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-brand-primary/10 rounded-lg border border-brand-primary/20">
-              <Megaphone size={24} className="text-brand-primary" />
-            </div>
-            <div>
-              <h3 className="font-black text-white text-xl uppercase tracking-tight">
-                {step === 'select'
-                  ? t('creator.promotions.select_content')
-                  : t('creator.promotions.configure_reach')}
-              </h3>
-              <p className="text-zinc-400 text-xs font-black uppercase tracking-wide mt-1">
-                {t('creator.promotions.boost_best')}
-              </p>
-            </div>
-          </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X size={20} className="text-zinc-400 hover:text-white" />
-          </Button>
-        </div>
-
-        {/* Content */}
-        <div className="p-8 max-h-[60vh] overflow-y-auto no-scrollbar">
-          {step === 'select' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {loadingPosts ? (
-                ['promo-sk-1', 'promo-sk-2', 'promo-sk-3', 'promo-sk-4'].map(
-                  (id) => (
-                    <div
-                      key={id}
-                      className="aspect-4/5 rounded-lg bg-white/5 animate-pulse"
-                    />
-                  ),
-                )
-              ) : postsData?.data?.length ? (
-                postsData.data.map((post) => (
-                  <button
-                    key={post.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedPost(post);
-                      setStep('configure');
-                    }}
-                    className="relative aspect-9/16 rounded-xl overflow-hidden border border-white/5 hover:border-brand-primary/30 transition-all group cursor-pointer"
-                  >
-                    {post.media?.[0]?.url ? (
-                      <img
-                        src={post.media[0].url}
-                        alt=""
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <ImageIcon size={32} className="text-zinc-800" />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-60" />
-                    <div className="absolute bottom-3 left-3 right-3 text-left">
-                      <p className="text-white text-xs font-bold truncate">
-                        {post.caption || t('creator.promotions.untitled')}
-                      </p>
-                    </div>
-                  </button>
-                ))
-              ) : (
-                <p className="text-center text-zinc-600 py-12 col-span-2">
-                  {t('creator.promotions.no_posts')}
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-10">
-              {/* Selected post preview */}
-              <div className="flex items-center gap-5 p-5 rounded-xl bg-white/5 border border-white/5">
-                <div className="w-16 h-16 rounded-lg bg-zinc-900 overflow-hidden shrink-0 border border-white/5">
-                  {selectedPost?.media?.[0]?.url ? (
-                    <img
-                      src={selectedPost.media[0].url}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <ImageIcon size={20} className="text-zinc-800" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-black truncate mb-1">
-                    {selectedPost?.caption ||
-                      t('creator.promotions.selected_post')}
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setStep('select')}
-                    className="text-brand-primary hover:text-white mt-1 px-0"
-                  >
-                    {t('creator.promotions.change_post')}
-                  </Button>
-                </div>
-              </div>
-
-              {/* Budget */}
-              <fieldset className="space-y-4 border-none p-0 m-0">
-                <legend className="block text-xs font-black uppercase tracking-wide text-zinc-400 mb-4">
-                  {t('creator.promotions.daily_budget', { currency: 'EUR' })}
-                </legend>
-                <div className="grid grid-cols-4 gap-3">
-                  {[5, 10, 25, 50].map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => setBudget(v)}
-                      className={`py-4 rounded-lg text-xs font-black transition-all border ${
-                        budget === v
-                          ? 'bg-white text-black border-white shadow-xl shadow-white/5'
-                          : 'bg-white/5 text-zinc-400 border-white/5 hover:bg-white/10'
-                      }`}
-                    >
-                      €{v}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-
-              <fieldset className="space-y-3 border-none p-0 m-0">
-                <legend className="block text-xs font-black uppercase tracking-wide text-zinc-400 mb-2">
-                  {t('creator.promotions.objective', 'Objective')}
-                </legend>
-                <select
-                  value={objective}
-                  onChange={(e) => setObjective(e.target.value)}
-                  className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white text-sm"
-                >
-                  <option value="PROFILE_VISITS">
-                    {t(
-                      'creator.promotions.objective_profile',
-                      'Profile Visits',
-                    )}
-                  </option>
-                  <option value="FOLLOWS">
-                    {t('creator.promotions.objective_follows', 'Get Followers')}
-                  </option>
-                  <option value="TIER_CONVERSIONS">
-                    {t(
-                      'creator.promotions.objective_conversions',
-                      'Subscription Conversions',
-                    )}
-                  </option>
-                </select>
-                <input
-                  type="text"
-                  value={countries}
-                  onChange={(e) => setCountries(e.target.value)}
-                  placeholder={t(
-                    'creator.promotions.countries_placeholder',
-                    'Countries (comma-separated, optional)',
-                  )}
-                  className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white text-sm"
-                />
-                <input
-                  type="text"
-                  value={interests}
-                  onChange={(e) => setInterests(e.target.value)}
-                  placeholder={t(
-                    'creator.promotions.interests_placeholder',
-                    'Interests (comma-separated, optional)',
-                  )}
-                  className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white text-sm"
-                />
-              </fieldset>
-
-              {/* Duration */}
-              <fieldset className="space-y-4 border-none p-0 m-0">
-                <legend className="block text-xs font-black uppercase tracking-wide text-zinc-400 mb-4">
-                  {t('creator.promotions.campaign_duration')}
-                </legend>
-                <div className="grid grid-cols-4 gap-3">
-                  {[3, 7, 14, 30].map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setDuration(d)}
-                      className={`py-4 rounded-lg text-xs font-black transition-all border ${
-                        duration === d
-                          ? 'bg-brand-primary text-white border-brand-primary shadow-xl shadow-brand-primary/20'
-                          : 'bg-white/5 text-zinc-400 border-white/5 hover:bg-white/10'
-                      }`}
-                    >
-                      {t('creator.promotions.days', { count: d })}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        {step === 'configure' && (
-          <div className="p-8 border-t border-white/5 bg-black/40">
-            <Button
-              variant="primary"
-              size="lg"
-              className="w-full rounded-full font-black uppercase tracking-wide shadow-2xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-100"
-              onClick={() => createMutation.mutate()}
-              isLoading={createMutation.isPending}
-            >
-              {t('creator.promotions.boost_total', {
-                currency: '€',
-                total: budget * duration,
-              })}
-            </Button>
-          </div>
-        )}
-      </motion.div>
-    </motion.div>
-  );
+function isCompletedStatus(status: string) {
+  return ['COMPLETED', 'CANCELLED', 'completed', 'cancelled'].includes(status);
 }
-
-// ─── Main Component ─────────────────────────────────────────────
 
 interface Props {
-  onToast: (msg: string, type: 'success' | 'error') => void;
+  onToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
 export default function CreatorPromotionsTab({ onToast }: Props) {
@@ -359,6 +87,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
   const [page, setPage] = useState(1);
   const [showNewPromo, setShowNewPromo] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<PaginatedResponse<CreatorPromotion>>({
     queryKey: ['creator', 'promotions', page],
@@ -404,16 +133,19 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
     onError: () => onToast(t('creator.promotions.error_resume'), 'error'),
   });
 
-  const activePromos =
-    data?.data?.filter((p) =>
-      ['ACTIVE', 'PENDING', 'PAUSED', 'active', 'pending', 'paused'].includes(
-        p.status,
-      ),
-    ) || [];
-  const completedPromos =
-    data?.data?.filter((p) =>
-      ['COMPLETED', 'CANCELLED', 'completed', 'cancelled'].includes(p.status),
-    ) || [];
+  const activePromos = useMemo(
+    () => data?.data?.filter((p) => isActiveStatus(p.status)) || [],
+    [data],
+  );
+  const completedPromos = useMemo(
+    () => data?.data?.filter((p) => isCompletedStatus(p.status)) || [],
+    [data],
+  );
+
+  const listPromos = [...activePromos, ...completedPromos];
+  const selected = selectedId
+    ? listPromos.find((p) => p.id === selectedId) || null
+    : null;
 
   const handleRepeat = (promo: CreatorPromotion) => {
     const remaining = promo.budget;
@@ -422,7 +154,6 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
       return;
     }
 
-    // Reinvest remaining balance as a new total for 7 days
     creatorApi
       .createPromotion({
         targetType: promo.targetType,
@@ -444,22 +175,198 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
       .catch(() => onToast(t('creator.promotions.error_repeat'), 'error'));
   };
 
+  const extendPromo = (promo: CreatorPromotion) => {
+    const next = new Date(promo.endDate);
+    next.setDate(next.getDate() + 1);
+    creatorApi
+      .updatePromotion(promo.id, { endDate: next.toISOString() })
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ['creator', 'promotions'] });
+        onToast(t('creator.promotions.extended'), 'success');
+      })
+      .catch(() => onToast(t('creator.promotions.error_edit'), 'error'));
+  };
+
+  const renderDetail = (promo: CreatorPromotion) => {
+    const pct = computeProgress(promo.startDate, promo.endDate);
+    const daysLeft = computeDaysLeft(promo.endDate);
+    const active = isActiveStatus(promo.status);
+
+    return (
+      <div className="p-4 sm:p-6 space-y-5">
+        <div className="flex gap-4 items-start">
+          <div className="w-20 h-20 rounded-xl bg-zinc-900 overflow-hidden shrink-0 border border-white/10">
+            {promo.target?.thumbnail ? (
+              <img
+                src={promo.target.thumbnail}
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <ImageIcon size={28} className="text-zinc-700" />
+              </div>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-white font-semibold text-lg truncate">
+              {promo.target?.caption ||
+                t('creator.promotions.campaign', { type: promo.targetType })}
+            </h3>
+            <p className="text-gray-400 text-xs font-semibold mt-1">
+              {t('creator.promotions.started_on', {
+                date: formatDate(promo.startDate),
+              })}
+            </p>
+            {(promo.status === 'PAUSED' || promo.status === 'paused') && (
+              <span className="inline-block mt-2 text-amber-400 text-xs font-semibold">
+                {t('creator.promotions.paused_badge')}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+            <p className="text-gray-400 text-xs font-semibold mb-1">
+              {t('creator.promotions.investment')}
+            </p>
+            <p className="text-white font-bold text-lg">
+              {promo.budget} {promo.currency}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+            <p className="text-gray-400 text-xs font-semibold mb-1">
+              {t('creator.promotions.total_reach')}
+            </p>
+            <p className="text-brand-primary font-bold text-lg">
+              +{promo.reach.toLocaleString()}
+            </p>
+          </div>
+        </div>
+
+        {active && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs font-semibold text-gray-400">
+              <span>{t('creator.promotions.plan_execution')}</span>
+              <span className="text-white">
+                {t('creator.promotions.days_left', { count: daysLeft })}
+              </span>
+            </div>
+            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${pct}%` }}
+                className={`h-full bg-linear-to-r ${getProgressColor(pct)}`}
+              />
+            </div>
+          </div>
+        )}
+
+        {active ? (
+          <div className="flex flex-col gap-2">
+            {(promo.status === 'ACTIVE' ||
+              promo.status === 'active' ||
+              promo.status === 'PAUSED' ||
+              promo.status === 'paused') && (
+              <Button
+                variant="secondary"
+                className="min-h-11 w-full"
+                onClick={() => extendPromo(promo)}
+              >
+                {t('creator.promotions.extend')}
+              </Button>
+            )}
+            {(promo.status === 'ACTIVE' || promo.status === 'active') && (
+              <Button
+                variant="secondary"
+                className="min-h-11 w-full"
+                onClick={() => pauseMutation.mutate(promo.id)}
+                isLoading={pauseMutation.isPending}
+              >
+                <Pause size={14} className="mr-2" />
+                {t('creator.promotions.pause')}
+              </Button>
+            )}
+            {(promo.status === 'PAUSED' || promo.status === 'paused') && (
+              <Button
+                variant="secondary"
+                className="min-h-11 w-full"
+                onClick={() => resumeMutation.mutate(promo.id)}
+                isLoading={resumeMutation.isPending}
+              >
+                <Play size={14} className="mr-2" />
+                {t('creator.promotions.resume')}
+              </Button>
+            )}
+            {confirmCancel === promo.id ? (
+              <div className="space-y-2">
+                {promo.budget > 0 && (
+                  <p className="text-zinc-400 text-xs leading-relaxed">
+                    {t('creator.promotions.cancel_refund_hint', {
+                      amount: promo.budget.toFixed(2),
+                      currency: promo.currency,
+                    })}
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    variant="danger"
+                    className="min-h-11 flex-1"
+                    onClick={() => cancelMutation.mutate(promo.id)}
+                    isLoading={cancelMutation.isPending}
+                  >
+                    {t('creator.promotions.confirm')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="min-h-11"
+                    onClick={() => setConfirmCancel(null)}
+                  >
+                    {t('creator.promotions.no')}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                variant="danger"
+                className="min-h-11 w-full bg-white/5 text-zinc-400 hover:text-rose-400 hover:bg-rose-400/10"
+                onClick={() => setConfirmCancel(promo.id)}
+              >
+                <XCircle size={14} className="mr-2" />
+                {t('creator.promotions.stop')}
+              </Button>
+            )}
+          </div>
+        ) : (
+          <Button
+            variant="secondary"
+            className="min-h-11 w-full"
+            onClick={() => handleRepeat(promo)}
+          >
+            <RefreshCw size={14} className="mr-2" />
+            {t('creator.promotions.repeat', 'Repetir')}
+          </Button>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-12 pb-20">
-      {/* Header + Action */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 pb-12">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-white font-black text-2xl uppercase tracking-tight">
+          <h3 className="text-white font-semibold text-xl tracking-tight">
             {t('creator.promotions.center')}
           </h3>
-          <p className="text-zinc-400 text-xs font-black uppercase tracking-wide mt-1 italic">
+          <p className="text-zinc-400 text-xs font-semibold mt-1">
             {t('creator.promotions.marketing')}
           </p>
         </div>
         <Button
           variant="secondary"
+          className="min-h-11"
           onClick={() => setShowNewPromo(true)}
-          className="shadow-2xl hover:scale-[1.03] transition-transform"
         >
           <Plus size={16} className="mr-2" />
           {t('creator.promotions.new_campaign')}
@@ -467,313 +374,173 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
       </div>
 
       {isLoading ? (
-        <div className="space-y-4">
-          {['load-promo-1', 'load-promo-2', 'load-promo-3'].map((id) => (
+        <div className="space-y-2">
+          {['load-1', 'load-2', 'load-3'].map((id) => (
             <div
               key={id}
-              className="aspect-9/16 rounded-xl animate-pulse bg-zinc-900 border border-white/5"
+              className="h-20 rounded-xl animate-pulse bg-white/5 border border-white/5"
             />
           ))}
         </div>
       ) : !data?.data?.length ? (
-        <div className="text-center py-20 glass-panel rounded-lg border border-dashed border-white/5">
-          <div className="inline-flex p-6 rounded-full bg-brand-primary/5 mb-6">
-            <TrendingUp size={48} className="text-brand-primary/40" />
+        <div className="text-center py-16 rounded-xl border border-dashed border-white/10">
+          <div className="inline-flex p-5 rounded-full bg-brand-primary/5 mb-5">
+            <TrendingUp size={40} className="text-brand-primary/40" />
           </div>
-          <h4 className="text-white font-bold text-xl uppercase mb-2">
+          <h4 className="text-white font-semibold text-lg mb-2">
             {t('creator.promotions.no_active')}
           </h4>
-          <p className="text-zinc-400 text-sm max-w-sm mx-auto mb-10 leading-relaxed">
+          <p className="text-zinc-400 text-sm max-w-sm mx-auto mb-8">
             {t('creator.promotions.boost_desc')}
           </p>
           <Button
             variant="primary"
+            className="min-h-11"
             onClick={() => setShowNewPromo(true)}
-            className="shadow-xl shadow-brand-primary/20 px-10"
           >
             {t('creator.promotions.create_first')}
           </Button>
         </div>
       ) : (
-        <div className="space-y-16">
-          {/* Active Campaigns */}
-          {activePromos.length > 0 && (
+        <AdminSplitView
+          hasSelection={!!selected}
+          onBack={() => setSelectedId(null)}
+          listTitle={t('creator.promotions.campaigns', 'Campañas')}
+          list={
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                <h4 className="text-emerald-400 text-xs font-black uppercase tracking-wide">
-                  {t('creator.promotions.in_progress', {
-                    count: activePromos.length,
-                  })}
-                </h4>
-              </div>
-              <div className="grid grid-cols-1 gap-4">
-                {activePromos.map((promo) => {
-                  const pct = computeProgress(promo.startDate, promo.endDate);
-                  const daysLeft = computeDaysLeft(promo.endDate);
-
-                  return (
-                    <motion.div
-                      layout
+              {activePromos.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 px-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    <h4 className="text-emerald-400 text-xs font-semibold">
+                      {t('creator.promotions.in_progress', {
+                        count: activePromos.length,
+                      })}
+                    </h4>
+                  </div>
+                  {activePromos.map((promo) => (
+                    <AdminListRow
                       key={promo.id}
-                      className="glass-panel p-4 md:p-8 rounded-xl border border-white/5 hover:border-white/10 transition-all group"
-                    >
-                      <div className="flex flex-col lg:flex-row gap-8">
-                        {/* Visual Preview */}
-                        <div className="w-full lg:w-32 lg:h-32 rounded-xl bg-zinc-900 overflow-hidden shrink-0 border border-white/5 shadow-xl">
+                      onClick={() => setSelectedId(promo.id)}
+                      className={
+                        selected?.id === promo.id
+                          ? 'border-brand-primary/40 bg-brand-primary/10'
+                          : undefined
+                      }
+                      avatar={
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-zinc-900 border border-white/10">
                           {promo.target?.thumbnail ? (
                             <img
                               src={promo.target.thumbnail}
                               alt=""
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                              className="w-full h-full object-cover"
                             />
                           ) : (
-                            <ImageIcon size={32} className="text-zinc-800" />
+                            <div className="w-full h-full flex items-center justify-center">
+                              <ImageIcon size={16} className="text-zinc-700" />
+                            </div>
                           )}
                         </div>
+                      }
+                      title={
+                        promo.target?.caption ||
+                        t('creator.promotions.campaign', {
+                          type: promo.targetType,
+                        })
+                      }
+                      subtitle={t('creator.promotions.started_on', {
+                        date: formatDate(promo.startDate),
+                      })}
+                      meta={
+                        <>
+                          <span>
+                            {promo.budget} {promo.currency}
+                          </span>
+                          <span>+{promo.reach.toLocaleString()}</span>
+                        </>
+                      }
+                      badge={
+                        promo.status === 'PAUSED' ||
+                        promo.status === 'paused' ? (
+                          <span className="text-[10px] font-semibold text-amber-400">
+                            {t('creator.promotions.paused_badge')}
+                          </span>
+                        ) : undefined
+                      }
+                    />
+                  ))}
+                </div>
+              )}
 
-                        {/* Core Data */}
-                        <div className="flex-1 space-y-4">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div>
-                              <p className="text-white font-black text-lg tracking-tight mb-1">
-                                {promo.target?.caption ||
-                                  t('creator.promotions.campaign', {
-                                    type: promo.targetType,
-                                  })}
-                              </p>
-                              <p className="text-zinc-400 text-xs font-black uppercase tracking-wide">
-                                {t('creator.promotions.started_on', {
-                                  date: formatDate(promo.startDate),
-                                })}
-                              </p>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                              <div className="text-right">
-                                <p className="text-zinc-400 text-xs font-black uppercase tracking-wide mb-1 italic text-right">
-                                  {t('creator.promotions.investment')}
-                                </p>
-                                <p className="text-white font-black text-xl italic leading-none">
-                                  {promo.budget} {promo.currency}
-                                </p>
-                              </div>
-                              <div className="w-px h-8 bg-white/5" />
-                              <div className="text-right">
-                                <p className="text-zinc-400 text-xs font-black uppercase tracking-wide mb-1 italic text-right">
-                                  {t('creator.promotions.total_reach')}
-                                </p>
-                                <p className="text-brand-primary font-black text-xl italic leading-none">
-                                  +{promo.reach.toLocaleString()}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Dynamic Progress */}
-                          <div className="space-y-3">
-                            <div className="flex justify-between items-end">
-                              <span className="text-zinc-400 text-xs font-black uppercase tracking-wide">
-                                {t('creator.promotions.plan_execution')}
-                              </span>
-                              <span className="text-white text-xs font-black italic">
-                                {t('creator.promotions.days_left', {
-                                  count: daysLeft,
-                                })}
-                              </span>
-                            </div>
-                            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${pct}%` }}
-                                className={`h-full bg-linear-to-r ${getProgressColor(pct)} shadow-[0_0_15px_rgba(255,255,255,0.1)]`}
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Admin Action */}
-                        <div className="shrink-0 flex flex-col items-stretch md:items-end gap-2">
-                          {(promo.status === 'PAUSED' ||
-                            promo.status === 'paused') && (
-                            <span className="text-amber-400 text-[10px] font-black uppercase tracking-wide self-end">
-                              {t('creator.promotions.paused_badge')}
-                            </span>
-                          )}
-                          {(promo.status === 'ACTIVE' ||
-                            promo.status === 'active' ||
-                            promo.status === 'PAUSED' ||
-                            promo.status === 'paused') && (
-                            <Button
-                              variant="secondary"
-                              onClick={() => {
-                                const next = new Date(promo.endDate);
-                                next.setDate(next.getDate() + 1);
-                                creatorApi
-                                  .updatePromotion(promo.id, {
-                                    endDate: next.toISOString(),
-                                  })
-                                  .then(() => {
-                                    queryClient.invalidateQueries({
-                                      queryKey: ['creator', 'promotions'],
-                                    });
-                                    onToast(
-                                      t('creator.promotions.extended'),
-                                      'success',
-                                    );
-                                  })
-                                  .catch(() =>
-                                    onToast(
-                                      t('creator.promotions.error_edit'),
-                                      'error',
-                                    ),
-                                  );
-                              }}
-                              className="w-full md:w-auto"
-                            >
-                              {t('creator.promotions.extend')}
-                            </Button>
-                          )}
-                          {(promo.status === 'ACTIVE' ||
-                            promo.status === 'active') && (
-                            <Button
-                              variant="secondary"
-                              onClick={() => pauseMutation.mutate(promo.id)}
-                              isLoading={pauseMutation.isPending}
-                              className="w-full md:w-auto"
-                            >
-                              <Pause size={14} className="mr-2" />
-                              {t('creator.promotions.pause')}
-                            </Button>
-                          )}
-                          {(promo.status === 'PAUSED' ||
-                            promo.status === 'paused') && (
-                            <Button
-                              variant="secondary"
-                              onClick={() => resumeMutation.mutate(promo.id)}
-                              isLoading={resumeMutation.isPending}
-                              className="w-full md:w-auto"
-                            >
-                              <Play size={14} className="mr-2" />
-                              {t('creator.promotions.resume')}
-                            </Button>
-                          )}
-                          {confirmCancel === promo.id ? (
-                            <div className="flex flex-col gap-2 w-full md:w-auto">
-                              {promo.budget > 0 &&
-                                (promo.status === 'ACTIVE' ||
-                                  promo.status === 'active' ||
-                                  promo.status === 'PAUSED' ||
-                                  promo.status === 'paused') && (
-                                  <p className="text-zinc-400 text-[10px] max-w-[220px] text-right leading-relaxed">
-                                    {t(
-                                      'creator.promotions.cancel_refund_hint',
-                                      {
-                                        amount: promo.budget.toFixed(2),
-                                        currency: promo.currency,
-                                      },
-                                    )}
-                                  </p>
-                                )}
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="danger"
-                                  onClick={() =>
-                                    cancelMutation.mutate(promo.id)
-                                  }
-                                  isLoading={cancelMutation.isPending}
-                                  className="flex-1 md:flex-none"
-                                >
-                                  {t('creator.promotions.confirm')}
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  onClick={() => setConfirmCancel(null)}
-                                >
-                                  {t('creator.promotions.no')}
-                                </Button>
-                              </div>
-                            </div>
+              {completedPromos.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-white/5">
+                  <h4 className="text-zinc-500 text-xs font-semibold flex items-center gap-2 px-1">
+                    <CheckCircle2 size={12} />
+                    {t('creator.promotions.completed_history', {
+                      count: completedPromos.length,
+                    })}
+                  </h4>
+                  {completedPromos.map((promo) => (
+                    <AdminListRow
+                      key={promo.id}
+                      onClick={() => setSelectedId(promo.id)}
+                      className={
+                        selected?.id === promo.id
+                          ? 'border-brand-primary/40 bg-brand-primary/10'
+                          : 'opacity-80'
+                      }
+                      avatar={
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-zinc-900 border border-white/10 grayscale">
+                          {promo.target?.thumbnail ? (
+                            <img
+                              src={promo.target.thumbnail}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              onClick={() => setConfirmCancel(promo.id)}
-                              className="w-full md:w-auto bg-white/5 text-zinc-400 hover:text-rose-400 hover:bg-rose-400/10 border-transparent hover:border-rose-400/20"
-                            >
-                              <XCircle size={14} className="mr-2" />
-                              {t('creator.promotions.stop')}
-                            </Button>
+                            <div className="w-full h-full flex items-center justify-center">
+                              <ImageIcon size={16} className="text-zinc-700" />
+                            </div>
                           )}
                         </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
+                      }
+                      title={
+                        promo.target?.caption ||
+                        t('creator.promotions.completed_campaign')
+                      }
+                      meta={
+                        <>
+                          <span className="inline-flex items-center gap-1">
+                            <Zap size={10} className="text-brand-primary" />
+                            {promo.reach.toLocaleString()}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <DollarSign
+                              size={10}
+                              className="text-emerald-500"
+                            />
+                            €{promo.budget}
+                          </span>
+                        </>
+                      }
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-
-          {/* Completed History */}
-          {completedPromos.length > 0 && (
-            <div className="space-y-4 pt-8 border-t border-white/5">
-              <h4 className="text-zinc-600 text-xs font-black uppercase tracking-wide flex items-center gap-3">
-                <CheckCircle2 size={12} />
-                {t('creator.promotions.completed_history', {
-                  count: completedPromos.length,
-                })}
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {completedPromos.map((promo) => (
-                  <div
-                    key={promo.id}
-                    className="glass-panel p-4 rounded-xl border border-white/5 opacity-60 hover:opacity-100 transition-all flex items-center gap-5 group"
-                  >
-                    <div className="w-16 h-16 rounded-lg bg-zinc-900 border border-white/5 overflow-hidden shrink-0 grayscale group-hover:grayscale-0 transition-all duration-700">
-                      {promo.target?.thumbnail ? (
-                        <img
-                          src={promo.target.thumbnail}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <ImageIcon size={20} className="text-zinc-800" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white font-bold text-sm truncate mb-1">
-                        {promo.target?.caption ||
-                          t('creator.promotions.completed_campaign')}
-                      </p>
-                      <div className="flex items-center gap-3 text-xs font-black uppercase tracking-wide text-zinc-400">
-                        <span className="flex items-center gap-1">
-                          <Zap size={10} className="text-brand-primary" />{' '}
-                          {promo.reach.toLocaleString()}{' '}
-                          {t('creator.promotions.total')}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <DollarSign size={10} className="text-emerald-500" />{' '}
-                          €{promo.budget}{' '}
-                        </span>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRepeat(promo)}
-                      className="text-zinc-400 hover:text-white border-white/5"
-                    >
-                      <RefreshCw size={14} />
-                    </Button>
-                  </div>
-                ))}
-              </div>
+          }
+          detail={selected ? renderDetail(selected) : null}
+          emptyDetail={
+            <div className="h-full min-h-48 flex items-center justify-center p-6 text-center text-sm text-gray-500">
+              {t(
+                'creator.promotions.select_campaign',
+                'Selecciona una campaña de la lista',
+              )}
             </div>
-          )}
-        </div>
+          }
+        />
       )}
 
-      {/* New Promotion Drawer/Modal Integration... */}
       <AnimatePresence>
         {showNewPromo && (
           <NewPromoModal
@@ -783,25 +550,31 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
         )}
       </AnimatePresence>
 
-      {/* Pagination */}
       {data?.meta && data.meta.totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-12 pb-10">
-          {Array.from({ length: data.meta.totalPages }, (_, i) => i + 1).map(
-            (p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPage(p)}
-                className={`w-10 h-10 rounded-xl text-xs font-black uppercase transition-all ${
-                  page === p
-                    ? 'bg-white text-black shadow-xl shadow-white/5'
-                    : 'bg-white/5 text-zinc-400 hover:text-white border border-white/5'
-                }`}
-              >
-                {p}
-              </button>
-            ),
-          )}
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="min-h-11"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            Anterior
+          </Button>
+          <span className="text-xs font-semibold text-gray-400 px-2">
+            {page} / {data.meta.totalPages}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="min-h-11"
+            disabled={page >= data.meta.totalPages}
+            onClick={() =>
+              setPage((p) => Math.min(data.meta.totalPages, p + 1))
+            }
+          >
+            Siguiente
+          </Button>
         </div>
       )}
     </div>

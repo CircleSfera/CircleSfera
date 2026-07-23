@@ -22,8 +22,8 @@ import { creatorApi } from '../../services/creator.service';
 import { useAuthStore } from '../../stores/authStore';
 import type { PaginatedResponse } from '../../types';
 import PostInsightsModal from '../modals/PostInsightsModal';
-import { CreatorAnalyticsDashboard } from './CreatorAnalyticsDashboard';
 import CreatorHeroCard from './CreatorHeroCard';
+import type { CreatorTab } from './creatorNav';
 
 function SectionHeader({
   title,
@@ -43,7 +43,7 @@ function SectionHeader({
         <div className="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20 text-brand-primary shadow-[0_0_15px_rgba(var(--brand-primary),0.15)]">
           <Icon size={18} />
         </div>
-        <h3 className="text-white font-black text-base uppercase tracking-wider">
+        <h3 className="text-white font-semibold text-base tracking-wide">
           {title}
         </h3>
       </div>
@@ -51,7 +51,7 @@ function SectionHeader({
         <button
           type="button"
           onClick={onSeeAll}
-          className="text-gray-400 hover:text-white transition-colors text-xs font-black uppercase tracking-wide flex items-center gap-1 group"
+          className="text-gray-400 hover:text-white transition-colors text-xs font-semibold uppercase tracking-wide flex items-center gap-1 group min-h-11"
         >
           {seeAllLabel || t('creator.dashboard.see_all', 'Ver todo')}
           <ChevronRight
@@ -71,7 +71,7 @@ export default function CreatorDashboard({
   chartData,
 }: {
   onPromote: (post: CreatorPost) => void;
-  onNavigate: (target: 'content' | 'stories' | 'finance' | 'ads') => void;
+  onNavigate: (target: CreatorTab) => void;
   stats?: CreatorStats;
   chartData?: CreatorChartDay[];
 }) {
@@ -136,7 +136,7 @@ export default function CreatorDashboard({
                 className="bg-black/40 backdrop-blur-xl p-4 rounded-2xl border border-white/10 flex items-center gap-4 hover:bg-white/5 transition-all cursor-pointer group/card shadow-lg"
                 onClick={() => setInsightsPostId(post.id)}
               >
-                <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-black/60 border border-white/10 text-gray-400 flex items-center justify-center relative">
+                <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-black/60 border border-white/10 text-gray-400 flex items-center justify-center">
                   {post.media?.[0] ? (
                     <img
                       src={post.media[0].url}
@@ -148,6 +148,39 @@ export default function CreatorDashboard({
                   ) : (
                     <ImageIcon size={24} />
                   )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <p className="text-white font-semibold text-sm truncate">
+                      {post.caption ||
+                        t('creator.dashboard.untitled_post', 'Sin título')}
+                    </p>
+                    <span className="text-brand-primary text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 bg-brand-primary/10 border border-brand-primary/20 rounded-md shrink-0">
+                      {post.type}
+                    </span>
+                  </div>
+
+                  {/* Performance Bar */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                      <span>Rendimiento</span>
+                      <span className="text-brand-primary font-bold">
+                        {post.performanceScore || 0}% vs prom.
+                      </span>
+                    </div>
+                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{
+                          width: `${Math.min(post.performanceScore || 0, 100)}%`,
+                        }}
+                        transition={{ duration: 1.2, ease: 'easeOut' }}
+                        className="h-full bg-linear-to-r from-brand-primary to-purple-500 rounded-full shadow-[0_0_10px_rgba(var(--brand-primary),0.4)]"
+                      />
+                    </div>
+                  </div>
+
                   <button
                     type="button"
                     onClick={(e) => {
@@ -164,7 +197,7 @@ export default function CreatorDashboard({
                       }
                       onPromote(post);
                     }}
-                    className="absolute inset-0 bg-brand-primary/40 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center justify-center hover:bg-brand-primary/60"
+                    className="mt-3 inline-flex items-center justify-center gap-1.5 min-h-11 px-3 rounded-lg bg-brand-primary/15 border border-brand-primary/25 text-brand-primary text-xs font-semibold hover:bg-brand-primary/25 transition-colors"
                     title={
                       canPromote
                         ? t(
@@ -177,40 +210,9 @@ export default function CreatorDashboard({
                           )
                     }
                   >
-                    <Megaphone size={20} className="text-white" />
+                    <Megaphone size={14} />
+                    {t('creator.dashboard.promote_post', 'Promocionar')}
                   </button>
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-white font-bold text-sm truncate">
-                      {post.caption ||
-                        t('creator.dashboard.untitled_post', 'Sin título')}
-                    </p>
-                    <span className="text-brand-primary text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-brand-primary/10 border border-brand-primary/20 rounded-md">
-                      {post.type}
-                    </span>
-                  </div>
-
-                  {/* Performance Bar */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-gray-400">
-                      <span>Rendimiento</span>
-                      <span className="text-brand-primary font-black">
-                        {post.performanceScore || 0}% vs prom.
-                      </span>
-                    </div>
-                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{
-                          width: `${Math.min(post.performanceScore || 0, 100)}%`,
-                        }}
-                        transition={{ duration: 1.2, ease: 'easeOut' }}
-                        className="h-full bg-linear-to-r from-brand-primary to-purple-500 rounded-full shadow-[0_0_10px_rgba(var(--brand-primary),0.4)]"
-                      />
-                    </div>
-                  </div>
                 </div>
               </motion.div>
             ))}
@@ -232,14 +234,14 @@ export default function CreatorDashboard({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
               type="button"
-              onClick={() => onNavigate('finance')}
-              className="bg-black/40 backdrop-blur-xl p-5 rounded-2xl border border-white/10 flex flex-col gap-4 hover:bg-white/5 hover:border-white/20 transition-all text-left group shadow-lg"
+              onClick={() => onNavigate('monetization')}
+              className="bg-black/40 backdrop-blur-xl p-5 rounded-2xl border border-white/10 flex flex-col gap-4 hover:bg-white/5 hover:border-white/20 transition-all text-left group shadow-lg min-h-11"
             >
               <div className="w-12 h-12 rounded-xl bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20 group-hover:scale-110 transition-transform text-brand-primary">
                 <DollarSign size={24} />
               </div>
               <div>
-                <h4 className="text-white font-black text-base mb-1 tracking-tight">
+                <h4 className="text-white font-semibold text-base mb-1 tracking-tight">
                   {t(
                     'creator.dashboard.finance_earnings',
                     'Gestión de Ingresos',
@@ -257,13 +259,13 @@ export default function CreatorDashboard({
             <button
               type="button"
               onClick={() => onNavigate('ads')}
-              className="bg-black/40 backdrop-blur-xl p-5 rounded-2xl border border-white/10 flex flex-col gap-4 hover:bg-white/5 hover:border-white/20 transition-all text-left group shadow-lg"
+              className="bg-black/40 backdrop-blur-xl p-5 rounded-2xl border border-white/10 flex flex-col gap-4 hover:bg-white/5 hover:border-white/20 transition-all text-left group shadow-lg min-h-11"
             >
               <div className="w-12 h-12 rounded-xl bg-brand-secondary/10 flex items-center justify-center border border-brand-secondary/20 group-hover:scale-110 transition-transform text-brand-secondary">
                 <Megaphone size={24} />
               </div>
               <div>
-                <h4 className="text-white font-black text-base mb-1 tracking-tight">
+                <h4 className="text-white font-semibold text-base mb-1 tracking-tight">
                   {t(
                     'creator.dashboard.ads_promotions',
                     'Promoción y Campañas',
@@ -325,16 +327,16 @@ export default function CreatorDashboard({
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-white font-black text-2xl leading-none">
+                <span className="text-white font-bold text-2xl leading-none">
                   {stats?.insights.retentionRate || 0}%
                 </span>
-                <span className="text-gray-400 text-[10px] font-black uppercase tracking-wider mt-1">
+                <span className="text-gray-400 text-[10px] font-semibold uppercase tracking-wider mt-1">
                   Retención
                 </span>
               </div>
             </div>
 
-            <p className="text-white font-bold text-xs mb-1">
+            <p className="text-white font-semibold text-xs mb-1">
               Mejor día:{' '}
               <span className="text-brand-primary">
                 {stats?.insights.bestDayToPost || 'Lunes'}
@@ -342,7 +344,7 @@ export default function CreatorDashboard({
             </p>
             <p className="text-gray-400 text-xs">
               Hora pico:{' '}
-              <span className="text-white font-bold">
+              <span className="text-white font-semibold">
                 {stats?.insights.bestHourToPost || '20:00'}
               </span>
             </p>
@@ -350,9 +352,38 @@ export default function CreatorDashboard({
         </section>
       </div>
 
-      {/* Advanced Creator Analytics Section */}
+      {/* Analytics teaser — deep link to analytics tab */}
       <section className="pt-4 border-t border-white/5">
-        <CreatorAnalyticsDashboard />
+        <button
+          type="button"
+          onClick={() => onNavigate('analytics')}
+          className="w-full bg-black/40 backdrop-blur-xl p-5 sm:p-6 rounded-2xl border border-white/10 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-white/5 hover:border-brand-primary/30 transition-all text-left group shadow-lg"
+        >
+          <div className="w-12 h-12 rounded-xl bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20 group-hover:scale-105 transition-transform text-brand-primary shrink-0">
+            <BarChart3 size={24} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="text-white font-semibold text-base mb-1 tracking-tight">
+              {t(
+                'creator.dashboard.analytics_teaser_title',
+                'Analíticas avanzadas',
+              )}
+            </h4>
+            <p className="text-gray-400 text-xs leading-relaxed">
+              {t(
+                'creator.dashboard.analytics_teaser_desc',
+                'Explora evolución de audiencia, geografía, retención y horas pico.',
+              )}
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1 text-brand-primary text-xs font-semibold uppercase tracking-wide min-h-11 sm:min-h-0">
+            {t('creator.dashboard.see_analytics', 'Ver analíticas')}
+            <ChevronRight
+              size={14}
+              className="group-hover:translate-x-0.5 transition-transform"
+            />
+          </span>
+        </button>
       </section>
     </div>
   );
