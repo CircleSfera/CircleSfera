@@ -11,5 +11,6 @@ import { CreatorSubscriptionsService } from './creator-subscriptions.service.js'
   imports: [PrismaModule, AnalyticsModule, MonetizationModule],
   controllers: [CreatorController],
   providers: [CreatorService, CreatorSubscriptionsService, StripeService],
+  exports: [CreatorService],
 })
 export class CreatorModule {}

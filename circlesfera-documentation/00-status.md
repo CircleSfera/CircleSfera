@@ -1,6 +1,6 @@
 # Documentation status
 
-**Last status note:** Jul 2026 — Promotion `PAUSED` + proportional Stripe refunds on cancel
+**Last status note:** Jul 2026 — Payments/Stripe monetization hardening (webhook integrity, creator sub price, promo views)
 
 ## Remediation vs PRD v4.0 (implemented)
 
@@ -8,17 +8,29 @@
 - User control: mute entry on profile/post menus; `UserSettings` prefs applied to feed (content rating) + push
 - Monetization contracts: one active platform plan enforced; `GET /payments/status`; creator sub list/check/cancel; Elite guard scoped
 - Discovery: ProfileEmbedding writer on profile update + `npm run embeddings:backfill`; recommendation signals; poll/QnA create (posts) + display
-- Promotions: `PAUSED` / resume; cancel → `CANCELLED` with proportional unused-budget Stripe refund (`refundPolicy=PROPORTIONAL`); `PATCH` edit targeting/endDate; feed injects only `ACTIVE`
+- Promotions: `PAUSED` / resume; cancel → `CANCELLED` with proportional unused-budget Stripe refund; Ads checkout redirect; feed injects only `ACTIVE`
+
+## Payments / Stripe hardening (Jul 2026)
+
+- Webhooks: `PROCESSED` only after success; `FAILED` + HTTP 5xx on error so Stripe retries; PENDING/FAILED reprocessed (no skip-on-duplicate trap)
+- Creator VIP price: canonical `Profile.subscriptionPriceCents` (client `priceCents` ignored); `PATCH /creator/subscription-price`
+- Promotion views: viewer JWT required; owner cannot burn own budget; row lock via `FOR UPDATE`
+- Admin reject of charged promo triggers proportional refund
+- Unlock requires IdentityVerifiedGuard; Checkout return query append safe when URL already has `?`
+- Ledger: `PROMOTION_PAYMENT` / `STRIPE_SUBSCRIPTION` transactions written; tip/unlock currency set from Stripe
+- Ops handlers: `checkout.session.expired` (promo → FAILED), `invoice.payment_failed` → PAST_DUE / sync tiers
+- Platform fee: **20%** application fee on Connect tips/unlocks/creator subs (docs that said 15% are stale)
 
 ## Production incident (Jul 2026)
 
 After merging feed hydration for `poll` / `qnaBox`, prod returned feed/stories **500** because `polls`, `qna_boxes`, `live_streams`, and message/comment voice columns existed in `schema.prisma` but had **no prior Prisma migration**. Fixed by migration `20260723010000_add_interactive_live_voice_fields` plus hybrid-feed vector reads from `post_embeddings`.
 
-Follow-up: CI runs `scripts/check-prisma-schema-migrations.sh` (replay migrations onto a shadow Postgres, then `prisma migrate diff --exit-code`) so schema/migration drift fails the pipeline before deploy. Catch-up migration `20260723020000_appeals_profile_embeddings_drop_payouts` aligns `appeals` / `profile_embeddings` and drops orphan `payout_requests`. Deploy also runs a post-healthy API smoke (`/health`, `/feed/foryou`, `/stories`, `/live/active`) and fails on 5xx.
+Follow-up: CI runs `scripts/check-prisma-schema-migrations.sh`; catch-up `20260723020000_appeals_profile_embeddings_drop_payouts`; post-deploy API smoke on 5xx.
 
 ## Still deferred / out of scope
 
 - Feed-preference domain tables (absent by design in PRD future)
+- Live gifts billing (stub only); Story PPV billing path; `TransactionType.PAYOUT` writers; dispute webhooks
 
 ## Doc / source of truth
 

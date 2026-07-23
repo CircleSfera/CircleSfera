@@ -6,6 +6,11 @@ import {
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
+function appendCheckoutQuery(returnUrl: string, query: string): string {
+  const sep = returnUrl.includes('?') ? '&' : '?';
+  return `${returnUrl}${sep}${query}`;
+}
+
 @Injectable()
 export class MonetizationService {
   constructor(
@@ -139,8 +144,11 @@ export class MonetizationService {
           postId: postId,
           creatorId: creator.id,
         },
-        success_url: `${returnUrl}?success=true&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${returnUrl}?canceled=true`,
+        success_url: appendCheckoutQuery(
+          returnUrl,
+          'success=true&session_id={CHECKOUT_SESSION_ID}',
+        ),
+        cancel_url: appendCheckoutQuery(returnUrl, 'canceled=true'),
       },
       {
         idempotencyKey: idempotencyKey,
@@ -210,8 +218,11 @@ export class MonetizationService {
           creatorId: receiverId,
           postId: postId || '',
         },
-        success_url: `${returnUrl}?success=true&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${returnUrl}?canceled=true`,
+        success_url: appendCheckoutQuery(
+          returnUrl,
+          'success=true&session_id={CHECKOUT_SESSION_ID}',
+        ),
+        cancel_url: appendCheckoutQuery(returnUrl, 'canceled=true'),
       },
       {
         idempotencyKey: idempotencyKey,

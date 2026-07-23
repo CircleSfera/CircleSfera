@@ -245,6 +245,10 @@ Source: `creator/creator.controller.ts`
 | DELETE | `/creator/promotions/:id` |
 | PATCH | `/creator/promotions/:id` |
 | POST | `/creator/subscribe` |
+| PATCH | `/creator/subscription-price` |
+| GET | `/creator/subscriptions/me` |
+| GET | `/creator/subscription/:creatorId` |
+| DELETE | `/creator/subscription/:creatorId` |
 | GET | `/creator/subscription/:creatorId` |
 | GET | `/creator/analytics/revenue` |
 | GET | `/creator/analytics/retention` |
@@ -379,6 +383,7 @@ Source: `payments/payments.controller.ts`
 | GET | `/payments/plans` |
 | POST | `/payments/checkout` |
 | GET | `/payments/portal` |
+| GET | `/payments/status` |
 | GET | `/payments/ledger` |
 | GET | `/payments/admin/ledger` |
 | POST | `/payments/webhook` |

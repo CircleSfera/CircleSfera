@@ -39,13 +39,23 @@ describe('CreatorService', () => {
     promotion: {
       count: vi.fn(),
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
       update: vi.fn(),
+      $queryRaw: undefined,
+    },
+    $transaction: vi.fn((cb) =>
+      cb({
+        $queryRaw: mockPrismaService.$queryRaw,
+        promotion: mockPrismaService.promotion,
+      }),
+    ),
+    $queryRaw: vi.fn(),
+    transaction: {
+      findMany: vi.fn(),
+      create: vi.fn(),
     },
     creatorSubscription: {
       count: vi.fn(),
-      findMany: vi.fn(),
-    },
-    transaction: {
       findMany: vi.fn(),
     },
     interactionEvent: {
@@ -263,6 +273,37 @@ describe('CreatorService', () => {
         mockStripeService.createRefundFromCheckoutSession,
       ).not.toHaveBeenCalled();
       expect(result.refund?.status).toBe('skipped_policy');
+    });
+
+    it('should reject promotion view from the campaign owner', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValue([
+        {
+          id: 'promo-1',
+          budget: 5,
+          userId: 'creator-1',
+          status: 'ACTIVE',
+        },
+      ]);
+
+      const result = await service.recordPromotionView('promo-1', 'creator-1');
+      expect(result).toEqual({ success: false });
+      expect(mockPrismaService.promotion.update).not.toHaveBeenCalled();
+    });
+
+    it('should record promotion view for a non-owner viewer', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValue([
+        {
+          id: 'promo-1',
+          budget: 5,
+          userId: 'creator-1',
+          status: 'ACTIVE',
+        },
+      ]);
+      mockPrismaService.promotion.update.mockResolvedValue({});
+
+      const result = await service.recordPromotionView('promo-1', 'viewer-2');
+      expect(result).toEqual({ success: true });
+      expect(mockPrismaService.promotion.update).toHaveBeenCalled();
     });
   });
 });

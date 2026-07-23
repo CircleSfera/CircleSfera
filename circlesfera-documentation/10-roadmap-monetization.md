@@ -25,7 +25,7 @@ Having resolved compliance challenges through Stripe Connect integration, Circle
 To receive money from Tiers and PPV, the creator becomes a seller (Connected Account).
 
 - **KYC and Signup (Onboarding):** Mandatory flow via Stripe Express/Custom to verify the creator's identity before enabling Tiers or PPV.
-- **Take Rate (Platform Commission):** Strict definition of commissions in Stripe's Application Fee (e.g., 15% for the platform, 85% for the creator).
+- **Take Rate (Platform Commission):** Strict definition of commissions in Stripe's Application Fee (**20%** for the platform, **80%** for the creator — verified in Connect Checkout code as of Jul 2026; older drafts said 15%).
 - **Payouts:** Funds are transferred to the creator's Stripe balance. An automatic payment schedule will be enabled (e.g., monthly / 7-day rolling) or manual withdrawals under minimum thresholds, mitigating fraud risk from premature charges.
 
 ---
@@ -46,7 +46,7 @@ The Dashboard is the primary operational tool for creators to convert audience i
 To drive organic creator growth without conflicting with algorithm-manipulation regulations, **Sponsored Placements** will be implemented (strictly avoiding the term "Boost Content").
 
 ### Native Advertising Flow (Creator to Platform)
-Unlike Tiers/PPV (Fan-to-Creator), here the creator pays CircleSfera. Managed via a direct **Stripe PaymentIntent**:
+Unlike Tiers/PPV (Fan-to-Creator), here the creator pays CircleSfera. Managed via **Stripe Checkout Session** (`mode: payment`; session id stored in `Promotion.stripePaymentIntentId`):
 1. The creator selects an already published post or frame.
 2. Clicks **Promote** and defines a goal (Profile visits, Follows, Tier conversions).
 3. Sets a daily budget and basic targeting (interests, country).

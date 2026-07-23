@@ -49,6 +49,9 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
   const [showHeartAnim, setShowHeartAnim] = useState(false);
   const [likesCount, setLikesCount] = useState(post._count?.likes || 0);
   const { profile } = useAuthStore();
+  const verificationLevel =
+    profile?.user?.verificationLevel || profile?.verificationLevel;
+  const canPromote = verificationLevel === 'ELITE';
   const { isMuted, toggleMute, setMuted } = useFrameStore();
   const queryClient = useQueryClient();
   const { pathname } = useLocation();
@@ -586,10 +589,14 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
           setShowMenu(false);
           setShowReportModal(true);
         }}
-        onPromote={() => {
-          setShowMenu(false);
-          setShowPromoteModal(true);
-        }}
+        onPromote={
+          canPromote
+            ? () => {
+                setShowMenu(false);
+                setShowPromoteModal(true);
+              }
+            : undefined
+        }
         onAddToCollection={() => {
           setShowMenu(false);
           setShowAddToCollectionModal(true);

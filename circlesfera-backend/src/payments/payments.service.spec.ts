@@ -25,11 +25,12 @@ describe('PaymentsService', () => {
             webhookEvent: {
               create: vi.fn().mockResolvedValue({ id: 'wh_1' }),
               update: vi.fn(),
+              findUnique: vi.fn().mockResolvedValue(null),
             },
             postUnlock: { upsert: vi.fn() },
             transaction: { create: vi.fn() },
             monetization: { upsert: vi.fn() },
-            promotion: { update: vi.fn() },
+            promotion: { update: vi.fn(), updateMany: vi.fn() },
             platformSubscription: {
               upsert: vi.fn(),
               updateMany: vi.fn(),
@@ -86,10 +87,11 @@ describe('PaymentsService', () => {
   });
 
   describe('Webhook Handler', () => {
-    it('1. should ignore duplicate webhook events (Idempotency)', async () => {
-      // Simulate Prisma Unique Constraint Violation
-      const duplicateError = { code: 'P2002' };
-      prisma.webhookEvent.create = vi.fn().mockRejectedValue(duplicateError);
+    it('1. should skip already PROCESSED webhook events', async () => {
+      prisma.webhookEvent.findUnique = vi.fn().mockResolvedValue({
+        status: 'PROCESSED',
+        externalId: 'evt_duplicate',
+      });
 
       const event = {
         id: 'evt_duplicate',
@@ -97,8 +99,75 @@ describe('PaymentsService', () => {
         data: {},
       };
 
-      // Should resolve cleanly without throwing
       await expect(service.processWebhookEvent(event)).resolves.toBeUndefined();
+      expect(prisma.webhookEvent.create).not.toHaveBeenCalled();
+    });
+
+    it('1b. should mark FAILED and rethrow when handler fails', async () => {
+      prisma.webhookEvent.findUnique = vi.fn().mockResolvedValue(null);
+      prisma.webhookEvent.create = vi.fn().mockResolvedValue({ id: 'wh_fail' });
+      prisma.webhookEvent.update = vi.fn().mockResolvedValue({});
+      prisma.promotion.update = vi.fn().mockRejectedValue(new Error('db down'));
+
+      const event = {
+        id: 'evt_fail',
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: 'cs_1',
+            mode: 'payment',
+            payment_status: 'paid',
+            amount_total: 1000,
+            currency: 'eur',
+            metadata: { type: 'PROMOTION', promotionId: 'promo_1' },
+          },
+        },
+      };
+
+      await expect(service.processWebhookEvent(event)).rejects.toThrow(
+        'db down',
+      );
+      expect(prisma.webhookEvent.update).toHaveBeenCalledWith({
+        where: { externalId: 'evt_fail' },
+        data: { status: 'FAILED' },
+      });
+    });
+
+    it('1c. should reprocess FAILED events', async () => {
+      prisma.webhookEvent.findUnique = vi.fn().mockResolvedValue({
+        status: 'FAILED',
+        externalId: 'evt_retry',
+      });
+      prisma.promotion.update = vi.fn().mockResolvedValue({});
+      prisma.transaction.create = vi.fn().mockResolvedValue({});
+      prisma.webhookEvent.update = vi.fn().mockResolvedValue({});
+
+      const event = {
+        id: 'evt_retry',
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: 'cs_retry',
+            mode: 'payment',
+            payment_status: 'paid',
+            amount_total: 5000,
+            currency: 'eur',
+            metadata: {
+              type: 'PROMOTION',
+              promotionId: 'promo_retry',
+              userId: 'u1',
+            },
+          },
+        },
+      };
+
+      await service.processWebhookEvent(event);
+      expect(prisma.webhookEvent.create).not.toHaveBeenCalled();
+      expect(prisma.promotion.update).toHaveBeenCalled();
+      expect(prisma.webhookEvent.update).toHaveBeenCalledWith({
+        where: { externalId: 'evt_retry' },
+        data: { status: 'PROCESSED', processedAt: expect.any(Date) },
+      });
     });
 
     it('2. should handle checkout.session.completed for platform subscription', async () => {
@@ -203,11 +272,14 @@ describe('PaymentsService', () => {
         data: {
           object: {
             id: 'cs_promo_1',
+            mode: 'payment',
+            payment_status: 'paid',
             amount_total: 5000,
             currency: 'eur',
             metadata: {
               type: 'PROMOTION',
               promotionId: 'promo_test_id',
+              userId: 'user_promo',
             },
           },
         },
@@ -218,6 +290,13 @@ describe('PaymentsService', () => {
       expect(prisma.promotion.update).toHaveBeenCalledWith({
         where: { id: 'promo_test_id' },
         data: { status: 'ACTIVE', chargedAt: expect.any(Date) },
+      });
+
+      expect(prisma.transaction.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          type: 'PROMOTION_PAYMENT',
+          promotionId: 'promo_test_id',
+        }),
       });
 
       expect(slackService.sendPaymentAlert).toHaveBeenCalled();

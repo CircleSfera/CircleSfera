@@ -21,7 +21,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { SubscriptionGuard } from '../auth/guards/subscription.guard.js';
 import { CreatorService } from './creator.service.js';
 import { CreatorSubscriptionsService } from './creator-subscriptions.service.js';
-import { SubscribeCreatorDto } from './dto/subscribe-creator.dto.js';
+import {
+  SetCreatorSubscriptionPriceDto,
+  SubscribeCreatorDto,
+} from './dto/subscribe-creator.dto.js';
 
 interface AuthRequest extends Request {
   user: { userId: string; email: string; role: string };
@@ -149,8 +152,8 @@ export class CreatorController {
 
   /** Record a view for a promotion to deduct budget and increase reach. */
   @Post('promotions/:id/view')
-  async recordPromotionView(@Param('id') id: string) {
-    return this.creatorService.recordPromotionView(id);
+  async recordPromotionView(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.creatorService.recordPromotionView(id, req.user.userId);
   }
 
   /** Cancel a promotion (proportional Stripe refund of unused budget when applicable). */
@@ -215,8 +218,21 @@ export class CreatorController {
     return this.creatorSubscriptionsService.createSubscriptionSession(
       req.user.userId,
       body.creatorId,
-      body.priceCents,
       body.returnUrl,
+    );
+  }
+
+  /** Set canonical VIP monthly price (Elite creators). */
+  @Patch('subscription-price')
+  @UseGuards(SubscriptionGuard)
+  @ElitePlan()
+  async setSubscriptionPrice(
+    @Req() req: AuthRequest,
+    @Body() body: SetCreatorSubscriptionPriceDto,
+  ) {
+    return this.creatorSubscriptionsService.setSubscriptionPrice(
+      req.user.userId,
+      body.priceCents,
     );
   }
 

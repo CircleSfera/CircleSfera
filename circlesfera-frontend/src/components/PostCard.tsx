@@ -39,6 +39,9 @@ export default memo(function PostCard({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { profile } = useAuthStore();
+  const verificationLevel =
+    profile?.user?.verificationLevel || profile?.verificationLevel;
+  const canPromote = verificationLevel === 'ELITE';
 
   // States
   const [showMenu, setShowMenu] = useState(false);
@@ -439,10 +442,14 @@ export default memo(function PostCard({
               setShowMenu(false);
               setShowReportModal(true);
             }}
-            onPromote={() => {
-              setShowMenu(false);
-              setShowPromoteModal(true);
-            }}
+            onPromote={
+              canPromote
+                ? () => {
+                    setShowMenu(false);
+                    setShowPromoteModal(true);
+                  }
+                : undefined
+            }
             onAddToCollection={() => {
               setShowMenu(false);
               setShowAddToCollectionModal(true);

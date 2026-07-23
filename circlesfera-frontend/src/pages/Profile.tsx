@@ -6,10 +6,10 @@ import {
   Shield,
   UserSquare2,
 } from 'lucide-react';
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import CollectionCard from '../components/collections/CollectionCard';
 import SEO from '../components/common/SEO';
@@ -61,6 +61,8 @@ export default function Profile() {
   const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const handledCheckoutReturn = useRef(false);
 
   const openCreateMenu = useUIStore((state) => state.openCreateMenu);
   const { isCreatorModeActive, setCreatorMode } = useAuthStore();
@@ -80,13 +82,52 @@ export default function Profile() {
   });
   const isMe = myProfile?.data.username === username;
 
+  useEffect(() => {
+    if (handledCheckoutReturn.current) return;
+    const success = searchParams.get('success') === 'true';
+    const canceled = searchParams.get('canceled') === 'true';
+    if (!success && !canceled) return;
+
+    handledCheckoutReturn.current = true;
+
+    if (success) {
+      toast.success(
+        t(
+          'profile.messages.checkout_success',
+          'Payment successful. Thanks for your support!',
+        ),
+      );
+      queryClient.invalidateQueries({
+        queryKey: ['creator-subscription', profile?.data.userId],
+      });
+      queryClient.invalidateQueries({ queryKey: ['profile', username] });
+      queryClient.invalidateQueries({ queryKey: ['userPosts', username] });
+    } else {
+      toast.error(
+        t('profile.messages.checkout_canceled', 'Checkout was canceled.'),
+      );
+    }
+
+    const next = new URLSearchParams(searchParams);
+    next.delete('success');
+    next.delete('canceled');
+    next.delete('session_id');
+    setSearchParams(next, { replace: true });
+  }, [
+    profile?.data.userId,
+    queryClient,
+    searchParams,
+    setSearchParams,
+    t,
+    username,
+  ]);
+
   const subscribeMutation = useMutation({
     mutationFn: () =>
       import('../services').then((m) =>
         m.api.post('/creator/subscribe', {
           creatorId: profile?.data.userId,
-          priceCents: profile?.data.subscriptionPriceCents || 500,
-          returnUrl: window.location.href,
+          returnUrl: window.location.href.split('?')[0],
         }),
       ),
     onSuccess: (res) => {

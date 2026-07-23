@@ -234,6 +234,8 @@ model Profile {
   coverThumbnailUrl String?
   website           String?
   location          String?
+  /// Monthly VIP subscription price in cents (null = not offering)
+  subscriptionPriceCents Int?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

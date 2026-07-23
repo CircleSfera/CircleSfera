@@ -11,6 +11,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import type {
   CreatorChartDay,
@@ -18,6 +19,7 @@ import type {
   CreatorStats,
 } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
+import { useAuthStore } from '../../stores/authStore';
 import type { PaginatedResponse } from '../../types';
 import PostInsightsModal from '../modals/PostInsightsModal';
 import { CreatorAnalyticsDashboard } from './CreatorAnalyticsDashboard';
@@ -74,6 +76,10 @@ export default function CreatorDashboard({
   chartData?: CreatorChartDay[];
 }) {
   const { t } = useTranslation();
+  const { profile } = useAuthStore();
+  const verificationLevel =
+    profile?.user?.verificationLevel || profile?.verificationLevel;
+  const canPromote = verificationLevel === 'ELITE';
   const [insightsPostId, setInsightsPostId] = useState<string | null>(null);
 
   // Queries
@@ -146,13 +152,30 @@ export default function CreatorDashboard({
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (!canPromote) {
+                        toast(
+                          t(
+                            'creator.promotions.elite_required',
+                            'Promotions are available on the Elite plan.',
+                          ),
+                          { icon: '✨' },
+                        );
+                        return;
+                      }
                       onPromote(post);
                     }}
                     className="absolute inset-0 bg-brand-primary/40 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center justify-center hover:bg-brand-primary/60"
-                    title={t(
-                      'creator.dashboard.promote_post',
-                      'Promocionar publicación',
-                    )}
+                    title={
+                      canPromote
+                        ? t(
+                            'creator.dashboard.promote_post',
+                            'Promocionar publicación',
+                          )
+                        : t(
+                            'creator.promotions.elite_required',
+                            'Promotions are available on the Elite plan.',
+                          )
+                    }
                   >
                     <Megaphone size={20} className="text-white" />
                   </button>

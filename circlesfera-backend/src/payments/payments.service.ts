@@ -43,7 +43,8 @@ export class PaymentsService {
       case 'canceled':
         return SubscriptionStatus.CANCELLED;
       default:
-        return SubscriptionStatus.ACTIVE; // Fallback
+        // Unknown Stripe status must not grant entitlements
+        return SubscriptionStatus.PAST_DUE;
     }
   }
 
@@ -281,53 +282,113 @@ export class PaymentsService {
 
   /**
    * Main processor for incoming Stripe webhook events.
-   * Handles subscription lifecycle events.
+   * Idempotent: PROCESSED events are skipped; PENDING/FAILED are reprocessed.
+   * On handler failure marks FAILED and rethrows (controller returns 5xx).
    */
   async processWebhookEvent(event: any) {
+    const existing = await this.prisma.webhookEvent.findUnique({
+      where: { externalId: event.id },
+    });
+
+    if (existing?.status === 'PROCESSED') {
+      return;
+    }
+
+    if (!existing) {
+      try {
+        await this.prisma.webhookEvent.create({
+          data: {
+            provider: 'stripe',
+            externalId: event.id,
+            payload: event as unknown as object,
+            status: 'PENDING',
+          },
+        });
+      } catch (err: unknown) {
+        if (
+          typeof err === 'object' &&
+          err !== null &&
+          'code' in err &&
+          (err as { code: string }).code === 'P2002'
+        ) {
+          const raced = await this.prisma.webhookEvent.findUnique({
+            where: { externalId: event.id },
+          });
+          if (!raced || raced.status === 'PROCESSED') {
+            return;
+          }
+        } else {
+          throw err;
+        }
+      }
+    }
+
+    try {
+      await this.dispatchStripeEvent(event);
+      await this.prisma.webhookEvent.update({
+        where: { externalId: event.id },
+        data: { status: 'PROCESSED', processedAt: new Date() },
+      });
+    } catch (err) {
+      await this.prisma.webhookEvent
+        .update({
+          where: { externalId: event.id },
+          data: { status: 'FAILED' },
+        })
+        .catch(() => undefined);
+      throw err;
+    }
+  }
+
+  private async dispatchStripeEvent(event: any) {
     const { type, data } = event;
 
     console.log(`Processing Stripe webhook event: ${type}`);
-
-    try {
-      // Log the event for idempotency/audit (using the model in schema)
-      await this.prisma.webhookEvent.create({
-        data: {
-          provider: 'stripe',
-          externalId: event.id,
-          payload: event as unknown as object,
-          status: 'PENDING',
-        },
-      });
-    } catch (err: unknown) {
-      if (
-        typeof err === 'object' &&
-        err !== null &&
-        'code' in err &&
-        (err as { code: string }).code === 'P2002'
-      ) {
-        console.warn(
-          `Duplicate webhook event detected (Idempotency check): ${event.id}. Skipping.`,
-        );
-        return;
-      }
-      throw err;
-    }
 
     switch (type) {
       case 'checkout.session.completed': {
         const session = data.object;
         const metadata = session.metadata;
+        const paymentStatus = session.payment_status as string | undefined;
+
+        // One-time payments must be paid; subscriptions may be unpaid only in edge trial cases
+        if (
+          session.mode === 'payment' &&
+          paymentStatus &&
+          paymentStatus !== 'paid'
+        ) {
+          throw new Error(
+            `Checkout session ${session.id} not paid (status=${paymentStatus})`,
+          );
+        }
 
         // Handle Promotions
         if (metadata?.type === 'PROMOTION') {
           const promotionId = metadata.promotionId;
-          if (!promotionId) return;
+          if (!promotionId) {
+            throw new Error('PROMOTION checkout missing promotionId');
+          }
 
           await this.prisma.promotion.update({
             where: { id: promotionId },
             data: {
-              status: 'ACTIVE', // Now confirmed as paid
+              status: 'ACTIVE',
               chargedAt: new Date(),
+            },
+          });
+
+          const amount = session.amount_total || 0;
+          const currency = (session.currency || 'eur').toUpperCase();
+          await this.prisma.transaction.create({
+            data: {
+              type: 'PROMOTION_PAYMENT',
+              amount,
+              currency,
+              status: 'COMPLETED',
+              senderId: metadata.userId || null,
+              receiverId: null,
+              promotionId,
+              description: `Promotion checkout ${session.id}`,
             },
           });
 
@@ -337,7 +398,7 @@ export class PaymentsService {
           this.slackService
             .sendPaymentAlert({
               eventType: 'Promotion Payment',
-              amount: session.amount_total || 0,
+              amount,
               currency: session.currency || 'usd',
               description: `Promotion ID: ${promotionId}`,
             })
@@ -368,6 +429,7 @@ export class PaymentsService {
                 data: {
                   type: 'DIRECT_POST_UNLOCK',
                   amount: amount,
+                  currency: (session.currency || 'usd').toUpperCase(),
                   senderId: clientReferenceId,
                   receiverId: creatorId,
                   postId: postId,
@@ -418,6 +480,7 @@ export class PaymentsService {
                 data: {
                   type: 'DIRECT_TIP',
                   amount: amount,
+                  currency: (session.currency || 'usd').toUpperCase(),
                   senderId: clientReferenceId,
                   receiverId: creatorId,
                   postId: postId || null,
@@ -479,6 +542,19 @@ export class PaymentsService {
                 expiresAt,
               },
             });
+
+            await this.prisma.transaction.create({
+              data: {
+                type: 'STRIPE_SUBSCRIPTION',
+                amount: session.amount_total || parseInt(priceCents, 10) || 0,
+                currency: (session.currency || 'usd').toUpperCase(),
+                status: 'COMPLETED',
+                senderId: subscriberId,
+                receiverId: creatorId,
+                description: `Creator VIP subscription ${stripeSubscriptionId}`,
+              },
+            });
+
             console.log(
               `Successfully processed Creator Subscription from ${subscriberId} to ${creatorId}`,
             );
@@ -608,11 +684,6 @@ export class PaymentsService {
             .catch((e) => console.error(e));
         }
 
-        // Update event status
-        await this.prisma.webhookEvent.update({
-          where: { externalId: event.id },
-          data: { status: 'PROCESSED', processedAt: new Date() },
-        });
         break;
       }
 
@@ -661,31 +732,55 @@ export class PaymentsService {
           await this.usersService.syncUserTier(platformSub.userId);
         }
 
-        // Sync user tier after subscription status changes (handles downgrades dynamically)
-        const sub = await this.prisma.platformSubscription.findFirst({
-          where: { stripeSubscriptionId: subscription.id },
-          select: { userId: true },
-        });
-
-        if (sub) {
-          await this.usersService.syncUserTier(sub.userId);
-        }
-
-        await this.prisma.webhookEvent.update({
-          where: { externalId: event.id },
-          data: { status: 'PROCESSED', processedAt: new Date() },
-        });
         break;
       }
 
       case 'identity.verification_session.verified': {
         const session = data.object as Stripe.Identity.VerificationSession;
         await this.usersService.handleIdentityWebhook(session);
+        break;
+      }
 
-        await this.prisma.webhookEvent.update({
-          where: { externalId: event.id },
-          data: { status: 'PROCESSED', processedAt: new Date() },
-        });
+      case 'checkout.session.expired': {
+        const session = data.object;
+        const metadata = session.metadata;
+        if (metadata?.type === 'PROMOTION' && metadata.promotionId) {
+          await this.prisma.promotion.updateMany({
+            where: {
+              id: metadata.promotionId,
+              status: 'PENDING',
+            },
+            data: { status: 'FAILED' },
+          });
+        }
+        break;
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = data.object as {
+          subscription?: string | { id: string } | null;
+        };
+        const subscriptionId =
+          typeof invoice.subscription === 'string'
+            ? invoice.subscription
+            : invoice.subscription?.id;
+        if (subscriptionId) {
+          await this.prisma.platformSubscription.updateMany({
+            where: { stripeSubscriptionId: subscriptionId },
+            data: { status: SubscriptionStatus.PAST_DUE },
+          });
+          await this.prisma.creatorSubscription.updateMany({
+            where: { stripeSubscriptionId: subscriptionId },
+            data: { status: 'CANCELLED', autoRenew: false },
+          });
+          const platformSub = await this.prisma.platformSubscription.findFirst({
+            where: { stripeSubscriptionId: subscriptionId },
+            select: { userId: true },
+          });
+          if (platformSub) {
+            await this.usersService.syncUserTier(platformSub.userId);
+          }
+        }
         break;
       }
 
