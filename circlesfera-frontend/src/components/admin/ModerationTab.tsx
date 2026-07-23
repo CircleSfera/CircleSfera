@@ -6,7 +6,6 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminPost } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
-import { LoadingSpinner } from '../index';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
@@ -14,6 +13,7 @@ import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
+import { AdminDetailSkeleton, AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import {
   ActionButton,
@@ -147,18 +147,18 @@ export default function ModerationTab({ onToast }: Props) {
         title="Cola de Moderación AI"
         subtitle="Contenido marcado automáticamente por el sistema"
         actions={
-          <div className="flex gap-2 bg-white/5 p-1 rounded-lg w-full sm:w-auto">
+          <div className="flex flex-col xs:flex-row gap-1.5 xs:gap-2 bg-white/5 p-1 rounded-lg w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setViewMode('queue')}
-              className={`px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors ${viewMode === 'queue' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`px-3 sm:px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors w-full xs:w-auto ${viewMode === 'queue' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'}`}
             >
               Cola de Moderación
             </button>
             <button
               type="button"
               onClick={() => setViewMode('appeals')}
-              className={`px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors ${viewMode === 'appeals' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`px-3 sm:px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors w-full xs:w-auto ${viewMode === 'appeals' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'}`}
             >
               Apelaciones
             </button>
@@ -196,7 +196,9 @@ export default function ModerationTab({ onToast }: Props) {
       )}
 
       {viewMode === 'appeals' ? (
-        <AppealsList />
+        <div className="rounded-xl border border-white/10 bg-black/20 p-2">
+          <AppealsList />
+        </div>
       ) : (
         <>
           {/* Batch Actions Bar */}
@@ -206,9 +208,9 @@ export default function ModerationTab({ onToast }: Props) {
                 initial={{ opacity: 0, height: 0, marginBottom: 0 }}
                 animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
                 exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                className="flex items-center gap-2 p-2 bg-white/5 border border-white/10 rounded-lg shrink-0"
+                className="flex flex-wrap items-center gap-2 p-2 bg-white/5 border border-white/10 rounded-lg shrink-0"
               >
-                <span className="px-3 text-sm font-bold text-white">
+                <span className="px-2 sm:px-3 text-sm font-semibold text-white">
                   {selectedIds.size} seleccionados
                 </span>
                 <ActionButton
@@ -262,9 +264,7 @@ export default function ModerationTab({ onToast }: Props) {
 
                 <div className="flex-1 overflow-y-auto p-2 space-y-2">
                   {isLoading ? (
-                    <div className="flex justify-center p-8">
-                      <LoadingSpinner />
-                    </div>
+                    <AdminListSkeleton rows={5} />
                   ) : items.length === 0 ? (
                     <AdminEmptyState
                       icon={ShieldAlert}
@@ -336,7 +336,9 @@ export default function ModerationTab({ onToast }: Props) {
             }
             detail={
               <AnimatePresence mode="wait">
-                {selectedItem ? (
+                {isLoading && selectedItemId && !selectedItem ? (
+                  <AdminDetailSkeleton />
+                ) : selectedItem ? (
                   <motion.div
                     key={selectedItem.id}
                     initial={{ opacity: 0, scale: 0.98 }}
@@ -345,7 +347,7 @@ export default function ModerationTab({ onToast }: Props) {
                     transition={{ duration: 0.15 }}
                     className="flex flex-col h-full"
                   >
-                    <div className="p-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between shrink-0 gap-3">
+                    <div className="p-3 sm:p-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between shrink-0 gap-2 sm:gap-3">
                       <div className="flex items-center gap-3">
                         <UserAvatar
                           src={selectedItem.user?.profile?.avatar || undefined}
@@ -398,17 +400,17 @@ export default function ModerationTab({ onToast }: Props) {
                       </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col items-center">
-                      <div className="w-full max-w-2xl p-4 bg-red-500/10 border border-red-500/20 rounded-lg mb-6 flex items-start gap-4">
+                    <div className="flex-1 overflow-y-auto p-3 sm:p-4 flex flex-col items-center">
+                      <div className="w-full max-w-2xl p-3 sm:p-4 bg-red-500/10 border border-red-500/20 rounded-lg mb-4 flex items-start gap-3">
                         <ShieldAlert
-                          className="text-red-500 shrink-0 mt-1"
-                          size={24}
+                          className="text-red-500 shrink-0 mt-0.5"
+                          size={20}
                         />
-                        <div>
-                          <h4 className="text-red-500 font-semibold mb-1">
+                        <div className="min-w-0">
+                          <h4 className="text-red-500 font-semibold text-sm mb-1">
                             Detección Automática AI
                           </h4>
-                          <p className="text-sm text-red-200">
+                          <p className="text-xs sm:text-sm text-red-200">
                             {selectedItem.moderationNote ||
                               'Contenido marcado por incumplimiento de las políticas.'}
                           </p>

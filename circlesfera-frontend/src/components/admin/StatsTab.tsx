@@ -51,13 +51,19 @@ export default function StatsTab() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'].map((id) => (
-          <div
-            key={id}
-            className="glass-panel p-4 rounded-lg h-32 animate-pulse bg-white/5"
-          />
-        ))}
+      <div className="space-y-4">
+        <AdminPageHeader
+          title="Estadísticas Globales"
+          subtitle="Métricas en tiempo real y actividad del sistema"
+        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          {['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'].map((id) => (
+            <div
+              key={id}
+              className="glass-panel p-4 rounded-xl h-28 animate-pulse bg-white/5"
+            />
+          ))}
+        </div>
       </div>
     );
   }
@@ -70,7 +76,7 @@ export default function StatsTab() {
       />
 
       {/* Primary Stats Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         <StatCard
           label="Usuarios Totales"
           value={stats?.users || 0}
@@ -104,13 +110,12 @@ export default function StatsTab() {
       </div>
 
       {/* Secondary Stats Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         <StatCard
           label="Usuarios Activos Hoy"
           value={stats?.activeUsersToday || 0}
           icon={UserCheck}
           color="green"
-          sparklineData={[100, 120, 110, 150, 180, 160, 200]}
         />
         <StatCard
           label="Engagement Ratio"
@@ -120,7 +125,6 @@ export default function StatsTab() {
           subtitle="Likes + Comentarios / Post"
           suffix="%"
           isCounter={false}
-          sparklineData={[2, 3, 2.5, 4, 3.8, 5, 4.5]}
         />
         <StatCard
           label="Nuevos Esta Semana"
@@ -128,7 +132,6 @@ export default function StatsTab() {
           icon={Users}
           color="blue"
           subtitle="Usuarios registrados"
-          sparklineData={[10, 15, 12, 25, 30, 20, 40]}
         />
         <StatCard
           label="Contenido Reportado"
@@ -138,15 +141,14 @@ export default function StatsTab() {
           subtitle="% del total de posts"
           suffix="%"
           isCounter={false}
-          sparklineData={[1, 1.2, 0.8, 2, 1.5, 0.5, 0.2]}
         />
       </div>
 
       {/* Activity Chart + Top Users */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* Chart */}
-        <div className="lg:col-span-2 glass-panel rounded-lg border border-white/5 p-4 sm:p-6">
-          <div className="flex items-center gap-2 mb-4 sm:mb-6">
+        <div className="lg:col-span-2 glass-panel rounded-lg border border-white/5 p-3 sm:p-5">
+          <div className="flex items-center gap-2 mb-3 sm:mb-4">
             <BarChart3 size={18} className="text-brand-primary" />
             <h3 className="text-white font-semibold text-sm">
               Actividad (últimos 14 días)
@@ -219,61 +221,32 @@ export default function StatsTab() {
         </div>
 
         {/* Top Users */}
-        <div className="glass-panel rounded-lg border border-white/5 p-4 sm:p-6">
-          <div className="flex items-center gap-2 mb-4 sm:mb-6">
+        <div className="glass-panel rounded-lg border border-white/5 p-3 sm:p-5">
+          <div className="flex items-center gap-2 mb-3 sm:mb-4">
             <UserCheck size={18} className="text-brand-primary" />
             <h3 className="text-white font-semibold text-sm">Top Engagement</h3>
           </div>
           {topUsers && topUsers.length > 0 ? (
-            <>
-              <div className="lg:hidden space-y-2">
-                {topUsers.map((user, i) => (
-                  <AdminListRow
-                    key={user.id}
-                    title={`@${user.username}`}
-                    subtitle={`#${i + 1} · engagement ${user.engagement}`}
-                    meta={
-                      <>
-                        <span className="flex items-center gap-1">
-                          <Heart size={12} className="text-pink-400" />
-                          {user.totalLikes}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MessageCircle size={12} className="text-blue-400" />
-                          {user.totalComments}
-                        </span>
-                      </>
-                    }
-                    avatar={
-                      <div className="w-10 h-10 rounded-full bg-white/10 overflow-hidden">
-                        {user.avatar ? (
-                          <img
-                            src={user.avatar}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs font-semibold">
-                            {user.username[0]?.toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                    }
-                    badge={
-                      <span className="text-brand-primary font-semibold text-sm">
-                        {user.engagement}
+            <div className="space-y-2">
+              {topUsers.map((user, i) => (
+                <AdminListRow
+                  key={user.id}
+                  title={`@${user.username}`}
+                  subtitle={`#${i + 1} · engagement ${user.engagement}`}
+                  meta={
+                    <>
+                      <span className="flex items-center gap-1">
+                        <Heart size={12} className="text-pink-400" />
+                        {user.totalLikes}
                       </span>
-                    }
-                  />
-                ))}
-              </div>
-              <div className="hidden lg:block space-y-4">
-                {topUsers.map((user, i) => (
-                  <div key={user.id} className="flex items-center gap-3">
-                    <span className="text-gray-600 font-semibold text-sm w-5">
-                      {i + 1}
-                    </span>
-                    <div className="w-8 h-8 rounded-full bg-white/10 overflow-hidden shrink-0">
+                      <span className="flex items-center gap-1">
+                        <MessageCircle size={12} className="text-blue-400" />
+                        {user.totalComments}
+                      </span>
+                    </>
+                  }
+                  avatar={
+                    <div className="w-9 h-9 rounded-full bg-white/10 overflow-hidden">
                       {user.avatar ? (
                         <img
                           src={user.avatar}
@@ -286,28 +259,15 @@ export default function StatsTab() {
                         </div>
                       )}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-white text-sm font-semibold truncate">
-                        @{user.username}
-                      </p>
-                      <div className="flex items-center gap-3 text-xs text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Heart size={10} className="text-pink-400" />
-                          {user.totalLikes}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MessageCircle size={10} className="text-blue-400" />
-                          {user.totalComments}
-                        </span>
-                      </div>
-                    </div>
+                  }
+                  badge={
                     <span className="text-brand-primary font-semibold text-sm">
                       {user.engagement}
                     </span>
-                  </div>
-                ))}
-              </div>
-            </>
+                  }
+                />
+              ))}
+            </div>
           ) : (
             <AdminEmptyState
               icon={UserCheck}
@@ -322,7 +282,7 @@ export default function StatsTab() {
       {/* Recent Activity */}
       {stats?.recentActivity && stats.recentActivity.length > 0 && (
         <div className="glass-panel rounded-lg border border-white/5 overflow-hidden">
-          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-white/5 flex items-center gap-2">
+          <div className="px-3 sm:px-5 py-2.5 sm:py-3 border-b border-white/5 flex items-center gap-2">
             <BarChart3 size={18} className="text-brand-primary" />
             <h3 className="text-white font-semibold text-sm">
               Actividad Reciente del Admin
@@ -332,7 +292,7 @@ export default function StatsTab() {
             {stats.recentActivity.map((log) => (
               <div
                 key={log.id}
-                className="px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 hover:bg-white/5 transition-colors"
+                className="px-3 sm:px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 hover:bg-white/5 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0">

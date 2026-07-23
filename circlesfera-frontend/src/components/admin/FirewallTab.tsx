@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { adminApi, type FirewallSignature } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
+import AdminDrawer from './AdminDrawer';
 import { AdminList, AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
 import { ActionButton, Pagination, Table } from './AdminTable';
@@ -25,7 +26,7 @@ function formatCreatedAt(date: string) {
 
 function CategoryBadge({ category }: { category: string }) {
   return (
-    <span className="px-2 py-1 bg-red-500/10 text-red-400 text-xs font-bold rounded-full border border-red-500/20">
+    <span className="px-2 py-1 bg-red-500/10 text-red-400 text-xs font-semibold rounded-full border border-red-500/20">
       {category.toUpperCase()}
     </span>
   );
@@ -33,6 +34,7 @@ function CategoryBadge({ category }: { category: string }) {
 
 export default function FirewallTab({ onToast }: Props) {
   const [page, setPage] = useState(1);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [newText, setNewText] = useState('');
   const [newCategory, setNewCategory] = useState('SPAM');
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -52,6 +54,8 @@ export default function FirewallTab({ onToast }: Props) {
     onSuccess: () => {
       onToast('Regla vectorial añadida con éxito', 'success');
       setNewText('');
+      setNewCategory('SPAM');
+      setDrawerOpen(false);
       queryClient.invalidateQueries({ queryKey: ['admin', 'firewall'] });
     },
     onError: () => onToast('Error al añadir la regla', 'error'),
@@ -74,56 +78,30 @@ export default function FirewallTab({ onToast }: Props) {
       <AdminPageHeader
         title="Escudo de IA (Vector Firewall)"
         subtitle="Reglas vectoriales que bloquean automáticamente contenido antes de publicarse."
+        actions={
+          <Button
+            onClick={() => setDrawerOpen(true)}
+            className="min-h-11 w-full sm:w-auto"
+          >
+            <Plus size={16} className="mr-2" />
+            Nueva regla
+          </Button>
+        }
       />
 
-      {/* Add New Rule Form */}
-      <div className="glass-panel p-4 rounded-xl border border-white/5 space-y-4">
-        <h3 className="text-sm font-semibold text-white">Añadir nueva regla</h3>
-        <div className="flex flex-col gap-3">
-          <input
-            type="text"
-            value={newText}
-            onChange={(e) => setNewText(e.target.value)}
-            placeholder="Ej: Gana dinero gratis haciendo click en este link..."
-            className="w-full bg-black/50 border border-white/10 rounded-lg px-3 py-2.5 min-h-11 text-sm text-white focus:outline-none focus:border-brand-primary"
-          />
-          <div className="flex flex-col xs:flex-row gap-3">
-            <select
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-              className="flex-1 bg-black/50 border border-white/10 rounded-lg px-3 py-2.5 min-h-11 text-sm text-white focus:outline-none focus:border-brand-primary"
-            >
-              <option value="SPAM">SPAM</option>
-              <option value="HATE">HATE</option>
-              <option value="SEXUAL">SEXUAL</option>
-              <option value="VIOLENCE">VIOLENCE</option>
-              <option value="SCAM">SCAM</option>
-            </select>
-            <Button
-              onClick={() => addMutation.mutate()}
-              disabled={!newText.trim() || addMutation.isPending}
-              isLoading={addMutation.isPending}
-              className="min-h-11 w-full xs:w-auto"
-            >
-              Generar Vector
-            </Button>
-          </div>
-        </div>
-        <p className="text-xs text-gray-500">
-          Al generar el vector, el sistema bloqueará textos futuros que tengan
-          un 90% o más de similitud semántica con esta frase.
-        </p>
-      </div>
-
-      {/* Rules List */}
-      <div className="glass-panel rounded-xl border border-white/5">
+      <div className="rounded-xl border border-white/10 lg:overflow-clip">
         <AdminList
           loading={isLoading}
           isEmpty={items.length === 0}
           emptyTitle="No hay reglas vectoriales activas"
           emptyDescription="Añade una regla para bloquear contenido similar automáticamente."
+          emptyAction={
+            <Button onClick={() => setDrawerOpen(true)} className="min-h-11">
+              Añadir regla
+            </Button>
+          }
           mobile={
-            <div className="space-y-2">
+            <div className="space-y-2 p-2 lg:p-0">
               {items.map((item) => (
                 <AdminListRow
                   key={item.id}
@@ -164,9 +142,9 @@ export default function FirewallTab({ onToast }: Props) {
               {items.map((item) => (
                 <tr
                   key={item.id}
-                  className="hover:bg-white/2 transition-colors"
+                  className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-2">
                     <div className="text-sm text-white max-w-md truncate">
                       {item.text || (
                         <span className="text-gray-500 italic">
@@ -178,13 +156,13 @@ export default function FirewallTab({ onToast }: Props) {
                       ID: {item.id.split('-')[0]}...
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-2 py-2">
                     <CategoryBadge category={item.category} />
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-300">
+                  <td className="px-2 py-2 text-sm text-gray-300">
                     {formatCreatedAt(item.createdAt)}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-2 py-2">
                     <ActionButton
                       variant="danger"
                       label="Eliminar"
@@ -206,6 +184,76 @@ export default function FirewallTab({ onToast }: Props) {
           </div>
         )}
       </div>
+
+      <AdminDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        title="Añadir regla vectorial"
+        subtitle="El sistema bloqueará textos con ≥90% similitud semántica."
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            addMutation.mutate();
+          }}
+          className="space-y-4 mt-4"
+        >
+          <div className="space-y-1.5">
+            <label
+              htmlFor="firewall-text"
+              className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
+            >
+              Texto origen
+            </label>
+            <input
+              id="firewall-text"
+              type="text"
+              value={newText}
+              onChange={(e) => setNewText(e.target.value)}
+              placeholder="Ej: Gana dinero gratis haciendo click en este link..."
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 min-h-11 text-sm text-white focus:outline-none focus:border-brand-primary transition-colors"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label
+              htmlFor="firewall-category"
+              className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
+            >
+              Categoría
+            </label>
+            <select
+              id="firewall-category"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 min-h-11 text-sm text-white focus:outline-none focus:border-brand-primary transition-colors"
+            >
+              <option value="SPAM" className="bg-surface-raised">
+                SPAM
+              </option>
+              <option value="HATE" className="bg-surface-raised">
+                HATE
+              </option>
+              <option value="SEXUAL" className="bg-surface-raised">
+                SEXUAL
+              </option>
+              <option value="VIOLENCE" className="bg-surface-raised">
+                VIOLENCE
+              </option>
+              <option value="SCAM" className="bg-surface-raised">
+                SCAM
+              </option>
+            </select>
+          </div>
+          <Button
+            type="submit"
+            disabled={!newText.trim() || addMutation.isPending}
+            isLoading={addMutation.isPending}
+            className="min-h-11 w-full font-semibold"
+          >
+            Generar Vector
+          </Button>
+        </form>
+      </AdminDrawer>
 
       <ConfirmModal
         isOpen={!!deleteId}

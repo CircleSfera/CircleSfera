@@ -49,10 +49,11 @@ export default function AuditLogTab() {
         subtitle="Historial completo de acciones administrativas"
       />
 
-      <div className="rounded-xl border border-white/10 lg:overflow-clip">
+      <div className="rounded-xl border border-white/10 overflow-x-auto">
         <AdminList
           loading={isLoading}
           isEmpty={!data?.data?.length}
+          emptyIcon={Activity}
           emptyTitle="No hay registros de auditoría"
           emptyDescription="No se encontraron acciones registradas."
           mobile={
@@ -86,6 +87,13 @@ export default function AuditLogTab() {
           desktop={
             <Table
               headers={['Fecha', 'Admin', 'Acción', 'Tipo', 'Target ID']}
+              columnWidths={[
+                'whitespace-nowrap',
+                'min-w-28',
+                'min-w-36',
+                'whitespace-nowrap',
+                'min-w-32',
+              ]}
               loading={false}
               isEmpty={false}
             >
@@ -94,41 +102,47 @@ export default function AuditLogTab() {
                   key={log.id}
                   className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
                 >
-                  <td className="px-2 py-1 text-gray-300 text-sm whitespace-nowrap">
+                  <td className="px-3 py-2.5 text-gray-300 text-sm whitespace-nowrap">
                     {new Date(log.createdAt).toLocaleString()}
                   </td>
-                  <td className="px-2 py-1">
-                    <span className="text-brand-primary font-semibold text-sm">
+                  <td className="px-3 py-2.5">
+                    <span className="text-brand-primary font-semibold text-sm truncate block max-w-32">
                       @{log.adminUsername}
                     </span>
                   </td>
-                  <td className="px-2 py-1">
-                    <div className="flex items-center gap-2">
+                  <td className="px-3 py-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
                       <Activity
                         size={14}
-                        className={ACTION_COLORS[log.action] || 'text-gray-300'}
+                        className={`shrink-0 ${ACTION_COLORS[log.action] || 'text-gray-300'}`}
                       />
                       <span
-                        className={`text-sm font-medium ${ACTION_COLORS[log.action] || 'text-gray-300'}`}
+                        className={`text-sm font-medium truncate ${ACTION_COLORS[log.action] || 'text-gray-300'}`}
+                        title={ACTION_LABELS[log.action] || log.action}
                       >
                         {ACTION_LABELS[log.action] || log.action}
                       </span>
                     </div>
                   </td>
-                  <td className="px-2 py-1">
+                  <td className="px-3 py-2.5 whitespace-nowrap">
                     <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/10">
                       {log.targetType}
                     </span>
                   </td>
-                  <td className="px-2 py-1 text-gray-600 text-xs font-mono">
-                    {log.targetId.slice(0, 12)}...
+                  <td
+                    className="px-3 py-2.5 text-gray-600 text-xs font-mono max-w-40 truncate"
+                    title={log.targetId}
+                  >
+                    {log.targetId}
                   </td>
                 </tr>
               ))}
             </Table>
           }
         />
-        <Pagination meta={data?.meta} onPageChange={setPage} />
+        <div className="p-2 border-t border-white/5">
+          <Pagination meta={data?.meta} onPageChange={setPage} />
+        </div>
       </div>
     </div>
   );

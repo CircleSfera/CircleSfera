@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { adminApi } from '../../services/admin.service';
-import { LoadingSpinner } from '../index';
+import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
 import { Button, Select } from '../ui';
 import VerificationBadge, {
@@ -20,6 +20,7 @@ import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
+import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { Pagination, SearchInput } from './AdminTable';
 
@@ -45,6 +46,7 @@ export default function UserVerificationTab({
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [confirmRevokeOpen, setConfirmRevokeOpen] = useState(false);
 
   const { data: usersData, isLoading } = useQuery({
     queryKey: ['admin-users', page, searchTerm],
@@ -161,9 +163,7 @@ export default function UserVerificationTab({
           <div className="flex flex-col h-full min-h-0">
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
               {isLoading ? (
-                <div className="flex justify-center p-8">
-                  <LoadingSpinner />
-                </div>
+                <AdminListSkeleton rows={5} />
               ) : users.length === 0 ? (
                 <AdminEmptyState
                   icon={UserX}
@@ -294,20 +294,20 @@ export default function UserVerificationTab({
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+                <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
                   {/* Stripe Identity KYC Status Card */}
                   <div>
-                    <h4 className="text-white font-semibold text-sm uppercase tracking-wide mb-4">
+                    <h4 className="text-white font-semibold text-sm uppercase tracking-wide mb-3">
                       Estado de Stripe Identity (KYC)
                     </h4>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                       {selectedUser.identityVerifiedAt ? (
-                        <div className="p-6 bg-green-500/10 border border-green-500/20 rounded-lg flex flex-col items-center justify-center text-center">
-                          <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mb-4">
-                            <CheckCircle2 size={32} />
+                        <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg flex flex-col items-center justify-center text-center">
+                          <div className="w-12 h-12 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mb-3">
+                            <CheckCircle2 size={24} />
                           </div>
-                          <h5 className="text-green-400 font-semibold text-lg mb-1">
+                          <h5 className="text-green-400 font-semibold text-base mb-1">
                             Identidad Verificada
                           </h5>
                           <p className="text-xs text-gray-300">
@@ -319,11 +319,11 @@ export default function UserVerificationTab({
                           </p>
                         </div>
                       ) : selectedUser.stripeIdentitySessionId ? (
-                        <div className="p-6 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex flex-col items-center justify-center text-center">
-                          <div className="w-16 h-16 bg-yellow-500/20 text-yellow-400 rounded-full flex items-center justify-center mb-4">
-                            <Clock size={32} />
+                        <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex flex-col items-center justify-center text-center">
+                          <div className="w-12 h-12 bg-yellow-500/20 text-yellow-400 rounded-full flex items-center justify-center mb-3">
+                            <Clock size={24} />
                           </div>
-                          <h5 className="text-yellow-400 font-semibold text-lg mb-1">
+                          <h5 className="text-yellow-400 font-semibold text-base mb-1">
                             Sesión Creada (Pendiente)
                           </h5>
                           <p className="text-xs text-gray-300">
@@ -332,11 +332,11 @@ export default function UserVerificationTab({
                           </p>
                         </div>
                       ) : (
-                        <div className="p-6 bg-white/5 border border-white/10 rounded-lg flex flex-col items-center justify-center text-center">
-                          <div className="w-16 h-16 bg-white/10 text-gray-300 rounded-full flex items-center justify-center mb-4">
-                            <UserX size={32} />
+                        <div className="p-4 bg-white/5 border border-white/10 rounded-lg flex flex-col items-center justify-center text-center">
+                          <div className="w-12 h-12 bg-white/10 text-gray-300 rounded-full flex items-center justify-center mb-3">
+                            <UserX size={24} />
                           </div>
-                          <h5 className="text-gray-300 font-semibold text-lg mb-1">
+                          <h5 className="text-gray-300 font-semibold text-base mb-1">
                             No Iniciado
                           </h5>
                           <p className="text-xs text-gray-500">
@@ -346,7 +346,7 @@ export default function UserVerificationTab({
                         </div>
                       )}
 
-                      <div className="p-6 bg-white/2 border border-white/5 rounded-lg flex flex-col justify-between">
+                      <div className="p-4 bg-white/2 border border-white/5 rounded-lg flex flex-col justify-between gap-3">
                         <div>
                           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
                             Session ID
@@ -375,15 +375,7 @@ export default function UserVerificationTab({
                           selectedUser.stripeIdentitySessionId) && (
                           <div className="mt-4">
                             <Button
-                              onClick={() => {
-                                if (
-                                  window.confirm(
-                                    '¿Estás seguro de que quieres revocar el KYC de este usuario? Tendrá que volver a verificar su identidad con Stripe.',
-                                  )
-                                ) {
-                                  revokeKycMutation.mutate(selectedUser.id);
-                                }
-                              }}
+                              onClick={() => setConfirmRevokeOpen(true)}
                               isLoading={revokeKycMutation.isPending}
                               variant="danger"
                               className="w-full text-sm font-semibold border-red-500/30 min-h-11"
@@ -403,11 +395,11 @@ export default function UserVerificationTab({
 
                   {/* Profile Level Controls */}
                   <div>
-                    <h4 className="text-white font-semibold text-sm uppercase tracking-wide mb-4">
+                    <h4 className="text-white font-semibold text-sm uppercase tracking-wide mb-3">
                       Control de Nivel y Permisos
                     </h4>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      <div className="p-4 bg-white/2 rounded-xl border border-white/5 space-y-2">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      <div className="p-3 sm:p-4 bg-white/2 rounded-xl border border-white/5 space-y-2">
                         <Select
                           label="Nivel de Verificación de Perfil"
                           value={draftLevel || 'BASIC'}
@@ -432,7 +424,7 @@ export default function UserVerificationTab({
                         </p>
                       </div>
 
-                      <div className="p-4 bg-white/2 rounded-xl border border-white/5 space-y-2">
+                      <div className="p-3 sm:p-4 bg-white/2 rounded-xl border border-white/5 space-y-2">
                         <Select
                           label="Tipo de Cuenta"
                           value={draftType || 'PERSONAL'}
@@ -466,6 +458,22 @@ export default function UserVerificationTab({
             )}
           </AnimatePresence>
         }
+      />
+
+      <ConfirmModal
+        isOpen={confirmRevokeOpen}
+        onClose={() => setConfirmRevokeOpen(false)}
+        onConfirm={() => {
+          if (selectedUser) {
+            revokeKycMutation.mutate(selectedUser.id);
+          }
+          setConfirmRevokeOpen(false);
+        }}
+        title="¿Revocar verificación KYC?"
+        message="¿Estás seguro de que quieres revocar el KYC de este usuario? Tendrá que volver a verificar su identidad con Stripe."
+        confirmText="Revocar"
+        cancelText="Cancelar"
+        isDestructive={true}
       />
     </div>
   );

@@ -14,12 +14,13 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminReport } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
-import { LoadingSpinner } from '../index';
+import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
+import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { FilterDropdown, Pagination, SearchInput } from './AdminTable';
 
@@ -46,6 +47,12 @@ export default function ReportsTab({ onToast }: Props) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('PENDING'); // Default to pending for moderation flow
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
   const debouncedSearch = useDebouncedValue(search, 400);
   const queryClient = useQueryClient();
 
@@ -98,7 +105,16 @@ export default function ReportsTab({ onToast }: Props) {
 
   const selectedReport = data?.data.find((r) => r.id === selectedReportId);
 
-  // Keyboard shortcuts could be added here in a useEffect listening to 'A', 'D', 'X'
+  const isFiltered =
+    debouncedSearch.length > 0 ||
+    (statusFilter !== '' && statusFilter !== 'PENDING');
+
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter('PENDING');
+    setPage(1);
+    setSelectedReportId(null);
+  };
 
   return (
     <div className="flex flex-col min-h-0 gap-4">
@@ -143,14 +159,31 @@ export default function ReportsTab({ onToast }: Props) {
           <div className="flex flex-col h-full min-h-0">
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
               {isLoading ? (
-                <div className="flex justify-center p-8">
-                  <LoadingSpinner />
-                </div>
+                <AdminListSkeleton rows={5} />
               ) : !data || data.data.length === 0 ? (
                 <AdminEmptyState
                   icon={Check}
-                  title="No hay reportes en la cola"
-                  description="La cola de reportes está vacía."
+                  title={
+                    isFiltered
+                      ? 'Sin reportes con estos filtros'
+                      : 'No hay reportes en la cola'
+                  }
+                  description={
+                    isFiltered
+                      ? 'Prueba otro término o cambia el estado del filtro.'
+                      : 'La cola de reportes pendientes está vacía.'
+                  }
+                  action={
+                    isFiltered ? (
+                      <Button
+                        onClick={clearFilters}
+                        variant="secondary"
+                        className="min-h-11"
+                      >
+                        Limpiar filtros
+                      </Button>
+                    ) : undefined
+                  }
                   compact
                 />
               ) : (
@@ -241,7 +274,7 @@ export default function ReportsTab({ onToast }: Props) {
                     </div>
                   </div>
                   {selectedReport.status === 'PENDING' && (
-                    <div className="flex flex-col xs:flex-row flex-wrap gap-2">
+                    <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-row sm:flex-wrap">
                       {selectedReport.targetType === 'USER' &&
                       selectedReport.details?.includes('[URGENT]') ? (
                         <>
@@ -254,9 +287,10 @@ export default function ReportsTab({ onToast }: Props) {
                             }
                             isLoading={penaltyMutation.isPending}
                             variant="secondary"
-                            className="text-sm font-semibold border-white/5 min-h-11 flex-1 xs:flex-none"
+                            className="text-xs sm:text-sm font-semibold border-white/5 min-h-10 sm:min-h-11 px-2 sm:px-4"
                           >
-                            <X size={16} className="mr-2" /> Ignorar
+                            <X size={16} className="mr-1 sm:mr-2 shrink-0" />{' '}
+                            <span className="truncate">Ignorar</span>
                           </Button>
                           <Button
                             onClick={() =>
@@ -266,28 +300,42 @@ export default function ReportsTab({ onToast }: Props) {
                               })
                             }
                             isLoading={penaltyMutation.isPending}
-                            className="bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30 border border-yellow-500/50 text-sm font-semibold min-h-11 flex-1 xs:flex-none"
+                            className="bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30 border border-yellow-500/50 text-xs sm:text-sm font-semibold min-h-10 sm:min-h-11 px-2 sm:px-4"
                           >
-                            <Gavel size={16} className="mr-2" /> Strike
+                            <Gavel
+                              size={16}
+                              className="mr-1 sm:mr-2 shrink-0"
+                            />{' '}
+                            <span className="truncate">Strike</span>
                           </Button>
                           <Button
-                            onClick={() => {
-                              if (
-                                window.confirm(
+                            onClick={() =>
+                              setConfirmModal({
+                                isOpen: true,
+                                title: '¿Banear usuario?',
+                                message:
                                   '¿Seguro que quieres BANEAR a este usuario? Esta acción le impedirá volver a iniciar sesión.',
-                                )
-                              ) {
-                                penaltyMutation.mutate({
-                                  id: selectedReport.id,
-                                  action: 'BAN',
-                                });
-                              }
-                            }}
+                                onConfirm: () => {
+                                  penaltyMutation.mutate({
+                                    id: selectedReport.id,
+                                    action: 'BAN',
+                                  });
+                                  setConfirmModal((prev) => ({
+                                    ...prev,
+                                    isOpen: false,
+                                  }));
+                                },
+                              })
+                            }
                             isLoading={penaltyMutation.isPending}
                             variant="danger"
-                            className="text-sm font-semibold border-red-500/30 min-h-11 flex-1 xs:flex-none"
+                            className="text-xs sm:text-sm font-semibold border-red-500/30 min-h-10 sm:min-h-11 px-2 sm:px-4"
                           >
-                            <AlertOctagon size={16} className="mr-2" /> Banear
+                            <AlertOctagon
+                              size={16}
+                              className="mr-1 sm:mr-2 shrink-0"
+                            />{' '}
+                            <span className="truncate">Banear</span>
                           </Button>
                         </>
                       ) : (
@@ -301,43 +349,54 @@ export default function ReportsTab({ onToast }: Props) {
                             }
                             isLoading={updateMutation.isPending}
                             variant="secondary"
-                            className="text-sm font-semibold border-white/5 min-h-11 flex-1 xs:flex-none"
+                            className="text-xs sm:text-sm font-semibold border-white/5 min-h-10 sm:min-h-11 px-2 sm:px-4"
                           >
-                            <X size={16} className="mr-2" /> Ignorar
+                            <X size={16} className="mr-1 sm:mr-2 shrink-0" />{' '}
+                            <span className="truncate">Ignorar</span>
                           </Button>
                           <Button
-                            onClick={() => {
-                              if (
-                                window.confirm(
+                            onClick={() =>
+                              setConfirmModal({
+                                isOpen: true,
+                                title: '¿Eliminar contenido?',
+                                message:
                                   '¿Seguro que quieres eliminar este contenido permanentemente?',
-                                )
-                              ) {
-                                const deleteFn =
-                                  selectedReport.targetType.toUpperCase() ===
-                                  'POST'
-                                    ? adminApi.deletePost
-                                    : selectedReport.targetType.toUpperCase() ===
-                                        'STORY'
-                                      ? adminApi.deleteStory
-                                      : adminApi.deleteComment;
-                                deleteFn(selectedReport.targetId)
-                                  .then(() => {
-                                    updateMutation.mutate({
-                                      id: selectedReport.id,
-                                      status: 'RESOLVED',
-                                    });
-                                    onToast('Contenido eliminado', 'success');
-                                  })
-                                  .catch(() =>
-                                    onToast('Error al eliminar', 'error'),
-                                  );
-                              }
-                            }}
+                                onConfirm: () => {
+                                  const deleteFn =
+                                    selectedReport.targetType.toUpperCase() ===
+                                    'POST'
+                                      ? adminApi.deletePost
+                                      : selectedReport.targetType.toUpperCase() ===
+                                          'STORY'
+                                        ? adminApi.deleteStory
+                                        : adminApi.deleteComment;
+                                  deleteFn(selectedReport.targetId)
+                                    .then(() => {
+                                      updateMutation.mutate({
+                                        id: selectedReport.id,
+                                        status: 'RESOLVED',
+                                      });
+                                      onToast('Contenido eliminado', 'success');
+                                    })
+                                    .catch(() =>
+                                      onToast('Error al eliminar', 'error'),
+                                    );
+                                  setConfirmModal((prev) => ({
+                                    ...prev,
+                                    isOpen: false,
+                                  }));
+                                },
+                              })
+                            }
                             isLoading={updateMutation.isPending}
                             variant="danger"
-                            className="text-sm font-semibold border-red-500/30 min-h-11 flex-1 xs:flex-none"
+                            className="text-xs sm:text-sm font-semibold border-red-500/30 min-h-10 sm:min-h-11 px-2 sm:px-4 col-span-2 sm:col-span-1"
                           >
-                            <Trash2 size={16} className="mr-2" /> Eliminar
+                            <Trash2
+                              size={16}
+                              className="mr-1 sm:mr-2 shrink-0"
+                            />{' '}
+                            <span className="truncate">Eliminar</span>
                           </Button>
                         </>
                       )}
@@ -378,7 +437,7 @@ export default function ReportsTab({ onToast }: Props) {
                       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
                         Motivo del Reporte
                       </p>
-                      <p className="text-red-400 font-bold text-lg mb-4">
+                      <p className="text-red-400 font-semibold text-base sm:text-lg mb-4">
                         {selectedReport.reason}
                       </p>
 
@@ -388,11 +447,11 @@ export default function ReportsTab({ onToast }: Props) {
                       {selectedReport.details?.includes(
                         '[AI Automated Flag]',
                       ) ? (
-                        <div className="flex items-center gap-2 text-brand-primary font-bold">
+                        <div className="flex items-center gap-2 text-brand-primary font-semibold text-sm">
                           <Bot size={16} /> Sistema IA (Auto-Moderación)
                         </div>
                       ) : (
-                        <p className="text-white font-bold">
+                        <p className="text-white font-semibold text-sm">
                           @
                           {selectedReport.reporter?.profile?.username ||
                             'Anónimo'}
@@ -448,6 +507,17 @@ export default function ReportsTab({ onToast }: Props) {
             )}
           </AnimatePresence>
         }
+      />
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText="Confirmar"
+        cancelText="Cancelar"
+        isDestructive={true}
       />
     </div>
   );

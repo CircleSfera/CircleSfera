@@ -73,6 +73,12 @@ export default function HashtagsTab() {
           desktop={
             <Table
               headers={['#', 'Hashtag', 'Posts', 'Creado']}
+              columnWidths={[
+                'w-[2.5rem]',
+                'min-w-[8rem]',
+                'w-[4.5rem]',
+                'hidden lg:table-cell w-[6rem]',
+              ]}
               loading={false}
               isEmpty={false}
             >
@@ -85,19 +91,22 @@ export default function HashtagsTab() {
                     {(page - 1) * 20 + i + 1}
                   </td>
                   <td className="px-2 py-1">
-                    <div className="flex items-center gap-2">
-                      <Hash size={14} className="text-brand-primary" />
-                      <span className="text-white font-semibold text-sm">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Hash size={14} className="text-brand-primary shrink-0" />
+                      <span
+                        className="text-white font-semibold text-sm truncate"
+                        title={tag.tag}
+                      >
                         {tag.tag}
                       </span>
                     </div>
                   </td>
                   <td className="px-2 py-1">
-                    <span className="text-brand-primary font-semibold text-lg">
+                    <span className="text-brand-primary font-semibold text-sm">
                       {tag.postCount}
                     </span>
                   </td>
-                  <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap">
+                  <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap hidden lg:table-cell">
                     {new Date(tag.createdAt).toLocaleDateString()}
                   </td>
                 </tr>

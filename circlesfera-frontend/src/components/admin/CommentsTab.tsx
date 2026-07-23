@@ -5,6 +5,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminComment } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import ConfirmModal from '../modals/ConfirmModal';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminList, AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
@@ -18,6 +19,7 @@ export default function CommentsTab({ onToast }: Props) {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(search, 400);
 
   const { data, isLoading } = useQuery<PaginatedResponse<AdminComment>>({
@@ -69,20 +71,13 @@ export default function CommentsTab({ onToast }: Props) {
                 <AdminListRow
                   key={comment.id}
                   title={`@${comment.user?.profile?.username || 'unknown'}`}
-                  subtitle={comment.content}
-                  meta={
-                    <>
-                      <span>
-                        Post: {comment.post?.caption?.slice(0, 40) || '—'}
-                      </span>
-                      <span>
-                        {new Date(comment.createdAt).toLocaleDateString()}
-                      </span>
-                    </>
+                  subtitle={
+                    <span className="line-clamp-2">{comment.content}</span>
                   }
+                  meta={new Date(comment.createdAt).toLocaleDateString()}
                   primaryAction={
                     <ActionButton
-                      onClick={() => deleteMutation.mutate(comment.id)}
+                      onClick={() => setConfirmDeleteId(comment.id)}
                       label="Eliminar"
                       variant="danger"
                       icon={Trash2}
@@ -96,6 +91,13 @@ export default function CommentsTab({ onToast }: Props) {
           desktop={
             <Table
               headers={['Autor', 'Comentario', 'Post', 'Fecha', 'Acciones']}
+              columnWidths={[
+                'w-[7rem]',
+                'min-w-[10rem]',
+                'hidden xl:table-cell min-w-[8rem]',
+                'hidden lg:table-cell w-[6rem]',
+                'w-[4rem]',
+              ]}
               loading={false}
               isEmpty={false}
             >
@@ -106,28 +108,34 @@ export default function CommentsTab({ onToast }: Props) {
                 >
                   <td className="px-2 py-1">
                     <span
-                      className="text-white text-sm font-medium max-w-[100px] lg:max-w-[150px] truncate block"
-                      title={comment.user?.profile?.username}
+                      className="text-white text-sm font-medium truncate block max-w-[7rem]"
+                      title={`@${comment.user?.profile?.username || 'unknown'}`}
                     >
                       @{comment.user?.profile?.username || 'unknown'}
                     </span>
                   </td>
                   <td className="px-2 py-1">
-                    <p className="text-gray-300 text-sm max-w-xs truncate">
+                    <p
+                      className="text-gray-300 text-sm truncate max-w-[16rem] xl:max-w-[20rem]"
+                      title={comment.content}
+                    >
                       {comment.content}
                     </p>
                   </td>
-                  <td className="px-2 py-1">
-                    <span className="text-gray-500 text-xs truncate max-w-[150px] block">
-                      {comment.post?.caption?.slice(0, 40) || '—'}
+                  <td className="px-2 py-1 hidden xl:table-cell">
+                    <span
+                      className="text-gray-500 text-xs truncate block max-w-[8rem]"
+                      title={comment.post?.caption || undefined}
+                    >
+                      {comment.post?.caption || '—'}
                     </span>
                   </td>
-                  <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap">
+                  <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap hidden lg:table-cell">
                     {new Date(comment.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-2 py-1">
                     <ActionButton
-                      onClick={() => deleteMutation.mutate(comment.id)}
+                      onClick={() => setConfirmDeleteId(comment.id)}
                       label="Eliminar"
                       variant="danger"
                       icon={Trash2}
@@ -142,6 +150,23 @@ export default function CommentsTab({ onToast }: Props) {
         />
         <Pagination meta={data?.meta} onPageChange={setPage} />
       </div>
+
+      <ConfirmModal
+        isOpen={confirmDeleteId !== null}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={() => {
+          if (confirmDeleteId) {
+            deleteMutation.mutate(confirmDeleteId);
+          }
+          setConfirmDeleteId(null);
+        }}
+        title="¿Eliminar comentario?"
+        message="¿Estás seguro de que deseas eliminar este comentario permanentemente?"
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        isDestructive={true}
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

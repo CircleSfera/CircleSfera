@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { adminApi } from '../../services/admin.service';
+import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Input, Textarea } from '../ui';
 import { AdminPageHeader } from './AdminPageHeader';
 
@@ -25,6 +26,7 @@ export default function NewsletterTab({
   });
   const [isSending, setIsSending] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleSend = async () => {
     if (!formData.subject || !formData.title || !formData.content) {
@@ -32,14 +34,11 @@ export default function NewsletterTab({
       return;
     }
 
-    if (
-      !confirm(
-        '¿Estás seguro de que deseas enviar este correo masivo a TODOS los usuarios activos? Esta acción no se puede deshacer.',
-      )
-    ) {
-      return;
-    }
+    setConfirmOpen(true);
+  };
 
+  const executeSend = async () => {
+    setConfirmOpen(false);
     setIsSending(true);
     try {
       await adminApi.sendBroadcast(formData);
@@ -65,19 +64,19 @@ export default function NewsletterTab({
         title="Comunicaciones Masivas"
         subtitle="Envía comunicaciones oficiales a todos los usuarios activos de CircleSfera"
         actions={
-          <>
+          <div className="flex flex-col xs:flex-row gap-2 w-full sm:w-auto">
             <Button
               type="button"
               variant="secondary"
               onClick={() => setShowPreview(!showPreview)}
-              className="min-h-11 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all border border-white/10 hover:bg-white/5 text-gray-300"
+              className="min-h-11 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border border-white/10 hover:bg-white/5 text-gray-300 w-full xs:w-auto"
             >
               {showPreview ? 'Editar Contenido' : 'Vista Previa'}
             </Button>
             <Button
               onClick={handleSend}
               disabled={isSending}
-              className="min-h-11 px-4 py-2.5 text-xs font-semibold"
+              className="min-h-11 px-4 py-2.5 text-sm font-semibold w-full xs:w-auto"
             >
               {isSending ? (
                 <>
@@ -91,14 +90,14 @@ export default function NewsletterTab({
                 </>
               )}
             </Button>
-          </>
+          </div>
         }
       />
 
-      <div className="glass-panel p-4 sm:p-6 rounded-lg border border-white/5">
-        <div className="flex flex-col lg:flex-row gap-6">
+      <div className="glass-panel p-3 sm:p-5 rounded-lg border border-white/5">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
           {!showPreview && (
-            <div className="flex-1 space-y-4 order-1">
+            <div className="flex-1 space-y-3 order-1">
               <div className="space-y-2">
                 <label
                   htmlFor="subject"
@@ -150,7 +149,7 @@ export default function NewsletterTab({
                   onChange={(e) =>
                     setFormData({ ...formData, content: e.target.value })
                   }
-                  className="min-h-[200px] resize-none leading-relaxed"
+                  className="min-h-[160px] sm:min-h-[200px] resize-none leading-relaxed"
                 />
               </div>
 
@@ -203,7 +202,7 @@ export default function NewsletterTab({
           {showPreview && (
             <div className="flex-1 order-2">
               <div className="bg-black border border-white/10 rounded-lg overflow-hidden max-w-2xl mx-auto shadow-2xl">
-                <div className="bg-surface-elevated px-6 py-4 border-b border-white/5 flex items-center gap-3">
+                <div className="bg-surface-elevated px-4 sm:px-6 py-3 border-b border-white/5 flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center">
                     <span className="text-brand-primary font-semibold text-xs">
                       CS
@@ -219,8 +218,8 @@ export default function NewsletterTab({
                   </div>
                 </div>
 
-                <div className="p-10 text-center space-y-4 bg-black">
-                  <h1 className="text-xl font-semibold text-white tracking-tight leading-tight">
+                <div className="p-4 sm:p-8 text-center space-y-3 sm:space-y-4 bg-black">
+                  <h1 className="text-lg sm:text-xl font-semibold text-white tracking-tight leading-tight">
                     {formData.title || 'Título del Correo'}
                   </h1>
                   <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
@@ -229,14 +228,14 @@ export default function NewsletterTab({
                   </p>
 
                   {formData.buttonText && formData.buttonUrl && (
-                    <div className="pt-6">
-                      <span className="inline-block px-8 py-3 bg-white text-black font-semibold text-xs rounded-full uppercase tracking-wide shadow-xl">
+                    <div className="pt-4 sm:pt-6">
+                      <span className="inline-block px-6 sm:px-8 py-2.5 sm:py-3 bg-white text-black font-semibold text-xs rounded-full uppercase tracking-wide shadow-xl">
                         {formData.buttonText}
                       </span>
                     </div>
                   )}
 
-                  <div className="pt-10 border-t border-white/5">
+                  <div className="pt-6 sm:pt-10 border-t border-white/5">
                     <p className="text-xs text-gray-600 font-semibold uppercase tracking-wide">
                       CircleSfera © 2026 ·{' '}
                       <span className="text-brand-primary">
@@ -251,7 +250,7 @@ export default function NewsletterTab({
         </div>
       </div>
 
-      <div className="bg-orange-500/5 border border-orange-500/20 rounded-lg p-6 flex items-start gap-4">
+      <div className="bg-orange-500/5 border border-orange-500/20 rounded-lg p-4 flex items-start gap-3">
         <AlertTriangle className="text-orange-500 shrink-0 mt-0.5" size={18} />
         <div>
           <h4 className="text-orange-500 text-xs font-semibold uppercase tracking-wide mb-1">
@@ -265,6 +264,17 @@ export default function NewsletterTab({
           </p>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={executeSend}
+        title="¿Enviar broadcast?"
+        message="¿Estás seguro de que deseas enviar este correo masivo a TODOS los usuarios activos? Esta acción no se puede deshacer."
+        confirmText="Enviar"
+        cancelText="Cancelar"
+        isDestructive={false}
+      />
     </div>
   );
 }

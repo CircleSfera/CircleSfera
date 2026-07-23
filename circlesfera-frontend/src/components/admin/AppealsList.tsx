@@ -4,9 +4,9 @@ import {
   getAdminAppeals,
   updateAdminAppeal,
 } from '../../services/appeals.service';
-import { LoadingSpinner } from '../index';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminListRow } from './AdminList';
+import { AdminListSkeleton } from './AdminSkeletons';
 import { ActionButton } from './AdminTable';
 import { adminToast } from './adminToast';
 
@@ -38,7 +38,7 @@ export default function AppealsList() {
   });
 
   if (isLoading) {
-    return <LoadingSpinner />;
+    return <AdminListSkeleton rows={4} />;
   }
 
   if (appeals.length === 0) {
@@ -47,6 +47,7 @@ export default function AppealsList() {
         icon={CheckCircle}
         title="No hay apelaciones pendientes"
         description="La cola de apelaciones está vacía."
+        compact
       />
     );
   }
@@ -78,11 +79,12 @@ export default function AppealsList() {
           }
           primaryAction={
             appeal.status === 'PENDING' ? (
-              <div className="flex gap-2">
+              <div className="flex gap-1 sm:gap-2">
                 <ActionButton
                   icon={CheckCircle}
                   label="Aprobar"
                   variant="success"
+                  iconOnly
                   onClick={() =>
                     updateMutation.mutate({
                       id: appeal.id,
@@ -95,6 +97,7 @@ export default function AppealsList() {
                   icon={XCircle}
                   label="Rechazar"
                   variant="danger"
+                  iconOnly
                   onClick={() =>
                     updateMutation.mutate({
                       id: appeal.id,
