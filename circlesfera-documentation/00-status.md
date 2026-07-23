@@ -14,7 +14,7 @@
 
 After merging feed hydration for `poll` / `qnaBox`, prod returned feed/stories **500** because `polls`, `qna_boxes`, `live_streams`, and message/comment voice columns existed in `schema.prisma` but had **no prior Prisma migration**. Fixed by migration `20260723010000_add_interactive_live_voice_fields` plus hybrid-feed vector reads from `post_embeddings`.
 
-Follow-up: CI runs `scripts/check-prisma-schema-migrations.sh` (replay migrations onto a shadow Postgres, then `prisma migrate diff --exit-code`) so schema/migration drift fails the pipeline before deploy. Catch-up migration `20260723020000_appeals_profile_embeddings_drop_payouts` aligns `appeals` / `profile_embeddings` and drops orphan `payout_requests`.
+Follow-up: CI runs `scripts/check-prisma-schema-migrations.sh` (replay migrations onto a shadow Postgres, then `prisma migrate diff --exit-code`) so schema/migration drift fails the pipeline before deploy. Catch-up migration `20260723020000_appeals_profile_embeddings_drop_payouts` aligns `appeals` / `profile_embeddings` and drops orphan `payout_requests`. Deploy also runs a post-healthy API smoke (`/health`, `/feed/foryou`, `/stories`, `/live/active`) and fails on 5xx.
 
 ## Still deferred / out of scope
 
