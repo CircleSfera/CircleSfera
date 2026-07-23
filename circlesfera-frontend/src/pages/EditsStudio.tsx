@@ -8,6 +8,8 @@ import {
   ZoomOut,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 import PropertiesPanel from '../components/studio/layout/PropertiesPanel';
@@ -28,6 +30,7 @@ const generateId = () => {
 };
 
 export default function Studio() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
@@ -58,7 +61,7 @@ export default function Studio() {
     if (!project) {
       const newProject: StudioProject = {
         id: generateId(),
-        name: 'Nuevo Proyecto',
+        name: t('studio.default_project_name'),
         duration: 10,
         fps: 30,
         resolution: { width: 1080, height: 1920 },
@@ -66,7 +69,7 @@ export default function Studio() {
           {
             id: generateId(),
             type: 'video',
-            name: 'Pista Principal',
+            name: t('studio.default_track_name'),
             clips: [],
             muted: false,
             hidden: false,
@@ -78,7 +81,7 @@ export default function Studio() {
       };
       setProject(newProject);
     }
-  }, [project, setProject]);
+  }, [project, setProject, t]);
 
   const handleAddMedia = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0 || !project) return;
@@ -141,7 +144,7 @@ export default function Studio() {
       type: 'text',
       startAt: playhead,
       duration: 3,
-      content: 'Nuevo Texto',
+      content: t('studio.default_text'),
       style: {
         color: '#ffffff',
         fontSize: 40,
@@ -195,7 +198,7 @@ export default function Studio() {
       setExportedBlob(exportedFile);
     } catch (error) {
       console.error('Export failed', error);
-      alert('Error exportando el video. Inténtalo de nuevo.');
+      toast.error(t('studio.export_error'));
     } finally {
       setIsExporting(false);
     }
@@ -265,7 +268,7 @@ export default function Studio() {
             <PropertiesPanel />
           ) : (
             <div className="hidden lg:flex flex-1 items-center justify-center text-center p-8 text-white/30">
-              Selecciona un clip para ver sus propiedades
+              {t('studio.select_clip_hint')}
             </div>
           )}
         </div>
@@ -281,7 +284,9 @@ export default function Studio() {
                 className="flex items-center gap-1.5 bg-brand-primary text-white hover:bg-brand-primary/90 px-3 py-1.5 rounded-lg transition-colors"
               >
                 <Plus size={16} />
-                <span className="text-xs font-semibold">Media</span>
+                <span className="text-xs font-semibold">
+                  {t('studio.media')}
+                </span>
               </button>
               <button
                 type="button"
@@ -289,7 +294,7 @@ export default function Studio() {
                 className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
               >
                 <Type size={16} />
-                <span className="text-xs font-medium">Texto</span>
+                <span className="text-xs font-medium">{t('studio.text')}</span>
               </button>
               <button
                 type="button"
@@ -297,7 +302,7 @@ export default function Studio() {
                 className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
               >
                 <Music size={16} />
-                <span className="text-xs font-medium">Audio</span>
+                <span className="text-xs font-medium">{t('studio.audio')}</span>
               </button>
 
               <div className="w-px h-5 bg-white/10 mx-1 sm:mx-2 shrink-0" />
@@ -307,11 +312,11 @@ export default function Studio() {
                 onClick={splitClip}
                 disabled={!selectedClipId}
                 className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-                title="Dividir en el playhead"
+                title={t('studio.split_title')}
               >
                 <Scissors size={16} />
                 <span className="text-xs font-medium hidden sm:inline">
-                  Dividir
+                  {t('studio.split')}
                 </span>
               </button>
               <button
@@ -322,7 +327,7 @@ export default function Studio() {
               >
                 <Trash2 size={16} />
                 <span className="text-xs font-medium hidden sm:inline">
-                  Borrar
+                  {t('studio.delete')}
                 </span>
               </button>
             </div>
