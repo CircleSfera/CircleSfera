@@ -206,6 +206,42 @@ jobs:
 
             echo "✅ Backend is healthy."
 
+            # API smoke: catch schema/runtime 500s that healthchecks miss (e.g. missing tables).
+            echo "Running post-deploy API smoke..."
+            smoke_ok=1
+            smoke_check() {
+              path="$1"
+              code=$(curl -sS -o /tmp/cs-smoke-body -w "%{http_code}" \
+                --max-time 15 \
+                "http://127.0.0.1:8082/api/v1${path}" || echo "000")
+              # Accept 2xx/3xx/401/403/404; fail on 5xx / curl errors.
+              case "$code" in
+                2*|3*|401|403|404)
+                  echo "  OK  $code  $path"
+                  ;;
+                *)
+                  echo "  FAIL $code  $path"
+                  head -c 400 /tmp/cs-smoke-body 2>/dev/null || true
+                  echo
+                  smoke_ok=0
+                  ;;
+              esac
+            }
+            smoke_check "/health"
+            smoke_check "/feed/foryou?page=1&limit=2"
+            smoke_check "/stories"
+            smoke_check "/live/active"
+
+            if [ "$smoke_ok" != "1" ]; then
+              echo "❌ Post-deploy API smoke FAILED."
+              docker logs CircleSfera-Backend --tail=100 2>&1 || true
+              if [ -n "$DEPLOY_WEBHOOK" ]; then
+                curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 *Deployment FAILED* smoke: API returned 5xx after healthy check."}' "$DEPLOY_WEBHOOK" || true
+              fi
+              exit 1
+            fi
+            echo "✅ Post-deploy API smoke passed."
+
             # Clean up dangling images
             docker system prune -f
 
