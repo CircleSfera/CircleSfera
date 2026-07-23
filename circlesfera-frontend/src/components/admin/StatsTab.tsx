@@ -27,7 +27,9 @@ import type {
 } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import SafeResponsiveContainer from '../common/SafeResponsiveContainer';
+import { AdminEmptyState } from './AdminEmptyState';
 import { AdminListRow } from './AdminList';
+import { AdminPageHeader } from './AdminPageHeader';
 import StatCard from './StatCard';
 
 export default function StatsTab() {
@@ -62,6 +64,11 @@ export default function StatsTab() {
 
   return (
     <div className="space-y-4">
+      <AdminPageHeader
+        title="Estadísticas Globales"
+        subtitle="Métricas en tiempo real y actividad del sistema"
+      />
+
       {/* Primary Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
@@ -138,8 +145,8 @@ export default function StatsTab() {
       {/* Activity Chart + Top Users */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Chart */}
-        <div className="lg:col-span-2 glass-panel rounded-lg border border-white/5 p-6">
-          <div className="flex items-center gap-2 mb-6">
+        <div className="lg:col-span-2 glass-panel rounded-lg border border-white/5 p-4 sm:p-6">
+          <div className="flex items-center gap-2 mb-4 sm:mb-6">
             <BarChart3 size={18} className="text-brand-primary" />
             <h3 className="text-white font-semibold text-sm">
               Actividad (últimos 14 días)
@@ -202,9 +209,12 @@ export default function StatsTab() {
               </AreaChart>
             </SafeResponsiveContainer>
           ) : (
-            <div className="h-[260px] flex items-center justify-center text-gray-600 text-sm">
-              Sin datos de actividad
-            </div>
+            <AdminEmptyState
+              icon={BarChart3}
+              title="Sin datos de actividad"
+              description="No hay datos disponibles para el período seleccionado"
+              compact
+            />
           )}
         </div>
 
@@ -299,7 +309,12 @@ export default function StatsTab() {
               </div>
             </>
           ) : (
-            <p className="text-gray-600 text-sm text-center py-4">Sin datos</p>
+            <AdminEmptyState
+              icon={UserCheck}
+              title="Sin datos"
+              description="No hay información de usuarios disponible"
+              compact
+            />
           )}
         </div>
       </div>
@@ -307,7 +322,7 @@ export default function StatsTab() {
       {/* Recent Activity */}
       {stats?.recentActivity && stats.recentActivity.length > 0 && (
         <div className="glass-panel rounded-lg border border-white/5 overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/5 flex items-center gap-2">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-white/5 flex items-center gap-2">
             <BarChart3 size={18} className="text-brand-primary" />
             <h3 className="text-white font-semibold text-sm">
               Actividad Reciente del Admin
@@ -317,13 +332,13 @@ export default function StatsTab() {
             {stats.recentActivity.map((log) => (
               <div
                 key={log.id}
-                className="px-5 py-2 flex items-center justify-between hover:bg-white/5 transition-colors"
+                className="px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 hover:bg-white/5 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0">
                     <Activity size={14} className="text-brand-primary" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-white text-sm font-medium">
                       <span className="text-brand-primary">
                         @{log.adminUsername}
@@ -332,12 +347,12 @@ export default function StatsTab() {
                         {formatAction(log.action)}
                       </span>
                     </p>
-                    <p className="text-gray-600 text-xs">
+                    <p className="text-gray-600 text-xs truncate">
                       {log.targetType} · {log.targetId.slice(0, 8)}...
                     </p>
                   </div>
                 </div>
-                <span className="text-gray-600 text-xs whitespace-nowrap">
+                <span className="text-gray-600 text-xs sm:whitespace-nowrap ml-11 sm:ml-0">
                   {new Date(log.createdAt).toLocaleString()}
                 </span>
               </div>

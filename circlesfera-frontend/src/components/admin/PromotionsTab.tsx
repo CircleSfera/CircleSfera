@@ -16,7 +16,10 @@ import type { PaginatedResponse } from '../../types';
 import { LoadingSpinner } from '../index';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
+import { AdminEmptyState } from './AdminEmptyState';
+import { AdminFilterBar } from './AdminFilterBar';
 import { AdminListRow } from './AdminList';
+import { AdminPageHeader } from './AdminPageHeader';
 import { AdminSplitView } from './AdminSplitView';
 import {
   FilterDropdown,
@@ -113,48 +116,36 @@ export default function PromotionsTab({ onToast }: Props) {
 
   return (
     <div className="flex flex-col min-h-0 space-y-4">
-      {/* Header & Controls */}
-      <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-brand-primary/10 border border-brand-primary/20 rounded-xl">
-            <Megaphone size={20} className="text-brand-primary" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-white">
-              Cola de Promociones
-            </h2>
-            <p className="text-xs text-gray-500">
-              Solicitudes de anuncios y posts patrocinados
-            </p>
-          </div>
-        </div>
+      <AdminPageHeader
+        title="Cola de Promociones"
+        subtitle="Solicitudes de anuncios y posts patrocinados"
+      />
 
-        <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-          <SearchInput
-            value={search}
-            onChange={(val) => {
-              setSearch(val);
-              setPage(1);
-            }}
-            placeholder="Buscar usuario..."
-          />
-          <FilterDropdown
-            label="Estado"
-            value={statusFilter}
-            onChange={(v) => {
-              setStatusFilter(v);
-              setPage(1);
-            }}
-            options={[
-              { value: '', label: 'Todos' },
-              { value: 'PENDING', label: 'Pendientes' },
-              { value: 'ACTIVE', label: 'Activas' },
-              { value: 'COMPLETED', label: 'Completadas' },
-              { value: 'REJECTED', label: 'Rechazadas' },
-            ]}
-          />
-        </div>
-      </div>
+      <AdminFilterBar>
+        <SearchInput
+          value={search}
+          onChange={(val) => {
+            setSearch(val);
+            setPage(1);
+          }}
+          placeholder="Buscar usuario..."
+        />
+        <FilterDropdown
+          label="Estado"
+          value={statusFilter}
+          onChange={(v) => {
+            setStatusFilter(v);
+            setPage(1);
+          }}
+          options={[
+            { value: '', label: 'Todos' },
+            { value: 'PENDING', label: 'Pendientes' },
+            { value: 'ACTIVE', label: 'Activas' },
+            { value: 'COMPLETED', label: 'Completadas' },
+            { value: 'REJECTED', label: 'Rechazadas' },
+          ]}
+        />
+      </AdminFilterBar>
 
       <AdminSplitView
         hasSelection={!!selectedPromoId}
@@ -175,9 +166,12 @@ export default function PromotionsTab({ onToast }: Props) {
                   <LoadingSpinner />
                 </div>
               ) : promos.length === 0 ? (
-                <div className="text-center p-8 text-gray-500 text-sm">
-                  No hay promociones encontradas
-                </div>
+                <AdminEmptyState
+                  icon={Megaphone}
+                  title="No hay promociones encontradas"
+                  description="Intenta ajustar los filtros de búsqueda"
+                  compact
+                />
               ) : (
                 promos.map((promo) => (
                   <AdminListRow
@@ -265,7 +259,7 @@ export default function PromotionsTab({ onToast }: Props) {
                           }}
                           isLoading={updateMutation.isPending}
                           variant="danger"
-                          className="p-2 md:px-4 md:py-2 text-sm font-semibold border-red-500/20"
+                          className="min-h-11 px-3 md:px-4 py-2 text-sm font-semibold border-red-500/20"
                         >
                           <XCircle size={16} className="mr-2 hidden md:block" />{' '}
                           <span className="hidden md:inline">Rechazar</span>
@@ -280,7 +274,7 @@ export default function PromotionsTab({ onToast }: Props) {
                           }
                           isLoading={updateMutation.isPending}
                           variant="success"
-                          className="p-2 md:px-4 md:py-2 text-sm font-semibold border-green-500/20"
+                          className="min-h-11 px-3 md:px-4 py-2 text-sm font-semibold border-green-500/20"
                         >
                           <CheckCircle
                             size={16}
@@ -393,17 +387,13 @@ export default function PromotionsTab({ onToast }: Props) {
                 </div>
               </motion.div>
             ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex-1 flex flex-col items-center justify-center text-gray-500 min-h-48"
-              >
-                <Megaphone size={48} className="mb-4 text-white/10" />
-                <p className="font-semibold">Selecciona una promoción</p>
-                <p className="text-sm">
-                  Para revisar los detalles y aprobar la campaña
-                </p>
-              </motion.div>
+              <div className="flex-1 flex items-center justify-center p-6">
+                <AdminEmptyState
+                  icon={Megaphone}
+                  title="Selecciona una promoción"
+                  description="Para revisar los detalles y aprobar la campaña"
+                />
+              </div>
             )}
           </AnimatePresence>
         }

@@ -9,6 +9,8 @@ import {
   Zap,
 } from 'lucide-react';
 import { adminApi } from '../../services/admin.service';
+import { AdminEmptyState } from './AdminEmptyState';
+import { AdminPageHeader } from './AdminPageHeader';
 import StatCard from './StatCard';
 
 export default function MonetizationTab() {
@@ -36,13 +38,12 @@ export default function MonetizationTab() {
 
   if (error) {
     return (
-      <div className="p-12 text-center glass-panel rounded-xl border border-red-500/10">
-        <Activity size={48} className="text-red-500/20 mx-auto mb-4" />
-        <h3 className="text-white font-semibold text-lg">Error de Análisis</h3>
-        <p className="text-gray-500">
-          No se pudieron sincronizar las métricas de suscripción.
-        </p>
-      </div>
+      <AdminEmptyState
+        icon={Activity}
+        title="Error de Análisis"
+        description="No se pudieron sincronizar las métricas de suscripción."
+        className="glass-panel border-red-500/10"
+      />
     );
   }
 
@@ -56,6 +57,11 @@ export default function MonetizationTab() {
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <AdminPageHeader
+        title="Monetización"
+        subtitle="Análisis de suscripciones y métricas SaaS"
+      />
+
       {/* SaaS Primary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
@@ -84,56 +90,56 @@ export default function MonetizationTab() {
       </div>
 
       {/* Stripe Integration Status */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div className="glass-panel p-4 rounded-xl border border-white/5 flex flex-col justify-between group hover:border-brand-primary/30 transition-all">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="glass-panel p-5 sm:p-6 rounded-xl border border-white/5 flex flex-col justify-between group hover:border-brand-primary/30 transition-all min-h-[120px]">
           <div className="flex justify-between items-start mb-4">
-            <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
-              <Zap size={20} />
+            <div className="w-11 h-11 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0">
+              <Zap size={22} />
             </div>
-            <span className="text-xs font-semibold uppercase tracking-wide text-green-400 bg-green-400/10 px-2 py-1 rounded-full border border-green-400/20">
+            <span className="text-xs font-semibold uppercase tracking-wide text-green-400 bg-green-400/10 px-2.5 py-1 rounded-full border border-green-400/20">
               Conectado
             </span>
           </div>
           <div>
-            <h4 className="text-white font-semibold text-sm mb-1">
+            <h4 className="text-white font-semibold text-sm mb-1.5">
               Stripe API
             </h4>
-            <p className="text-gray-300 text-xs">
+            <p className="text-gray-300 text-xs leading-relaxed">
               Conexión principal con Stripe habilitada. Pagos activos.
             </p>
           </div>
         </div>
 
-        <div className="glass-panel p-4 rounded-xl border border-white/5 flex flex-col justify-between group hover:border-blue-400/30 transition-all relative overflow-hidden">
+        <div className="glass-panel p-5 sm:p-6 rounded-xl border border-white/5 flex flex-col justify-between group hover:border-blue-400/30 transition-all relative overflow-hidden min-h-[120px]">
           <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-blue-500/0 via-blue-500/50 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="flex justify-between items-start mb-4">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
-              <Users size={20} />
+            <div className="w-11 h-11 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
+              <Users size={22} />
             </div>
-            <span className="text-xs font-semibold uppercase tracking-wide text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded-full border border-yellow-400/20">
+            <span className="text-xs font-semibold uppercase tracking-wide text-yellow-400 bg-yellow-400/10 px-2.5 py-1 rounded-full border border-yellow-400/20">
               En Implementación
             </span>
           </div>
           <div>
-            <h4 className="text-white font-semibold text-sm mb-1">
+            <h4 className="text-white font-semibold text-sm mb-1.5">
               Stripe Connect
             </h4>
-            <p className="text-gray-300 text-xs">
+            <p className="text-gray-300 text-xs leading-relaxed">
               Infraestructura para pagos divididos y Creadores.
             </p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Tier Distribution Chart (Linear) */}
-        <div className="glass-panel rounded-xl border border-white/5 p-6 sm:p-8 bg-linear-to-br from-brand-secondary/5 to-transparent">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-brand-secondary/10 flex items-center justify-center border border-brand-secondary/20">
-              <PieChart size={28} className="text-brand-secondary" />
+        <div className="glass-panel rounded-xl border border-white/5 p-5 sm:p-6 bg-linear-to-br from-brand-secondary/5 to-transparent">
+          <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+            <div className="w-12 h-12 rounded-lg bg-brand-secondary/10 flex items-center justify-center border border-brand-secondary/20 shrink-0">
+              <PieChart size={24} className="text-brand-secondary" />
             </div>
-            <div>
-              <h3 className="text-lg sm:text-xl font-semibold text-white">
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-semibold text-white">
                 Distribución de Experiencia
               </h3>
               <p className="text-zinc-400 text-xs">
@@ -220,13 +226,13 @@ export default function MonetizationTab() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-8">
-          <div className="glass-panel rounded-xl border border-white/5 p-6 sm:p-8 grow bg-linear-to-bl from-brand-primary/5 to-transparent flex flex-col justify-center">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 rounded-lg bg-brand-primary/10 flex items-center justify-center">
-                <TrendingUp size={24} className="text-brand-primary" />
+        <div className="flex flex-col gap-4 sm:gap-6">
+          <div className="glass-panel rounded-xl border border-white/5 p-5 sm:p-6 grow bg-linear-to-bl from-brand-primary/5 to-transparent flex flex-col justify-center">
+            <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+              <div className="w-12 h-12 rounded-lg bg-brand-primary/10 flex items-center justify-center shrink-0">
+                <TrendingUp size={22} className="text-brand-primary" />
               </div>
-              <h4 className="text-lg font-semibold text-white">
+              <h4 className="text-base sm:text-lg font-semibold text-white">
                 Proyección de Crecimiento
               </h4>
             </div>

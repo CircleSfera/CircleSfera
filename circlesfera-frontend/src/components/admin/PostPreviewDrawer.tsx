@@ -72,18 +72,18 @@ export default function PostPreviewDrawer({ post, onClose }: Props) {
         {post._count && (
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-white/5 border border-white/10 rounded-lg flex flex-col items-center justify-center">
-              <span className="text-2xl font-black text-white">
+              <span className="text-2xl font-bold text-white">
                 {post._count.likes}
               </span>
-              <span className="text-xs uppercase tracking-wide text-gray-500 font-bold mt-1">
+              <span className="text-xs uppercase tracking-wide text-gray-500 font-semibold mt-1">
                 Likes
               </span>
             </div>
             <div className="p-4 bg-white/5 border border-white/10 rounded-lg flex flex-col items-center justify-center">
-              <span className="text-2xl font-black text-white">
+              <span className="text-2xl font-bold text-white">
                 {post._count.comments}
               </span>
-              <span className="text-xs uppercase tracking-wide text-gray-500 font-bold mt-1">
+              <span className="text-xs uppercase tracking-wide text-gray-500 font-semibold mt-1">
                 Comentarios
               </span>
             </div>

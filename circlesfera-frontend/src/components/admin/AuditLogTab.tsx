@@ -5,6 +5,7 @@ import type { AuditLogEntry } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { AdminList, AdminListRow } from './AdminList';
+import { AdminPageHeader } from './AdminPageHeader';
 import { Pagination, Table } from './AdminTable';
 
 const ACTION_LABELS: Record<string, string> = {
@@ -43,7 +44,12 @@ export default function AuditLogTab() {
 
   return (
     <div className="space-y-4">
-      <div className="glass-panel rounded-lg overflow-clip border border-white/10">
+      <AdminPageHeader
+        title="Registro de Auditoría"
+        subtitle="Historial completo de acciones administrativas"
+      />
+
+      <div className="rounded-xl border border-white/10 lg:overflow-clip">
         <AdminList
           loading={isLoading}
           isEmpty={!data?.data?.length}
@@ -92,7 +98,7 @@ export default function AuditLogTab() {
                     {new Date(log.createdAt).toLocaleString()}
                   </td>
                   <td className="px-2 py-1">
-                    <span className="text-brand-primary font-bold text-sm">
+                    <span className="text-brand-primary font-semibold text-sm">
                       @{log.adminUsername}
                     </span>
                   </td>

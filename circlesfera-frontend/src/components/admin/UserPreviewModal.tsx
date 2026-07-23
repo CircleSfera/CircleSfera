@@ -43,7 +43,7 @@ export default function UserPreviewModal({
       {isLoading ? (
         <div className="p-20 flex flex-col items-center gap-4">
           <LoadingSpinner size="lg" />
-          <p className="text-gray-500 font-bold animate-pulse uppercase tracking-wide text-xs">
+          <p className="text-gray-500 font-semibold animate-pulse uppercase tracking-wide text-xs">
             Cargando expediente...
           </p>
         </div>
@@ -66,10 +66,10 @@ export default function UserPreviewModal({
                 )}
               </div>
               <div>
-                <h2 className="text-2xl font-black text-white tracking-tight leading-none mb-1">
+                <h2 className="text-2xl font-bold text-white tracking-tight leading-none mb-1">
                   {user.profile?.fullName || 'Usuario'}
                 </h2>
-                <p className="text-brand-primary font-bold">
+                <p className="text-brand-primary font-semibold">
                   @{user.profile?.username}
                 </p>
               </div>
@@ -77,7 +77,7 @@ export default function UserPreviewModal({
 
             <div className="flex flex-col gap-2 shrink-0">
               <span
-                className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wide border text-center transition-all ${
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide border text-center transition-all ${
                   user.isActive
                     ? 'bg-green-500/10 text-green-500 border-green-500/20'
                     : 'bg-red-500/10 text-red-500 border-red-500/20'
@@ -85,7 +85,7 @@ export default function UserPreviewModal({
               >
                 {user.isActive ? 'Cuenta Activa' : 'Cuenta Baneada'}
               </span>
-              <span className="px-4 py-1.5 rounded-full bg-white/5 text-gray-300 border border-white/10 text-xs font-black uppercase tracking-wide text-center">
+              <span className="px-4 py-1.5 rounded-full bg-white/5 text-gray-300 border border-white/10 text-xs font-semibold uppercase tracking-wide text-center">
                 Rol: {user.role}
               </span>
             </div>
@@ -98,10 +98,10 @@ export default function UserPreviewModal({
                 <Mail size={18} />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-black text-gray-500 uppercase tracking-wide">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   Correo Electrónico
                 </p>
-                <p className="text-sm font-bold text-white truncate">
+                <p className="text-sm font-semibold text-white truncate">
                   {user.email}
                 </p>
               </div>
@@ -111,10 +111,10 @@ export default function UserPreviewModal({
                 <Calendar size={18} />
               </div>
               <div>
-                <p className="text-xs font-black text-gray-500 uppercase tracking-wide">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   Miembro desde
                 </p>
-                <p className="text-sm font-bold text-white">
+                <p className="text-sm font-semibold text-white">
                   {new Date(user.createdAt).toLocaleDateString('es-ES', {
                     month: 'long',
                     year: 'numeric',
@@ -128,26 +128,26 @@ export default function UserPreviewModal({
           <div className="space-y-4">
             <div className="flex gap-8 border-b border-white/5 pb-6">
               <div className="text-center">
-                <p className="text-2xl font-black text-white leading-none mb-1">
+                <p className="text-2xl font-bold text-white leading-none mb-1">
                   {user._count.posts}
                 </p>
-                <p className="text-xs font-black text-gray-500 uppercase tracking-wide">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   Posts
                 </p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-black text-white leading-none mb-1">
+                <p className="text-2xl font-bold text-white leading-none mb-1">
                   {user._count.followers}
                 </p>
-                <p className="text-xs font-black text-gray-500 uppercase tracking-wide">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   Seguidores
                 </p>
               </div>
               <div className="text-center">
-                <p className="text-2xl font-black text-white leading-none mb-1">
+                <p className="text-2xl font-bold text-white leading-none mb-1">
                   {user._count.following}
                 </p>
-                <p className="text-xs font-black text-gray-500 uppercase tracking-wide">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                   Siguiendo
                 </p>
               </div>
@@ -155,7 +155,7 @@ export default function UserPreviewModal({
 
             {user.profile?.bio && (
               <div className="bg-white/2 p-4 rounded-xl border border-white/5">
-                <p className="text-xs font-black text-gray-500 uppercase tracking-wide mb-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
                   Biografía
                 </p>
                 <p className="text-sm text-gray-300 leading-relaxed italic">
@@ -166,13 +166,13 @@ export default function UserPreviewModal({
 
             {/* System Details / Identifiers */}
             <div className="bg-white/2 p-5 rounded-xl border border-white/5 space-y-4">
-              <h4 className="text-xs font-black text-gray-500 uppercase tracking-wide flex items-center gap-2 border-b border-white/5 pb-2">
+              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-2 border-b border-white/5 pb-2">
                 <Database size={14} className="text-gray-300" /> Datos de
                 Sistema y Seguridad
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <span className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1">
+                  <span className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1">
                     <Fingerprint size={10} /> UUID Interno
                   </span>
                   <p className="text-xs font-mono text-gray-300 bg-black/40 px-2 py-1 rounded truncate border border-white/5">
@@ -180,34 +180,34 @@ export default function UserPreviewModal({
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1">
+                  <span className="text-xs font-semibold text-gray-500 uppercase flex items-center gap-1">
                     <ShieldCheck size={10} /> Nivel de Verificación
                   </span>
-                  <p className="text-xs font-bold text-white uppercase tracking-wider">
+                  <p className="text-xs font-semibold text-white uppercase tracking-wider">
                     {user.verificationLevel || 'Ninguno'}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <span className="text-xs font-bold text-gray-500 uppercase">
+                  <span className="text-xs font-semibold text-gray-500 uppercase">
                     Tipo de Cuenta
                   </span>
-                  <p className="text-xs font-bold text-white uppercase tracking-wider">
+                  <p className="text-xs font-semibold text-white uppercase tracking-wider">
                     {user.accountType || 'Personal'}
                   </p>
                 </div>
                 {user.identityVerifiedAt && (
                   <div className="space-y-1">
-                    <span className="text-xs font-bold text-emerald-500 uppercase">
+                    <span className="text-xs font-semibold text-emerald-500 uppercase">
                       KYC Verificado El
                     </span>
-                    <p className="text-xs font-bold text-white">
+                    <p className="text-xs font-semibold text-white">
                       {new Date(user.identityVerifiedAt).toLocaleString()}
                     </p>
                   </div>
                 )}
                 {user.stripeIdentitySessionId && (
                   <div className="space-y-1 col-span-1 sm:col-span-2">
-                    <span className="text-xs font-bold text-indigo-400 uppercase">
+                    <span className="text-xs font-semibold text-indigo-400 uppercase">
                       Stripe Session ID
                     </span>
                     <p className="text-xs font-mono text-gray-300 truncate">
@@ -222,7 +222,7 @@ export default function UserPreviewModal({
           {/* Recent Activity Mini-tabs style */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
             <div>
-              <h4 className="text-xs font-black text-white uppercase tracking-wide mb-4 flex items-center gap-2">
+              <h4 className="text-xs font-semibold text-white uppercase tracking-wide mb-4 flex items-center gap-2">
                 <MessageSquare size={14} className="text-brand-primary" /> Posts
                 Recientes
               </h4>
@@ -246,7 +246,7 @@ export default function UserPreviewModal({
                   </div>
                 ))}
                 {user.posts.length === 0 && (
-                  <p className="text-xs text-gray-600 font-bold uppercase py-2">
+                  <p className="text-xs text-gray-600 font-semibold uppercase py-2">
                     Sin actividad reciente
                   </p>
                 )}
@@ -254,7 +254,7 @@ export default function UserPreviewModal({
             </div>
 
             <div>
-              <h4 className="text-xs font-black text-white uppercase tracking-wide mb-4 flex items-center gap-2">
+              <h4 className="text-xs font-semibold text-white uppercase tracking-wide mb-4 flex items-center gap-2">
                 <AlertCircle size={14} className="text-red-500" /> Reportes
               </h4>
               <div className="space-y-2">
@@ -263,11 +263,11 @@ export default function UserPreviewModal({
                     key={report.id}
                     className="p-3 bg-red-500/5 rounded-xl border border-red-500/10 text-xs flex justify-between items-center"
                   >
-                    <span className="text-red-300/80 font-bold uppercase truncate max-w-[120px]">
+                    <span className="text-red-300/80 font-semibold uppercase truncate max-w-[120px]">
                       {report.reason}
                     </span>
                     <span
-                      className={`px-2 py-0.5 rounded text-xs font-black uppercase shrink-0 ${
+                      className={`px-2 py-0.5 rounded text-xs font-semibold uppercase shrink-0 ${
                         report.status === 'pending'
                           ? 'bg-yellow-500/20 text-yellow-500'
                           : 'bg-green-500/20 text-green-500'
@@ -278,7 +278,7 @@ export default function UserPreviewModal({
                   </div>
                 ))}
                 {user.reports.length === 0 && (
-                  <p className="text-xs text-gray-600 font-bold uppercase py-2">
+                  <p className="text-xs text-gray-600 font-semibold uppercase py-2">
                     Sin reportes pendientes
                   </p>
                 )}

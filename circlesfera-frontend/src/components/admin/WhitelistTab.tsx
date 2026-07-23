@@ -7,7 +7,9 @@ import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { Button, Input, Select } from '../ui';
 import AdminDrawer from './AdminDrawer';
+import { AdminFilterBar } from './AdminFilterBar';
 import { AdminList, AdminListRow } from './AdminList';
+import { AdminPageHeader } from './AdminPageHeader';
 import {
   ActionButton,
   Pagination,
@@ -55,23 +57,34 @@ export default function WhitelistTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <SearchInput
-          value={search}
-          onChange={(v) => {
-            setSearch(v);
-            setPage(1);
-          }}
-          placeholder="Buscar en whitelist..."
-        />
-        <div className="text-xs text-gray-500 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10 italic">
-          Total:{' '}
-          <span className="text-white font-bold">{data?.meta.total || 0}</span>{' '}
-          interesados
-        </div>
-      </div>
+      <AdminPageHeader
+        title="Whitelist de Interesados"
+        subtitle="Gestiona la lista de usuarios interesados en la plataforma."
+        actions={
+          <div className="text-xs text-gray-400 bg-white/5 px-3 py-2 rounded-lg border border-white/10 italic min-h-11 flex items-center">
+            Total:{' '}
+            <span className="text-white font-semibold ml-1">
+              {data?.meta.total || 0}
+            </span>{' '}
+            interesados
+          </div>
+        }
+      />
 
-      <div className="glass-panel rounded-lg overflow-clip border border-white/10">
+      <AdminFilterBar>
+        <div className="flex-1 min-w-0">
+          <SearchInput
+            value={search}
+            onChange={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
+            placeholder="Buscar en whitelist..."
+          />
+        </div>
+      </AdminFilterBar>
+
+      <div className="glass-panel rounded-lg border border-white/10">
         <AdminList
           loading={isLoading}
           isEmpty={!data || data.data.length === 0}
@@ -117,7 +130,7 @@ export default function WhitelistTab() {
                   className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
                 >
                   <td className="px-4 py-4">
-                    <div className="flex items-center gap-2 text-white font-bold text-xs">
+                    <div className="flex items-center gap-2 text-white font-semibold text-xs">
                       <User size={14} className="text-gray-500" />
                       {entry.name || 'Sin nombre'}
                     </div>
@@ -242,7 +255,7 @@ export default function WhitelistTab() {
               <Button
                 onClick={() => setEditingEntry(null)}
                 variant="secondary"
-                className="flex-1 py-3 font-bold bg-white/5 border-transparent text-gray-300"
+                className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-gray-300"
               >
                 Cancelar
               </Button>
@@ -250,7 +263,7 @@ export default function WhitelistTab() {
                 type="submit"
                 isLoading={updateMutation.isPending}
                 variant="primary"
-                className="flex-1 py-3 font-bold shadow-lg shadow-brand-primary/20"
+                className="flex-1 min-h-11 font-semibold shadow-lg shadow-brand-primary/20"
               >
                 <Save size={18} className="mr-2" /> Guardar
               </Button>

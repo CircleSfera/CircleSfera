@@ -8,7 +8,9 @@ import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { Button, Input, Select } from '../ui';
 import AdminDrawer from './AdminDrawer';
+import { AdminFilterBar } from './AdminFilterBar';
 import { AdminList, AdminListRow } from './AdminList';
+import { AdminPageHeader } from './AdminPageHeader';
 import { ActionButton, Pagination, SearchInput, Table } from './AdminTable';
 
 function variantColorClass(variant: string) {
@@ -73,7 +75,20 @@ export default function ExperimentsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+      <AdminPageHeader
+        title="Experimentos A/B"
+        subtitle="Gestión de variantes y asignaciones de experimentos"
+        actions={
+          <Button
+            onClick={() => setIsAssigning(true)}
+            className="min-h-11 w-full sm:w-auto"
+          >
+            Asignar Experimento
+          </Button>
+        }
+      />
+
+      <AdminFilterBar>
         <SearchInput
           value={search}
           onChange={(v) => {
@@ -82,12 +97,9 @@ export default function ExperimentsTab() {
           }}
           placeholder="Buscar por username o clave de experimento..."
         />
-        <Button onClick={() => setIsAssigning(true)} size="sm">
-          Asignar Experimento
-        </Button>
-      </div>
+      </AdminFilterBar>
 
-      <div className="glass-panel rounded-lg overflow-clip border border-white/10">
+      <div className="rounded-xl border border-white/10 lg:overflow-clip">
         <AdminList
           loading={isLoading}
           isEmpty={!data || data.data.length === 0}
@@ -153,18 +165,18 @@ export default function ExperimentsTab() {
                   className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
                 >
                   <td className="px-4 py-4">
-                    <div className="flex items-center gap-2 text-white font-bold text-xs">
+                    <div className="flex items-center gap-2 text-white font-semibold text-xs">
                       <User size={14} className="text-gray-500" />@
                       {entry.user.username}
                     </div>
                   </td>
                   <td className="px-4 py-4">
-                    <div className="flex items-center gap-2 text-white font-bold text-xs uppercase tracking-wide">
+                    <div className="flex items-center gap-2 text-white font-semibold text-xs uppercase tracking-wide">
                       <Key size={14} className="text-gray-500" />
                       {entry.experimentKey}
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-xs font-bold">
+                  <td className="px-4 py-4 text-xs font-semibold">
                     <span
                       className={`px-2 py-1 rounded-md bg-white/5 border border-white/10 ${variantColorClass(entry.variant)}`}
                     >
@@ -250,7 +262,7 @@ function ExperimentForm({
       <div>
         <label
           htmlFor="userId"
-          className="text-xs font-bold text-gray-300 uppercase tracking-wider mb-2 block"
+          className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 block"
         >
           ID de Usuario
         </label>
@@ -266,7 +278,7 @@ function ExperimentForm({
       <div>
         <label
           htmlFor="experimentKey"
-          className="text-xs font-bold text-gray-300 uppercase tracking-wider mb-2 block"
+          className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 block"
         >
           Clave del Experimento
         </label>
@@ -282,7 +294,7 @@ function ExperimentForm({
       <div>
         <label
           htmlFor="variant"
-          className="text-xs font-bold text-gray-300 uppercase tracking-wider mb-2 block"
+          className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 block"
         >
           Variante
         </label>
@@ -299,7 +311,7 @@ function ExperimentForm({
       </div>
 
       <Button
-        className="w-full mt-4"
+        className="w-full mt-4 min-h-11"
         onClick={() => onSubmit({ userId, experimentKey, variant })}
         disabled={!userId || !experimentKey || !variant || isSubmitting}
       >

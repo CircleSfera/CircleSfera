@@ -3,14 +3,13 @@ import {
   CheckCircle2,
   ExternalLink,
   Layout,
-  Mail,
   Send,
   Type,
 } from 'lucide-react';
 import { useState } from 'react';
 import { adminApi } from '../../services/admin.service';
 import { Button, Input, Textarea } from '../ui';
-import { ActionButton } from './AdminTable';
+import { AdminPageHeader } from './AdminPageHeader';
 
 export default function NewsletterTab({
   onToast,
@@ -62,87 +61,44 @@ export default function NewsletterTab({
 
   return (
     <div className="space-y-4">
-      <div className="glass-panel p-4 rounded-lg border border-white/5">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <h3 className="text-white font-bold text-lg flex items-center gap-2">
-              <Mail className="text-brand-primary" size={20} />
-              Comunicaciones Masivas
-            </h3>
-            <p className="text-gray-500 text-xs mt-1">
-              Envía comunicaciones oficiales a todos los usuarios activos de
-              CircleSfera.
-            </p>
-          </div>
-
-          <div className="flex gap-3">
+      <AdminPageHeader
+        title="Comunicaciones Masivas"
+        subtitle="Envía comunicaciones oficiales a todos los usuarios activos de CircleSfera"
+        actions={
+          <>
             <Button
               type="button"
               variant="secondary"
               onClick={() => setShowPreview(!showPreview)}
-              className="px-4 py-2 rounded-xl text-xs font-bold transition-all border border-white/10 hover:bg-white/5 text-gray-300"
+              className="min-h-11 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all border border-white/10 hover:bg-white/5 text-gray-300"
             >
               {showPreview ? 'Editar Contenido' : 'Vista Previa'}
             </Button>
-            <ActionButton
-              label={isSending ? 'Enviando...' : 'Enviar Broadcast'}
-              icon={isSending ? CheckCircle2 : Send}
+            <Button
               onClick={handleSend}
-              variant="primary"
               disabled={isSending}
-            />
-          </div>
-        </div>
-
-        {showPreview ? (
-          <div className="bg-black border border-white/10 rounded-lg overflow-hidden max-w-2xl mx-auto shadow-2xl">
-            {/* Mock Email UI */}
-            <div className="bg-surface-elevated px-6 py-4 border-b border-white/5 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center">
-                <span className="text-brand-primary font-semibold text-xs">
-                  CS
-                </span>
-              </div>
-              <div className="min-w-0">
-                <p className="text-white text-xs font-bold">
-                  CircleSfera Newsletter
-                </p>
-                <p className="text-gray-500 text-xs truncate">
-                  Asunto: {formData.subject || '(Sin asunto)'}
-                </p>
-              </div>
-            </div>
-
-            <div className="p-10 text-center space-y-4 bg-black">
-              <h1 className="text-xl font-semibold text-white tracking-tight leading-tight">
-                {formData.title || 'Título del Correo'}
-              </h1>
-              <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
-                {formData.content ||
-                  'El contenido de tu mensaje aparecerá aquí...'}
-              </p>
-
-              {formData.buttonText && formData.buttonUrl && (
-                <div className="pt-6">
-                  <span className="inline-block px-8 py-3 bg-white text-black font-semibold text-xs rounded-full uppercase tracking-wide shadow-xl">
-                    {formData.buttonText}
-                  </span>
-                </div>
+              className="min-h-11 px-4 py-2.5 text-xs font-semibold"
+            >
+              {isSending ? (
+                <>
+                  <CheckCircle2 size={16} className="mr-2" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Send size={16} className="mr-2" />
+                  Enviar Broadcast
+                </>
               )}
+            </Button>
+          </>
+        }
+      />
 
-              <div className="pt-10 border-t border-white/5">
-                <p className="text-xs text-gray-600 font-bold uppercase tracking-wide">
-                  CircleSfera © 2026 ·{' '}
-                  <span className="text-brand-primary">
-                    Verified Communications
-                  </span>
-                </p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-4">
+      <div className="glass-panel p-4 sm:p-6 rounded-lg border border-white/5">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {!showPreview && (
+            <div className="flex-1 space-y-4 order-1">
               <div className="space-y-2">
                 <label
                   htmlFor="subject"
@@ -177,6 +133,24 @@ export default function NewsletterTab({
                     setFormData({ ...formData, title: e.target.value })
                   }
                   className="font-semibold"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="content"
+                  className="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1"
+                >
+                  Contenido del Mensaje
+                </label>
+                <Textarea
+                  id="content"
+                  placeholder="Escribe el cuerpo del mensaje aquí. Soporta texto plano y saltos de línea..."
+                  value={formData.content}
+                  onChange={(e) =>
+                    setFormData({ ...formData, content: e.target.value })
+                  }
+                  className="min-h-[200px] resize-none leading-relaxed"
                 />
               </div>
 
@@ -224,26 +198,57 @@ export default function NewsletterTab({
                 </div>
               </div>
             </div>
+          )}
 
-            <div className="space-y-2 flex flex-col h-full">
-              <label
-                htmlFor="content"
-                className="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1"
-              >
-                Contenido del Mensaje
-              </label>
-              <Textarea
-                id="content"
-                placeholder="Escribe el cuerpo del mensaje aquí. Soporta texto plano y saltos de línea..."
-                value={formData.content}
-                onChange={(e) =>
-                  setFormData({ ...formData, content: e.target.value })
-                }
-                className="min-h-[300px] resize-none leading-relaxed"
-              />
+          {showPreview && (
+            <div className="flex-1 order-2">
+              <div className="bg-black border border-white/10 rounded-lg overflow-hidden max-w-2xl mx-auto shadow-2xl">
+                <div className="bg-surface-elevated px-6 py-4 border-b border-white/5 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center">
+                    <span className="text-brand-primary font-semibold text-xs">
+                      CS
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-white text-xs font-semibold">
+                      CircleSfera Newsletter
+                    </p>
+                    <p className="text-gray-500 text-xs truncate">
+                      Asunto: {formData.subject || '(Sin asunto)'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-10 text-center space-y-4 bg-black">
+                  <h1 className="text-xl font-semibold text-white tracking-tight leading-tight">
+                    {formData.title || 'Título del Correo'}
+                  </h1>
+                  <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+                    {formData.content ||
+                      'El contenido de tu mensaje aparecerá aquí...'}
+                  </p>
+
+                  {formData.buttonText && formData.buttonUrl && (
+                    <div className="pt-6">
+                      <span className="inline-block px-8 py-3 bg-white text-black font-semibold text-xs rounded-full uppercase tracking-wide shadow-xl">
+                        {formData.buttonText}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="pt-10 border-t border-white/5">
+                    <p className="text-xs text-gray-600 font-semibold uppercase tracking-wide">
+                      CircleSfera © 2026 ·{' '}
+                      <span className="text-brand-primary">
+                        Verified Communications
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <div className="bg-orange-500/5 border border-orange-500/20 rounded-lg p-6 flex items-start gap-4">

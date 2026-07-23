@@ -20,7 +20,9 @@ import { Button } from '../ui';
 import VerificationBadge, {
   type VerificationLevel,
 } from '../VerificationBadge';
+import { AdminFilterBar } from './AdminFilterBar';
 import { AdminList, AdminListRow } from './AdminList';
+import { AdminPageHeader } from './AdminPageHeader';
 import {
   ActionButton,
   FilterDropdown,
@@ -197,46 +199,49 @@ export default function UsersTab({ onToast }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-          <div className="flex flex-col sm:flex-row gap-3 flex-1 min-w-0">
-            <div className="flex-1 min-w-0">
-              <SearchInput
-                value={search}
-                onChange={(v) => {
-                  setSearch(v);
-                  setPage(1);
-                }}
-                placeholder="Buscar usuarios..."
-              />
-            </div>
-            <FilterDropdown
-              label="Filtrar por estado"
-              value={statusFilter}
-              onChange={(v) => {
-                setStatusFilter(v);
-                setPage(1);
-              }}
-              options={[
-                { value: '', label: 'Todos' },
-                { value: 'active', label: 'Activos' },
-                { value: 'banned', label: 'Baneados' },
-              ]}
-            />
-          </div>
+      <AdminPageHeader
+        title="Gestión de Usuarios"
+        subtitle="Administra cuentas, permisos y estados de los usuarios."
+        actions={
           <Button
             onClick={handleExport}
             variant="outline"
-            className="text-sm font-semibold text-gray-300 hover:text-white border-white/10 px-4 py-2.5 w-full sm:w-auto shrink-0"
+            className="text-sm font-semibold text-gray-300 hover:text-white border-white/10 px-4 min-h-11 w-full sm:w-auto"
             aria-label="Exportar usuarios como CSV"
           >
             <Download size={16} className="mr-2" />
             Exportar CSV
           </Button>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="rounded-xl overflow-hidden border border-white/10 bg-black/20 lg:bg-transparent lg:border-0">
+      <AdminFilterBar>
+        <div className="flex-1 min-w-0">
+          <SearchInput
+            value={search}
+            onChange={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
+            placeholder="Buscar usuarios..."
+          />
+        </div>
+        <FilterDropdown
+          label="Filtrar por estado"
+          value={statusFilter}
+          onChange={(v) => {
+            setStatusFilter(v);
+            setPage(1);
+          }}
+          options={[
+            { value: '', label: 'Todos' },
+            { value: 'active', label: 'Activos' },
+            { value: 'banned', label: 'Baneados' },
+          ]}
+        />
+      </AdminFilterBar>
+
+      <div className="rounded-xl border border-white/10 bg-black/20 lg:bg-transparent lg:border-0">
         <AdminList
           loading={isLoading}
           isEmpty={!data || data.data.length === 0}

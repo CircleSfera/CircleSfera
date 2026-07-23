@@ -5,6 +5,7 @@ import {
   updateAdminAppeal,
 } from '../../services/appeals.service';
 import { LoadingSpinner } from '../index';
+import { AdminEmptyState } from './AdminEmptyState';
 import { AdminListRow } from './AdminList';
 import { ActionButton } from './AdminTable';
 import { adminToast } from './adminToast';
@@ -42,9 +43,11 @@ export default function AppealsList() {
 
   if (appeals.length === 0) {
     return (
-      <div className="p-8 text-center text-gray-500 text-sm">
-        No hay apelaciones pendientes.
-      </div>
+      <AdminEmptyState
+        icon={CheckCircle}
+        title="No hay apelaciones pendientes"
+        description="La cola de apelaciones está vacía."
+      />
     );
   }
 
@@ -57,7 +60,7 @@ export default function AppealsList() {
           subtitle={appeal.reason}
           badge={
             <span
-              className={`px-2 py-1 rounded text-xs font-semibold ${
+              className={`px-2 py-1 rounded text-xs font-medium ${
                 appeal.status === 'PENDING'
                   ? 'bg-amber-500/10 text-amber-500'
                   : appeal.status === 'APPROVED'
@@ -69,7 +72,7 @@ export default function AppealsList() {
             </span>
           }
           meta={
-            <span className="text-xs font-semibold uppercase text-brand-primary">
+            <span className="text-xs font-medium uppercase text-brand-primary">
               {appeal.targetType}
             </span>
           }

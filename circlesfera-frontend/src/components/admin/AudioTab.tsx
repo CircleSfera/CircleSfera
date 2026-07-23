@@ -6,7 +6,9 @@ import { adminApi } from '../../services/admin.service';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import AdminDrawer from './AdminDrawer';
+import { AdminFilterBar } from './AdminFilterBar';
 import { AdminList, AdminListRow } from './AdminList';
+import { AdminPageHeader } from './AdminPageHeader';
 import { ActionButton, Pagination, SearchInput, Table } from './AdminTable';
 
 interface AudioTabProps {
@@ -131,103 +133,60 @@ export default function AudioTab({ onToast }: AudioTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Biblioteca de Música</h2>
-          <p className="text-gray-500 text-sm mt-1">
-            Gestiona las pistas de audio disponibles para stories y posts
-          </p>
-        </div>
-        <Button
-          onClick={() => {
-            setEditingTrack(null);
-            setForm(EMPTY_FORM);
-            setShowForm(true);
-          }}
-          variant="primary"
-          className="text-sm font-bold shadow-lg shadow-brand-primary/20 px-5 py-2.5"
-        >
-          <Plus size={16} className="mr-2" />
-          Añadir pista
-        </Button>
-      </div>
-
-      {/* Search */}
-      <SearchInput
-        value={search}
-        onChange={setSearch}
-        placeholder="Buscar por título o artista..."
+      <AdminPageHeader
+        title="Biblioteca de Música"
+        subtitle="Gestiona las pistas de audio disponibles para stories y posts"
+        actions={
+          <Button
+            onClick={() => {
+              setEditingTrack(null);
+              setForm(EMPTY_FORM);
+              setShowForm(true);
+            }}
+            variant="primary"
+            className="text-sm font-semibold min-h-11 w-full sm:w-auto shadow-lg shadow-brand-primary/20 px-5"
+          >
+            <Plus size={16} className="mr-2" />
+            Añadir pista
+          </Button>
+        }
       />
 
-      <AdminList
-        loading={isLoading}
-        isEmpty={tracks.length === 0}
-        emptyTitle="No hay pistas"
-        emptyDescription="No se encontraron pistas con los filtros seleccionados."
-        mobile={
-          <div className="space-y-2">
-            {tracks.map((track) => (
-              <AdminListRow
-                key={track.id}
-                title={track.title}
-                subtitle={track.artist}
-                meta={
-                  <>
-                    <span className="inline-flex items-center gap-1">
-                      <Clock size={12} />
-                      {formatDuration(track.duration)}
-                    </span>
-                    <span>
-                      {new Date(track.createdAt).toLocaleDateString()}
-                    </span>
-                  </>
-                }
-                avatar={
-                  <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0 overflow-hidden">
-                    {track.thumbnailUrl ? (
-                      <img
-                        src={track.thumbnailUrl}
-                        alt={track.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Music size={16} className="text-zinc-400" />
-                    )}
-                  </div>
-                }
-                primaryAction={
-                  <ActionButton
-                    icon={Pencil}
-                    label="Editar"
-                    variant="ghost"
-                    onClick={() => openEdit(track)}
-                  />
-                }
-                secondaryActions={[
-                  {
-                    label: 'Eliminar',
-                    variant: 'danger',
-                    onClick: () => setDeleteTarget(track),
-                  },
-                ]}
-              />
-            ))}
-          </div>
-        }
-        desktop={
-          <Table
-            headers={['Pista', 'Artista', 'Duración', 'Fecha', 'Acciones']}
-            loading={false}
-            isEmpty={false}
-          >
-            {tracks.map((track) => (
-              <tr
-                key={track.id}
-                className="border-b border-white/5 hover:bg-white/2 transition-colors"
-              >
-                <td className="px-2 py-1">
-                  <div className="flex items-center gap-3">
+      <AdminFilterBar>
+        <div className="flex-1 min-w-0">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Buscar por título o artista..."
+          />
+        </div>
+      </AdminFilterBar>
+
+      <div className="rounded-xl border border-white/10 lg:overflow-clip">
+        <AdminList
+          loading={isLoading}
+          isEmpty={tracks.length === 0}
+          emptyTitle="No hay pistas"
+          emptyDescription="No se encontraron pistas con los filtros seleccionados."
+          mobile={
+            <div className="space-y-2">
+              {tracks.map((track) => (
+                <AdminListRow
+                  key={track.id}
+                  title={track.title}
+                  subtitle={track.artist}
+                  meta={
+                    <>
+                      <span className="inline-flex items-center gap-1">
+                        <Clock size={12} />
+                        {formatDuration(track.duration)}
+                      </span>
+                      <span>
+                        {new Date(track.createdAt).toLocaleDateString()}
+                      </span>
+                    </>
+                  }
+                  avatar={
                     <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0 overflow-hidden">
                       {track.thumbnailUrl ? (
                         <img
@@ -239,60 +198,104 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                         <Music size={16} className="text-zinc-400" />
                       )}
                     </div>
-                    <div
-                      className="font-medium text-sm break-all"
-                      title={track.title}
-                    >
-                      {track.title}
-                    </div>
-                  </div>
-                </td>
-                <td
-                  className="px-2 py-1 text-sm text-zinc-400"
-                  data-label="Artista"
-                >
-                  <div className="break-all" title={track.artist}>
-                    {track.artist}
-                  </div>
-                </td>
-                <td className="px-2 py-1">
-                  <div className="flex items-center gap-1 text-sm text-zinc-400">
-                    <Clock size={12} />
-                    {formatDuration(track.duration)}
-                  </div>
-                </td>
-                <td
-                  className="px-2 py-1 text-sm text-zinc-400"
-                  data-label="Subido el"
-                >
-                  {new Date(track.createdAt).toLocaleDateString()}
-                </td>
-                <td className="px-2 py-1">
-                  <div className="flex items-center gap-1">
+                  }
+                  primaryAction={
                     <ActionButton
                       icon={Pencil}
                       label="Editar"
                       variant="ghost"
                       onClick={() => openEdit(track)}
                     />
-                    <ActionButton
-                      icon={Trash2}
-                      label="Eliminar"
-                      variant="danger"
-                      onClick={() => setDeleteTarget(track)}
-                    />
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </Table>
-        }
-      />
-
-      {/* Pagination */}
-      {meta && meta.totalPages > 1 && (
-        <Pagination meta={meta} onPageChange={setPage} />
-      )}
+                  }
+                  secondaryActions={[
+                    {
+                      label: 'Eliminar',
+                      variant: 'danger',
+                      onClick: () => setDeleteTarget(track),
+                    },
+                  ]}
+                />
+              ))}
+            </div>
+          }
+          desktop={
+            <Table
+              headers={['Pista', 'Artista', 'Duración', 'Fecha', 'Acciones']}
+              loading={false}
+              isEmpty={false}
+            >
+              {tracks.map((track) => (
+                <tr
+                  key={track.id}
+                  className="border-b border-white/5 hover:bg-white/2 transition-colors"
+                >
+                  <td className="px-2 py-1">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0 overflow-hidden">
+                        {track.thumbnailUrl ? (
+                          <img
+                            src={track.thumbnailUrl}
+                            alt={track.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Music size={16} className="text-zinc-400" />
+                        )}
+                      </div>
+                      <div
+                        className="font-medium text-sm break-all"
+                        title={track.title}
+                      >
+                        {track.title}
+                      </div>
+                    </div>
+                  </td>
+                  <td
+                    className="px-2 py-1 text-sm text-zinc-400"
+                    data-label="Artista"
+                  >
+                    <div className="break-all" title={track.artist}>
+                      {track.artist}
+                    </div>
+                  </td>
+                  <td className="px-2 py-1">
+                    <div className="flex items-center gap-1 text-sm text-zinc-400">
+                      <Clock size={12} />
+                      {formatDuration(track.duration)}
+                    </div>
+                  </td>
+                  <td
+                    className="px-2 py-1 text-sm text-zinc-400"
+                    data-label="Subido el"
+                  >
+                    {new Date(track.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-2 py-1">
+                    <div className="flex items-center gap-1">
+                      <ActionButton
+                        icon={Pencil}
+                        label="Editar"
+                        variant="ghost"
+                        onClick={() => openEdit(track)}
+                      />
+                      <ActionButton
+                        icon={Trash2}
+                        label="Eliminar"
+                        variant="danger"
+                        onClick={() => setDeleteTarget(track)}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </Table>
+          }
+        />
+        {/* Pagination */}
+        {meta && meta.totalPages > 1 && (
+          <Pagination meta={meta} onPageChange={setPage} />
+        )}
+      </div>
 
       {/* Add / Edit Track Drawer */}
       <AdminDrawer
