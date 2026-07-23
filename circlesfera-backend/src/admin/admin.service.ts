@@ -786,6 +786,53 @@ export class AdminService {
                 author: comment.user?.profile?.username,
               };
             }
+          } else if (report.targetType === 'USER') {
+            const targetUser = await this.prisma.user.findUnique({
+              where: { id: report.targetId },
+              select: {
+                email: true,
+                profile: {
+                  select: { username: true, avatar: true, fullName: true },
+                },
+              },
+            });
+            if (targetUser) {
+              targetContent = {
+                thumbnail: targetUser.profile?.avatar || null,
+                text:
+                  targetUser.profile?.fullName ||
+                  targetUser.profile?.username ||
+                  targetUser.email,
+                type: 'USER',
+                author: targetUser.profile?.username,
+              };
+            }
+          } else if (report.targetType === 'MESSAGE') {
+            const message = await this.prisma.message.findUnique({
+              where: { id: report.targetId },
+              select: {
+                content: true,
+                isDeleted: true,
+                mediaType: true,
+                thumbnailUrl: true,
+                url: true,
+                sender: {
+                  select: { profile: { select: { username: true } } },
+                },
+              },
+            });
+            if (message) {
+              const preview = message.isDeleted
+                ? '[deleted]'
+                : message.content?.slice(0, 280) ||
+                  (message.mediaType ? `[${message.mediaType}]` : null);
+              targetContent = {
+                thumbnail: message.thumbnailUrl || message.url || null,
+                text: preview,
+                type: 'MESSAGE',
+                author: message.sender?.profile?.username,
+              };
+            }
           }
         } catch (err) {
           console.error(
@@ -880,6 +927,12 @@ export class AdminService {
         where: { id: report.targetId },
       });
       if (comment) targetUserId = comment.userId;
+    } else if (report.targetType === 'MESSAGE') {
+      const message = await this.prisma.message.findUnique({
+        where: { id: report.targetId },
+        select: { senderId: true },
+      });
+      if (message) targetUserId = message.senderId;
     }
 
     if (penaltyAction === 'STRIKE' && targetUserId) {
@@ -928,11 +981,57 @@ export class AdminService {
   // ─── Audit Logs ───────────────────────────────────────────────────
 
   /** Paginated audit logs for admin accountability. */
-  async getAuditLogs(page = 1, limit = 20) {
+  async getAuditLogs(
+    page = 1,
+    limit = 20,
+    filters?: {
+      action?: string;
+      search?: string;
+      from?: string;
+      to?: string;
+    },
+  ) {
     const skip = (page - 1) * limit;
+    const where: Prisma.AdminAuditLogWhereInput = {};
+
+    if (filters?.action) {
+      where.action = filters.action as AdminAction;
+    }
+
+    if (filters?.from || filters?.to) {
+      where.createdAt = {};
+      if (filters.from) {
+        const fromDate = new Date(filters.from);
+        if (!Number.isNaN(fromDate.getTime())) {
+          where.createdAt.gte = fromDate;
+        }
+      }
+      if (filters.to) {
+        const toDate = new Date(filters.to);
+        if (!Number.isNaN(toDate.getTime())) {
+          where.createdAt.lte = toDate;
+        }
+      }
+    }
+
+    if (filters?.search?.trim()) {
+      const q = filters.search.trim();
+      where.OR = [
+        { targetId: { contains: q, mode: 'insensitive' } },
+        { details: { contains: q, mode: 'insensitive' } },
+        {
+          admin: {
+            profile: {
+              username: { contains: q, mode: 'insensitive' },
+            },
+          },
+        },
+      ];
+    }
 
     const [logs, total] = await Promise.all([
       this.prisma.adminAuditLog.findMany({
+        where,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -942,7 +1041,7 @@ export class AdminService {
           },
         },
       }),
-      this.prisma.adminAuditLog.count(),
+      this.prisma.adminAuditLog.count({ where }),
     ]);
 
     return {
@@ -959,7 +1058,7 @@ export class AdminService {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.max(1, Math.ceil(total / limit)),
       },
     };
   }
@@ -1023,13 +1122,13 @@ export class AdminService {
 
   // ─── Activity Chart (last 14 days) ──────────────────────────────
 
-  /** Posts and new users grouped by day for the last 14 days. */
+  /** Posts, users, stories, and reports grouped by day for the last 14 days. */
   async getActivityChart() {
     const since = new Date();
     since.setDate(since.getDate() - 13);
     since.setHours(0, 0, 0, 0);
 
-    const [posts, users] = await Promise.all([
+    const [posts, users, stories, reports] = await Promise.all([
       this.prisma.post.findMany({
         where: { createdAt: { gte: since } },
         select: { createdAt: true },
@@ -1038,26 +1137,50 @@ export class AdminService {
         where: { createdAt: { gte: since } },
         select: { createdAt: true },
       }),
+      this.prisma.story.findMany({
+        where: { createdAt: { gte: since } },
+        select: { createdAt: true },
+      }),
+      this.prisma.report.findMany({
+        where: { createdAt: { gte: since } },
+        select: { createdAt: true },
+      }),
     ]);
 
-    // Build 14-day map
-    const days: { date: string; posts: number; users: number }[] = [];
+    const days: {
+      date: string;
+      posts: number;
+      users: number;
+      stories: number;
+      reports: number;
+    }[] = [];
     for (let i = 0; i < 14; i++) {
       const d = new Date(since);
       d.setDate(d.getDate() + i);
-      days.push({ date: d.toISOString().slice(0, 10), posts: 0, users: 0 });
+      days.push({
+        date: d.toISOString().slice(0, 10),
+        posts: 0,
+        users: 0,
+        stories: 0,
+        reports: 0,
+      });
     }
 
-    for (const p of posts) {
-      const key = p.createdAt.toISOString().slice(0, 10);
-      const entry = days.find((d) => d.date === key);
-      if (entry) entry.posts++;
-    }
-    for (const u of users) {
-      const key = u.createdAt.toISOString().slice(0, 10);
-      const entry = days.find((d) => d.date === key);
-      if (entry) entry.users++;
-    }
+    const bump = (
+      items: { createdAt: Date }[],
+      key: 'posts' | 'users' | 'stories' | 'reports',
+    ) => {
+      for (const item of items) {
+        const dayKey = item.createdAt.toISOString().slice(0, 10);
+        const entry = days.find((d) => d.date === dayKey);
+        if (entry) entry[key]++;
+      }
+    };
+
+    bump(posts, 'posts');
+    bump(users, 'users');
+    bump(stories, 'stories');
+    bump(reports, 'reports');
 
     return days;
   }
@@ -1129,10 +1252,34 @@ export class AdminService {
 
   // ─── Stories ───────────────────────────────────────────────────
 
-  /** Paginated stories with view counts. */
-  async getStories(page = 1, limit = 10) {
+  /** Paginated stories with view counts and optional filters. */
+  async getStories(
+    page = 1,
+    limit = 10,
+    filters?: {
+      moderationStatus?: string;
+      expired?: string;
+    },
+  ) {
+    const where: Prisma.StoryWhereInput = {};
+    if (
+      filters?.moderationStatus &&
+      ['VISIBLE', 'FLAGGED', 'HIDDEN', 'REMOVED'].includes(
+        filters.moderationStatus,
+      )
+    ) {
+      where.moderationStatus =
+        filters.moderationStatus as $Enums.ModerationStatus;
+    }
+    if (filters?.expired === 'true') {
+      where.expiresAt = { lt: new Date() };
+    } else if (filters?.expired === 'false') {
+      where.expiresAt = { gte: new Date() };
+    }
+
     const [data, total] = await Promise.all([
       this.prisma.story.findMany({
+        where,
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -1143,12 +1290,17 @@ export class AdminService {
           _count: { select: { views: true, reactions: true } },
         },
       }),
-      this.prisma.story.count(),
+      this.prisma.story.count({ where }),
     ]);
 
     return {
       data,
-      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
     };
   }
 
@@ -1312,14 +1464,14 @@ export class AdminService {
       totalSubscriptions: rawSubscriptions.length,
       tierDistribution: tierCounts,
       subscriptionGrowth,
-      activeRetentionRate: 98.5, // Stable benchmark for MVP
     };
   }
 
   // ─── Moderation Management ────────────────────────────────────────
 
   /**
-   * Get a list of content (Posts, Stories, Comments) that is FLAGGED or HIDDEN.
+   * Get flagged/hidden Posts, Stories, and Comments as a unified moderation queue.
+   * Each item includes `entityType: POST | STORY | COMMENT` for PATCH actions.
    */
   async getModerationQueue(
     page = 1,
@@ -1328,48 +1480,177 @@ export class AdminService {
     search?: string,
   ) {
     const skip = (page - 1) * limit;
-    const whereClause: any = {
-      moderationStatus: { in: ['FLAGGED', 'HIDDEN'] },
+    const raw = targetType?.toUpperCase();
+    // FRAME is a PostType, not a moderation entity — treat as POST
+    const entityFilter: 'POST' | 'STORY' | 'COMMENT' | null =
+      !raw || raw === 'ALL'
+        ? null
+        : raw === 'FRAME'
+          ? 'POST'
+          : raw === 'POST' || raw === 'STORY' || raw === 'COMMENT'
+            ? raw
+            : null;
+
+    const statusWhere = {
+      moderationStatus: {
+        in: ['FLAGGED', 'HIDDEN'] as $Enums.ModerationStatus[],
+      },
+    };
+    const userInclude = { user: { include: { profile: true } } };
+    /** Safety cap when merging three tables before in-memory pagination. */
+    const mergeCap = Math.min(Math.max(limit * 20, 100), 500);
+
+    type QueueRow = {
+      id: string;
+      entityType: 'POST' | 'STORY' | 'COMMENT';
+      caption: string | null;
+      type?: string;
+      createdAt: Date;
+      sortAt: Date;
+      moderationStatus: $Enums.ModerationStatus;
+      moderationNote: string | null;
+      media?: unknown;
+      url?: string | null;
+      mediaType?: string | null;
+      content?: string | null;
+      user?: unknown;
     };
 
-    if (targetType) {
-      // Logic could be expanded to query different models based on type
-    }
+    const rows: QueueRow[] = [];
 
-    if (search) {
-      whereClause.OR = [
-        { caption: { contains: search, mode: 'insensitive' } },
-        {
-          user: {
-            profile: {
-              username: { contains: search, mode: 'insensitive' },
+    const fetchPosts = entityFilter === null || entityFilter === 'POST';
+    const fetchStories = entityFilter === null || entityFilter === 'STORY';
+    const fetchComments = entityFilter === null || entityFilter === 'COMMENT';
+
+    if (fetchPosts) {
+      const where: Record<string, unknown> = { ...statusWhere };
+      if (search) {
+        where.OR = [
+          { caption: { contains: search, mode: 'insensitive' } },
+          {
+            user: {
+              profile: {
+                username: { contains: search, mode: 'insensitive' },
+              },
             },
           },
-        },
-      ];
+        ];
+      }
+      const posts = await this.prisma.post.findMany({
+        where,
+        take: mergeCap,
+        orderBy: { updatedAt: 'desc' },
+        include: { ...userInclude, media: true },
+      });
+      for (const p of posts) {
+        rows.push({
+          id: p.id,
+          entityType: 'POST',
+          caption: p.caption,
+          type: p.type,
+          createdAt: p.createdAt,
+          sortAt: p.updatedAt,
+          moderationStatus: p.moderationStatus,
+          moderationNote: p.moderationNote,
+          media: p.media,
+          user: p.user,
+        });
+      }
     }
 
-    const [posts, total] = await Promise.all([
-      this.prisma.post.findMany({
-        where: whereClause,
-        skip,
-        take: limit,
+    if (fetchStories) {
+      const where: Record<string, unknown> = { ...statusWhere };
+      if (search) {
+        where.OR = [
+          {
+            user: {
+              profile: {
+                username: { contains: search, mode: 'insensitive' },
+              },
+            },
+          },
+        ];
+      }
+      const stories = await this.prisma.story.findMany({
+        where,
+        take: mergeCap,
+        orderBy: { createdAt: 'desc' },
+        include: userInclude,
+      });
+      for (const s of stories) {
+        rows.push({
+          id: s.id,
+          entityType: 'STORY',
+          caption: null,
+          createdAt: s.createdAt,
+          sortAt: s.createdAt,
+          moderationStatus: s.moderationStatus,
+          moderationNote: s.moderationNote,
+          url: s.url,
+          mediaType: s.mediaType,
+          media: s.url
+            ? [
+                {
+                  url: s.url,
+                  thumbnailUrl: s.thumbnailUrl,
+                  type: s.mediaType,
+                },
+              ]
+            : [],
+          user: s.user,
+        });
+      }
+    }
+
+    if (fetchComments) {
+      const where: Record<string, unknown> = { ...statusWhere };
+      if (search) {
+        where.OR = [
+          { content: { contains: search, mode: 'insensitive' } },
+          {
+            user: {
+              profile: {
+                username: { contains: search, mode: 'insensitive' },
+              },
+            },
+          },
+        ];
+      }
+      const comments = await this.prisma.comment.findMany({
+        where,
+        take: mergeCap,
         orderBy: { updatedAt: 'desc' },
-        include: {
-          user: { include: { profile: true } },
-          media: true,
-        },
-      }),
-      this.prisma.post.count({ where: whereClause }),
-    ]);
+        include: userInclude,
+      });
+      for (const c of comments) {
+        rows.push({
+          id: c.id,
+          entityType: 'COMMENT',
+          caption: c.content,
+          content: c.content,
+          createdAt: c.createdAt,
+          sortAt: c.updatedAt,
+          moderationStatus: c.moderationStatus,
+          moderationNote: c.moderationNote,
+          media: [],
+          user: c.user,
+        });
+      }
+    }
+
+    rows.sort((a, b) => b.sortAt.getTime() - a.sortAt.getTime());
+    const total = rows.length;
+    const pageRows = rows
+      .slice(skip, skip + limit)
+      .map(({ sortAt: _s, ...rest }) => rest);
 
     return {
-      data: posts,
+      data: pageRows,
       meta: {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        totalPages: Math.max(1, Math.ceil(total / limit)),
       },
     };
   }
@@ -1590,6 +1871,235 @@ export class AdminService {
             }`,
       postId: promo.targetType === 'POST' ? promo.targetId : undefined,
     });
+
+    return updated;
+  }
+
+  // ─── Bulk reports ─────────────────────────────────────────────────
+
+  async bulkUpdateReports(
+    adminId: string,
+    ids: string[],
+    status: ReportStatus,
+  ) {
+    const uniqueIds = [...new Set(ids)].slice(0, 50);
+    if (uniqueIds.length === 0) {
+      throw new BadRequestException('ids required');
+    }
+    if (!['PENDING', 'RESOLVED', 'REJECTED', 'REVIEWING'].includes(status)) {
+      throw new BadRequestException('Invalid status');
+    }
+
+    const result = await this.prisma.report.updateMany({
+      where: { id: { in: uniqueIds } },
+      data: { status },
+    });
+
+    await this.logAction(
+      adminId,
+      status === ReportStatus.RESOLVED
+        ? AdminAction.REPORT_RESOLVED
+        : AdminAction.REPORT_DISMISSED,
+      'report',
+      'bulk',
+      `Bulk updated ${result.count} reports → ${status}`,
+    );
+
+    return { updated: result.count };
+  }
+
+  // ─── Trust queue aggregate ────────────────────────────────────────
+
+  async getTrustQueue() {
+    const take = 10;
+    const [reports, appeals, tickets, reportCount, appealCount, ticketCount] =
+      await Promise.all([
+        this.prisma.report.findMany({
+          where: { status: { in: ['PENDING', 'REVIEWING'] } },
+          orderBy: { createdAt: 'desc' },
+          take,
+          include: {
+            reporter: {
+              select: {
+                profile: { select: { username: true } },
+              },
+            },
+          },
+        }),
+        this.prisma.appeal.findMany({
+          where: { status: 'PENDING' },
+          orderBy: { createdAt: 'desc' },
+          take,
+          include: {
+            user: {
+              select: {
+                email: true,
+                profile: { select: { username: true } },
+              },
+            },
+          },
+        }),
+        this.prisma.supportTicket.findMany({
+          where: { status: 'OPEN' },
+          orderBy: { createdAt: 'desc' },
+          take,
+        }),
+        this.prisma.report.count({
+          where: { status: { in: ['PENDING', 'REVIEWING'] } },
+        }),
+        this.prisma.appeal.count({ where: { status: 'PENDING' } }),
+        this.prisma.supportTicket.count({ where: { status: 'OPEN' } }),
+      ]);
+
+    return {
+      reports,
+      appeals,
+      tickets,
+      counts: {
+        reports: reportCount,
+        appeals: appealCount,
+        tickets: ticketCount,
+      },
+    };
+  }
+
+  // ─── Transactions (JSON ledger) ───────────────────────────────────
+
+  async getTransactions(
+    page = 1,
+    limit = 20,
+    status?: string,
+    search?: string,
+  ) {
+    const skip = (page - 1) * limit;
+    const where: Prisma.TransactionWhereInput = {};
+
+    if (
+      status &&
+      ['PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'].includes(status)
+    ) {
+      where.status = status as $Enums.TransactionStatus;
+    }
+
+    if (search?.trim()) {
+      const q = search.trim();
+      where.OR = [
+        { description: { contains: q, mode: 'insensitive' } },
+        { sender: { email: { contains: q, mode: 'insensitive' } } },
+        { receiver: { email: { contains: q, mode: 'insensitive' } } },
+        {
+          sender: {
+            profile: { username: { contains: q, mode: 'insensitive' } },
+          },
+        },
+        {
+          receiver: {
+            profile: { username: { contains: q, mode: 'insensitive' } },
+          },
+        },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.transaction.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          sender: {
+            select: {
+              email: true,
+              profile: { select: { username: true } },
+            },
+          },
+          receiver: {
+            select: {
+              email: true,
+              profile: { select: { username: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.transaction.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    };
+  }
+
+  // ─── Live streams admin ───────────────────────────────────────────
+
+  async getLiveStreams(page = 1, limit = 20, status?: string) {
+    const skip = (page - 1) * limit;
+    const where: Prisma.LiveStreamWhereInput = {};
+    if (status && ['LIVE', 'ENDED'].includes(status)) {
+      where.status = status as $Enums.LiveStatus;
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.liveStream.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { startedAt: 'desc' },
+        include: {
+          host: {
+            select: {
+              id: true,
+              profile: { select: { username: true, avatar: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.liveStream.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    };
+  }
+
+  async endLiveStream(adminId: string, streamId: string) {
+    const stream = await this.prisma.liveStream.findUnique({
+      where: { id: streamId },
+    });
+    if (!stream) throw new NotFoundException('Live stream not found');
+    if (stream.status === 'ENDED') {
+      return stream;
+    }
+
+    const updated = await this.prisma.liveStream.update({
+      where: { id: streamId },
+      data: {
+        status: 'ENDED',
+        endedAt: new Date(),
+        replayUrl:
+          stream.hlsUrl ||
+          `https://cdn.circlesfera.com/vod/replays/${stream.id}.m3u8`,
+      },
+    });
+
+    await this.logAction(
+      adminId,
+      AdminAction.MANUAL_OVERRIDE,
+      'live_stream',
+      streamId,
+      'Admin force-ended live stream',
+    );
 
     return updated;
   }

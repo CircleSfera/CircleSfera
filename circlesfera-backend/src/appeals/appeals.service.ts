@@ -46,21 +46,43 @@ export class AppealsService {
   }
 
   // Admin Methods
-  async findAll() {
-    return this.prisma.appeal.findMany({
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            profile: {
-              select: { username: true, fullName: true, avatar: true },
+  async findAll(page = 1, limit = 20, status?: string) {
+    const skip = (page - 1) * limit;
+    const where: { status?: 'PENDING' | 'APPROVED' | 'REJECTED' } = {};
+    if (status && ['PENDING', 'APPROVED', 'REJECTED'].includes(status)) {
+      where.status = status as 'PENDING' | 'APPROVED' | 'REJECTED';
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.appeal.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              profile: {
+                select: { username: true, fullName: true, avatar: true },
+              },
             },
           },
         },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.appeal.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
       },
-      orderBy: { createdAt: 'desc' },
-    });
+    };
   }
 
   async findOne(id: string) {

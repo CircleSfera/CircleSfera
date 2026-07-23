@@ -2,18 +2,35 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   Activity,
+  Download,
   PieChart,
-  ShieldCheck,
   TrendingUp,
   Users,
   Zap,
 } from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import type { AdminTransaction } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
+import { paymentsApi } from '../../services/payments.service';
+import type { PaginatedResponse } from '../../types';
+import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
+import { AdminFilterBar } from './AdminFilterBar';
+import { AdminList, AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
+import { FilterDropdown, Pagination, SearchInput, Table } from './AdminTable';
+import { adminToast } from './adminToast';
 import StatCard from './StatCard';
 
 export default function MonetizationTab() {
+  const { t } = useTranslation();
+  const [txPage, setTxPage] = useState(1);
+  const [txStatus, setTxStatus] = useState('');
+  const [txSearch, setTxSearch] = useState('');
+  const debouncedTxSearch = useDebouncedValue(txSearch, 400);
+
   const {
     data: analytics,
     isLoading,
@@ -23,15 +40,47 @@ export default function MonetizationTab() {
     queryFn: () => adminApi.getMonetizationAnalytics().then((res) => res.data),
   });
 
+  const { data: txData, isLoading: txLoading } = useQuery<
+    PaginatedResponse<AdminTransaction>
+  >({
+    queryKey: ['admin', 'transactions', txPage, txStatus, debouncedTxSearch],
+    queryFn: () =>
+      adminApi
+        .getTransactions(
+          txPage,
+          20,
+          txStatus || undefined,
+          debouncedTxSearch || undefined,
+        )
+        .then((res) => res.data),
+  });
+
+  const handleExportLedger = async () => {
+    try {
+      const blob = await paymentsApi.getAdminLedger();
+      const url = URL.createObjectURL(
+        new Blob([blob as BlobPart], { type: 'text/csv' }),
+      );
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'circlesfera-ledger.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      adminToast(t('admin.monetization.toast_ledger_exported'), 'success');
+    } catch {
+      adminToast(t('admin.monetization.toast_ledger_error'), 'error');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4">
         <AdminPageHeader
-          title="Monetización"
-          subtitle="Análisis de suscripciones y métricas SaaS"
+          title={t('admin.monetization.title')}
+          subtitle={t('admin.monetization.subtitle')}
         />
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 animate-pulse">
-          {[1, 2, 3].map((i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-pulse">
+          {[1, 2].map((i) => (
             <div
               key={i}
               className="h-28 bg-white/5 rounded-xl border border-white/5"
@@ -55,13 +104,13 @@ export default function MonetizationTab() {
     return (
       <div className="space-y-4">
         <AdminPageHeader
-          title="Monetización"
-          subtitle="Análisis de suscripciones y métricas SaaS"
+          title={t('admin.monetization.title')}
+          subtitle={t('admin.monetization.subtitle')}
         />
         <AdminEmptyState
           icon={Activity}
-          title="Error de Análisis"
-          description="No se pudieron sincronizar las métricas de suscripción."
+          title={t('admin.monetization.error_title')}
+          description={t('admin.monetization.error_description')}
           className="glass-panel border-red-500/10"
         />
       </div>
@@ -76,36 +125,59 @@ export default function MonetizationTab() {
   const total =
     distribution.PREMIUM + distribution.ELITE + distribution.BUSINESS || 1;
 
+  const formatAmount = (tx: AdminTransaction) =>
+    `${(tx.amount / 100).toFixed(2)} ${tx.currency}`;
+
+  const txStatusBadge = (status: AdminTransaction['status']) => {
+    const styles: Record<string, string> = {
+      COMPLETED: 'text-green-400 bg-green-400/10',
+      PENDING: 'text-yellow-400 bg-yellow-400/10',
+      FAILED: 'text-red-400 bg-red-400/10',
+      REFUNDED: 'text-purple-400 bg-purple-400/10',
+    };
+    return (
+      <span
+        className={`px-2 py-0.5 rounded text-xs font-semibold uppercase ${styles[status]}`}
+      >
+        {status}
+      </span>
+    );
+  };
+
+  const transactions = txData?.data ?? [];
+
   return (
     <div className="space-y-4">
       <AdminPageHeader
-        title="Monetización"
-        subtitle="Análisis de suscripciones y métricas SaaS"
+        title={t('admin.monetization.title')}
+        subtitle={t('admin.monetization.subtitle')}
+        actions={
+          <Button
+            onClick={handleExportLedger}
+            variant="outline"
+            className="text-sm font-semibold text-gray-300 hover:text-white border-white/10 px-4 min-h-11 w-full sm:w-auto"
+            aria-label={t('admin.monetization.export_ledger_aria')}
+          >
+            <Download size={16} className="mr-2" />
+            {t('admin.monetization.export_ledger')}
+          </Button>
+        }
       />
 
       {/* SaaS Primary Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <StatCard
-          label="MRR de Plataforma"
+          label={t('admin.monetization.mrr_label')}
           value={analytics?.activeMRR || 0}
           icon={Zap}
           color="blue"
           growth={analytics?.subscriptionGrowth}
         />
         <StatCard
-          label="Suscripciones Activas"
+          label={t('admin.monetization.subscriptions_label')}
           value={analytics?.totalSubscriptions || 0}
           icon={Users}
           color="purple"
-        />
-        <StatCard
-          label="Tasa de Retención"
-          value={analytics?.activeRetentionRate || 0}
-          icon={ShieldCheck}
-          color="green"
-          isCounter={false}
-          prefix=""
-          suffix="%"
         />
       </div>
 
@@ -117,15 +189,15 @@ export default function MonetizationTab() {
               <Zap size={20} />
             </div>
             <span className="text-xs font-semibold uppercase tracking-wide text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full border border-green-400/20">
-              Conectado
+              {t('admin.monetization.stripe_connected')}
             </span>
           </div>
           <div>
             <h4 className="text-white font-semibold text-sm mb-1">
-              Stripe API
+              {t('admin.monetization.stripe_api_title')}
             </h4>
             <p className="text-gray-400 text-xs leading-relaxed">
-              Conexión principal con Stripe habilitada. Pagos activos.
+              {t('admin.monetization.stripe_api_desc')}
             </p>
           </div>
         </div>
@@ -135,16 +207,16 @@ export default function MonetizationTab() {
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
               <Users size={20} />
             </div>
-            <span className="text-xs font-semibold uppercase tracking-wide text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded-full border border-yellow-400/20">
-              En Implementación
+            <span className="text-xs font-semibold uppercase tracking-wide text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full border border-green-400/20">
+              {t('admin.monetization.stripe_connect_status')}
             </span>
           </div>
           <div>
             <h4 className="text-white font-semibold text-sm mb-1">
-              Stripe Connect
+              {t('admin.monetization.stripe_connect_title')}
             </h4>
             <p className="text-gray-400 text-xs leading-relaxed">
-              Infraestructura para pagos divididos y Creadores.
+              {t('admin.monetization.stripe_connect_desc')}
             </p>
           </div>
         </div>
@@ -159,10 +231,10 @@ export default function MonetizationTab() {
             </div>
             <div className="min-w-0">
               <h3 className="text-sm sm:text-base font-semibold text-white">
-                Distribución de Experiencia
+                {t('admin.monetization.tier_distribution_title')}
               </h3>
               <p className="text-zinc-400 text-xs">
-                Desglose de niveles por usuario
+                {t('admin.monetization.tier_distribution_subtitle')}
               </p>
             </div>
           </div>
@@ -171,10 +243,10 @@ export default function MonetizationTab() {
             <div className="space-y-3">
               <div className="flex items-center justify-between px-1">
                 <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">
-                  Composición de Tiers
+                  {t('admin.monetization.tier_composition')}
                 </span>
                 <span className="text-xs font-semibold text-white">
-                  100% Active Base
+                  {t('admin.monetization.tier_active_base')}
                 </span>
               </div>
               <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden flex border border-white/5 p-0.5">
@@ -203,19 +275,19 @@ export default function MonetizationTab() {
             <div className="space-y-2">
               {[
                 {
-                  label: 'Verified',
+                  label: t('admin.monetization.tier_verified'),
                   count: distribution.PREMIUM,
                   color: 'bg-brand-blue',
                   percent: Math.round((distribution.PREMIUM / total) * 100),
                 },
                 {
-                  label: 'Elite Creator',
+                  label: t('admin.monetization.tier_elite'),
                   count: distribution.ELITE,
                   color: 'bg-brand-primary',
                   percent: Math.round((distribution.ELITE / total) * 100),
                 },
                 {
-                  label: 'Business',
+                  label: t('admin.monetization.tier_business'),
                   count: distribution.BUSINESS,
                   color: 'bg-brand-accent',
                   percent: Math.round((distribution.BUSINESS / total) * 100),
@@ -234,7 +306,9 @@ export default function MonetizationTab() {
                         {tier.label}
                       </span>
                       <span className="text-xs text-zinc-400">
-                        {tier.count} Miembros
+                        {t('admin.monetization.tier_members', {
+                          count: tier.count,
+                        })}
                       </span>
                     </div>
                   </div>
@@ -254,27 +328,141 @@ export default function MonetizationTab() {
                 <TrendingUp size={20} className="text-brand-primary" />
               </div>
               <h4 className="text-sm sm:text-base font-semibold text-white">
-                Proyección de Crecimiento
+                {t('admin.monetization.growth_title')}
               </h4>
             </div>
-            <p className="text-zinc-400 text-sm leading-relaxed mb-4">
-              Basado en el ritmo actual de adquisiciones, se estima un
-              crecimiento del <strong className="text-white">12.4%</strong> en
-              el próximo ciclo de facturación.
+            <p className="text-zinc-400 text-sm leading-relaxed mb-3">
+              {t('admin.monetization.growth_description')}
             </p>
-            <div className="h-16 w-full bg-white/2 rounded-lg border border-white/5 relative overflow-hidden">
-              <div className="absolute inset-0 flex items-end opacity-20">
-                {[40, 70, 45, 90, 65, 80, 50, 85, 95].map((h, i) => (
-                  <div
-                    // biome-ignore lint/suspicious/noArrayIndexKey: Decorative static items
-                    key={`wave-${i}-${h}`}
-                    className="flex-1 bg-brand-primary mx-0.5 rounded-t-sm"
-                    style={{ height: `${h}%` }}
+            <p className="text-3xl font-semibold text-white tabular-nums">
+              {analytics?.subscriptionGrowth !== undefined
+                ? `${analytics.subscriptionGrowth > 0 ? '+' : ''}${analytics.subscriptionGrowth}%`
+                : '—'}
+            </p>
+            <p className="text-xs text-zinc-500 mt-1">
+              {t('admin.monetization.growth_period')}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <h3 className="text-sm sm:text-base font-semibold text-white">
+            {t('admin.monetization.transactions_title')}
+          </h3>
+          <p className="text-xs text-zinc-400">
+            {t('admin.monetization.transactions_subtitle')}
+          </p>
+        </div>
+
+        <AdminFilterBar>
+          <div className="flex-1 min-w-0">
+            <SearchInput
+              value={txSearch}
+              onChange={(v) => {
+                setTxSearch(v);
+                setTxPage(1);
+              }}
+              placeholder={t('admin.monetization.transactions_search')}
+            />
+          </div>
+          <FilterDropdown
+            label={t('admin.shared.filter_status')}
+            value={txStatus}
+            onChange={(v) => {
+              setTxStatus(v);
+              setTxPage(1);
+            }}
+            options={[
+              { value: '', label: t('admin.shared.all') },
+              { value: 'COMPLETED', label: 'COMPLETED' },
+              { value: 'PENDING', label: 'PENDING' },
+              { value: 'FAILED', label: 'FAILED' },
+              { value: 'REFUNDED', label: 'REFUNDED' },
+            ]}
+          />
+        </AdminFilterBar>
+
+        <div className="rounded-xl border border-white/10 lg:overflow-clip">
+          <AdminList
+            loading={txLoading}
+            isEmpty={!transactions.length}
+            emptyTitle={t('admin.monetization.transactions_empty_title')}
+            emptyDescription={t(
+              'admin.monetization.transactions_empty_description',
+            )}
+            mobile={
+              <div className="space-y-2">
+                {transactions.map((tx) => (
+                  <AdminListRow
+                    key={tx.id}
+                    title={tx.description || tx.type}
+                    subtitle={
+                      tx.sender?.profile?.username
+                        ? `@${tx.sender.profile.username} → @${tx.receiver?.profile?.username || '—'}`
+                        : tx.sender?.email || '—'
+                    }
+                    badge={txStatusBadge(tx.status)}
+                    meta={new Date(tx.createdAt).toLocaleString()}
+                    primaryAction={
+                      <span className="text-sm font-semibold text-white tabular-nums">
+                        {formatAmount(tx)}
+                      </span>
+                    }
                   />
                 ))}
               </div>
-            </div>
-          </div>
+            }
+            desktop={
+              <Table
+                headers={[
+                  t('admin.monetization.col_date'),
+                  t('admin.monetization.col_type'),
+                  t('admin.monetization.col_parties'),
+                  t('admin.monetization.col_amount'),
+                  t('admin.monetization.col_status'),
+                ]}
+                columnWidths={[
+                  'hidden lg:table-cell w-[8rem]',
+                  'w-[5rem]',
+                  'min-w-[10rem]',
+                  'w-[5.5rem]',
+                  'w-[5.5rem]',
+                ]}
+                loading={false}
+                isEmpty={false}
+              >
+                {transactions.map((tx) => (
+                  <tr
+                    key={tx.id}
+                    className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
+                  >
+                    <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap hidden lg:table-cell">
+                      {new Date(tx.createdAt).toLocaleString()}
+                    </td>
+                    <td className="px-2 py-1">
+                      <span className="text-xs font-semibold uppercase text-gray-300">
+                        {tx.type}
+                      </span>
+                    </td>
+                    <td className="px-2 py-1">
+                      <span className="text-sm text-gray-300 truncate block max-w-[14rem]">
+                        {tx.sender?.profile?.username
+                          ? `@${tx.sender.profile.username} → @${tx.receiver?.profile?.username || '—'}`
+                          : tx.description || '—'}
+                      </span>
+                    </td>
+                    <td className="px-2 py-1 text-white text-sm font-semibold tabular-nums">
+                      {formatAmount(tx)}
+                    </td>
+                    <td className="px-2 py-1">{txStatusBadge(tx.status)}</td>
+                  </tr>
+                ))}
+              </Table>
+            }
+          />
+          <Pagination meta={txData?.meta} onPageChange={setTxPage} />
         </div>
       </div>
     </div>

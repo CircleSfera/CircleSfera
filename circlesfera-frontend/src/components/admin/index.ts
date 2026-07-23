@@ -17,6 +17,7 @@ export {
   Table,
   ToastContainer,
 } from './AdminTable';
+export { default as AppealsTab } from './AppealsTab';
 export { default as AudioTab } from './AudioTab';
 export { default as AuditLogTab } from './AuditLogTab';
 export type { AdminTab } from './adminNav';
@@ -30,6 +31,7 @@ export { default as CommentsTab } from './CommentsTab';
 export { default as ExperimentsTab } from './ExperimentsTab';
 export { default as FirewallTab } from './FirewallTab';
 export { default as HashtagsTab } from './HashtagsTab';
+export { default as LiveStreamsTab } from './LiveStreamsTab';
 export { default as ModerationTab } from './ModerationTab';
 export { default as MonetizationTab } from './MonetizationTab';
 export { default as NewsletterTab } from './NewsletterTab';
@@ -40,7 +42,9 @@ export { default as ReportsTab } from './ReportsTab';
 export { default as StatCard } from './StatCard';
 export { default as StatsTab } from './StatsTab';
 export { default as StoriesTab } from './StoriesTab';
+export { default as SupportTicketsTab } from './SupportTicketsTab';
 export { default as SystemHealthTab } from './SystemHealthTab';
+export { default as TrustTab } from './TrustTab';
 export { default as UsersTab } from './UsersTab';
 export { default as UserVerificationTab } from './UserVerificationTab';
 export { default as WhitelistTab } from './WhitelistTab';

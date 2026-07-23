@@ -11,6 +11,7 @@ import {
   UserCheck,
   Users,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   Area,
   AreaChart,
@@ -33,6 +34,8 @@ import { AdminPageHeader } from './AdminPageHeader';
 import StatCard from './StatCard';
 
 export default function StatsTab() {
+  const { t } = useTranslation();
+
   const { data: stats, isLoading } = useQuery<EnhancedStats>({
     queryKey: ['admin', 'stats', 'enhanced'],
     queryFn: () => adminApi.getEnhancedStats(),
@@ -49,12 +52,15 @@ export default function StatsTab() {
     queryFn: () => adminApi.getTopUsers().then((r) => r.data),
   });
 
+  const formatAction = (action: string) =>
+    t(`admin.stats.actions.${action}`, action);
+
   if (isLoading) {
     return (
       <div className="space-y-4">
         <AdminPageHeader
-          title="Estadísticas Globales"
-          subtitle="Métricas en tiempo real y actividad del sistema"
+          title={t('admin.stats.title')}
+          subtitle={t('admin.stats.subtitle')}
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           {['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'].map((id) => (
@@ -68,90 +74,91 @@ export default function StatsTab() {
     );
   }
 
+  const userSparkline = chartData?.map((d) => d.users);
+  const postSparkline = chartData?.map((d) => d.posts);
+  const storySparkline = chartData?.map((d) => d.stories);
+  const reportSparkline = chartData?.map((d) => d.reports);
+
   return (
     <div className="space-y-4">
       <AdminPageHeader
-        title="Estadísticas Globales"
-        subtitle="Métricas en tiempo real y actividad del sistema"
+        title={t('admin.stats.title')}
+        subtitle={t('admin.stats.subtitle')}
       />
 
-      {/* Primary Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         <StatCard
-          label="Usuarios Totales"
+          label={t('admin.stats.total_users')}
           value={stats?.users || 0}
           icon={Users}
           color="blue"
           growth={stats?.userGrowth}
-          sparklineData={[10, 25, 30, 45, 60, 50, 80, 95]}
+          sparklineData={userSparkline}
         />
         <StatCard
-          label="Publicaciones"
+          label={t('admin.stats.posts')}
           value={stats?.posts || 0}
           icon={ImageIcon}
           color="purple"
           growth={stats?.postGrowth}
-          sparklineData={[5, 10, 8, 20, 15, 30, 45, 50]}
+          sparklineData={postSparkline}
         />
         <StatCard
-          label="Historias Activas"
+          label={t('admin.stats.active_stories')}
           value={stats?.stories || 0}
           icon={Clock}
           color="pink"
-          sparklineData={[50, 40, 60, 80, 45, 90, 100, 85]}
+          sparklineData={storySparkline}
         />
         <StatCard
-          label="Reportes Pendientes"
+          label={t('admin.stats.pending_reports')}
           value={stats?.pendingReports || 0}
           icon={Flag}
           color="red"
-          sparklineData={[0, 2, 5, 3, 8, 4, 1, 0]}
+          sparklineData={reportSparkline}
         />
       </div>
 
-      {/* Secondary Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         <StatCard
-          label="Usuarios Activos Hoy"
+          label={t('admin.stats.active_today')}
           value={stats?.activeUsersToday || 0}
           icon={UserCheck}
           color="green"
         />
         <StatCard
-          label="Engagement Ratio"
+          label={t('admin.stats.engagement_ratio')}
           value={stats?.engagement || 0}
           icon={Activity}
           color="yellow"
-          subtitle="Likes + Comentarios / Post"
+          subtitle={t('admin.stats.engagement_subtitle')}
           suffix="%"
           isCounter={false}
         />
         <StatCard
-          label="Nuevos Esta Semana"
+          label={t('admin.stats.new_this_week')}
           value={stats?.newUsersThisWeek || 0}
           icon={Users}
           color="blue"
-          subtitle="Usuarios registrados"
+          subtitle={t('admin.stats.new_users_subtitle')}
         />
         <StatCard
-          label="Contenido Reportado"
+          label={t('admin.stats.reported_content')}
           value={stats?.reportedContentPercent || 0}
           icon={Percent}
           color="red"
-          subtitle="% del total de posts"
+          subtitle={t('admin.stats.reported_subtitle')}
           suffix="%"
           isCounter={false}
         />
       </div>
 
-      {/* Activity Chart + Top Users */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        {/* Chart */}
         <div className="lg:col-span-2 glass-panel rounded-lg border border-white/5 p-3 sm:p-5">
           <div className="flex items-center gap-2 mb-3 sm:mb-4">
             <BarChart3 size={18} className="text-brand-primary" />
             <h3 className="text-white font-semibold text-sm">
-              Actividad (últimos 14 días)
+              {t('admin.stats.activity_chart')}
             </h3>
           </div>
           {chartData && chartData.length > 0 ? (
@@ -189,13 +196,15 @@ export default function StatsTab() {
                     borderRadius: 12,
                     fontSize: 12,
                   }}
-                  labelFormatter={(v) => `Fecha: ${String(v)}`}
+                  labelFormatter={(v) =>
+                    t('admin.stats.chart_date', { date: String(v) })
+                  }
                 />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
                 <Area
                   type="monotone"
                   dataKey="posts"
-                  name="Posts"
+                  name={t('admin.stats.chart_posts')}
                   stroke="#a855f7"
                   fill="url(#gradPosts)"
                   strokeWidth={2}
@@ -203,7 +212,7 @@ export default function StatsTab() {
                 <Area
                   type="monotone"
                   dataKey="users"
-                  name="Nuevos usuarios"
+                  name={t('admin.stats.chart_new_users')}
                   stroke="#3b82f6"
                   fill="url(#gradUsers)"
                   strokeWidth={2}
@@ -213,18 +222,19 @@ export default function StatsTab() {
           ) : (
             <AdminEmptyState
               icon={BarChart3}
-              title="Sin datos de actividad"
-              description="No hay datos disponibles para el período seleccionado"
+              title={t('admin.stats.activity_empty_title')}
+              description={t('admin.stats.activity_empty_description')}
               compact
             />
           )}
         </div>
 
-        {/* Top Users */}
         <div className="glass-panel rounded-lg border border-white/5 p-3 sm:p-5">
           <div className="flex items-center gap-2 mb-3 sm:mb-4">
             <UserCheck size={18} className="text-brand-primary" />
-            <h3 className="text-white font-semibold text-sm">Top Engagement</h3>
+            <h3 className="text-white font-semibold text-sm">
+              {t('admin.stats.top_engagement')}
+            </h3>
           </div>
           {topUsers && topUsers.length > 0 ? (
             <div className="space-y-2">
@@ -232,7 +242,10 @@ export default function StatsTab() {
                 <AdminListRow
                   key={user.id}
                   title={`@${user.username}`}
-                  subtitle={`#${i + 1} · engagement ${user.engagement}`}
+                  subtitle={t('admin.stats.rank_engagement', {
+                    rank: i + 1,
+                    value: user.engagement,
+                  })}
                   meta={
                     <>
                       <span className="flex items-center gap-1">
@@ -271,21 +284,20 @@ export default function StatsTab() {
           ) : (
             <AdminEmptyState
               icon={UserCheck}
-              title="Sin datos"
-              description="No hay información de usuarios disponible"
+              title={t('admin.stats.top_empty_title')}
+              description={t('admin.stats.top_empty_description')}
               compact
             />
           )}
         </div>
       </div>
 
-      {/* Recent Activity */}
       {stats?.recentActivity && stats.recentActivity.length > 0 && (
         <div className="glass-panel rounded-lg border border-white/5 overflow-hidden">
           <div className="px-3 sm:px-5 py-2.5 sm:py-3 border-b border-white/5 flex items-center gap-2">
             <BarChart3 size={18} className="text-brand-primary" />
             <h3 className="text-white font-semibold text-sm">
-              Actividad Reciente del Admin
+              {t('admin.stats.recent_admin_activity')}
             </h3>
           </div>
           <div className="divide-y divide-white/5">
@@ -322,18 +334,4 @@ export default function StatsTab() {
       )}
     </div>
   );
-}
-
-function formatAction(action: string): string {
-  const map: Record<string, string> = {
-    ban_user: 'baneó un usuario',
-    unban_user: 'desbaneó un usuario',
-    delete_post: 'eliminó una publicación',
-    delete_user: 'eliminó una cuenta',
-    promote_user: 'promovió a admin',
-    demote_user: 'degradó de admin',
-    resolved_report: 'resolvió un reporte',
-    dismissed_report: 'descartó un reporte',
-  };
-  return map[action] || action;
 }

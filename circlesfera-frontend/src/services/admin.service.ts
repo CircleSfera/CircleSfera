@@ -97,6 +97,35 @@ export interface AdminPost {
   };
 }
 
+/** Unified moderation queue item (posts, stories, comments). */
+export interface AdminModerationItem {
+  id: string;
+  entityType: 'POST' | 'STORY' | 'COMMENT';
+  /** PostType for posts only (POST | FRAME); do not use for PATCH. */
+  type?: string;
+  caption: string | null;
+  content?: string | null;
+  url?: string | null;
+  mediaType?: string | null;
+  createdAt: string;
+  media?:
+    | {
+        url: string;
+        standardUrl?: string;
+        thumbnailUrl?: string;
+        type?: string;
+      }[]
+    | null;
+  moderationStatus: 'VISIBLE' | 'FLAGGED' | 'HIDDEN' | 'REMOVED';
+  moderationNote?: string | null;
+  user?: {
+    profile: {
+      username: string;
+      avatar?: string | null;
+    };
+  } | null;
+}
+
 export interface AdminReport {
   id: string;
   reason: string;
@@ -125,6 +154,8 @@ export interface ActivityChartDay {
   date: string;
   posts: number;
   users: number;
+  stories: number;
+  reports: number;
 }
 
 export interface TopUser {
@@ -224,14 +255,15 @@ export interface WhitelistEntry {
   id: string;
   email: string;
   name: string | null;
-  status: 'PENDING' | 'INVITED' | 'REGISTERED';
+  status: 'VALID' | 'REGISTERED';
   createdAt: string;
   updatedAt: string;
 }
 
 export interface FirewallSignature {
   id: string;
-  text: string;
+  textPreview?: string | null;
+  text?: string;
   category: string;
   createdAt: string;
 }
@@ -250,6 +282,109 @@ export interface UserExperiment {
       fullName: string | null;
     } | null;
   };
+}
+
+export interface AdminSupportTicket {
+  id: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: 'OPEN' | 'RESOLVED' | 'CLOSED';
+  reply: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    email: string;
+    profile?: { username: string; avatar: string | null } | null;
+  } | null;
+}
+
+export interface AdminFeatureFlag {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  isEnabled: boolean;
+  percentage: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminWebhookEvent {
+  id: string;
+  provider: string;
+  externalId: string;
+  status: 'PENDING' | 'PROCESSED' | 'FAILED';
+  createdAt: string;
+  updatedAt: string;
+  processedAt: string | null;
+  payload?: unknown;
+}
+
+export interface AdminTransaction {
+  id: string;
+  type: string;
+  amount: number;
+  currency: string;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
+  description: string | null;
+  createdAt: string;
+  sender?: {
+    email: string;
+    profile?: { username: string } | null;
+  } | null;
+  receiver?: {
+    email: string;
+    profile?: { username: string } | null;
+  } | null;
+}
+
+export interface TrustQueueAppeal {
+  id: string;
+  reason: string;
+  status: string;
+  targetType: string;
+  createdAt: string;
+  user?: {
+    email: string;
+    profile?: { username: string } | null;
+  } | null;
+}
+
+export interface TrustQueueReport {
+  id: string;
+  reason: string;
+  status: string;
+  targetType: string;
+  createdAt: string;
+  reporter?: {
+    profile?: { username: string } | null;
+  } | null;
+}
+
+export interface TrustQueueResponse {
+  reports: TrustQueueReport[];
+  appeals: TrustQueueAppeal[];
+  tickets: AdminSupportTicket[];
+  counts: {
+    reports: number;
+    appeals: number;
+    tickets: number;
+  };
+}
+
+export interface AdminLiveStream {
+  id: string;
+  title: string | null;
+  status: 'LIVE' | 'ENDED';
+  viewerCount: number;
+  startedAt: string;
+  endedAt: string | null;
+  host?: {
+    id: string;
+    profile?: { username: string; avatar: string | null } | null;
+  } | null;
 }
 
 export const adminApi = {
@@ -339,14 +474,28 @@ export const adminApi = {
   updateReport: (id: string, status: string) =>
     apiClient.patch(`admin/reports/${id}`, { status }),
 
+  bulkUpdateReports: (ids: string[], status: string) =>
+    apiClient.post<{ updated: number }>('admin/reports/bulk', { ids, status }),
+
   resolveReportWithPenalty: (id: string, action: 'IGNORE' | 'STRIKE' | 'BAN') =>
     apiClient.post(`admin/reports/${id}/resolve-penalty`, { action }),
 
+  getTrustQueue: () => apiClient.get<TrustQueueResponse>('admin/trust/queue'),
+
   // Audit Logs
-  getAuditLogs: (page = 1, limit = 50) =>
-    apiClient.get<PaginatedResponse<AuditLogEntry>>(
-      `/admin/audit-logs?page=${page}&limit=${limit}`,
-    ),
+  getAuditLogs: (
+    page = 1,
+    limit = 50,
+    filters?: {
+      action?: string;
+      search?: string;
+      from?: string;
+      to?: string;
+    },
+  ) =>
+    apiClient.get<PaginatedResponse<AuditLogEntry>>('admin/audit-logs', {
+      params: { page, limit, ...filters },
+    }),
 
   // Hashtags
   getHashtags: (page = 1, limit = 20, search?: string) =>
@@ -363,9 +512,13 @@ export const adminApi = {
   deleteComment: (id: string) => apiClient.delete(`admin/comments/${id}`),
 
   // Stories
-  getStories: (page = 1, limit = 10) =>
+  getStories: (
+    page = 1,
+    limit = 10,
+    filters?: { moderationStatus?: string; expired?: 'true' | 'false' },
+  ) =>
     apiClient.get<PaginatedResponse<AdminStory>>('admin/stories', {
-      params: { page, limit },
+      params: { page, limit, ...filters },
     }),
 
   deleteStory: (id: string) => apiClient.delete(`admin/stories/${id}`),
@@ -417,7 +570,7 @@ export const adminApi = {
         BUSINESS: number;
       };
       subscriptionGrowth: number;
-      activeRetentionRate: number;
+      activeRetentionRate?: number | null;
     }>('admin/analytics/monetization'),
 
   // Promotions
@@ -440,9 +593,12 @@ export const adminApi = {
 
   // Moderation
   getModerationQueue: (page = 1, limit = 10, type?: string, search?: string) =>
-    apiClient.get<PaginatedResponse<AdminPost>>('admin/moderation/queue', {
-      params: { page, limit, type, search },
-    }),
+    apiClient.get<PaginatedResponse<AdminModerationItem>>(
+      'admin/moderation/queue',
+      {
+        params: { page, limit, type, search },
+      },
+    ),
 
   updateModerationStatus: (
     type: 'POST' | 'STORY' | 'COMMENT',
@@ -485,4 +641,55 @@ export const adminApi = {
 
   removeUserExperiment: (id: string) =>
     apiClient.delete(`admin/experiments/users/${id}`),
+
+  // Support tickets
+  getSupportTickets: (page = 1, limit = 20, status?: string) =>
+    apiClient.get<PaginatedResponse<AdminSupportTicket>>(
+      'admin/support/tickets',
+      { params: { page, limit, status } },
+    ),
+
+  updateSupportTicket: (
+    id: string,
+    data: { status?: 'OPEN' | 'RESOLVED' | 'CLOSED'; reply?: string },
+  ) => apiClient.patch<AdminSupportTicket>(`admin/support/tickets/${id}`, data),
+
+  // Feature flags
+  getFeatureFlags: () =>
+    apiClient.get<AdminFeatureFlag[]>('admin/feature-flags'),
+
+  upsertFeatureFlag: (
+    key: string,
+    data: {
+      name?: string;
+      description?: string;
+      isEnabled?: boolean;
+      percentage?: number;
+    },
+  ) => apiClient.put<AdminFeatureFlag>(`admin/feature-flags/${key}`, data),
+
+  // Webhook events
+  getWebhookEvents: (page = 1, limit = 20, status?: string) =>
+    apiClient.get<PaginatedResponse<AdminWebhookEvent>>('admin/webhooks', {
+      params: { page, limit, status },
+    }),
+
+  getWebhookEvent: (id: string) =>
+    apiClient.get<AdminWebhookEvent>(`admin/webhooks/${id}`),
+
+  replayWebhookEvent: (id: string) =>
+    apiClient.post<AdminWebhookEvent>(`admin/webhooks/${id}/replay`),
+
+  getTransactions: (page = 1, limit = 20, status?: string, search?: string) =>
+    apiClient.get<PaginatedResponse<AdminTransaction>>('admin/transactions', {
+      params: { page, limit, status, search },
+    }),
+
+  getLiveStreams: (page = 1, limit = 20, status?: string) =>
+    apiClient.get<PaginatedResponse<AdminLiveStream>>('admin/live', {
+      params: { page, limit, status },
+    }),
+
+  endLiveStream: (id: string) =>
+    apiClient.post<AdminLiveStream>(`admin/live/${id}/end`),
 };

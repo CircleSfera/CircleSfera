@@ -1,9 +1,11 @@
+import { useQuery } from '@tanstack/react-query';
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import logoSrc from '../../assets/logo.png';
+import { adminApi } from '../../services/admin.service';
 import { ADMIN_NAV_GROUPS, type AdminTab } from './adminNav';
 
 interface Props {
@@ -13,6 +15,27 @@ interface Props {
 
 export default function AdminSidebar({ activeTab, onTabChange }: Props) {
   const { t } = useTranslation();
+
+  const { data: trustQueue } = useQuery({
+    queryKey: ['admin', 'trust-queue'],
+    queryFn: () => adminApi.getTrustQueue().then((r) => r.data),
+    refetchInterval: 60_000,
+  });
+
+  const trustBadgeTotal =
+    (trustQueue?.counts.reports ?? 0) +
+    (trustQueue?.counts.appeals ?? 0) +
+    (trustQueue?.counts.tickets ?? 0);
+
+  const getItemBadge = (itemId: AdminTab) => {
+    if (itemId === 'trust' && trustBadgeTotal > 0) {
+      return String(trustBadgeTotal);
+    }
+    const item = ADMIN_NAV_GROUPS.flatMap((g) => g.items).find(
+      (i) => i.id === itemId,
+    );
+    return item?.badge;
+  };
 
   return (
     <aside className="hidden lg:flex w-64 xl:w-72 flex-col h-[calc(100vh-5.5rem)] sticky top-6 overflow-hidden z-20 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-2xl p-3 xl:p-4 shadow-2xl">
@@ -69,9 +92,9 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
                     </div>
 
                     <div className="flex items-center gap-2 relative z-10">
-                      {item.badge && (
+                      {getItemBadge(item.id) && (
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary border border-brand-primary/30">
-                          {item.badge}
+                          {getItemBadge(item.id)}
                         </span>
                       )}
                       {isSelected && (

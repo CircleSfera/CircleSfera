@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UnauthorizedException,
   UseGuards,
@@ -68,8 +69,16 @@ export class AppealsController {
   // Admin Routes
   @Get('admin')
   @UseGuards(JwtAuthGuard, AdminGuard)
-  findAll() {
-    return this.appealsService.findAll();
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.appealsService.findAll(
+      page ? Number(page) : 1,
+      limit ? Number(limit) : 20,
+      status,
+    );
   }
 
   @Patch('admin/:id')

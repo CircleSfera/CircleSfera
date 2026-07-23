@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Download, ExternalLink, Eye, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminPost } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export default function PostsTab({ onToast }: Props) {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -53,9 +55,9 @@ export default function PostsTab({ onToast }: Props) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'posts'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
       setDeleteId(null);
-      onToast('Publicación eliminada', 'success');
+      onToast(t('admin.posts.toast_deleted'), 'success');
     },
-    onError: () => onToast('Error al eliminar publicación', 'error'),
+    onError: () => onToast(t('admin.posts.toast_delete_error'), 'error'),
   });
 
   const handleExport = async () => {
@@ -68,26 +70,28 @@ export default function PostsTab({ onToast }: Props) {
       a.download = 'circlesfera-posts.csv';
       a.click();
       URL.revokeObjectURL(url);
-      onToast('CSV descargado', 'success');
+      onToast(t('admin.posts.toast_csv_exported'), 'success');
     } catch {
-      onToast('Error al exportar CSV', 'error');
+      onToast(t('admin.posts.toast_csv_error'), 'error');
     }
   };
+
+  const noCaption = t('admin.posts.no_caption');
 
   return (
     <div className="space-y-4">
       <AdminPageHeader
-        title="Publicaciones"
-        subtitle="Modera posts y frames de la plataforma"
+        title={t('admin.posts.title')}
+        subtitle={t('admin.posts.subtitle')}
         actions={
           <Button
             onClick={handleExport}
             variant="outline"
             className="text-sm font-semibold text-gray-300 hover:text-white border-white/10 px-4 min-h-11 w-full sm:w-auto"
-            aria-label="Exportar publicaciones como CSV"
+            aria-label={t('admin.posts.export_csv_aria')}
           >
             <Download size={16} className="mr-2" />
-            Exportar CSV
+            {t('admin.posts.export_csv')}
           </Button>
         }
       />
@@ -100,20 +104,20 @@ export default function PostsTab({ onToast }: Props) {
               setSearch(v);
               setPage(1);
             }}
-            placeholder="Buscar publicaciones..."
+            placeholder={t('admin.posts.search_placeholder')}
           />
         </div>
         <FilterDropdown
-          label="Filtrar por tipo"
+          label={t('admin.posts.filter_type')}
           value={typeFilter}
           onChange={(v) => {
             setTypeFilter(v);
             setPage(1);
           }}
           options={[
-            { value: '', label: 'Todos los tipos' },
-            { value: 'POST', label: 'Posts' },
-            { value: 'FRAME', label: 'Frames' },
+            { value: '', label: t('admin.posts.type_all') },
+            { value: 'POST', label: t('admin.posts.type_post') },
+            { value: 'FRAME', label: t('admin.posts.type_frame') },
           ]}
         />
       </AdminFilterBar>
@@ -122,15 +126,15 @@ export default function PostsTab({ onToast }: Props) {
         <AdminList
           loading={isLoading}
           isEmpty={!data || data.data.length === 0}
-          emptyTitle="No hay publicaciones"
-          emptyDescription="No se encontraron publicaciones con los filtros seleccionados."
+          emptyTitle={t('admin.posts.empty_title')}
+          emptyDescription={t('admin.posts.empty_description')}
           mobile={
             <div className="space-y-2">
               {data?.data.map((post) => (
                 <AdminListRow
                   key={post.id}
-                  title={post.caption || '(Sin pie de foto)'}
-                  subtitle={`@${post.user?.profile?.username || 'unknown'}`}
+                  title={post.caption || noCaption}
+                  subtitle={`@${post.user?.profile?.username || t('admin.shared.unknown')}`}
                   avatar={
                     <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden">
                       {post.media?.[0]?.url && (
@@ -154,8 +158,10 @@ export default function PostsTab({ onToast }: Props) {
                       </span>
                       {post._count && (
                         <span className="hidden sm:inline">
-                          {post._count.likes} likes · {post._count.comments}{' '}
-                          comentarios
+                          {t('admin.posts.likes_comments', {
+                            likes: post._count.likes,
+                            comments: post._count.comments,
+                          })}
                         </span>
                       )}
                     </>
@@ -163,7 +169,7 @@ export default function PostsTab({ onToast }: Props) {
                   primaryAction={
                     <ActionButton
                       onClick={() => setDeleteId(post.id)}
-                      label="Eliminar"
+                      label={t('admin.posts.action_delete')}
                       variant="danger"
                       icon={Trash2}
                       disabled={deleteMutation.isPending}
@@ -171,11 +177,11 @@ export default function PostsTab({ onToast }: Props) {
                   }
                   secondaryActions={[
                     {
-                      label: 'Vista previa',
+                      label: t('admin.posts.action_preview'),
                       onClick: () => setPreviewPost(post),
                     },
                     {
-                      label: 'Ver en plataforma',
+                      label: t('admin.posts.action_view_platform'),
                       onClick: () => window.open(`/post/${post.id}`, '_blank'),
                     },
                   ]}
@@ -186,12 +192,12 @@ export default function PostsTab({ onToast }: Props) {
           desktop={
             <Table
               headers={[
-                'Publicación',
-                'Autor',
-                'Fecha',
-                'Tipo',
-                'Stats',
-                'Acciones',
+                t('admin.posts.col_post'),
+                t('admin.posts.col_author'),
+                t('admin.posts.col_date'),
+                t('admin.posts.col_type'),
+                t('admin.posts.col_stats'),
+                t('admin.posts.col_actions'),
               ]}
               columnWidths={[
                 'min-w-[12rem]',
@@ -218,7 +224,7 @@ export default function PostsTab({ onToast }: Props) {
                       type="button"
                       onClick={() => setPreviewPost(post)}
                       className="flex items-center gap-3 text-left group"
-                      aria-label="Vista previa de publicación"
+                      aria-label={t('admin.posts.preview_aria')}
                     >
                       <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden shrink-0 group-hover:ring-2 ring-brand-primary/50 transition-all">
                         {post.media?.[0]?.url && (
@@ -231,9 +237,9 @@ export default function PostsTab({ onToast }: Props) {
                       </div>
                       <p
                         className="text-white text-sm truncate max-w-[12rem] xl:max-w-[16rem] group-hover:text-brand-primary transition-colors"
-                        title={post.caption || '(Sin pie de foto)'}
+                        title={post.caption || noCaption}
                       >
-                        {post.caption || '(Sin pie de foto)'}
+                        {post.caption || noCaption}
                       </p>
                     </button>
                   </td>
@@ -256,14 +262,10 @@ export default function PostsTab({ onToast }: Props) {
                   <td className="px-2 py-1 hidden xl:table-cell">
                     {post._count && (
                       <div className="text-xs text-gray-500">
-                        <span className="text-white font-semibold">
-                          {post._count.likes}
-                        </span>{' '}
-                        likes ·{' '}
-                        <span className="text-white font-semibold">
-                          {post._count.comments}
-                        </span>{' '}
-                        com.
+                        {t('admin.posts.likes_comments_short', {
+                          likes: post._count.likes,
+                          comments: post._count.comments,
+                        })}
                       </div>
                     )}
                   </td>
@@ -271,14 +273,14 @@ export default function PostsTab({ onToast }: Props) {
                     <div className="flex gap-1 items-center">
                       <ActionButton
                         onClick={() => setPreviewPost(post)}
-                        label="Ver"
+                        label={t('admin.posts.action_view')}
                         variant="ghost"
                         icon={Eye}
                         iconOnly
                       />
                       <ActionButton
                         onClick={() => setDeleteId(post.id)}
-                        label="Eliminar"
+                        label={t('admin.posts.action_delete')}
                         variant="danger"
                         icon={Trash2}
                         iconOnly
@@ -288,9 +290,9 @@ export default function PostsTab({ onToast }: Props) {
                         href={`/post/${post.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        title="Ver post"
+                        title={t('admin.posts.view_post_title')}
                         className="p-2 rounded-lg text-brand-primary bg-brand-primary/10 hover:bg-brand-primary hover:text-white transition-all"
-                        aria-label="Ver publicación en la plataforma"
+                        aria-label={t('admin.posts.view_post_aria')}
                       >
                         <ExternalLink size={14} />
                       </a>
@@ -304,7 +306,6 @@ export default function PostsTab({ onToast }: Props) {
         <Pagination meta={data?.meta} onPageChange={setPage} />
       </div>
 
-      {/* Preview Drawer */}
       {previewPost && (
         <PostPreviewDrawer
           post={previewPost}
@@ -312,15 +313,14 @@ export default function PostsTab({ onToast }: Props) {
         />
       )}
 
-      {/* Delete Confirm Modal */}
       <ConfirmModal
         isOpen={deleteId !== null}
         onClose={() => setDeleteId(null)}
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
-        title="¿Eliminar publicación?"
-        message="Esta acción es irreversible y eliminará el contenido permanentemente de la plataforma."
-        confirmText="Eliminar"
-        cancelText="Cancelar"
+        title={t('admin.posts.confirm_delete_title')}
+        message={t('admin.posts.confirm_delete_message')}
+        confirmText={t('admin.posts.confirm_delete')}
+        cancelText={t('admin.shared.cancel')}
         isDestructive={true}
         isLoading={deleteMutation.isPending}
       />

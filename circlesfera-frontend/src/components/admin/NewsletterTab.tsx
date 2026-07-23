@@ -7,6 +7,7 @@ import {
   Type,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { adminApi } from '../../services/admin.service';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Input, Textarea } from '../ui';
@@ -17,6 +18,7 @@ export default function NewsletterTab({
 }: {
   onToast: (msg: string, type: 'success' | 'error') => void;
 }) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     subject: '',
     title: '',
@@ -30,7 +32,7 @@ export default function NewsletterTab({
 
   const handleSend = async () => {
     if (!formData.subject || !formData.title || !formData.content) {
-      onToast('Por favor, completa los campos obligatorios', 'error');
+      onToast(t('admin.newsletter.toast_required_fields'), 'error');
       return;
     }
 
@@ -42,7 +44,7 @@ export default function NewsletterTab({
     setIsSending(true);
     try {
       await adminApi.sendBroadcast(formData);
-      onToast('Newsletter enviada con éxito', 'success');
+      onToast(t('admin.newsletter.toast_sent'), 'success');
       setFormData({
         subject: '',
         title: '',
@@ -52,7 +54,7 @@ export default function NewsletterTab({
       });
     } catch (error) {
       console.error(error);
-      onToast('Error al enviar la newsletter', 'error');
+      onToast(t('admin.newsletter.toast_error'), 'error');
     } finally {
       setIsSending(false);
     }
@@ -61,8 +63,8 @@ export default function NewsletterTab({
   return (
     <div className="space-y-4">
       <AdminPageHeader
-        title="Comunicaciones Masivas"
-        subtitle="Envía comunicaciones oficiales a todos los usuarios activos de CircleSfera"
+        title={t('admin.newsletter.title')}
+        subtitle={t('admin.newsletter.subtitle')}
         actions={
           <div className="flex flex-col xs:flex-row gap-2 w-full sm:w-auto">
             <Button
@@ -71,7 +73,9 @@ export default function NewsletterTab({
               onClick={() => setShowPreview(!showPreview)}
               className="min-h-11 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border border-white/10 hover:bg-white/5 text-gray-300 w-full xs:w-auto"
             >
-              {showPreview ? 'Editar Contenido' : 'Vista Previa'}
+              {showPreview
+                ? t('admin.newsletter.edit_content')
+                : t('admin.newsletter.preview')}
             </Button>
             <Button
               onClick={handleSend}
@@ -81,12 +85,12 @@ export default function NewsletterTab({
               {isSending ? (
                 <>
                   <CheckCircle2 size={16} className="mr-2" />
-                  Enviando...
+                  {t('admin.newsletter.sending')}
                 </>
               ) : (
                 <>
                   <Send size={16} className="mr-2" />
-                  Enviar Broadcast
+                  {t('admin.newsletter.send_broadcast')}
                 </>
               )}
             </Button>
@@ -103,12 +107,12 @@ export default function NewsletterTab({
                   htmlFor="subject"
                   className="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1 flex items-center gap-2"
                 >
-                  <Type size={12} /> Asunto del Email (Interno)
+                  <Type size={12} /> {t('admin.newsletter.label_subject')}
                 </label>
                 <Input
                   id="subject"
                   type="text"
-                  placeholder="Ej: ¡Novedades importantes en CircleSfera!"
+                  placeholder={t('admin.newsletter.placeholder_subject')}
                   value={formData.subject}
                   onChange={(e) =>
                     setFormData({ ...formData, subject: e.target.value })
@@ -121,12 +125,12 @@ export default function NewsletterTab({
                   htmlFor="title"
                   className="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1 flex items-center gap-2"
                 >
-                  <Layout size={12} /> Título Principal (Heading)
+                  <Layout size={12} /> {t('admin.newsletter.label_title')}
                 </label>
                 <Input
                   id="title"
                   type="text"
-                  placeholder="Ej: Nueva funcionalidad exclusiva"
+                  placeholder={t('admin.newsletter.placeholder_title')}
                   value={formData.title}
                   onChange={(e) =>
                     setFormData({ ...formData, title: e.target.value })
@@ -140,11 +144,11 @@ export default function NewsletterTab({
                   htmlFor="content"
                   className="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1"
                 >
-                  Contenido del Mensaje
+                  {t('admin.newsletter.label_content')}
                 </label>
                 <Textarea
                   id="content"
-                  placeholder="Escribe el cuerpo del mensaje aquí. Soporta texto plano y saltos de línea..."
+                  placeholder={t('admin.newsletter.placeholder_content')}
                   value={formData.content}
                   onChange={(e) =>
                     setFormData({ ...formData, content: e.target.value })
@@ -159,12 +163,12 @@ export default function NewsletterTab({
                     htmlFor="buttonText"
                     className="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1"
                   >
-                    Texto del Botón
+                    {t('admin.newsletter.label_button_text')}
                   </label>
                   <Input
                     id="buttonText"
                     type="text"
-                    placeholder="Ej: Ver ahora"
+                    placeholder={t('admin.newsletter.placeholder_button_text')}
                     value={formData.buttonText}
                     onChange={(e) =>
                       setFormData({ ...formData, buttonText: e.target.value })
@@ -176,7 +180,7 @@ export default function NewsletterTab({
                     htmlFor="buttonUrl"
                     className="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1"
                   >
-                    URL del Botón
+                    {t('admin.newsletter.label_button_url')}
                   </label>
                   <div className="relative">
                     <ExternalLink
@@ -186,7 +190,7 @@ export default function NewsletterTab({
                     <Input
                       id="buttonUrl"
                       type="text"
-                      placeholder="https://..."
+                      placeholder={t('admin.newsletter.placeholder_button_url')}
                       value={formData.buttonUrl}
                       onChange={(e) =>
                         setFormData({ ...formData, buttonUrl: e.target.value })
@@ -210,21 +214,26 @@ export default function NewsletterTab({
                   </div>
                   <div className="min-w-0">
                     <p className="text-white text-xs font-semibold">
-                      CircleSfera Newsletter
+                      {t('admin.newsletter.preview_from')}
                     </p>
                     <p className="text-gray-500 text-xs truncate">
-                      Asunto: {formData.subject || '(Sin asunto)'}
+                      {t('admin.newsletter.preview_subject', {
+                        subject:
+                          formData.subject ||
+                          t('admin.newsletter.preview_no_subject'),
+                      })}
                     </p>
                   </div>
                 </div>
 
                 <div className="p-4 sm:p-8 text-center space-y-3 sm:space-y-4 bg-black">
                   <h1 className="text-lg sm:text-xl font-semibold text-white tracking-tight leading-tight">
-                    {formData.title || 'Título del Correo'}
+                    {formData.title ||
+                      t('admin.newsletter.preview_default_title')}
                   </h1>
                   <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
                     {formData.content ||
-                      'El contenido de tu mensaje aparecerá aquí...'}
+                      t('admin.newsletter.preview_default_content')}
                   </p>
 
                   {formData.buttonText && formData.buttonUrl && (
@@ -237,10 +246,7 @@ export default function NewsletterTab({
 
                   <div className="pt-6 sm:pt-10 border-t border-white/5">
                     <p className="text-xs text-gray-600 font-semibold uppercase tracking-wide">
-                      CircleSfera © 2026 ·{' '}
-                      <span className="text-brand-primary">
-                        Verified Communications
-                      </span>
+                      {t('admin.newsletter.preview_footer')}
                     </p>
                   </div>
                 </div>
@@ -254,13 +260,10 @@ export default function NewsletterTab({
         <AlertTriangle className="text-orange-500 shrink-0 mt-0.5" size={18} />
         <div>
           <h4 className="text-orange-500 text-xs font-semibold uppercase tracking-wide mb-1">
-            Aviso de Seguridad
+            {t('admin.newsletter.security_title')}
           </h4>
           <p className="text-gray-300 text-xs leading-relaxed">
-            Al enviar este mensaje, se enviará un correo electrónico individual
-            a cada uno de los usuarios activos registrados en el sistema.
-            Asegúrate de que el contenido cumple con nuestras políticas de
-            comunicación y que no contiene información sensible o errónea.
+            {t('admin.newsletter.security_description')}
           </p>
         </div>
       </div>
@@ -269,10 +272,10 @@ export default function NewsletterTab({
         isOpen={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={executeSend}
-        title="¿Enviar broadcast?"
-        message="¿Estás seguro de que deseas enviar este correo masivo a TODOS los usuarios activos? Esta acción no se puede deshacer."
-        confirmText="Enviar"
-        cancelText="Cancelar"
+        title={t('admin.newsletter.confirm_title')}
+        message={t('admin.newsletter.confirm_message')}
+        confirmText={t('admin.newsletter.confirm_send')}
+        cancelText={t('admin.shared.cancel')}
         isDestructive={false}
       />
     </div>

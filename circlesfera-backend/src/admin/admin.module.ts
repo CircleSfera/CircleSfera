@@ -5,6 +5,7 @@ import { AudioModule } from '../audio/audio.module.js';
 import { CreatorModule } from '../creator/creator.module.js';
 import { EmailModule } from '../email/email.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
+import { PaymentsModule } from '../payments/payments.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { AdminController } from './admin.controller.js';
@@ -20,6 +21,7 @@ import { AdminOpsService } from './admin-ops.service.js';
     NotificationsModule,
     CreatorModule,
     UsersModule,
+    PaymentsModule,
     BullModule.registerQueue(
       { name: 'ai-processing' },
       { name: 'analytics-processing' },

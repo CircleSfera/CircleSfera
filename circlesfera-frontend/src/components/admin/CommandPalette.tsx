@@ -5,7 +5,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { adminApi } from '../../services';
-import { ADMIN_NAV_ITEMS } from './adminNav';
+import { ADMIN_NAV_ITEMS, type AdminTab, findAdminNavItem } from './adminNav';
+
+const QUICK_ACTION_TABS: AdminTab[] = [
+  'appeals',
+  'reports',
+  'moderation',
+  'monetization',
+];
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -40,11 +47,40 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     enabled: isOpen && query.trim().length > 1,
   });
 
+  const quickActionResults = useMemo(
+    () =>
+      QUICK_ACTION_TABS.map((tabId) => {
+        const item = findAdminNavItem(tabId);
+        if (!item) return null;
+        return {
+          id: `quick-${item.id}`,
+          title: t('admin.cmd.quick_action', {
+            section: t(item.labelKey, item.labelFallback),
+          }),
+          icon: <item.icon size={16} />,
+          action: () => {
+            navigate(`/admin/${item.id}`);
+            onClose();
+          },
+          searchable: `${item.labelFallback} ${item.id} quick`,
+        };
+      }).filter(Boolean) as Array<{
+        id: string;
+        title: string;
+        icon: React.ReactNode;
+        action: () => void;
+        searchable: string;
+      }>,
+    [navigate, onClose, t],
+  );
+
   const navResults = useMemo(
     () =>
-      ADMIN_NAV_ITEMS.map((item) => ({
+      ADMIN_NAV_ITEMS.filter(
+        (item) => !QUICK_ACTION_TABS.includes(item.id),
+      ).map((item) => ({
         id: `nav-${item.id}`,
-        title: t('admin.cmd.go_to', 'Ir a: {{section}}', {
+        title: t('admin.cmd.go_to', {
           section: t(item.labelKey, item.labelFallback),
         }),
         icon: <item.icon size={16} />,
@@ -61,23 +97,30 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
 
   const userResults = (usersData || []).map((u) => ({
     id: `user-${u.id}`,
-    title: `Usuario: @${u.profile?.username || 'sin_nombre'} (${u.profile?.fullName || u.email})`,
+    title: t('admin.cmd.user_result', {
+      username: u.profile?.username || t('admin.cmd.no_username'),
+      name: u.profile?.fullName || u.email,
+    }),
     icon: <User size={16} className="text-brand-primary" />,
     action: () => {
-      navigate(`/admin/users?id=${u.id}`);
+      navigate('/admin/users');
       onClose();
     },
     searchable: `${u.profile?.username || ''} ${u.email}`,
   }));
 
-  const results = [...navResults, ...userResults].filter((r) => {
-    if (!query) return r.id.startsWith('nav-');
-    const q = query.toLowerCase();
-    return (
-      r.title.toLowerCase().includes(q) ||
-      r.searchable.toLowerCase().includes(q)
-    );
-  });
+  const results = [...quickActionResults, ...navResults, ...userResults].filter(
+    (r) => {
+      if (!query) {
+        return r.id.startsWith('quick-') || r.id.startsWith('nav-');
+      }
+      const q = query.toLowerCase();
+      return (
+        r.title.toLowerCase().includes(q) ||
+        r.searchable.toLowerCase().includes(q)
+      );
+    },
+  );
 
   return (
     <AnimatePresence>

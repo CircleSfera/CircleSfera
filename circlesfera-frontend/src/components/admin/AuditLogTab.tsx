@@ -1,64 +1,147 @@
 import { useQuery } from '@tanstack/react-query';
 import { Activity } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AuditLogEntry } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { AdminFilterBar } from './AdminFilterBar';
 import { AdminList, AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
-import { Pagination, Table } from './AdminTable';
+import { FilterDropdown, Pagination, SearchInput, Table } from './AdminTable';
 
-const ACTION_LABELS: Record<string, string> = {
-  ban_user: 'Baneó usuario',
-  unban_user: 'Desbaneó usuario',
-  delete_post: 'Eliminó publicación',
-  delete_user: 'Eliminó cuenta',
-  promote_user: 'Promovió a admin',
-  demote_user: 'Degradó de admin',
-  resolved_report: 'Resolvió reporte',
-  dismissed_report: 'Descartó reporte',
-  delete_comment: 'Eliminó comentario',
-  delete_story: 'Eliminó historia',
-};
+const AUDIT_ACTION_KEYS = [
+  'BAN_USER',
+  'UNBAN_USER',
+  'DELETE_USER',
+  'PROMOTE_USER',
+  'DEMOTE_USER',
+  'UPDATE_USER_STATUS',
+  'DELETE_POST',
+  'DELETE_COMMENT',
+  'DELETE_STORY',
+  'CONTENT_REMOVED',
+  'CONTENT_RESTRICTED',
+  'CONTENT_RESTORED',
+  'CONTENT_LABELED',
+  'REPORT_REVIEWED',
+  'REPORT_RESOLVED',
+  'REPORT_DISMISSED',
+  'REPORT_ESCALATED',
+  'UPDATE_WHITELIST',
+  'DELETE_WHITELIST',
+  'ACCOUNT_WARNED',
+  'ACCOUNT_SUSPENDED',
+  'ACCOUNT_RESTORED',
+  'SUBSCRIPTION_ADJUSTED',
+  'SUBSCRIPTION_CANCELLED',
+  'PROMOTION_REJECTED',
+  'CREATE_AUDIO',
+  'UPDATE_AUDIO',
+  'DELETE_AUDIO',
+  'MANUAL_OVERRIDE',
+] as const;
 
 const ACTION_COLORS: Record<string, string> = {
-  ban_user: 'text-red-400',
-  unban_user: 'text-green-400',
-  delete_post: 'text-red-400',
-  delete_user: 'text-red-500',
-  promote_user: 'text-yellow-400',
-  demote_user: 'text-gray-300',
-  resolved_report: 'text-green-400',
-  dismissed_report: 'text-gray-300',
-  delete_comment: 'text-red-400',
-  delete_story: 'text-red-400',
+  BAN_USER: 'text-red-400',
+  UNBAN_USER: 'text-green-400',
+  DELETE_POST: 'text-red-400',
+  DELETE_USER: 'text-red-500',
+  PROMOTE_USER: 'text-yellow-400',
+  DEMOTE_USER: 'text-gray-300',
+  REPORT_RESOLVED: 'text-green-400',
+  REPORT_DISMISSED: 'text-gray-300',
+  DELETE_COMMENT: 'text-red-400',
+  DELETE_STORY: 'text-red-400',
+  CONTENT_REMOVED: 'text-red-400',
+  CONTENT_RESTORED: 'text-green-400',
 };
 
 export default function AuditLogTab() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
+  const [actionFilter, setActionFilter] = useState('');
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 400);
+
+  const actionFilterOptions = useMemo(
+    () => [
+      { value: '', label: t('admin.audit.filter_all_actions') },
+      ...AUDIT_ACTION_KEYS.map((value) => ({
+        value,
+        label: t(`admin.audit.actions.${value}`),
+      })),
+    ],
+    [t],
+  );
+
+  const formatActionLabel = (action: string) =>
+    t(`admin.audit.actions.${action}`, {
+      defaultValue: action.replace(/_/g, ' ').toLowerCase(),
+    });
 
   const { data, isLoading } = useQuery<PaginatedResponse<AuditLogEntry>>({
-    queryKey: ['admin', 'audit-logs', page],
-    queryFn: () => adminApi.getAuditLogs(page, 15).then((r) => r.data),
+    queryKey: ['admin', 'audit-logs', page, actionFilter, debouncedSearch],
+    queryFn: () =>
+      adminApi
+        .getAuditLogs(page, 15, {
+          action: actionFilter || undefined,
+          search: debouncedSearch.trim() || undefined,
+        })
+        .then((r) => r.data),
   });
+
+  const logs = data?.data ?? [];
+  const hasActiveFilters = Boolean(actionFilter || debouncedSearch.trim());
 
   return (
     <div className="space-y-4">
       <AdminPageHeader
-        title="Registro de Auditoría"
-        subtitle="Historial completo de acciones administrativas"
+        title={t('admin.audit.title')}
+        subtitle={t('admin.audit.subtitle')}
       />
+
+      <AdminFilterBar>
+        <div className="flex-1 min-w-0">
+          <SearchInput
+            value={search}
+            onChange={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
+            placeholder={t('admin.audit.search_placeholder')}
+          />
+        </div>
+        <FilterDropdown
+          label={t('admin.audit.filter_action')}
+          value={actionFilter}
+          onChange={(v) => {
+            setActionFilter(v);
+            setPage(1);
+          }}
+          options={actionFilterOptions}
+        />
+      </AdminFilterBar>
 
       <div className="rounded-xl border border-white/10 overflow-x-auto">
         <AdminList
           loading={isLoading}
-          isEmpty={!data?.data?.length}
+          isEmpty={!logs.length}
           emptyIcon={Activity}
-          emptyTitle="No hay registros de auditoría"
-          emptyDescription="No se encontraron acciones registradas."
+          emptyTitle={
+            hasActiveFilters
+              ? t('admin.audit.empty_filtered_title')
+              : t('admin.audit.empty_title')
+          }
+          emptyDescription={
+            hasActiveFilters
+              ? t('admin.audit.empty_filtered_description')
+              : t('admin.audit.empty_description')
+          }
           mobile={
             <div className="space-y-2">
-              {data?.data?.map((log) => (
+              {logs.map((log) => (
                 <AdminListRow
                   key={log.id}
                   title={
@@ -66,7 +149,7 @@ export default function AuditLogTab() {
                       className={`inline-flex items-center gap-1.5 ${ACTION_COLORS[log.action] || 'text-gray-300'}`}
                     >
                       <Activity size={14} />
-                      {ACTION_LABELS[log.action] || log.action}
+                      {formatActionLabel(log.action)}
                     </span>
                   }
                   subtitle={
@@ -86,7 +169,13 @@ export default function AuditLogTab() {
           }
           desktop={
             <Table
-              headers={['Fecha', 'Admin', 'Acción', 'Tipo', 'Target ID']}
+              headers={[
+                t('admin.audit.col_date'),
+                t('admin.audit.col_admin'),
+                t('admin.audit.col_action'),
+                t('admin.audit.col_type'),
+                t('admin.audit.col_target'),
+              ]}
               columnWidths={[
                 'whitespace-nowrap',
                 'min-w-28',
@@ -97,7 +186,7 @@ export default function AuditLogTab() {
               loading={false}
               isEmpty={false}
             >
-              {data?.data?.map((log) => (
+              {logs.map((log) => (
                 <tr
                   key={log.id}
                   className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
@@ -118,9 +207,9 @@ export default function AuditLogTab() {
                       />
                       <span
                         className={`text-sm font-medium truncate ${ACTION_COLORS[log.action] || 'text-gray-300'}`}
-                        title={ACTION_LABELS[log.action] || log.action}
+                        title={formatActionLabel(log.action)}
                       >
-                        {ACTION_LABELS[log.action] || log.action}
+                        {formatActionLabel(log.action)}
                       </span>
                     </div>
                   </td>

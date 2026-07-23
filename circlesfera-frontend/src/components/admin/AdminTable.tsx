@@ -7,6 +7,7 @@ import {
   Clock,
   Ghost,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button, Input, Select } from '../ui';
 
 // ─── Table ──────────────────────────────────────────────────────────
@@ -26,6 +27,8 @@ export function Table({
   loading,
   isEmpty,
 }: TableProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="relative w-full overflow-hidden rounded-2xl border border-white/10 bg-black/40 backdrop-blur-2xl shadow-2xl">
       <div className="w-full overflow-x-auto custom-scrollbar">
@@ -71,12 +74,11 @@ export function Table({
                       <Ghost size={28} />
                     </div>
                     <div className="text-center">
-                      <p className="font-bold text-white text-sm mb-1">
-                        No hay datos disponibles
+                      <p className="font-semibold text-white text-sm mb-1">
+                        {t('admin.table.empty_title')}
                       </p>
                       <p className="text-xs text-gray-400 max-w-xs">
-                        No se encontraron registros en esta vista con los
-                        filtros seleccionados.
+                        {t('admin.table.empty_description')}
                       </p>
                     </div>
                   </motion.div>
@@ -166,6 +168,8 @@ export function ActionButton({
   iconOnly = false,
   loading = false,
 }: ActionButtonProps) {
+  const { t } = useTranslation();
+
   // Map ActionButton variants to Button variants
   const variantMap: Record<string, any> = {
     success: 'success',
@@ -194,7 +198,7 @@ export function ActionButton({
       {!loading && Icon && (
         <Icon size={14} className={iconOnly ? '' : 'mr-1'} />
       )}
-      {!iconOnly && (!loading ? label : 'Cargando...')}
+      {!iconOnly && (!loading ? label : t('admin.table.loading'))}
     </Button>
   );
 }
@@ -212,23 +216,24 @@ interface PaginationProps {
 }
 
 export function Pagination({ meta, onPageChange }: PaginationProps) {
+  const { t } = useTranslation();
+
   if (!meta || meta.totalPages <= 1) return null;
 
   return (
     <div className="px-3 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 bg-white/2">
       <p className="text-xs text-gray-500 hidden sm:block">
-        Mostrando{' '}
-        <span className="text-white font-bold">
-          {meta.total > 0 ? (meta.page - 1) * meta.limit + 1 : 0}
-        </span>{' '}
-        al{' '}
-        <span className="text-white font-bold">
-          {Math.min(meta.page * meta.limit, meta.total)}
-        </span>{' '}
-        de <span className="text-white font-bold">{meta.total}</span>
+        {t('admin.table.pagination_from_to', {
+          from: meta.total > 0 ? (meta.page - 1) * meta.limit + 1 : 0,
+          to: Math.min(meta.page * meta.limit, meta.total),
+          total: meta.total,
+        })}
       </p>
       <p className="text-xs text-gray-400 sm:hidden font-semibold">
-        Pág. {meta.page}/{meta.totalPages}
+        {t('admin.table.pagination_page', {
+          page: meta.page,
+          totalPages: meta.totalPages,
+        })}
       </p>
       <div className="flex gap-2 ml-auto">
         <Button
@@ -236,7 +241,7 @@ export function Pagination({ meta, onPageChange }: PaginationProps) {
           disabled={meta.page <= 1}
           variant="secondary"
           size="icon"
-          aria-label="Página anterior"
+          aria-label={t('admin.table.prev_page')}
           className="w-11 h-11 sm:w-8 sm:h-8"
         >
           <ChevronLeft size={18} />
@@ -246,7 +251,7 @@ export function Pagination({ meta, onPageChange }: PaginationProps) {
           disabled={meta.page >= meta.totalPages}
           variant="secondary"
           size="icon"
-          aria-label="Página siguiente"
+          aria-label={t('admin.table.next_page')}
           className="w-11 h-11 sm:w-8 sm:h-8"
         >
           <ChevronRight size={18} />

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { adminApi, type FirewallSignature } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import ConfirmModal from '../modals/ConfirmModal';
@@ -15,7 +16,7 @@ interface Props {
 }
 
 function formatCreatedAt(date: string) {
-  return new Date(date).toLocaleDateString('es-ES', {
+  return new Date(date).toLocaleDateString(undefined, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -32,7 +33,12 @@ function CategoryBadge({ category }: { category: string }) {
   );
 }
 
+function getTextPreview(item: FirewallSignature) {
+  return item.textPreview ?? item.text;
+}
+
 export default function FirewallTab({ onToast }: Props) {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [newText, setNewText] = useState('');
@@ -52,39 +58,45 @@ export default function FirewallTab({ onToast }: Props) {
   const addMutation = useMutation({
     mutationFn: () => adminApi.addFirewallSignature(newText, newCategory),
     onSuccess: () => {
-      onToast('Regla vectorial añadida con éxito', 'success');
+      onToast(t('admin.firewall.toast_added'), 'success');
       setNewText('');
       setNewCategory('SPAM');
       setDrawerOpen(false);
       queryClient.invalidateQueries({ queryKey: ['admin', 'firewall'] });
     },
-    onError: () => onToast('Error al añadir la regla', 'error'),
+    onError: () => onToast(t('admin.firewall.toast_add_error'), 'error'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteFirewallSignature(id),
     onSuccess: () => {
-      onToast('Regla eliminada correctamente', 'success');
+      onToast(t('admin.firewall.toast_deleted'), 'success');
       setDeleteId(null);
       queryClient.invalidateQueries({ queryKey: ['admin', 'firewall'] });
     },
-    onError: () => onToast('Error al eliminar regla', 'error'),
+    onError: () => onToast(t('admin.firewall.toast_delete_error'), 'error'),
   });
 
   const items = data?.data || [];
 
+  const autoPreview = (
+    <span className="text-gray-500 italic font-normal">
+      {t('admin.firewall.auto_vector_preview')}
+    </span>
+  );
+
   return (
     <div className="flex flex-col space-y-6">
       <AdminPageHeader
-        title="Escudo de IA (Vector Firewall)"
-        subtitle="Reglas vectoriales que bloquean automáticamente contenido antes de publicarse."
+        title={t('admin.firewall.title')}
+        subtitle={t('admin.firewall.subtitle')}
         actions={
           <Button
             onClick={() => setDrawerOpen(true)}
             className="min-h-11 w-full sm:w-auto"
           >
             <Plus size={16} className="mr-2" />
-            Nueva regla
+            {t('admin.firewall.add_rule')}
           </Button>
         }
       />
@@ -93,11 +105,11 @@ export default function FirewallTab({ onToast }: Props) {
         <AdminList
           loading={isLoading}
           isEmpty={items.length === 0}
-          emptyTitle="No hay reglas vectoriales activas"
-          emptyDescription="Añade una regla para bloquear contenido similar automáticamente."
+          emptyTitle={t('admin.firewall.empty_title')}
+          emptyDescription={t('admin.firewall.empty_description')}
           emptyAction={
             <Button onClick={() => setDrawerOpen(true)} className="min-h-11">
-              Añadir regla
+              {t('admin.firewall.empty_action')}
             </Button>
           }
           mobile={
@@ -105,20 +117,16 @@ export default function FirewallTab({ onToast }: Props) {
               {items.map((item) => (
                 <AdminListRow
                   key={item.id}
-                  title={
-                    item.text || (
-                      <span className="text-gray-500 italic font-normal">
-                        Vector generado automáticamente (sin preview)
-                      </span>
-                    )
-                  }
-                  subtitle={`ID: ${item.id.split('-')[0]}...`}
+                  title={getTextPreview(item) || autoPreview}
+                  subtitle={t('admin.firewall.id_prefix', {
+                    id: item.id.split('-')[0],
+                  })}
                   badge={<CategoryBadge category={item.category} />}
                   meta={formatCreatedAt(item.createdAt)}
                   primaryAction={
                     <ActionButton
                       variant="danger"
-                      label="Eliminar"
+                      label={t('admin.firewall.action_delete')}
                       icon={Trash2}
                       onClick={() => setDeleteId(item.id)}
                       disabled={deleteMutation.isPending}
@@ -131,10 +139,10 @@ export default function FirewallTab({ onToast }: Props) {
           desktop={
             <Table
               headers={[
-                'Texto Origen (Preview)',
-                'Categoría',
-                'Fecha creación',
-                'Acciones',
+                t('admin.firewall.col_preview'),
+                t('admin.firewall.col_category'),
+                t('admin.firewall.col_created'),
+                t('admin.firewall.col_actions'),
               ]}
               loading={false}
               isEmpty={false}
@@ -146,14 +154,16 @@ export default function FirewallTab({ onToast }: Props) {
                 >
                   <td className="px-2 py-2">
                     <div className="text-sm text-white max-w-md truncate">
-                      {item.text || (
+                      {getTextPreview(item) || (
                         <span className="text-gray-500 italic">
-                          Vector generado automáticamente (sin preview)
+                          {t('admin.firewall.auto_vector_preview')}
                         </span>
                       )}
                     </div>
                     <div className="text-[10px] text-gray-500 font-mono mt-1">
-                      ID: {item.id.split('-')[0]}...
+                      {t('admin.firewall.id_prefix', {
+                        id: item.id.split('-')[0],
+                      })}
                     </div>
                   </td>
                   <td className="px-2 py-2">
@@ -165,7 +175,7 @@ export default function FirewallTab({ onToast }: Props) {
                   <td className="px-2 py-2">
                     <ActionButton
                       variant="danger"
-                      label="Eliminar"
+                      label={t('admin.firewall.action_delete')}
                       icon={Trash2}
                       iconOnly
                       onClick={() => setDeleteId(item.id)}
@@ -188,8 +198,8 @@ export default function FirewallTab({ onToast }: Props) {
       <AdminDrawer
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        title="Añadir regla vectorial"
-        subtitle="El sistema bloqueará textos con ≥90% similitud semántica."
+        title={t('admin.firewall.drawer_title')}
+        subtitle={t('admin.firewall.drawer_subtitle')}
       >
         <form
           onSubmit={(e) => {
@@ -203,14 +213,14 @@ export default function FirewallTab({ onToast }: Props) {
               htmlFor="firewall-text"
               className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
             >
-              Texto origen
+              {t('admin.firewall.label_text')}
             </label>
             <input
               id="firewall-text"
               type="text"
               value={newText}
               onChange={(e) => setNewText(e.target.value)}
-              placeholder="Ej: Gana dinero gratis haciendo click en este link..."
+              placeholder={t('admin.firewall.placeholder_text')}
               className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 min-h-11 text-sm text-white focus:outline-none focus:border-brand-primary transition-colors"
             />
           </div>
@@ -219,7 +229,7 @@ export default function FirewallTab({ onToast }: Props) {
               htmlFor="firewall-category"
               className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
             >
-              Categoría
+              {t('admin.firewall.label_category')}
             </label>
             <select
               id="firewall-category"
@@ -250,17 +260,17 @@ export default function FirewallTab({ onToast }: Props) {
             isLoading={addMutation.isPending}
             className="min-h-11 w-full font-semibold"
           >
-            Generar Vector
+            {t('admin.firewall.generate_vector')}
           </Button>
         </form>
       </AdminDrawer>
 
       <ConfirmModal
         isOpen={!!deleteId}
-        title="Eliminar regla vectorial"
-        message="¿Estás seguro de que deseas eliminar esta firma del Firewall? El contenido similar dejará de ser bloqueado automáticamente."
-        confirmText="Eliminar"
-        cancelText="Cancelar"
+        title={t('admin.firewall.confirm_delete_title')}
+        message={t('admin.firewall.confirm_delete_message')}
+        confirmText={t('admin.firewall.confirm_delete')}
+        cancelText={t('admin.shared.cancel')}
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
         onClose={() => setDeleteId(null)}
         isLoading={deleteMutation.isPending}
