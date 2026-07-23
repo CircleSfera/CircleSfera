@@ -66,20 +66,20 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
       <div className="relative z-10 p-5 sm:p-7 md:p-8">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-brand-primary font-bold text-xs uppercase tracking-wider mb-2">
+            <div className="flex items-center gap-2 text-brand-primary font-semibold text-xs uppercase tracking-wider mb-2">
               <span className="w-2 h-2 rounded-full bg-brand-primary animate-pulse" />
               Evolución en Vivo
             </div>
-            <h2 className="text-white text-3xl sm:text-4xl font-black tracking-tight leading-none">
+            <h2 className="text-white text-3xl sm:text-4xl font-bold tracking-tight leading-none">
               {stats?.followerCount.toLocaleString() || '0'}
             </h2>
             <div className="flex items-center gap-2 pt-1">
-              <p className="text-gray-400 font-bold text-xs uppercase tracking-wider">
+              <p className="text-gray-400 font-semibold text-xs uppercase tracking-wider">
                 Seguidores Totales
               </p>
               {stats?.followerGrowth !== undefined && (
                 <div
-                  className={`flex items-center gap-1 px-2.5 py-0.5 border rounded-full text-xs font-black ${
+                  className={`flex items-center gap-1 px-2.5 py-0.5 border rounded-full text-xs font-semibold ${
                     stats.followerGrowth >= 0
                       ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                       : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
@@ -96,26 +96,26 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 bg-white/5 backdrop-blur-xl p-4 sm:p-5 rounded-2xl border border-white/10 shadow-inner">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 bg-white/5 backdrop-blur-xl p-4 sm:p-5 rounded-2xl border border-white/10 shadow-inner w-full lg:w-auto lg:min-w-[min(100%,28rem)] xl:min-w-[36rem]">
             <div className="space-y-1">
-              <p className="text-gray-400 text-[10px] sm:text-xs font-black uppercase tracking-wider">
+              <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
                 Engagement
               </p>
               <div className="flex items-center gap-1.5">
                 <Zap size={15} className="text-amber-400" />
-                <span className="text-white font-black text-lg sm:text-xl tracking-tight">
+                <span className="text-white font-bold text-lg sm:text-xl tracking-tight">
                   {stats?.engagementRate || 0}%
                 </span>
               </div>
             </div>
 
             <div className="space-y-1">
-              <p className="text-gray-400 text-[10px] sm:text-xs font-black uppercase tracking-wider">
+              <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
                 Alcance Total
               </p>
               <div className="flex items-center gap-1.5">
                 <Users size={15} className="text-brand-primary" />
-                <span className="text-white font-black text-lg sm:text-xl tracking-tight">
+                <span className="text-white font-bold text-lg sm:text-xl tracking-tight">
                   {stats?.totalReach
                     ? stats.totalReach > 1000000
                       ? `${(stats.totalReach / 1000000).toFixed(1)}M`
@@ -126,24 +126,24 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
             </div>
 
             <div className="space-y-1">
-              <p className="text-gray-400 text-[10px] sm:text-xs font-black uppercase tracking-wider">
+              <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
                 MRR Mensual
               </p>
               <div className="flex items-center gap-1.5">
                 <DollarSign size={15} className="text-emerald-400" />
-                <span className="text-white font-black text-lg sm:text-xl tracking-tight">
+                <span className="text-white font-bold text-lg sm:text-xl tracking-tight">
                   ${stats?.mrr || 0}
                 </span>
               </div>
             </div>
 
             <div className="space-y-1">
-              <p className="text-gray-400 text-[10px] sm:text-xs font-black uppercase tracking-wider">
+              <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider">
                 Suscriptores
               </p>
               <div className="flex items-center gap-1.5">
                 <Award size={15} className="text-purple-400" />
-                <span className="text-white font-black text-lg sm:text-xl tracking-tight">
+                <span className="text-white font-bold text-lg sm:text-xl tracking-tight">
                   {stats?.subscriberCount || 0}
                 </span>
               </div>

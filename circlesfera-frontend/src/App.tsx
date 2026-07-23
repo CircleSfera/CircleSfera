@@ -8,6 +8,7 @@ import {
 } from 'react-router-dom';
 import AdminGuard from './components/auth/AdminGuard';
 import AuthGuard from './components/auth/AuthGuard';
+import CreatorStudioGuard from './components/auth/CreatorStudioGuard';
 import GuestGuard from './components/auth/GuestGuard';
 import CreatePostModal from './components/CreatePostModal';
 import ChatWindow from './components/chat/ChatWindow';
@@ -334,9 +335,9 @@ function App() {
           <Route
             path="/creator/:tab"
             element={
-              <AuthGuard>
+              <CreatorStudioGuard>
                 <Creator />
-              </AuthGuard>
+              </CreatorStudioGuard>
             }
           />
 

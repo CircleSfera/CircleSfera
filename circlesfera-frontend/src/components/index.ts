@@ -1,7 +1,7 @@
 export { VoicePlayer } from './audio/VoicePlayer';
 export { VoiceRecorder } from './audio/VoiceRecorder';
 export { default as CommentList } from './CommentList';
-export { ContentCalendar } from './creator/ContentCalendar';
+// ContentCalendar is deprecated mock — not exported
 export { CreatorAnalyticsDashboard } from './creator/CreatorAnalyticsDashboard';
 export { DataExportSettings } from './DataExportSettings';
 export { EmptyState, ErrorState } from './ErrorEmptyStates';

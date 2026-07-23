@@ -1,59 +1,10 @@
 import { clsx } from 'clsx';
 import { motion } from 'framer-motion';
-import {
-  ArrowLeft,
-  BarChart3,
-  ChevronRight,
-  Clock,
-  DollarSign,
-  ImageIcon,
-  LayoutDashboard,
-  Megaphone,
-} from 'lucide-react';
+import { ArrowLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import logoSrc from '../../assets/logo.png';
-
-export type CreatorTab =
-  | 'overview'
-  | 'content'
-  | 'stories'
-  | 'finance'
-  | 'ads'
-  | 'monetization'
-  | 'analytics';
-
-interface NavGroup {
-  label: string;
-  icon: React.ElementType;
-  items: {
-    id: CreatorTab;
-    label: string;
-    icon: React.ElementType;
-    badge?: string;
-  }[];
-}
-
-const GROUPS: NavGroup[] = [
-  {
-    label: 'Dashboard',
-    icon: LayoutDashboard,
-    items: [
-      { id: 'overview', label: 'Resumen', icon: LayoutDashboard },
-      { id: 'analytics', label: 'Analíticas', icon: BarChart3 },
-      { id: 'finance', label: 'Ingresos', icon: DollarSign },
-      { id: 'monetization', label: 'Monetización', icon: DollarSign },
-      { id: 'ads', label: 'Publicidad', icon: Megaphone },
-    ],
-  },
-  {
-    label: 'Contenido',
-    icon: ImageIcon,
-    items: [
-      { id: 'content', label: 'Publicaciones', icon: ImageIcon },
-      { id: 'stories', label: 'Historias', icon: Clock },
-    ],
-  },
-];
+import { CREATOR_NAV_GROUPS, type CreatorTab } from './creatorNav';
 
 interface Props {
   activeTab: CreatorTab;
@@ -61,39 +12,34 @@ interface Props {
 }
 
 export default function CreatorSidebar({ activeTab, onTabChange }: Props) {
+  const { t } = useTranslation();
+
   return (
-    <aside className="hidden lg:flex w-72 flex-col h-[calc(100vh-5rem)] sticky top-6 overflow-hidden z-20 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 shadow-2xl">
-      {/* Brand Header & Back to App */}
-      <div className="px-2 mb-6 space-y-3 pb-4 border-b border-white/10">
-        <div className="flex items-center justify-between">
-          <Link to="/" className="block">
-            <img src={logoSrc} alt="CircleSfera" className="h-7 w-auto" />
-          </Link>
-          <span className="text-[10px] font-black tracking-widest text-brand-primary uppercase px-2 py-0.5 bg-brand-primary/10 border border-brand-primary/20 rounded-md">
-            Creator Studio
-          </span>
-        </div>
+    <aside className="hidden lg:flex w-64 xl:w-72 flex-col h-[calc(100vh-5.5rem)] sticky top-6 overflow-hidden z-20 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-2xl p-3 xl:p-4 shadow-2xl">
+      <div className="px-2 mb-4 space-y-2.5 pb-3 border-b border-white/10">
+        <Link to="/" className="block">
+          <img src={logoSrc} alt="CircleSfera" className="h-7 w-auto" />
+        </Link>
         <Link
           to="/"
-          className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-white transition-colors group"
+          className="flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-white transition-colors group"
         >
           <ArrowLeft
             size={13}
             className="group-hover:-translate-x-1 transition-transform text-brand-primary"
           />
-          <span>Volver a CircleSfera</span>
+          <span>{t('creator.back_to_app', 'Volver a CircleSfera')}</span>
         </Link>
       </div>
 
-      {/* Navigation Groups */}
-      <div className="flex-1 overflow-y-auto space-y-6 pr-1 custom-scrollbar">
-        {GROUPS.map((group) => (
-          <div key={group.label} className="space-y-1.5">
-            <h3 className="px-3 text-[11px] font-black uppercase tracking-wider text-gray-400 flex items-center gap-2 mb-2">
-              <group.icon size={13} className="text-brand-primary opacity-80" />
-              <span>{group.label}</span>
+      <div className="flex-1 overflow-y-auto space-y-5 pr-1 custom-scrollbar">
+        {CREATOR_NAV_GROUPS.map((group) => (
+          <div key={group.labelKey} className="space-y-1">
+            <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-2 mb-1.5">
+              <group.icon size={12} className="text-brand-primary opacity-80" />
+              <span>{t(group.labelKey, group.labelFallback)}</span>
             </h3>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {group.items.map((item) => {
                 const isSelected = activeTab === item.id;
                 const ItemIcon = item.icon;
@@ -103,13 +49,13 @@ export default function CreatorSidebar({ activeTab, onTabChange }: Props) {
                     key={item.id}
                     onClick={() => onTabChange(item.id)}
                     className={clsx(
-                      'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all relative group border text-left',
+                      'w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-all relative group border text-left min-h-10',
                       isSelected
-                        ? 'bg-linear-to-r from-brand-primary/20 via-brand-primary/10 to-transparent text-white border-brand-primary/30 shadow-[0_0_15px_rgba(var(--brand-primary),0.15)]'
+                        ? 'bg-linear-to-r from-brand-primary/20 via-brand-primary/10 to-transparent text-white border-brand-primary/30'
                         : 'bg-transparent text-gray-400 border-transparent hover:bg-white/5 hover:text-white hover:border-white/5',
                     )}
                   >
-                    <div className="flex items-center gap-3 relative z-10">
+                    <div className="flex items-center gap-2.5 relative z-10">
                       <ItemIcon
                         size={16}
                         className={clsx(
@@ -119,12 +65,12 @@ export default function CreatorSidebar({ activeTab, onTabChange }: Props) {
                             : 'text-gray-400 group-hover:text-white',
                         )}
                       />
-                      <span>{item.label}</span>
+                      <span>{t(item.labelKey, item.labelFallback)}</span>
                     </div>
 
                     <div className="flex items-center gap-2 relative z-10">
                       {item.badge && (
-                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary border border-brand-primary/30">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary border border-brand-primary/30">
                           {item.badge}
                         </span>
                       )}
@@ -144,22 +90,8 @@ export default function CreatorSidebar({ activeTab, onTabChange }: Props) {
           </div>
         ))}
       </div>
-
-      {/* Status Footer Card */}
-      <div className="pt-4 mt-4 border-t border-white/10">
-        <div className="p-3.5 bg-linear-to-br from-brand-primary/10 via-black/40 to-transparent rounded-xl border border-white/10 relative overflow-hidden">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-              Estado de Creador
-            </span>
-            <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
-          </div>
-          <p className="text-xs text-white font-black">Modo Creador Activo</p>
-        </div>
-      </div>
     </aside>
   );
 }
+
+export type { CreatorTab } from './creatorNav';

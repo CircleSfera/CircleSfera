@@ -56,15 +56,15 @@ export default function CreatorAnalyticsTab() {
         {/* Glow effect */}
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-brand-primary/10 blur-[100px] rounded-full pointer-events-none" />
 
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-xl font-black text-white tracking-tight">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
+          <h2 className="text-lg sm:text-xl font-semibold text-white tracking-tight">
             {t('creator.analytics.audience_evolution')}
           </h2>
           {chartData && chartData.length > 0 && (
             <button
               type="button"
               onClick={() => exportToCSV('analytics_report.csv', chartData)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-bold text-gray-300 transition-colors"
+              className="inline-flex items-center justify-center gap-2 min-h-11 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-semibold text-gray-300 transition-colors w-full sm:w-auto"
             >
               <Download size={14} />
               Exportar CSV
@@ -173,7 +173,7 @@ export default function CreatorAnalyticsTab() {
         <div className="p-6 bg-surface-elevated rounded-xl border border-white/5 relative overflow-hidden flex flex-col">
           <div className="flex items-center gap-2 mb-6">
             <MapPin size={16} className="text-brand-secondary" />
-            <h3 className="text-sm font-black text-white uppercase tracking-wider">
+            <h3 className="text-sm font-semibold text-white tracking-wide">
               {t(
                 'creator.analytics.follower_locations',
                 'Geografía de Seguidores',
@@ -238,7 +238,7 @@ export default function CreatorAnalyticsTab() {
         <div className="p-6 bg-surface-elevated rounded-xl border border-white/5 relative overflow-hidden flex flex-col">
           <div className="flex items-center gap-2 mb-6">
             <Users size={16} className="text-brand-primary" />
-            <h3 className="text-sm font-black text-white uppercase tracking-wider">
+            <h3 className="text-sm font-semibold text-white tracking-wide">
               {t(
                 'creator.analytics.sub_retention',
                 'Retención de Suscripciones',
@@ -346,7 +346,7 @@ export default function CreatorAnalyticsTab() {
         <div className="p-6 bg-surface-elevated rounded-xl border border-white/5 relative overflow-hidden md:col-span-2 flex flex-col">
           <div className="flex items-center gap-2 mb-6">
             <Clock size={16} className="text-amber-500" />
-            <h3 className="text-sm font-black text-white uppercase tracking-wider">
+            <h3 className="text-sm font-semibold text-white tracking-wide">
               {t(
                 'creator.analytics.activity_hours',
                 'Horas de Mayor Actividad (Últimos 30 días)',

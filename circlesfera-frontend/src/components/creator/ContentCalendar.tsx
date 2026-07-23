@@ -9,6 +9,7 @@ interface ScheduledPostItem {
   peakHourSuggested: boolean;
 }
 
+/** @deprecated Mock-only calendar. Not wired to Creator Studio — do not mount in production flows. */
 export const ContentCalendar: React.FC = () => {
   const [scheduledPosts] = useState<ScheduledPostItem[]>([
     {

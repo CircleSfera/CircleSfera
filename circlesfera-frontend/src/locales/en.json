@@ -726,10 +726,30 @@
     "remote_user": "Remote user"
   },
   "creator": {
-    "title": "Creator Panel",
+    "title": "Creator Studio",
     "subtitle": "Manage your content, finances and audience",
     "new_content": "New Content",
     "monetization_label": "Monetization",
+    "back_to_app": "Back to CircleSfera",
+    "back_short": "App",
+    "open_nav": "Open navigation",
+    "loading_module": "Loading module...",
+    "nav": {
+      "dashboard": "Dashboard",
+      "overview": "Overview",
+      "analytics": "Analytics",
+      "monetization": "Monetization",
+      "ads": "Ads",
+      "content_group": "Content",
+      "content": "Posts",
+      "stories": "Stories"
+    },
+    "money": {
+      "sections": "Monetization sections",
+      "income": "Income",
+      "wallet": "Wallet",
+      "plans": "Plans"
+    },
     "dashboard": {
       "see_all": "See all",
       "content_performance": "Content Performance",
@@ -747,7 +767,10 @@
       "retention": "Retention",
       "most_active_day": "Your audience is most active on {{day}}",
       "most_active_hour": "At {{hour}}:00 (Local)",
-      "retention_chart_aria": "Retention chart: {{rate}}%"
+      "retention_chart_aria": "Retention chart: {{rate}}%",
+      "analytics_teaser_title": "Advanced analytics",
+      "analytics_teaser_desc": "Explore audience growth, geography, retention and peak hours.",
+      "see_analytics": "View analytics"
     },
     "analytics": {
       "audience_evolution": "Audience Evolution",
@@ -777,6 +800,9 @@
       "center": "Advertising Center",
       "marketing": "Performance Marketing for Creators",
       "new_campaign": "New Campaign",
+      "campaigns": "Campaigns",
+      "select_campaign": "Select a campaign from the list",
+      "repeat": "Repeat",
       "no_active": "No active campaigns",
       "boost_desc": "Boost your best posts to reach thousands of new people and multiply your followers.",
       "create_first": "Create my first campaign",
