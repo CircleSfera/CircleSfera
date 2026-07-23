@@ -9,6 +9,8 @@ import {
   UserX,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { adminApi } from '../../services/admin.service';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
@@ -24,17 +26,20 @@ import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { Pagination, SearchInput } from './AdminTable';
 
-function timeAgo(date: string | Date): string {
+function timeAgo(
+  date: string | Date,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): string {
   const now = Date.now();
   const d = new Date(date).getTime();
   const diff = Math.max(0, now - d);
   const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return 'ahora';
-  if (mins < 60) return `hace ${mins}m`;
+  if (mins < 1) return t('admin.shared.time_ago_now');
+  if (mins < 60) return t('admin.shared.time_ago_minutes', { count: mins });
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `hace ${hrs}h`;
+  if (hrs < 24) return t('admin.shared.time_ago_hours', { count: hrs });
   const days = Math.floor(hrs / 24);
-  return `hace ${days}d`;
+  return t('admin.shared.time_ago_days', { count: days });
 }
 
 export default function UserVerificationTab({
@@ -42,15 +47,17 @@ export default function UserVerificationTab({
 }: {
   onToast: (msg: string, type: 'success' | 'error') => void;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebouncedValue(searchTerm, 400);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [confirmRevokeOpen, setConfirmRevokeOpen] = useState(false);
 
   const { data: usersData, isLoading } = useQuery({
-    queryKey: ['admin-users', page, searchTerm],
-    queryFn: () => adminApi.getUsers(page, 20, searchTerm),
+    queryKey: ['admin-users', page, debouncedSearch],
+    queryFn: () => adminApi.getUsers(page, 20, debouncedSearch),
   });
 
   const updateVerificationMutation = useMutation({
@@ -69,18 +76,19 @@ export default function UserVerificationTab({
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      onToast('Perfil actualizado correctamente', 'success');
+      onToast(t('admin.verification.toast_updated'), 'success');
     },
-    onError: () => onToast('Error al actualizar perfil', 'error'),
+    onError: () => onToast(t('admin.verification.toast_update_error'), 'error'),
   });
 
   const revokeKycMutation = useMutation({
     mutationFn: (userId: string) => adminApi.revokeUserKYC(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      onToast('Verificación KYC revocada', 'success');
+      onToast(t('admin.verification.toast_kyc_revoked'), 'success');
     },
-    onError: () => onToast('Error al revocar KYC', 'error'),
+    onError: () =>
+      onToast(t('admin.verification.toast_kyc_revoke_error'), 'error'),
   });
 
   const syncKycMutation = useMutation({
@@ -89,12 +97,18 @@ export default function UserVerificationTab({
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       const status = res.data?.status;
       if (status === 'verified' || status === 'already_verified') {
-        onToast('KYC sincronizado: identidad verificada', 'success');
+        onToast(t('admin.verification.toast_kyc_synced_verified'), 'success');
       } else {
-        onToast(`KYC sincronizado: ${status || 'ok'}`, 'success');
+        onToast(
+          t('admin.verification.toast_kyc_synced', {
+            status: status || 'ok',
+          }),
+          'success',
+        );
       }
     },
-    onError: () => onToast('Error al sincronizar KYC con Stripe', 'error'),
+    onError: () =>
+      onToast(t('admin.verification.toast_kyc_sync_error'), 'error'),
   });
 
   const users = usersData?.data?.data || [];
@@ -138,8 +152,8 @@ export default function UserVerificationTab({
   return (
     <div className="flex flex-col min-h-0 space-y-4">
       <AdminPageHeader
-        title="KYC & Verificación"
-        subtitle="Estado de Stripe Identity y niveles de cuenta de los creadores."
+        title={t('admin.verification.title')}
+        subtitle={t('admin.verification.subtitle')}
       />
 
       <AdminFilterBar>
@@ -150,7 +164,7 @@ export default function UserVerificationTab({
               setSearchTerm(v);
               setPage(1);
             }}
-            placeholder="Buscar usuarios..."
+            placeholder={t('admin.verification.search_placeholder')}
           />
         </div>
       </AdminFilterBar>
@@ -158,7 +172,7 @@ export default function UserVerificationTab({
       <AdminSplitView
         hasSelection={!!selectedUserId}
         onBack={() => setSelectedUserId(null)}
-        listTitle="Cola de Usuarios"
+        listTitle={t('admin.verification.list_title')}
         list={
           <div className="flex flex-col h-full min-h-0">
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
@@ -167,8 +181,8 @@ export default function UserVerificationTab({
               ) : users.length === 0 ? (
                 <AdminEmptyState
                   icon={UserX}
-                  title="No se encontraron usuarios"
-                  description="Intenta ajustar los filtros de búsqueda."
+                  title={t('admin.verification.empty_title')}
+                  description={t('admin.verification.empty_description')}
                   compact
                 />
               ) : (
@@ -188,7 +202,7 @@ export default function UserVerificationTab({
                       }
                       title={
                         <span className="flex items-center gap-1">
-                          @{user.profile?.username || 'Desconocido'}
+                          @{user.profile?.username || t('admin.shared.unknown')}
                           <VerificationBadge
                             level={user.verificationLevel as VerificationLevel}
                             size={14}
@@ -211,19 +225,21 @@ export default function UserVerificationTab({
                           }`}
                         >
                           {isVerified
-                            ? 'KYC Completado'
+                            ? t('admin.verification.kyc_completed')
                             : isPending
-                              ? 'KYC en Proceso'
-                              : 'KYC No Iniciado'}
+                              ? t('admin.verification.kyc_pending')
+                              : t('admin.verification.kyc_not_started')}
                         </span>
                       }
-                      meta={timeAgo(user.createdAt)}
+                      meta={timeAgo(user.createdAt, t)}
                       avatar={
                         <UserAvatar
                           src={user.profile?.avatar || undefined}
                           thumbnailUrl={user.profile?.thumbnailUrl || undefined}
                           standardUrl={user.profile?.standardUrl || undefined}
-                          alt={user.profile?.username || 'User'}
+                          alt={
+                            user.profile?.username || t('admin.shared.unknown')
+                          }
                           size="sm"
                         />
                       }
@@ -260,7 +276,10 @@ export default function UserVerificationTab({
                       standardUrl={
                         selectedUser.profile?.standardUrl || undefined
                       }
-                      alt={selectedUser.profile?.username || 'User'}
+                      alt={
+                        selectedUser.profile?.username ||
+                        t('admin.shared.unknown')
+                      }
                       size="md"
                     />
                     <div className="min-w-0">
@@ -288,7 +307,8 @@ export default function UserVerificationTab({
                         variant="primary"
                         className="text-sm font-semibold shadow-lg shadow-brand-primary/20 min-h-11 w-full sm:w-auto"
                       >
-                        <Check size={16} className="mr-2" /> Guardar Cambios
+                        <Check size={16} className="mr-2" />{' '}
+                        {t('admin.verification.save_changes')}
                       </Button>
                     )}
                   </div>
@@ -298,7 +318,7 @@ export default function UserVerificationTab({
                   {/* Stripe Identity KYC Status Card */}
                   <div>
                     <h4 className="text-white font-semibold text-sm uppercase tracking-wide mb-3">
-                      Estado de Stripe Identity (KYC)
+                      {t('admin.verification.kyc_status_title')}
                     </h4>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -308,14 +328,14 @@ export default function UserVerificationTab({
                             <CheckCircle2 size={24} />
                           </div>
                           <h5 className="text-green-400 font-semibold text-base mb-1">
-                            Identidad Verificada
+                            {t('admin.verification.kyc_verified_title')}
                           </h5>
                           <p className="text-xs text-gray-300">
-                            Stripe confirmó la identidad de este usuario el{' '}
-                            {new Date(
-                              selectedUser.identityVerifiedAt,
-                            ).toLocaleDateString()}
-                            .
+                            {t('admin.verification.kyc_verified_description', {
+                              date: new Date(
+                                selectedUser.identityVerifiedAt,
+                              ).toLocaleDateString(),
+                            })}
                           </p>
                         </div>
                       ) : selectedUser.stripeIdentitySessionId ? (
@@ -324,11 +344,10 @@ export default function UserVerificationTab({
                             <Clock size={24} />
                           </div>
                           <h5 className="text-yellow-400 font-semibold text-base mb-1">
-                            Sesión Creada (Pendiente)
+                            {t('admin.verification.kyc_session_title')}
                           </h5>
                           <p className="text-xs text-gray-300">
-                            El usuario ha iniciado el proceso pero aún no lo ha
-                            completado o está bajo revisión en Stripe.
+                            {t('admin.verification.kyc_session_description')}
                           </p>
                         </div>
                       ) : (
@@ -337,11 +356,12 @@ export default function UserVerificationTab({
                             <UserX size={24} />
                           </div>
                           <h5 className="text-gray-300 font-semibold text-base mb-1">
-                            No Iniciado
+                            {t('admin.verification.kyc_not_started_title')}
                           </h5>
                           <p className="text-xs text-gray-500">
-                            El usuario aún no ha requerido pasar por el proceso
-                            de verificación KYC.
+                            {t(
+                              'admin.verification.kyc_not_started_description',
+                            )}
                           </p>
                         </div>
                       )}
@@ -349,10 +369,11 @@ export default function UserVerificationTab({
                       <div className="p-4 bg-white/2 border border-white/5 rounded-lg flex flex-col justify-between gap-3">
                         <div>
                           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                            Session ID
+                            {t('admin.verification.session_id_label')}
                           </p>
                           <p className="text-white text-xs font-mono break-all bg-black/50 p-2 rounded-lg border border-white/10">
-                            {selectedUser.stripeIdentitySessionId || 'N/A'}
+                            {selectedUser.stripeIdentitySessionId ||
+                              t('admin.verification.session_na')}
                           </p>
                         </div>
 
@@ -367,7 +388,7 @@ export default function UserVerificationTab({
                               className="w-full text-sm font-semibold mt-4 min-h-11"
                             >
                               <RefreshCw size={16} className="mr-2" />{' '}
-                              Sincronizar desde Stripe
+                              {t('admin.verification.sync_stripe')}
                             </Button>
                           )}
 
@@ -380,12 +401,11 @@ export default function UserVerificationTab({
                               variant="danger"
                               className="w-full text-sm font-semibold border-red-500/30 min-h-11"
                             >
-                              <RefreshCw size={16} className="mr-2" /> Revocar
-                              Verificación y Forzar KYC
+                              <RefreshCw size={16} className="mr-2" />{' '}
+                              {t('admin.verification.revoke_kyc')}
                             </Button>
                             <p className="text-xs text-gray-500 text-center mt-2">
-                              Esto borrará el registro de validación y la sesión
-                              actual.
+                              {t('admin.verification.revoke_hint')}
                             </p>
                           </div>
                         )}
@@ -396,47 +416,53 @@ export default function UserVerificationTab({
                   {/* Profile Level Controls */}
                   <div>
                     <h4 className="text-white font-semibold text-sm uppercase tracking-wide mb-3">
-                      Control de Nivel y Permisos
+                      {t('admin.verification.level_controls_title')}
                     </h4>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                       <div className="p-3 sm:p-4 bg-white/2 rounded-xl border border-white/5 space-y-2">
                         <Select
-                          label="Nivel de Verificación de Perfil"
+                          label={t('admin.verification.level_label')}
                           value={draftLevel || 'BASIC'}
                           onChange={(e) =>
                             setDraftLevel(e.target.value as VerificationLevel)
                           }
                         >
-                          <option value="BASIC">Standard</option>
+                          <option value="BASIC">
+                            {t('admin.verification.level_basic')}
+                          </option>
                           <option value="VERIFIED">
-                            Verificado (Blue Check)
+                            {t('admin.verification.level_verified')}
                           </option>
                           <option value="BUSINESS">
-                            Business (Gold Check)
+                            {t('admin.verification.level_business')}
                           </option>
                           <option value="ELITE">
-                            Elite Creator (Red Check)
+                            {t('admin.verification.level_elite')}
                           </option>
                         </Select>
                         <p className="text-xs text-gray-500 mt-2">
-                          Define el distintivo (badge) público que se muestra en
-                          el perfil del usuario.
+                          {t('admin.verification.level_hint')}
                         </p>
                       </div>
 
                       <div className="p-3 sm:p-4 bg-white/2 rounded-xl border border-white/5 space-y-2">
                         <Select
-                          label="Tipo de Cuenta"
+                          label={t('admin.verification.account_type_label')}
                           value={draftType || 'PERSONAL'}
                           onChange={(e) => setDraftType(e.target.value)}
                         >
-                          <option value="PERSONAL">Cuenta Personal</option>
-                          <option value="CREATOR">Cuenta de Creador</option>
-                          <option value="BUSINESS">Cuenta de Empresa</option>
+                          <option value="PERSONAL">
+                            {t('admin.verification.account_personal')}
+                          </option>
+                          <option value="CREATOR">
+                            {t('admin.verification.account_creator')}
+                          </option>
+                          <option value="BUSINESS">
+                            {t('admin.verification.account_business')}
+                          </option>
                         </Select>
                         <p className="text-xs text-gray-500 mt-2">
-                          Define las herramientas (analytics, monetización) a
-                          las que tiene acceso el usuario.
+                          {t('admin.verification.account_type_hint')}
                         </p>
                       </div>
                     </div>
@@ -451,8 +477,10 @@ export default function UserVerificationTab({
               >
                 <AdminEmptyState
                   icon={ShieldCheck}
-                  title="Selecciona un usuario de la cola"
-                  description="Para revisar su estado de KYC y niveles"
+                  title={t('admin.verification.detail_select_title')}
+                  description={t(
+                    'admin.verification.detail_select_description',
+                  )}
                 />
               </motion.div>
             )}
@@ -469,10 +497,10 @@ export default function UserVerificationTab({
           }
           setConfirmRevokeOpen(false);
         }}
-        title="¿Revocar verificación KYC?"
-        message="¿Estás seguro de que quieres revocar el KYC de este usuario? Tendrá que volver a verificar su identidad con Stripe."
-        confirmText="Revocar"
-        cancelText="Cancelar"
+        title={t('admin.verification.confirm_revoke_title')}
+        message={t('admin.verification.confirm_revoke_message')}
+        confirmText={t('admin.verification.confirm_revoke')}
+        cancelText={t('admin.shared.cancel')}
         isDestructive={true}
       />
     </div>

@@ -23,9 +23,14 @@ describe('AdminService', () => {
     },
     post: {
       count: vi.fn(),
+      findMany: vi.fn(),
     },
     story: {
       count: vi.fn(),
+      findMany: vi.fn(),
+    },
+    comment: {
+      findMany: vi.fn(),
     },
     report: {
       count: vi.fn(),
@@ -125,6 +130,69 @@ describe('AdminService', () => {
         stories: 50,
         pendingReports: 5,
       });
+    });
+  });
+
+  describe('getModerationQueue', () => {
+    it('merges posts, stories, and comments with entityType', async () => {
+      const profile = { username: 'alice', avatar: null };
+      mockPrismaService.post.findMany.mockResolvedValue([
+        {
+          id: 'post-1',
+          caption: 'hello',
+          type: 'FRAME',
+          createdAt: new Date('2026-01-02'),
+          updatedAt: new Date('2026-01-03'),
+          moderationStatus: 'FLAGGED',
+          moderationNote: 'note',
+          media: [],
+          user: { profile },
+        },
+      ]);
+      mockPrismaService.story.findMany.mockResolvedValue([
+        {
+          id: 'story-1',
+          url: 'https://cdn/s.jpg',
+          thumbnailUrl: null,
+          mediaType: 'image',
+          createdAt: new Date('2026-01-04'),
+          moderationStatus: 'HIDDEN',
+          moderationNote: null,
+          user: { profile },
+        },
+      ]);
+      mockPrismaService.comment.findMany.mockResolvedValue([
+        {
+          id: 'c-1',
+          content: 'bad',
+          createdAt: new Date('2026-01-01'),
+          updatedAt: new Date('2026-01-01'),
+          moderationStatus: 'FLAGGED',
+          moderationNote: null,
+          user: { profile },
+        },
+      ]);
+
+      const result = await service.getModerationQueue(1, 10);
+
+      expect(result.meta.total).toBe(3);
+      expect(
+        result.data.map((i: { entityType: string }) => i.entityType),
+      ).toEqual(['STORY', 'POST', 'COMMENT']);
+      expect(result.data[1].entityType).toBe('POST');
+      expect(result.data[1].type).toBe('FRAME');
+    });
+
+    it('filters by STORY entity type only', async () => {
+      mockPrismaService.post.findMany.mockClear();
+      mockPrismaService.story.findMany.mockResolvedValue([]);
+      mockPrismaService.comment.findMany.mockClear();
+
+      await service.getModerationQueue(1, 10, 'STORY');
+
+      expect(mockPrismaService.post.findMany).not.toHaveBeenCalled();
+      expect(mockPrismaService.comment.findMany).not.toHaveBeenCalled();
+      expect(mockPrismaService.story.findMany).toHaveBeenCalled();
     });
   });
 });

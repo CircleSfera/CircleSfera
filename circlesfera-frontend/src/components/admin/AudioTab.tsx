@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, Music, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminAudio } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
@@ -33,6 +34,7 @@ const EMPTY_FORM: AudioForm = {
 };
 
 export default function AudioTab({ onToast }: AudioTabProps) {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 400);
@@ -71,10 +73,10 @@ export default function AudioTab({ onToast }: AudioTabProps) {
     ) => adminApi.createAudio(data),
     onSuccess: () => {
       invalidateAudio();
-      onToast('Pista de audio añadida', 'success');
+      onToast(t('admin.audio.toast_created'), 'success');
       closeForm();
     },
-    onError: () => onToast('Error al crear la pista', 'error'),
+    onError: () => onToast(t('admin.audio.toast_create_error'), 'error'),
   });
 
   const updateMutation = useMutation({
@@ -87,20 +89,20 @@ export default function AudioTab({ onToast }: AudioTabProps) {
     }) => adminApi.updateAudio(id, data),
     onSuccess: () => {
       invalidateAudio();
-      onToast('Pista actualizada', 'success');
+      onToast(t('admin.audio.toast_updated'), 'success');
       closeForm();
     },
-    onError: () => onToast('Error al actualizar la pista', 'error'),
+    onError: () => onToast(t('admin.audio.toast_update_error'), 'error'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteAudio(id),
     onSuccess: () => {
       invalidateAudio();
-      onToast('Pista eliminada', 'success');
+      onToast(t('admin.audio.toast_deleted'), 'success');
       setDeleteTarget(null);
     },
-    onError: () => onToast('Error al eliminar la pista', 'error'),
+    onError: () => onToast(t('admin.audio.toast_delete_error'), 'error'),
   });
 
   const openEdit = (track: AdminAudio) => {
@@ -147,8 +149,8 @@ export default function AudioTab({ onToast }: AudioTabProps) {
   return (
     <div className="space-y-4">
       <AdminPageHeader
-        title="Biblioteca de Música"
-        subtitle="Gestiona las pistas de audio disponibles para stories y posts"
+        title={t('admin.audio.title')}
+        subtitle={t('admin.audio.subtitle')}
         actions={
           <Button
             onClick={openAddForm}
@@ -156,7 +158,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
             className="text-sm font-semibold min-h-11 w-full sm:w-auto shadow-lg shadow-brand-primary/20 px-5"
           >
             <Plus size={16} className="mr-2" />
-            Añadir pista
+            {t('admin.audio.add_track')}
           </Button>
         }
       />
@@ -169,7 +171,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
               setSearch(v);
               setPage(1);
             }}
-            placeholder="Buscar por título o artista..."
+            placeholder={t('admin.audio.search_placeholder')}
           />
         </div>
       </AdminFilterBar>
@@ -178,18 +180,22 @@ export default function AudioTab({ onToast }: AudioTabProps) {
         <AdminList
           loading={isLoading}
           isEmpty={tracks.length === 0}
-          emptyTitle={isFiltered ? 'Sin resultados' : 'No hay pistas'}
+          emptyTitle={
+            isFiltered
+              ? t('admin.audio.empty_filtered_title')
+              : t('admin.audio.empty_title')
+          }
           emptyDescription={
             isFiltered
-              ? 'Prueba con otro título o artista.'
-              : 'Añade la primera pista para la biblioteca de música.'
+              ? t('admin.audio.empty_filtered_description')
+              : t('admin.audio.empty_description')
           }
           emptyIcon={Music}
           emptyAction={
             !isFiltered ? (
               <Button onClick={openAddForm} className="min-h-11">
                 <Plus size={16} className="mr-2" />
-                Añadir pista
+                {t('admin.audio.add_track')}
               </Button>
             ) : undefined
           }
@@ -227,14 +233,14 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                   primaryAction={
                     <ActionButton
                       icon={Pencil}
-                      label="Editar"
+                      label={t('admin.audio.action_edit')}
                       variant="ghost"
                       onClick={() => openEdit(track)}
                     />
                   }
                   secondaryActions={[
                     {
-                      label: 'Eliminar',
+                      label: t('admin.audio.action_delete'),
                       variant: 'danger',
                       onClick: () => setDeleteTarget(track),
                     },
@@ -245,7 +251,13 @@ export default function AudioTab({ onToast }: AudioTabProps) {
           }
           desktop={
             <Table
-              headers={['Pista', 'Artista', 'Duración', 'Fecha', 'Acciones']}
+              headers={[
+                t('admin.audio.col_track'),
+                t('admin.audio.col_artist'),
+                t('admin.audio.col_duration'),
+                t('admin.audio.col_date'),
+                t('admin.audio.col_actions'),
+              ]}
               columnWidths={[
                 'min-w-[10rem]',
                 'min-w-[6rem]',
@@ -282,10 +294,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                       </div>
                     </div>
                   </td>
-                  <td
-                    className="px-2 py-1 text-sm text-zinc-400"
-                    data-label="Artista"
-                  >
+                  <td className="px-2 py-1 text-sm text-zinc-400">
                     <div
                       className="truncate max-w-[8rem] xl:max-w-[12rem]"
                       title={track.artist}
@@ -299,23 +308,20 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                       {formatDuration(track.duration)}
                     </div>
                   </td>
-                  <td
-                    className="px-2 py-1 text-sm text-zinc-400 hidden lg:table-cell"
-                    data-label="Subido el"
-                  >
+                  <td className="px-2 py-1 text-sm text-zinc-400 hidden lg:table-cell">
                     {new Date(track.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-2 py-1">
                     <div className="flex items-center gap-1">
                       <ActionButton
                         icon={Pencil}
-                        label="Editar"
+                        label={t('admin.audio.action_edit')}
                         variant="ghost"
                         onClick={() => openEdit(track)}
                       />
                       <ActionButton
                         icon={Trash2}
-                        label="Eliminar"
+                        label={t('admin.audio.action_delete')}
                         variant="danger"
                         onClick={() => setDeleteTarget(track)}
                       />
@@ -326,17 +332,19 @@ export default function AudioTab({ onToast }: AudioTabProps) {
             </Table>
           }
         />
-        {/* Pagination */}
         {meta && meta.totalPages > 1 && (
           <Pagination meta={meta} onPageChange={setPage} />
         )}
       </div>
 
-      {/* Add / Edit Track Drawer */}
       <AdminDrawer
         isOpen={showForm}
         onClose={closeForm}
-        title={editingTrack ? 'Editar pista de audio' : 'Añadir pista de audio'}
+        title={
+          editingTrack
+            ? t('admin.audio.drawer_edit_title')
+            : t('admin.audio.drawer_add_title')
+        }
       >
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-1.5">
@@ -344,7 +352,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
               htmlFor="audio-title"
               className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
             >
-              Título *
+              {t('admin.audio.label_title')}
             </label>
             <input
               id="audio-title"
@@ -353,7 +361,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
-              placeholder="Nombre de la canción"
+              placeholder={t('admin.audio.placeholder_title')}
             />
           </div>
 
@@ -362,7 +370,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
               htmlFor="audio-artist"
               className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
             >
-              Artista *
+              {t('admin.audio.label_artist')}
             </label>
             <input
               id="audio-artist"
@@ -371,7 +379,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
               value={form.artist}
               onChange={(e) => setForm({ ...form, artist: e.target.value })}
               className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
-              placeholder="Nombre del artista"
+              placeholder={t('admin.audio.placeholder_artist')}
             />
           </div>
 
@@ -380,7 +388,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
               htmlFor="audio-url"
               className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
             >
-              URL del audio *
+              {t('admin.audio.label_url')}
             </label>
             <input
               id="audio-url"
@@ -389,7 +397,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
               value={form.url}
               onChange={(e) => setForm({ ...form, url: e.target.value })}
               className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
-              placeholder="https://example.com/audio.mp3"
+              placeholder={t('admin.audio.placeholder_url')}
             />
           </div>
 
@@ -398,7 +406,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
               htmlFor="audio-thumbnail"
               className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
             >
-              Thumbnail URL
+              {t('admin.audio.label_thumbnail')}
             </label>
             <input
               id="audio-thumbnail"
@@ -408,7 +416,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                 setForm({ ...form, thumbnailUrl: e.target.value })
               }
               className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
-              placeholder="https://example.com/cover.jpg"
+              placeholder={t('admin.audio.placeholder_thumbnail')}
             />
           </div>
 
@@ -417,7 +425,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
               htmlFor="audio-duration"
               className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
             >
-              Duración (seg) *
+              {t('admin.audio.label_duration')}
             </label>
             <input
               id="audio-duration"
@@ -432,7 +440,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                 })
               }
               className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
-              placeholder="180"
+              placeholder={t('admin.audio.placeholder_duration')}
             />
           </div>
 
@@ -442,7 +450,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
               variant="secondary"
               className="flex-1 py-3 font-semibold bg-white/5 border-transparent text-gray-300"
             >
-              Cancelar
+              {t('admin.shared.cancel')}
             </Button>
             <Button
               type="submit"
@@ -450,25 +458,33 @@ export default function AudioTab({ onToast }: AudioTabProps) {
               variant="primary"
               className="flex-1 py-3 font-semibold shadow-lg shadow-brand-primary/20"
             >
-              {editingTrack ? 'Guardar cambios' : 'Añadir pista'}
+              {editingTrack
+                ? t('admin.audio.save_changes')
+                : t('admin.audio.add_track')}
             </Button>
           </div>
         </form>
       </AdminDrawer>
 
-      {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
-        title="Eliminar pista"
+        title={t('admin.audio.confirm_delete_title')}
         message={
           deleteTarget
-            ? `¿Estás seguro de que quieres eliminar "${deleteTarget.title}" de ${deleteTarget.artist}?`
+            ? t('admin.audio.confirm_delete_message', {
+                title: deleteTarget.title,
+                artist: deleteTarget.artist,
+              })
             : ''
         }
-        confirmText={deleteMutation.isPending ? 'Eliminando...' : 'Eliminar'}
-        cancelText="Cancelar"
+        confirmText={
+          deleteMutation.isPending
+            ? t('admin.audio.confirm_deleting')
+            : t('admin.audio.confirm_delete')
+        }
+        cancelText={t('admin.shared.cancel')}
         isDestructive={true}
         isLoading={deleteMutation.isPending}
       />

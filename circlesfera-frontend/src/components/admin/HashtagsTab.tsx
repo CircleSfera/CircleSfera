@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Hash } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminHashtag } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
@@ -11,6 +12,7 @@ import { AdminPageHeader } from './AdminPageHeader';
 import { Pagination, SearchInput, Table } from './AdminTable';
 
 export default function HashtagsTab() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 400);
@@ -26,8 +28,8 @@ export default function HashtagsTab() {
   return (
     <div className="space-y-4">
       <AdminPageHeader
-        title="Hashtags"
-        subtitle="Explora tendencias y uso de etiquetas"
+        title={t('admin.hashtags.title')}
+        subtitle={t('admin.hashtags.subtitle')}
       />
 
       <AdminFilterBar>
@@ -38,7 +40,7 @@ export default function HashtagsTab() {
               setSearch(v);
               setPage(1);
             }}
-            placeholder="Buscar hashtags..."
+            placeholder={t('admin.hashtags.search_placeholder')}
           />
         </div>
       </AdminFilterBar>
@@ -47,8 +49,8 @@ export default function HashtagsTab() {
         <AdminList
           loading={isLoading}
           isEmpty={!data?.data?.length}
-          emptyTitle="No hay hashtags"
-          emptyDescription="No se encontraron hashtags con los filtros seleccionados."
+          emptyTitle={t('admin.hashtags.empty_title')}
+          emptyDescription={t('admin.hashtags.empty_description')}
           mobile={
             <div className="space-y-2">
               {data?.data?.map((tag) => (
@@ -62,7 +64,9 @@ export default function HashtagsTab() {
                   }
                   badge={
                     <span className="text-brand-primary font-semibold text-sm">
-                      {tag.postCount} posts
+                      {t('admin.hashtags.posts_count', {
+                        count: tag.postCount,
+                      })}
                     </span>
                   }
                   meta={new Date(tag.createdAt).toLocaleDateString()}
@@ -72,7 +76,12 @@ export default function HashtagsTab() {
           }
           desktop={
             <Table
-              headers={['#', 'Hashtag', 'Posts', 'Creado']}
+              headers={[
+                t('admin.hashtags.col_rank'),
+                t('admin.hashtags.col_hashtag'),
+                t('admin.hashtags.col_posts'),
+                t('admin.hashtags.col_created'),
+              ]}
               columnWidths={[
                 'w-[2.5rem]',
                 'min-w-[8rem]',

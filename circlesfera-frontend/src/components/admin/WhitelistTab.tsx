@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Calendar, Edit2, Mail, Save, Trash2, User } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { WhitelistEntry } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
@@ -20,6 +21,7 @@ import {
 } from './AdminTable';
 
 export default function WhitelistTab() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -58,15 +60,13 @@ export default function WhitelistTab() {
   return (
     <div className="space-y-4">
       <AdminPageHeader
-        title="Whitelist de Interesados"
-        subtitle="Gestiona la lista de usuarios interesados en la plataforma."
+        title={t('admin.whitelist.title')}
+        subtitle={t('admin.whitelist.subtitle')}
         actions={
           <div className="text-xs text-gray-400 bg-white/5 px-3 py-2 rounded-lg border border-white/10 italic min-h-11 flex items-center">
-            Total:{' '}
-            <span className="text-white font-semibold ml-1">
-              {data?.meta.total || 0}
-            </span>{' '}
-            interesados
+            {t('admin.whitelist.total_count', {
+              count: data?.meta.total || 0,
+            })}
           </div>
         }
       />
@@ -79,7 +79,7 @@ export default function WhitelistTab() {
               setSearch(v);
               setPage(1);
             }}
-            placeholder="Buscar en whitelist..."
+            placeholder={t('admin.whitelist.search_placeholder')}
           />
         </div>
       </AdminFilterBar>
@@ -88,28 +88,28 @@ export default function WhitelistTab() {
         <AdminList
           loading={isLoading}
           isEmpty={!data || data.data.length === 0}
-          emptyTitle="No hay registros en whitelist"
-          emptyDescription="No se encontraron interesados con los filtros seleccionados."
+          emptyTitle={t('admin.whitelist.empty_title')}
+          emptyDescription={t('admin.whitelist.empty_description')}
           mobile={
             <div className="space-y-2 p-2 lg:p-0">
               {data?.data.map((entry) => (
                 <AdminListRow
                   key={entry.id}
-                  title={entry.name || 'Sin nombre'}
+                  title={entry.name || t('admin.whitelist.no_name')}
                   subtitle={entry.email}
                   badge={<StatusBadge status={entry.status} />}
                   meta={new Date(entry.createdAt).toLocaleDateString()}
                   primaryAction={
                     <ActionButton
                       variant="ghost"
-                      label="Editar"
+                      label={t('admin.whitelist.action_edit')}
                       icon={Edit2}
                       onClick={() => setEditingEntry(entry)}
                     />
                   }
                   secondaryActions={[
                     {
-                      label: 'Eliminar',
+                      label: t('admin.whitelist.action_delete'),
                       variant: 'danger',
                       onClick: () => handleDelete(entry.id),
                     },
@@ -120,7 +120,13 @@ export default function WhitelistTab() {
           }
           desktop={
             <Table
-              headers={['Nombre', 'Email', 'Estado', 'Fecha', 'Acciones']}
+              headers={[
+                t('admin.whitelist.col_name'),
+                t('admin.whitelist.col_email'),
+                t('admin.whitelist.col_status'),
+                t('admin.whitelist.col_date'),
+                t('admin.whitelist.col_actions'),
+              ]}
               columnWidths={[
                 'min-w-[8rem]',
                 'min-w-[10rem]',
@@ -140,7 +146,7 @@ export default function WhitelistTab() {
                     <div className="flex items-center gap-2 text-white font-semibold text-sm min-w-0">
                       <User size={14} className="text-gray-500 shrink-0" />
                       <span className="truncate">
-                        {entry.name || 'Sin nombre'}
+                        {entry.name || t('admin.whitelist.no_name')}
                       </span>
                     </div>
                   </td>
@@ -165,14 +171,14 @@ export default function WhitelistTab() {
                     <div className="flex items-center gap-1">
                       <ActionButton
                         variant="ghost"
-                        label="Editar"
+                        label={t('admin.whitelist.action_edit')}
                         icon={Edit2}
                         iconOnly
                         onClick={() => setEditingEntry(entry)}
                       />
                       <ActionButton
                         variant="danger"
-                        label="Eliminar"
+                        label={t('admin.whitelist.action_delete')}
                         icon={Trash2}
                         iconOnly
                         onClick={() => handleDelete(entry.id)}
@@ -190,7 +196,7 @@ export default function WhitelistTab() {
       <AdminDrawer
         isOpen={!!editingEntry}
         onClose={() => setEditingEntry(null)}
-        title="Editar Registro"
+        title={t('admin.whitelist.drawer_title')}
       >
         {editingEntry && (
           <form
@@ -213,7 +219,7 @@ export default function WhitelistTab() {
                 htmlFor="whitelist-name"
                 className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
               >
-                Nombre
+                {t('admin.whitelist.label_name')}
               </label>
               <Input
                 id="whitelist-name"
@@ -229,7 +235,7 @@ export default function WhitelistTab() {
                 htmlFor="whitelist-email"
                 className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
               >
-                Email
+                {t('admin.whitelist.label_email')}
               </label>
               <Input
                 id="whitelist-email"
@@ -246,7 +252,7 @@ export default function WhitelistTab() {
                 htmlFor="whitelist-status"
                 className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
               >
-                Estado
+                {t('admin.whitelist.label_status')}
               </label>
               <Select
                 id="whitelist-status"
@@ -268,7 +274,7 @@ export default function WhitelistTab() {
                 variant="secondary"
                 className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-gray-300"
               >
-                Cancelar
+                {t('admin.shared.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -276,7 +282,7 @@ export default function WhitelistTab() {
                 variant="primary"
                 className="flex-1 min-h-11 font-semibold shadow-lg shadow-brand-primary/20"
               >
-                <Save size={18} className="mr-2" /> Guardar
+                <Save size={18} className="mr-2" /> {t('admin.whitelist.save')}
               </Button>
             </div>
           </form>
@@ -292,10 +298,10 @@ export default function WhitelistTab() {
           }
           setConfirmDeleteId(null);
         }}
-        title="¿Eliminar registro?"
-        message="¿Estás seguro de que deseas eliminar este registro de la whitelist?"
-        confirmText="Eliminar"
-        cancelText="Cancelar"
+        title={t('admin.whitelist.confirm_delete_title')}
+        message={t('admin.whitelist.confirm_delete_message')}
+        confirmText={t('admin.whitelist.confirm_delete')}
+        cancelText={t('admin.shared.cancel')}
         isDestructive={true}
       />
     </div>

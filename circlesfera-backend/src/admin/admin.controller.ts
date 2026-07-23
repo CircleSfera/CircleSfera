@@ -9,6 +9,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   Res,
@@ -250,7 +251,12 @@ export class AdminController {
   /** Paginated audit logs for admin accountability. */
   @Get('audit-logs')
   async getAuditLogs(@Query() query: AdminQueryDto) {
-    return this.adminService.getAuditLogs(query.page ?? 1, query.limit ?? 20);
+    return this.adminService.getAuditLogs(query.page ?? 1, query.limit ?? 20, {
+      action: query.action,
+      search: query.search,
+      from: query.from,
+      to: query.to,
+    });
   }
 
   // ─── Activity Chart ──────────────────────────────────────────────
@@ -302,7 +308,10 @@ export class AdminController {
   /** Paginated stories with view counts. */
   @Get('stories')
   async getStories(@Query() query: AdminQueryDto) {
-    return this.adminService.getStories(query.page ?? 1, query.limit ?? 10);
+    return this.adminService.getStories(query.page ?? 1, query.limit ?? 10, {
+      moderationStatus: query.moderationStatus,
+      expired: query.expired,
+    });
   }
 
   /** Delete a story (admin moderation). */
@@ -503,5 +512,120 @@ export class AdminController {
   @Delete('experiments/users/:id')
   async removeUserExperiment(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.adminOpsService.removeUserExperiment(req.user.userId, id);
+  }
+
+  // ─── Support tickets ──────────────────────────────────────────────
+
+  @Get('support/tickets')
+  async getSupportTickets(@Query() query: AdminQueryDto) {
+    return this.adminOpsService.getSupportTickets(
+      query.page ?? 1,
+      query.limit ?? 20,
+      query.status,
+    );
+  }
+
+  @Patch('support/tickets/:id')
+  async updateSupportTicket(
+    @Param('id') id: string,
+    @Body() body: { status?: 'OPEN' | 'RESOLVED' | 'CLOSED'; reply?: string },
+    @Req() req: AuthRequest,
+  ) {
+    return this.adminOpsService.updateSupportTicket(req.user.userId, id, body);
+  }
+
+  // ─── Feature flags ────────────────────────────────────────────────
+
+  @Get('feature-flags')
+  async listFeatureFlags() {
+    return this.adminOpsService.listFeatureFlags();
+  }
+
+  @Put('feature-flags/:key')
+  async upsertFeatureFlag(
+    @Param('key') key: string,
+    @Body()
+    body: {
+      name?: string;
+      description?: string;
+      isEnabled?: boolean;
+      percentage?: number;
+    },
+    @Req() req: AuthRequest,
+  ) {
+    return this.adminOpsService.upsertFeatureFlag(req.user.userId, {
+      key,
+      ...body,
+    });
+  }
+
+  // ─── Webhook events ───────────────────────────────────────────────
+
+  @Get('webhooks')
+  async getWebhookEvents(@Query() query: AdminQueryDto) {
+    return this.adminOpsService.getWebhookEvents(
+      query.page ?? 1,
+      query.limit ?? 20,
+      query.status,
+    );
+  }
+
+  @Get('webhooks/:id')
+  async getWebhookEvent(@Param('id') id: string) {
+    return this.adminOpsService.getWebhookEvent(id);
+  }
+
+  @Post('webhooks/:id/replay')
+  async replayWebhookEvent(@Param('id') id: string, @Req() req: AuthRequest) {
+    return this.adminOpsService.replayWebhookEvent(req.user.userId, id);
+  }
+
+  // ─── Bulk reports ─────────────────────────────────────────────────
+
+  @Post('reports/bulk')
+  async bulkUpdateReports(
+    @Body() body: { ids: string[]; status: ReportStatus },
+    @Req() req: AuthRequest,
+  ) {
+    return this.adminService.bulkUpdateReports(
+      req.user.userId,
+      body.ids ?? [],
+      body.status,
+    );
+  }
+
+  // ─── Trust queue ──────────────────────────────────────────────────
+
+  @Get('trust/queue')
+  async getTrustQueue() {
+    return this.adminService.getTrustQueue();
+  }
+
+  // ─── Transactions JSON ────────────────────────────────────────────
+
+  @Get('transactions')
+  async getTransactions(@Query() query: AdminQueryDto) {
+    return this.adminService.getTransactions(
+      query.page ?? 1,
+      query.limit ?? 20,
+      query.status,
+      query.search,
+    );
+  }
+
+  // ─── Live streams ─────────────────────────────────────────────────
+
+  @Get('live')
+  async getLiveStreams(@Query() query: AdminQueryDto) {
+    return this.adminService.getLiveStreams(
+      query.page ?? 1,
+      query.limit ?? 20,
+      query.status,
+    );
+  }
+
+  @Post('live/:id/end')
+  async endLiveStream(@Param('id') id: string, @Req() req: AuthRequest) {
+    return this.adminService.endLiveStream(req.user.userId, id);
   }
 }

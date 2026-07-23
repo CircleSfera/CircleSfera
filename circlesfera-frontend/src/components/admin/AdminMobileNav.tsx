@@ -1,9 +1,11 @@
+import { useQuery } from '@tanstack/react-query';
 import { clsx } from 'clsx';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowLeft, ChevronRight, Menu, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import logoSrc from '../../assets/logo.png';
+import { adminApi } from '../../services/admin.service';
 import { ADMIN_NAV_GROUPS, type AdminTab, findAdminNavItem } from './adminNav';
 
 interface Props {
@@ -21,6 +23,27 @@ export function AdminMobileDrawer({
   onClose,
 }: Props) {
   const { t } = useTranslation();
+
+  const { data: trustQueue } = useQuery({
+    queryKey: ['admin', 'trust-queue'],
+    queryFn: () => adminApi.getTrustQueue().then((r) => r.data),
+    refetchInterval: 60_000,
+  });
+
+  const trustBadgeTotal =
+    (trustQueue?.counts.reports ?? 0) +
+    (trustQueue?.counts.appeals ?? 0) +
+    (trustQueue?.counts.tickets ?? 0);
+
+  const getItemBadge = (itemId: AdminTab) => {
+    if (itemId === 'trust' && trustBadgeTotal > 0) {
+      return String(trustBadgeTotal);
+    }
+    const item = ADMIN_NAV_GROUPS.flatMap((g) => g.items).find(
+      (i) => i.id === itemId,
+    );
+    return item?.badge;
+  };
 
   const handleSelect = (tab: AdminTab) => {
     onTabChange(tab);
@@ -102,9 +125,9 @@ export function AdminMobileDrawer({
                             />
                             <span>{t(item.labelKey, item.labelFallback)}</span>
                           </div>
-                          {item.badge && (
+                          {getItemBadge(item.id) && (
                             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary border border-brand-primary/30">
-                              {item.badge}
+                              {getItemBadge(item.id)}
                             </span>
                           )}
                         </button>

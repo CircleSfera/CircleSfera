@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { AdminPost } from '../../services/admin.service';
 import UserAvatar from '../UserAvatar';
 import AdminDrawer from './AdminDrawer';
@@ -8,14 +9,15 @@ interface Props {
 }
 
 export default function PostPreviewDrawer({ post, onClose }: Props) {
+  const { t } = useTranslation();
+
   return (
     <AdminDrawer
       isOpen={true}
       onClose={onClose}
-      title="Vista previa de publicación"
+      title={t('admin.posts.preview_drawer_title')}
     >
       <div className="space-y-4">
-        {/* User Info */}
         <div className="flex items-center gap-3 p-4 bg-white/5 rounded-lg border border-white/10">
           <UserAvatar
             src={post.user?.profile?.avatar}
@@ -23,7 +25,7 @@ export default function PostPreviewDrawer({ post, onClose }: Props) {
           />
           <div className="flex flex-col">
             <span className="text-white font-bold text-sm tracking-tight">
-              @{post.user?.profile?.username || 'unknown'}
+              @{post.user?.profile?.username || t('admin.shared.unknown')}
             </span>
             <span className="text-xs text-gray-300 uppercase tracking-wide font-medium">
               {new Date(post.createdAt).toLocaleString()}
@@ -31,7 +33,6 @@ export default function PostPreviewDrawer({ post, onClose }: Props) {
           </div>
         </div>
 
-        {/* Content Media */}
         {post.media && post.media.length > 0 && (
           <div className="bg-black rounded-lg overflow-hidden border border-white/10 relative">
             <div className="aspect-4/5 w-full flex items-center justify-center">
@@ -59,7 +60,6 @@ export default function PostPreviewDrawer({ post, onClose }: Props) {
           </div>
         )}
 
-        {/* Caption */}
         {post.caption && (
           <div className="p-4 bg-white/5 rounded-lg border border-white/10">
             <p className="text-white text-sm whitespace-pre-wrap leading-relaxed">
@@ -68,7 +68,6 @@ export default function PostPreviewDrawer({ post, onClose }: Props) {
           </div>
         )}
 
-        {/* Stats */}
         {post._count && (
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-white/5 border border-white/10 rounded-lg flex flex-col items-center justify-center">
@@ -76,7 +75,7 @@ export default function PostPreviewDrawer({ post, onClose }: Props) {
                 {post._count.likes}
               </span>
               <span className="text-xs uppercase tracking-wide text-gray-500 font-semibold mt-1">
-                Likes
+                {t('admin.posts.stat_likes')}
               </span>
             </div>
             <div className="p-4 bg-white/5 border border-white/10 rounded-lg flex flex-col items-center justify-center">
@@ -84,7 +83,7 @@ export default function PostPreviewDrawer({ post, onClose }: Props) {
                 {post._count.comments}
               </span>
               <span className="text-xs uppercase tracking-wide text-gray-500 font-semibold mt-1">
-                Comentarios
+                {t('admin.posts.stat_comments')}
               </span>
             </div>
           </div>

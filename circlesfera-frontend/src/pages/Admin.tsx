@@ -2,12 +2,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+  AppealsTab,
   AudioTab,
   AuditLogTab,
   CommentsTab,
   ExperimentsTab,
   FirewallTab,
   HashtagsTab,
+  LiveStreamsTab,
   ModerationTab,
   MonetizationTab,
   NewsletterTab,
@@ -16,7 +18,9 @@ import {
   ReportsTab,
   StatsTab,
   StoriesTab,
+  SupportTicketsTab,
   SystemHealthTab,
+  TrustTab,
   UsersTab,
   UserVerificationTab,
   WhitelistTab,
@@ -59,9 +63,12 @@ export default function Admin() {
           {activeTab === 'comments' && <CommentsTab onToast={addToast} />}
           {activeTab === 'hashtags' && <HashtagsTab />}
           {activeTab === 'stories' && <StoriesTab onToast={addToast} />}
+          {activeTab === 'live' && <LiveStreamsTab onToast={addToast} />}
           {activeTab === 'audio' && <AudioTab onToast={addToast} />}
           {activeTab === 'whitelist' && <WhitelistTab />}
           {activeTab === 'audit' && <AuditLogTab />}
+          {activeTab === 'appeals' && <AppealsTab />}
+          {activeTab === 'support' && <SupportTicketsTab onToast={addToast} />}
           {activeTab === 'moderation' && <ModerationTab onToast={addToast} />}
           {activeTab === 'firewall' && <FirewallTab onToast={addToast} />}
           {activeTab === 'monetization' && <MonetizationTab />}
@@ -72,6 +79,7 @@ export default function Admin() {
           {activeTab === 'experiments' && <ExperimentsTab />}
           {activeTab === 'newsletter' && <NewsletterTab onToast={addToast} />}
           {activeTab === 'system-health' && <SystemHealthTab />}
+          {activeTab === 'trust' && <TrustTab />}
         </motion.div>
       </AnimatePresence>
     </AdminShell>

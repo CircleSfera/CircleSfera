@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
 import {
   Ban,
   Download,
@@ -8,9 +7,11 @@ import {
   ShieldCheck,
   ShieldOff,
   Trash2,
+  UserCheck,
   Users,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminUser } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
@@ -38,15 +39,27 @@ interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
 }
 
+type ConfirmType = 'ban' | 'unban' | 'promote' | 'demote' | 'delete';
+
+function usernameOf(user: AdminUser) {
+  return user.profile?.username || '';
+}
+
+function displayHandle(user: AdminUser) {
+  return `@${user.profile?.username || 'user'}`;
+}
+
 export default function UsersTab({ onToast }: Props) {
+  const { t, i18n } = useTranslation();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const debouncedSearch = useDebouncedValue(search, 400);
   const queryClient = useQueryClient();
+  const dateLocale = i18n.language?.startsWith('en') ? 'en-US' : 'es-ES';
 
   const [confirmAction, setConfirmAction] = useState<{
-    type: 'ban' | 'unban' | 'promote' | 'demote' | 'delete' | null;
+    type: ConfirmType | null;
     id: string | null;
     username: string;
   }>({ type: null, id: null, username: '' });
@@ -65,83 +78,63 @@ export default function UsersTab({ onToast }: Props) {
         .then((res) => res.data as PaginatedResponse<AdminUser>),
   });
 
-  const invalidateUsers = () => {
-    queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
-    queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+  const clearConfirm = () =>
     setConfirmAction({ type: null, id: null, username: '' });
+
+  const askConfirm = (type: ConfirmType, user: AdminUser) => {
+    setConfirmAction({
+      type,
+      id: user.id,
+      username: usernameOf(user),
+    });
   };
 
-  const banMutation = useMutation({
-    mutationFn: (id: string) => adminApi.banUser(id),
-    onSuccess: () => {
-      invalidateUsers();
-      onToast('Usuario baneado', 'success');
+  const actionMutation = useMutation({
+    mutationFn: async ({ type, id }: { type: ConfirmType; id: string }) => {
+      switch (type) {
+        case 'ban':
+          return adminApi.banUser(id);
+        case 'unban':
+          return adminApi.unbanUser(id);
+        case 'promote':
+          return adminApi.promoteUser(id);
+        case 'demote':
+          return adminApi.demoteUser(id);
+        case 'delete':
+          return adminApi.deleteUser(id);
+      }
     },
-    onError: () => onToast('Error al banear usuario', 'error'),
-  });
-
-  const unbanMutation = useMutation({
-    mutationFn: (id: string) => adminApi.unbanUser(id),
-    onSuccess: () => {
-      invalidateUsers();
-      onToast('Usuario desbaneado', 'success');
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+      if (variables.type === 'delete' && previewUserId === variables.id) {
+        setPreviewUserId(null);
+      }
+      clearConfirm();
+      const toastKey = {
+        ban: 'admin.users.toast_banned',
+        unban: 'admin.users.toast_unbanned',
+        promote: 'admin.users.toast_promoted',
+        demote: 'admin.users.toast_demoted',
+        delete: 'admin.users.toast_deleted',
+      }[variables.type];
+      onToast(t(toastKey), 'success');
     },
-    onError: () => onToast('Error al desbanear usuario', 'error'),
-  });
-
-  const promoteMutation = useMutation({
-    mutationFn: (id: string) => adminApi.promoteUser(id),
-    onSuccess: () => {
-      invalidateUsers();
-      onToast('Usuario promovido a admin', 'success');
+    onError: (_err, variables) => {
+      const toastKey = {
+        ban: 'admin.users.toast_ban_error',
+        unban: 'admin.users.toast_unban_error',
+        promote: 'admin.users.toast_promote_error',
+        demote: 'admin.users.toast_demote_error',
+        delete: 'admin.users.toast_delete_error',
+      }[variables.type];
+      onToast(t(toastKey), 'error');
     },
-    onError: () => onToast('Error al promover usuario', 'error'),
   });
-
-  const demoteMutation = useMutation({
-    mutationFn: (id: string) => adminApi.demoteUser(id),
-    onSuccess: () => {
-      invalidateUsers();
-      onToast('Usuario degradado', 'success');
-    },
-    onError: () => onToast('Error al degradar usuario', 'error'),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => adminApi.deleteUser(id),
-    onSuccess: () => {
-      invalidateUsers();
-      onToast('Cuenta eliminada permanentemente', 'success');
-    },
-    onError: () => onToast('Error al eliminar cuenta', 'error'),
-  });
-
-  const isPending =
-    banMutation.isPending ||
-    unbanMutation.isPending ||
-    promoteMutation.isPending ||
-    demoteMutation.isPending ||
-    deleteMutation.isPending;
 
   const handleConfirm = () => {
-    if (!confirmAction.id) return;
-    switch (confirmAction.type) {
-      case 'ban':
-        banMutation.mutate(confirmAction.id);
-        break;
-      case 'unban':
-        unbanMutation.mutate(confirmAction.id);
-        break;
-      case 'promote':
-        promoteMutation.mutate(confirmAction.id);
-        break;
-      case 'demote':
-        demoteMutation.mutate(confirmAction.id);
-        break;
-      case 'delete':
-        deleteMutation.mutate(confirmAction.id);
-        break;
-    }
+    if (!confirmAction.id || !confirmAction.type) return;
+    actionMutation.mutate({ type: confirmAction.type, id: confirmAction.id });
   };
 
   const handleExport = async () => {
@@ -154,42 +147,47 @@ export default function UsersTab({ onToast }: Props) {
       a.download = 'circlesfera-users.csv';
       a.click();
       URL.revokeObjectURL(url);
-      onToast('CSV descargado', 'success');
+      onToast(t('admin.users.toast_csv_exported'), 'success');
     } catch {
-      onToast('Error al exportar CSV', 'error');
+      onToast(t('admin.users.toast_csv_error'), 'error');
     }
   };
 
   const confirmConfig = {
     ban: {
-      title: '¿Banear a este usuario?',
-      message:
-        'El usuario no podrá acceder a su cuenta ni interactuar en la plataforma hasta que sea desbaneado.',
-      confirmText: 'Banear Usuario',
+      title: t('admin.users.confirm_ban_title'),
+      message: t('admin.users.confirm_ban_message'),
+      confirmText: t('admin.users.confirm_ban_confirm'),
       destructive: true,
     },
     unban: {
-      title: '¿Desbanear a este usuario?',
-      message: 'El usuario recuperará el acceso completo a su cuenta.',
-      confirmText: 'Desbanear Usuario',
+      title: t('admin.users.confirm_unban_title'),
+      message: t('admin.users.confirm_unban_message'),
+      confirmText: t('admin.users.confirm_unban_confirm'),
       destructive: false,
     },
     promote: {
-      title: '¿Promover a administrador?',
-      message: `@${confirmAction.username} tendrá acceso completo al panel de administración.`,
-      confirmText: 'Promover',
+      title: t('admin.users.confirm_promote_title'),
+      message: t('admin.users.confirm_promote_message', {
+        username: confirmAction.username,
+      }),
+      confirmText: t('admin.users.confirm_promote_confirm'),
       destructive: false,
     },
     demote: {
-      title: '¿Retirar permisos de admin?',
-      message: `@${confirmAction.username} perderá acceso al panel de administración.`,
-      confirmText: 'Degradar',
+      title: t('admin.users.confirm_demote_title'),
+      message: t('admin.users.confirm_demote_message', {
+        username: confirmAction.username,
+      }),
+      confirmText: t('admin.users.confirm_demote_confirm'),
       destructive: true,
     },
     delete: {
-      title: '¿Eliminar cuenta permanentemente?',
-      message: `ATENCIÓN: Esta acción es IRREVERSIBLE. Se eliminarán TODOS los datos de @${confirmAction.username}: publicaciones, comentarios, likes, mensajes, historias, etc.`,
-      confirmText: 'Eliminar Permanentemente',
+      title: t('admin.users.confirm_delete_title'),
+      message: t('admin.users.confirm_delete_message', {
+        username: confirmAction.username,
+      }),
+      confirmText: t('admin.users.confirm_delete_confirm'),
       destructive: true,
     },
   };
@@ -199,6 +197,7 @@ export default function UsersTab({ onToast }: Props) {
     : null;
 
   const isFiltered = debouncedSearch.length > 0 || statusFilter.length > 0;
+  const isPending = actionMutation.isPending;
 
   const clearFilters = () => {
     setSearch('');
@@ -206,20 +205,26 @@ export default function UsersTab({ onToast }: Props) {
     setPage(1);
   };
 
+  const openProfile = (user: AdminUser) => {
+    const handle = usernameOf(user);
+    if (!handle) return;
+    window.open(`/${handle}`, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="space-y-4">
       <AdminPageHeader
-        title="Gestión de Usuarios"
-        subtitle="Administra cuentas, permisos y estados de los usuarios."
+        title={t('admin.users.title')}
+        subtitle={t('admin.users.subtitle')}
         actions={
           <Button
             onClick={handleExport}
             variant="outline"
             className="text-sm font-semibold text-gray-300 hover:text-white border-white/10 px-4 min-h-11 w-full sm:w-auto"
-            aria-label="Exportar usuarios como CSV"
+            aria-label={t('admin.users.export_csv_aria')}
           >
             <Download size={16} className="mr-2" />
-            Exportar CSV
+            {t('admin.users.export_csv')}
           </Button>
         }
       />
@@ -232,34 +237,38 @@ export default function UsersTab({ onToast }: Props) {
               setSearch(v);
               setPage(1);
             }}
-            placeholder="Buscar usuarios..."
+            placeholder={t('admin.users.search_placeholder')}
           />
         </div>
         <FilterDropdown
-          label="Filtrar por estado"
+          label={t('admin.users.filter_status')}
           value={statusFilter}
           onChange={(v) => {
             setStatusFilter(v);
             setPage(1);
           }}
           options={[
-            { value: '', label: 'Todos' },
-            { value: 'active', label: 'Activos' },
-            { value: 'banned', label: 'Baneados' },
+            { value: '', label: t('admin.users.status_all') },
+            { value: 'active', label: t('admin.users.status_active') },
+            { value: 'banned', label: t('admin.users.status_banned') },
           ]}
         />
       </AdminFilterBar>
 
-      <div className="rounded-xl border border-white/10 bg-black/20 lg:bg-transparent lg:border-0">
+      <div className="rounded-xl border border-white/10 bg-black/20 lg:bg-transparent lg:border-0 overflow-hidden">
         <AdminList
           loading={isLoading}
           isEmpty={!data || data.data.length === 0}
           emptyIcon={Users}
-          emptyTitle={isFiltered ? 'Sin resultados' : 'No hay usuarios'}
+          emptyTitle={
+            isFiltered
+              ? t('admin.users.empty_filtered_title')
+              : t('admin.users.empty_title')
+          }
           emptyDescription={
             isFiltered
-              ? 'Prueba con otro término o ajusta el filtro de estado.'
-              : 'Aún no hay usuarios registrados en la plataforma.'
+              ? t('admin.users.empty_filtered_description')
+              : t('admin.users.empty_description')
           }
           emptyAction={
             isFiltered ? (
@@ -268,7 +277,7 @@ export default function UsersTab({ onToast }: Props) {
                 variant="secondary"
                 className="min-h-11"
               >
-                Limpiar filtros
+                {t('admin.shared.clear_filters')}
               </Button>
             ) : undefined
           }
@@ -277,9 +286,10 @@ export default function UsersTab({ onToast }: Props) {
               {data?.data.map((user) => (
                 <AdminListRow
                   key={user.id}
+                  onClick={() => setPreviewUserId(user.id)}
                   title={
                     <span className="inline-flex items-center gap-1">
-                      @{user.profile?.username || 'user'}
+                      {displayHandle(user)}
                       <VerificationBadge
                         level={user.verificationLevel as VerificationLevel}
                         size={14}
@@ -290,11 +300,18 @@ export default function UsersTab({ onToast }: Props) {
                   meta={
                     <>
                       <span>
-                        {user.role === 'ADMIN' ? 'Admin' : 'User'} ·{' '}
-                        {user.postCount} posts
+                        {user.role === 'ADMIN'
+                          ? t('admin.users.role_admin')
+                          : t('admin.users.role_user')}{' '}
+                        ·{' '}
+                        {t('admin.users.posts_count', {
+                          count: user.postCount,
+                        })}
                       </span>
                       <span>
-                        {new Date(user.createdAt).toLocaleDateString()}
+                        {new Date(user.createdAt).toLocaleDateString(
+                          dateLocale,
+                        )}
                       </span>
                     </>
                   }
@@ -313,67 +330,46 @@ export default function UsersTab({ onToast }: Props) {
                   primaryAction={
                     user.isActive ? (
                       <ActionButton
-                        onClick={() =>
-                          setConfirmAction({
-                            type: 'ban',
-                            id: user.id,
-                            username: user.profile?.username || '',
-                          })
-                        }
-                        label="Banear"
+                        onClick={() => askConfirm('ban', user)}
+                        label={t('admin.users.action_ban')}
                         variant="danger"
                         icon={Ban}
                         disabled={isPending}
                       />
                     ) : (
                       <ActionButton
-                        onClick={() =>
-                          setConfirmAction({
-                            type: 'unban',
-                            id: user.id,
-                            username: user.profile?.username || '',
-                          })
-                        }
-                        label="Desbanear"
+                        onClick={() => askConfirm('unban', user)}
+                        label={t('admin.users.action_unban')}
                         variant="success"
-                        icon={Ban}
+                        icon={UserCheck}
                         disabled={isPending}
                       />
                     )
                   }
                   secondaryActions={[
                     {
-                      label: 'Ver detalle',
+                      label: t('admin.users.action_view_detail'),
                       onClick: () => setPreviewUserId(user.id),
                     },
                     {
                       label:
-                        user.role === 'USER' ? 'Promover a admin' : 'Degradar',
+                        user.role === 'USER'
+                          ? t('admin.users.action_promote_admin')
+                          : t('admin.users.action_demote'),
                       onClick: () =>
-                        setConfirmAction({
-                          type: user.role === 'USER' ? 'promote' : 'demote',
-                          id: user.id,
-                          username: user.profile?.username || '',
-                        }),
+                        askConfirm(
+                          user.role === 'USER' ? 'promote' : 'demote',
+                          user,
+                        ),
                     },
                     {
-                      label: 'Ver perfil',
-                      onClick: () => {
-                        window.open(
-                          `/${user.profile?.username || ''}`,
-                          '_blank',
-                        );
-                      },
+                      label: t('admin.users.action_view_profile'),
+                      onClick: () => openProfile(user),
                     },
                     {
-                      label: 'Eliminar cuenta',
+                      label: t('admin.users.action_delete'),
                       variant: 'danger',
-                      onClick: () =>
-                        setConfirmAction({
-                          type: 'delete',
-                          id: user.id,
-                          username: user.profile?.username || '',
-                        }),
+                      onClick: () => askConfirm('delete', user),
                     },
                   ]}
                 />
@@ -381,219 +377,211 @@ export default function UsersTab({ onToast }: Props) {
             </div>
           }
           desktop={
-            <Table
-              headers={[
-                'Usuario',
-                'Email',
-                'Rol',
-                'Unido',
-                'Posts',
-                'Estado',
-                'Acciones',
-              ]}
-              columnWidths={[
-                'min-w-[12rem]',
-                'hidden xl:table-cell min-w-[10rem]',
-                'w-[7rem]',
-                'hidden lg:table-cell w-[7rem]',
-                'w-[4.5rem]',
-                'w-[6rem]',
-                'min-w-[12rem]',
-              ]}
-              loading={false}
-              isEmpty={false}
-            >
-              {data?.data.map((user) => (
-                <motion.tr
-                  key={user.id}
-                  layout
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="hover:bg-white/[0.07] even:bg-white/2 transition-colors border-b border-white/5 last:border-0"
-                >
-                  <td className="px-2 py-2" data-label="Usuario">
-                    <div className="flex items-center gap-2">
-                      <UserAvatar
-                        src={user.profile?.avatar || undefined}
-                        thumbnailUrl={user.profile?.thumbnailUrl || undefined}
-                        standardUrl={user.profile?.standardUrl || undefined}
-                        alt={user.profile?.username || 'user'}
-                        size="sm"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1">
-                          <a
-                            href={`/${user.profile?.username || ''}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-white font-semibold text-sm hover:text-brand-primary transition-colors"
-                          >
-                            @{user.profile?.username || 'user'}
-                          </a>
-                          <VerificationBadge
-                            level={user.verificationLevel as VerificationLevel}
-                            size={14}
-                          />
-                        </div>
-                        <p className="text-gray-500 text-xs truncate">
-                          {user.profile?.fullName || ''}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                  <td
-                    className="px-2 py-2 text-gray-300 text-sm hidden xl:table-cell max-w-[12rem]"
-                    data-label="Email"
+            <div className="overflow-x-auto">
+              <Table
+                headers={[
+                  t('admin.users.col_user'),
+                  t('admin.users.col_email'),
+                  t('admin.users.col_role'),
+                  t('admin.users.col_joined'),
+                  t('admin.users.col_posts'),
+                  t('admin.users.col_status'),
+                  t('admin.users.col_actions'),
+                ]}
+                columnWidths={[
+                  'min-w-[12rem]',
+                  'hidden xl:table-cell min-w-[10rem]',
+                  'w-[7rem]',
+                  'hidden lg:table-cell w-[7rem]',
+                  'w-[4.5rem]',
+                  'w-[6rem]',
+                  'min-w-[11rem]',
+                ]}
+                loading={false}
+                isEmpty={false}
+              >
+                {data?.data.map((user) => (
+                  <tr
+                    key={user.id}
+                    className="hover:bg-white/[0.07] even:bg-white/[0.02] transition-colors border-b border-white/5 last:border-0"
                   >
-                    <span className="block truncate" title={user.email}>
-                      {user.email}
-                    </span>
-                  </td>
-                  <td className="px-2 py-2 text-right" data-label="Rol">
-                    {user.role === 'ADMIN' ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded text-xs font-semibold uppercase border border-brand-primary/20">
-                        <ShieldCheck size={10} />
-                        Admin
-                      </span>
-                    ) : (
-                      <span className="text-gray-500 text-xs">User</span>
-                    )}
-                  </td>
-                  <td
-                    className="px-2 py-2 text-gray-500 text-sm hidden lg:table-cell"
-                    data-label="Unido el"
-                  >
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </td>
-                  <td
-                    className="px-2 py-2 text-gray-300 text-sm font-semibold md:text-center"
-                    data-label="Posts"
-                  >
-                    {user.postCount}
-                  </td>
-                  <td className="px-2 py-2" data-label="Estado">
-                    <StatusBadge status={user.isActive ? 'active' : 'banned'} />
-                  </td>
-                  <td className="px-2 py-2" data-label="Acciones">
-                    <div className="flex gap-1 items-center flex-wrap sm:flex-nowrap">
-                      <ActionButton
+                    <td
+                      className="px-2 py-2"
+                      data-label={t('admin.users.col_user')}
+                    >
+                      <button
+                        type="button"
                         onClick={() => setPreviewUserId(user.id)}
-                        label="Ver Detalle"
-                        variant="ghost"
-                        icon={Eye}
-                        iconOnly
-                      />
-                      {user.isActive ? (
-                        <ActionButton
-                          onClick={() =>
-                            setConfirmAction({
-                              type: 'ban',
-                              id: user.id,
-                              username: user.profile?.username || '',
-                            })
-                          }
-                          label="Banear"
-                          variant="danger"
-                          icon={Ban}
-                          iconOnly
-                          disabled={isPending}
-                        />
-                      ) : (
-                        <ActionButton
-                          onClick={() =>
-                            setConfirmAction({
-                              type: 'unban',
-                              id: user.id,
-                              username: user.profile?.username || '',
-                            })
-                          }
-                          label="Desbanear"
-                          variant="success"
-                          icon={Ban}
-                          iconOnly
-                          disabled={isPending}
-                        />
-                      )}
-                      {user.role === 'USER' ? (
-                        <ActionButton
-                          onClick={() =>
-                            setConfirmAction({
-                              type: 'promote',
-                              id: user.id,
-                              username: user.profile?.username || '',
-                            })
-                          }
-                          label="Promover"
-                          variant="warning"
-                          icon={ShieldCheck}
-                          iconOnly
-                          disabled={isPending}
-                        />
-                      ) : (
-                        <ActionButton
-                          onClick={() =>
-                            setConfirmAction({
-                              type: 'demote',
-                              id: user.id,
-                              username: user.profile?.username || '',
-                            })
-                          }
-                          label="Degradar"
-                          variant="ghost"
-                          icon={ShieldOff}
-                          iconOnly
-                          disabled={isPending}
-                        />
-                      )}
-                      <ActionButton
-                        onClick={() =>
-                          setConfirmAction({
-                            type: 'delete',
-                            id: user.id,
-                            username: user.profile?.username || '',
-                          })
-                        }
-                        label="Eliminar"
-                        variant="danger"
-                        icon={Trash2}
-                        iconOnly
-                        disabled={isPending}
-                      />
-                      <a
-                        href={`/${user.profile?.username || ''}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="Ver perfil"
-                        className="inline-flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-lg text-brand-primary bg-brand-primary/10 hover:bg-brand-primary hover:text-white transition-all shrink-0"
-                        aria-label="Ver perfil del usuario"
+                        className="flex items-center gap-2 text-left w-full min-w-0 group"
                       >
-                        <ExternalLink size={14} />
-                      </a>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
-            </Table>
+                        <UserAvatar
+                          src={user.profile?.avatar || undefined}
+                          thumbnailUrl={user.profile?.thumbnailUrl || undefined}
+                          standardUrl={user.profile?.standardUrl || undefined}
+                          alt={user.profile?.username || 'user'}
+                          size="sm"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1">
+                            <span className="text-white font-semibold text-sm group-hover:text-brand-primary transition-colors truncate">
+                              {displayHandle(user)}
+                            </span>
+                            <VerificationBadge
+                              level={
+                                user.verificationLevel as VerificationLevel
+                              }
+                              size={14}
+                            />
+                          </div>
+                          {user.profile?.fullName && (
+                            <p className="text-gray-500 text-xs truncate">
+                              {user.profile.fullName}
+                            </p>
+                          )}
+                        </div>
+                      </button>
+                    </td>
+                    <td
+                      className="px-2 py-2 text-gray-300 text-sm hidden xl:table-cell max-w-[12rem]"
+                      data-label={t('admin.users.col_email')}
+                    >
+                      <span className="block truncate" title={user.email}>
+                        {user.email}
+                      </span>
+                    </td>
+                    <td
+                      className="px-2 py-2"
+                      data-label={t('admin.users.col_role')}
+                    >
+                      {user.role === 'ADMIN' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded text-xs font-semibold uppercase border border-brand-primary/20">
+                          <ShieldCheck size={10} />
+                          {t('admin.users.role_admin')}
+                        </span>
+                      ) : (
+                        <span className="text-gray-500 text-xs">
+                          {t('admin.users.role_user')}
+                        </span>
+                      )}
+                    </td>
+                    <td
+                      className="px-2 py-2 text-gray-500 text-sm hidden lg:table-cell"
+                      data-label={t('admin.users.col_joined')}
+                    >
+                      {new Date(user.createdAt).toLocaleDateString(dateLocale)}
+                    </td>
+                    <td
+                      className="px-2 py-2 text-gray-300 text-sm font-semibold text-center"
+                      data-label={t('admin.users.col_posts')}
+                    >
+                      {user.postCount}
+                    </td>
+                    <td
+                      className="px-2 py-2"
+                      data-label={t('admin.users.col_status')}
+                    >
+                      <StatusBadge
+                        status={user.isActive ? 'active' : 'banned'}
+                      />
+                    </td>
+                    <td
+                      className="px-2 py-2"
+                      data-label={t('admin.users.col_actions')}
+                    >
+                      <div className="flex gap-1 items-center justify-end">
+                        <ActionButton
+                          onClick={() => setPreviewUserId(user.id)}
+                          label={t('admin.users.action_view_detail')}
+                          variant="ghost"
+                          icon={Eye}
+                          iconOnly
+                        />
+                        {user.isActive ? (
+                          <ActionButton
+                            onClick={() => askConfirm('ban', user)}
+                            label={t('admin.users.action_ban')}
+                            variant="danger"
+                            icon={Ban}
+                            iconOnly
+                            disabled={isPending}
+                          />
+                        ) : (
+                          <ActionButton
+                            onClick={() => askConfirm('unban', user)}
+                            label={t('admin.users.action_unban')}
+                            variant="success"
+                            icon={UserCheck}
+                            iconOnly
+                            disabled={isPending}
+                          />
+                        )}
+                        {user.role === 'USER' ? (
+                          <ActionButton
+                            onClick={() => askConfirm('promote', user)}
+                            label={t('admin.users.action_promote')}
+                            variant="warning"
+                            icon={ShieldCheck}
+                            iconOnly
+                            disabled={isPending}
+                          />
+                        ) : (
+                          <ActionButton
+                            onClick={() => askConfirm('demote', user)}
+                            label={t('admin.users.action_demote')}
+                            variant="ghost"
+                            icon={ShieldOff}
+                            iconOnly
+                            disabled={isPending}
+                          />
+                        )}
+                        <ActionButton
+                          onClick={() => askConfirm('delete', user)}
+                          label={t('admin.users.action_delete')}
+                          variant="danger"
+                          icon={Trash2}
+                          iconOnly
+                          disabled={isPending}
+                        />
+                        <a
+                          href={
+                            usernameOf(user)
+                              ? `/${usernameOf(user)}`
+                              : undefined
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={t('admin.users.action_view_profile')}
+                          className="inline-flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-lg text-brand-primary bg-brand-primary/10 hover:bg-brand-primary hover:text-white transition-all shrink-0"
+                          aria-label={t('admin.users.action_view_profile')}
+                          onClick={(e) => {
+                            if (!usernameOf(user)) e.preventDefault();
+                          }}
+                        >
+                          <ExternalLink size={14} />
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </Table>
+            </div>
           }
         />
         <Pagination meta={data?.meta} onPageChange={setPage} />
       </div>
 
-      {/* Confirm Modal */}
       <ConfirmModal
         isOpen={confirmAction.type !== null}
-        onClose={() => setConfirmAction({ type: null, id: null, username: '' })}
+        onClose={clearConfirm}
         onConfirm={handleConfirm}
         title={activeConfig?.title || ''}
         message={activeConfig?.message || ''}
-        confirmText={activeConfig?.confirmText || 'Confirmar'}
-        cancelText="Cancelar"
+        confirmText={activeConfig?.confirmText || t('admin.shared.confirm')}
+        cancelText={t('admin.shared.cancel')}
         isDestructive={activeConfig?.destructive ?? true}
         isLoading={isPending}
       />
 
-      {/* Preview Modal */}
       <UserPreviewModal
         userId={previewUserId}
         isOpen={!!previewUserId}

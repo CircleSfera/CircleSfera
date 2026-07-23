@@ -10,6 +10,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
@@ -56,6 +57,7 @@ interface Props {
 }
 
 export default function PromotionsTab({ onToast }: Props) {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -118,18 +120,18 @@ export default function PromotionsTab({ onToast }: Props) {
 
       const msg =
         variables.status === 'ACTIVE'
-          ? 'Promoción aprobada'
-          : 'Promoción rechazada';
+          ? t('admin.promotions.toast_approved')
+          : t('admin.promotions.toast_rejected');
       onToast(msg, 'success');
     },
-    onError: () => onToast('Error al actualizar promoción', 'error'),
+    onError: () => onToast(t('admin.promotions.toast_error'), 'error'),
   });
 
   return (
     <div className="flex flex-col min-h-0 space-y-4">
       <AdminPageHeader
-        title="Cola de Promociones"
-        subtitle="Solicitudes de anuncios y posts patrocinados"
+        title={t('admin.promotions.title')}
+        subtitle={t('admin.promotions.subtitle')}
       />
 
       <AdminFilterBar>
@@ -140,22 +142,25 @@ export default function PromotionsTab({ onToast }: Props) {
               setSearch(val);
               setPage(1);
             }}
-            placeholder="Buscar usuario..."
+            placeholder={t('admin.promotions.search_placeholder')}
           />
         </div>
         <FilterDropdown
-          label="Estado"
+          label={t('admin.promotions.filter_status')}
           value={statusFilter}
           onChange={(v) => {
             setStatusFilter(v);
             setPage(1);
           }}
           options={[
-            { value: '', label: 'Todos' },
-            { value: 'PENDING', label: 'Pendientes' },
-            { value: 'ACTIVE', label: 'Activas' },
-            { value: 'COMPLETED', label: 'Completadas' },
-            { value: 'REJECTED', label: 'Rechazadas' },
+            { value: '', label: t('admin.promotions.status_all') },
+            { value: 'PENDING', label: t('admin.promotions.status_pending') },
+            { value: 'ACTIVE', label: t('admin.promotions.status_active') },
+            {
+              value: 'COMPLETED',
+              label: t('admin.promotions.status_completed'),
+            },
+            { value: 'REJECTED', label: t('admin.promotions.status_rejected') },
           ]}
         />
       </AdminFilterBar>
@@ -163,13 +168,17 @@ export default function PromotionsTab({ onToast }: Props) {
       <AdminSplitView
         hasSelection={!!selectedPromoId}
         onBack={() => setSelectedPromoId(null)}
-        listTitle={`Solicitudes (${data?.meta.total || 0})`}
+        listTitle={t('admin.promotions.list_title', {
+          count: data?.meta.total || 0,
+        })}
         list={
           <div className="flex flex-col h-full min-h-0">
             <div className="p-3 border-b border-white/5 shrink-0 flex justify-between items-center lg:hidden">
               <h3 className="font-semibold text-white text-sm flex items-center gap-2">
                 <Target size={16} className="text-brand-primary" />
-                Solicitudes ({data?.meta.total || 0})
+                {t('admin.promotions.list_title', {
+                  count: data?.meta.total || 0,
+                })}
               </h3>
             </div>
 
@@ -181,13 +190,13 @@ export default function PromotionsTab({ onToast }: Props) {
                   icon={Megaphone}
                   title={
                     isFiltered
-                      ? 'Sin promociones con estos filtros'
-                      : 'No hay promociones encontradas'
+                      ? t('admin.promotions.empty_filtered_title')
+                      : t('admin.promotions.empty_title')
                   }
                   description={
                     isFiltered
-                      ? 'Prueba otro término o ajusta el filtro de estado.'
-                      : 'No hay solicitudes de promoción en este momento.'
+                      ? t('admin.promotions.empty_filtered_description')
+                      : t('admin.promotions.empty_description')
                   }
                   action={
                     isFiltered ? (
@@ -196,7 +205,7 @@ export default function PromotionsTab({ onToast }: Props) {
                         variant="secondary"
                         className="min-h-11"
                       >
-                        Limpiar filtros
+                        {t('admin.shared.clear_filters')}
                       </Button>
                     ) : undefined
                   }
@@ -213,7 +222,11 @@ export default function PromotionsTab({ onToast }: Props) {
                         : undefined
                     }
                     title={`@${promo.user.profile.username}`}
-                    subtitle={`${promo.budget} ${promo.currency} · ${promo.reach.toLocaleString()} alcance est.`}
+                    subtitle={t('admin.promotions.reach_estimate', {
+                      budget: promo.budget,
+                      currency: promo.currency,
+                      reach: promo.reach.toLocaleString(),
+                    })}
                     badge={<StatusBadge status={promo.status} />}
                     avatar={
                       <div className="w-12 h-12 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden shrink-0">
@@ -281,7 +294,9 @@ export default function PromotionsTab({ onToast }: Props) {
                           className="min-h-11 px-3 md:px-4 py-2 text-sm font-semibold border-red-500/20"
                         >
                           <XCircle size={16} className="mr-2 hidden md:block" />{' '}
-                          <span className="hidden md:inline">Rechazar</span>
+                          <span className="hidden md:inline">
+                            {t('admin.promotions.action_reject')}
+                          </span>
                           <XCircle size={16} className="md:hidden" />
                         </Button>
                         <Button
@@ -299,7 +314,9 @@ export default function PromotionsTab({ onToast }: Props) {
                             size={16}
                             className="mr-2 hidden md:block"
                           />{' '}
-                          <span className="hidden md:inline">Aprobar</span>
+                          <span className="hidden md:inline">
+                            {t('admin.promotions.action_approve')}
+                          </span>
                           <CheckCircle size={16} className="md:hidden" />
                         </Button>
                       </>
@@ -309,7 +326,7 @@ export default function PromotionsTab({ onToast }: Props) {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors shrink-0"
-                      title="Abrir en nueva pestaña"
+                      title={t('admin.promotions.open_new_tab')}
                     >
                       <ExternalLink size={18} />
                     </a>
@@ -320,7 +337,7 @@ export default function PromotionsTab({ onToast }: Props) {
                   <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-lg p-3 sm:p-4 mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:divide-x sm:divide-white/5">
                     <div className="px-1 sm:px-2">
                       <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">
-                        Presupuesto
+                        {t('admin.promotions.budget_label')}
                       </p>
                       <p className="text-lg font-semibold text-white">
                         {selectedPromo.budget}{' '}
@@ -331,7 +348,7 @@ export default function PromotionsTab({ onToast }: Props) {
                     </div>
                     <div className="px-2 sm:px-4">
                       <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">
-                        Alcance Est.
+                        {t('admin.promotions.reach_label')}
                       </p>
                       <p className="text-base sm:text-lg font-semibold text-emerald-400 flex items-center gap-1.5">
                         <TrendingUp size={14} />
@@ -340,7 +357,7 @@ export default function PromotionsTab({ onToast }: Props) {
                     </div>
                     <div className="px-2 sm:px-4">
                       <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">
-                        Fecha Inicio
+                        {t('admin.promotions.start_date_label')}
                       </p>
                       <p className="text-sm font-semibold text-white">
                         {new Date(selectedPromo.startDate).toLocaleDateString()}
@@ -348,7 +365,7 @@ export default function PromotionsTab({ onToast }: Props) {
                     </div>
                     <div className="px-2 sm:px-4">
                       <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">
-                        Estado
+                        {t('admin.promotions.status_label')}
                       </p>
                       <StatusBadge status={selectedPromo.status} />
                     </div>
@@ -357,7 +374,9 @@ export default function PromotionsTab({ onToast }: Props) {
                   <div className="w-full max-w-md bg-zinc-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl">
                     <div className="p-3 bg-white/5 border-b border-white/10 flex items-center justify-between">
                       <span className="text-xs font-semibold uppercase tracking-wide text-brand-primary">
-                        {selectedPromo.targetType} Promocionado
+                        {t('admin.promotions.promoted_type', {
+                          type: selectedPromo.targetType,
+                        })}
                       </span>
                     </div>
 
@@ -398,7 +417,7 @@ export default function PromotionsTab({ onToast }: Props) {
                         </p>
                       ) : (
                         <p className="text-gray-500 text-sm italic">
-                          Sin descripción
+                          {t('admin.promotions.no_description')}
                         </p>
                       )}
                     </div>
@@ -409,8 +428,8 @@ export default function PromotionsTab({ onToast }: Props) {
               <div className="flex-1 flex items-center justify-center p-6">
                 <AdminEmptyState
                   icon={Megaphone}
-                  title="Selecciona una promoción"
-                  description="Para revisar los detalles y aprobar la campaña"
+                  title={t('admin.promotions.detail_select_title')}
+                  description={t('admin.promotions.detail_select_description')}
                 />
               </div>
             )}
@@ -431,14 +450,14 @@ export default function PromotionsTab({ onToast }: Props) {
           }
           setConfirmRejectOpen(false);
         }}
-        title="¿Rechazar promoción?"
-        message="Opcionalmente puedes proporcionar un motivo para el rechazo."
-        confirmText="Rechazar"
-        cancelText="Cancelar"
+        title={t('admin.promotions.confirm_reject_title')}
+        message={t('admin.promotions.confirm_reject_message')}
+        confirmText={t('admin.promotions.confirm_reject')}
+        cancelText={t('admin.shared.cancel')}
         isDestructive={true}
         showInput={true}
-        inputLabel="Motivo del rechazo"
-        inputPlaceholder="Escribe el motivo del rechazo..."
+        inputLabel={t('admin.promotions.reject_reason_label')}
+        inputPlaceholder={t('admin.promotions.reject_reason_placeholder')}
         inputRequired={false}
       />
     </div>

@@ -1,9 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle, Eye, Ghost, ShieldAlert, Trash2 } from 'lucide-react';
+import {
+  CheckCircle,
+  ExternalLink,
+  Eye,
+  Ghost,
+  ShieldAlert,
+  Trash2,
+} from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
-import type { AdminPost } from '../../services/admin.service';
+import type { AdminModerationItem } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import ConfirmModal from '../modals/ConfirmModal';
@@ -23,27 +32,34 @@ import {
 } from './AdminTable';
 import AppealsList from './AppealsList';
 
+type ModerationEntityType = AdminModerationItem['entityType'];
+
+function itemKey(item: Pick<AdminModerationItem, 'id' | 'entityType'>) {
+  return `${item.entityType}:${item.id}`;
+}
+
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
 }
 
 export default function ModerationTab({ onToast }: Props) {
+  const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<'queue' | 'appeals'>('queue');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const debouncedSearch = useDebouncedValue(search, 400);
   const queryClient = useQueryClient();
 
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [selectedItemKey, setSelectedItemKey] = useState<string | null>(null);
   const [actionItem, setActionItem] = useState<{
     id: string;
-    type: any;
-    status: any;
+    entityType: ModerationEntityType;
+    status: 'VISIBLE' | 'HIDDEN' | 'REMOVED';
   } | null>(null);
 
-  const { data, isLoading } = useQuery<PaginatedResponse<AdminPost>>({
+  const { data, isLoading } = useQuery<PaginatedResponse<AdminModerationItem>>({
     queryKey: ['admin', 'moderation', page, typeFilter, debouncedSearch],
     queryFn: () =>
       adminApi
@@ -53,59 +69,66 @@ export default function ModerationTab({ onToast }: Props) {
           typeFilter || undefined,
           debouncedSearch || undefined,
         )
-        .then((res) => res.data as PaginatedResponse<AdminPost>),
+        .then((res) => res.data as PaginatedResponse<AdminModerationItem>),
   });
 
   const items = data?.data || [];
-  const selectedItem = items.find((i) => i.id === selectedItemId);
+  const selectedItem = items.find((i) => itemKey(i) === selectedItemKey);
 
   const moderationMutation = useMutation({
     mutationFn: ({
       id,
-      type,
+      entityType,
       status,
       note,
     }: {
       id: string;
-      type: any;
-      status: any;
+      entityType: ModerationEntityType;
+      status: 'VISIBLE' | 'HIDDEN' | 'REMOVED';
       note?: string;
-    }) => adminApi.updateModerationStatus(type, id, status, note),
+    }) => adminApi.updateModerationStatus(entityType, id, status, note),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'moderation'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'posts'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
       setActionItem(null);
 
-      // Auto-advance to next item
-      if (selectedItemId) {
-        const currentIndex = items.findIndex((i) => i.id === selectedItemId);
+      if (selectedItemKey) {
+        const currentIndex = items.findIndex(
+          (i) => itemKey(i) === selectedItemKey,
+        );
         if (currentIndex !== -1 && currentIndex + 1 < items.length) {
-          setSelectedItemId(items[currentIndex + 1].id);
+          setSelectedItemKey(itemKey(items[currentIndex + 1]));
         } else {
-          setSelectedItemId(null);
+          setSelectedItemKey(null);
         }
       }
 
-      const actionName =
+      const toastKey =
         variables.status === 'VISIBLE'
-          ? 'aprobado'
+          ? 'admin.moderation.toast_approved'
           : variables.status === 'HIDDEN'
-            ? 'ocultado'
-            : 'eliminado';
-      onToast(`Contenido ${actionName} correctamente`, 'success');
+            ? 'admin.moderation.toast_hidden'
+            : 'admin.moderation.toast_removed';
+      onToast(t(toastKey), 'success');
     },
-    onError: () => onToast('Error al procesar moderación', 'error'),
+    onError: () => onToast(t('admin.moderation.toast_error'), 'error'),
   });
 
   const batchModerationMutation = useMutation({
-    mutationFn: async ({ status, note }: { status: any; note?: string }) => {
-      const promises = Array.from(selectedIds).map((id) => {
-        const item = items.find((i) => i.id === id);
+    mutationFn: async ({
+      status,
+      note,
+    }: {
+      status: 'VISIBLE' | 'HIDDEN' | 'REMOVED';
+      note?: string;
+    }) => {
+      const promises = Array.from(selectedKeys).map((key) => {
+        const item = items.find((i) => itemKey(i) === key);
         if (!item) return Promise.resolve();
         return adminApi.updateModerationStatus(
-          item.type as 'POST' | 'STORY' | 'COMMENT',
-          id,
+          item.entityType,
+          item.id,
           status,
           note,
         );
@@ -114,38 +137,38 @@ export default function ModerationTab({ onToast }: Props) {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'moderation'] });
-      setSelectedIds(new Set());
-      const actionName =
-        variables.status === 'VISIBLE' ? 'aprobados' : 'ocultados';
-      onToast(
-        `${selectedIds.size} elementos ${actionName} correctamente`,
-        'success',
-      );
+      const count = selectedKeys.size;
+      setSelectedKeys(new Set());
+      const toastKey =
+        variables.status === 'VISIBLE'
+          ? 'admin.moderation.toast_batch_approved'
+          : 'admin.moderation.toast_batch_hidden';
+      onToast(t(toastKey, { count }), 'success');
     },
-    onError: () => onToast('Error al procesar lote', 'error'),
+    onError: () => onToast(t('admin.moderation.toast_batch_error'), 'error'),
   });
 
-  const toggleSelect = (id: string, e: React.SyntheticEvent) => {
+  const toggleSelect = (key: string, e: React.SyntheticEvent) => {
     e.stopPropagation();
-    const newSelected = new Set(selectedIds);
-    if (newSelected.has(id)) newSelected.delete(id);
-    else newSelected.add(id);
-    setSelectedIds(newSelected);
+    const next = new Set(selectedKeys);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    setSelectedKeys(next);
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === items.length && items.length > 0) {
-      setSelectedIds(new Set());
+    if (selectedKeys.size === items.length && items.length > 0) {
+      setSelectedKeys(new Set());
     } else {
-      setSelectedIds(new Set(items.map((i) => i.id)));
+      setSelectedKeys(new Set(items.map((i) => itemKey(i))));
     }
   };
 
   return (
     <div className="flex flex-col min-h-0 space-y-4">
       <AdminPageHeader
-        title="Cola de Moderación AI"
-        subtitle="Contenido marcado automáticamente por el sistema"
+        title={t('admin.moderation.title')}
+        subtitle={t('admin.moderation.subtitle')}
         actions={
           <div className="flex flex-col xs:flex-row gap-1.5 xs:gap-2 bg-white/5 p-1 rounded-lg w-full sm:w-auto">
             <button
@@ -153,14 +176,14 @@ export default function ModerationTab({ onToast }: Props) {
               onClick={() => setViewMode('queue')}
               className={`px-3 sm:px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors w-full xs:w-auto ${viewMode === 'queue' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'}`}
             >
-              Cola de Moderación
+              {t('admin.moderation.tab_queue')}
             </button>
             <button
               type="button"
               onClick={() => setViewMode('appeals')}
               className={`px-3 sm:px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors w-full xs:w-auto ${viewMode === 'appeals' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'}`}
             >
-              Apelaciones
+              {t('admin.moderation.tab_appeals')}
             </button>
           </div>
         }
@@ -175,35 +198,48 @@ export default function ModerationTab({ onToast }: Props) {
                 setSearch(val);
                 setPage(1);
               }}
-              placeholder="Buscar..."
+              placeholder={t('admin.moderation.search_placeholder')}
             />
           </div>
           <FilterDropdown
-            label="Tipo"
+            label={t('admin.moderation.filter_type')}
             value={typeFilter}
             onChange={(v) => {
               setTypeFilter(v);
               setPage(1);
             }}
             options={[
-              { value: '', label: 'Todos' },
-              { value: 'POST', label: 'Posts' },
-              { value: 'STORY', label: 'Historias' },
-              { value: 'COMMENT', label: 'Comentarios' },
+              { value: '', label: t('admin.moderation.type_all') },
+              { value: 'POST', label: t('admin.moderation.type_post') },
+              { value: 'STORY', label: t('admin.moderation.type_story') },
+              { value: 'COMMENT', label: t('admin.moderation.type_comment') },
             ]}
           />
         </AdminFilterBar>
       )}
 
       {viewMode === 'appeals' ? (
-        <div className="rounded-xl border border-white/10 bg-black/20 p-2">
-          <AppealsList />
+        <div className="rounded-xl border border-white/10 bg-black/20 p-2 space-y-2">
+          <div className="flex justify-end px-1">
+            <Link
+              to="/admin/appeals"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-primary hover:text-brand-primary/80 transition-colors"
+            >
+              {t('admin.shared.view_full_panel')}
+              <ExternalLink size={12} />
+            </Link>
+          </div>
+          <AppealsList
+            statusFilter="PENDING"
+            limit={5}
+            showPagination={false}
+          />
         </div>
       ) : (
         <>
           {/* Batch Actions Bar */}
           <AnimatePresence>
-            {selectedIds.size > 0 && (
+            {selectedKeys.size > 0 && (
               <motion.div
                 initial={{ opacity: 0, height: 0, marginBottom: 0 }}
                 animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
@@ -211,7 +247,9 @@ export default function ModerationTab({ onToast }: Props) {
                 className="flex flex-wrap items-center gap-2 p-2 bg-white/5 border border-white/10 rounded-lg shrink-0"
               >
                 <span className="px-2 sm:px-3 text-sm font-semibold text-white">
-                  {selectedIds.size} seleccionados
+                  {t('admin.shared.selected_count', {
+                    count: selectedKeys.size,
+                  })}
                 </span>
                 <ActionButton
                   onClick={() =>
@@ -220,7 +258,7 @@ export default function ModerationTab({ onToast }: Props) {
                       note: 'Batch Approved',
                     })
                   }
-                  label="Aprobar (Falso Positivo)"
+                  label={t('admin.moderation.approve_false_positive')}
                   variant="success"
                   icon={CheckCircle}
                   disabled={batchModerationMutation.isPending}
@@ -232,7 +270,7 @@ export default function ModerationTab({ onToast }: Props) {
                       note: 'Batch Hidden',
                     })
                   }
-                  label="Ocultar (Shadowban)"
+                  label={t('admin.moderation.hide_shadowban')}
                   variant="warning"
                   icon={Eye}
                   disabled={batchModerationMutation.isPending}
@@ -243,9 +281,9 @@ export default function ModerationTab({ onToast }: Props) {
 
           {/* Split Pane Layout */}
           <AdminSplitView
-            hasSelection={!!selectedItemId}
-            onBack={() => setSelectedItemId(null)}
-            listTitle="Cola de moderación"
+            hasSelection={!!selectedItemKey}
+            onBack={() => setSelectedItemKey(null)}
+            listTitle={t('admin.moderation.list_title')}
             list={
               <div className="flex flex-col h-full min-h-0">
                 <div className="p-3 border-b border-white/5 shrink-0 flex items-center gap-3">
@@ -253,12 +291,12 @@ export default function ModerationTab({ onToast }: Props) {
                     type="checkbox"
                     className="rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
                     checked={
-                      selectedIds.size === items.length && items.length > 0
+                      selectedKeys.size === items.length && items.length > 0
                     }
                     onChange={toggleSelectAll}
                   />
                   <h3 className="font-semibold text-white text-sm">
-                    Seleccionar Todos
+                    {t('admin.shared.select_all')}
                   </h3>
                 </div>
 
@@ -268,64 +306,67 @@ export default function ModerationTab({ onToast }: Props) {
                   ) : items.length === 0 ? (
                     <AdminEmptyState
                       icon={ShieldAlert}
-                      title="No hay contenido pendiente"
-                      description="La cola de moderación está vacía."
+                      title={t('admin.moderation.empty_title')}
+                      description={t('admin.moderation.empty_description')}
                       compact
                     />
                   ) : (
-                    items.map((item) => (
-                      <AdminListRow
-                        key={item.id}
-                        onClick={() => setSelectedItemId(item.id)}
-                        className={
-                          selectedItemId === item.id
-                            ? 'border-brand-primary/30 bg-brand-primary/10'
-                            : undefined
-                        }
-                        title={item.caption || '(Sin texto)'}
-                        subtitle={`@${item.user?.profile?.username || '—'}`}
-                        meta={
-                          <span className="text-red-400 truncate">
-                            {item.moderationNote?.replace(
-                              '[AI Automated Flag]: ',
-                              '',
-                            ) || 'Flagged'}
-                          </span>
-                        }
-                        badge={
-                          <span className="text-xs font-semibold uppercase text-amber-500">
-                            {item.type}
-                          </span>
-                        }
-                        avatar={
-                          <div className="flex items-start gap-2">
-                            <input
-                              type="checkbox"
-                              className="mt-1 rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
-                              checked={selectedIds.has(item.id)}
-                              onChange={(e) => toggleSelect(item.id, e)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            <div className="w-12 h-12 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden shrink-0">
-                              {item.media?.[0]?.url ? (
-                                <img
-                                  src={
-                                    item.media[0].thumbnailUrl ||
-                                    item.media[0].url
-                                  }
-                                  alt=""
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-zinc-700">
-                                  <Ghost size={16} />
-                                </div>
-                              )}
+                    items.map((item) => {
+                      const key = itemKey(item);
+                      return (
+                        <AdminListRow
+                          key={key}
+                          onClick={() => setSelectedItemKey(key)}
+                          className={
+                            selectedItemKey === key
+                              ? 'border-brand-primary/30 bg-brand-primary/10'
+                              : undefined
+                          }
+                          title={item.caption || t('admin.shared.no_text')}
+                          subtitle={`@${item.user?.profile?.username || '—'}`}
+                          meta={
+                            <span className="text-red-400 truncate">
+                              {item.moderationNote?.replace(
+                                '[AI Automated Flag]: ',
+                                '',
+                              ) || 'Flagged'}
+                            </span>
+                          }
+                          badge={
+                            <span className="text-xs font-semibold uppercase text-amber-500">
+                              {item.entityType}
+                            </span>
+                          }
+                          avatar={
+                            <div className="flex items-start gap-2">
+                              <input
+                                type="checkbox"
+                                className="mt-1 rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
+                                checked={selectedKeys.has(key)}
+                                onChange={(e) => toggleSelect(key, e)}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <div className="w-12 h-12 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden shrink-0">
+                                {item.media?.[0]?.url ? (
+                                  <img
+                                    src={
+                                      item.media[0].thumbnailUrl ||
+                                      item.media[0].url
+                                    }
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                                    <Ghost size={16} />
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        }
-                      />
-                    ))
+                          }
+                        />
+                      );
+                    })
                   )}
                 </div>
 
@@ -336,11 +377,11 @@ export default function ModerationTab({ onToast }: Props) {
             }
             detail={
               <AnimatePresence mode="wait">
-                {isLoading && selectedItemId && !selectedItem ? (
+                {isLoading && selectedItemKey && !selectedItem ? (
                   <AdminDetailSkeleton />
                 ) : selectedItem ? (
                   <motion.div
-                    key={selectedItem.id}
+                    key={itemKey(selectedItem)}
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.98 }}
@@ -359,6 +400,7 @@ export default function ModerationTab({ onToast }: Props) {
                             @{selectedItem.user?.profile?.username}
                           </h3>
                           <p className="text-xs text-gray-300">
+                            {selectedItem.entityType} ·{' '}
                             {new Date(selectedItem.createdAt).toLocaleString()}
                           </p>
                         </div>
@@ -368,10 +410,7 @@ export default function ModerationTab({ onToast }: Props) {
                           onClick={() =>
                             moderationMutation.mutate({
                               id: selectedItem.id,
-                              type: selectedItem.type as
-                                | 'POST'
-                                | 'STORY'
-                                | 'COMMENT',
+                              entityType: selectedItem.entityType,
                               status: 'VISIBLE',
                               note: 'Aprobado (Falso Positivo)',
                             })
@@ -381,13 +420,13 @@ export default function ModerationTab({ onToast }: Props) {
                           className="min-h-11 text-sm font-semibold border-green-500/20 w-full sm:w-auto"
                         >
                           <CheckCircle size={16} className="mr-2" />
-                          Aprobar (Seguro)
+                          {t('admin.moderation.approve_safe')}
                         </Button>
                         <Button
                           onClick={() =>
                             setActionItem({
                               id: selectedItem.id,
-                              type: selectedItem.type,
+                              entityType: selectedItem.entityType,
                               status: 'REMOVED',
                             })
                           }
@@ -395,7 +434,7 @@ export default function ModerationTab({ onToast }: Props) {
                           className="min-h-11 text-sm font-semibold border-red-500/20 w-full sm:w-auto"
                         >
                           <Trash2 size={16} className="mr-2" />
-                          Eliminar
+                          {t('admin.moderation.delete')}
                         </Button>
                       </div>
                     </div>
@@ -408,11 +447,11 @@ export default function ModerationTab({ onToast }: Props) {
                         />
                         <div className="min-w-0">
                           <h4 className="text-red-500 font-semibold text-sm mb-1">
-                            Detección Automática AI
+                            {t('admin.moderation.ai_detection_title')}
                           </h4>
                           <p className="text-xs sm:text-sm text-red-200">
                             {selectedItem.moderationNote ||
-                              'Contenido marcado por incumplimiento de las políticas.'}
+                              t('admin.moderation.ai_detection_fallback')}
                           </p>
                         </div>
                       </div>
@@ -451,7 +490,7 @@ export default function ModerationTab({ onToast }: Props) {
                             </p>
                           ) : (
                             <p className="text-gray-500 text-sm italic">
-                              Sin texto
+                              {t('admin.shared.no_text')}
                             </p>
                           )}
                         </div>
@@ -466,8 +505,10 @@ export default function ModerationTab({ onToast }: Props) {
                   >
                     <AdminEmptyState
                       icon={ShieldAlert}
-                      title="Selecciona un elemento de la cola"
-                      description="Para revisar el contenido reportado por la IA"
+                      title={t('admin.moderation.detail_empty_title')}
+                      description={t(
+                        'admin.moderation.detail_empty_description',
+                      )}
                     />
                   </motion.div>
                 )}
@@ -483,16 +524,16 @@ export default function ModerationTab({ onToast }: Props) {
               if (actionItem) {
                 moderationMutation.mutate({
                   id: actionItem.id,
-                  type: actionItem.type,
+                  entityType: actionItem.entityType,
                   status: actionItem.status,
                   note: 'Eliminado permanentemente por moderación',
                 });
               }
             }}
-            title="¿Confirmar acción?"
-            message="Esta acción eliminará el contenido permanentemente de la plataforma. ¿Estás seguro?"
-            confirmText="Sí, Eliminar"
-            cancelText="Cancelar"
+            title={t('admin.moderation.confirm_title')}
+            message={t('admin.moderation.confirm_message')}
+            confirmText={t('admin.moderation.confirm_delete')}
+            cancelText={t('admin.shared.cancel')}
             isDestructive={true}
             isLoading={moderationMutation.isPending}
           />

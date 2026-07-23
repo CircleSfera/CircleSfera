@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import { MoreHorizontal } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 
@@ -243,14 +244,19 @@ interface AdminListProps {
 export function AdminList({
   loading,
   isEmpty,
-  emptyTitle = 'No hay datos disponibles',
-  emptyDescription = 'No se encontraron registros con los filtros seleccionados.',
+  emptyTitle,
+  emptyDescription,
   emptyAction,
   emptyIcon,
   mobile,
   desktop,
   className,
 }: AdminListProps) {
+  const { t } = useTranslation();
+  const resolvedEmptyTitle = emptyTitle ?? t('admin.table.empty_title');
+  const resolvedEmptyDescription =
+    emptyDescription ?? t('admin.table.empty_description');
+
   if (loading) {
     return (
       <div className={clsx('space-y-2', className)}>
@@ -269,8 +275,8 @@ export function AdminList({
       <AdminEmptyState
         className={className}
         icon={emptyIcon}
-        title={emptyTitle}
-        description={emptyDescription}
+        title={resolvedEmptyTitle}
+        description={resolvedEmptyDescription}
         action={emptyAction}
       />
     );

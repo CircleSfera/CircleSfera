@@ -18,4 +18,25 @@ export class AdminQueryDto extends PaginationDto {
   @IsOptional()
   @IsString()
   moderationStatus?: string;
+
+  /** AdminAuditLog.action filter (e.g. BAN_USER). */
+  @IsOptional()
+  @IsString()
+  action?: string;
+
+  /** ISO date string — inclusive lower bound for createdAt. */
+  @IsOptional()
+  @IsString()
+  from?: string;
+
+  /** ISO date string — inclusive upper bound for createdAt. */
+  @IsOptional()
+  @IsString()
+  to?: string;
+
+  /** Stories: true = expired, false = still active. */
+  @IsOptional()
+  @IsString()
+  @IsIn(['true', 'false'])
+  expired?: string;
 }

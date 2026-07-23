@@ -8,13 +8,17 @@ import {
   Hash,
   ImageIcon,
   LayoutDashboard,
+  LifeBuoy,
   type LucideIcon,
   Mail,
   Megaphone,
   MessageCircle,
   Music,
+  Radio,
+  Scale,
   ScrollText,
   Settings,
+  Shield,
   ShieldAlert,
   ShieldCheck,
   Users,
@@ -38,7 +42,11 @@ export type AdminTab =
   | 'firewall'
   | 'newsletter'
   | 'experiments'
-  | 'system-health';
+  | 'system-health'
+  | 'appeals'
+  | 'support'
+  | 'trust'
+  | 'live';
 
 export interface AdminNavItem {
   id: AdminTab;
@@ -136,6 +144,12 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         icon: Clock,
       },
       {
+        id: 'live',
+        labelKey: 'admin.nav.live',
+        labelFallback: 'Live',
+        icon: Radio,
+      },
+      {
         id: 'comments',
         labelKey: 'admin.nav.comments',
         labelFallback: 'Comentarios',
@@ -174,6 +188,12 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         icon: Activity,
       },
       {
+        id: 'trust',
+        labelKey: 'admin.nav.trust',
+        labelFallback: 'Confianza',
+        icon: Shield,
+      },
+      {
         id: 'experiments',
         labelKey: 'admin.nav.experiments',
         labelFallback: 'Experimentos',
@@ -190,6 +210,18 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         labelKey: 'admin.nav.audit',
         labelFallback: 'Audit Log',
         icon: ScrollText,
+      },
+      {
+        id: 'appeals',
+        labelKey: 'admin.nav.appeals',
+        labelFallback: 'Apelaciones',
+        icon: Scale,
+      },
+      {
+        id: 'support',
+        labelKey: 'admin.nav.support',
+        labelFallback: 'Soporte',
+        icon: LifeBuoy,
       },
     ],
   },

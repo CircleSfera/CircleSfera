@@ -1,3 +1,4 @@
+import type { PaginatedResponse } from '../types';
 import { apiClient } from './api';
 
 export type AppealTargetType = 'ACCOUNT_BAN' | 'POST_REMOVAL';
@@ -38,9 +39,15 @@ export const getMyAppeals = async (): Promise<Appeal[]> => {
   return response.data;
 };
 
-// Admin methods
-export const getAdminAppeals = async (): Promise<Appeal[]> => {
-  const response = await apiClient.get<Appeal[]>('/appeals/admin');
+export const getAdminAppeals = async (
+  page = 1,
+  limit = 20,
+  status?: AppealStatus,
+): Promise<PaginatedResponse<Appeal>> => {
+  const response = await apiClient.get<PaginatedResponse<Appeal>>(
+    '/appeals/admin',
+    { params: { page, limit, status } },
+  );
   return response.data;
 };
 
