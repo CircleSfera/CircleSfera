@@ -96,4 +96,9 @@ export class MonetizationController {
   async getDashboard(@Req() req: AuthRequest) {
     return this.monetizationService.getDashboardLink(req.user.userId);
   }
+
+  @Get('payouts')
+  async getPayouts(@Req() req: AuthRequest) {
+    return this.monetizationService.getConnectPayoutsSummary(req.user.userId);
+  }
 }
