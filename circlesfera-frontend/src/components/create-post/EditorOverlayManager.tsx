@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { toast } from 'react-hot-toast';
 import type { MediaFile } from '../../hooks/useCreatePost';
 import type { StoryElement } from '../../types';
 
@@ -123,7 +124,7 @@ export default function EditorOverlayManager({
                   return { ...m, filter: filterString };
                 }),
               );
-              alert('Filtros aplicados a todos los archivos');
+              toast.success('Filtros aplicados a todos los archivos');
             }}
           />
         </div>
