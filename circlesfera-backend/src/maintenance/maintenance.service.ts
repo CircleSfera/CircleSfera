@@ -96,7 +96,7 @@ export class MaintenanceService {
 
       const result = await this.prisma.promotion.updateMany({
         where: {
-          status: 'ACTIVE',
+          status: { in: ['ACTIVE', 'PAUSED'] },
           endDate: { lt: now },
         },
         data: {

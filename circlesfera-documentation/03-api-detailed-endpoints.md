@@ -240,7 +240,10 @@ Source: `creator/creator.controller.ts`
 | GET | `/creator/promotions` |
 | POST | `/creator/promotions` |
 | POST | `/creator/promotions/:id/view` |
+| POST | `/creator/promotions/:id/pause` |
+| POST | `/creator/promotions/:id/resume` |
 | DELETE | `/creator/promotions/:id` |
+| PATCH | `/creator/promotions/:id` |
 | POST | `/creator/subscribe` |
 | GET | `/creator/subscription/:creatorId` |
 | GET | `/creator/analytics/revenue` |

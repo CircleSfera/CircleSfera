@@ -1,6 +1,6 @@
 # Documentation status
 
-**Last status note:** Jul 2026 — PRD v4.0 remediation on `main`; prod schema catch-up for polls/QnA/live/voice
+**Last status note:** Jul 2026 — Promotion `PAUSED` + proportional Stripe refunds on cancel
 
 ## Remediation vs PRD v4.0 (implemented)
 
@@ -8,7 +8,7 @@
 - User control: mute entry on profile/post menus; `UserSettings` prefs applied to feed (content rating) + push
 - Monetization contracts: one active platform plan enforced; `GET /payments/status`; creator sub list/check/cancel; Elite guard scoped
 - Discovery: ProfileEmbedding writer on profile update + `npm run embeddings:backfill`; recommendation signals; poll/QnA create (posts) + display
-- Promotions: cancel → `CANCELLED`; `PATCH` edit targeting/endDate; no dedicated `PAUSED` / Stripe auto-refunds (deferred by product)
+- Promotions: `PAUSED` / resume; cancel → `CANCELLED` with proportional unused-budget Stripe refund (`refundPolicy=PROPORTIONAL`); `PATCH` edit targeting/endDate; feed injects only `ACTIVE`
 
 ## Production incident (Jul 2026)
 
@@ -18,7 +18,6 @@ Follow-up: CI runs `scripts/check-prisma-schema-migrations.sh` (replay migration
 
 ## Still deferred / out of scope
 
-- Promotion `PAUSED` status + Stripe proportional refunds (schema fields exist for refunds; not wired)
 - Feed-preference domain tables (absent by design in PRD future)
 
 ## Doc / source of truth

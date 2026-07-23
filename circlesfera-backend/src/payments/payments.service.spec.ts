@@ -217,7 +217,7 @@ describe('PaymentsService', () => {
 
       expect(prisma.promotion.update).toHaveBeenCalledWith({
         where: { id: 'promo_test_id' },
-        data: { status: 'ACTIVE' },
+        data: { status: 'ACTIVE', chargedAt: expect.any(Date) },
       });
 
       expect(slackService.sendPaymentAlert).toHaveBeenCalled();

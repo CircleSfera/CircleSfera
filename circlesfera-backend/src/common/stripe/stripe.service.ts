@@ -59,6 +59,79 @@ export class StripeService implements OnModuleInit {
     return this.stripe.checkout.sessions.create(params, options);
   }
 
+  /**
+   * Retrieve a Checkout Session (optionally expanded).
+   * Note: promotions store the Checkout Session ID in `stripePaymentIntentId`.
+   */
+  async getCheckoutSession(
+    sessionId: string,
+    params?: Stripe.Checkout.SessionRetrieveParams,
+  ): Promise<Stripe.Checkout.Session> {
+    return this.stripe.checkout.sessions.retrieve(sessionId, params);
+  }
+
+  /**
+   * Expire an open Checkout Session (e.g. unpaid PENDING promotion cancelled).
+   */
+  async expireCheckoutSession(
+    sessionId: string,
+  ): Promise<Stripe.Checkout.Session> {
+    return this.stripe.checkout.sessions.expire(sessionId);
+  }
+
+  /**
+   * Create a partial/full refund against the PaymentIntent of a Checkout Session.
+   * Returns null when the session has no charge to refund.
+   */
+  async createRefundFromCheckoutSession(params: {
+    checkoutSessionId: string;
+    amountInCents: number;
+    reason?: Stripe.RefundCreateParams.Reason;
+    idempotencyKey: string;
+    metadata?: Stripe.MetadataParam;
+  }): Promise<Stripe.Refund | null> {
+    if (params.amountInCents <= 0) {
+      return null;
+    }
+
+    const session = await this.getCheckoutSession(params.checkoutSessionId, {
+      expand: ['payment_intent'],
+    });
+
+    const paymentIntent =
+      typeof session.payment_intent === 'string'
+        ? session.payment_intent
+        : session.payment_intent?.id;
+
+    if (!paymentIntent) {
+      this.logger.warn(
+        `Checkout session ${params.checkoutSessionId} has no payment_intent; skipping refund`,
+      );
+      return null;
+    }
+
+    const chargeable =
+      typeof session.amount_total === 'number' ? session.amount_total : null;
+    const amount =
+      chargeable !== null
+        ? Math.min(params.amountInCents, chargeable)
+        : params.amountInCents;
+
+    if (amount <= 0) {
+      return null;
+    }
+
+    return this.stripe.refunds.create(
+      {
+        payment_intent: paymentIntent,
+        amount,
+        reason: params.reason ?? 'requested_by_customer',
+        metadata: params.metadata,
+      },
+      { idempotencyKey: params.idempotencyKey },
+    );
+  }
+
   async createCustomer(email: string, name?: string): Promise<Stripe.Customer> {
     return this.stripe.customers.create({ email, name });
   }

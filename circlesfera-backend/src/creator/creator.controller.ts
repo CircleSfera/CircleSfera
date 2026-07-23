@@ -153,7 +153,7 @@ export class CreatorController {
     return this.creatorService.recordPromotionView(id);
   }
 
-  /** Cancel a promotion. */
+  /** Cancel a promotion (proportional Stripe refund of unused budget when applicable). */
   @Delete('promotions/:id')
   @UseGuards(SubscriptionGuard)
   @ElitePlan()
@@ -164,7 +164,29 @@ export class CreatorController {
     ) as Promise<unknown>;
   }
 
-  /** Edit targeting / schedule for an active or pending promotion. */
+  /** Pause delivery for an active promotion (no refund). */
+  @Post('promotions/:id/pause')
+  @UseGuards(SubscriptionGuard)
+  @ElitePlan()
+  async pausePromotion(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.creatorService.pausePromotion(
+      req.user.userId,
+      id,
+    ) as Promise<unknown>;
+  }
+
+  /** Resume a paused promotion. */
+  @Post('promotions/:id/resume')
+  @UseGuards(SubscriptionGuard)
+  @ElitePlan()
+  async resumePromotion(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.creatorService.resumePromotion(
+      req.user.userId,
+      id,
+    ) as Promise<unknown>;
+  }
+
+  /** Edit targeting / schedule for an active, paused, or pending promotion. */
   @Patch('promotions/:id')
   @UseGuards(SubscriptionGuard)
   @ElitePlan()

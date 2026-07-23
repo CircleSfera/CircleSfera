@@ -327,6 +327,7 @@ export class PaymentsService {
             where: { id: promotionId },
             data: {
               status: 'ACTIVE', // Now confirmed as paid
+              chargedAt: new Date(),
             },
           });
 
