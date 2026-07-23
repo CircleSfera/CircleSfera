@@ -54,6 +54,8 @@ export type Comment = IComment & {
 export type Story = IStory & {
   poll?: { id: string } | null;
   qnaBox?: { id: string } | null;
+  isLocked?: boolean;
+  priceCents?: number | null;
 };
 export type Collection = ICollection;
 export type Audio = IAudio;

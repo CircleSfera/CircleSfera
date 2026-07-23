@@ -361,6 +361,7 @@ Source: `monetization/monetization.controller.ts`
 | POST | `/monetization/connect` |
 | POST | `/monetization/tip` |
 | POST | `/monetization/unlock` |
+| POST | `/monetization/unlock-story` |
 | GET | `/monetization/dashboard` |
 
 ### `/notifications`

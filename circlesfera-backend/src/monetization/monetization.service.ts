@@ -123,7 +123,7 @@ export class MonetizationService {
         line_items: [
           {
             price_data: {
-              currency: 'usd',
+              currency: 'eur',
               product_data: {
                 name: 'Premium Post Unlock',
                 description: `Unlock exclusive content from ${creator.email}`,
@@ -158,6 +158,87 @@ export class MonetizationService {
     return { url: session.url };
   }
 
+  async createStoryUnlockSession(
+    userId: string,
+    storyId: string,
+    returnUrl: string,
+    idempotencyKey?: string,
+  ) {
+    const story = await this.prisma.story.findUnique({
+      where: { id: storyId },
+      include: { user: true },
+    });
+
+    if (!story?.isPremium || !story.priceCents) {
+      throw new BadRequestException(
+        'This story is not premium or has no price',
+      );
+    }
+    if (story.userId === userId) {
+      throw new BadRequestException('You cannot buy your own story');
+    }
+
+    const existing = await this.prisma.storyUnlock.findUnique({
+      where: { userId_storyId: { userId, storyId } },
+    });
+    if (existing) {
+      throw new BadRequestException('Story already unlocked');
+    }
+
+    const creator = story.user;
+    if (!creator.stripeConnectAccountId) {
+      throw new BadRequestException(
+        'Creator has not setup their Stripe account',
+      );
+    }
+
+    const buyer = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!buyer) throw new NotFoundException('Buyer not found');
+
+    const platformFee = Math.floor(story.priceCents * 0.2);
+
+    const session = await this.stripeService.createCheckoutSession(
+      {
+        payment_method_types: ['card'],
+        mode: 'payment',
+        customer_email: buyer.email,
+        client_reference_id: userId,
+        line_items: [
+          {
+            price_data: {
+              currency: 'eur',
+              product_data: {
+                name: 'Premium Story Unlock',
+                description: `Unlock exclusive story from ${creator.email}`,
+              },
+              unit_amount: story.priceCents,
+            },
+            quantity: 1,
+          },
+        ],
+        payment_intent_data: {
+          application_fee_amount: platformFee,
+          transfer_data: {
+            destination: creator.stripeConnectAccountId,
+          },
+        },
+        metadata: {
+          type: 'DIRECT_STORY_UNLOCK',
+          storyId,
+          creatorId: creator.id,
+        },
+        success_url: appendCheckoutQuery(
+          returnUrl,
+          'success=true&session_id={CHECKOUT_SESSION_ID}',
+        ),
+        cancel_url: appendCheckoutQuery(returnUrl, 'canceled=true'),
+      },
+      { idempotencyKey },
+    );
+
+    return { url: session.url };
+  }
+
   async createTipSession(
     senderId: string,
     receiverId: string,
@@ -167,7 +248,7 @@ export class MonetizationService {
     idempotencyKey?: string,
   ) {
     if (amountCents < 100) {
-      throw new BadRequestException('Minimum tip is $1.00 USD');
+      throw new BadRequestException('Minimum tip is €1.00');
     }
     if (senderId === receiverId)
       throw new BadRequestException('Cannot tip yourself');
@@ -197,7 +278,7 @@ export class MonetizationService {
         line_items: [
           {
             price_data: {
-              currency: 'usd',
+              currency: 'eur',
               product_data: {
                 name: 'Creator Tip',
                 description: `Tip for ${receiver.email}`,
@@ -274,23 +355,41 @@ export class MonetizationService {
     if (!user) throw new NotFoundException('User not found');
 
     if (!user.stripeConnectAccountId) {
-      return { connected: false, transfersEnabled: false };
+      return {
+        connected: false,
+        transfersEnabled: false,
+        chargesEnabled: false,
+      };
     }
+
+    const cached = await this.prisma.monetization.findUnique({
+      where: { userId },
+      select: { transfersEnabled: true, chargesEnabled: true },
+    });
 
     try {
       const account = await this.stripeService.getAccount(
         user.stripeConnectAccountId,
       );
+      const transfersEnabled = account.capabilities?.transfers === 'active';
+      const chargesEnabled = account.charges_enabled === true;
+      await this.prisma.monetization.upsert({
+        where: { userId },
+        update: { transfersEnabled, chargesEnabled },
+        create: { userId, transfersEnabled, chargesEnabled },
+      });
       return {
         connected: true,
-        transfersEnabled: account.capabilities?.transfers === 'active',
+        transfersEnabled,
+        chargesEnabled,
         detailsSubmitted: account.details_submitted,
       };
     } catch (error) {
       console.error('Stripe Get Account Error:', error);
       return {
         connected: true,
-        transfersEnabled: false,
+        transfersEnabled: cached?.transfersEnabled ?? false,
+        chargesEnabled: cached?.chargesEnabled ?? false,
         detailsSubmitted: false,
       };
     }

@@ -1,4 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Check,
@@ -12,15 +12,18 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useStoryPlayback } from '../hooks/useStoryPlayback';
 import { chatApi, storiesApi } from '../services';
+import { monetizationApi } from '../services/monetization.service';
 import { useAuthStore } from '../stores/authStore';
 import type { Story, UserWithProfile } from '../types';
 import { logger } from '../utils/logger';
 import { parseFilter } from '../utils/styleUtils';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
 import { PollWidget } from './interactive/PollWidget';
+import PaywallOverlay from './monetization/PaywallOverlay';
 import { StoryDeleteConfirm } from './StoryDeleteConfirm';
 import { StoryViewersSheet } from './StoryViewersSheet';
 import UserAvatar from './UserAvatar';
@@ -67,6 +70,7 @@ export default function StoryViewer({
   const particleIdCounter = useRef(0);
 
   const isModalOpen = showDeleteConfirm || showViewers;
+  const [lockedPause, setLockedPause] = useState(false);
 
   const {
     currentIndex,
@@ -81,11 +85,35 @@ export default function StoryViewer({
     initialIndex,
     onClose,
     audioUrl: stories[0]?.audio?.url,
-    isPausedOverride: isModalOpen,
+    isPausedOverride: isModalOpen || lockedPause,
   });
 
   const currentStory = stories[currentIndex];
   const isOwner = profile?.userId === currentStory?.userId;
+  const isLocked = !!currentStory?.isLocked;
+
+  useEffect(() => {
+    setLockedPause(isLocked);
+  }, [isLocked]);
+
+  const unlockMutation = useMutation({
+    mutationFn: () =>
+      monetizationApi.unlockStory(currentStory!.id, window.location.href),
+    onSuccess: (response: { url?: string }) => {
+      if (response?.url) {
+        window.location.href = response.url;
+        return;
+      }
+      toast.success(t('story.unlock_success', 'Story unlocked'));
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+    },
+    onError: (error: { response?: { data?: { message?: string } } }) => {
+      toast.error(
+        error.response?.data?.message ||
+          t('story.unlock_error', 'Could not unlock story'),
+      );
+    },
+  });
 
   // Safeguard
   useEffect(() => {
@@ -255,13 +283,14 @@ export default function StoryViewer({
           >
             {(() => {
               const { className, style } = parseFilter(currentStory.filter);
+              const lockClass = isLocked ? 'blur-2xl scale-110' : '';
               return currentStory.mediaType === 'video' ? (
                 <HlsVideoPlayer
                   src={currentStory.url}
                   hlsUrl={currentStory.standardUrl || undefined}
-                  className={`absolute inset-0 w-full h-full md:rounded-lg shadow-2xl object-contain pointer-events-auto z-10 ${className}`}
+                  className={`absolute inset-0 w-full h-full md:rounded-lg shadow-2xl object-contain pointer-events-auto z-10 ${className} ${lockClass}`}
                   style={style}
-                  autoPlay
+                  autoPlay={!isLocked}
                   muted
                   playsInline
                 />
@@ -275,17 +304,31 @@ export default function StoryViewer({
                   }
                   sizes="(max-width: 768px) 100vw, 500px"
                   alt="Story"
-                  className={`absolute inset-0 w-full h-full md:rounded-lg shadow-2xl object-contain pointer-events-auto z-10 ${className}`}
+                  className={`absolute inset-0 w-full h-full md:rounded-lg shadow-2xl object-contain pointer-events-auto z-10 ${className} ${lockClass}`}
                   style={style}
                   loading="eager"
                 />
               );
             })()}
 
+            {isLocked && (
+              <div className="absolute inset-0 z-50">
+                <PaywallOverlay
+                  price={
+                    currentStory.priceCents
+                      ? currentStory.priceCents / 100
+                      : currentStory.price || 0
+                  }
+                  onUnlock={() => unlockMutation.mutate()}
+                  isLoading={unlockMutation.isPending}
+                />
+              </div>
+            )}
+
             <div className="absolute inset-x-0 top-0 h-40 bg-linear-to-b from-black/80 via-black/40 to-transparent pointer-events-none z-20 md:rounded-t-2xl" />
             <div className="absolute inset-x-0 bottom-0 h-48 bg-linear-to-t from-black/90 via-black/50 to-transparent pointer-events-none z-20 md:rounded-b-2xl" />
 
-            {currentStory.poll?.id && (
+            {currentStory.poll?.id && !isLocked && (
               <div
                 className="absolute inset-x-4 bottom-28 z-50 pointer-events-auto"
                 onPointerDown={() => setIsPaused(true)}

@@ -78,6 +78,9 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
   const [selectedPost, setSelectedPost] = useState<CreatorPost | null>(null);
   const [budget, setBudget] = useState(5);
   const [duration, setDuration] = useState(7);
+  const [objective, setObjective] = useState('PROFILE_VISITS');
+  const [countries, setCountries] = useState('');
+  const [interests, setInterests] = useState('');
 
   const { data: postsData, isLoading: loadingPosts } = useQuery<
     PaginatedResponse<CreatorPost>
@@ -95,6 +98,9 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
         dailyBudget: budget,
         durationDays: duration,
         currency: 'EUR',
+        objective,
+        countries: countries.trim() || undefined,
+        interests: interests.trim() || undefined,
       }),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['creator', 'promotions'] });
@@ -246,6 +252,53 @@ function NewPromoModal({ onClose, onToast }: NewPromoModalProps) {
                 </div>
               </fieldset>
 
+              <fieldset className="space-y-3 border-none p-0 m-0">
+                <legend className="block text-xs font-black uppercase tracking-wide text-zinc-400 mb-2">
+                  {t('creator.promotions.objective', 'Objective')}
+                </legend>
+                <select
+                  value={objective}
+                  onChange={(e) => setObjective(e.target.value)}
+                  className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white text-sm"
+                >
+                  <option value="PROFILE_VISITS">
+                    {t(
+                      'creator.promotions.objective_profile',
+                      'Profile Visits',
+                    )}
+                  </option>
+                  <option value="FOLLOWS">
+                    {t('creator.promotions.objective_follows', 'Get Followers')}
+                  </option>
+                  <option value="TIER_CONVERSIONS">
+                    {t(
+                      'creator.promotions.objective_conversions',
+                      'Subscription Conversions',
+                    )}
+                  </option>
+                </select>
+                <input
+                  type="text"
+                  value={countries}
+                  onChange={(e) => setCountries(e.target.value)}
+                  placeholder={t(
+                    'creator.promotions.countries_placeholder',
+                    'Countries (comma-separated, optional)',
+                  )}
+                  className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white text-sm"
+                />
+                <input
+                  type="text"
+                  value={interests}
+                  onChange={(e) => setInterests(e.target.value)}
+                  placeholder={t(
+                    'creator.promotions.interests_placeholder',
+                    'Interests (comma-separated, optional)',
+                  )}
+                  className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white text-sm"
+                />
+              </fieldset>
+
               {/* Duration */}
               <fieldset className="space-y-4 border-none p-0 m-0">
                 <legend className="block text-xs font-black uppercase tracking-wide text-zinc-400 mb-4">
@@ -363,18 +416,20 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
     ) || [];
 
   const handleRepeat = (promo: CreatorPromotion) => {
-    if (promo.budget <= 0) {
+    const remaining = promo.budget;
+    if (remaining <= 0) {
       onToast(t('creator.promotions.error_repeat'), 'error');
       return;
     }
 
+    // Reinvest remaining balance as a new total for 7 days
     creatorApi
       .createPromotion({
         targetType: promo.targetType,
         targetId: promo.targetId,
-        budget: promo.budget,
+        budget: remaining,
         durationDays: 7,
-        currency: promo.currency,
+        currency: promo.currency || 'EUR',
       })
       .then((response) => {
         queryClient.invalidateQueries({ queryKey: ['creator', 'promotions'] });

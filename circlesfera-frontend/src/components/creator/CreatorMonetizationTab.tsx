@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   Award,
@@ -12,7 +12,9 @@ import {
   Wallet,
   Zap,
 } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { creatorApi } from '../../services/creator.service';
 import { monetizationApi } from '../../services/monetization.service';
 import { paymentsApi } from '../../services/payments.service';
 import { useAuthStore } from '../../stores/authStore';
@@ -45,8 +47,14 @@ interface BillingStatus {
 
 export default function CreatorMonetizationTab({ onToast }: Props) {
   const { t } = useTranslation();
-  const { profile } = useAuthStore();
+  const queryClient = useQueryClient();
+  const { profile, setProfile } = useAuthStore();
   const user = profile?.user;
+  const [vipPriceEuros, setVipPriceEuros] = useState(() => {
+    const cents = (profile as { subscriptionPriceCents?: number } | null)
+      ?.subscriptionPriceCents;
+    return cents && cents >= 100 ? (cents / 100).toFixed(2) : '5.00';
+  });
 
   const currentLevel = user?.verificationLevel || 'BASIC';
 
@@ -119,6 +127,35 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
     },
     onError: (err: Error) => {
       onToast(err.message || t('creator.monetization.error_portal'), 'error');
+    },
+  });
+
+  const vipPriceMutation = useMutation({
+    mutationFn: (priceCents: number) =>
+      creatorApi.setSubscriptionPrice(priceCents),
+    onSuccess: (res) => {
+      const cents = res.data.subscriptionPriceCents;
+      onToast(
+        t(
+          'creator.monetization.vip_price_saved',
+          'VIP subscription price updated',
+        ),
+        'success',
+      );
+      if (profile) {
+        setProfile({
+          ...profile,
+          subscriptionPriceCents: cents,
+        } as typeof profile);
+      }
+      queryClient.invalidateQueries({ queryKey: ['myProfile'] });
+    },
+    onError: (err: Error) => {
+      onToast(
+        err.message ||
+          t('creator.monetization.vip_price_error', 'Could not save VIP price'),
+        'error',
+      );
     },
   });
 
@@ -227,6 +264,68 @@ export default function CreatorMonetizationTab({ onToast }: Props) {
           onConnect={() => connectMutation.mutate()}
         />
       )}
+
+      {/* VIP fan subscription price */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="p-8 glass-panel rounded-lg border border-white/5"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+            <Users size={20} className="text-amber-400" />
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-white uppercase tracking-wide italic">
+              {t(
+                'creator.monetization.vip_price_title',
+                'VIP subscription price',
+              )}
+            </h3>
+            <p className="text-zinc-500 text-xs mt-1">
+              {t(
+                'creator.monetization.vip_price_hint',
+                'Monthly price fans pay to subscribe to you (min €1.00).',
+              )}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
+          <label className="flex-1">
+            <span className="block text-zinc-400 text-[10px] font-black uppercase tracking-wide mb-2">
+              EUR / month
+            </span>
+            <input
+              type="number"
+              min={1}
+              step={0.5}
+              value={vipPriceEuros}
+              onChange={(e) => setVipPriceEuros(e.target.value)}
+              className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white font-bold"
+            />
+          </label>
+          <Button
+            variant="secondary"
+            isLoading={vipPriceMutation.isPending}
+            onClick={() => {
+              const euros = Number.parseFloat(vipPriceEuros);
+              if (!Number.isFinite(euros) || euros < 1) {
+                onToast(
+                  t(
+                    'creator.monetization.vip_price_min',
+                    'Minimum VIP price is €1.00',
+                  ),
+                  'error',
+                );
+                return;
+              }
+              vipPriceMutation.mutate(Math.round(euros * 100));
+            }}
+          >
+            {t('creator.monetization.vip_price_save', 'Save VIP price')}
+          </Button>
+        </div>
+      </motion.div>
 
       {/* 2. Platform Subscriptions */}
       <motion.div

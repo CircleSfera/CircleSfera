@@ -136,9 +136,11 @@ export interface Story {
   createdAt: Date | string;
 
   isPremium?: boolean;
+  priceCents?: number | null;
   price?: number | null;
   currency?: string;
   isPurchased?: boolean;
+  isLocked?: boolean;
   user: {
     id: string;
     email: string;

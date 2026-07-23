@@ -91,7 +91,7 @@ export class CreatorSubscriptionsService {
       line_items: [
         {
           price_data: {
-            currency: 'usd',
+            currency: 'eur',
             recurring: { interval: 'month' },
             product_data: {
               name: `VIP Subscription to @${creatorProfile.username}`,
