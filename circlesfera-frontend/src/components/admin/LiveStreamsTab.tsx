@@ -77,110 +77,108 @@ export default function LiveStreamsTab({ onToast }: Props) {
         />
       </AdminFilterBar>
 
-      <div className="rounded-xl border border-white/10 lg:overflow-clip">
-        <AdminList
-          loading={isLoading}
-          isEmpty={!streams.length}
-          emptyTitle={t('admin.live.empty_title')}
-          emptyDescription={t('admin.live.empty_description')}
-          mobile={
-            <div className="space-y-2">
-              {streams.map((stream) => (
-                <AdminListRow
-                  key={stream.id}
-                  title={
-                    stream.title ||
-                    t('admin.live.untitled', {
-                      user: stream.host?.profile?.username || '—',
-                    })
-                  }
-                  subtitle={`@${stream.host?.profile?.username || t('admin.shared.unknown')}`}
-                  badge={statusBadge(stream.status)}
-                  meta={t('admin.live.viewers_count', {
-                    count: stream.viewerCount,
-                  })}
-                  primaryAction={
-                    stream.status === 'LIVE' ? (
-                      <ActionButton
-                        onClick={() => setConfirmEndId(stream.id)}
-                        label={t('admin.live.action_end')}
-                        variant="danger"
-                        icon={Square}
-                        disabled={endMutation.isPending}
-                      />
-                    ) : undefined
-                  }
-                />
-              ))}
-            </div>
-          }
-          desktop={
-            <Table
-              headers={[
-                t('admin.live.col_title'),
-                t('admin.live.col_host'),
-                t('admin.live.col_status'),
-                t('admin.live.col_viewers'),
-                t('admin.live.col_started'),
-                t('admin.live.col_actions'),
-              ]}
-              columnWidths={[
-                'min-w-[8rem]',
-                'min-w-[6rem]',
-                'w-[5.5rem]',
-                'w-[4.5rem]',
-                'hidden lg:table-cell w-[6rem]',
-                'w-[4rem]',
-              ]}
-              loading={false}
-              isEmpty={false}
-            >
-              {streams.map((stream) => (
-                <tr
-                  key={stream.id}
-                  className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
-                >
-                  <td className="px-2 py-1">
-                    <span className="text-white text-sm font-medium truncate block max-w-[12rem]">
-                      {stream.title ||
-                        t('admin.live.untitled', {
-                          user: stream.host?.profile?.username || '—',
-                        })}
-                    </span>
-                  </td>
-                  <td className="px-2 py-1">
-                    <span className="text-brand-primary text-sm font-semibold truncate block max-w-[6rem]">
-                      @
-                      {stream.host?.profile?.username ||
-                        t('admin.shared.unknown')}
-                    </span>
-                  </td>
-                  <td className="px-2 py-1">{statusBadge(stream.status)}</td>
-                  <td className="px-2 py-1 text-gray-300 text-sm tabular-nums">
-                    {stream.viewerCount}
-                  </td>
-                  <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap hidden lg:table-cell">
-                    {new Date(stream.startedAt).toLocaleString()}
-                  </td>
-                  <td className="px-2 py-1">
-                    {stream.status === 'LIVE' && (
-                      <ActionButton
-                        onClick={() => setConfirmEndId(stream.id)}
-                        label={t('admin.live.action_end')}
-                        variant="danger"
-                        icon={Square}
-                        iconOnly
-                        disabled={endMutation.isPending}
-                      />
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </Table>
-          }
-        />
-        <Pagination meta={data?.meta} onPageChange={setPage} />
-      </div>
+      <AdminList
+        loading={isLoading}
+        isEmpty={!streams.length}
+        emptyTitle={t('admin.live.empty_title')}
+        emptyDescription={t('admin.live.empty_description')}
+        mobile={
+          <div className="space-y-2">
+            {streams.map((stream) => (
+              <AdminListRow
+                key={stream.id}
+                title={
+                  stream.title ||
+                  t('admin.live.untitled', {
+                    user: stream.host?.profile?.username || '—',
+                  })
+                }
+                subtitle={`@${stream.host?.profile?.username || t('admin.shared.unknown')}`}
+                badge={statusBadge(stream.status)}
+                meta={t('admin.live.viewers_count', {
+                  count: stream.viewerCount,
+                })}
+                primaryAction={
+                  stream.status === 'LIVE' ? (
+                    <ActionButton
+                      onClick={() => setConfirmEndId(stream.id)}
+                      label={t('admin.live.action_end')}
+                      variant="danger"
+                      icon={Square}
+                      disabled={endMutation.isPending}
+                    />
+                  ) : undefined
+                }
+              />
+            ))}
+          </div>
+        }
+        desktop={
+          <Table
+            headers={[
+              t('admin.live.col_title'),
+              t('admin.live.col_host'),
+              t('admin.live.col_status'),
+              t('admin.live.col_viewers'),
+              t('admin.live.col_started'),
+              t('admin.live.col_actions'),
+            ]}
+            columnWidths={[
+              'min-w-[8rem]',
+              'min-w-[6rem]',
+              'w-[5.5rem]',
+              'w-[4.5rem]',
+              'hidden lg:table-cell w-[6rem]',
+              'w-[4rem]',
+            ]}
+            loading={false}
+            isEmpty={false}
+          >
+            {streams.map((stream) => (
+              <tr
+                key={stream.id}
+                className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
+              >
+                <td className="px-2 py-1">
+                  <span className="text-white text-sm font-medium truncate block max-w-[12rem]">
+                    {stream.title ||
+                      t('admin.live.untitled', {
+                        user: stream.host?.profile?.username || '—',
+                      })}
+                  </span>
+                </td>
+                <td className="px-2 py-1">
+                  <span className="text-brand-primary text-sm font-semibold truncate block max-w-[6rem]">
+                    @
+                    {stream.host?.profile?.username ||
+                      t('admin.shared.unknown')}
+                  </span>
+                </td>
+                <td className="px-2 py-1">{statusBadge(stream.status)}</td>
+                <td className="px-2 py-1 text-gray-300 text-sm tabular-nums">
+                  {stream.viewerCount}
+                </td>
+                <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap hidden lg:table-cell">
+                  {new Date(stream.startedAt).toLocaleString()}
+                </td>
+                <td className="px-2 py-1">
+                  {stream.status === 'LIVE' && (
+                    <ActionButton
+                      onClick={() => setConfirmEndId(stream.id)}
+                      label={t('admin.live.action_end')}
+                      variant="danger"
+                      icon={Square}
+                      iconOnly
+                      disabled={endMutation.isPending}
+                    />
+                  )}
+                </td>
+              </tr>
+            ))}
+          </Table>
+        }
+      />
+      <Pagination meta={data?.meta} onPageChange={setPage} />
 
       <ConfirmModal
         isOpen={confirmEndId !== null}

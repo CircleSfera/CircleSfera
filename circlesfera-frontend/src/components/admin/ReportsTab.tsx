@@ -207,7 +207,7 @@ export default function ReportsTab({ onToast }: Props) {
             initial={{ opacity: 0, height: 0, marginBottom: 0 }}
             animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
             exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-            className="flex flex-wrap items-center gap-2 p-2 bg-white/5 border border-white/10 rounded-lg shrink-0"
+            className="flex flex-wrap items-center gap-2 px-3 py-2 border border-white/5 bg-white/[0.02] rounded-lg shrink-0"
           >
             <span className="px-2 sm:px-3 text-sm font-semibold text-white">
               {t('admin.shared.selected_count', { count: selectedIds.size })}
@@ -243,6 +243,7 @@ export default function ReportsTab({ onToast }: Props) {
       <AdminSplitView
         hasSelection={!!selectedReportId}
         onBack={() => setSelectedReportId(null)}
+        onClearSelection={() => setSelectedReportId(null)}
         listTitle={t('admin.reports.list_title')}
         list={
           <div className="flex flex-col h-full min-h-0">
@@ -259,7 +260,7 @@ export default function ReportsTab({ onToast }: Props) {
                 {t('admin.shared.select_all')}
               </h3>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+            <div className="flex-1 overflow-y-auto space-y-2 pb-2">
               {isLoading ? (
                 <AdminListSkeleton rows={5} />
               ) : reports.length === 0 ? (
@@ -315,7 +316,7 @@ export default function ReportsTab({ onToast }: Props) {
                           onChange={(e) => toggleSelect(report.id, e)}
                           onClick={(e) => e.stopPropagation()}
                         />
-                        <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden shrink-0">
+                        <div className="w-10 h-10 rounded-lg bg-white/5 overflow-hidden shrink-0">
                           {report.targetContent?.thumbnail ? (
                             <img
                               src={report.targetContent.thumbnail}
@@ -335,7 +336,7 @@ export default function ReportsTab({ onToast }: Props) {
               )}
             </div>
 
-            <div className="p-2 border-t border-white/5 shrink-0">
+            <div className="shrink-0 pt-2 border-t border-white/5">
               <Pagination meta={data?.meta} onPageChange={setPage} />
             </div>
           </div>
@@ -352,7 +353,7 @@ export default function ReportsTab({ onToast }: Props) {
                 className="flex flex-col h-full"
               >
                 {/* Header Action Bar */}
-                <div className="p-4 border-b border-white/5 bg-white/2 flex flex-col gap-3 shrink-0">
+                <div className="p-4 border-b border-white/5 flex flex-col gap-3 shrink-0">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <h3 className="text-base sm:text-lg font-semibold text-white flex items-center gap-2 flex-wrap">
@@ -535,14 +536,12 @@ export default function ReportsTab({ onToast }: Props) {
                   )}
                 </div>
 
-                {/* Content Viewer */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 flex flex-col lg:flex-row gap-4">
-                  {/* Visual Preview */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 flex flex-col lg:flex-row gap-5">
                   <div className="w-full lg:w-1/2 flex flex-col gap-4">
                     {isUserOrMessageTarget(selectedReport.targetType) ? (
-                      <div className="bg-black/50 rounded-lg border border-white/10 p-4 flex flex-col gap-4 min-h-[240px]">
+                      <div className="flex flex-col gap-4 min-h-[200px]">
                         {selectedReport.targetContent?.thumbnail && (
-                          <div className="w-16 h-16 rounded-full overflow-hidden border border-white/10 mx-auto">
+                          <div className="w-16 h-16 rounded-full overflow-hidden mx-auto">
                             <img
                               src={selectedReport.targetContent.thumbnail}
                               alt=""
@@ -551,7 +550,7 @@ export default function ReportsTab({ onToast }: Props) {
                           </div>
                         )}
                         <div className="text-center space-y-1">
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
                             {selectedReport.targetType === 'USER'
                               ? t('admin.reports.target_user')
                               : t('admin.reports.target_message')}
@@ -563,18 +562,18 @@ export default function ReportsTab({ onToast }: Props) {
                           )}
                         </div>
                         {selectedReport.targetContent?.text && (
-                          <div className="p-4 bg-white/5 rounded-xl border border-white/10 text-sm text-gray-300">
+                          <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
                             {selectedReport.targetContent.text}
-                          </div>
+                          </p>
                         )}
                       </div>
                     ) : (
                       <>
-                        <div className="bg-black/50 rounded-lg border border-white/10 flex-1 min-h-[240px] sm:min-h-[300px] flex items-center justify-center overflow-hidden relative">
+                        <div className="bg-black/40 rounded-lg flex-1 min-h-[240px] sm:min-h-[280px] flex items-center justify-center overflow-hidden">
                           {selectedReport.targetContent?.thumbnail ? (
                             <img
                               src={selectedReport.targetContent.thumbnail}
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-contain max-h-[min(60vh,28rem)]"
                               alt="Reported content"
                             />
                           ) : (
@@ -587,72 +586,76 @@ export default function ReportsTab({ onToast }: Props) {
                           )}
                         </div>
                         {selectedReport.targetContent?.text && (
-                          <div className="p-4 bg-white/5 rounded-xl border border-white/10 text-sm text-gray-300 italic">
-                            "{selectedReport.targetContent.text}"
-                          </div>
+                          <p className="text-sm text-gray-300 italic whitespace-pre-wrap leading-relaxed">
+                            &ldquo;{selectedReport.targetContent.text}&rdquo;
+                          </p>
                         )}
                       </>
                     )}
                   </div>
 
-                  {/* Metadata */}
-                  <div className="w-full lg:w-1/2 space-y-4">
-                    <div className="p-4 bg-white/2 rounded-xl border border-white/5">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                        {t('admin.reports.reason_label')}
-                      </p>
-                      <p className="text-red-400 font-semibold text-base sm:text-lg mb-4">
-                        {selectedReport.reason}
-                      </p>
-
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                        {t('admin.reports.reported_by_label')}
-                      </p>
-                      {selectedReport.details?.includes(
-                        '[AI Automated Flag]',
-                      ) ? (
-                        <div className="flex items-center gap-2 text-brand-primary font-semibold text-sm">
-                          <Bot size={16} /> {t('admin.reports.ai_reporter')}
-                        </div>
-                      ) : (
-                        <p className="text-white font-semibold text-sm">
-                          @
-                          {selectedReport.reporter?.profile?.username ||
-                            t('admin.shared.anonymous')}
-                        </p>
-                      )}
-                    </div>
-
-                    {selectedReport.details && (
-                      <div className="p-4 bg-white/2 rounded-xl border border-white/5">
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                          {t('admin.reports.details_label')}
-                        </p>
-                        <div className="text-sm text-gray-300 whitespace-pre-wrap">
-                          {selectedReport.details.replace(
-                            '[AI Automated Flag]: ',
-                            '',
-                          )}
-                        </div>
+                  <div className="w-full lg:w-1/2">
+                    <dl className="text-sm">
+                      <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
+                        <dt className="text-xs font-medium text-gray-500 shrink-0 pt-0.5">
+                          {t('admin.reports.reason_label')}
+                        </dt>
+                        <dd className="text-red-400 font-semibold text-right">
+                          {selectedReport.reason}
+                        </dd>
                       </div>
-                    )}
-
-                    <div className="p-4 bg-white/2 rounded-xl border border-white/5">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                        {t('admin.reports.status_label')}
-                      </p>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${
-                          selectedReport.status === 'PENDING'
-                            ? 'bg-yellow-500/20 text-yellow-500'
-                            : selectedReport.status === 'RESOLVED'
-                              ? 'bg-green-500/20 text-green-500'
-                              : 'bg-zinc-500/20 text-zinc-400'
-                        }`}
-                      >
-                        {selectedReport.status}
-                      </span>
-                    </div>
+                      <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
+                        <dt className="text-xs font-medium text-gray-500 shrink-0 pt-0.5">
+                          {t('admin.reports.reported_by_label')}
+                        </dt>
+                        <dd className="text-white font-semibold text-right">
+                          {selectedReport.details?.includes(
+                            '[AI Automated Flag]',
+                          ) ? (
+                            <span className="inline-flex items-center gap-1.5 text-brand-primary">
+                              <Bot size={14} /> {t('admin.reports.ai_reporter')}
+                            </span>
+                          ) : (
+                            <>
+                              @
+                              {selectedReport.reporter?.profile?.username ||
+                                t('admin.shared.anonymous')}
+                            </>
+                          )}
+                        </dd>
+                      </div>
+                      {selectedReport.details && (
+                        <div className="py-2.5 border-b border-white/5">
+                          <dt className="text-xs font-medium text-gray-500 mb-1.5">
+                            {t('admin.reports.details_label')}
+                          </dt>
+                          <dd className="text-sm text-gray-300 whitespace-pre-wrap">
+                            {selectedReport.details.replace(
+                              '[AI Automated Flag]: ',
+                              '',
+                            )}
+                          </dd>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between gap-3 py-2.5">
+                        <dt className="text-xs font-medium text-gray-500">
+                          {t('admin.reports.status_label')}
+                        </dt>
+                        <dd>
+                          <span
+                            className={`px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-wide ${
+                              selectedReport.status === 'PENDING'
+                                ? 'bg-yellow-500/15 text-yellow-500'
+                                : selectedReport.status === 'RESOLVED'
+                                  ? 'bg-green-500/15 text-green-400'
+                                  : 'bg-white/10 text-gray-300'
+                            }`}
+                          >
+                            {selectedReport.status}
+                          </span>
+                        </dd>
+                      </div>
+                    </dl>
                   </div>
                 </div>
               </motion.div>

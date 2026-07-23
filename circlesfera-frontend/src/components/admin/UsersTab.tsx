@@ -1,17 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Ban,
-  Download,
-  ExternalLink,
-  Eye,
-  ShieldCheck,
-  ShieldOff,
-  Trash2,
-  UserCheck,
-  Users,
-} from 'lucide-react';
-import { useState } from 'react';
+import { Ban, Download, UserCheck, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminUser } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
@@ -22,18 +13,20 @@ import { Button } from '../ui';
 import VerificationBadge, {
   type VerificationLevel,
 } from '../VerificationBadge';
+import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
-import { AdminList, AdminListRow } from './AdminList';
+import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
+import { AdminListSkeleton } from './AdminSkeletons';
+import { AdminSplitView } from './AdminSplitView';
 import {
   ActionButton,
   FilterDropdown,
   Pagination,
   SearchInput,
   StatusBadge,
-  Table,
 } from './AdminTable';
-import UserPreviewModal from './UserPreviewModal';
+import UserDetailPanel from './UserDetailPanel';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
@@ -51,6 +44,7 @@ function displayHandle(user: AdminUser) {
 
 export default function UsersTab({ onToast }: Props) {
   const { t, i18n } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -63,7 +57,22 @@ export default function UsersTab({ onToast }: Props) {
     id: string | null;
     username: string;
   }>({ type: null, id: null, username: '' });
-  const [previewUserId, setPreviewUserId] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fromQuery = searchParams.get('user');
+    if (fromQuery) {
+      setSelectedUserId(fromQuery);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('user');
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  }, [searchParams, setSearchParams]);
 
   const { data, isLoading } = useQuery<PaginatedResponse<AdminUser>>({
     queryKey: ['admin', 'users', page, debouncedSearch, statusFilter],
@@ -107,8 +116,8 @@ export default function UsersTab({ onToast }: Props) {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
-      if (variables.type === 'delete' && previewUserId === variables.id) {
-        setPreviewUserId(null);
+      if (variables.type === 'delete' && selectedUserId === variables.id) {
+        setSelectedUserId(null);
       }
       clearConfirm();
       const toastKey = {
@@ -198,6 +207,7 @@ export default function UsersTab({ onToast }: Props) {
 
   const isFiltered = debouncedSearch.length > 0 || statusFilter.length > 0;
   const isPending = actionMutation.isPending;
+  const users = data?.data ?? [];
 
   const clearFilters = () => {
     setSearch('');
@@ -255,320 +265,152 @@ export default function UsersTab({ onToast }: Props) {
         />
       </AdminFilterBar>
 
-      <div className="rounded-xl border border-white/10 bg-black/20 lg:bg-transparent lg:border-0 overflow-hidden">
-        <AdminList
-          loading={isLoading}
-          isEmpty={!data || data.data.length === 0}
-          emptyIcon={Users}
-          emptyTitle={
-            isFiltered
-              ? t('admin.users.empty_filtered_title')
-              : t('admin.users.empty_title')
-          }
-          emptyDescription={
-            isFiltered
-              ? t('admin.users.empty_filtered_description')
-              : t('admin.users.empty_description')
-          }
-          emptyAction={
-            isFiltered ? (
-              <Button
-                onClick={clearFilters}
-                variant="secondary"
-                className="min-h-11"
-              >
-                {t('admin.shared.clear_filters')}
-              </Button>
-            ) : undefined
-          }
-          mobile={
-            <div className="p-2 space-y-2 lg:p-0">
-              {data?.data.map((user) => (
-                <AdminListRow
-                  key={user.id}
-                  onClick={() => setPreviewUserId(user.id)}
+      <AdminSplitView
+        hasSelection={!!selectedUserId}
+        onBack={() => setSelectedUserId(null)}
+        onClearSelection={() => setSelectedUserId(null)}
+        listTitle={t('admin.users.title')}
+        list={
+          <div className="flex flex-col h-full min-h-0">
+            <div className="flex-1 overflow-y-auto space-y-2 pb-2">
+              {isLoading ? (
+                <AdminListSkeleton rows={6} />
+              ) : users.length === 0 ? (
+                <AdminEmptyState
+                  icon={Users}
                   title={
-                    <span className="inline-flex items-center gap-1">
-                      {displayHandle(user)}
-                      <VerificationBadge
-                        level={user.verificationLevel as VerificationLevel}
-                        size={14}
-                      />
-                    </span>
+                    isFiltered
+                      ? t('admin.users.empty_filtered_title')
+                      : t('admin.users.empty_title')
                   }
-                  subtitle={user.email}
-                  meta={
-                    <>
-                      <span>
-                        {user.role === 'ADMIN'
-                          ? t('admin.users.role_admin')
-                          : t('admin.users.role_user')}{' '}
-                        ·{' '}
-                        {t('admin.users.posts_count', {
-                          count: user.postCount,
-                        })}
-                      </span>
-                      <span>
-                        {new Date(user.createdAt).toLocaleDateString(
-                          dateLocale,
-                        )}
-                      </span>
-                    </>
+                  description={
+                    isFiltered
+                      ? t('admin.users.empty_filtered_description')
+                      : t('admin.users.empty_description')
                   }
-                  badge={
-                    <StatusBadge status={user.isActive ? 'active' : 'banned'} />
-                  }
-                  avatar={
-                    <UserAvatar
-                      src={user.profile?.avatar || undefined}
-                      thumbnailUrl={user.profile?.thumbnailUrl || undefined}
-                      standardUrl={user.profile?.standardUrl || undefined}
-                      alt={user.profile?.username || 'user'}
-                      size="sm"
-                    />
-                  }
-                  primaryAction={
-                    user.isActive ? (
-                      <ActionButton
-                        onClick={() => askConfirm('ban', user)}
-                        label={t('admin.users.action_ban')}
-                        variant="danger"
-                        icon={Ban}
-                        disabled={isPending}
-                      />
-                    ) : (
-                      <ActionButton
-                        onClick={() => askConfirm('unban', user)}
-                        label={t('admin.users.action_unban')}
-                        variant="success"
-                        icon={UserCheck}
-                        disabled={isPending}
-                      />
-                    )
-                  }
-                  secondaryActions={[
-                    {
-                      label: t('admin.users.action_view_detail'),
-                      onClick: () => setPreviewUserId(user.id),
-                    },
-                    {
-                      label:
-                        user.role === 'USER'
-                          ? t('admin.users.action_promote_admin')
-                          : t('admin.users.action_demote'),
-                      onClick: () =>
-                        askConfirm(
-                          user.role === 'USER' ? 'promote' : 'demote',
-                          user,
-                        ),
-                    },
-                    {
-                      label: t('admin.users.action_view_profile'),
-                      onClick: () => openProfile(user),
-                    },
-                    {
-                      label: t('admin.users.action_delete'),
-                      variant: 'danger',
-                      onClick: () => askConfirm('delete', user),
-                    },
-                  ]}
-                />
-              ))}
-            </div>
-          }
-          desktop={
-            <div className="overflow-x-auto">
-              <Table
-                headers={[
-                  t('admin.users.col_user'),
-                  t('admin.users.col_email'),
-                  t('admin.users.col_role'),
-                  t('admin.users.col_joined'),
-                  t('admin.users.col_posts'),
-                  t('admin.users.col_status'),
-                  t('admin.users.col_actions'),
-                ]}
-                columnWidths={[
-                  'min-w-[12rem]',
-                  'hidden xl:table-cell min-w-[10rem]',
-                  'w-[7rem]',
-                  'hidden lg:table-cell w-[7rem]',
-                  'w-[4.5rem]',
-                  'w-[6rem]',
-                  'min-w-[11rem]',
-                ]}
-                loading={false}
-                isEmpty={false}
-              >
-                {data?.data.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="hover:bg-white/[0.07] even:bg-white/[0.02] transition-colors border-b border-white/5 last:border-0"
-                  >
-                    <td
-                      className="px-2 py-2"
-                      data-label={t('admin.users.col_user')}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setPreviewUserId(user.id)}
-                        className="flex items-center gap-2 text-left w-full min-w-0 group"
+                  action={
+                    isFiltered ? (
+                      <Button
+                        onClick={clearFilters}
+                        variant="secondary"
+                        className="min-h-11"
                       >
-                        <UserAvatar
-                          src={user.profile?.avatar || undefined}
-                          thumbnailUrl={user.profile?.thumbnailUrl || undefined}
-                          standardUrl={user.profile?.standardUrl || undefined}
-                          alt={user.profile?.username || 'user'}
-                          size="sm"
+                        {t('admin.shared.clear_filters')}
+                      </Button>
+                    ) : undefined
+                  }
+                  compact
+                />
+              ) : (
+                users.map((user) => (
+                  <AdminListRow
+                    key={user.id}
+                    onClick={() => setSelectedUserId(user.id)}
+                    className={
+                      selectedUserId === user.id
+                        ? 'border-brand-primary/30 bg-brand-primary/10'
+                        : undefined
+                    }
+                    title={
+                      <span className="inline-flex items-center gap-1">
+                        {displayHandle(user)}
+                        <VerificationBadge
+                          level={user.verificationLevel as VerificationLevel}
+                          size={14}
                         />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1">
-                            <span className="text-white font-semibold text-sm group-hover:text-brand-primary transition-colors truncate">
-                              {displayHandle(user)}
-                            </span>
-                            <VerificationBadge
-                              level={
-                                user.verificationLevel as VerificationLevel
-                              }
-                              size={14}
-                            />
-                          </div>
-                          {user.profile?.fullName && (
-                            <p className="text-gray-500 text-xs truncate">
-                              {user.profile.fullName}
-                            </p>
-                          )}
-                        </div>
-                      </button>
-                    </td>
-                    <td
-                      className="px-2 py-2 text-gray-300 text-sm hidden xl:table-cell max-w-[12rem]"
-                      data-label={t('admin.users.col_email')}
-                    >
-                      <span className="block truncate" title={user.email}>
-                        {user.email}
                       </span>
-                    </td>
-                    <td
-                      className="px-2 py-2"
-                      data-label={t('admin.users.col_role')}
-                    >
-                      {user.role === 'ADMIN' ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded text-xs font-semibold uppercase border border-brand-primary/20">
-                          <ShieldCheck size={10} />
-                          {t('admin.users.role_admin')}
+                    }
+                    subtitle={user.email}
+                    meta={
+                      <>
+                        <span>
+                          {user.role === 'ADMIN'
+                            ? t('admin.users.role_admin')
+                            : t('admin.users.role_user')}{' '}
+                          ·{' '}
+                          {t('admin.users.posts_count', {
+                            count: user.postCount,
+                          })}
                         </span>
-                      ) : (
-                        <span className="text-gray-500 text-xs">
-                          {t('admin.users.role_user')}
+                        <span>
+                          {new Date(user.createdAt).toLocaleDateString(
+                            dateLocale,
+                          )}
                         </span>
-                      )}
-                    </td>
-                    <td
-                      className="px-2 py-2 text-gray-500 text-sm hidden lg:table-cell"
-                      data-label={t('admin.users.col_joined')}
-                    >
-                      {new Date(user.createdAt).toLocaleDateString(dateLocale)}
-                    </td>
-                    <td
-                      className="px-2 py-2 text-gray-300 text-sm font-semibold text-center"
-                      data-label={t('admin.users.col_posts')}
-                    >
-                      {user.postCount}
-                    </td>
-                    <td
-                      className="px-2 py-2"
-                      data-label={t('admin.users.col_status')}
-                    >
+                      </>
+                    }
+                    badge={
                       <StatusBadge
                         status={user.isActive ? 'active' : 'banned'}
                       />
-                    </td>
-                    <td
-                      className="px-2 py-2"
-                      data-label={t('admin.users.col_actions')}
-                    >
-                      <div className="flex gap-1 items-center justify-end">
+                    }
+                    avatar={
+                      <UserAvatar
+                        src={user.profile?.avatar || undefined}
+                        thumbnailUrl={user.profile?.thumbnailUrl || undefined}
+                        standardUrl={user.profile?.standardUrl || undefined}
+                        alt={user.profile?.username || 'user'}
+                        size="sm"
+                      />
+                    }
+                    primaryAction={
+                      user.isActive ? (
                         <ActionButton
-                          onClick={() => setPreviewUserId(user.id)}
-                          label={t('admin.users.action_view_detail')}
-                          variant="ghost"
-                          icon={Eye}
-                          iconOnly
-                        />
-                        {user.isActive ? (
-                          <ActionButton
-                            onClick={() => askConfirm('ban', user)}
-                            label={t('admin.users.action_ban')}
-                            variant="danger"
-                            icon={Ban}
-                            iconOnly
-                            disabled={isPending}
-                          />
-                        ) : (
-                          <ActionButton
-                            onClick={() => askConfirm('unban', user)}
-                            label={t('admin.users.action_unban')}
-                            variant="success"
-                            icon={UserCheck}
-                            iconOnly
-                            disabled={isPending}
-                          />
-                        )}
-                        {user.role === 'USER' ? (
-                          <ActionButton
-                            onClick={() => askConfirm('promote', user)}
-                            label={t('admin.users.action_promote')}
-                            variant="warning"
-                            icon={ShieldCheck}
-                            iconOnly
-                            disabled={isPending}
-                          />
-                        ) : (
-                          <ActionButton
-                            onClick={() => askConfirm('demote', user)}
-                            label={t('admin.users.action_demote')}
-                            variant="ghost"
-                            icon={ShieldOff}
-                            iconOnly
-                            disabled={isPending}
-                          />
-                        )}
-                        <ActionButton
-                          onClick={() => askConfirm('delete', user)}
-                          label={t('admin.users.action_delete')}
+                          onClick={() => askConfirm('ban', user)}
+                          label={t('admin.users.action_ban')}
                           variant="danger"
-                          icon={Trash2}
-                          iconOnly
+                          icon={Ban}
                           disabled={isPending}
                         />
-                        <a
-                          href={
-                            usernameOf(user)
-                              ? `/${usernameOf(user)}`
-                              : undefined
-                          }
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title={t('admin.users.action_view_profile')}
-                          className="inline-flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-lg text-brand-primary bg-brand-primary/10 hover:bg-brand-primary hover:text-white transition-all shrink-0"
-                          aria-label={t('admin.users.action_view_profile')}
-                          onClick={(e) => {
-                            if (!usernameOf(user)) e.preventDefault();
-                          }}
-                        >
-                          <ExternalLink size={14} />
-                        </a>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </Table>
+                      ) : (
+                        <ActionButton
+                          onClick={() => askConfirm('unban', user)}
+                          label={t('admin.users.action_unban')}
+                          variant="success"
+                          icon={UserCheck}
+                          disabled={isPending}
+                        />
+                      )
+                    }
+                    secondaryActions={[
+                      {
+                        label: t('admin.users.action_view_detail'),
+                        onClick: () => setSelectedUserId(user.id),
+                      },
+                      {
+                        label:
+                          user.role === 'USER'
+                            ? t('admin.users.action_promote_admin')
+                            : t('admin.users.action_demote'),
+                        onClick: () =>
+                          askConfirm(
+                            user.role === 'USER' ? 'promote' : 'demote',
+                            user,
+                          ),
+                      },
+                      {
+                        label: t('admin.users.action_view_profile'),
+                        onClick: () => openProfile(user),
+                      },
+                      {
+                        label: t('admin.users.action_delete'),
+                        variant: 'danger',
+                        onClick: () => askConfirm('delete', user),
+                      },
+                    ]}
+                  />
+                ))
+              )}
             </div>
-          }
-        />
-        <Pagination meta={data?.meta} onPageChange={setPage} />
-      </div>
+            <div className="shrink-0 pt-2 border-t border-white/5">
+              <Pagination meta={data?.meta} onPageChange={setPage} />
+            </div>
+          </div>
+        }
+        detail={
+          selectedUserId ? <UserDetailPanel userId={selectedUserId} /> : null
+        }
+      />
 
       <ConfirmModal
         isOpen={confirmAction.type !== null}
@@ -580,12 +422,6 @@ export default function UsersTab({ onToast }: Props) {
         cancelText={t('admin.shared.cancel')}
         isDestructive={activeConfig?.destructive ?? true}
         isLoading={isPending}
-      />
-
-      <UserPreviewModal
-        userId={previewUserId}
-        isOpen={!!previewUserId}
-        onClose={() => setPreviewUserId(null)}
       />
     </div>
   );

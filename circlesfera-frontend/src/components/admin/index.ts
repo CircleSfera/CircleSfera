@@ -1,4 +1,3 @@
-export { default as AdminDrawer } from './AdminDrawer';
 export { AdminEmptyState } from './AdminEmptyState';
 export { AdminFilterBar } from './AdminFilterBar';
 export { AdminList, AdminListRow } from './AdminList';
@@ -7,7 +6,6 @@ export { default as AdminShell } from './AdminShell';
 export { default as AdminSidebar } from './AdminSidebar';
 export { AdminDetailSkeleton, AdminListSkeleton } from './AdminSkeletons';
 export { AdminSplitView } from './AdminSplitView';
-export type { Toast } from './AdminTable';
 export {
   ActionButton,
   FilterDropdown,
@@ -15,7 +13,6 @@ export {
   SearchInput,
   StatusBadge,
   Table,
-  ToastContainer,
 } from './AdminTable';
 export { default as AppealsTab } from './AppealsTab';
 export { default as AudioTab } from './AudioTab';
@@ -35,7 +32,7 @@ export { default as LiveStreamsTab } from './LiveStreamsTab';
 export { default as ModerationTab } from './ModerationTab';
 export { default as MonetizationTab } from './MonetizationTab';
 export { default as NewsletterTab } from './NewsletterTab';
-export { default as PostPreviewDrawer } from './PostPreviewDrawer';
+export { default as PostDetailPanel } from './PostDetailPanel';
 export { default as PostsTab } from './PostsTab';
 export { default as PromotionsTab } from './PromotionsTab';
 export { default as ReportsTab } from './ReportsTab';
@@ -45,6 +42,7 @@ export { default as StoriesTab } from './StoriesTab';
 export { default as SupportTicketsTab } from './SupportTicketsTab';
 export { default as SystemHealthTab } from './SystemHealthTab';
 export { default as TrustTab } from './TrustTab';
+export { default as UserDetailPanel } from './UserDetailPanel';
 export { default as UsersTab } from './UsersTab';
 export { default as UserVerificationTab } from './UserVerificationTab';
 export { default as WhitelistTab } from './WhitelistTab';

@@ -172,10 +172,11 @@ export default function UserVerificationTab({
       <AdminSplitView
         hasSelection={!!selectedUserId}
         onBack={() => setSelectedUserId(null)}
+        onClearSelection={() => setSelectedUserId(null)}
         listTitle={t('admin.verification.list_title')}
         list={
           <div className="flex flex-col h-full min-h-0">
-            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+            <div className="flex-1 overflow-y-auto space-y-2 pb-2">
               {isLoading ? (
                 <AdminListSkeleton rows={5} />
               ) : users.length === 0 ? (
@@ -249,7 +250,7 @@ export default function UserVerificationTab({
               )}
             </div>
 
-            <div className="p-2 border-t border-white/5 shrink-0">
+            <div className="shrink-0 pt-2 border-t border-white/5">
               <Pagination meta={usersData?.data?.meta} onPageChange={setPage} />
             </div>
           </div>
@@ -266,7 +267,7 @@ export default function UserVerificationTab({
                 className="flex flex-col h-full"
               >
                 {/* Header Action Bar */}
-                <div className="p-4 border-b border-white/5 bg-white/2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
+                <div className="p-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shrink-0">
                   <div className="flex items-center gap-3 min-w-0">
                     <UserAvatar
                       src={selectedUser.profile?.avatar || undefined}
@@ -305,7 +306,7 @@ export default function UserVerificationTab({
                         onClick={handleSave}
                         isLoading={updateVerificationMutation.isPending}
                         variant="primary"
-                        className="text-sm font-semibold shadow-lg shadow-brand-primary/20 min-h-11 w-full sm:w-auto"
+                        className="text-sm font-semibold min-h-11 w-full sm:w-auto"
                       >
                         <Check size={16} className="mr-2" />{' '}
                         {t('admin.verification.save_changes')}
@@ -314,112 +315,109 @@ export default function UserVerificationTab({
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
-                  {/* Stripe Identity KYC Status Card */}
-                  <div>
-                    <h4 className="text-white font-semibold text-sm uppercase tracking-wide mb-3">
+                <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-6">
+                  <section>
+                    <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-3">
                       {t('admin.verification.kyc_status_title')}
                     </h4>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                      {selectedUser.identityVerifiedAt ? (
-                        <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg flex flex-col items-center justify-center text-center">
-                          <div className="w-12 h-12 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mb-3">
-                            <CheckCircle2 size={24} />
-                          </div>
-                          <h5 className="text-green-400 font-semibold text-base mb-1">
-                            {t('admin.verification.kyc_verified_title')}
-                          </h5>
-                          <p className="text-xs text-gray-300">
-                            {t('admin.verification.kyc_verified_description', {
-                              date: new Date(
-                                selectedUser.identityVerifiedAt,
-                              ).toLocaleDateString(),
-                            })}
-                          </p>
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {selectedUser.identityVerifiedAt ? (
+                          <>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-500/10 text-green-400 text-[11px] font-semibold uppercase tracking-wide">
+                              <CheckCircle2 size={13} />
+                              {t('admin.verification.kyc_verified_title')}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {t(
+                                'admin.verification.kyc_verified_description',
+                                {
+                                  date: new Date(
+                                    selectedUser.identityVerifiedAt,
+                                  ).toLocaleDateString(),
+                                },
+                              )}
+                            </span>
+                          </>
+                        ) : selectedUser.stripeIdentitySessionId ? (
+                          <>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-yellow-500/10 text-yellow-400 text-[11px] font-semibold uppercase tracking-wide">
+                              <Clock size={13} />
+                              {t('admin.verification.kyc_session_title')}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {t('admin.verification.kyc_session_description')}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/5 text-gray-300 text-[11px] font-semibold uppercase tracking-wide">
+                              <UserX size={13} />
+                              {t('admin.verification.kyc_not_started_title')}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {t(
+                                'admin.verification.kyc_not_started_description',
+                              )}
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      <dl className="text-sm">
+                        <div className="py-2.5 border-b border-white/5">
+                          <dt className="text-xs font-medium text-gray-500 mb-1">
+                            {t('admin.verification.session_id_label')}
+                          </dt>
+                          <dd className="text-white text-xs font-mono break-all">
+                            {selectedUser.stripeIdentitySessionId ||
+                              t('admin.verification.session_na')}
+                          </dd>
                         </div>
-                      ) : selectedUser.stripeIdentitySessionId ? (
-                        <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex flex-col items-center justify-center text-center">
-                          <div className="w-12 h-12 bg-yellow-500/20 text-yellow-400 rounded-full flex items-center justify-center mb-3">
-                            <Clock size={24} />
-                          </div>
-                          <h5 className="text-yellow-400 font-semibold text-base mb-1">
-                            {t('admin.verification.kyc_session_title')}
-                          </h5>
-                          <p className="text-xs text-gray-300">
-                            {t('admin.verification.kyc_session_description')}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="p-4 bg-white/5 border border-white/10 rounded-lg flex flex-col items-center justify-center text-center">
-                          <div className="w-12 h-12 bg-white/10 text-gray-300 rounded-full flex items-center justify-center mb-3">
-                            <UserX size={24} />
-                          </div>
-                          <h5 className="text-gray-300 font-semibold text-base mb-1">
-                            {t('admin.verification.kyc_not_started_title')}
-                          </h5>
+                      </dl>
+
+                      {selectedUser.stripeIdentitySessionId &&
+                        !selectedUser.identityVerifiedAt && (
+                          <Button
+                            onClick={() =>
+                              syncKycMutation.mutate(selectedUser.id)
+                            }
+                            isLoading={syncKycMutation.isPending}
+                            variant="secondary"
+                            className="w-full sm:w-auto text-sm font-semibold min-h-11"
+                          >
+                            <RefreshCw size={16} className="mr-2" />{' '}
+                            {t('admin.verification.sync_stripe')}
+                          </Button>
+                        )}
+
+                      {(selectedUser.identityVerifiedAt ||
+                        selectedUser.stripeIdentitySessionId) && (
+                        <div className="pt-1 space-y-2">
+                          <Button
+                            onClick={() => setConfirmRevokeOpen(true)}
+                            isLoading={revokeKycMutation.isPending}
+                            variant="danger"
+                            className="w-full sm:w-auto text-sm font-semibold border-red-500/30 min-h-11"
+                          >
+                            <RefreshCw size={16} className="mr-2" />{' '}
+                            {t('admin.verification.revoke_kyc')}
+                          </Button>
                           <p className="text-xs text-gray-500">
-                            {t(
-                              'admin.verification.kyc_not_started_description',
-                            )}
+                            {t('admin.verification.revoke_hint')}
                           </p>
                         </div>
                       )}
-
-                      <div className="p-4 bg-white/2 border border-white/5 rounded-lg flex flex-col justify-between gap-3">
-                        <div>
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                            {t('admin.verification.session_id_label')}
-                          </p>
-                          <p className="text-white text-xs font-mono break-all bg-black/50 p-2 rounded-lg border border-white/10">
-                            {selectedUser.stripeIdentitySessionId ||
-                              t('admin.verification.session_na')}
-                          </p>
-                        </div>
-
-                        {selectedUser.stripeIdentitySessionId &&
-                          !selectedUser.identityVerifiedAt && (
-                            <Button
-                              onClick={() =>
-                                syncKycMutation.mutate(selectedUser.id)
-                              }
-                              isLoading={syncKycMutation.isPending}
-                              variant="secondary"
-                              className="w-full text-sm font-semibold mt-4 min-h-11"
-                            >
-                              <RefreshCw size={16} className="mr-2" />{' '}
-                              {t('admin.verification.sync_stripe')}
-                            </Button>
-                          )}
-
-                        {(selectedUser.identityVerifiedAt ||
-                          selectedUser.stripeIdentitySessionId) && (
-                          <div className="mt-4">
-                            <Button
-                              onClick={() => setConfirmRevokeOpen(true)}
-                              isLoading={revokeKycMutation.isPending}
-                              variant="danger"
-                              className="w-full text-sm font-semibold border-red-500/30 min-h-11"
-                            >
-                              <RefreshCw size={16} className="mr-2" />{' '}
-                              {t('admin.verification.revoke_kyc')}
-                            </Button>
-                            <p className="text-xs text-gray-500 text-center mt-2">
-                              {t('admin.verification.revoke_hint')}
-                            </p>
-                          </div>
-                        )}
-                      </div>
                     </div>
-                  </div>
+                  </section>
 
-                  {/* Profile Level Controls */}
-                  <div>
-                    <h4 className="text-white font-semibold text-sm uppercase tracking-wide mb-3">
+                  <section>
+                    <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-3">
                       {t('admin.verification.level_controls_title')}
                     </h4>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                      <div className="p-3 sm:p-4 bg-white/2 rounded-xl border border-white/5 space-y-2">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div className="space-y-2">
                         <Select
                           label={t('admin.verification.level_label')}
                           value={draftLevel || 'BASIC'}
@@ -440,12 +438,12 @@ export default function UserVerificationTab({
                             {t('admin.verification.level_elite')}
                           </option>
                         </Select>
-                        <p className="text-xs text-gray-500 mt-2">
+                        <p className="text-xs text-gray-500">
                           {t('admin.verification.level_hint')}
                         </p>
                       </div>
 
-                      <div className="p-3 sm:p-4 bg-white/2 rounded-xl border border-white/5 space-y-2">
+                      <div className="space-y-2">
                         <Select
                           label={t('admin.verification.account_type_label')}
                           value={draftType || 'PERSONAL'}
@@ -461,12 +459,12 @@ export default function UserVerificationTab({
                             {t('admin.verification.account_business')}
                           </option>
                         </Select>
-                        <p className="text-xs text-gray-500 mt-2">
+                        <p className="text-xs text-gray-500">
                           {t('admin.verification.account_type_hint')}
                         </p>
                       </div>
                     </div>
-                  </div>
+                  </section>
                 </div>
               </motion.div>
             ) : (

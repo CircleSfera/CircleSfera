@@ -113,8 +113,8 @@ export default function StatCard({
   return (
     <div
       className={clsx(
-        'glass-panel p-4 rounded-xl border border-white/5 transition-all duration-300 cursor-default relative overflow-hidden',
-        'hover:border-white/10 hover:scale-[1.01] hover:shadow-md',
+        'p-4 rounded-lg border border-white/5 bg-white/[0.02] transition-colors cursor-default relative overflow-hidden',
+        'hover:border-white/10',
         hoverGlow[color],
       )}
     >
@@ -177,7 +177,7 @@ export default function StatCard({
         </div>
         <div
           className={clsx(
-            'p-2 rounded-lg border border-white/5 shrink-0 bg-black/40 backdrop-blur-md',
+            'p-2 rounded-lg border border-white/5 shrink-0 bg-white/[0.04]',
             colorMap[color],
           )}
         >

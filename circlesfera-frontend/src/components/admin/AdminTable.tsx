@@ -30,16 +30,16 @@ export function Table({
   const { t } = useTranslation();
 
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl border border-white/10 bg-black/40 backdrop-blur-2xl shadow-2xl">
+    <div className="relative w-full overflow-hidden border-t border-white/5">
       <div className="w-full overflow-x-auto custom-scrollbar">
         <table className="w-full text-left border-collapse min-w-0 lg:min-w-150">
-          <thead className="bg-white/5 border-b border-white/10">
+          <thead className="border-b border-white/5">
             <tr>
               {headers.map((h, idx) => (
                 <th
                   key={typeof h === 'string' ? h : idx}
                   className={clsx(
-                    'px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400 whitespace-nowrap',
+                    'px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap',
                     columnWidths?.[idx],
                   )}
                 >
@@ -53,10 +53,10 @@ export function Table({
               ['s-1', 's-2', 's-3', 's-4', 's-5'].map((rowId) => (
                 <tr
                   key={rowId}
-                  className="animate-pulse hover:bg-white/5 transition-colors"
+                  className="animate-pulse hover:bg-white/[0.03] transition-colors"
                 >
                   {headers.map((h) => (
-                    <td key={`${rowId}-${h}`} className="px-4 py-5">
+                    <td key={`${rowId}-${h}`} className="px-3 py-4">
                       <div className="h-4 bg-white/10 rounded-md w-full max-w-35" />
                     </td>
                   ))}
@@ -70,7 +70,7 @@ export function Table({
                     animate={{ opacity: 1, y: 0 }}
                     className="flex flex-col items-center gap-3 text-gray-500"
                   >
-                    <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400">
+                    <div className="w-14 h-14 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-gray-400">
                       <Ghost size={28} />
                     </div>
                     <div className="text-center">
@@ -218,45 +218,51 @@ interface PaginationProps {
 export function Pagination({ meta, onPageChange }: PaginationProps) {
   const { t } = useTranslation();
 
-  if (!meta || meta.totalPages <= 1) return null;
+  if (!meta) return null;
+
+  const showPager = meta.totalPages > 1;
 
   return (
-    <div className="px-3 sm:px-6 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/5 bg-white/2">
-      <p className="text-xs text-gray-500 hidden sm:block">
-        {t('admin.table.pagination_from_to', {
-          from: meta.total > 0 ? (meta.page - 1) * meta.limit + 1 : 0,
-          to: Math.min(meta.page * meta.limit, meta.total),
-          total: meta.total,
-        })}
+    <div className="px-1 sm:px-2 py-2.5 flex flex-wrap items-center justify-between gap-3 border-t border-white/5">
+      <p className="text-xs text-gray-500">
+        {meta.total === 0
+          ? t('admin.table.results_count', { count: 0 })
+          : t('admin.table.pagination_from_to', {
+              from: (meta.page - 1) * meta.limit + 1,
+              to: Math.min(meta.page * meta.limit, meta.total),
+              total: meta.total,
+            })}
       </p>
-      <p className="text-xs text-gray-400 sm:hidden font-semibold">
-        {t('admin.table.pagination_page', {
-          page: meta.page,
-          totalPages: meta.totalPages,
-        })}
-      </p>
-      <div className="flex gap-2 ml-auto">
-        <Button
-          onClick={() => onPageChange(meta.page - 1)}
-          disabled={meta.page <= 1}
-          variant="secondary"
-          size="icon"
-          aria-label={t('admin.table.prev_page')}
-          className="w-11 h-11 sm:w-8 sm:h-8"
-        >
-          <ChevronLeft size={18} />
-        </Button>
-        <Button
-          onClick={() => onPageChange(meta.page + 1)}
-          disabled={meta.page >= meta.totalPages}
-          variant="secondary"
-          size="icon"
-          aria-label={t('admin.table.next_page')}
-          className="w-11 h-11 sm:w-8 sm:h-8"
-        >
-          <ChevronRight size={18} />
-        </Button>
-      </div>
+      {showPager && (
+        <div className="flex items-center gap-2 ml-auto">
+          <p className="text-xs text-gray-400 sm:hidden font-semibold">
+            {t('admin.table.pagination_page', {
+              page: meta.page,
+              totalPages: meta.totalPages,
+            })}
+          </p>
+          <Button
+            onClick={() => onPageChange(meta.page - 1)}
+            disabled={meta.page <= 1}
+            variant="secondary"
+            size="icon"
+            aria-label={t('admin.table.prev_page')}
+            className="w-11 h-11 sm:w-8 sm:h-8"
+          >
+            <ChevronLeft size={18} />
+          </Button>
+          <Button
+            onClick={() => onPageChange(meta.page + 1)}
+            disabled={meta.page >= meta.totalPages}
+            variant="secondary"
+            size="icon"
+            aria-label={t('admin.table.next_page')}
+            className="w-11 h-11 sm:w-8 sm:h-8"
+          >
+            <ChevronRight size={18} />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -330,43 +336,5 @@ export function SearchInput({
         </svg>
       }
     />
-  );
-}
-
-// ─── Toast System ───────────────────────────────────────────────────
-
-export interface Toast {
-  id: string;
-  message: string;
-  type: 'success' | 'error' | 'info';
-}
-
-export function ToastContainer({ toasts }: { toasts: Toast[] }) {
-  return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
-      {toasts.map((toast) => (
-        <div
-          key={toast.id}
-          className={clsx(
-            'px-6 py-4 rounded-lg text-[13px] font-semibold tracking-wide shadow-2xl animate-in slide-in-from-right-10 duration-500 backdrop-blur-2xl relative overflow-hidden border border-white/10 group',
-            toast.type === 'success' && 'bg-green-500/10 text-white',
-            toast.type === 'error' && 'bg-red-500/10 text-white',
-            toast.type === 'info' && 'bg-white/5 text-white',
-          )}
-        >
-          {/* Brand Accent Bar (Vertical) */}
-          <div
-            className={clsx(
-              'absolute left-0 top-0 bottom-0 w-1',
-              toast.type === 'success' && 'bg-green-500',
-              toast.type === 'error' && 'bg-red-500',
-              toast.type === 'info' && 'bg-brand-primary',
-            )}
-          />
-
-          <div className="flex items-center gap-3">{toast.message}</div>
-        </div>
-      ))}
-    </div>
   );
 }

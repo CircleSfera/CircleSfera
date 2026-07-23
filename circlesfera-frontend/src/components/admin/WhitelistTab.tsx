@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, Edit2, Mail, Save, Trash2, User } from 'lucide-react';
+import { Save, UserCheck } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
@@ -8,16 +8,17 @@ import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Input, Select } from '../ui';
-import AdminDrawer from './AdminDrawer';
+import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
-import { AdminList, AdminListRow } from './AdminList';
+import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
+import { AdminListSkeleton } from './AdminSkeletons';
+import { AdminSplitView } from './AdminSplitView';
 import {
   ActionButton,
   Pagination,
   SearchInput,
   StatusBadge,
-  Table,
 } from './AdminTable';
 
 export default function WhitelistTab() {
@@ -25,7 +26,7 @@ export default function WhitelistTab() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [editingEntry, setEditingEntry] = useState<WhitelistEntry | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(search, 400);
 
@@ -37,19 +38,24 @@ export default function WhitelistTab() {
         .then((res) => res.data as PaginatedResponse<WhitelistEntry>),
   });
 
+  const entries = data?.data ?? [];
+  const selectedEntry =
+    entries.find((entry) => entry.id === selectedId) ?? null;
+
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<WhitelistEntry> }) =>
       adminApi.updateWhitelist(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'whitelist'] });
-      setEditingEntry(null);
+      setSelectedId(null);
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteWhitelist(id),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'whitelist'] });
+      if (selectedId === id) setSelectedId(null);
     },
   });
 
@@ -84,210 +90,164 @@ export default function WhitelistTab() {
         </div>
       </AdminFilterBar>
 
-      <div className="rounded-xl border border-white/10 lg:overflow-clip">
-        <AdminList
-          loading={isLoading}
-          isEmpty={!data || data.data.length === 0}
-          emptyTitle={t('admin.whitelist.empty_title')}
-          emptyDescription={t('admin.whitelist.empty_description')}
-          mobile={
-            <div className="space-y-2 p-2 lg:p-0">
-              {data?.data.map((entry) => (
-                <AdminListRow
-                  key={entry.id}
-                  title={entry.name || t('admin.whitelist.no_name')}
-                  subtitle={entry.email}
-                  badge={<StatusBadge status={entry.status} />}
-                  meta={new Date(entry.createdAt).toLocaleDateString()}
-                  primaryAction={
-                    <ActionButton
-                      variant="ghost"
-                      label={t('admin.whitelist.action_edit')}
-                      icon={Edit2}
-                      onClick={() => setEditingEntry(entry)}
-                    />
-                  }
-                  secondaryActions={[
-                    {
-                      label: t('admin.whitelist.action_delete'),
-                      variant: 'danger',
-                      onClick: () => handleDelete(entry.id),
-                    },
-                  ]}
+      <AdminSplitView
+        hasSelection={!!selectedEntry}
+        onBack={() => setSelectedId(null)}
+        onClearSelection={() => setSelectedId(null)}
+        listTitle={t('admin.whitelist.title')}
+        list={
+          <div className="flex flex-col h-full min-h-0">
+            <div className="flex-1 overflow-y-auto space-y-2 pb-2">
+              {isLoading ? (
+                <AdminListSkeleton rows={6} />
+              ) : entries.length === 0 ? (
+                <AdminEmptyState
+                  icon={UserCheck}
+                  title={t('admin.whitelist.empty_title')}
+                  description={t('admin.whitelist.empty_description')}
+                  compact
                 />
-              ))}
-            </div>
-          }
-          desktop={
-            <Table
-              headers={[
-                t('admin.whitelist.col_name'),
-                t('admin.whitelist.col_email'),
-                t('admin.whitelist.col_status'),
-                t('admin.whitelist.col_date'),
-                t('admin.whitelist.col_actions'),
-              ]}
-              columnWidths={[
-                'min-w-[8rem]',
-                'min-w-[10rem]',
-                'w-[6rem]',
-                'hidden lg:table-cell w-[7rem]',
-                'w-[5.5rem]',
-              ]}
-              loading={false}
-              isEmpty={false}
-            >
-              {data?.data.map((entry) => (
-                <tr
-                  key={entry.id}
-                  className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
-                >
-                  <td className="px-2 py-2">
-                    <div className="flex items-center gap-2 text-white font-semibold text-sm min-w-0">
-                      <User size={14} className="text-gray-500 shrink-0" />
-                      <span className="truncate">
-                        {entry.name || t('admin.whitelist.no_name')}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-2 py-2 text-gray-300 text-sm">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Mail size={13} className="text-gray-500 shrink-0" />
-                      <span className="truncate" title={entry.email}>
-                        {entry.email}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-2 py-2">
-                    <StatusBadge status={entry.status} />
-                  </td>
-                  <td className="px-2 py-2 text-gray-500 text-sm hidden lg:table-cell">
-                    <div className="flex items-center gap-2">
-                      <Calendar size={13} className="text-gray-500 shrink-0" />
-                      {new Date(entry.createdAt).toLocaleDateString()}
-                    </div>
-                  </td>
-                  <td className="px-2 py-2">
-                    <div className="flex items-center gap-1">
+              ) : (
+                entries.map((entry) => (
+                  <AdminListRow
+                    key={entry.id}
+                    onClick={() => setSelectedId(entry.id)}
+                    className={
+                      selectedId === entry.id
+                        ? 'border-brand-primary/30 bg-brand-primary/10'
+                        : undefined
+                    }
+                    title={entry.name || t('admin.whitelist.no_name')}
+                    subtitle={entry.email}
+                    badge={<StatusBadge status={entry.status} />}
+                    meta={new Date(entry.createdAt).toLocaleDateString()}
+                    primaryAction={
                       <ActionButton
                         variant="ghost"
                         label={t('admin.whitelist.action_edit')}
-                        icon={Edit2}
-                        iconOnly
-                        onClick={() => setEditingEntry(entry)}
+                        onClick={() => setSelectedId(entry.id)}
                       />
-                      <ActionButton
-                        variant="danger"
-                        label={t('admin.whitelist.action_delete')}
-                        icon={Trash2}
-                        iconOnly
-                        onClick={() => handleDelete(entry.id)}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </Table>
-          }
-        />
-        <Pagination meta={data?.meta} onPageChange={setPage} />
-      </div>
-
-      <AdminDrawer
-        isOpen={!!editingEntry}
-        onClose={() => setEditingEntry(null)}
-        title={t('admin.whitelist.drawer_title')}
-      >
-        {editingEntry && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              updateMutation.mutate({
-                id: editingEntry.id,
-                data: {
-                  name: formData.get('name') as string,
-                  email: formData.get('email') as string,
-                  status: formData.get('status') as WhitelistEntry['status'],
-                },
-              });
-            }}
-            className="space-y-4"
-          >
-            <div className="space-y-1.5">
-              <label
-                htmlFor="whitelist-name"
-                className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
-              >
-                {t('admin.whitelist.label_name')}
-              </label>
-              <Input
-                id="whitelist-name"
-                name="name"
-                type="text"
-                defaultValue={editingEntry.name || ''}
-                required
-              />
+                    }
+                    secondaryActions={[
+                      {
+                        label: t('admin.whitelist.action_delete'),
+                        variant: 'danger',
+                        onClick: () => handleDelete(entry.id),
+                      },
+                    ]}
+                  />
+                ))
+              )}
             </div>
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor="whitelist-email"
-                className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
-              >
-                {t('admin.whitelist.label_email')}
-              </label>
-              <Input
-                id="whitelist-email"
-                name="email"
-                type="email"
-                defaultValue={editingEntry.email}
-                required
-                autoComplete="email"
-              />
+            <div className="shrink-0 pt-2 border-t border-white/5">
+              <Pagination meta={data?.meta} onPageChange={setPage} />
             </div>
+          </div>
+        }
+        detail={
+          selectedEntry ? (
+            <div className="space-y-4 px-1">
+              <div>
+                <h3 className="text-base font-semibold text-white">
+                  {t('admin.whitelist.drawer_title')}
+                </h3>
+              </div>
+              <form
+                key={selectedEntry.id}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  updateMutation.mutate({
+                    id: selectedEntry.id,
+                    data: {
+                      name: formData.get('name') as string,
+                      email: formData.get('email') as string,
+                      status: formData.get(
+                        'status',
+                      ) as WhitelistEntry['status'],
+                    },
+                  });
+                }}
+                className="space-y-4"
+              >
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="whitelist-name"
+                    className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
+                  >
+                    {t('admin.whitelist.label_name')}
+                  </label>
+                  <Input
+                    id="whitelist-name"
+                    name="name"
+                    type="text"
+                    defaultValue={selectedEntry.name || ''}
+                    required
+                  />
+                </div>
 
-            <div className="space-y-1.5">
-              <label
-                htmlFor="whitelist-status"
-                className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
-              >
-                {t('admin.whitelist.label_status')}
-              </label>
-              <Select
-                id="whitelist-status"
-                name="status"
-                defaultValue={editingEntry.status}
-              >
-                <option value="VALID" className="bg-surface-raised">
-                  VALID
-                </option>
-                <option value="REGISTERED" className="bg-surface-raised">
-                  REGISTERED
-                </option>
-              </Select>
-            </div>
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="whitelist-email"
+                    className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
+                  >
+                    {t('admin.whitelist.label_email')}
+                  </label>
+                  <Input
+                    id="whitelist-email"
+                    name="email"
+                    type="email"
+                    defaultValue={selectedEntry.email}
+                    required
+                    autoComplete="email"
+                  />
+                </div>
 
-            <div className="pt-4 flex gap-3">
-              <Button
-                onClick={() => setEditingEntry(null)}
-                variant="secondary"
-                className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-gray-300"
-              >
-                {t('admin.shared.cancel')}
-              </Button>
-              <Button
-                type="submit"
-                isLoading={updateMutation.isPending}
-                variant="primary"
-                className="flex-1 min-h-11 font-semibold shadow-lg shadow-brand-primary/20"
-              >
-                <Save size={18} className="mr-2" /> {t('admin.whitelist.save')}
-              </Button>
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="whitelist-status"
+                    className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
+                  >
+                    {t('admin.whitelist.label_status')}
+                  </label>
+                  <Select
+                    id="whitelist-status"
+                    name="status"
+                    defaultValue={selectedEntry.status}
+                  >
+                    <option value="VALID" className="bg-surface-raised">
+                      VALID
+                    </option>
+                    <option value="REGISTERED" className="bg-surface-raised">
+                      REGISTERED
+                    </option>
+                  </Select>
+                </div>
+
+                <div className="pt-4 flex gap-3">
+                  <Button
+                    type="button"
+                    onClick={() => setSelectedId(null)}
+                    variant="secondary"
+                    className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-gray-300"
+                  >
+                    {t('admin.shared.cancel')}
+                  </Button>
+                  <Button
+                    type="submit"
+                    isLoading={updateMutation.isPending}
+                    variant="primary"
+                    className="flex-1 min-h-11 font-semibold shadow-lg shadow-brand-primary/20"
+                  >
+                    <Save size={18} className="mr-2" />{' '}
+                    {t('admin.whitelist.save')}
+                  </Button>
+                </div>
+              </form>
             </div>
-          </form>
-        )}
-      </AdminDrawer>
+          ) : null
+        }
+      />
 
       <ConfirmModal
         isOpen={confirmDeleteId !== null}

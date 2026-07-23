@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { clsx } from 'clsx';
-import { motion } from 'framer-motion';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -38,8 +37,8 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
   };
 
   return (
-    <aside className="hidden lg:flex w-64 xl:w-72 flex-col h-[calc(100vh-5.5rem)] sticky top-6 overflow-hidden z-20 bg-black/40 backdrop-blur-2xl border border-white/10 rounded-2xl p-3 xl:p-4 shadow-2xl">
-      <div className="px-2 mb-4 space-y-2.5 pb-3 border-b border-white/10">
+    <aside className="hidden lg:flex w-64 xl:w-72 flex-col h-[calc(100vh-5.5rem)] sticky top-6 overflow-hidden z-20 bg-white/[0.02] border-r border-white/5 p-3 xl:p-4">
+      <div className="px-2 mb-4 space-y-2.5 pb-3 border-b border-white/5">
         <Link to="/" className="block">
           <img src={logoSrc} alt="CircleSfera" className="h-7 w-auto" />
         </Link>
@@ -66,44 +65,43 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
               {group.items.map((item) => {
                 const isSelected = activeTab === item.id;
                 const ItemIcon = item.icon;
+                const badge = getItemBadge(item.id);
                 return (
                   <button
                     type="button"
                     key={item.id}
                     onClick={() => onTabChange(item.id)}
+                    aria-current={isSelected ? 'page' : undefined}
                     className={clsx(
-                      'w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-all relative group border text-left min-h-10',
+                      'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold border text-left min-h-10',
                       isSelected
-                        ? 'bg-linear-to-r from-brand-primary/20 via-brand-primary/10 to-transparent text-white border-brand-primary/30'
-                        : 'bg-transparent text-gray-400 border-transparent hover:bg-white/5 hover:text-white hover:border-white/5',
+                        ? 'bg-brand-primary/15 text-white border-brand-primary/30 border-l-2 border-l-brand-primary'
+                        : 'bg-transparent text-gray-400 border-transparent hover:bg-white/5 hover:text-white',
                     )}
                   >
-                    <div className="flex items-center gap-2.5 relative z-10">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       <ItemIcon
                         size={16}
-                        className={clsx(
-                          'transition-colors',
-                          isSelected
-                            ? 'text-brand-primary'
-                            : 'text-gray-400 group-hover:text-white',
-                        )}
+                        className={
+                          isSelected ? 'text-brand-primary' : 'text-gray-400'
+                        }
                       />
-                      <span>{t(item.labelKey, item.labelFallback)}</span>
+                      <span className="truncate">
+                        {t(item.labelKey, item.labelFallback)}
+                      </span>
                     </div>
 
-                    <div className="flex items-center gap-2 relative z-10">
-                      {getItemBadge(item.id) && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      {badge && (
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary border border-brand-primary/30">
-                          {getItemBadge(item.id)}
+                          {badge}
                         </span>
                       )}
                       {isSelected && (
-                        <motion.div layoutId="sidebar-active-indicator">
-                          <ChevronRight
-                            size={14}
-                            className="text-brand-primary"
-                          />
-                        </motion.div>
+                        <ChevronRight
+                          size={14}
+                          className="text-brand-primary"
+                        />
                       )}
                     </div>
                   </button>

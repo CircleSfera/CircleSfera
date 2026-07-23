@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, EyeOff, Trash2 } from 'lucide-react';
+import { CheckCircle, EyeOff, MessageCircle, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
@@ -7,10 +7,13 @@ import type { AdminComment } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import ConfirmModal from '../modals/ConfirmModal';
+import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
-import { AdminList, AdminListRow } from './AdminList';
+import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
-import { ActionButton, Pagination, SearchInput, Table } from './AdminTable';
+import { AdminListSkeleton } from './AdminSkeletons';
+import { AdminSplitView } from './AdminSplitView';
+import { ActionButton, Pagination, SearchInput } from './AdminTable';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
@@ -32,12 +35,24 @@ function moderationBadge(status: AdminComment['moderationStatus']) {
   );
 }
 
+function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5 last:border-b-0">
+      <dt className="text-xs font-medium text-gray-500 shrink-0">{label}</dt>
+      <dd className="text-sm text-white text-right min-w-0 break-words">
+        {value}
+      </dd>
+    </div>
+  );
+}
+
 export default function CommentsTab({ onToast }: Props) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(search, 400);
 
   const { data, isLoading } = useQuery<PaginatedResponse<AdminComment>>({
@@ -48,10 +63,14 @@ export default function CommentsTab({ onToast }: Props) {
         .then((r) => r.data),
   });
 
+  const comments = data?.data ?? [];
+  const selected = comments.find((c) => c.id === selectedId) ?? null;
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteComment(id),
-    onSuccess: () => {
+    onSuccess: (_d, id) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'comments'] });
+      if (selectedId === id) setSelectedId(null);
       onToast(t('admin.comments.toast_deleted'), 'success');
     },
     onError: () => onToast(t('admin.comments.toast_delete_error'), 'error'),
@@ -115,8 +134,6 @@ export default function CommentsTab({ onToast }: Props) {
     </div>
   );
 
-  const comments = data?.data ?? [];
-
   return (
     <div className="space-y-4">
       <AdminPageHeader
@@ -137,91 +154,86 @@ export default function CommentsTab({ onToast }: Props) {
         </div>
       </AdminFilterBar>
 
-      <div className="rounded-xl border border-white/10 lg:overflow-clip">
-        <AdminList
-          loading={isLoading}
-          isEmpty={!comments.length}
-          emptyTitle={t('admin.comments.empty_title')}
-          emptyDescription={t('admin.comments.empty_description')}
-          mobile={
-            <div className="space-y-2">
-              {comments.map((comment) => (
-                <AdminListRow
-                  key={comment.id}
-                  title={`@${comment.user?.profile?.username || t('admin.shared.unknown')}`}
-                  subtitle={
-                    <span className="line-clamp-2">{comment.content}</span>
-                  }
-                  badge={moderationBadge(comment.moderationStatus)}
-                  meta={new Date(comment.createdAt).toLocaleDateString()}
-                  primaryAction={renderActions(comment)}
+      <AdminSplitView
+        hasSelection={!!selected}
+        onBack={() => setSelectedId(null)}
+        onClearSelection={() => setSelectedId(null)}
+        listTitle={t('admin.comments.title')}
+        list={
+          <div className="flex flex-col h-full min-h-0">
+            <div className="flex-1 overflow-y-auto space-y-2 pb-2">
+              {isLoading ? (
+                <AdminListSkeleton rows={6} />
+              ) : comments.length === 0 ? (
+                <AdminEmptyState
+                  icon={MessageCircle}
+                  title={t('admin.comments.empty_title')}
+                  description={t('admin.comments.empty_description')}
+                  compact
                 />
-              ))}
+              ) : (
+                comments.map((comment) => (
+                  <AdminListRow
+                    key={comment.id}
+                    selected={selectedId === comment.id}
+                    onClick={() => setSelectedId(comment.id)}
+                    className={
+                      selectedId === comment.id
+                        ? 'border-brand-primary/30 bg-brand-primary/10'
+                        : undefined
+                    }
+                    title={`@${comment.user?.profile?.username || t('admin.shared.unknown')}`}
+                    subtitle={
+                      <span className="line-clamp-2">{comment.content}</span>
+                    }
+                    badge={moderationBadge(comment.moderationStatus)}
+                    meta={new Date(comment.createdAt).toLocaleDateString()}
+                    primaryAction={renderActions(comment)}
+                  />
+                ))
+              )}
             </div>
-          }
-          desktop={
-            <Table
-              headers={[
-                t('admin.comments.col_author'),
-                t('admin.comments.col_comment'),
-                t('admin.comments.col_moderation'),
-                t('admin.comments.col_post'),
-                t('admin.comments.col_date'),
-                t('admin.comments.col_actions'),
-              ]}
-              columnWidths={[
-                'w-[7rem]',
-                'min-w-[10rem]',
-                'w-[5.5rem]',
-                'hidden xl:table-cell min-w-[8rem]',
-                'hidden lg:table-cell w-[6rem]',
-                'w-[6rem]',
-              ]}
-              loading={false}
-              isEmpty={false}
-            >
-              {comments.map((comment) => (
-                <tr
-                  key={comment.id}
-                  className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
-                >
-                  <td className="px-2 py-1">
-                    <span className="text-white text-sm font-medium truncate block max-w-[7rem]">
-                      @
-                      {comment.user?.profile?.username ||
-                        t('admin.shared.unknown')}
-                    </span>
-                  </td>
-                  <td className="px-2 py-1">
-                    <p
-                      className="text-gray-300 text-sm truncate max-w-[16rem] xl:max-w-[20rem]"
-                      title={comment.content}
-                    >
-                      {comment.content}
-                    </p>
-                  </td>
-                  <td className="px-2 py-1">
-                    {moderationBadge(comment.moderationStatus)}
-                  </td>
-                  <td className="px-2 py-1 hidden xl:table-cell">
-                    <span
-                      className="text-gray-500 text-xs truncate block max-w-[8rem]"
-                      title={comment.post?.caption || undefined}
-                    >
-                      {comment.post?.caption || '—'}
-                    </span>
-                  </td>
-                  <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap hidden lg:table-cell">
-                    {new Date(comment.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-2 py-1">{renderActions(comment)}</td>
-                </tr>
-              ))}
-            </Table>
-          }
-        />
-        <Pagination meta={data?.meta} onPageChange={setPage} />
-      </div>
+            <div className="shrink-0">
+              <Pagination meta={data?.meta} onPageChange={setPage} />
+            </div>
+          </div>
+        }
+        detail={
+          selected ? (
+            <div className="space-y-5 pb-6 px-0.5">
+              <div>
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  {t('admin.comments.col_comment')}
+                </p>
+                <p className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed">
+                  {selected.content}
+                </p>
+              </div>
+              <dl>
+                <MetaRow
+                  label={t('admin.comments.col_author')}
+                  value={`@${selected.user?.profile?.username || t('admin.shared.unknown')}`}
+                />
+                <MetaRow
+                  label={t('admin.comments.col_moderation')}
+                  value={moderationBadge(selected.moderationStatus)}
+                />
+                <MetaRow
+                  label={t('admin.comments.col_post')}
+                  value={selected.post?.caption || '—'}
+                />
+                <MetaRow
+                  label={t('admin.comments.col_date')}
+                  value={new Date(selected.createdAt).toLocaleString()}
+                />
+              </dl>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {renderActions(selected)}
+              </div>
+            </div>
+          ) : null
+        }
+      />
 
       <ConfirmModal
         isOpen={confirmDeleteId !== null}

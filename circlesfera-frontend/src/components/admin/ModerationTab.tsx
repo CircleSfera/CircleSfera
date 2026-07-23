@@ -170,7 +170,7 @@ export default function ModerationTab({ onToast }: Props) {
         title={t('admin.moderation.title')}
         subtitle={t('admin.moderation.subtitle')}
         actions={
-          <div className="flex flex-col xs:flex-row gap-1.5 xs:gap-2 bg-white/5 p-1 rounded-lg w-full sm:w-auto">
+          <div className="flex flex-col xs:flex-row gap-1.5 xs:gap-2 border border-white/5 bg-white/[0.02] p-1 rounded-lg w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setViewMode('queue')}
@@ -219,8 +219,8 @@ export default function ModerationTab({ onToast }: Props) {
       )}
 
       {viewMode === 'appeals' ? (
-        <div className="rounded-xl border border-white/10 bg-black/20 p-2 space-y-2">
-          <div className="flex justify-end px-1">
+        <div className="space-y-2">
+          <div className="flex justify-end">
             <Link
               to="/admin/appeals"
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-primary hover:text-brand-primary/80 transition-colors"
@@ -244,7 +244,7 @@ export default function ModerationTab({ onToast }: Props) {
                 initial={{ opacity: 0, height: 0, marginBottom: 0 }}
                 animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
                 exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                className="flex flex-wrap items-center gap-2 p-2 bg-white/5 border border-white/10 rounded-lg shrink-0"
+                className="flex flex-wrap items-center gap-2 px-3 py-2 border border-white/5 bg-white/[0.02] rounded-lg shrink-0"
               >
                 <span className="px-2 sm:px-3 text-sm font-semibold text-white">
                   {t('admin.shared.selected_count', {
@@ -283,6 +283,7 @@ export default function ModerationTab({ onToast }: Props) {
           <AdminSplitView
             hasSelection={!!selectedItemKey}
             onBack={() => setSelectedItemKey(null)}
+            onClearSelection={() => setSelectedItemKey(null)}
             listTitle={t('admin.moderation.list_title')}
             list={
               <div className="flex flex-col h-full min-h-0">
@@ -300,7 +301,7 @@ export default function ModerationTab({ onToast }: Props) {
                   </h3>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                <div className="flex-1 overflow-y-auto space-y-2 pb-2">
                   {isLoading ? (
                     <AdminListSkeleton rows={5} />
                   ) : items.length === 0 ? (
@@ -346,7 +347,7 @@ export default function ModerationTab({ onToast }: Props) {
                                 onChange={(e) => toggleSelect(key, e)}
                                 onClick={(e) => e.stopPropagation()}
                               />
-                              <div className="w-12 h-12 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden shrink-0">
+                              <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden shrink-0">
                                 {item.media?.[0]?.url ? (
                                   <img
                                     src={
@@ -370,7 +371,7 @@ export default function ModerationTab({ onToast }: Props) {
                   )}
                 </div>
 
-                <div className="p-2 border-t border-white/5 shrink-0">
+                <div className="shrink-0 pt-2 border-t border-white/5">
                   <Pagination meta={data?.meta} onPageChange={setPage} />
                 </div>
               </div>
@@ -440,30 +441,30 @@ export default function ModerationTab({ onToast }: Props) {
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-3 sm:p-4 flex flex-col items-center">
-                      <div className="w-full max-w-2xl p-3 sm:p-4 bg-red-500/10 border border-red-500/20 rounded-lg mb-4 flex items-start gap-3">
+                      <div className="w-full max-w-2xl mb-4 flex items-start gap-3 py-2.5 border-b border-red-500/20">
                         <ShieldAlert
-                          className="text-red-500 shrink-0 mt-0.5"
-                          size={20}
+                          className="text-red-400 shrink-0 mt-0.5"
+                          size={18}
                         />
                         <div className="min-w-0">
-                          <h4 className="text-red-500 font-semibold text-sm mb-1">
+                          <h4 className="text-red-400 font-semibold text-sm mb-0.5">
                             {t('admin.moderation.ai_detection_title')}
                           </h4>
-                          <p className="text-xs sm:text-sm text-red-200">
+                          <p className="text-xs sm:text-sm text-gray-400">
                             {selectedItem.moderationNote ||
                               t('admin.moderation.ai_detection_fallback')}
                           </p>
                         </div>
                       </div>
 
-                      <div className="w-full bg-zinc-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl">
+                      <div className="w-full max-w-2xl bg-black/40 rounded-lg overflow-hidden">
                         {selectedItem.media &&
                           selectedItem.media.length > 0 && (
-                            <div className="relative aspect-4/5 bg-black">
+                            <div className="relative aspect-4/5 bg-black max-h-[min(60vh,28rem)]">
                               {selectedItem.media[0].type?.includes('video') ? (
                                 <video
                                   src={selectedItem.media[0].url}
-                                  className="w-full h-full object-cover"
+                                  className="w-full h-full object-contain"
                                   controls
                                   muted
                                   playsInline
@@ -472,18 +473,18 @@ export default function ModerationTab({ onToast }: Props) {
                                 <img
                                   src={selectedItem.media[0].url}
                                   alt=""
-                                  className="w-full h-full object-cover"
+                                  className="w-full h-full object-contain"
                                 />
                               )}
                               {selectedItem.media.length > 1 && (
-                                <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full backdrop-blur-md">
+                                <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-md">
                                   1/{selectedItem.media.length}
                                 </div>
                               )}
                             </div>
                           )}
 
-                        <div className="p-4">
+                        <div className="px-1 py-3">
                           {selectedItem.caption ? (
                             <p className="text-white text-sm whitespace-pre-wrap leading-relaxed">
                               {selectedItem.caption}

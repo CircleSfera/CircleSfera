@@ -98,7 +98,7 @@ export default function NewsletterTab({
         }
       />
 
-      <div className="glass-panel p-3 sm:p-5 rounded-lg border border-white/5">
+      <div className="p-3 sm:p-5 rounded-lg border border-white/5 bg-white/[0.02]">
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
           {!showPreview && (
             <div className="flex-1 space-y-3 order-1">
@@ -205,7 +205,7 @@ export default function NewsletterTab({
 
           {showPreview && (
             <div className="flex-1 order-2">
-              <div className="bg-black border border-white/10 rounded-lg overflow-hidden max-w-2xl mx-auto shadow-2xl">
+              <div className="bg-black border border-white/5 rounded-lg overflow-hidden max-w-2xl mx-auto shadow-2xl">
                 <div className="bg-surface-elevated px-4 sm:px-6 py-3 border-b border-white/5 flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center">
                     <span className="text-brand-primary font-semibold text-xs">

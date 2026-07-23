@@ -168,6 +168,7 @@ export default function PromotionsTab({ onToast }: Props) {
       <AdminSplitView
         hasSelection={!!selectedPromoId}
         onBack={() => setSelectedPromoId(null)}
+        onClearSelection={() => setSelectedPromoId(null)}
         listTitle={t('admin.promotions.list_title', {
           count: data?.meta.total || 0,
         })}
@@ -182,7 +183,7 @@ export default function PromotionsTab({ onToast }: Props) {
               </h3>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+            <div className="flex-1 overflow-y-auto space-y-2 pb-2">
               {isLoading ? (
                 <AdminListSkeleton rows={5} />
               ) : promos.length === 0 ? (
@@ -229,7 +230,7 @@ export default function PromotionsTab({ onToast }: Props) {
                     })}
                     badge={<StatusBadge status={promo.status} />}
                     avatar={
-                      <div className="w-12 h-12 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden shrink-0">
+                      <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden shrink-0">
                         {promo.target?.media?.[0]?.url || promo.target?.url ? (
                           <img
                             src={
@@ -252,7 +253,7 @@ export default function PromotionsTab({ onToast }: Props) {
               )}
             </div>
 
-            <div className="p-2 border-t border-white/5 shrink-0">
+            <div className="shrink-0 pt-2 border-t border-white/5">
               <Pagination meta={data?.meta} onPageChange={setPage} />
             </div>
           </div>
@@ -325,7 +326,7 @@ export default function PromotionsTab({ onToast }: Props) {
                       href={`/post/${selectedPromo.targetId}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors shrink-0"
+                      className="inline-flex items-center justify-center w-11 h-11 rounded-md text-brand-primary hover:bg-brand-primary/10 transition-colors shrink-0"
                       title={t('admin.promotions.open_new_tab')}
                     >
                       <ExternalLink size={18} />
@@ -334,92 +335,91 @@ export default function PromotionsTab({ onToast }: Props) {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-3 sm:p-4 flex flex-col items-center">
-                  <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-lg p-3 sm:p-4 mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:divide-x sm:divide-white/5">
-                    <div className="px-1 sm:px-2">
-                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">
+                  <div className="w-full max-w-2xl mb-4 grid grid-cols-2 sm:grid-cols-4 rounded-lg bg-white/[0.03] overflow-hidden divide-x divide-y sm:divide-y-0 divide-white/5">
+                    <div className="px-3 py-2.5">
+                      <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide mb-0.5">
                         {t('admin.promotions.budget_label')}
                       </p>
-                      <p className="text-lg font-semibold text-white">
+                      <p className="text-lg font-semibold text-white tabular-nums leading-tight">
                         {selectedPromo.budget}{' '}
-                        <span className="text-sm text-gray-300">
+                        <span className="text-sm text-gray-400 font-medium">
                           {selectedPromo.currency}
                         </span>
                       </p>
                     </div>
-                    <div className="px-2 sm:px-4">
-                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">
+                    <div className="px-3 py-2.5">
+                      <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide mb-0.5">
                         {t('admin.promotions.reach_label')}
                       </p>
-                      <p className="text-base sm:text-lg font-semibold text-emerald-400 flex items-center gap-1.5">
+                      <p className="text-base sm:text-lg font-semibold text-emerald-400 flex items-center gap-1.5 tabular-nums leading-tight">
                         <TrendingUp size={14} />
                         {selectedPromo.reach.toLocaleString()}
                       </p>
                     </div>
-                    <div className="px-2 sm:px-4">
-                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">
+                    <div className="px-3 py-2.5">
+                      <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide mb-0.5">
                         {t('admin.promotions.start_date_label')}
                       </p>
                       <p className="text-sm font-semibold text-white">
                         {new Date(selectedPromo.startDate).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="px-2 sm:px-4">
-                      <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">
+                    <div className="px-3 py-2.5">
+                      <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide mb-0.5">
                         {t('admin.promotions.status_label')}
                       </p>
                       <StatusBadge status={selectedPromo.status} />
                     </div>
                   </div>
 
-                  <div className="w-full max-w-md bg-zinc-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl">
-                    <div className="p-3 bg-white/5 border-b border-white/10 flex items-center justify-between">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-brand-primary">
-                        {t('admin.promotions.promoted_type', {
-                          type: selectedPromo.targetType,
-                        })}
-                      </span>
-                    </div>
+                  <div className="w-full max-w-md">
+                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      {t('admin.promotions.promoted_type', {
+                        type: selectedPromo.targetType,
+                      })}
+                    </p>
+                    <div className="bg-black/40 rounded-lg overflow-hidden">
+                      {selectedPromo.target?.media &&
+                        selectedPromo.target.media.length > 0 && (
+                          <div className="relative aspect-4/5 bg-black max-h-[min(60vh,28rem)]">
+                            {selectedPromo.target.media[0].type?.includes(
+                              'video',
+                            ) ? (
+                              <video
+                                src={selectedPromo.target.media[0].url}
+                                className="w-full h-full object-contain"
+                                controls
+                                muted
+                                playsInline
+                              />
+                            ) : (
+                              <img
+                                src={selectedPromo.target.media[0].url}
+                                alt=""
+                                className="w-full h-full object-contain"
+                              />
+                            )}
+                            {selectedPromo.target.media.length > 1 && (
+                              <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-md">
+                                1/{selectedPromo.target.media.length}
+                              </div>
+                            )}
+                          </div>
+                        )}
 
-                    {selectedPromo.target?.media &&
-                      selectedPromo.target.media.length > 0 && (
-                        <div className="relative aspect-4/5 bg-black">
-                          {selectedPromo.target.media[0].type?.includes(
-                            'video',
-                          ) ? (
-                            <video
-                              src={selectedPromo.target.media[0].url}
-                              className="w-full h-full object-cover"
-                              controls
-                              muted
-                              playsInline
-                            />
-                          ) : (
-                            <img
-                              src={selectedPromo.target.media[0].url}
-                              alt=""
-                              className="w-full h-full object-cover"
-                            />
-                          )}
-                          {selectedPromo.target.media.length > 1 && (
-                            <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full backdrop-blur-md">
-                              1/{selectedPromo.target.media.length}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                    <div className="p-3 sm:p-4">
-                      {selectedPromo.target?.caption ||
-                      selectedPromo.target?.text ? (
-                        <p className="text-white text-sm whitespace-pre-wrap leading-relaxed">
-                          {selectedPromo.target.caption ||
-                            selectedPromo.target.text}
-                        </p>
-                      ) : (
-                        <p className="text-gray-500 text-sm italic">
-                          {t('admin.promotions.no_description')}
-                        </p>
-                      )}
+                      <div className="px-1 py-3">
+                        {selectedPromo.target?.caption ||
+                        selectedPromo.target?.text ? (
+                          <p className="text-white text-sm whitespace-pre-wrap leading-relaxed">
+                            {selectedPromo.target.caption ||
+                              selectedPromo.target.text}
+                          </p>
+                        ) : (
+                          <p className="text-gray-500 text-sm italic">
+                            {t('admin.promotions.no_description')}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
