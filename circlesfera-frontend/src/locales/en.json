@@ -848,9 +848,43 @@
     "vip_desc": "Exclusive access to circles of other certified creators and priority in global discovery."
   },
   "admin": {
-    "panel": "Admin Panel",
+    "panel": "Control Panel",
     "description": "CircleSfera Management and Moderation",
-    "connected_as": "Connected as"
+    "connected_as": "Admin",
+    "back_to_app": "Back to CircleSfera",
+    "back_short": "App",
+    "open_nav": "Open navigation",
+    "search": "Search",
+    "search_placeholder": "Search admin...",
+    "nav": {
+      "dashboard": "Dashboard",
+      "analytics": "Analytics",
+      "monetization": "Monetization",
+      "promotions": "Promotions",
+      "verification": "Verification",
+      "whitelist": "Whitelist",
+      "newsletter": "Newsletter",
+      "moderation": "Moderation",
+      "users": "Users",
+      "ai_queue": "AI Queue",
+      "firewall": "AI Shield",
+      "posts": "Posts",
+      "stories": "Stories",
+      "comments": "Comments",
+      "content": "Content",
+      "hashtags": "Hashtags",
+      "audio": "Music",
+      "system": "System",
+      "system_health": "Health",
+      "experiments": "Experiments",
+      "reports": "Reports",
+      "audit": "Audit Log"
+    },
+    "cmd": {
+      "go_to": "Go to: {{section}}",
+      "placeholder": "Search sections or users...",
+      "no_results": "No results for \"{{query}}\""
+    }
   },
   "collections": {
     "new_collection": "New Collection",

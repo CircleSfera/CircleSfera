@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { AuditLogEntry } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { AdminList, AdminListRow } from './AdminList';
 import { Pagination, Table } from './AdminTable';
 
 const ACTION_LABELS: Record<string, string> = {
@@ -43,48 +44,84 @@ export default function AuditLogTab() {
   return (
     <div className="space-y-4">
       <div className="glass-panel rounded-lg overflow-clip border border-white/10">
-        <Table
-          headers={['Fecha', 'Admin', 'Acción', 'Tipo', 'Target ID']}
+        <AdminList
           loading={isLoading}
           isEmpty={!data?.data?.length}
-        >
-          {data?.data?.map((log) => (
-            <tr
-              key={log.id}
-              className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
+          emptyTitle="No hay registros de auditoría"
+          emptyDescription="No se encontraron acciones registradas."
+          mobile={
+            <div className="space-y-2">
+              {data?.data?.map((log) => (
+                <AdminListRow
+                  key={log.id}
+                  title={
+                    <span
+                      className={`inline-flex items-center gap-1.5 ${ACTION_COLORS[log.action] || 'text-gray-300'}`}
+                    >
+                      <Activity size={14} />
+                      {ACTION_LABELS[log.action] || log.action}
+                    </span>
+                  }
+                  subtitle={
+                    <span className="text-brand-primary font-semibold">
+                      @{log.adminUsername}
+                    </span>
+                  }
+                  badge={
+                    <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/10">
+                      {log.targetType}
+                    </span>
+                  }
+                  meta={<span>{new Date(log.createdAt).toLocaleString()}</span>}
+                />
+              ))}
+            </div>
+          }
+          desktop={
+            <Table
+              headers={['Fecha', 'Admin', 'Acción', 'Tipo', 'Target ID']}
+              loading={false}
+              isEmpty={false}
             >
-              <td className="px-2 py-1 text-gray-300 text-sm whitespace-nowrap">
-                {new Date(log.createdAt).toLocaleString()}
-              </td>
-              <td className="px-2 py-1">
-                <span className="text-brand-primary font-bold text-sm">
-                  @{log.adminUsername}
-                </span>
-              </td>
-              <td className="px-2 py-1">
-                <div className="flex items-center gap-2">
-                  <Activity
-                    size={14}
-                    className={ACTION_COLORS[log.action] || 'text-gray-300'}
-                  />
-                  <span
-                    className={`text-sm font-medium ${ACTION_COLORS[log.action] || 'text-gray-300'}`}
-                  >
-                    {ACTION_LABELS[log.action] || log.action}
-                  </span>
-                </div>
-              </td>
-              <td className="px-2 py-1">
-                <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-black uppercase tracking-wider text-gray-300 border border-white/10">
-                  {log.targetType}
-                </span>
-              </td>
-              <td className="px-2 py-1 text-gray-600 text-xs font-mono">
-                {log.targetId.slice(0, 12)}...
-              </td>
-            </tr>
-          ))}
-        </Table>
+              {data?.data?.map((log) => (
+                <tr
+                  key={log.id}
+                  className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
+                >
+                  <td className="px-2 py-1 text-gray-300 text-sm whitespace-nowrap">
+                    {new Date(log.createdAt).toLocaleString()}
+                  </td>
+                  <td className="px-2 py-1">
+                    <span className="text-brand-primary font-bold text-sm">
+                      @{log.adminUsername}
+                    </span>
+                  </td>
+                  <td className="px-2 py-1">
+                    <div className="flex items-center gap-2">
+                      <Activity
+                        size={14}
+                        className={ACTION_COLORS[log.action] || 'text-gray-300'}
+                      />
+                      <span
+                        className={`text-sm font-medium ${ACTION_COLORS[log.action] || 'text-gray-300'}`}
+                      >
+                        {ACTION_LABELS[log.action] || log.action}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-2 py-1">
+                    <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/10">
+                      {log.targetType}
+                    </span>
+                  </td>
+                  <td className="px-2 py-1 text-gray-600 text-xs font-mono">
+                    {log.targetId.slice(0, 12)}...
+                  </td>
+                </tr>
+              ))}
+            </Table>
+          }
+        />
         <Pagination meta={data?.meta} onPageChange={setPage} />
       </div>
     </div>

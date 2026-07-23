@@ -1,13 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  ArrowLeft,
-  CheckCircle,
-  Eye,
-  Ghost,
-  ShieldAlert,
-  Trash2,
-} from 'lucide-react';
+import { CheckCircle, Eye, Ghost, ShieldAlert, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminPost } from '../../services/admin.service';
@@ -17,6 +10,8 @@ import { LoadingSpinner } from '../index';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
+import { AdminListRow } from './AdminList';
+import { AdminSplitView } from './AdminSplitView';
 import {
   ActionButton,
   FilterDropdown,
@@ -144,7 +139,7 @@ export default function ModerationTab({ onToast }: Props) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)] space-y-4">
+    <div className="flex flex-col min-h-0 space-y-4">
       {/* Header & Controls */}
       <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
@@ -152,7 +147,7 @@ export default function ModerationTab({ onToast }: Props) {
             <ShieldAlert size={20} className="text-amber-500" />
           </div>
           <div>
-            <h2 className="text-lg font-black text-white">
+            <h2 className="text-lg font-semibold text-white">
               Cola de Moderación AI
             </h2>
             <p className="text-xs text-gray-500">
@@ -251,103 +246,98 @@ export default function ModerationTab({ onToast }: Props) {
           </AnimatePresence>
 
           {/* Split Pane Layout */}
-          <div className="flex flex-1 min-h-0 gap-4">
-            {/* Left Pane: Queue */}
-            <div
-              className={`w-full lg:w-1/3 flex-col glass-panel rounded-lg border border-white/5 overflow-hidden shadow-lg ${selectedItemId ? 'hidden lg:flex' : 'flex'}`}
-            >
-              <div className="p-4 border-b border-white/5 shrink-0 bg-white/2 flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  className="rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
-                  checked={
-                    selectedIds.size === items.length && items.length > 0
-                  }
-                  onChange={toggleSelectAll}
-                />
-                <h3 className="font-bold text-white text-sm">
-                  Seleccionar Todos
-                </h3>
-              </div>
+          <AdminSplitView
+            hasSelection={!!selectedItemId}
+            onBack={() => setSelectedItemId(null)}
+            listTitle="Cola de moderación"
+            list={
+              <div className="flex flex-col h-full min-h-0">
+                <div className="p-3 border-b border-white/5 shrink-0 flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    className="rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
+                    checked={
+                      selectedIds.size === items.length && items.length > 0
+                    }
+                    onChange={toggleSelectAll}
+                  />
+                  <h3 className="font-semibold text-white text-sm">
+                    Seleccionar Todos
+                  </h3>
+                </div>
 
-              <div className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
-                {isLoading ? (
-                  <div className="flex justify-center p-8">
-                    <LoadingSpinner />
-                  </div>
-                ) : items.length === 0 ? (
-                  <div className="text-center p-8 text-gray-500 text-sm">
-                    No hay contenido pendiente de moderación
-                  </div>
-                ) : (
-                  items.map((item) => (
-                    <button
-                      type="button"
-                      key={item.id}
-                      onClick={() => setSelectedItemId(item.id)}
-                      className={`w-full text-left p-3 rounded-xl border transition-all flex items-start gap-3 ${
-                        selectedItemId === item.id
-                          ? 'bg-brand-primary/10 border-brand-primary/30'
-                          : 'bg-white/2 border-transparent hover:bg-white/5 hover:border-white/10'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        className="mt-1 rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
-                        checked={selectedIds.has(item.id)}
-                        onChange={(e) => toggleSelect(item.id, e)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-
-                      <div className="w-12 h-12 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden shrink-0">
-                        {item.media?.[0]?.url ? (
-                          <img
-                            src={
-                              item.media[0].thumbnailUrl || item.media[0].url
-                            }
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-zinc-700">
-                            <Ghost size={16} />
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="text-xs font-black uppercase tracking-wide text-amber-500">
+                <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                  {isLoading ? (
+                    <div className="flex justify-center p-8">
+                      <LoadingSpinner />
+                    </div>
+                  ) : items.length === 0 ? (
+                    <div className="text-center p-8 text-gray-500 text-sm">
+                      No hay contenido pendiente de moderación
+                    </div>
+                  ) : (
+                    items.map((item) => (
+                      <AdminListRow
+                        key={item.id}
+                        onClick={() => setSelectedItemId(item.id)}
+                        className={
+                          selectedItemId === item.id
+                            ? 'border-brand-primary/30 bg-brand-primary/10'
+                            : undefined
+                        }
+                        title={item.caption || '(Sin texto)'}
+                        subtitle={`@${item.user?.profile?.username || '—'}`}
+                        meta={
+                          <span className="text-red-400 truncate">
+                            {item.moderationNote?.replace(
+                              '[AI Automated Flag]: ',
+                              '',
+                            ) || 'Flagged'}
+                          </span>
+                        }
+                        badge={
+                          <span className="text-xs font-semibold uppercase text-amber-500">
                             {item.type}
                           </span>
-                          <span className="text-xs text-gray-500">
-                            @{item.user?.profile?.username}
-                          </span>
-                        </div>
-                        <p className="text-white text-sm truncate font-bold">
-                          {item.caption || '(Sin texto)'}
-                        </p>
-                        <p className="text-xs text-red-400 mt-1 truncate">
-                          {item.moderationNote?.replace(
-                            '[AI Automated Flag]: ',
-                            '',
-                          ) || 'Flagged'}
-                        </p>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
+                        }
+                        avatar={
+                          <div className="flex items-start gap-2">
+                            <input
+                              type="checkbox"
+                              className="mt-1 rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
+                              checked={selectedIds.has(item.id)}
+                              onChange={(e) => toggleSelect(item.id, e)}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <div className="w-12 h-12 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden shrink-0">
+                              {item.media?.[0]?.url ? (
+                                <img
+                                  src={
+                                    item.media[0].thumbnailUrl ||
+                                    item.media[0].url
+                                  }
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                                  <Ghost size={16} />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        }
+                      />
+                    ))
+                  )}
+                </div>
 
-              <div className="p-2 border-t border-white/5 shrink-0 bg-white/2">
-                <Pagination meta={data?.meta} onPageChange={setPage} />
+                <div className="p-2 border-t border-white/5 shrink-0">
+                  <Pagination meta={data?.meta} onPageChange={setPage} />
+                </div>
               </div>
-            </div>
-
-            {/* Right Pane: Details & Resolution */}
-            <div
-              className={`flex-1 glass-panel rounded-lg border border-white/5 overflow-hidden shadow-lg flex-col relative ${selectedItemId ? 'flex' : 'hidden lg:flex'}`}
-            >
+            }
+            detail={
               <AnimatePresence mode="wait">
                 {selectedItem ? (
                   <motion.div
@@ -358,34 +348,20 @@ export default function ModerationTab({ onToast }: Props) {
                     transition={{ duration: 0.15 }}
                     className="flex flex-col h-full"
                   >
-                    {/* Header Action Bar */}
-                    <div className="p-4 border-b border-white/5 bg-white/2 flex items-center justify-between shrink-0">
-                      <div className="flex items-center gap-4">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedItemId(null)}
-                          className="lg:hidden p-2 -ml-2 text-gray-300 hover:text-white"
-                        >
-                          <ArrowLeft size={20} />
-                        </button>
-                        <div className="flex items-center gap-3">
-                          <UserAvatar
-                            src={
-                              selectedItem.user?.profile?.avatar || undefined
-                            }
-                            alt={selectedItem.user?.profile?.username || 'User'}
-                            size="sm"
-                          />
-                          <div>
-                            <h3 className="text-sm font-bold text-white">
-                              @{selectedItem.user?.profile?.username}
-                            </h3>
-                            <p className="text-xs text-gray-300">
-                              {new Date(
-                                selectedItem.createdAt,
-                              ).toLocaleString()}
-                            </p>
-                          </div>
+                    <div className="p-4 border-b border-white/5 flex items-center justify-between shrink-0 gap-2 flex-wrap">
+                      <div className="flex items-center gap-3">
+                        <UserAvatar
+                          src={selectedItem.user?.profile?.avatar || undefined}
+                          alt={selectedItem.user?.profile?.username || 'User'}
+                          size="sm"
+                        />
+                        <div>
+                          <h3 className="text-sm font-semibold text-white">
+                            @{selectedItem.user?.profile?.username}
+                          </h3>
+                          <p className="text-xs text-gray-300">
+                            {new Date(selectedItem.createdAt).toLocaleString()}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -403,7 +379,7 @@ export default function ModerationTab({ onToast }: Props) {
                           }
                           isLoading={moderationMutation.isPending}
                           variant="success"
-                          className="p-2 md:px-4 md:py-2 text-sm font-bold border-green-500/20"
+                          className="p-2 md:px-4 md:py-2 text-sm font-semibold border-green-500/20"
                         >
                           <CheckCircle
                             size={16}
@@ -423,7 +399,7 @@ export default function ModerationTab({ onToast }: Props) {
                             })
                           }
                           variant="danger"
-                          className="p-2 md:px-4 md:py-2 text-sm font-bold border-red-500/20"
+                          className="p-2 md:px-4 md:py-2 text-sm font-semibold border-red-500/20"
                         >
                           <Trash2 size={16} className="mr-2 hidden md:block" />{' '}
                           <span className="hidden md:inline">Eliminar</span>
@@ -432,15 +408,14 @@ export default function ModerationTab({ onToast }: Props) {
                       </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
-                      {/* AI Warning Box */}
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col items-center">
                       <div className="w-full max-w-2xl p-4 bg-red-500/10 border border-red-500/20 rounded-lg mb-6 flex items-start gap-4">
                         <ShieldAlert
                           className="text-red-500 shrink-0 mt-1"
                           size={24}
                         />
                         <div>
-                          <h4 className="text-red-500 font-bold mb-1">
+                          <h4 className="text-red-500 font-semibold mb-1">
                             Detección Automática AI
                           </h4>
                           <p className="text-sm text-red-200">
@@ -450,9 +425,7 @@ export default function ModerationTab({ onToast }: Props) {
                         </div>
                       </div>
 
-                      {/* Content Preview */}
                       <div className="w-full max-w-md bg-zinc-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl">
-                        {/* Media */}
                         {selectedItem.media &&
                           selectedItem.media.length > 0 && (
                             <div className="relative aspect-4/5 bg-black">
@@ -479,7 +452,6 @@ export default function ModerationTab({ onToast }: Props) {
                             </div>
                           )}
 
-                        {/* Text Content */}
                         <div className="p-4">
                           {selectedItem.caption ? (
                             <p className="text-white text-sm whitespace-pre-wrap leading-relaxed">
@@ -498,10 +470,10 @@ export default function ModerationTab({ onToast }: Props) {
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="flex-1 flex flex-col items-center justify-center text-gray-500"
+                    className="flex-1 flex flex-col items-center justify-center text-gray-500 min-h-48"
                   >
                     <ShieldAlert size={48} className="mb-4 text-white/10" />
-                    <p className="font-bold">
+                    <p className="font-semibold">
                       Selecciona un elemento de la cola
                     </p>
                     <p className="text-sm">
@@ -510,8 +482,8 @@ export default function ModerationTab({ onToast }: Props) {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
-          </div>
+            }
+          />
 
           {/* Action Confirm Modal */}
           <ConfirmModal

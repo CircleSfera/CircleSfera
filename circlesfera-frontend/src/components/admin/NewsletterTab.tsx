@@ -99,7 +99,7 @@ export default function NewsletterTab({
             {/* Mock Email UI */}
             <div className="bg-surface-elevated px-6 py-4 border-b border-white/5 flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center">
-                <span className="text-brand-primary font-black text-xs">
+                <span className="text-brand-primary font-semibold text-xs">
                   CS
                 </span>
               </div>
@@ -114,7 +114,7 @@ export default function NewsletterTab({
             </div>
 
             <div className="p-10 text-center space-y-4 bg-black">
-              <h1 className="text-xl font-black text-white tracking-tight leading-tight">
+              <h1 className="text-xl font-semibold text-white tracking-tight leading-tight">
                 {formData.title || 'Título del Correo'}
               </h1>
               <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
@@ -124,7 +124,7 @@ export default function NewsletterTab({
 
               {formData.buttonText && formData.buttonUrl && (
                 <div className="pt-6">
-                  <span className="inline-block px-8 py-3 bg-white text-black font-black text-xs rounded-full uppercase tracking-wide shadow-xl">
+                  <span className="inline-block px-8 py-3 bg-white text-black font-semibold text-xs rounded-full uppercase tracking-wide shadow-xl">
                     {formData.buttonText}
                   </span>
                 </div>
@@ -146,7 +146,7 @@ export default function NewsletterTab({
               <div className="space-y-2">
                 <label
                   htmlFor="subject"
-                  className="text-xs font-black text-gray-500 uppercase tracking-wide ml-1 flex items-center gap-2"
+                  className="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1 flex items-center gap-2"
                 >
                   <Type size={12} /> Asunto del Email (Interno)
                 </label>
@@ -164,7 +164,7 @@ export default function NewsletterTab({
               <div className="space-y-2">
                 <label
                   htmlFor="title"
-                  className="text-xs font-black text-gray-500 uppercase tracking-wide ml-1 flex items-center gap-2"
+                  className="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1 flex items-center gap-2"
                 >
                   <Layout size={12} /> Título Principal (Heading)
                 </label>
@@ -176,7 +176,7 @@ export default function NewsletterTab({
                   onChange={(e) =>
                     setFormData({ ...formData, title: e.target.value })
                   }
-                  className="font-black"
+                  className="font-semibold"
                 />
               </div>
 
@@ -184,7 +184,7 @@ export default function NewsletterTab({
                 <div className="space-y-2">
                   <label
                     htmlFor="buttonText"
-                    className="text-xs font-black text-gray-500 uppercase tracking-wide ml-1"
+                    className="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1"
                   >
                     Texto del Botón
                   </label>
@@ -201,7 +201,7 @@ export default function NewsletterTab({
                 <div className="space-y-2">
                   <label
                     htmlFor="buttonUrl"
-                    className="text-xs font-black text-gray-500 uppercase tracking-wide ml-1"
+                    className="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1"
                   >
                     URL del Botón
                   </label>
@@ -228,7 +228,7 @@ export default function NewsletterTab({
             <div className="space-y-2 flex flex-col h-full">
               <label
                 htmlFor="content"
-                className="text-xs font-black text-gray-500 uppercase tracking-wide ml-1"
+                className="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1"
               >
                 Contenido del Mensaje
               </label>
@@ -249,7 +249,7 @@ export default function NewsletterTab({
       <div className="bg-orange-500/5 border border-orange-500/20 rounded-lg p-6 flex items-start gap-4">
         <AlertTriangle className="text-orange-500 shrink-0 mt-0.5" size={18} />
         <div>
-          <h4 className="text-orange-500 text-xs font-black uppercase tracking-wide mb-1">
+          <h4 className="text-orange-500 text-xs font-semibold uppercase tracking-wide mb-1">
             Aviso de Seguridad
           </h4>
           <p className="text-gray-300 text-xs leading-relaxed">

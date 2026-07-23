@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  ArrowLeft,
   CheckCircle,
   ExternalLink,
   Ghost,
@@ -17,6 +16,8 @@ import type { PaginatedResponse } from '../../types';
 import { LoadingSpinner } from '../index';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
+import { AdminListRow } from './AdminList';
+import { AdminSplitView } from './AdminSplitView';
 import {
   FilterDropdown,
   Pagination,
@@ -111,7 +112,7 @@ export default function PromotionsTab({ onToast }: Props) {
   });
 
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)] space-y-4">
+    <div className="flex flex-col min-h-0 space-y-4">
       {/* Header & Controls */}
       <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
@@ -119,7 +120,7 @@ export default function PromotionsTab({ onToast }: Props) {
             <Megaphone size={20} className="text-brand-primary" />
           </div>
           <div>
-            <h2 className="text-lg font-black text-white">
+            <h2 className="text-lg font-semibold text-white">
               Cola de Promociones
             </h2>
             <p className="text-xs text-gray-500">
@@ -155,89 +156,71 @@ export default function PromotionsTab({ onToast }: Props) {
         </div>
       </div>
 
-      {/* Split Pane Layout */}
-      <div className="flex flex-1 min-h-0 gap-4">
-        {/* Left Pane: Queue */}
-        <div
-          className={`w-full lg:w-1/3 flex-col glass-panel rounded-lg border border-white/5 overflow-hidden shadow-lg ${selectedPromoId ? 'hidden lg:flex' : 'flex'}`}
-        >
-          <div className="p-4 border-b border-white/5 shrink-0 bg-white/2 flex justify-between items-center">
-            <h3 className="font-bold text-white text-sm flex items-center gap-2">
-              <Target size={16} className="text-brand-primary" />
-              Solicitudes ({data?.meta.total || 0})
-            </h3>
-          </div>
+      <AdminSplitView
+        hasSelection={!!selectedPromoId}
+        onBack={() => setSelectedPromoId(null)}
+        listTitle={`Solicitudes (${data?.meta.total || 0})`}
+        list={
+          <div className="flex flex-col h-full min-h-0">
+            <div className="p-3 border-b border-white/5 shrink-0 flex justify-between items-center lg:hidden">
+              <h3 className="font-semibold text-white text-sm flex items-center gap-2">
+                <Target size={16} className="text-brand-primary" />
+                Solicitudes ({data?.meta.total || 0})
+              </h3>
+            </div>
 
-          <div className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
-            {isLoading ? (
-              <div className="flex justify-center p-8">
-                <LoadingSpinner />
-              </div>
-            ) : promos.length === 0 ? (
-              <div className="text-center p-8 text-gray-500 text-sm">
-                No hay promociones encontradas
-              </div>
-            ) : (
-              promos.map((promo) => (
-                <button
-                  type="button"
-                  key={promo.id}
-                  onClick={() => setSelectedPromoId(promo.id)}
-                  className={`w-full text-left p-3 rounded-xl border transition-all flex flex-col gap-2 ${
-                    selectedPromoId === promo.id
-                      ? 'bg-brand-primary/10 border-brand-primary/30'
-                      : 'bg-white/2 border-transparent hover:bg-white/5 hover:border-white/10'
-                  }`}
-                >
-                  <div className="flex justify-between items-start w-full">
-                    <StatusBadge status={promo.status} />
-                    <span className="text-xs font-bold text-white tabular-nums">
-                      {promo.budget} {promo.currency}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3 w-full">
-                    <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden shrink-0">
-                      {promo.target?.media?.[0]?.url || promo.target?.url ? (
-                        <img
-                          src={
-                            promo.target?.media?.[0]?.thumbnailUrl ||
-                            promo.target?.media?.[0]?.url ||
-                            promo.target?.url
-                          }
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-zinc-700">
-                          <Ghost size={16} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-white text-sm truncate font-bold italic">
-                        @{promo.user.profile.username}
-                      </p>
-                      <div className="flex items-center gap-1 text-xs text-emerald-400 font-bold uppercase tracking-wide mt-0.5">
-                        <TrendingUp size={12} />
-                        {promo.reach.toLocaleString()} alcance est.
+            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+              {isLoading ? (
+                <div className="flex justify-center p-8">
+                  <LoadingSpinner />
+                </div>
+              ) : promos.length === 0 ? (
+                <div className="text-center p-8 text-gray-500 text-sm">
+                  No hay promociones encontradas
+                </div>
+              ) : (
+                promos.map((promo) => (
+                  <AdminListRow
+                    key={promo.id}
+                    onClick={() => setSelectedPromoId(promo.id)}
+                    className={
+                      selectedPromoId === promo.id
+                        ? 'border-brand-primary/30 bg-brand-primary/10'
+                        : undefined
+                    }
+                    title={`@${promo.user.profile.username}`}
+                    subtitle={`${promo.budget} ${promo.currency} · ${promo.reach.toLocaleString()} alcance est.`}
+                    badge={<StatusBadge status={promo.status} />}
+                    avatar={
+                      <div className="w-12 h-12 rounded-lg bg-zinc-900 border border-white/10 overflow-hidden shrink-0">
+                        {promo.target?.media?.[0]?.url || promo.target?.url ? (
+                          <img
+                            src={
+                              promo.target?.media?.[0]?.thumbnailUrl ||
+                              promo.target?.media?.[0]?.url ||
+                              promo.target?.url
+                            }
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                            <Ghost size={16} />
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
+                    }
+                  />
+                ))
+              )}
+            </div>
 
-          <div className="p-2 border-t border-white/5 shrink-0 bg-white/2">
-            <Pagination meta={data?.meta} onPageChange={setPage} />
+            <div className="p-2 border-t border-white/5 shrink-0">
+              <Pagination meta={data?.meta} onPageChange={setPage} />
+            </div>
           </div>
-        </div>
-
-        {/* Right Pane: Details & Resolution */}
-        <div
-          className={`flex-1 glass-panel rounded-lg border border-white/5 overflow-hidden shadow-lg flex-col relative ${selectedPromoId ? 'flex' : 'hidden lg:flex'}`}
-        >
+        }
+        detail={
           <AnimatePresence mode="wait">
             {selectedPromo ? (
               <motion.div
@@ -248,30 +231,20 @@ export default function PromotionsTab({ onToast }: Props) {
                 transition={{ duration: 0.15 }}
                 className="flex flex-col h-full"
               >
-                {/* Header Action Bar */}
-                <div className="p-4 border-b border-white/5 bg-white/2 flex items-center justify-between shrink-0">
-                  <div className="flex items-center gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedPromoId(null)}
-                      className="lg:hidden p-2 -ml-2 text-gray-300 hover:text-white"
-                    >
-                      <ArrowLeft size={20} />
-                    </button>
-                    <div className="flex items-center gap-3">
-                      <UserAvatar
-                        src={selectedPromo.user.profile.avatar || undefined}
-                        alt={selectedPromo.user.profile.username}
-                        size="sm"
-                      />
-                      <div>
-                        <h3 className="text-sm font-bold text-white">
-                          @{selectedPromo.user.profile.username}
-                        </h3>
-                        <p className="text-xs text-gray-300">
-                          {selectedPromo.user.email}
-                        </p>
-                      </div>
+                <div className="p-4 border-b border-white/5 flex items-center justify-between shrink-0 gap-2 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <UserAvatar
+                      src={selectedPromo.user.profile.avatar || undefined}
+                      alt={selectedPromo.user.profile.username}
+                      size="sm"
+                    />
+                    <div>
+                      <h3 className="text-sm font-semibold text-white">
+                        @{selectedPromo.user.profile.username}
+                      </h3>
+                      <p className="text-xs text-gray-300">
+                        {selectedPromo.user.email}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -292,7 +265,7 @@ export default function PromotionsTab({ onToast }: Props) {
                           }}
                           isLoading={updateMutation.isPending}
                           variant="danger"
-                          className="p-2 md:px-4 md:py-2 text-sm font-bold border-red-500/20"
+                          className="p-2 md:px-4 md:py-2 text-sm font-semibold border-red-500/20"
                         >
                           <XCircle size={16} className="mr-2 hidden md:block" />{' '}
                           <span className="hidden md:inline">Rechazar</span>
@@ -307,7 +280,7 @@ export default function PromotionsTab({ onToast }: Props) {
                           }
                           isLoading={updateMutation.isPending}
                           variant="success"
-                          className="p-2 md:px-4 md:py-2 text-sm font-bold border-green-500/20"
+                          className="p-2 md:px-4 md:py-2 text-sm font-semibold border-green-500/20"
                         >
                           <CheckCircle
                             size={16}
@@ -331,13 +304,12 @@ export default function PromotionsTab({ onToast }: Props) {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
-                  {/* Promo Stats Banner */}
                   <div className="w-full max-w-2xl bg-white/5 border border-white/10 rounded-lg p-4 mb-6 grid grid-cols-2 sm:grid-cols-4 gap-4 divide-x divide-white/5">
                     <div className="px-2">
                       <p className="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">
                         Presupuesto
                       </p>
-                      <p className="text-lg font-black text-white">
+                      <p className="text-lg font-semibold text-white">
                         {selectedPromo.budget}{' '}
                         <span className="text-sm text-gray-300">
                           {selectedPromo.currency}
@@ -348,7 +320,7 @@ export default function PromotionsTab({ onToast }: Props) {
                       <p className="text-xs text-gray-500 font-bold uppercase tracking-wide mb-1">
                         Alcance Est.
                       </p>
-                      <p className="text-lg font-black text-emerald-400 flex items-center gap-2">
+                      <p className="text-lg font-semibold text-emerald-400 flex items-center gap-2">
                         <TrendingUp size={16} />
                         {selectedPromo.reach.toLocaleString()}
                       </p>
@@ -369,15 +341,13 @@ export default function PromotionsTab({ onToast }: Props) {
                     </div>
                   </div>
 
-                  {/* Content Preview */}
                   <div className="w-full max-w-md bg-zinc-900 border border-white/10 rounded-lg overflow-hidden shadow-2xl">
                     <div className="p-3 bg-white/5 border-b border-white/10 flex items-center justify-between">
-                      <span className="text-xs font-black uppercase tracking-wide text-brand-primary">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-brand-primary">
                         {selectedPromo.targetType} Promocionado
                       </span>
                     </div>
 
-                    {/* Media */}
                     {selectedPromo.target?.media &&
                       selectedPromo.target.media.length > 0 && (
                         <div className="relative aspect-4/5 bg-black">
@@ -406,7 +376,6 @@ export default function PromotionsTab({ onToast }: Props) {
                         </div>
                       )}
 
-                    {/* Text Content */}
                     <div className="p-4">
                       {selectedPromo.target?.caption ||
                       selectedPromo.target?.text ? (
@@ -427,18 +396,18 @@ export default function PromotionsTab({ onToast }: Props) {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex-1 flex flex-col items-center justify-center text-gray-500"
+                className="flex-1 flex flex-col items-center justify-center text-gray-500 min-h-48"
               >
                 <Megaphone size={48} className="mb-4 text-white/10" />
-                <p className="font-bold">Selecciona una promoción</p>
+                <p className="font-semibold">Selecciona una promoción</p>
                 <p className="text-sm">
                   Para revisar los detalles y aprobar la campaña
                 </p>
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-      </div>
+        }
+      />
     </div>
   );
 }

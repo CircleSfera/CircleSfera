@@ -851,9 +851,43 @@
     "processing": "Procesando..."
   },
   "admin": {
-    "panel": "Panel de Administración",
+    "panel": "Panel de Control",
     "description": "Gestión y moderación de CircleSfera",
-    "connected_as": "Conectado como"
+    "connected_as": "Admin",
+    "back_to_app": "Volver a CircleSfera",
+    "back_short": "App",
+    "open_nav": "Abrir navegación",
+    "search": "Buscar",
+    "search_placeholder": "Buscar en el admin...",
+    "nav": {
+      "dashboard": "Dashboard",
+      "analytics": "Estadísticas",
+      "monetization": "Monetización",
+      "promotions": "Promociones",
+      "verification": "Verificación",
+      "whitelist": "Whitelist",
+      "newsletter": "Newsletter",
+      "moderation": "Moderación",
+      "users": "Usuarios",
+      "ai_queue": "Cola AI",
+      "firewall": "Escudo AI",
+      "posts": "Publicaciones",
+      "stories": "Historias",
+      "comments": "Comentarios",
+      "content": "Contenido",
+      "hashtags": "Hashtags",
+      "audio": "Música",
+      "system": "Sistema",
+      "system_health": "Estado",
+      "experiments": "Experimentos",
+      "reports": "Reportes",
+      "audit": "Audit Log"
+    },
+    "cmd": {
+      "go_to": "Ir a: {{section}}",
+      "placeholder": "Buscar secciones o usuarios...",
+      "no_results": "Sin resultados para \"{{query}}\""
+    }
   },
   "collections": {
     "new_collection": "Nueva Colección",

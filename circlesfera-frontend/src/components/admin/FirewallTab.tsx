@@ -3,13 +3,31 @@ import { ShieldCheck, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { adminApi, type FirewallSignature } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
-import { LoadingSpinner } from '../index';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
-import { Pagination } from './AdminTable';
+import { AdminList, AdminListRow } from './AdminList';
+import { ActionButton, Pagination, Table } from './AdminTable';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
+}
+
+function formatCreatedAt(date: string) {
+  return new Date(date).toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function CategoryBadge({ category }: { category: string }) {
+  return (
+    <span className="px-2 py-1 bg-red-500/10 text-red-400 text-xs font-bold rounded-full border border-red-500/20">
+      {category.toUpperCase()}
+    </span>
+  );
 }
 
 export default function FirewallTab({ onToast }: Props) {
@@ -58,7 +76,7 @@ export default function FirewallTab({ onToast }: Props) {
           <ShieldCheck size={20} className="text-brand-primary" />
         </div>
         <div>
-          <h2 className="text-lg font-black text-white">
+          <h2 className="text-lg font-semibold text-white">
             Escudo de IA (Vector Firewall)
           </h2>
           <p className="text-xs text-gray-500">
@@ -106,88 +124,88 @@ export default function FirewallTab({ onToast }: Props) {
 
       {/* Rules List */}
       <div className="glass-panel rounded-xl border border-white/5 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-white/5 bg-white/2">
-                <th className="px-4 py-3 text-xs font-bold text-gray-300 uppercase">
-                  Texto Origen (Preview)
-                </th>
-                <th className="px-4 py-3 text-xs font-bold text-gray-300 uppercase">
-                  Categoría
-                </th>
-                <th className="px-4 py-3 text-xs font-bold text-gray-300 uppercase">
-                  Fecha creación
-                </th>
-                <th className="px-4 py-3 text-xs font-bold text-gray-300 uppercase text-right">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={4} className="p-8 text-center">
-                    <LoadingSpinner />
-                  </td>
-                </tr>
-              ) : items.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="p-8 text-center text-gray-500 text-sm"
-                  >
-                    No hay reglas vectoriales activas.
-                  </td>
-                </tr>
-              ) : (
-                items.map((item) => (
-                  <tr
-                    key={item.id}
-                    className="hover:bg-white/2 transition-colors"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="text-sm text-white max-w-md truncate">
-                        {item.text || (
-                          <span className="text-gray-500 italic">
-                            Vector generado automáticamente (sin preview)
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[10px] text-gray-500 font-mono mt-1">
-                        ID: {item.id.split('-')[0]}...
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="px-2 py-1 bg-red-500/10 text-red-400 text-xs font-bold rounded-full border border-red-500/20">
-                        {item.category.toUpperCase()}
+        <AdminList
+          loading={isLoading}
+          isEmpty={items.length === 0}
+          emptyTitle="No hay reglas vectoriales activas"
+          emptyDescription="Añade una regla para bloquear contenido similar automáticamente."
+          mobile={
+            <div className="space-y-2">
+              {items.map((item) => (
+                <AdminListRow
+                  key={item.id}
+                  title={
+                    item.text || (
+                      <span className="text-gray-500 italic font-normal">
+                        Vector generado automáticamente (sin preview)
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-300">
-                      {new Date(item.createdAt).toLocaleDateString('es-ES', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => setDeleteId(item.id)}
-                        className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-                        title="Eliminar regla (falso positivo)"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    )
+                  }
+                  subtitle={`ID: ${item.id.split('-')[0]}...`}
+                  badge={<CategoryBadge category={item.category} />}
+                  meta={formatCreatedAt(item.createdAt)}
+                  primaryAction={
+                    <ActionButton
+                      variant="danger"
+                      label="Eliminar"
+                      icon={Trash2}
+                      onClick={() => setDeleteId(item.id)}
+                      disabled={deleteMutation.isPending}
+                    />
+                  }
+                />
+              ))}
+            </div>
+          }
+          desktop={
+            <Table
+              headers={[
+                'Texto Origen (Preview)',
+                'Categoría',
+                'Fecha creación',
+                'Acciones',
+              ]}
+              loading={false}
+              isEmpty={false}
+            >
+              {items.map((item) => (
+                <tr
+                  key={item.id}
+                  className="hover:bg-white/2 transition-colors"
+                >
+                  <td className="px-4 py-3">
+                    <div className="text-sm text-white max-w-md truncate">
+                      {item.text || (
+                        <span className="text-gray-500 italic">
+                          Vector generado automáticamente (sin preview)
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-gray-500 font-mono mt-1">
+                      ID: {item.id.split('-')[0]}...
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <CategoryBadge category={item.category} />
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-300">
+                    {formatCreatedAt(item.createdAt)}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <ActionButton
+                      variant="danger"
+                      label="Eliminar"
+                      icon={Trash2}
+                      iconOnly
+                      onClick={() => setDeleteId(item.id)}
+                      disabled={deleteMutation.isPending}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </Table>
+          }
+        />
 
         {data?.meta && data.meta.totalPages > 1 && (
           <div className="p-4 border-t border-white/5">

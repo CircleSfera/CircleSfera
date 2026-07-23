@@ -1,5 +1,8 @@
 export { default as AdminDrawer } from './AdminDrawer';
+export { AdminList, AdminListRow } from './AdminList';
+export { default as AdminShell } from './AdminShell';
 export { default as AdminSidebar } from './AdminSidebar';
+export { AdminSplitView } from './AdminSplitView';
 export type { Toast } from './AdminTable';
 export {
   ActionButton,
@@ -12,6 +15,13 @@ export {
 } from './AdminTable';
 export { default as AudioTab } from './AudioTab';
 export { default as AuditLogTab } from './AuditLogTab';
+export type { AdminTab } from './adminNav';
+export {
+  ADMIN_NAV_GROUPS,
+  ADMIN_NAV_ITEMS,
+  findAdminNavItem,
+} from './adminNav';
+export { adminToast } from './adminToast';
 export { default as CommentsTab } from './CommentsTab';
 export { default as ExperimentsTab } from './ExperimentsTab';
 export { default as FirewallTab } from './FirewallTab';

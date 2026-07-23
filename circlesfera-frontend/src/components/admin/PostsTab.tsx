@@ -8,6 +8,7 @@ import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
+import { AdminList, AdminListRow } from './AdminList';
 import {
   ActionButton,
   FilterDropdown,
@@ -109,114 +110,181 @@ export default function PostsTab({ onToast }: Props) {
       </div>
 
       <div className="glass-panel rounded-lg overflow-clip border border-white/10">
-        <Table
-          headers={[
-            'Publicación',
-            'Autor',
-            'Fecha',
-            'Tipo',
-            'Stats',
-            'Acciones',
-          ]}
+        <AdminList
           loading={isLoading}
           isEmpty={!data || data.data.length === 0}
-        >
-          {data?.data.map((post) => (
-            <motion.tr
-              key={post.id}
-              layout
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
+          emptyTitle="No hay publicaciones"
+          emptyDescription="No se encontraron publicaciones con los filtros seleccionados."
+          mobile={
+            <div className="space-y-2">
+              {data?.data.map((post) => (
+                <AdminListRow
+                  key={post.id}
+                  title={post.caption || '(Sin pie de foto)'}
+                  subtitle={`@${post.user?.profile?.username || 'unknown'}`}
+                  avatar={
+                    <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden">
+                      {post.media?.[0]?.url && (
+                        <img
+                          src={post.media[0].url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </div>
+                  }
+                  badge={
+                    <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/10">
+                      {post.type}
+                    </span>
+                  }
+                  meta={
+                    <>
+                      <span>
+                        {new Date(post.createdAt).toLocaleDateString()}
+                      </span>
+                      {post._count && (
+                        <>
+                          <span>{post._count.likes} likes</span>
+                          <span>{post._count.comments} comentarios</span>
+                        </>
+                      )}
+                    </>
+                  }
+                  primaryAction={
+                    <ActionButton
+                      onClick={() => setDeleteId(post.id)}
+                      label="Eliminar"
+                      variant="danger"
+                      icon={Trash2}
+                      disabled={deleteMutation.isPending}
+                    />
+                  }
+                  secondaryActions={[
+                    {
+                      label: 'Vista previa',
+                      onClick: () => setPreviewPost(post),
+                    },
+                    {
+                      label: 'Ver en plataforma',
+                      onClick: () => window.open(`/post/${post.id}`, '_blank'),
+                    },
+                  ]}
+                />
+              ))}
+            </div>
+          }
+          desktop={
+            <Table
+              headers={[
+                'Publicación',
+                'Autor',
+                'Fecha',
+                'Tipo',
+                'Stats',
+                'Acciones',
+              ]}
+              loading={false}
+              isEmpty={false}
             >
-              <td className="px-2 py-1">
-                <button
-                  type="button"
-                  onClick={() => setPreviewPost(post)}
-                  className="flex items-center gap-3 text-left group"
-                  aria-label="Vista previa de publicación"
+              {data?.data.map((post) => (
+                <motion.tr
+                  key={post.id}
+                  layout
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
                 >
-                  <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden shrink-0 group-hover:ring-2 ring-brand-primary/50 transition-all">
-                    {post.media?.[0]?.url && (
-                      <img
-                        src={post.media[0].url}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
+                  <td className="px-2 py-1">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewPost(post)}
+                      className="flex items-center gap-3 text-left group"
+                      aria-label="Vista previa de publicación"
+                    >
+                      <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden shrink-0 group-hover:ring-2 ring-brand-primary/50 transition-all">
+                        {post.media?.[0]?.url && (
+                          <img
+                            src={post.media[0].url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <p className="text-white text-sm truncate max-w-[200px] group-hover:text-brand-primary transition-colors">
+                        {post.caption || '(Sin pie de foto)'}
+                      </p>
+                    </button>
+                  </td>
+                  <td className="px-2 py-1">
+                    <span
+                      className="text-gray-300 text-sm max-w-[100px] lg:max-w-[150px] truncate block"
+                      title={post.user?.profile?.username}
+                    >
+                      @{post.user?.profile?.username}
+                    </span>
+                  </td>
+                  <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap">
+                    {new Date(post.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-2 py-1">
+                    <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/10">
+                      {post.type}
+                    </span>
+                  </td>
+                  <td className="px-2 py-1">
+                    {post._count && (
+                      <div className="text-xs text-gray-500 space-y-0.5">
+                        <p>
+                          <span className="text-white font-bold">
+                            {post._count.likes}
+                          </span>{' '}
+                          likes
+                        </p>
+                        <p>
+                          <span className="text-white font-bold">
+                            {post._count.comments}
+                          </span>{' '}
+                          comentarios
+                        </p>
+                      </div>
                     )}
-                  </div>
-                  <p className="text-white text-sm truncate max-w-[200px] group-hover:text-brand-primary transition-colors">
-                    {post.caption || '(Sin pie de foto)'}
-                  </p>
-                </button>
-              </td>
-              <td className="px-2 py-1">
-                <span
-                  className="text-gray-300 text-sm max-w-[100px] lg:max-w-[150px] truncate block"
-                  title={post.user?.profile?.username}
-                >
-                  @{post.user?.profile?.username}
-                </span>
-              </td>
-              <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap">
-                {new Date(post.createdAt).toLocaleDateString()}
-              </td>
-              <td className="px-2 py-1">
-                <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-black uppercase tracking-wider text-gray-300 border border-white/10">
-                  {post.type}
-                </span>
-              </td>
-              <td className="px-2 py-1">
-                {post._count && (
-                  <div className="text-xs text-gray-500 space-y-0.5">
-                    <p>
-                      <span className="text-white font-bold">
-                        {post._count.likes}
-                      </span>{' '}
-                      likes
-                    </p>
-                    <p>
-                      <span className="text-white font-bold">
-                        {post._count.comments}
-                      </span>{' '}
-                      comentarios
-                    </p>
-                  </div>
-                )}
-              </td>
-              <td className="px-2 py-1">
-                <div className="flex gap-1 items-center">
-                  <ActionButton
-                    onClick={() => setPreviewPost(post)}
-                    label="Ver"
-                    variant="ghost"
-                    icon={Eye}
-                    iconOnly
-                  />
-                  <ActionButton
-                    onClick={() => setDeleteId(post.id)}
-                    label="Eliminar"
-                    variant="danger"
-                    icon={Trash2}
-                    iconOnly
-                    disabled={deleteMutation.isPending}
-                  />
-                  <a
-                    href={`/post/${post.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Ver post"
-                    className="p-2 rounded-lg text-brand-primary bg-brand-primary/10 hover:bg-brand-primary hover:text-white transition-all"
-                    aria-label="Ver publicación en la plataforma"
-                  >
-                    <ExternalLink size={14} />
-                  </a>
-                </div>
-              </td>
-            </motion.tr>
-          ))}
-        </Table>
+                  </td>
+                  <td className="px-2 py-1">
+                    <div className="flex gap-1 items-center">
+                      <ActionButton
+                        onClick={() => setPreviewPost(post)}
+                        label="Ver"
+                        variant="ghost"
+                        icon={Eye}
+                        iconOnly
+                      />
+                      <ActionButton
+                        onClick={() => setDeleteId(post.id)}
+                        label="Eliminar"
+                        variant="danger"
+                        icon={Trash2}
+                        iconOnly
+                        disabled={deleteMutation.isPending}
+                      />
+                      <a
+                        href={`/post/${post.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Ver post"
+                        className="p-2 rounded-lg text-brand-primary bg-brand-primary/10 hover:bg-brand-primary hover:text-white transition-all"
+                        aria-label="Ver publicación en la plataforma"
+                      >
+                        <ExternalLink size={14} />
+                      </a>
+                    </div>
+                  </td>
+                </motion.tr>
+              ))}
+            </Table>
+          }
+        />
         <Pagination meta={data?.meta} onPageChange={setPage} />
       </div>
 

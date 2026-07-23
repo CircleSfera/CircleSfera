@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MessageCircle, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminComment } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { AdminList, AdminListRow } from './AdminList';
 import { ActionButton, Pagination, SearchInput, Table } from './AdminTable';
 
 interface Props {
@@ -48,60 +49,90 @@ export default function CommentsTab({ onToast }: Props) {
       </div>
 
       <div className="glass-panel rounded-lg overflow-clip border border-white/10">
-        <Table
-          headers={['Autor', 'Comentario', 'Post', 'Fecha', 'Acciones']}
+        <AdminList
           loading={isLoading}
           isEmpty={!data?.data?.length}
-        >
-          {data?.data?.map((comment) => (
-            <tr
-              key={comment.id}
-              className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
-            >
-              <td className="px-2 py-1">
-                <span
-                  className="text-white text-sm font-medium max-w-[100px] lg:max-w-[150px] truncate block"
-                  title={comment.user?.profile?.username}
-                >
-                  @{comment.user?.profile?.username || 'unknown'}
-                </span>
-              </td>
-              <td className="px-2 py-1">
-                <p className="text-gray-300 text-sm max-w-xs truncate">
-                  {comment.content}
-                </p>
-              </td>
-              <td className="px-2 py-1">
-                <span className="text-gray-500 text-xs truncate max-w-[150px] block">
-                  {comment.post?.caption?.slice(0, 40) || '—'}
-                </span>
-              </td>
-              <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap">
-                {new Date(comment.createdAt).toLocaleDateString()}
-              </td>
-              <td className="px-2 py-1">
-                <ActionButton
-                  onClick={() => deleteMutation.mutate(comment.id)}
-                  label="Eliminar"
-                  variant="danger"
-                  icon={Trash2}
-                  iconOnly
-                  disabled={deleteMutation.isPending}
+          emptyTitle="No hay comentarios"
+          emptyDescription="No se encontraron comentarios con los filtros seleccionados."
+          mobile={
+            <div className="space-y-2">
+              {data?.data?.map((comment) => (
+                <AdminListRow
+                  key={comment.id}
+                  title={`@${comment.user?.profile?.username || 'unknown'}`}
+                  subtitle={comment.content}
+                  meta={
+                    <>
+                      <span>
+                        Post: {comment.post?.caption?.slice(0, 40) || '—'}
+                      </span>
+                      <span>
+                        {new Date(comment.createdAt).toLocaleDateString()}
+                      </span>
+                    </>
+                  }
+                  primaryAction={
+                    <ActionButton
+                      onClick={() => deleteMutation.mutate(comment.id)}
+                      label="Eliminar"
+                      variant="danger"
+                      icon={Trash2}
+                      disabled={deleteMutation.isPending}
+                    />
+                  }
                 />
-              </td>
-            </tr>
-          ))}
-        </Table>
+              ))}
+            </div>
+          }
+          desktop={
+            <Table
+              headers={['Autor', 'Comentario', 'Post', 'Fecha', 'Acciones']}
+              loading={false}
+              isEmpty={false}
+            >
+              {data?.data?.map((comment) => (
+                <tr
+                  key={comment.id}
+                  className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
+                >
+                  <td className="px-2 py-1">
+                    <span
+                      className="text-white text-sm font-medium max-w-[100px] lg:max-w-[150px] truncate block"
+                      title={comment.user?.profile?.username}
+                    >
+                      @{comment.user?.profile?.username || 'unknown'}
+                    </span>
+                  </td>
+                  <td className="px-2 py-1">
+                    <p className="text-gray-300 text-sm max-w-xs truncate">
+                      {comment.content}
+                    </p>
+                  </td>
+                  <td className="px-2 py-1">
+                    <span className="text-gray-500 text-xs truncate max-w-[150px] block">
+                      {comment.post?.caption?.slice(0, 40) || '—'}
+                    </span>
+                  </td>
+                  <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap">
+                    {new Date(comment.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-2 py-1">
+                    <ActionButton
+                      onClick={() => deleteMutation.mutate(comment.id)}
+                      label="Eliminar"
+                      variant="danger"
+                      icon={Trash2}
+                      iconOnly
+                      disabled={deleteMutation.isPending}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </Table>
+          }
+        />
         <Pagination meta={data?.meta} onPageChange={setPage} />
       </div>
-
-      {/* Empty state icon */}
-      {!isLoading && !data?.data?.length && (
-        <div className="text-center py-12 text-gray-600">
-          <MessageCircle size={48} className="mx-auto mb-3 opacity-50" />
-          <p>No hay comentarios</p>
-        </div>
-      )}
     </div>
   );
 }

@@ -49,7 +49,12 @@ createRoot(document.getElementById('root')!).render(
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
             <App />
-            <Toaster position="bottom-center" />
+            <Toaster
+              position="bottom-center"
+              containerStyle={{
+                bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
+              }}
+            />
           </BrowserRouter>
         </QueryClientProvider>
       </HelmetProvider>

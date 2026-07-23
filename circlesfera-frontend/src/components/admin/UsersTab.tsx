@@ -20,6 +20,7 @@ import { Button } from '../ui';
 import VerificationBadge, {
   type VerificationLevel,
 } from '../VerificationBadge';
+import { AdminList, AdminListRow } from './AdminList';
 import {
   ActionButton,
   FilterDropdown,
@@ -196,234 +197,354 @@ export default function UsersTab({ onToast }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <SearchInput
-            value={search}
-            onChange={(v) => {
-              setSearch(v);
-              setPage(1);
-            }}
-            placeholder="Buscar usuarios..."
-          />
-          <FilterDropdown
-            label="Filtrar por estado"
-            value={statusFilter}
-            onChange={(v) => {
-              setStatusFilter(v);
-              setPage(1);
-            }}
-            options={[
-              { value: '', label: 'Todos' },
-              { value: 'active', label: 'Activos' },
-              { value: 'banned', label: 'Baneados' },
-            ]}
-          />
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-3 flex-1 min-w-0">
+            <div className="flex-1 min-w-0">
+              <SearchInput
+                value={search}
+                onChange={(v) => {
+                  setSearch(v);
+                  setPage(1);
+                }}
+                placeholder="Buscar usuarios..."
+              />
+            </div>
+            <FilterDropdown
+              label="Filtrar por estado"
+              value={statusFilter}
+              onChange={(v) => {
+                setStatusFilter(v);
+                setPage(1);
+              }}
+              options={[
+                { value: '', label: 'Todos' },
+                { value: 'active', label: 'Activos' },
+                { value: 'banned', label: 'Baneados' },
+              ]}
+            />
+          </div>
+          <Button
+            onClick={handleExport}
+            variant="outline"
+            className="text-sm font-semibold text-gray-300 hover:text-white border-white/10 px-4 py-2.5 w-full sm:w-auto shrink-0"
+            aria-label="Exportar usuarios como CSV"
+          >
+            <Download size={16} className="mr-2" />
+            Exportar CSV
+          </Button>
         </div>
-        <Button
-          onClick={handleExport}
-          variant="outline"
-          className="text-sm font-bold text-gray-300 hover:text-white border-white/10 px-4 py-2.5"
-          aria-label="Exportar usuarios como CSV"
-        >
-          <Download size={16} className="mr-2" />
-          Exportar CSV
-        </Button>
       </div>
 
-      <div className="glass-panel rounded-lg overflow-clip border border-white/10">
-        <Table
-          headers={[
-            'Usuario',
-            'Email',
-            'Rol',
-            'Unido el',
-            'Posts',
-            'Estado',
-            'Acciones',
-          ]}
-          columnWidths={[
-            'w-auto', // Usuario
-            'w-auto', // Email
-            'w-[8%] whitespace-nowrap', // Rol
-            'w-[10%] whitespace-nowrap', // Unido el
-            'w-[8%] whitespace-nowrap', // Posts
-            'w-[10%] whitespace-nowrap', // Estado
-            'w-[160px] whitespace-nowrap', // Acciones
-          ]}
+      <div className="rounded-xl overflow-hidden border border-white/10 bg-black/20 lg:bg-transparent lg:border-0">
+        <AdminList
           loading={isLoading}
           isEmpty={!data || data.data.length === 0}
-        >
-          {data?.data.map((user) => (
-            <motion.tr
-              key={user.id}
-              layout
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="hover:bg-white/[0.07] even:bg-white/2 transition-colors border-b border-white/5 last:border-0"
-            >
-              <td className="px-2 py-2" data-label="Usuario">
-                <div className="flex items-center gap-2">
-                  <UserAvatar
-                    src={user.profile?.avatar || undefined}
-                    thumbnailUrl={user.profile?.thumbnailUrl || undefined}
-                    standardUrl={user.profile?.standardUrl || undefined}
-                    alt={user.profile?.username || 'user'}
-                    size="sm"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1">
-                      <a
-                        href={`/${user.profile?.username || ''}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-white font-bold text-sm hover:text-brand-primary transition-colors"
-                      >
-                        @{user.profile?.username || 'user'}
-                      </a>
+          emptyTitle="No hay usuarios"
+          emptyDescription="No se encontraron usuarios con los filtros seleccionados."
+          mobile={
+            <div className="p-2 space-y-2 lg:p-0">
+              {data?.data.map((user) => (
+                <AdminListRow
+                  key={user.id}
+                  title={
+                    <span className="inline-flex items-center gap-1">
+                      @{user.profile?.username || 'user'}
                       <VerificationBadge
                         level={user.verificationLevel as VerificationLevel}
                         size={14}
                       />
+                    </span>
+                  }
+                  subtitle={user.email}
+                  meta={
+                    <>
+                      <span>
+                        {user.role === 'ADMIN' ? 'Admin' : 'User'} ·{' '}
+                        {user.postCount} posts
+                      </span>
+                      <span>
+                        {new Date(user.createdAt).toLocaleDateString()}
+                      </span>
+                    </>
+                  }
+                  badge={
+                    <StatusBadge status={user.isActive ? 'active' : 'banned'} />
+                  }
+                  avatar={
+                    <UserAvatar
+                      src={user.profile?.avatar || undefined}
+                      thumbnailUrl={user.profile?.thumbnailUrl || undefined}
+                      standardUrl={user.profile?.standardUrl || undefined}
+                      alt={user.profile?.username || 'user'}
+                      size="sm"
+                    />
+                  }
+                  primaryAction={
+                    user.isActive ? (
+                      <ActionButton
+                        onClick={() =>
+                          setConfirmAction({
+                            type: 'ban',
+                            id: user.id,
+                            username: user.profile?.username || '',
+                          })
+                        }
+                        label="Banear"
+                        variant="danger"
+                        icon={Ban}
+                        disabled={isPending}
+                      />
+                    ) : (
+                      <ActionButton
+                        onClick={() =>
+                          setConfirmAction({
+                            type: 'unban',
+                            id: user.id,
+                            username: user.profile?.username || '',
+                          })
+                        }
+                        label="Desbanear"
+                        variant="success"
+                        icon={Ban}
+                        disabled={isPending}
+                      />
+                    )
+                  }
+                  secondaryActions={[
+                    {
+                      label: 'Ver detalle',
+                      onClick: () => setPreviewUserId(user.id),
+                    },
+                    {
+                      label:
+                        user.role === 'USER' ? 'Promover a admin' : 'Degradar',
+                      onClick: () =>
+                        setConfirmAction({
+                          type: user.role === 'USER' ? 'promote' : 'demote',
+                          id: user.id,
+                          username: user.profile?.username || '',
+                        }),
+                    },
+                    {
+                      label: 'Ver perfil',
+                      onClick: () => {
+                        window.open(
+                          `/${user.profile?.username || ''}`,
+                          '_blank',
+                        );
+                      },
+                    },
+                    {
+                      label: 'Eliminar cuenta',
+                      variant: 'danger',
+                      onClick: () =>
+                        setConfirmAction({
+                          type: 'delete',
+                          id: user.id,
+                          username: user.profile?.username || '',
+                        }),
+                    },
+                  ]}
+                />
+              ))}
+            </div>
+          }
+          desktop={
+            <Table
+              headers={[
+                'Usuario',
+                'Email',
+                'Rol',
+                'Unido el',
+                'Posts',
+                'Estado',
+                'Acciones',
+              ]}
+              columnWidths={[
+                'w-auto',
+                'w-auto',
+                'w-[8%] whitespace-nowrap',
+                'w-[10%] whitespace-nowrap',
+                'w-[8%] whitespace-nowrap',
+                'w-[10%] whitespace-nowrap',
+                'w-[160px] whitespace-nowrap',
+              ]}
+              loading={false}
+              isEmpty={false}
+            >
+              {data?.data.map((user) => (
+                <motion.tr
+                  key={user.id}
+                  layout
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="hover:bg-white/[0.07] even:bg-white/2 transition-colors border-b border-white/5 last:border-0"
+                >
+                  <td className="px-2 py-2" data-label="Usuario">
+                    <div className="flex items-center gap-2">
+                      <UserAvatar
+                        src={user.profile?.avatar || undefined}
+                        thumbnailUrl={user.profile?.thumbnailUrl || undefined}
+                        standardUrl={user.profile?.standardUrl || undefined}
+                        alt={user.profile?.username || 'user'}
+                        size="sm"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1">
+                          <a
+                            href={`/${user.profile?.username || ''}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-white font-semibold text-sm hover:text-brand-primary transition-colors"
+                          >
+                            @{user.profile?.username || 'user'}
+                          </a>
+                          <VerificationBadge
+                            level={user.verificationLevel as VerificationLevel}
+                            size={14}
+                          />
+                        </div>
+                        <p className="text-gray-500 text-xs">
+                          {user.profile?.fullName || ''}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-gray-500 text-xs">
-                      {user.profile?.fullName || ''}
-                    </p>
-                  </div>
-                </div>
-              </td>
-              <td
-                className="px-2 py-2 text-gray-300 text-sm"
-                data-label="Email"
-              >
-                {user.email}
-              </td>
-              <td className="px-2 py-2 text-right" data-label="Rol">
-                {user.role === 'ADMIN' ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded text-xs font-black uppercase border border-brand-primary/20">
-                    <ShieldCheck size={10} />
-                    Admin
-                  </span>
-                ) : (
-                  <span className="text-gray-500 text-xs">User</span>
-                )}
-              </td>
-              <td
-                className="px-2 py-2 text-gray-500 text-sm whitespace-nowrap"
-                data-label="Unido el"
-              >
-                {new Date(user.createdAt).toLocaleDateString()}
-              </td>
-              <td
-                className="px-2 py-2 text-gray-300 text-sm font-bold md:text-center"
-                data-label="Posts"
-              >
-                {user.postCount}
-              </td>
-              <td className="px-2 py-2" data-label="Estado">
-                <StatusBadge status={user.isActive ? 'active' : 'banned'} />
-              </td>
-              <td className="px-2 py-2" data-label="Acciones">
-                <div className="flex gap-1.5 items-center">
-                  <ActionButton
-                    onClick={() => setPreviewUserId(user.id)}
-                    label="Ver Detalle"
-                    variant="ghost"
-                    icon={Eye}
-                    iconOnly
-                  />
-                  {user.isActive ? (
-                    <ActionButton
-                      onClick={() =>
-                        setConfirmAction({
-                          type: 'ban',
-                          id: user.id,
-                          username: user.profile?.username || '',
-                        })
-                      }
-                      label="Banear"
-                      variant="danger"
-                      icon={Ban}
-                      iconOnly
-                      disabled={isPending}
-                    />
-                  ) : (
-                    <ActionButton
-                      onClick={() =>
-                        setConfirmAction({
-                          type: 'unban',
-                          id: user.id,
-                          username: user.profile?.username || '',
-                        })
-                      }
-                      label="Desbanear"
-                      variant="success"
-                      icon={Ban}
-                      iconOnly
-                      disabled={isPending}
-                    />
-                  )}
-                  {user.role === 'USER' ? (
-                    <ActionButton
-                      onClick={() =>
-                        setConfirmAction({
-                          type: 'promote',
-                          id: user.id,
-                          username: user.profile?.username || '',
-                        })
-                      }
-                      label="Promover"
-                      variant="warning"
-                      icon={ShieldCheck}
-                      iconOnly
-                      disabled={isPending}
-                    />
-                  ) : (
-                    <ActionButton
-                      onClick={() =>
-                        setConfirmAction({
-                          type: 'demote',
-                          id: user.id,
-                          username: user.profile?.username || '',
-                        })
-                      }
-                      label="Degradar"
-                      variant="ghost"
-                      icon={ShieldOff}
-                      iconOnly
-                      disabled={isPending}
-                    />
-                  )}
-                  <ActionButton
-                    onClick={() =>
-                      setConfirmAction({
-                        type: 'delete',
-                        id: user.id,
-                        username: user.profile?.username || '',
-                      })
-                    }
-                    label="Eliminar"
-                    variant="danger"
-                    icon={Trash2}
-                    iconOnly
-                    disabled={isPending}
-                  />
-                  <a
-                    href={`/${user.profile?.username || ''}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Ver perfil"
-                    className="p-2 rounded-lg text-brand-primary bg-brand-primary/10 hover:bg-brand-primary hover:text-white transition-all"
-                    aria-label="Ver perfil del usuario"
+                  </td>
+                  <td
+                    className="px-2 py-2 text-gray-300 text-sm"
+                    data-label="Email"
                   >
-                    <ExternalLink size={14} />
-                  </a>
-                </div>
-              </td>
-            </motion.tr>
-          ))}
-        </Table>
+                    {user.email}
+                  </td>
+                  <td className="px-2 py-2 text-right" data-label="Rol">
+                    {user.role === 'ADMIN' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded text-xs font-semibold uppercase border border-brand-primary/20">
+                        <ShieldCheck size={10} />
+                        Admin
+                      </span>
+                    ) : (
+                      <span className="text-gray-500 text-xs">User</span>
+                    )}
+                  </td>
+                  <td
+                    className="px-2 py-2 text-gray-500 text-sm whitespace-nowrap"
+                    data-label="Unido el"
+                  >
+                    {new Date(user.createdAt).toLocaleDateString()}
+                  </td>
+                  <td
+                    className="px-2 py-2 text-gray-300 text-sm font-semibold md:text-center"
+                    data-label="Posts"
+                  >
+                    {user.postCount}
+                  </td>
+                  <td className="px-2 py-2" data-label="Estado">
+                    <StatusBadge status={user.isActive ? 'active' : 'banned'} />
+                  </td>
+                  <td className="px-2 py-2" data-label="Acciones">
+                    <div className="flex gap-1.5 items-center">
+                      <ActionButton
+                        onClick={() => setPreviewUserId(user.id)}
+                        label="Ver Detalle"
+                        variant="ghost"
+                        icon={Eye}
+                        iconOnly
+                      />
+                      {user.isActive ? (
+                        <ActionButton
+                          onClick={() =>
+                            setConfirmAction({
+                              type: 'ban',
+                              id: user.id,
+                              username: user.profile?.username || '',
+                            })
+                          }
+                          label="Banear"
+                          variant="danger"
+                          icon={Ban}
+                          iconOnly
+                          disabled={isPending}
+                        />
+                      ) : (
+                        <ActionButton
+                          onClick={() =>
+                            setConfirmAction({
+                              type: 'unban',
+                              id: user.id,
+                              username: user.profile?.username || '',
+                            })
+                          }
+                          label="Desbanear"
+                          variant="success"
+                          icon={Ban}
+                          iconOnly
+                          disabled={isPending}
+                        />
+                      )}
+                      {user.role === 'USER' ? (
+                        <ActionButton
+                          onClick={() =>
+                            setConfirmAction({
+                              type: 'promote',
+                              id: user.id,
+                              username: user.profile?.username || '',
+                            })
+                          }
+                          label="Promover"
+                          variant="warning"
+                          icon={ShieldCheck}
+                          iconOnly
+                          disabled={isPending}
+                        />
+                      ) : (
+                        <ActionButton
+                          onClick={() =>
+                            setConfirmAction({
+                              type: 'demote',
+                              id: user.id,
+                              username: user.profile?.username || '',
+                            })
+                          }
+                          label="Degradar"
+                          variant="ghost"
+                          icon={ShieldOff}
+                          iconOnly
+                          disabled={isPending}
+                        />
+                      )}
+                      <ActionButton
+                        onClick={() =>
+                          setConfirmAction({
+                            type: 'delete',
+                            id: user.id,
+                            username: user.profile?.username || '',
+                          })
+                        }
+                        label="Eliminar"
+                        variant="danger"
+                        icon={Trash2}
+                        iconOnly
+                        disabled={isPending}
+                      />
+                      <a
+                        href={`/${user.profile?.username || ''}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Ver perfil"
+                        className="p-2 rounded-lg text-brand-primary bg-brand-primary/10 hover:bg-brand-primary hover:text-white transition-all"
+                        aria-label="Ver perfil del usuario"
+                      >
+                        <ExternalLink size={14} />
+                      </a>
+                    </div>
+                  </td>
+                </motion.tr>
+              ))}
+            </Table>
+          }
+        />
         <Pagination meta={data?.meta} onPageChange={setPage} />
       </div>
 

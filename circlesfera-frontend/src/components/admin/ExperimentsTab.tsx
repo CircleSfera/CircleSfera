@@ -8,7 +8,15 @@ import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { Button, Input, Select } from '../ui';
 import AdminDrawer from './AdminDrawer';
+import { AdminList, AdminListRow } from './AdminList';
 import { ActionButton, Pagination, SearchInput, Table } from './AdminTable';
+
+function variantColorClass(variant: string) {
+  const v = variant.toLowerCase();
+  return v === 'true' || v === 'treatment' || v === 'on'
+    ? 'text-green-400'
+    : 'text-orange-400';
+}
 
 export default function ExperimentsTab() {
   const queryClient = useQueryClient();
@@ -80,65 +88,121 @@ export default function ExperimentsTab() {
       </div>
 
       <div className="glass-panel rounded-lg overflow-clip border border-white/10">
-        <Table
-          headers={['Usuario', 'Experimento', 'Variante', 'Fecha', 'Acciones']}
+        <AdminList
           loading={isLoading}
           isEmpty={!data || data.data.length === 0}
-        >
-          {data?.data.map((entry) => (
-            <tr
-              key={entry.id}
-              className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
+          emptyTitle="No hay experimentos"
+          emptyDescription="No se encontraron asignaciones con los filtros seleccionados."
+          mobile={
+            <div className="space-y-2">
+              {data?.data.map((entry) => (
+                <AdminListRow
+                  key={entry.id}
+                  title={`@${entry.user.username}`}
+                  subtitle={entry.experimentKey}
+                  badge={
+                    <span
+                      className={`px-2 py-1 rounded-md bg-white/5 border border-white/10 text-xs font-semibold ${variantColorClass(entry.variant)}`}
+                    >
+                      {entry.variant}
+                    </span>
+                  }
+                  meta={
+                    <span className="inline-flex items-center gap-1">
+                      <Calendar size={12} />
+                      {new Date(entry.createdAt).toLocaleDateString()}
+                    </span>
+                  }
+                  primaryAction={
+                    <ActionButton
+                      icon={Edit2}
+                      onClick={() => {
+                        setEditingEntry(entry);
+                        setIsAssigning(true);
+                      }}
+                      label="Editar"
+                      variant="ghost"
+                    />
+                  }
+                  secondaryActions={[
+                    {
+                      label: 'Eliminar',
+                      variant: 'danger',
+                      onClick: () => handleDelete(entry.id),
+                    },
+                  ]}
+                />
+              ))}
+            </div>
+          }
+          desktop={
+            <Table
+              headers={[
+                'Usuario',
+                'Experimento',
+                'Variante',
+                'Fecha',
+                'Acciones',
+              ]}
+              loading={false}
+              isEmpty={false}
             >
-              <td className="px-4 py-4">
-                <div className="flex items-center gap-2 text-white font-bold text-xs">
-                  <User size={14} className="text-gray-500" />@
-                  {entry.user.username}
-                </div>
-              </td>
-              <td className="px-4 py-4">
-                <div className="flex items-center gap-2 text-white font-bold text-xs uppercase tracking-wide">
-                  <Key size={14} className="text-gray-500" />
-                  {entry.experimentKey}
-                </div>
-              </td>
-              <td className="px-4 py-4 text-xs font-bold">
-                <span
-                  className={`px-2 py-1 rounded-md bg-white/5 border border-white/10 ${entry.variant.toLowerCase() === 'true' || entry.variant.toLowerCase() === 'treatment' || entry.variant.toLowerCase() === 'on' ? 'text-green-400' : 'text-orange-400'}`}
+              {data?.data.map((entry) => (
+                <tr
+                  key={entry.id}
+                  className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
                 >
-                  {entry.variant}
-                </span>
-              </td>
-              <td className="px-4 py-4 text-gray-500 text-xs whitespace-nowrap">
-                <div className="flex items-center gap-2">
-                  <Calendar size={13} className="text-gray-500" />
-                  {new Date(entry.createdAt).toLocaleDateString()}
-                </div>
-              </td>
-              <td className="px-4 py-4">
-                <div className="flex items-center gap-2">
-                  <ActionButton
-                    icon={Edit2}
-                    onClick={() => {
-                      setEditingEntry(entry);
-                      setIsAssigning(true);
-                    }}
-                    label="Editar Variante"
-                    variant="ghost"
-                    iconOnly
-                  />
-                  <ActionButton
-                    icon={Trash2}
-                    onClick={() => handleDelete(entry.id)}
-                    variant="danger"
-                    label="Eliminar"
-                    iconOnly
-                  />
-                </div>
-              </td>
-            </tr>
-          ))}
-        </Table>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-2 text-white font-bold text-xs">
+                      <User size={14} className="text-gray-500" />@
+                      {entry.user.username}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-2 text-white font-bold text-xs uppercase tracking-wide">
+                      <Key size={14} className="text-gray-500" />
+                      {entry.experimentKey}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 text-xs font-bold">
+                    <span
+                      className={`px-2 py-1 rounded-md bg-white/5 border border-white/10 ${variantColorClass(entry.variant)}`}
+                    >
+                      {entry.variant}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 text-gray-500 text-xs whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <Calendar size={13} className="text-gray-500" />
+                      {new Date(entry.createdAt).toLocaleDateString()}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-2">
+                      <ActionButton
+                        icon={Edit2}
+                        onClick={() => {
+                          setEditingEntry(entry);
+                          setIsAssigning(true);
+                        }}
+                        label="Editar Variante"
+                        variant="ghost"
+                        iconOnly
+                      />
+                      <ActionButton
+                        icon={Trash2}
+                        onClick={() => handleDelete(entry.id)}
+                        variant="danger"
+                        label="Eliminar"
+                        iconOnly
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </Table>
+          }
+        />
         {data && data.meta?.totalPages > 1 && (
           <Pagination meta={data.meta} onPageChange={setPage} />
         )}

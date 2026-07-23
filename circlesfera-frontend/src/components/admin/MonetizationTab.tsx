@@ -24,7 +24,7 @@ export default function MonetizationTab() {
   if (isLoading) {
     return (
       <div className="space-y-4 animate-pulse">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-32 bg-white/5 rounded-lg" />
           ))}
@@ -38,7 +38,7 @@ export default function MonetizationTab() {
     return (
       <div className="p-12 text-center glass-panel rounded-xl border border-red-500/10">
         <Activity size={48} className="text-red-500/20 mx-auto mb-4" />
-        <h3 className="text-white font-bold text-lg">Error de Análisis</h3>
+        <h3 className="text-white font-semibold text-lg">Error de Análisis</h3>
         <p className="text-gray-500">
           No se pudieron sincronizar las métricas de suscripción.
         </p>
@@ -57,7 +57,7 @@ export default function MonetizationTab() {
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
       {/* SaaS Primary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
           label="MRR de Plataforma"
           value={analytics?.activeMRR || 0}
@@ -84,18 +84,18 @@ export default function MonetizationTab() {
       </div>
 
       {/* Stripe Integration Status */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <div className="glass-panel p-4 rounded-xl border border-white/5 flex flex-col justify-between group hover:border-brand-primary/30 transition-all">
           <div className="flex justify-between items-start mb-4">
             <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
               <Zap size={20} />
             </div>
-            <span className="text-xs font-black uppercase tracking-wide text-green-400 bg-green-400/10 px-2 py-1 rounded-full border border-green-400/20">
+            <span className="text-xs font-semibold uppercase tracking-wide text-green-400 bg-green-400/10 px-2 py-1 rounded-full border border-green-400/20">
               Conectado
             </span>
           </div>
           <div>
-            <h4 className="text-white font-black uppercase text-sm mb-1 tracking-tight">
+            <h4 className="text-white font-semibold text-sm mb-1">
               Stripe API
             </h4>
             <p className="text-gray-300 text-xs">
@@ -110,12 +110,12 @@ export default function MonetizationTab() {
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
               <Users size={20} />
             </div>
-            <span className="text-xs font-black uppercase tracking-wide text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded-full border border-yellow-400/20">
+            <span className="text-xs font-semibold uppercase tracking-wide text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded-full border border-yellow-400/20">
               En Implementación
             </span>
           </div>
           <div>
-            <h4 className="text-white font-black uppercase text-sm mb-1 tracking-tight">
+            <h4 className="text-white font-semibold text-sm mb-1">
               Stripe Connect
             </h4>
             <p className="text-gray-300 text-xs">
@@ -127,29 +127,28 @@ export default function MonetizationTab() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Tier Distribution Chart (Linear) */}
-        <div className="glass-panel rounded-xl border border-white/5 p-8 bg-linear-to-br from-brand-secondary/5 to-transparent">
-          <div className="flex items-center gap-4 mb-10">
-            <div className="w-16 h-16 rounded-lg bg-brand-secondary/10 flex items-center justify-center border border-brand-secondary/20">
-              <PieChart size={32} className="text-brand-secondary" />
+        <div className="glass-panel rounded-xl border border-white/5 p-6 sm:p-8 bg-linear-to-br from-brand-secondary/5 to-transparent">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-brand-secondary/10 flex items-center justify-center border border-brand-secondary/20">
+              <PieChart size={28} className="text-brand-secondary" />
             </div>
             <div>
-              <h3 className="text-2xl font-black text-white tracking-tight italic uppercase">
+              <h3 className="text-lg sm:text-xl font-semibold text-white">
                 Distribución de Experiencia
               </h3>
-              <p className="text-zinc-400 text-xs font-black uppercase tracking-wide">
+              <p className="text-zinc-400 text-xs">
                 Desglose de niveles por usuario
               </p>
             </div>
           </div>
 
-          <div className="space-y-10">
-            {/* Progress Bar Tier Map */}
+          <div className="space-y-8">
             <div className="space-y-4">
               <div className="flex items-center justify-between px-2">
-                <span className="text-xs font-black text-zinc-400 uppercase tracking-wide">
+                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">
                   Composición de Tiers
                 </span>
-                <span className="text-xs font-black text-white">
+                <span className="text-xs font-semibold text-white">
                   100% Active Base
                 </span>
               </div>
@@ -176,8 +175,7 @@ export default function MonetizationTab() {
               </div>
             </div>
 
-            {/* Legend */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               {[
                 {
                   label: 'Verified',
@@ -200,50 +198,44 @@ export default function MonetizationTab() {
               ].map((tier) => (
                 <div
                   key={tier.label}
-                  className="flex items-center justify-between p-5 bg-white/2 rounded-xl border border-white/5 hover:border-white/10 transition-colors group"
+                  className="flex items-center justify-between p-4 bg-white/2 rounded-xl border border-white/5 hover:border-white/10 transition-colors group"
                 >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-3 h-3 rounded-full ${tier.color} shadow-lg`}
-                    />
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${tier.color}`} />
                     <div className="flex flex-col">
-                      <span className="text-sm font-black text-white italic uppercase">
+                      <span className="text-sm font-semibold text-white">
                         {tier.label}
                       </span>
-                      <span className="text-xs text-zinc-400 font-bold uppercase tracking-tighter">
+                      <span className="text-xs text-zinc-400">
                         {tier.count} Miembros
                       </span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-xl font-black text-white tabular-nums group-hover:text-brand-primary transition-colors">
-                      {tier.percent}%
-                    </span>
-                  </div>
+                  <span className="text-lg font-semibold text-white tabular-nums group-hover:text-brand-primary transition-colors">
+                    {tier.percent}%
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* System Integrity & Insights */}
         <div className="flex flex-col gap-8">
-          <div className="glass-panel rounded-xl border border-white/5 p-8 grow bg-linear-to-bl from-brand-primary/5 to-transparent flex flex-col justify-center">
+          <div className="glass-panel rounded-xl border border-white/5 p-6 sm:p-8 grow bg-linear-to-bl from-brand-primary/5 to-transparent flex flex-col justify-center">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 rounded-lg bg-brand-primary/10 flex items-center justify-center">
                 <TrendingUp size={24} className="text-brand-primary" />
               </div>
-              <h4 className="text-lg font-black text-white italic uppercase">
+              <h4 className="text-lg font-semibold text-white">
                 Proyección de Crecimiento
               </h4>
             </div>
-            <p className="text-zinc-400 text-sm font-light leading-relaxed mb-6">
+            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
               Basado en el ritmo actual de adquisiciones, se estima un
               crecimiento del <strong className="text-white">12.4%</strong> en
               el próximo ciclo de facturación.
             </p>
             <div className="h-20 w-full bg-white/2 rounded-lg border border-white/5 relative overflow-hidden">
-              {/* Visual decoration: mini wave */}
               <div className="absolute inset-0 flex items-end opacity-20">
                 {[40, 70, 45, 90, 65, 80, 50, 85, 95].map((h, i) => (
                   <div
