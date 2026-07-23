@@ -36,6 +36,23 @@ if ! grep -q '^JWT_REFRESH_SECRET=.' .env.production; then
   echo "ERROR: JWT_REFRESH_SECRET is missing/empty in .env.production"
   exit 1
 fi
+if ! grep -q '^OPENAI_API_KEY=.' .env.production; then
+  echo "ERROR: OPENAI_API_KEY is missing/empty in .env.production (required in production)"
+  exit 1
+fi
+if ! grep -q '^LIVEKIT_API_KEY=.' .env.production; then
+  echo "ERROR: LIVEKIT_API_KEY is missing/empty in .env.production"
+  exit 1
+fi
+if ! grep -q '^LIVEKIT_API_SECRET=.' .env.production; then
+  echo "ERROR: LIVEKIT_API_SECRET is missing/empty in .env.production"
+  exit 1
+fi
+if ! grep -qE '^(LIVEKIT_URL|VITE_LIVEKIT_URL)=.' .env.production; then
+  echo "ERROR: LIVEKIT_URL (or VITE_LIVEKIT_URL) is missing/empty in .env.production"
+  echo "       Use your LiveKit Cloud WSS URL, e.g. wss://xxxx.livekit.cloud"
+  exit 1
+fi
 
 echo "Uploading .env.production as secret ENV_PRODUCTION_B64..."
 base64 < .env.production | tr -d '\n' | gh secret set ENV_PRODUCTION_B64

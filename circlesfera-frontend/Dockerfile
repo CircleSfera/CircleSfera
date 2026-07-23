@@ -21,9 +21,11 @@ RUN npm install
 # Copy frontend source code
 COPY circlesfera-frontend .
 
-# Declare build arguments for Vite
+# Declare build arguments for Vite (baked into the SPA at build time)
 ARG VITE_API_URL
+ARG VITE_LIVEKIT_URL
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_LIVEKIT_URL=$VITE_LIVEKIT_URL
 
 # Build the application
 RUN npm run build
