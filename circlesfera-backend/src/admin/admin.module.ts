@@ -6,6 +6,7 @@ import { CreatorModule } from '../creator/creator.module.js';
 import { EmailModule } from '../email/email.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { UsersModule } from '../users/users.module.js';
 import { AdminController } from './admin.controller.js';
 import { AdminService } from './admin.service.js';
 import { AdminOpsService } from './admin-ops.service.js';
@@ -18,6 +19,7 @@ import { AdminOpsService } from './admin-ops.service.js';
     EmailModule,
     NotificationsModule,
     CreatorModule,
+    UsersModule,
     BullModule.registerQueue(
       { name: 'ai-processing' },
       { name: 'analytics-processing' },

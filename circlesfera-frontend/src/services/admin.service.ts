@@ -304,6 +304,16 @@ export const adminApi = {
 
   revokeUserKYC: (id: string) => apiClient.post(`admin/users/${id}/revoke-kyc`),
 
+  syncUserKYC: (id: string) =>
+    apiClient.post<{
+      status: string;
+      user?: {
+        id: string;
+        identityVerifiedAt?: string | null;
+        stripeIdentitySessionId?: string | null;
+      };
+    }>(`admin/users/${id}/sync-kyc`),
+
   deleteUser: (id: string) => apiClient.delete(`admin/users/${id}`),
 
   exportUsersCSV: () =>

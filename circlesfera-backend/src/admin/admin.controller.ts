@@ -139,6 +139,12 @@ export class AdminController {
     return this.adminService.revokeUserKYC(req.user.userId, id);
   }
 
+  /** Sync Stripe Identity KYC status into CircleSfera. */
+  @Post('users/:id/sync-kyc')
+  async syncUserKYC(@Param('id') id: string, @Req() req: AuthRequest) {
+    return this.adminService.syncUserKYC(req.user.userId, id);
+  }
+
   /** Hard-delete a user account. */
   @Delete('users/:id')
   async deleteUser(@Param('id') id: string, @Req() req: AuthRequest) {

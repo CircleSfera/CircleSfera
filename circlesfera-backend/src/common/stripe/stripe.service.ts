@@ -272,6 +272,8 @@ export class StripeService implements OnModuleInit {
   async getIdentityVerificationSession(
     sessionId: string,
   ): Promise<Stripe.Identity.VerificationSession> {
-    return this.stripe.identity.verificationSessions.retrieve(sessionId);
+    return this.stripe.identity.verificationSessions.retrieve(sessionId, {
+      expand: ['verified_outputs'],
+    });
   }
 }

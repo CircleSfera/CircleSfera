@@ -78,6 +78,20 @@ export default function UserVerificationTab({
     onError: () => onToast('Error al revocar KYC', 'error'),
   });
 
+  const syncKycMutation = useMutation({
+    mutationFn: (userId: string) => adminApi.syncUserKYC(userId),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      const status = res.data?.status;
+      if (status === 'verified' || status === 'already_verified') {
+        onToast('KYC sincronizado: identidad verificada', 'success');
+      } else {
+        onToast(`KYC sincronizado: ${status || 'ok'}`, 'success');
+      }
+    },
+    onError: () => onToast('Error al sincronizar KYC con Stripe', 'error'),
+  });
+
   const users = usersData?.data?.data || [];
   const selectedUser = users.find((u) => u.id === selectedUserId);
 
@@ -359,9 +373,24 @@ export default function UserVerificationTab({
                           </p>
                         </div>
 
+                        {selectedUser.stripeIdentitySessionId &&
+                          !selectedUser.identityVerifiedAt && (
+                            <Button
+                              onClick={() =>
+                                syncKycMutation.mutate(selectedUser.id)
+                              }
+                              isLoading={syncKycMutation.isPending}
+                              variant="secondary"
+                              className="w-full text-sm font-bold mt-4"
+                            >
+                              <RefreshCw size={16} className="mr-2" />{' '}
+                              Sincronizar desde Stripe
+                            </Button>
+                          )}
+
                         {(selectedUser.identityVerifiedAt ||
                           selectedUser.stripeIdentitySessionId) && (
-                          <div className="mt-6">
+                          <div className="mt-4">
                             <Button
                               onClick={() => {
                                 if (

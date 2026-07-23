@@ -18,6 +18,7 @@ import { CreatorService } from '../creator/creator.service.js';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { UsersService } from '../users/users.service.js';
 import type { BroadcastEmailDto } from './dto/broadcast-email.dto.js';
 import type { UpdateWhitelistEntryDto } from './dto/update-whitelist-entry.dto.js';
 
@@ -57,6 +58,7 @@ export class AdminService {
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
     @InjectQueue('analytics-processing') private readonly analyticsQueue: Queue,
     @Inject(CreatorService) private readonly creatorService: CreatorService,
+    @Inject(UsersService) private readonly usersService: UsersService,
   ) {}
 
   // ─── Audit Log Helper ─────────────────────────────────────────────
@@ -498,6 +500,29 @@ export class AdminService {
     );
     await this.invalidateProfileCache(userId);
     return result;
+  }
+
+  /** Pull latest Stripe Identity session status into CircleSfera (ops recovery). */
+  async syncUserKYC(adminId: string, userId: string) {
+    const result = await this.usersService.syncIdentitySession(userId);
+    await this.logAction(
+      adminId,
+      AdminAction.UPDATE_USER_STATUS,
+      'user',
+      userId,
+      `Synced KYC from Stripe: ${result.status}`,
+    );
+    await this.invalidateProfileCache(userId);
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        identityVerifiedAt: true,
+        stripeIdentitySessionId: true,
+        verificationLevel: true,
+      },
+    });
+    return { ...result, user };
   }
 
   /** Hard-delete a user (cascades all data), with audit logging. */

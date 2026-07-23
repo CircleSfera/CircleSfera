@@ -797,7 +797,9 @@ export class PaymentsService {
         break;
       }
 
-      case 'identity.verification_session.verified': {
+      case 'identity.verification_session.verified':
+      case 'identity.verification_session.canceled':
+      case 'identity.verification_session.requires_input': {
         const session = data.object as Stripe.Identity.VerificationSession;
         await this.usersService.handleIdentityWebhook(session);
         break;

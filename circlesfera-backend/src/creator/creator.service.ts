@@ -629,7 +629,7 @@ export class CreatorService {
       `;
 
       const promo = rows[0];
-      if (!promo || promo.status !== 'ACTIVE') {
+      if (promo?.status !== 'ACTIVE') {
         return { success: false };
       }
       // Creators cannot burn their own campaign budget
