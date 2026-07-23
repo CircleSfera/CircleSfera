@@ -66,7 +66,7 @@ export default function StatsTab() {
           {['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'].map((id) => (
             <div
               key={id}
-              className="glass-panel p-4 rounded-xl h-28 animate-pulse bg-white/5"
+              className="p-4 rounded-xl border border-white/5 bg-white/[0.02] h-28 animate-pulse"
             />
           ))}
         </div>
@@ -154,7 +154,7 @@ export default function StatsTab() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <div className="lg:col-span-2 glass-panel rounded-lg border border-white/5 p-3 sm:p-5">
+        <div className="lg:col-span-2 rounded-lg border border-white/5 bg-white/[0.02] p-3 sm:p-5">
           <div className="flex items-center gap-2 mb-3 sm:mb-4">
             <BarChart3 size={18} className="text-brand-primary" />
             <h3 className="text-white font-semibold text-sm">
@@ -229,7 +229,7 @@ export default function StatsTab() {
           )}
         </div>
 
-        <div className="glass-panel rounded-lg border border-white/5 p-3 sm:p-5">
+        <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3 sm:p-5">
           <div className="flex items-center gap-2 mb-3 sm:mb-4">
             <UserCheck size={18} className="text-brand-primary" />
             <h3 className="text-white font-semibold text-sm">
@@ -293,7 +293,7 @@ export default function StatsTab() {
       </div>
 
       {stats?.recentActivity && stats.recentActivity.length > 0 && (
-        <div className="glass-panel rounded-lg border border-white/5 overflow-hidden">
+        <div className="rounded-lg border border-white/5 bg-white/[0.02] overflow-hidden">
           <div className="px-3 sm:px-5 py-2.5 sm:py-3 border-b border-white/5 flex items-center gap-2">
             <BarChart3 size={18} className="text-brand-primary" />
             <h3 className="text-white font-semibold text-sm">

@@ -24,6 +24,8 @@ interface AdminListRowProps {
   secondaryActions?: AdminListRowAction[];
   onClick?: () => void;
   className?: string;
+  /** Marks row as selected for a11y (split views) */
+  selected?: boolean;
 }
 
 interface MenuPosition {
@@ -43,6 +45,7 @@ export function AdminListRow({
   secondaryActions,
   onClick,
   className,
+  selected,
 }: AdminListRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<MenuPosition | null>(null);
@@ -113,8 +116,9 @@ export function AdminListRow({
     // biome-ignore lint/a11y/noStaticElementInteractions: role=button set when onClick provided
     <div
       className={clsx(
-        'relative flex items-start gap-3 p-3.5 rounded-xl border border-white/10 bg-black/40 backdrop-blur-xl',
-        onClick && 'cursor-pointer hover:bg-white/5 active:bg-white/8',
+        'relative flex items-start gap-3 p-3 rounded-lg border border-white/5 bg-white/[0.02]',
+        onClick &&
+          'cursor-pointer hover:bg-white/[0.04] active:bg-white/[0.06]',
         className,
       )}
       onClick={onClick}
@@ -130,6 +134,7 @@ export function AdminListRow({
       }
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
+      aria-current={selected ? 'true' : undefined}
     >
       {avatar && <div className="shrink-0 mt-0.5">{avatar}</div>}
 

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Music, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Clock, Music, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
@@ -7,11 +7,13 @@ import type { AdminAudio } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
-import AdminDrawer from './AdminDrawer';
+import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
-import { AdminList, AdminListRow } from './AdminList';
+import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
-import { ActionButton, Pagination, SearchInput, Table } from './AdminTable';
+import { AdminListSkeleton } from './AdminSkeletons';
+import { AdminSplitView } from './AdminSplitView';
+import { ActionButton, Pagination, SearchInput } from './AdminTable';
 
 interface AudioTabProps {
   onToast: (message: string, type: 'success' | 'error') => void;
@@ -38,8 +40,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 400);
-  const [showForm, setShowForm] = useState(false);
-  const [editingTrack, setEditingTrack] = useState<AdminAudio | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<AudioForm>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<AdminAudio | null>(null);
   const queryClient = useQueryClient();
@@ -56,14 +57,23 @@ export default function AudioTab({ onToast }: AudioTabProps) {
     },
   });
 
+  const tracks = data?.data ?? [];
+  const meta = data?.meta;
+  const isFiltered = debouncedSearch.length > 0;
+  const isCreating = selectedId === 'new';
+  const editingTrack =
+    selectedId && selectedId !== 'new'
+      ? (tracks.find((track) => track.id === selectedId) ?? null)
+      : null;
+  const hasSelection = isCreating || !!editingTrack;
+
   const invalidateAudio = () => {
     queryClient.invalidateQueries({ queryKey: ['admin', 'audio'] });
     queryClient.invalidateQueries({ queryKey: ['music'] });
   };
 
   const closeForm = () => {
-    setShowForm(false);
-    setEditingTrack(null);
+    setSelectedId(null);
     setForm(EMPTY_FORM);
   };
 
@@ -97,16 +107,17 @@ export default function AudioTab({ onToast }: AudioTabProps) {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteAudio(id),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       invalidateAudio();
       onToast(t('admin.audio.toast_deleted'), 'success');
       setDeleteTarget(null);
+      if (selectedId === id) closeForm();
     },
     onError: () => onToast(t('admin.audio.toast_delete_error'), 'error'),
   });
 
   const openEdit = (track: AdminAudio) => {
-    setEditingTrack(track);
+    setSelectedId(track.id);
     setForm({
       title: track.title,
       artist: track.artist,
@@ -114,7 +125,11 @@ export default function AudioTab({ onToast }: AudioTabProps) {
       thumbnailUrl: track.thumbnailUrl ?? '',
       duration: track.duration,
     });
-    setShowForm(true);
+  };
+
+  const openAddForm = () => {
+    setForm(EMPTY_FORM);
+    setSelectedId('new');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -136,15 +151,6 @@ export default function AudioTab({ onToast }: AudioTabProps) {
   };
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
-  const tracks = data?.data ?? [];
-  const meta = data?.meta;
-  const isFiltered = debouncedSearch.length > 0;
-
-  const openAddForm = () => {
-    setEditingTrack(null);
-    setForm(EMPTY_FORM);
-    setShowForm(true);
-  };
 
   return (
     <div className="space-y-4">
@@ -176,105 +182,63 @@ export default function AudioTab({ onToast }: AudioTabProps) {
         </div>
       </AdminFilterBar>
 
-      <div className="rounded-xl border border-white/10 lg:overflow-clip">
-        <AdminList
-          loading={isLoading}
-          isEmpty={tracks.length === 0}
-          emptyTitle={
-            isFiltered
-              ? t('admin.audio.empty_filtered_title')
-              : t('admin.audio.empty_title')
-          }
-          emptyDescription={
-            isFiltered
-              ? t('admin.audio.empty_filtered_description')
-              : t('admin.audio.empty_description')
-          }
-          emptyIcon={Music}
-          emptyAction={
-            !isFiltered ? (
-              <Button onClick={openAddForm} className="min-h-11">
-                <Plus size={16} className="mr-2" />
-                {t('admin.audio.add_track')}
-              </Button>
-            ) : undefined
-          }
-          mobile={
-            <div className="space-y-2">
-              {tracks.map((track) => (
-                <AdminListRow
-                  key={track.id}
-                  title={track.title}
-                  subtitle={track.artist}
-                  meta={
-                    <>
-                      <span className="inline-flex items-center gap-1">
-                        <Clock size={12} />
-                        {formatDuration(track.duration)}
-                      </span>
-                      <span>
-                        {new Date(track.createdAt).toLocaleDateString()}
-                      </span>
-                    </>
+      <AdminSplitView
+        hasSelection={hasSelection}
+        onBack={closeForm}
+        onClearSelection={closeForm}
+        listTitle={t('admin.audio.title')}
+        list={
+          <div className="flex flex-col h-full min-h-0">
+            <div className="flex-1 overflow-y-auto space-y-2 pb-2">
+              {isLoading ? (
+                <AdminListSkeleton rows={6} />
+              ) : tracks.length === 0 ? (
+                <AdminEmptyState
+                  icon={Music}
+                  title={
+                    isFiltered
+                      ? t('admin.audio.empty_filtered_title')
+                      : t('admin.audio.empty_title')
                   }
-                  avatar={
-                    <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0 overflow-hidden">
-                      {track.thumbnailUrl ? (
-                        <img
-                          src={track.thumbnailUrl}
-                          alt={track.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Music size={16} className="text-zinc-400" />
-                      )}
-                    </div>
+                  description={
+                    isFiltered
+                      ? t('admin.audio.empty_filtered_description')
+                      : t('admin.audio.empty_description')
                   }
-                  primaryAction={
-                    <ActionButton
-                      icon={Pencil}
-                      label={t('admin.audio.action_edit')}
-                      variant="ghost"
-                      onClick={() => openEdit(track)}
-                    />
+                  action={
+                    !isFiltered ? (
+                      <Button onClick={openAddForm} className="min-h-11">
+                        <Plus size={16} className="mr-2" />
+                        {t('admin.audio.add_track')}
+                      </Button>
+                    ) : undefined
                   }
-                  secondaryActions={[
-                    {
-                      label: t('admin.audio.action_delete'),
-                      variant: 'danger',
-                      onClick: () => setDeleteTarget(track),
-                    },
-                  ]}
+                  compact
                 />
-              ))}
-            </div>
-          }
-          desktop={
-            <Table
-              headers={[
-                t('admin.audio.col_track'),
-                t('admin.audio.col_artist'),
-                t('admin.audio.col_duration'),
-                t('admin.audio.col_date'),
-                t('admin.audio.col_actions'),
-              ]}
-              columnWidths={[
-                'min-w-[10rem]',
-                'min-w-[6rem]',
-                'w-[4.5rem]',
-                'hidden lg:table-cell w-[6rem]',
-                'w-[6rem]',
-              ]}
-              loading={false}
-              isEmpty={false}
-            >
-              {tracks.map((track) => (
-                <tr
-                  key={track.id}
-                  className="border-b border-white/5 hover:bg-white/2 transition-colors"
-                >
-                  <td className="px-2 py-1">
-                    <div className="flex items-center gap-3">
+              ) : (
+                tracks.map((track) => (
+                  <AdminListRow
+                    key={track.id}
+                    onClick={() => openEdit(track)}
+                    className={
+                      selectedId === track.id
+                        ? 'border-brand-primary/30 bg-brand-primary/10'
+                        : undefined
+                    }
+                    title={track.title}
+                    subtitle={track.artist}
+                    meta={
+                      <>
+                        <span className="inline-flex items-center gap-1">
+                          <Clock size={12} />
+                          {formatDuration(track.duration)}
+                        </span>
+                        <span>
+                          {new Date(track.createdAt).toLocaleDateString()}
+                        </span>
+                      </>
+                    }
+                    avatar={
                       <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0 overflow-hidden">
                         {track.thumbnailUrl ? (
                           <img
@@ -286,185 +250,170 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                           <Music size={16} className="text-zinc-400" />
                         )}
                       </div>
-                      <div
-                        className="font-semibold text-sm truncate max-w-[10rem] xl:max-w-[14rem]"
-                        title={track.title}
-                      >
-                        {track.title}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-2 py-1 text-sm text-zinc-400">
-                    <div
-                      className="truncate max-w-[8rem] xl:max-w-[12rem]"
-                      title={track.artist}
-                    >
-                      {track.artist}
-                    </div>
-                  </td>
-                  <td className="px-2 py-1">
-                    <div className="flex items-center gap-1 text-sm text-zinc-400">
-                      <Clock size={12} />
-                      {formatDuration(track.duration)}
-                    </div>
-                  </td>
-                  <td className="px-2 py-1 text-sm text-zinc-400 hidden lg:table-cell">
-                    {new Date(track.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-2 py-1">
-                    <div className="flex items-center gap-1">
+                    }
+                    primaryAction={
                       <ActionButton
                         icon={Pencil}
                         label={t('admin.audio.action_edit')}
                         variant="ghost"
                         onClick={() => openEdit(track)}
                       />
-                      <ActionButton
-                        icon={Trash2}
-                        label={t('admin.audio.action_delete')}
-                        variant="danger"
-                        onClick={() => setDeleteTarget(track)}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </Table>
-          }
-        />
-        {meta && meta.totalPages > 1 && (
-          <Pagination meta={meta} onPageChange={setPage} />
-        )}
-      </div>
-
-      <AdminDrawer
-        isOpen={showForm}
-        onClose={closeForm}
-        title={
-          editingTrack
-            ? t('admin.audio.drawer_edit_title')
-            : t('admin.audio.drawer_add_title')
+                    }
+                    secondaryActions={[
+                      {
+                        label: t('admin.audio.action_delete'),
+                        variant: 'danger',
+                        onClick: () => setDeleteTarget(track),
+                      },
+                    ]}
+                  />
+                ))
+              )}
+            </div>
+            {meta && meta.totalPages > 1 && (
+              <div className="shrink-0 pt-2 border-t border-white/5">
+                <Pagination meta={meta} onPageChange={setPage} />
+              </div>
+            )}
+          </div>
         }
-      >
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="space-y-1.5">
-            <label
-              htmlFor="audio-title"
-              className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
-            >
-              {t('admin.audio.label_title')}
-            </label>
-            <input
-              id="audio-title"
-              type="text"
-              required
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
-              placeholder={t('admin.audio.placeholder_title')}
-            />
-          </div>
+        detail={
+          hasSelection ? (
+            <div className="space-y-4 px-1">
+              <div>
+                <h3 className="text-base font-semibold text-white">
+                  {editingTrack
+                    ? t('admin.audio.drawer_edit_title')
+                    : t('admin.audio.drawer_add_title')}
+                </h3>
+              </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="audio-title"
+                    className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
+                  >
+                    {t('admin.audio.label_title')}
+                  </label>
+                  <input
+                    id="audio-title"
+                    type="text"
+                    required
+                    value={form.title}
+                    onChange={(e) =>
+                      setForm({ ...form, title: e.target.value })
+                    }
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+                    placeholder={t('admin.audio.placeholder_title')}
+                  />
+                </div>
 
-          <div className="space-y-1.5">
-            <label
-              htmlFor="audio-artist"
-              className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
-            >
-              {t('admin.audio.label_artist')}
-            </label>
-            <input
-              id="audio-artist"
-              type="text"
-              required
-              value={form.artist}
-              onChange={(e) => setForm({ ...form, artist: e.target.value })}
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
-              placeholder={t('admin.audio.placeholder_artist')}
-            />
-          </div>
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="audio-artist"
+                    className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
+                  >
+                    {t('admin.audio.label_artist')}
+                  </label>
+                  <input
+                    id="audio-artist"
+                    type="text"
+                    required
+                    value={form.artist}
+                    onChange={(e) =>
+                      setForm({ ...form, artist: e.target.value })
+                    }
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+                    placeholder={t('admin.audio.placeholder_artist')}
+                  />
+                </div>
 
-          <div className="space-y-1.5">
-            <label
-              htmlFor="audio-url"
-              className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
-            >
-              {t('admin.audio.label_url')}
-            </label>
-            <input
-              id="audio-url"
-              type="url"
-              required
-              value={form.url}
-              onChange={(e) => setForm({ ...form, url: e.target.value })}
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
-              placeholder={t('admin.audio.placeholder_url')}
-            />
-          </div>
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="audio-url"
+                    className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
+                  >
+                    {t('admin.audio.label_url')}
+                  </label>
+                  <input
+                    id="audio-url"
+                    type="url"
+                    required
+                    value={form.url}
+                    onChange={(e) => setForm({ ...form, url: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+                    placeholder={t('admin.audio.placeholder_url')}
+                  />
+                </div>
 
-          <div className="space-y-1.5">
-            <label
-              htmlFor="audio-thumbnail"
-              className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
-            >
-              {t('admin.audio.label_thumbnail')}
-            </label>
-            <input
-              id="audio-thumbnail"
-              type="url"
-              value={form.thumbnailUrl}
-              onChange={(e) =>
-                setForm({ ...form, thumbnailUrl: e.target.value })
-              }
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
-              placeholder={t('admin.audio.placeholder_thumbnail')}
-            />
-          </div>
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="audio-thumbnail"
+                    className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
+                  >
+                    {t('admin.audio.label_thumbnail')}
+                  </label>
+                  <input
+                    id="audio-thumbnail"
+                    type="url"
+                    value={form.thumbnailUrl}
+                    onChange={(e) =>
+                      setForm({ ...form, thumbnailUrl: e.target.value })
+                    }
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+                    placeholder={t('admin.audio.placeholder_thumbnail')}
+                  />
+                </div>
 
-          <div className="space-y-1.5">
-            <label
-              htmlFor="audio-duration"
-              className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
-            >
-              {t('admin.audio.label_duration')}
-            </label>
-            <input
-              id="audio-duration"
-              type="number"
-              required
-              min={1}
-              value={form.duration || ''}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  duration: Number.parseInt(e.target.value, 10) || 0,
-                })
-              }
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
-              placeholder={t('admin.audio.placeholder_duration')}
-            />
-          </div>
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="audio-duration"
+                    className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
+                  >
+                    {t('admin.audio.label_duration')}
+                  </label>
+                  <input
+                    id="audio-duration"
+                    type="number"
+                    required
+                    min={1}
+                    value={form.duration || ''}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        duration: Number.parseInt(e.target.value, 10) || 0,
+                      })
+                    }
+                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+                    placeholder={t('admin.audio.placeholder_duration')}
+                  />
+                </div>
 
-          <div className="pt-4 flex gap-3">
-            <Button
-              onClick={closeForm}
-              variant="secondary"
-              className="flex-1 py-3 font-semibold bg-white/5 border-transparent text-gray-300"
-            >
-              {t('admin.shared.cancel')}
-            </Button>
-            <Button
-              type="submit"
-              isLoading={isSaving}
-              variant="primary"
-              className="flex-1 py-3 font-semibold shadow-lg shadow-brand-primary/20"
-            >
-              {editingTrack
-                ? t('admin.audio.save_changes')
-                : t('admin.audio.add_track')}
-            </Button>
-          </div>
-        </form>
-      </AdminDrawer>
+                <div className="pt-4 flex gap-3">
+                  <Button
+                    type="button"
+                    onClick={closeForm}
+                    variant="secondary"
+                    className="flex-1 py-3 font-semibold bg-white/5 border-transparent text-gray-300"
+                  >
+                    {t('admin.shared.cancel')}
+                  </Button>
+                  <Button
+                    type="submit"
+                    isLoading={isSaving}
+                    variant="primary"
+                    className="flex-1 py-3 font-semibold shadow-lg shadow-brand-primary/20"
+                  >
+                    {editingTrack
+                      ? t('admin.audio.save_changes')
+                      : t('admin.audio.add_track')}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          ) : null
+        }
+      />
 
       <ConfirmModal
         isOpen={!!deleteTarget}

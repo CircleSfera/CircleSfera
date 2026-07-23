@@ -170,146 +170,143 @@ export default function StoriesTab({ onToast }: Props) {
         />
       </AdminFilterBar>
 
-      <div className="rounded-xl border border-white/10 lg:overflow-clip">
-        <AdminList
-          loading={isLoading}
-          isEmpty={!stories.length}
-          emptyTitle={t('admin.stories.empty_title')}
-          emptyDescription={t('admin.stories.empty_description')}
-          mobile={
-            <div className="space-y-2">
-              {stories.map((story) => (
-                <AdminListRow
-                  key={story.id}
-                  title={`@${story.user?.profile?.username || t('admin.shared.unknown')}`}
-                  subtitle={
-                    <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/10">
-                      {story.mediaType}
-                    </span>
-                  }
-                  avatar={
-                    <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden">
-                      {story.mediaType === 'video' ? (
-                        <video
-                          src={story.url}
-                          className="w-full h-full object-cover"
-                          muted
-                        />
-                      ) : (
-                        <img
-                          src={story.url}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                  }
-                  badge={
-                    <div className="flex flex-col items-end gap-1">
-                      {moderationBadge(story.moderationStatus)}
-                      {expiryBadge(isExpired(story.expiresAt))}
-                    </div>
-                  }
-                  meta={
-                    <span className="flex items-center gap-1">
-                      <Eye size={12} />{' '}
-                      {t('admin.stories.views_count', {
-                        count: story._count?.views || 0,
-                      })}
-                      <span className="hidden sm:inline text-pink-400">
-                        · <Heart size={12} className="inline" />{' '}
-                        {story._count?.reactions || 0}
-                      </span>
-                    </span>
-                  }
-                  primaryAction={renderActions(story)}
-                />
-              ))}
-            </div>
-          }
-          desktop={
-            <Table
-              headers={[
-                t('admin.stories.col_preview'),
-                t('admin.stories.col_author'),
-                t('admin.stories.col_type'),
-                t('admin.stories.col_moderation'),
-                t('admin.stories.col_status'),
-                t('admin.stories.col_views'),
-                t('admin.stories.col_reactions'),
-                t('admin.stories.col_actions'),
-              ]}
-              columnWidths={[
-                'w-[3rem]',
-                'min-w-[6rem]',
-                'w-[5rem]',
-                'w-[5.5rem]',
-                'w-[5.5rem]',
-                'w-[4.5rem]',
-                'hidden xl:table-cell w-[5rem]',
-                'w-[6rem]',
-              ]}
-              loading={false}
-              isEmpty={false}
-            >
-              {stories.map((story) => (
-                <tr
-                  key={story.id}
-                  className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
-                >
-                  <td className="px-2 py-1">
-                    <div className="w-10 h-10 rounded-lg bg-white/5 overflow-hidden">
-                      {story.mediaType === 'video' ? (
-                        <video
-                          src={story.url}
-                          className="w-full h-full object-cover"
-                          muted
-                        />
-                      ) : (
-                        <img
-                          src={story.url}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-2 py-1">
-                    <span className="text-white font-medium text-sm truncate block max-w-[6rem]">
-                      @
-                      {story.user?.profile?.username ||
-                        t('admin.shared.unknown')}
-                    </span>
-                  </td>
-                  <td className="px-2 py-1">
-                    <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/10">
-                      {story.mediaType}
-                    </span>
-                  </td>
-                  <td className="px-2 py-1">
+      <AdminList
+        loading={isLoading}
+        isEmpty={!stories.length}
+        emptyTitle={t('admin.stories.empty_title')}
+        emptyDescription={t('admin.stories.empty_description')}
+        mobile={
+          <div className="space-y-2">
+            {stories.map((story) => (
+              <AdminListRow
+                key={story.id}
+                title={`@${story.user?.profile?.username || t('admin.shared.unknown')}`}
+                subtitle={
+                  <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/10">
+                    {story.mediaType}
+                  </span>
+                }
+                avatar={
+                  <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden">
+                    {story.mediaType === 'video' ? (
+                      <video
+                        src={story.url}
+                        className="w-full h-full object-cover"
+                        muted
+                      />
+                    ) : (
+                      <img
+                        src={story.url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                }
+                badge={
+                  <div className="flex flex-col items-end gap-1">
                     {moderationBadge(story.moderationStatus)}
-                  </td>
-                  <td className="px-2 py-1">
                     {expiryBadge(isExpired(story.expiresAt))}
-                  </td>
-                  <td className="px-2 py-1">
-                    <span className="flex items-center gap-1 text-gray-300 text-sm">
-                      <Eye size={12} /> {story._count?.views || 0}
+                  </div>
+                }
+                meta={
+                  <span className="flex items-center gap-1">
+                    <Eye size={12} />{' '}
+                    {t('admin.stories.views_count', {
+                      count: story._count?.views || 0,
+                    })}
+                    <span className="hidden sm:inline text-pink-400">
+                      · <Heart size={12} className="inline" />{' '}
+                      {story._count?.reactions || 0}
                     </span>
-                  </td>
-                  <td className="px-2 py-1 hidden xl:table-cell">
-                    <span className="flex items-center gap-1 text-pink-400 text-sm">
-                      <Heart size={12} /> {story._count?.reactions || 0}
-                    </span>
-                  </td>
-                  <td className="px-2 py-1">{renderActions(story)}</td>
-                </tr>
-              ))}
-            </Table>
-          }
-        />
-        <Pagination meta={data?.meta} onPageChange={setPage} />
-      </div>
+                  </span>
+                }
+                primaryAction={renderActions(story)}
+              />
+            ))}
+          </div>
+        }
+        desktop={
+          <Table
+            headers={[
+              t('admin.stories.col_preview'),
+              t('admin.stories.col_author'),
+              t('admin.stories.col_type'),
+              t('admin.stories.col_moderation'),
+              t('admin.stories.col_status'),
+              t('admin.stories.col_views'),
+              t('admin.stories.col_reactions'),
+              t('admin.stories.col_actions'),
+            ]}
+            columnWidths={[
+              'w-[3rem]',
+              'min-w-[6rem]',
+              'w-[5rem]',
+              'w-[5.5rem]',
+              'w-[5.5rem]',
+              'w-[4.5rem]',
+              'hidden xl:table-cell w-[5rem]',
+              'w-[6rem]',
+            ]}
+            loading={false}
+            isEmpty={false}
+          >
+            {stories.map((story) => (
+              <tr
+                key={story.id}
+                className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
+              >
+                <td className="px-2 py-1">
+                  <div className="w-10 h-10 rounded-lg bg-white/5 overflow-hidden">
+                    {story.mediaType === 'video' ? (
+                      <video
+                        src={story.url}
+                        className="w-full h-full object-cover"
+                        muted
+                      />
+                    ) : (
+                      <img
+                        src={story.url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                </td>
+                <td className="px-2 py-1">
+                  <span className="text-white font-medium text-sm truncate block max-w-[6rem]">
+                    @
+                    {story.user?.profile?.username || t('admin.shared.unknown')}
+                  </span>
+                </td>
+                <td className="px-2 py-1">
+                  <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/10">
+                    {story.mediaType}
+                  </span>
+                </td>
+                <td className="px-2 py-1">
+                  {moderationBadge(story.moderationStatus)}
+                </td>
+                <td className="px-2 py-1">
+                  {expiryBadge(isExpired(story.expiresAt))}
+                </td>
+                <td className="px-2 py-1">
+                  <span className="flex items-center gap-1 text-gray-300 text-sm">
+                    <Eye size={12} /> {story._count?.views || 0}
+                  </span>
+                </td>
+                <td className="px-2 py-1 hidden xl:table-cell">
+                  <span className="flex items-center gap-1 text-pink-400 text-sm">
+                    <Heart size={12} /> {story._count?.reactions || 0}
+                  </span>
+                </td>
+                <td className="px-2 py-1">{renderActions(story)}</td>
+              </tr>
+            ))}
+          </Table>
+        }
+      />
+      <Pagination meta={data?.meta} onPageChange={setPage} />
 
       <ConfirmModal
         isOpen={confirmDeleteId !== null}

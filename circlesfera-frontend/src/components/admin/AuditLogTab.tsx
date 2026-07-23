@@ -6,10 +6,13 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AuditLogEntry } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
-import { AdminList, AdminListRow } from './AdminList';
+import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
-import { FilterDropdown, Pagination, SearchInput, Table } from './AdminTable';
+import { AdminListSkeleton } from './AdminSkeletons';
+import { AdminSplitView } from './AdminSplitView';
+import { FilterDropdown, Pagination, SearchInput } from './AdminTable';
 
 const AUDIT_ACTION_KEYS = [
   'BAN_USER',
@@ -58,11 +61,23 @@ const ACTION_COLORS: Record<string, string> = {
   CONTENT_RESTORED: 'text-green-400',
 };
 
+function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5 last:border-b-0">
+      <dt className="text-xs font-medium text-gray-500 shrink-0">{label}</dt>
+      <dd className="text-sm text-white text-right min-w-0 break-all">
+        {value}
+      </dd>
+    </div>
+  );
+}
+
 export default function AuditLogTab() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [actionFilter, setActionFilter] = useState('');
   const [search, setSearch] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(search, 400);
 
   const actionFilterOptions = useMemo(
@@ -93,6 +108,7 @@ export default function AuditLogTab() {
   });
 
   const logs = data?.data ?? [];
+  const selected = logs.find((l) => l.id === selectedId) ?? null;
   const hasActiveFilters = Boolean(actionFilter || debouncedSearch.trim());
 
   return (
@@ -124,115 +140,117 @@ export default function AuditLogTab() {
         />
       </AdminFilterBar>
 
-      <div className="rounded-xl border border-white/10 overflow-x-auto">
-        <AdminList
-          loading={isLoading}
-          isEmpty={!logs.length}
-          emptyIcon={Activity}
-          emptyTitle={
-            hasActiveFilters
-              ? t('admin.audit.empty_filtered_title')
-              : t('admin.audit.empty_title')
-          }
-          emptyDescription={
-            hasActiveFilters
-              ? t('admin.audit.empty_filtered_description')
-              : t('admin.audit.empty_description')
-          }
-          mobile={
-            <div className="space-y-2">
-              {logs.map((log) => (
-                <AdminListRow
-                  key={log.id}
+      <AdminSplitView
+        hasSelection={!!selected}
+        onBack={() => setSelectedId(null)}
+        onClearSelection={() => setSelectedId(null)}
+        listTitle={t('admin.audit.title')}
+        list={
+          <div className="flex flex-col h-full min-h-0">
+            <div className="flex-1 overflow-y-auto space-y-2 pb-2">
+              {isLoading ? (
+                <AdminListSkeleton rows={6} />
+              ) : logs.length === 0 ? (
+                <AdminEmptyState
+                  icon={Activity}
                   title={
-                    <span
-                      className={`inline-flex items-center gap-1.5 ${ACTION_COLORS[log.action] || 'text-gray-300'}`}
-                    >
-                      <Activity size={14} />
-                      {formatActionLabel(log.action)}
-                    </span>
+                    hasActiveFilters
+                      ? t('admin.audit.empty_filtered_title')
+                      : t('admin.audit.empty_title')
                   }
-                  subtitle={
-                    <span className="text-brand-primary font-semibold">
-                      @{log.adminUsername}
-                    </span>
+                  description={
+                    hasActiveFilters
+                      ? t('admin.audit.empty_filtered_description')
+                      : t('admin.audit.empty_description')
                   }
-                  badge={
-                    <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/10">
-                      {log.targetType}
-                    </span>
-                  }
-                  meta={<span>{new Date(log.createdAt).toLocaleString()}</span>}
+                  compact
                 />
-              ))}
-            </div>
-          }
-          desktop={
-            <Table
-              headers={[
-                t('admin.audit.col_date'),
-                t('admin.audit.col_admin'),
-                t('admin.audit.col_action'),
-                t('admin.audit.col_type'),
-                t('admin.audit.col_target'),
-              ]}
-              columnWidths={[
-                'whitespace-nowrap',
-                'min-w-28',
-                'min-w-36',
-                'whitespace-nowrap',
-                'min-w-32',
-              ]}
-              loading={false}
-              isEmpty={false}
-            >
-              {logs.map((log) => (
-                <tr
-                  key={log.id}
-                  className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
-                >
-                  <td className="px-3 py-2.5 text-gray-300 text-sm whitespace-nowrap">
-                    {new Date(log.createdAt).toLocaleString()}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <span className="text-brand-primary font-semibold text-sm truncate block max-w-32">
-                      @{log.adminUsername}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Activity
-                        size={14}
-                        className={`shrink-0 ${ACTION_COLORS[log.action] || 'text-gray-300'}`}
-                      />
+              ) : (
+                logs.map((log) => (
+                  <AdminListRow
+                    key={log.id}
+                    selected={selectedId === log.id}
+                    onClick={() => setSelectedId(log.id)}
+                    className={
+                      selectedId === log.id
+                        ? 'border-brand-primary/30 bg-brand-primary/10'
+                        : undefined
+                    }
+                    title={
                       <span
-                        className={`text-sm font-medium truncate ${ACTION_COLORS[log.action] || 'text-gray-300'}`}
-                        title={formatActionLabel(log.action)}
+                        className={`inline-flex items-center gap-1.5 ${ACTION_COLORS[log.action] || 'text-gray-300'}`}
                       >
+                        <Activity size={14} />
                         {formatActionLabel(log.action)}
                       </span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2.5 whitespace-nowrap">
-                    <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/10">
-                      {log.targetType}
+                    }
+                    subtitle={
+                      <span className="text-brand-primary font-semibold">
+                        @{log.adminUsername}
+                      </span>
+                    }
+                    badge={
+                      <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/5">
+                        {log.targetType}
+                      </span>
+                    }
+                    meta={
+                      <span>{new Date(log.createdAt).toLocaleString()}</span>
+                    }
+                  />
+                ))
+              )}
+            </div>
+            <div className="shrink-0">
+              <Pagination meta={data?.meta} onPageChange={setPage} />
+            </div>
+          </div>
+        }
+        detail={
+          selected ? (
+            <div className="space-y-5 pb-6 px-0.5">
+              <div>
+                <p
+                  className={`text-base font-semibold ${ACTION_COLORS[selected.action] || 'text-white'}`}
+                >
+                  {formatActionLabel(selected.action)}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {new Date(selected.createdAt).toLocaleString()}
+                </p>
+              </div>
+              <dl>
+                <MetaRow
+                  label={t('admin.audit.col_admin')}
+                  value={`@${selected.adminUsername}`}
+                />
+                <MetaRow
+                  label={t('admin.audit.col_type')}
+                  value={selected.targetType}
+                />
+                <MetaRow
+                  label={t('admin.audit.col_target')}
+                  value={
+                    <span className="font-mono text-xs text-gray-300">
+                      {selected.targetId}
                     </span>
-                  </td>
-                  <td
-                    className="px-3 py-2.5 text-gray-600 text-xs font-mono max-w-40 truncate"
-                    title={log.targetId}
-                  >
-                    {log.targetId}
-                  </td>
-                </tr>
-              ))}
-            </Table>
-          }
-        />
-        <div className="p-2 border-t border-white/5">
-          <Pagination meta={data?.meta} onPageChange={setPage} />
-        </div>
-      </div>
+                  }
+                />
+              </dl>
+              {selected.details && (
+                <div>
+                  <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    {t('admin.audit.col_details', 'Detalles')}
+                  </p>
+                  <pre className="text-xs text-gray-300 whitespace-pre-wrap break-all bg-white/[0.03] border border-white/5 rounded-lg p-3 font-mono leading-relaxed">
+                    {selected.details}
+                  </pre>
+                </div>
+              )}
+            </div>
+          ) : null
+        }
+      />
     </div>
   );
 }

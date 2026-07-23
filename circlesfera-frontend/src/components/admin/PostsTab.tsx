@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import { Download, ExternalLink, Eye, Trash2 } from 'lucide-react';
+import { Download, ImageIcon, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
@@ -9,17 +8,19 @@ import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
+import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
-import { AdminList, AdminListRow } from './AdminList';
+import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
+import { AdminListSkeleton } from './AdminSkeletons';
+import { AdminSplitView } from './AdminSplitView';
 import {
   ActionButton,
   FilterDropdown,
   Pagination,
   SearchInput,
-  Table,
 } from './AdminTable';
-import PostPreviewDrawer from './PostPreviewDrawer';
+import PostDetailPanel from './PostDetailPanel';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
@@ -34,7 +35,7 @@ export default function PostsTab({ onToast }: Props) {
   const queryClient = useQueryClient();
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [previewPost, setPreviewPost] = useState<AdminPost | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<PaginatedResponse<AdminPost>>({
     queryKey: ['admin', 'posts', page, debouncedSearch, typeFilter],
@@ -49,12 +50,16 @@ export default function PostsTab({ onToast }: Props) {
         .then((res) => res.data as PaginatedResponse<AdminPost>),
   });
 
+  const posts = data?.data ?? [];
+  const selectedPost = posts.find((p) => p.id === selectedPostId) ?? null;
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deletePost(id),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'posts'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
       setDeleteId(null);
+      if (selectedPostId === id) setSelectedPostId(null);
       onToast(t('admin.posts.toast_deleted'), 'success');
     },
     onError: () => onToast(t('admin.posts.toast_delete_error'), 'error'),
@@ -122,111 +127,37 @@ export default function PostsTab({ onToast }: Props) {
         />
       </AdminFilterBar>
 
-      <div className="rounded-xl border border-white/10 lg:overflow-clip">
-        <AdminList
-          loading={isLoading}
-          isEmpty={!data || data.data.length === 0}
-          emptyTitle={t('admin.posts.empty_title')}
-          emptyDescription={t('admin.posts.empty_description')}
-          mobile={
-            <div className="space-y-2">
-              {data?.data.map((post) => (
-                <AdminListRow
-                  key={post.id}
-                  title={post.caption || noCaption}
-                  subtitle={`@${post.user?.profile?.username || t('admin.shared.unknown')}`}
-                  avatar={
-                    <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden">
-                      {post.media?.[0]?.url && (
-                        <img
-                          src={post.media[0].url}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                  }
-                  badge={
-                    <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/10">
-                      {post.type}
-                    </span>
-                  }
-                  meta={
-                    <>
-                      <span>
-                        {new Date(post.createdAt).toLocaleDateString()}
-                      </span>
-                      {post._count && (
-                        <span className="hidden sm:inline">
-                          {t('admin.posts.likes_comments', {
-                            likes: post._count.likes,
-                            comments: post._count.comments,
-                          })}
-                        </span>
-                      )}
-                    </>
-                  }
-                  primaryAction={
-                    <ActionButton
-                      onClick={() => setDeleteId(post.id)}
-                      label={t('admin.posts.action_delete')}
-                      variant="danger"
-                      icon={Trash2}
-                      disabled={deleteMutation.isPending}
-                    />
-                  }
-                  secondaryActions={[
-                    {
-                      label: t('admin.posts.action_preview'),
-                      onClick: () => setPreviewPost(post),
-                    },
-                    {
-                      label: t('admin.posts.action_view_platform'),
-                      onClick: () => window.open(`/post/${post.id}`, '_blank'),
-                    },
-                  ]}
+      <AdminSplitView
+        hasSelection={!!selectedPost}
+        onBack={() => setSelectedPostId(null)}
+        onClearSelection={() => setSelectedPostId(null)}
+        listTitle={t('admin.posts.title')}
+        list={
+          <div className="flex flex-col h-full min-h-0">
+            <div className="flex-1 overflow-y-auto space-y-2 pb-2">
+              {isLoading ? (
+                <AdminListSkeleton rows={6} />
+              ) : posts.length === 0 ? (
+                <AdminEmptyState
+                  icon={ImageIcon}
+                  title={t('admin.posts.empty_title')}
+                  description={t('admin.posts.empty_description')}
+                  compact
                 />
-              ))}
-            </div>
-          }
-          desktop={
-            <Table
-              headers={[
-                t('admin.posts.col_post'),
-                t('admin.posts.col_author'),
-                t('admin.posts.col_date'),
-                t('admin.posts.col_type'),
-                t('admin.posts.col_stats'),
-                t('admin.posts.col_actions'),
-              ]}
-              columnWidths={[
-                'min-w-[12rem]',
-                'w-[7rem]',
-                'hidden lg:table-cell w-[6rem]',
-                'w-[5rem]',
-                'hidden xl:table-cell w-[6rem]',
-                'w-[8rem]',
-              ]}
-              loading={false}
-              isEmpty={false}
-            >
-              {data?.data.map((post) => (
-                <motion.tr
-                  key={post.id}
-                  layout
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
-                >
-                  <td className="px-2 py-1">
-                    <button
-                      type="button"
-                      onClick={() => setPreviewPost(post)}
-                      className="flex items-center gap-3 text-left group"
-                      aria-label={t('admin.posts.preview_aria')}
-                    >
-                      <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden shrink-0 group-hover:ring-2 ring-brand-primary/50 transition-all">
+              ) : (
+                posts.map((post) => (
+                  <AdminListRow
+                    key={post.id}
+                    onClick={() => setSelectedPostId(post.id)}
+                    className={
+                      selectedPostId === post.id
+                        ? 'border-brand-primary/30 bg-brand-primary/10'
+                        : undefined
+                    }
+                    title={post.caption || noCaption}
+                    subtitle={`@${post.user?.profile?.username || t('admin.shared.unknown')}`}
+                    avatar={
+                      <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden">
                         {post.media?.[0]?.url && (
                           <img
                             src={post.media[0].url}
@@ -235,83 +166,58 @@ export default function PostsTab({ onToast }: Props) {
                           />
                         )}
                       </div>
-                      <p
-                        className="text-white text-sm truncate max-w-[12rem] xl:max-w-[16rem] group-hover:text-brand-primary transition-colors"
-                        title={post.caption || noCaption}
-                      >
-                        {post.caption || noCaption}
-                      </p>
-                    </button>
-                  </td>
-                  <td className="px-2 py-1">
-                    <span
-                      className="text-gray-300 text-sm truncate block max-w-[7rem]"
-                      title={`@${post.user?.profile?.username}`}
-                    >
-                      @{post.user?.profile?.username}
-                    </span>
-                  </td>
-                  <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap hidden lg:table-cell">
-                    {new Date(post.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-2 py-1">
-                    <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/10">
-                      {post.type}
-                    </span>
-                  </td>
-                  <td className="px-2 py-1 hidden xl:table-cell">
-                    {post._count && (
-                      <div className="text-xs text-gray-500">
-                        {t('admin.posts.likes_comments_short', {
-                          likes: post._count.likes,
-                          comments: post._count.comments,
-                        })}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-2 py-1">
-                    <div className="flex gap-1 items-center">
-                      <ActionButton
-                        onClick={() => setPreviewPost(post)}
-                        label={t('admin.posts.action_view')}
-                        variant="ghost"
-                        icon={Eye}
-                        iconOnly
-                      />
+                    }
+                    badge={
+                      <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/5">
+                        {post.type}
+                      </span>
+                    }
+                    meta={
+                      <>
+                        <span>
+                          {new Date(post.createdAt).toLocaleDateString()}
+                        </span>
+                        {post._count && (
+                          <span>
+                            {t('admin.posts.likes_comments', {
+                              likes: post._count.likes,
+                              comments: post._count.comments,
+                            })}
+                          </span>
+                        )}
+                      </>
+                    }
+                    primaryAction={
                       <ActionButton
                         onClick={() => setDeleteId(post.id)}
                         label={t('admin.posts.action_delete')}
                         variant="danger"
                         icon={Trash2}
-                        iconOnly
                         disabled={deleteMutation.isPending}
                       />
-                      <a
-                        href={`/post/${post.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={t('admin.posts.view_post_title')}
-                        className="p-2 rounded-lg text-brand-primary bg-brand-primary/10 hover:bg-brand-primary hover:text-white transition-all"
-                        aria-label={t('admin.posts.view_post_aria')}
-                      >
-                        <ExternalLink size={14} />
-                      </a>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
-            </Table>
-          }
-        />
-        <Pagination meta={data?.meta} onPageChange={setPage} />
-      </div>
-
-      {previewPost && (
-        <PostPreviewDrawer
-          post={previewPost}
-          onClose={() => setPreviewPost(null)}
-        />
-      )}
+                    }
+                    secondaryActions={[
+                      {
+                        label: t('admin.posts.action_preview'),
+                        onClick: () => setSelectedPostId(post.id),
+                      },
+                      {
+                        label: t('admin.posts.action_view_platform'),
+                        onClick: () =>
+                          window.open(`/post/${post.id}`, '_blank'),
+                      },
+                    ]}
+                  />
+                ))
+              )}
+            </div>
+            <div className="shrink-0 pt-2 border-t border-white/5">
+              <Pagination meta={data?.meta} onPageChange={setPage} />
+            </div>
+          </div>
+        }
+        detail={selectedPost ? <PostDetailPanel post={selectedPost} /> : null}
+      />
 
       <ConfirmModal
         isOpen={deleteId !== null}

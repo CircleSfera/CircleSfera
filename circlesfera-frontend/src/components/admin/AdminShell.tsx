@@ -39,8 +39,8 @@ export default function AdminShell({
   return (
     <div className="min-h-screen px-3 pb-8 pt-3 sm:px-6 sm:pt-6 lg:px-8 max-w-425 mx-auto text-gray-100">
       <header className="sticky top-0 z-40 mb-4 sm:mb-6 -mx-3 px-3 sm:mx-0 sm:px-0 bg-black/85 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none border-b border-white/10 sm:border-0 pb-3 sm:pb-0 pt-[env(safe-area-inset-top)] sm:pt-0">
-        <div className="flex items-center justify-between gap-3 bg-black/50 backdrop-blur-2xl p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-white/10 relative overflow-hidden shadow-lg sm:shadow-2xl">
-          <div className="absolute top-0 left-0 w-1/3 h-full bg-linear-to-r from-brand-primary/20 via-brand-primary/5 to-transparent blur-3xl pointer-events-none" />
+        <div className="flex items-center justify-between gap-3 bg-black/40 sm:bg-white/[0.03] p-3 sm:p-4 rounded-xl border border-white/5 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-1/3 h-full bg-linear-to-r from-brand-primary/15 via-transparent to-transparent pointer-events-none" />
 
           <div className="flex items-center gap-2.5 min-w-0 relative z-10">
             <button

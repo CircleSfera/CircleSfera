@@ -45,7 +45,7 @@ function TrustSection({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-black/20 flex flex-col min-h-[320px]">
+    <div className="border border-white/5 bg-white/[0.02] flex flex-col min-h-[320px]">
       <div className="p-3 border-b border-white/5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <Icon size={16} className="text-brand-primary shrink-0" />
@@ -103,10 +103,7 @@ export default function TrustTab() {
       {isLoading ? (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="rounded-xl border border-white/10 bg-black/20 p-3"
-            >
+            <div key={i} className="border border-white/5 bg-white/[0.02] p-3">
               <AdminListSkeleton rows={4} />
             </div>
           ))}

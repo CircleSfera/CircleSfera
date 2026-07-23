@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
 import {
   AlertCircle,
   AlertTriangle,
@@ -13,7 +12,7 @@ import {
   Server,
   Webhook,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AdminWebhookEvent } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
@@ -24,6 +23,37 @@ import { AdminFilterBar } from './AdminFilterBar';
 import { AdminPageHeader } from './AdminPageHeader';
 import { FilterDropdown, Pagination } from './AdminTable';
 
+function MetricCell({
+  label,
+  value,
+  tone = 'default',
+}: {
+  label: string;
+  value: string | number;
+  tone?: 'default' | 'danger' | 'success' | 'accent';
+}) {
+  const valueClass =
+    tone === 'danger'
+      ? 'text-red-400'
+      : tone === 'success'
+        ? 'text-emerald-400'
+        : tone === 'accent'
+          ? 'text-brand-primary'
+          : 'text-white';
+  return (
+    <div className="min-w-0 px-3 py-2.5">
+      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide truncate">
+        {label}
+      </p>
+      <p
+        className={`text-lg font-semibold font-mono tabular-nums leading-tight mt-0.5 ${valueClass}`}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
 export default function SystemHealthTab() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -32,6 +62,7 @@ export default function SystemHealthTab() {
   const [expandedWebhookId, setExpandedWebhookId] = useState<string | null>(
     null,
   );
+  const [now, setNow] = useState(() => Date.now());
 
   const {
     data: health,
@@ -39,10 +70,13 @@ export default function SystemHealthTab() {
     isError,
     refetch,
     isRefetching,
+    dataUpdatedAt,
   } = useQuery({
     queryKey: ['systemHealth'],
     queryFn: adminApi.getSystemHealth,
-    refetchInterval: 30000, // auto refresh every 30 seconds
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
   });
 
   const { data: webhookData, isLoading: webhooksLoading } = useQuery<
@@ -53,7 +87,15 @@ export default function SystemHealthTab() {
       adminApi
         .getWebhookEvents(webhookPage, 20, webhookStatusFilter || undefined)
         .then((res) => res.data as PaginatedResponse<AdminWebhookEvent>),
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
   });
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const replayMutation = useMutation({
     mutationFn: (id: string) => adminApi.replayWebhookEvent(id),
@@ -63,6 +105,10 @@ export default function SystemHealthTab() {
     },
   });
 
+  const secondsAgo = dataUpdatedAt
+    ? Math.max(0, Math.floor((now - dataUpdatedAt) / 1000))
+    : null;
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -70,14 +116,10 @@ export default function SystemHealthTab() {
           title={t('admin.health.title')}
           subtitle={t('admin.health.subtitle')}
         />
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 animate-pulse">
+        <div className="space-y-3 animate-pulse">
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-44 rounded-lg border border-white/5 bg-white/5"
-            />
+            <div key={i} className="h-24 rounded-lg bg-white/5" />
           ))}
-          <div className="col-span-full h-28 rounded-lg border border-white/5 bg-white/5" />
         </div>
       </div>
     );
@@ -112,10 +154,6 @@ export default function SystemHealthTab() {
 
   const isDbHealthy =
     health.database.status === 'ONLINE' && health.database.latencyMs < 150;
-  const dbColor = isDbHealthy ? 'text-emerald-400' : 'text-red-400';
-  const dbBg = isDbHealthy ? 'bg-emerald-500/10' : 'bg-red-500/10';
-  const dbBorder = isDbHealthy ? 'border-emerald-500/20' : 'border-red-500/20';
-
   const isAiQueueHealthy =
     health.queues.ai.failed === 0 && health.queues.ai.wait < 50;
   const isAnalyticsQueueHealthy =
@@ -129,256 +167,188 @@ export default function SystemHealthTab() {
         100;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <AdminPageHeader
         title={t('admin.health.title')}
         subtitle={t('admin.health.subtitle_live', {
           time: new Date(health.timestamp).toLocaleTimeString(),
         })}
         actions={
-          <Button
-            variant="secondary"
-            size="icon"
-            onClick={() => refetch()}
-            isLoading={isRefetching}
-            className="text-gray-300 hover:text-white min-h-11 min-w-11"
-          >
-            <RefreshCw size={20} />
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-400 text-[11px] font-semibold uppercase tracking-wide">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              {t('admin.health.live_badge', 'Live')}
+              {secondsAgo !== null && (
+                <span className="text-emerald-400/70 font-normal normal-case tracking-normal">
+                  · {t('admin.health.updated_ago', { seconds: secondsAgo })}
+                </span>
+              )}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => refetch()}
+              isLoading={isRefetching}
+              className="text-gray-500 hover:text-white min-h-11 min-w-11"
+              aria-label={t('admin.health.retry')}
+            >
+              <RefreshCw size={18} />
+            </Button>
+          </div>
         }
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-        {/* PostgreSQL Database */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`p-4 sm:p-5 rounded-lg border ${dbBorder} ${dbBg} relative overflow-hidden`}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-10 h-10 rounded-lg flex items-center justify-center ${dbColor} bg-black/20`}
-              >
-                <Database size={20} />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-white uppercase tracking-wide">
-                  {t('admin.health.database_title')}
-                </h3>
-                <p className="text-xs font-mono text-zinc-400">
-                  {t('admin.health.database_subtitle')}
-                </p>
-              </div>
+      <div className="space-y-3">
+        {/* Database */}
+        <section className="rounded-lg border border-white/5 bg-white/[0.02]">
+          <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-white/5">
+            <Database
+              size={16}
+              className={isDbHealthy ? 'text-emerald-400' : 'text-red-400'}
+            />
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-semibold text-white">
+                {t('admin.health.database_title')}
+              </h3>
+              <p className="text-[11px] text-gray-500 font-mono">
+                {t('admin.health.database_subtitle')}
+              </p>
             </div>
             {isDbHealthy ? (
-              <CheckCircle2 size={24} className="text-emerald-400" />
+              <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
             ) : (
-              <AlertCircle size={24} className="text-red-400" />
+              <AlertCircle size={18} className="text-red-400 shrink-0" />
             )}
           </div>
-
-          <div className="space-y-3">
-            <div className="flex justify-between items-end">
-              <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wide">
-                {t('admin.health.status_label')}
-              </span>
-              <span className={`text-xl font-semibold ${dbColor}`}>
-                {health.database.status}
-              </span>
-            </div>
-            <div className="w-full h-px bg-white/5" />
-            <div className="flex justify-between items-end">
-              <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wide">
-                {t('admin.health.latency_label')}
-              </span>
-              <span className="text-xl font-semibold text-white font-mono">
-                {health.database.latencyMs}{' '}
-                <span className="text-xs text-zinc-400">
-                  {t('admin.health.latency_ms')}
-                </span>
-              </span>
-            </div>
+          <div className="grid grid-cols-2 divide-x divide-white/5">
+            <MetricCell
+              label={t('admin.health.status_label')}
+              value={health.database.status}
+              tone={isDbHealthy ? 'success' : 'danger'}
+            />
+            <MetricCell
+              label={t('admin.health.latency_label')}
+              value={`${health.database.latencyMs} ${t('admin.health.latency_ms')}`}
+            />
           </div>
-        </motion.div>
+        </section>
 
-        {/* AI Processing BullMQ */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className={`p-4 sm:p-5 rounded-lg border ${isAiQueueHealthy ? 'border-indigo-500/20 bg-indigo-500/10' : 'border-amber-500/20 bg-amber-500/10'} relative overflow-hidden`}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-10 h-10 rounded-lg flex items-center justify-center ${isAiQueueHealthy ? 'text-indigo-400' : 'text-amber-400'} bg-black/20`}
-              >
-                <BrainCircuit size={20} />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-white uppercase tracking-wide">
-                  {t('admin.health.ai_queue_title')}
-                </h3>
-                <p className="text-xs font-mono text-zinc-400">
-                  {t('admin.health.ai_queue_subtitle')}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            <div className="bg-black/20 rounded-lg p-2.5 sm:p-3">
-              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-1">
-                {t('admin.health.queue_waiting')}
-              </p>
-              <p className="text-xl font-semibold text-white font-mono">
-                {health.queues.ai.wait}
-              </p>
-            </div>
-            <div className="bg-black/20 rounded-lg p-2.5 sm:p-3 border border-red-500/20">
-              <p className="text-xs font-semibold text-red-500 uppercase tracking-wide mb-1">
-                {t('admin.health.queue_failed')}
-              </p>
-              <p className="text-xl font-semibold text-red-400 font-mono">
-                {health.queues.ai.failed}
-              </p>
-            </div>
-            <div className="bg-black/20 rounded-lg p-2.5 sm:p-3">
-              <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-1">
-                {t('admin.health.queue_completed')}
-              </p>
-              <p className="text-xl font-semibold text-emerald-400 font-mono">
-                {health.queues.ai.completed}
-              </p>
-            </div>
-            <div className="bg-black/20 rounded-lg p-2.5 sm:p-3">
-              <p className="text-xs font-semibold text-brand-primary uppercase tracking-wide mb-1">
-                {t('admin.health.queue_active')}
-              </p>
-              <p className="text-xl font-semibold text-white font-mono">
-                {health.queues.ai.active}
-              </p>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Analytics Processing BullMQ */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className={`p-4 sm:p-5 rounded-lg border ${isAnalyticsQueueHealthy ? 'border-brand-primary/20 bg-brand-primary/10' : 'border-amber-500/20 bg-amber-500/10'} relative overflow-hidden`}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-10 h-10 rounded-lg flex items-center justify-center ${isAnalyticsQueueHealthy ? 'text-brand-primary' : 'text-amber-400'} bg-black/20`}
-              >
-                <Server size={20} />
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-white uppercase tracking-wide">
-                  {t('admin.health.analytics_queue_title')}
-                </h3>
-                <p className="text-xs font-mono text-zinc-400">
-                  {t('admin.health.analytics_queue_subtitle')}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            <div className="bg-black/20 rounded-lg p-2.5 sm:p-3">
-              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-1">
-                {t('admin.health.queue_waiting')}
-              </p>
-              <p className="text-xl font-semibold text-white font-mono">
-                {health.queues.analytics.wait}
-              </p>
-            </div>
-            <div className="bg-black/20 rounded-lg p-2.5 sm:p-3 border border-red-500/20">
-              <p className="text-xs font-semibold text-red-500 uppercase tracking-wide mb-1">
-                {t('admin.health.queue_failed')}
-              </p>
-              <p className="text-xl font-semibold text-red-400 font-mono">
-                {health.queues.analytics.failed}
-              </p>
-            </div>
-            <div className="bg-black/20 rounded-lg p-2.5 sm:p-3">
-              <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-1">
-                {t('admin.health.queue_completed')}
-              </p>
-              <p className="text-xl font-semibold text-emerald-400 font-mono">
-                {health.queues.analytics.completed}
-              </p>
-            </div>
-            <div className="bg-black/20 rounded-lg p-2.5 sm:p-3">
-              <p className="text-xs font-semibold text-brand-primary uppercase tracking-wide mb-1">
-                {t('admin.health.queue_active')}
-              </p>
-              <p className="text-xl font-semibold text-white font-mono">
-                {health.queues.analytics.active}
-              </p>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Stripe Webhooks Status */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="col-span-full p-4 sm:p-5 rounded-lg glass-panel border border-white/5 relative overflow-hidden flex flex-col md:flex-row items-center gap-4 sm:gap-6"
-        >
-          <div className="flex items-center gap-3 md:w-1/3">
-            <div className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0">
-              <Webhook size={24} />
-            </div>
+        {/* AI queue */}
+        <section className="rounded-lg border border-white/5 bg-white/[0.02]">
+          <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-white/5">
+            <BrainCircuit
+              size={16}
+              className={
+                isAiQueueHealthy ? 'text-indigo-400' : 'text-amber-400'
+              }
+            />
             <div className="min-w-0">
-              <h3 className="text-sm sm:text-base font-semibold text-white uppercase tracking-wide">
+              <h3 className="text-sm font-semibold text-white">
+                {t('admin.health.ai_queue_title')}
+              </h3>
+              <p className="text-[11px] text-gray-500 font-mono">
+                {t('admin.health.ai_queue_subtitle')}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-white/5">
+            <MetricCell
+              label={t('admin.health.queue_waiting')}
+              value={health.queues.ai.wait}
+            />
+            <MetricCell
+              label={t('admin.health.queue_failed')}
+              value={health.queues.ai.failed}
+              tone="danger"
+            />
+            <MetricCell
+              label={t('admin.health.queue_completed')}
+              value={health.queues.ai.completed}
+              tone="success"
+            />
+            <MetricCell
+              label={t('admin.health.queue_active')}
+              value={health.queues.ai.active}
+              tone="accent"
+            />
+          </div>
+        </section>
+
+        {/* Analytics queue */}
+        <section className="rounded-lg border border-white/5 bg-white/[0.02]">
+          <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-white/5">
+            <Server
+              size={16}
+              className={
+                isAnalyticsQueueHealthy
+                  ? 'text-brand-primary'
+                  : 'text-amber-400'
+              }
+            />
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-white">
+                {t('admin.health.analytics_queue_title')}
+              </h3>
+              <p className="text-[11px] text-gray-500 font-mono">
+                {t('admin.health.analytics_queue_subtitle')}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-white/5">
+            <MetricCell
+              label={t('admin.health.queue_waiting')}
+              value={health.queues.analytics.wait}
+            />
+            <MetricCell
+              label={t('admin.health.queue_failed')}
+              value={health.queues.analytics.failed}
+              tone="danger"
+            />
+            <MetricCell
+              label={t('admin.health.queue_completed')}
+              value={health.queues.analytics.completed}
+              tone="success"
+            />
+            <MetricCell
+              label={t('admin.health.queue_active')}
+              value={health.queues.analytics.active}
+              tone="accent"
+            />
+          </div>
+        </section>
+
+        {/* Stripe webhooks */}
+        <section className="rounded-lg border border-white/5 bg-white/[0.02]">
+          <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-white/5">
+            <Webhook size={16} className="text-gray-300" />
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-white">
                 {t('admin.health.stripe_webhooks_title')}
               </h3>
-              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mt-0.5">
+              <p className="text-[11px] text-gray-500">
                 {t('admin.health.stripe_webhooks_subtitle')}
               </p>
             </div>
           </div>
-
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 w-full">
-            <div className="bg-black/30 rounded-lg p-3 border border-white/5">
-              <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-2 flex items-center gap-2">
-                <CheckCircle2 size={12} />{' '}
-                {t('admin.health.webhooks_processed')}
-              </p>
-              <p className="text-xl font-semibold text-white font-mono">
-                {health.webhooks.processed24h}
-              </p>
-            </div>
-
-            <div className="bg-black/30 rounded-lg p-3 border border-red-500/20 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-16 h-16 bg-red-500/10 blur-xl rounded-full" />
-              <p className="text-xs font-semibold text-red-500 uppercase tracking-wide mb-2 flex items-center gap-2 relative z-10">
-                <AlertCircle size={12} /> {t('admin.health.webhooks_failed')}
-              </p>
-              <p className="text-xl font-semibold text-red-400 font-mono relative z-10">
-                {health.webhooks.failed24h}
-              </p>
-            </div>
-
-            <div className="sm:col-span-2 xl:col-span-1 bg-black/30 rounded-lg p-3 border border-white/5 flex flex-col justify-center">
-              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/5">
+            <MetricCell
+              label={t('admin.health.webhooks_processed')}
+              value={health.webhooks.processed24h}
+              tone="success"
+            />
+            <MetricCell
+              label={t('admin.health.webhooks_failed')}
+              value={health.webhooks.failed24h}
+              tone="danger"
+            />
+            <div className="px-3 py-2.5">
+              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
                 {t('admin.health.success_rate')}
               </p>
-              <div className="flex items-end gap-2">
-                <p className="text-xl font-semibold text-white font-mono">
-                  {webhookSuccessRate.toFixed(1)}
-                </p>
-                <span className="text-sm font-semibold text-zinc-400 mb-1">
-                  %
-                </span>
-              </div>
-              <div className="w-full h-1 bg-white/10 rounded-full mt-3 overflow-hidden">
+              <p className="text-lg font-semibold font-mono text-white tabular-nums mt-0.5">
+                {webhookSuccessRate.toFixed(1)}%
+              </p>
+              <div className="w-full h-1 bg-white/10 rounded-full mt-2 overflow-hidden">
                 <div
                   className={`h-full ${webhookSuccessRate > 95 ? 'bg-emerald-400' : 'bg-red-400'}`}
                   style={{ width: `${webhookSuccessRate}%` }}
@@ -386,10 +356,9 @@ export default function SystemHealthTab() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </section>
       </div>
 
-      {/* Webhook Events Queue */}
       <div className="space-y-3">
         <AdminPageHeader
           title={t('admin.health.webhooks_title')}
@@ -422,7 +391,7 @@ export default function SystemHealthTab() {
           />
         </AdminFilterBar>
 
-        <div className="rounded-xl border border-white/10 overflow-hidden">
+        <div className="rounded-lg border border-white/5 overflow-hidden">
           {webhooksLoading ? (
             <div className="p-6 text-sm text-gray-400 animate-pulse">
               {t('admin.table.loading')}
@@ -442,7 +411,7 @@ export default function SystemHealthTab() {
                   event.status === 'FAILED' || event.status === 'PENDING';
 
                 return (
-                  <div key={event.id} className="p-4">
+                  <div key={event.id} className="p-3.5">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -503,7 +472,7 @@ export default function SystemHealthTab() {
                       </div>
                     </div>
                     {isExpanded && (
-                      <div className="mt-3 p-3 rounded-lg bg-black/30 border border-white/5 text-xs space-y-2">
+                      <div className="mt-3 p-3 rounded-lg bg-white/[0.03] text-xs space-y-2">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <div>
                             <span className="text-gray-500 uppercase tracking-wide font-semibold">

@@ -35,13 +35,11 @@ export default function AppealsTab() {
         />
       </AdminFilterBar>
 
-      <div className="rounded-xl border border-white/10 bg-black/20 p-2">
-        <AppealsList
-          statusFilter={(statusFilter || undefined) as AppealStatus | undefined}
-          page={page}
-          onPageChange={setPage}
-        />
-      </div>
+      <AppealsList
+        statusFilter={(statusFilter || undefined) as AppealStatus | undefined}
+        page={page}
+        onPageChange={setPage}
+      />
     </div>
   );
 }

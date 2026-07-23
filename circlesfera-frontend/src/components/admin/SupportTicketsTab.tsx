@@ -133,10 +133,11 @@ export default function SupportTicketsTab({ onToast }: Props) {
       <AdminSplitView
         hasSelection={!!selectedTicketId}
         onBack={() => setSelectedTicketId(null)}
+        onClearSelection={() => setSelectedTicketId(null)}
         listTitle={t('admin.support.list_title')}
         list={
           <div className="flex flex-col h-full min-h-0">
-            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+            <div className="flex-1 overflow-y-auto space-y-2 pb-2">
               {isLoading ? (
                 <AdminListSkeleton rows={5} />
               ) : !data || data.data.length === 0 ? (
@@ -178,7 +179,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                 ))
               )}
             </div>
-            <div className="p-2 border-t border-white/5 shrink-0">
+            <div className="shrink-0 pt-2 border-t border-white/5">
               <Pagination meta={data?.meta} onPageChange={setPage} />
             </div>
           </div>
@@ -194,7 +195,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                 transition={{ duration: 0.15 }}
                 className="flex flex-col h-full"
               >
-                <div className="p-4 border-b border-white/5 bg-white/2 flex flex-col gap-3 shrink-0">
+                <div className="p-4 border-b border-white/5 flex flex-col gap-3 shrink-0">
                   <div className="min-w-0">
                     <h3 className="text-base sm:text-lg font-semibold text-white truncate">
                       {selectedTicket.subject}
@@ -226,33 +227,52 @@ export default function SupportTicketsTab({ onToast }: Props) {
                   )}
                 </div>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 space-y-4">
-                  <div className="p-4 bg-white/2 rounded-xl border border-white/5">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                      {t('admin.support.email_label')}
-                    </p>
-                    <p className="text-white font-semibold text-sm flex items-center gap-2">
-                      <Mail size={14} className="text-gray-500 shrink-0" />
-                      {selectedTicket.email}
-                    </p>
-                    {selectedTicket.user?.profile?.username && (
-                      <p className="text-xs text-gray-400 mt-1">
-                        @{selectedTicket.user.profile.username}
-                      </p>
-                    )}
-                  </div>
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 space-y-5">
+                  <dl className="text-sm">
+                    <div className="py-2.5 border-b border-white/5">
+                      <dt className="text-xs font-medium text-gray-500 mb-1">
+                        {t('admin.support.email_label')}
+                      </dt>
+                      <dd className="text-white font-semibold flex items-center gap-2">
+                        <Mail size={14} className="text-gray-500 shrink-0" />
+                        {selectedTicket.email}
+                      </dd>
+                      {selectedTicket.user?.profile?.username && (
+                        <dd className="text-xs text-gray-400 mt-1">
+                          @{selectedTicket.user.profile.username}
+                        </dd>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
+                      <dt className="text-xs font-medium text-gray-500">
+                        {t('admin.support.status_label')}
+                      </dt>
+                      <dd>
+                        <span
+                          className={`px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-wide ${statusBadgeClass(selectedTicket.status)}`}
+                        >
+                          {selectedTicket.status}
+                        </span>
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className="text-xs text-gray-500">
+                    {t('admin.support.created_at', {
+                      date: new Date(selectedTicket.createdAt).toLocaleString(),
+                    })}
+                  </p>
 
-                  <div className="p-4 bg-white/2 rounded-xl border border-white/5">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  <div>
+                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
                       {t('admin.support.message_label')}
                     </p>
-                    <div className="text-sm text-gray-300 whitespace-pre-wrap">
+                    <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
                       {selectedTicket.message}
-                    </div>
+                    </p>
                   </div>
 
-                  <div className="p-4 bg-white/2 rounded-xl border border-white/5 space-y-3">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  <div className="space-y-3 pt-1 border-t border-white/5">
+                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
                       {t('admin.support.reply_label')}
                     </p>
                     <Textarea
@@ -274,28 +294,10 @@ export default function SupportTicketsTab({ onToast }: Props) {
                     )}
                     {selectedTicket.reply &&
                       selectedTicket.status === 'CLOSED' && (
-                        <div className="text-sm text-gray-300 whitespace-pre-wrap border-t border-white/5 pt-3">
+                        <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
                           {selectedTicket.reply}
-                        </div>
+                        </p>
                       )}
-                  </div>
-
-                  <div className="p-4 bg-white/2 rounded-xl border border-white/5">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                      {t('admin.support.status_label')}
-                    </p>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${statusBadgeClass(selectedTicket.status)}`}
-                    >
-                      {selectedTicket.status}
-                    </span>
-                    <p className="text-xs text-gray-500 mt-2">
-                      {t('admin.support.created_at', {
-                        date: new Date(
-                          selectedTicket.createdAt,
-                        ).toLocaleString(),
-                      })}
-                    </p>
                   </div>
                 </div>
               </motion.div>

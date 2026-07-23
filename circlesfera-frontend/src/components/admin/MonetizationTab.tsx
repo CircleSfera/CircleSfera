@@ -111,7 +111,7 @@ export default function MonetizationTab() {
           icon={Activity}
           title={t('admin.monetization.error_title')}
           description={t('admin.monetization.error_description')}
-          className="glass-panel border-red-500/10"
+          className="border border-red-500/20 bg-red-500/5"
         />
       </div>
     );
@@ -183,7 +183,7 @@ export default function MonetizationTab() {
 
       {/* Stripe Integration Status */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="glass-panel p-4 sm:p-5 rounded-xl border border-white/5 flex flex-col justify-between min-h-[100px]">
+        <div className="p-4 sm:p-5 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col justify-between min-h-[100px]">
           <div className="flex justify-between items-start mb-3">
             <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0">
               <Zap size={20} />
@@ -202,7 +202,7 @@ export default function MonetizationTab() {
           </div>
         </div>
 
-        <div className="glass-panel p-4 sm:p-5 rounded-xl border border-white/5 flex flex-col justify-between min-h-[100px]">
+        <div className="p-4 sm:p-5 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col justify-between min-h-[100px]">
           <div className="flex justify-between items-start mb-3">
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
               <Users size={20} />
@@ -224,7 +224,7 @@ export default function MonetizationTab() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         {/* Tier Distribution Chart (Linear) */}
-        <div className="glass-panel rounded-xl border border-white/5 p-4 sm:p-5">
+        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 sm:p-5">
           <div className="flex items-center gap-3 mb-4 sm:mb-5">
             <div className="w-10 h-10 rounded-lg bg-brand-secondary/10 flex items-center justify-center border border-brand-secondary/20 shrink-0">
               <PieChart size={20} className="text-brand-secondary" />
@@ -322,7 +322,7 @@ export default function MonetizationTab() {
         </div>
 
         <div className="flex flex-col gap-3">
-          <div className="glass-panel rounded-xl border border-white/5 p-4 sm:p-5 flex flex-col justify-center">
+          <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 sm:p-5 flex flex-col justify-center">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-lg bg-brand-primary/10 flex items-center justify-center shrink-0">
                 <TrendingUp size={20} className="text-brand-primary" />
@@ -384,86 +384,84 @@ export default function MonetizationTab() {
           />
         </AdminFilterBar>
 
-        <div className="rounded-xl border border-white/10 lg:overflow-clip">
-          <AdminList
-            loading={txLoading}
-            isEmpty={!transactions.length}
-            emptyTitle={t('admin.monetization.transactions_empty_title')}
-            emptyDescription={t(
-              'admin.monetization.transactions_empty_description',
-            )}
-            mobile={
-              <div className="space-y-2">
-                {transactions.map((tx) => (
-                  <AdminListRow
-                    key={tx.id}
-                    title={tx.description || tx.type}
-                    subtitle={
-                      tx.sender?.profile?.username
-                        ? `@${tx.sender.profile.username} → @${tx.receiver?.profile?.username || '—'}`
-                        : tx.sender?.email || '—'
-                    }
-                    badge={txStatusBadge(tx.status)}
-                    meta={new Date(tx.createdAt).toLocaleString()}
-                    primaryAction={
-                      <span className="text-sm font-semibold text-white tabular-nums">
-                        {formatAmount(tx)}
-                      </span>
-                    }
-                  />
-                ))}
-              </div>
-            }
-            desktop={
-              <Table
-                headers={[
-                  t('admin.monetization.col_date'),
-                  t('admin.monetization.col_type'),
-                  t('admin.monetization.col_parties'),
-                  t('admin.monetization.col_amount'),
-                  t('admin.monetization.col_status'),
-                ]}
-                columnWidths={[
-                  'hidden lg:table-cell w-[8rem]',
-                  'w-[5rem]',
-                  'min-w-[10rem]',
-                  'w-[5.5rem]',
-                  'w-[5.5rem]',
-                ]}
-                loading={false}
-                isEmpty={false}
-              >
-                {transactions.map((tx) => (
-                  <tr
-                    key={tx.id}
-                    className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
-                  >
-                    <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap hidden lg:table-cell">
-                      {new Date(tx.createdAt).toLocaleString()}
-                    </td>
-                    <td className="px-2 py-1">
-                      <span className="text-xs font-semibold uppercase text-gray-300">
-                        {tx.type}
-                      </span>
-                    </td>
-                    <td className="px-2 py-1">
-                      <span className="text-sm text-gray-300 truncate block max-w-[14rem]">
-                        {tx.sender?.profile?.username
-                          ? `@${tx.sender.profile.username} → @${tx.receiver?.profile?.username || '—'}`
-                          : tx.description || '—'}
-                      </span>
-                    </td>
-                    <td className="px-2 py-1 text-white text-sm font-semibold tabular-nums">
+        <AdminList
+          loading={txLoading}
+          isEmpty={!transactions.length}
+          emptyTitle={t('admin.monetization.transactions_empty_title')}
+          emptyDescription={t(
+            'admin.monetization.transactions_empty_description',
+          )}
+          mobile={
+            <div className="space-y-2">
+              {transactions.map((tx) => (
+                <AdminListRow
+                  key={tx.id}
+                  title={tx.description || tx.type}
+                  subtitle={
+                    tx.sender?.profile?.username
+                      ? `@${tx.sender.profile.username} → @${tx.receiver?.profile?.username || '—'}`
+                      : tx.sender?.email || '—'
+                  }
+                  badge={txStatusBadge(tx.status)}
+                  meta={new Date(tx.createdAt).toLocaleString()}
+                  primaryAction={
+                    <span className="text-sm font-semibold text-white tabular-nums">
                       {formatAmount(tx)}
-                    </td>
-                    <td className="px-2 py-1">{txStatusBadge(tx.status)}</td>
-                  </tr>
-                ))}
-              </Table>
-            }
-          />
-          <Pagination meta={txData?.meta} onPageChange={setTxPage} />
-        </div>
+                    </span>
+                  }
+                />
+              ))}
+            </div>
+          }
+          desktop={
+            <Table
+              headers={[
+                t('admin.monetization.col_date'),
+                t('admin.monetization.col_type'),
+                t('admin.monetization.col_parties'),
+                t('admin.monetization.col_amount'),
+                t('admin.monetization.col_status'),
+              ]}
+              columnWidths={[
+                'hidden lg:table-cell w-[8rem]',
+                'w-[5rem]',
+                'min-w-[10rem]',
+                'w-[5.5rem]',
+                'w-[5.5rem]',
+              ]}
+              loading={false}
+              isEmpty={false}
+            >
+              {transactions.map((tx) => (
+                <tr
+                  key={tx.id}
+                  className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
+                >
+                  <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap hidden lg:table-cell">
+                    {new Date(tx.createdAt).toLocaleString()}
+                  </td>
+                  <td className="px-2 py-1">
+                    <span className="text-xs font-semibold uppercase text-gray-300">
+                      {tx.type}
+                    </span>
+                  </td>
+                  <td className="px-2 py-1">
+                    <span className="text-sm text-gray-300 truncate block max-w-[14rem]">
+                      {tx.sender?.profile?.username
+                        ? `@${tx.sender.profile.username} → @${tx.receiver?.profile?.username || '—'}`
+                        : tx.description || '—'}
+                    </span>
+                  </td>
+                  <td className="px-2 py-1 text-white text-sm font-semibold tabular-nums">
+                    {formatAmount(tx)}
+                  </td>
+                  <td className="px-2 py-1">{txStatusBadge(tx.status)}</td>
+                </tr>
+              ))}
+            </Table>
+          }
+        />
+        <Pagination meta={txData?.meta} onPageChange={setTxPage} />
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, Edit2, Key, Plus, Save, Trash2, User } from 'lucide-react';
+import { Calendar, Edit2, Key, Plus, Save, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -12,11 +12,13 @@ import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Input, Select, Switch, Textarea } from '../ui';
-import AdminDrawer from './AdminDrawer';
+import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
-import { AdminList, AdminListRow } from './AdminList';
+import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
-import { ActionButton, Pagination, SearchInput, Table } from './AdminTable';
+import { AdminListSkeleton } from './AdminSkeletons';
+import { AdminSplitView } from './AdminSplitView';
+import { ActionButton, Pagination, SearchInput } from './AdminTable';
 
 function variantColorClass(variant: string) {
   const v = variant.toLowerCase();
@@ -30,9 +32,10 @@ export default function ExperimentsTab() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [isAssigning, setIsAssigning] = useState(false);
-  const [isCreatingFlag, setIsCreatingFlag] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<UserExperiment | null>(null);
+  const [selectedFlagId, setSelectedFlagId] = useState<string | null>(null);
+  const [selectedExperimentId, setSelectedExperimentId] = useState<
+    string | null
+  >(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [flagDrafts, setFlagDrafts] = useState<
     Record<string, { isEnabled: boolean; percentage: number }>
@@ -76,6 +79,7 @@ export default function ExperimentsTab() {
     }) => adminApi.upsertFeatureFlag(key, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'feature-flags'] });
+      setSelectedFlagId(null);
     },
   });
 
@@ -88,6 +92,13 @@ export default function ExperimentsTab() {
           (res) => res.data as unknown as PaginatedResponse<UserExperiment>,
         ),
   });
+
+  const experiments = data?.data ?? [];
+  const editingEntry =
+    selectedExperimentId && selectedExperimentId !== 'new'
+      ? (experiments.find((entry) => entry.id === selectedExperimentId) ?? null)
+      : null;
+  const isAssigning = selectedExperimentId === 'new' || !!editingEntry;
 
   const assignMutation = useMutation({
     mutationFn: (payload: {
@@ -102,21 +113,23 @@ export default function ExperimentsTab() {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'experiments'] });
-      setIsAssigning(false);
-      setEditingEntry(null);
+      setSelectedExperimentId(null);
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.removeUserExperiment(id),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'experiments'] });
+      if (selectedExperimentId === id) setSelectedExperimentId(null);
     },
   });
 
   const handleDelete = (id: string) => {
     setConfirmDeleteId(id);
   };
+
+  const isCreatingFlag = selectedFlagId === 'new';
 
   return (
     <div className="space-y-6">
@@ -127,7 +140,7 @@ export default function ExperimentsTab() {
           subtitle={t('admin.experiments.flags_subtitle')}
           actions={
             <Button
-              onClick={() => setIsCreatingFlag(true)}
+              onClick={() => setSelectedFlagId('new')}
               className="min-h-11 w-full sm:w-auto"
             >
               <Plus size={16} className="mr-2" />
@@ -136,106 +149,145 @@ export default function ExperimentsTab() {
           }
         />
 
-        <div className="rounded-xl border border-white/10 overflow-hidden">
-          {flagsLoading ? (
-            <div className="p-6 text-sm text-gray-400 animate-pulse">
-              {t('admin.table.loading')}
-            </div>
-          ) : !flags || flags.length === 0 ? (
-            <div className="p-6 text-center text-sm text-gray-500">
-              {t('admin.experiments.flags_empty')}
-            </div>
-          ) : (
-            <div className="divide-y divide-white/5">
-              {flags.map((flag) => {
-                const draft = flagDrafts[flag.key] ?? {
-                  isEnabled: flag.isEnabled,
-                  percentage: flag.percentage,
-                };
-                const isDirty =
-                  draft.isEnabled !== flag.isEnabled ||
-                  draft.percentage !== flag.percentage;
-
-                return (
-                  <div
-                    key={flag.id}
-                    className="p-4 flex flex-col sm:flex-row sm:items-center gap-4"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">
-                        {flag.name}
-                      </p>
-                      <p className="text-xs font-mono text-gray-500 truncate">
-                        {flag.key}
-                      </p>
-                      {flag.description && (
-                        <p className="text-xs text-gray-400 mt-1 line-clamp-2">
-                          {flag.description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-                      <Switch
-                        checked={draft.isEnabled}
-                        onChange={(e) =>
-                          setFlagDrafts((prev) => ({
-                            ...prev,
-                            [flag.key]: {
-                              ...draft,
-                              isEnabled: e.target.checked,
-                            },
-                          }))
-                        }
-                        label={t('admin.experiments.enabled')}
-                      />
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={draft.percentage}
-                          onChange={(e) =>
-                            setFlagDrafts((prev) => ({
-                              ...prev,
-                              [flag.key]: {
-                                ...draft,
-                                percentage: Math.min(
-                                  100,
-                                  Math.max(0, Number(e.target.value) || 0),
-                                ),
-                              },
-                            }))
-                          }
-                          className="w-20 min-h-11 text-center"
-                          aria-label={t('admin.experiments.percentage')}
-                        />
-                        <span className="text-xs text-gray-400">%</span>
-                      </div>
+        <AdminSplitView
+          hasSelection={isCreatingFlag}
+          onBack={() => setSelectedFlagId(null)}
+          onClearSelection={() => setSelectedFlagId(null)}
+          listTitle={t('admin.experiments.flags_title')}
+          list={
+            <div className="flex flex-col h-full min-h-0">
+              <div className="flex-1 overflow-y-auto space-y-2 pb-2">
+                {flagsLoading ? (
+                  <AdminListSkeleton rows={4} />
+                ) : !flags || flags.length === 0 ? (
+                  <AdminEmptyState
+                    icon={Key}
+                    title={t('admin.experiments.flags_empty')}
+                    description={t('admin.experiments.flags_subtitle')}
+                    action={
                       <Button
-                        onClick={() =>
-                          upsertFlagMutation.mutate({
-                            key: flag.key,
-                            data: {
-                              isEnabled: draft.isEnabled,
-                              percentage: draft.percentage,
-                            },
-                          })
-                        }
-                        disabled={!isDirty || upsertFlagMutation.isPending}
-                        isLoading={upsertFlagMutation.isPending}
-                        variant="secondary"
+                        onClick={() => setSelectedFlagId('new')}
                         className="min-h-11"
                       >
-                        <Save size={16} className="mr-2 shrink-0" />
-                        {t('admin.experiments.save_flag')}
+                        <Plus size={16} className="mr-2" />
+                        {t('admin.experiments.create_flag')}
                       </Button>
-                    </div>
-                  </div>
-                );
-              })}
+                    }
+                    compact
+                  />
+                ) : (
+                  flags.map((flag) => {
+                    const draft = flagDrafts[flag.key] ?? {
+                      isEnabled: flag.isEnabled,
+                      percentage: flag.percentage,
+                    };
+                    const isDirty =
+                      draft.isEnabled !== flag.isEnabled ||
+                      draft.percentage !== flag.percentage;
+
+                    return (
+                      <div
+                        key={flag.id}
+                        className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-white truncate">
+                            {flag.name}
+                          </p>
+                          <p className="text-xs font-mono text-gray-500 truncate">
+                            {flag.key}
+                          </p>
+                          {flag.description && (
+                            <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+                              {flag.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                          <Switch
+                            checked={draft.isEnabled}
+                            onChange={(e) =>
+                              setFlagDrafts((prev) => ({
+                                ...prev,
+                                [flag.key]: {
+                                  ...draft,
+                                  isEnabled: e.target.checked,
+                                },
+                              }))
+                            }
+                            label={t('admin.experiments.enabled')}
+                          />
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={draft.percentage}
+                              onChange={(e) =>
+                                setFlagDrafts((prev) => ({
+                                  ...prev,
+                                  [flag.key]: {
+                                    ...draft,
+                                    percentage: Math.min(
+                                      100,
+                                      Math.max(0, Number(e.target.value) || 0),
+                                    ),
+                                  },
+                                }))
+                              }
+                              className="w-20 min-h-11 text-center"
+                              aria-label={t('admin.experiments.percentage')}
+                            />
+                            <span className="text-xs text-gray-400">%</span>
+                          </div>
+                          <Button
+                            onClick={() =>
+                              upsertFlagMutation.mutate({
+                                key: flag.key,
+                                data: {
+                                  isEnabled: draft.isEnabled,
+                                  percentage: draft.percentage,
+                                },
+                              })
+                            }
+                            disabled={!isDirty || upsertFlagMutation.isPending}
+                            isLoading={upsertFlagMutation.isPending}
+                            variant="secondary"
+                            className="min-h-11"
+                          >
+                            <Save size={16} className="mr-2 shrink-0" />
+                            {t('admin.experiments.save_flag')}
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
-          )}
-        </div>
+          }
+          detail={
+            isCreatingFlag ? (
+              <div className="space-y-4 px-1">
+                <div>
+                  <h3 className="text-base font-semibold text-white">
+                    {t('admin.experiments.create_flag')}
+                  </h3>
+                </div>
+                <FeatureFlagForm
+                  onSubmit={(payload) => {
+                    upsertFlagMutation.mutate({
+                      key: payload.key,
+                      data: payload,
+                    });
+                  }}
+                  onCancel={() => setSelectedFlagId(null)}
+                  isSubmitting={upsertFlagMutation.isPending}
+                />
+              </div>
+            ) : null
+          }
+        />
       </div>
 
       {/* User Experiments Section */}
@@ -245,7 +297,7 @@ export default function ExperimentsTab() {
           subtitle={t('admin.experiments.ab_subtitle')}
           actions={
             <Button
-              onClick={() => setIsAssigning(true)}
+              onClick={() => setSelectedExperimentId('new')}
               className="min-h-11 w-full sm:w-auto"
             >
               {t('admin.experiments.assign_experiment')}
@@ -264,156 +316,103 @@ export default function ExperimentsTab() {
           />
         </AdminFilterBar>
 
-        <div className="rounded-xl border border-white/10 overflow-x-auto">
-          <AdminList
-            loading={isLoading}
-            isEmpty={!data || data.data.length === 0}
-            emptyTitle={t('admin.experiments.empty_title')}
-            emptyDescription={t('admin.experiments.empty_description')}
-            mobile={
-              <div className="space-y-2">
-                {data?.data.map((entry) => (
-                  <AdminListRow
-                    key={entry.id}
-                    title={`@${entry.user.username}`}
-                    subtitle={entry.experimentKey}
-                    badge={
-                      <span
-                        className={`px-2 py-1 rounded-md bg-white/5 border border-white/10 text-xs font-semibold ${variantColorClass(entry.variant)}`}
+        <AdminSplitView
+          hasSelection={isAssigning}
+          onBack={() => setSelectedExperimentId(null)}
+          onClearSelection={() => setSelectedExperimentId(null)}
+          listTitle={t('admin.experiments.ab_title')}
+          list={
+            <div className="flex flex-col h-full min-h-0">
+              <div className="flex-1 overflow-y-auto space-y-2 pb-2">
+                {isLoading ? (
+                  <AdminListSkeleton rows={6} />
+                ) : experiments.length === 0 ? (
+                  <AdminEmptyState
+                    icon={User}
+                    title={t('admin.experiments.empty_title')}
+                    description={t('admin.experiments.empty_description')}
+                    action={
+                      <Button
+                        onClick={() => setSelectedExperimentId('new')}
+                        className="min-h-11"
                       >
-                        {entry.variant}
-                      </span>
+                        {t('admin.experiments.assign_experiment')}
+                      </Button>
                     }
-                    meta={
-                      <span className="inline-flex items-center gap-1">
-                        <Calendar size={12} />
-                        {new Date(entry.createdAt).toLocaleDateString()}
-                      </span>
-                    }
-                    primaryAction={
-                      <ActionButton
-                        icon={Edit2}
-                        onClick={() => {
-                          setEditingEntry(entry);
-                          setIsAssigning(true);
-                        }}
-                        label={t('admin.experiments.action_edit')}
-                        variant="ghost"
-                      />
-                    }
-                    secondaryActions={[
-                      {
-                        label: t('admin.experiments.action_delete'),
-                        variant: 'danger',
-                        onClick: () => handleDelete(entry.id),
-                      },
-                    ]}
+                    compact
                   />
-                ))}
-              </div>
-            }
-            desktop={
-              <Table
-                headers={[
-                  t('admin.experiments.col_user'),
-                  t('admin.experiments.col_experiment'),
-                  t('admin.experiments.col_variant'),
-                  t('admin.experiments.col_date'),
-                  t('admin.experiments.col_actions'),
-                ]}
-                columnWidths={[
-                  'min-w-32',
-                  'min-w-40 max-w-xs',
-                  'whitespace-nowrap',
-                  'whitespace-nowrap',
-                  'whitespace-nowrap',
-                ]}
-                loading={false}
-                isEmpty={false}
-              >
-                {data?.data.map((entry) => (
-                  <tr
-                    key={entry.id}
-                    className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
-                  >
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-2 text-white font-semibold text-xs min-w-0">
-                        <User size={14} className="text-gray-500 shrink-0" />
-                        <span className="truncate">@{entry.user.username}</span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 max-w-xs">
-                      <div className="flex items-center gap-2 text-white font-semibold text-xs uppercase tracking-wide min-w-0">
-                        <Key size={14} className="text-gray-500 shrink-0" />
-                        <span className="truncate" title={entry.experimentKey}>
-                          {entry.experimentKey}
+                ) : (
+                  experiments.map((entry) => (
+                    <AdminListRow
+                      key={entry.id}
+                      onClick={() => setSelectedExperimentId(entry.id)}
+                      className={
+                        selectedExperimentId === entry.id
+                          ? 'border-brand-primary/30 bg-brand-primary/10'
+                          : undefined
+                      }
+                      title={`@${entry.user.username}`}
+                      subtitle={entry.experimentKey}
+                      badge={
+                        <span
+                          className={`px-2 py-1 rounded-md bg-white/5 border border-white/10 text-xs font-semibold ${variantColorClass(entry.variant)}`}
+                        >
+                          {entry.variant}
                         </span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 text-xs font-semibold whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 rounded-md bg-white/5 border border-white/10 ${variantColorClass(entry.variant)}`}
-                      >
-                        {entry.variant}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 text-gray-500 text-xs whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <Calendar size={13} className="text-gray-500" />
-                        {new Date(entry.createdAt).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
+                      }
+                      meta={
+                        <span className="inline-flex items-center gap-1">
+                          <Calendar size={12} />
+                          {new Date(entry.createdAt).toLocaleDateString()}
+                        </span>
+                      }
+                      primaryAction={
                         <ActionButton
                           icon={Edit2}
-                          onClick={() => {
-                            setEditingEntry(entry);
-                            setIsAssigning(true);
-                          }}
-                          label={t('admin.experiments.action_edit_variant')}
+                          onClick={() => setSelectedExperimentId(entry.id)}
+                          label={t('admin.experiments.action_edit')}
                           variant="ghost"
-                          iconOnly
                         />
-                        <ActionButton
-                          icon={Trash2}
-                          onClick={() => handleDelete(entry.id)}
-                          variant="danger"
-                          label={t('admin.experiments.action_delete')}
-                          iconOnly
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </Table>
-            }
-          />
-          {data && data.meta?.totalPages > 1 && (
-            <div className="p-2 border-t border-white/5">
-              <Pagination meta={data.meta} onPageChange={setPage} />
+                      }
+                      secondaryActions={[
+                        {
+                          label: t('admin.experiments.action_delete'),
+                          variant: 'danger',
+                          onClick: () => handleDelete(entry.id),
+                        },
+                      ]}
+                    />
+                  ))
+                )}
+              </div>
+              {data && data.meta?.totalPages > 1 && (
+                <div className="shrink-0 pt-2 border-t border-white/5">
+                  <Pagination meta={data.meta} onPageChange={setPage} />
+                </div>
+              )}
             </div>
-          )}
-        </div>
-
-        <AdminDrawer
-          isOpen={isAssigning}
-          onClose={() => {
-            setIsAssigning(false);
-            setEditingEntry(null);
-          }}
-          title={
-            editingEntry
-              ? t('admin.experiments.drawer_edit_title')
-              : t('admin.experiments.drawer_assign_title')
           }
-        >
-          <ExperimentForm
-            initialData={editingEntry}
-            onSubmit={(payload) => assignMutation.mutate(payload)}
-            isSubmitting={assignMutation.isPending}
-          />
-        </AdminDrawer>
+          detail={
+            isAssigning ? (
+              <div className="space-y-4 px-1">
+                <div>
+                  <h3 className="text-base font-semibold text-white">
+                    {editingEntry
+                      ? t('admin.experiments.drawer_edit_title')
+                      : t('admin.experiments.drawer_assign_title')}
+                  </h3>
+                </div>
+                <ExperimentForm
+                  key={editingEntry?.id ?? 'new'}
+                  initialData={editingEntry}
+                  onSubmit={(payload) => assignMutation.mutate(payload)}
+                  onCancel={() => setSelectedExperimentId(null)}
+                  isSubmitting={assignMutation.isPending}
+                />
+              </div>
+            ) : null
+          }
+        />
 
         <ConfirmModal
           isOpen={confirmDeleteId !== null}
@@ -430,24 +429,6 @@ export default function ExperimentsTab() {
           cancelText={t('admin.shared.cancel')}
           isDestructive={true}
         />
-
-        <AdminDrawer
-          isOpen={isCreatingFlag}
-          onClose={() => setIsCreatingFlag(false)}
-          title={t('admin.experiments.create_flag')}
-        >
-          <FeatureFlagForm
-            onSubmit={(payload) => {
-              upsertFlagMutation.mutate(
-                { key: payload.key, data: payload },
-                {
-                  onSuccess: () => setIsCreatingFlag(false),
-                },
-              );
-            }}
-            isSubmitting={upsertFlagMutation.isPending}
-          />
-        </AdminDrawer>
       </div>
     </div>
   );
@@ -455,6 +436,7 @@ export default function ExperimentsTab() {
 
 function FeatureFlagForm({
   onSubmit,
+  onCancel,
   isSubmitting,
 }: {
   onSubmit: (data: {
@@ -464,6 +446,7 @@ function FeatureFlagForm({
     percentage: number;
     isEnabled: boolean;
   }) => void;
+  onCancel: () => void;
   isSubmitting: boolean;
 }) {
   const { t } = useTranslation();
@@ -544,22 +527,32 @@ function FeatureFlagForm({
         onChange={(e) => setIsEnabled(e.target.checked)}
         label={t('admin.experiments.enabled')}
       />
-      <Button
-        className="w-full mt-4 min-h-11"
-        onClick={() =>
-          onSubmit({
-            key,
-            name,
-            description: description || undefined,
-            percentage,
-            isEnabled,
-          })
-        }
-        disabled={!key || !name || isSubmitting}
-        isLoading={isSubmitting}
-      >
-        {t('admin.experiments.save_flag')}
-      </Button>
+      <div className="flex gap-3 pt-2">
+        <Button
+          type="button"
+          onClick={onCancel}
+          variant="secondary"
+          className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-gray-300"
+        >
+          {t('admin.shared.cancel')}
+        </Button>
+        <Button
+          className="flex-1 min-h-11"
+          onClick={() =>
+            onSubmit({
+              key,
+              name,
+              description: description || undefined,
+              percentage,
+              isEnabled,
+            })
+          }
+          disabled={!key || !name || isSubmitting}
+          isLoading={isSubmitting}
+        >
+          {t('admin.experiments.save_flag')}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -567,6 +560,7 @@ function FeatureFlagForm({
 function ExperimentForm({
   initialData,
   onSubmit,
+  onCancel,
   isSubmitting,
 }: {
   initialData: UserExperiment | null;
@@ -575,6 +569,7 @@ function ExperimentForm({
     experimentKey: string;
     variant: string;
   }) => void;
+  onCancel: () => void;
   isSubmitting: boolean;
 }) {
   const { t } = useTranslation();
@@ -641,15 +636,26 @@ function ExperimentForm({
         </Select>
       </div>
 
-      <Button
-        className="w-full mt-4 min-h-11"
-        onClick={() => onSubmit({ userId, experimentKey, variant })}
-        disabled={!userId || !experimentKey || !variant || isSubmitting}
-      >
-        {isSubmitting
-          ? t('admin.experiments.saving')
-          : t('admin.experiments.save')}
-      </Button>
+      <div className="flex gap-3 pt-2">
+        <Button
+          type="button"
+          onClick={onCancel}
+          variant="secondary"
+          className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-gray-300"
+        >
+          {t('admin.shared.cancel')}
+        </Button>
+        <Button
+          className="flex-1 min-h-11"
+          onClick={() => onSubmit({ userId, experimentKey, variant })}
+          disabled={!userId || !experimentKey || !variant || isSubmitting}
+          isLoading={isSubmitting}
+        >
+          {isSubmitting
+            ? t('admin.experiments.saving')
+            : t('admin.experiments.save')}
+        </Button>
+      </div>
     </div>
   );
 }
