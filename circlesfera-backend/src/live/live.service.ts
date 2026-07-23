@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -6,8 +7,15 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AccessToken } from 'livekit-server-sdk';
+import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
+import { LIVE_GIFT_CATALOG, resolveGiftAmountCents } from './gift-catalog.js';
+
+function appendCheckoutQuery(returnUrl: string, query: string): string {
+  const sep = returnUrl.includes('?') ? '&' : '?';
+  return `${returnUrl}${sep}${query}`;
+}
 
 @Injectable()
 export class LiveService {
@@ -17,10 +25,10 @@ export class LiveService {
     private prisma: PrismaService,
     private configService: ConfigService,
     private gateway: AppGateway,
+    private stripeService: StripeService,
   ) {}
 
   async startStream(userId: string, title?: string) {
-    // End any existing streams for this user
     await this.prisma.liveStream.updateMany({
       where: { hostId: userId, status: 'LIVE' },
       data: { status: 'ENDED', endedAt: new Date() },
@@ -64,9 +72,8 @@ export class LiveService {
             data: {
               status: 'ENDED',
               endedAt: new Date(),
-              replayUrl:
-                stream.hlsUrl ||
-                `https://cdn.circlesfera.com/vod/replays/${stream.id}.m3u8`,
+              // Prefer recorded HLS; never invent a CDN URL that does not exist.
+              replayUrl: stream.hlsUrl ?? null,
             },
           }),
         ),
@@ -120,7 +127,6 @@ export class LiveService {
     }
   }
 
-  /** Returns stream info including host and co-host profiles. */
   async getStream(streamId: string) {
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
@@ -144,10 +150,6 @@ export class LiveService {
     return stream;
   }
 
-  /**
-   * Host invites a viewer as co-host.
-   * Updates coHostId in DB and signals the invitee via Socket.io.
-   */
   async inviteCoHost(streamId: string, hostId: string, coHostUserId: string) {
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
@@ -182,7 +184,6 @@ export class LiveService {
       data: { coHostId: coHostUserId },
     });
 
-    // Signal the invitee through their personal socket room
     this.gateway.server.to(`user:${coHostUserId}`).emit('live:cohost_invite', {
       streamId,
       streamTitle: stream.title,
@@ -193,7 +194,6 @@ export class LiveService {
       },
     });
 
-    // Notify the stream room
     this.gateway.server.to(`live:${streamId}`).emit('live:cohost_joined', {
       coHostId: coHostUserId,
       coHostUsername: invitee.profile?.username,
@@ -206,10 +206,6 @@ export class LiveService {
     return { success: true, coHostId: coHostUserId };
   }
 
-  /**
-   * Invitee accepts the co-host invite.
-   * Returns a LiveKit token with canPublish: true.
-   */
   async acceptCoHostInvite(streamId: string, userId: string) {
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
@@ -232,9 +228,6 @@ export class LiveService {
     return { token, streamId };
   }
 
-  /**
-   * Host removes the current co-host.
-   */
   async removeCoHost(streamId: string, hostId: string) {
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
@@ -264,39 +257,219 @@ export class LiveService {
     return { success: true };
   }
 
+  /**
+   * Create a Stripe Checkout session for a live gift.
+   * Price is resolved from the server-side catalog (client price ignored).
+   */
   async sendGift(
     streamId: string,
-    userId: string,
+    senderId: string,
     giftId: string,
-    price: number,
+    returnUrl: string,
+    idempotencyKey?: string,
   ) {
-    const [stream, user] = await Promise.all([
-      this.prisma.liveStream.findUnique({
-        where: { id: streamId },
-      }),
-      this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true, profile: { select: { username: true } } },
-      }),
-    ]);
+    const amountCents = resolveGiftAmountCents(giftId);
+    if (amountCents === null) {
+      throw new BadRequestException(
+        `Unknown giftId. Allowed: ${Object.keys(LIVE_GIFT_CATALOG).join(', ')}`,
+      );
+    }
 
-    if (stream?.status !== 'LIVE') {
+    const stream = await this.prisma.liveStream.findUnique({
+      where: { id: streamId },
+      include: {
+        host: {
+          select: {
+            id: true,
+            email: true,
+            stripeConnectAccountId: true,
+            profile: { select: { username: true } },
+          },
+        },
+      },
+    });
+
+    if (!stream || stream.status !== 'LIVE') {
       throw new NotFoundException('Live stream not active');
     }
 
-    if (!user) {
-      throw new NotFoundException('User not found');
+    if (stream.hostId === senderId) {
+      throw new BadRequestException('You cannot gift yourself');
     }
 
+    if (!stream.host.stripeConnectAccountId) {
+      throw new BadRequestException(
+        'Host cannot receive gifts yet (no Stripe Connect account)',
+      );
+    }
+
+    const sender = await this.prisma.user.findUnique({
+      where: { id: senderId },
+      select: {
+        id: true,
+        email: true,
+        profile: { select: { username: true } },
+      },
+    });
+    if (!sender) throw new NotFoundException('User not found');
+
+    const platformFee = Math.floor(amountCents * 0.2);
+    const giftName = LIVE_GIFT_CATALOG[giftId].name;
+
+    const pendingGift = await this.prisma.liveGift.create({
+      data: {
+        streamId,
+        senderId,
+        receiverId: stream.hostId,
+        giftId,
+        amountCents,
+        currency: 'EUR',
+        status: 'PENDING',
+      },
+    });
+
+    const session = await this.stripeService.createCheckoutSession(
+      {
+        payment_method_types: ['card'],
+        mode: 'payment',
+        customer_email: sender.email,
+        client_reference_id: senderId,
+        line_items: [
+          {
+            price_data: {
+              currency: 'eur',
+              product_data: {
+                name: `Live Gift: ${giftName}`,
+                description: `Gift for @${stream.host.profile?.username || 'creator'}`,
+              },
+              unit_amount: amountCents,
+            },
+            quantity: 1,
+          },
+        ],
+        payment_intent_data: {
+          application_fee_amount: platformFee,
+          transfer_data: {
+            destination: stream.host.stripeConnectAccountId,
+          },
+        },
+        metadata: {
+          type: 'DIRECT_LIVE_GIFT',
+          liveGiftId: pendingGift.id,
+          streamId,
+          giftId,
+          creatorId: stream.hostId,
+        },
+        success_url: appendCheckoutQuery(
+          returnUrl,
+          'gift_success=true&session_id={CHECKOUT_SESSION_ID}',
+        ),
+        cancel_url: appendCheckoutQuery(returnUrl, 'gift_canceled=true'),
+      },
+      { idempotencyKey },
+    );
+
+    await this.prisma.liveGift.update({
+      where: { id: pendingGift.id },
+      data: { stripeCheckoutSessionId: session.id },
+    });
+
     return {
-      success: true,
-      streamId,
-      senderId: user.id,
-      senderUsername: user.profile?.username,
+      url: session.url,
+      liveGiftId: pendingGift.id,
       giftId,
-      price,
-      sentAt: new Date().toISOString(),
+      amountCents,
     };
+  }
+
+  /**
+   * Called from Stripe webhook after successful payment.
+   * Persists ledger rows, updates earnings, broadcasts to the live room.
+   */
+  async completeGiftPayment(params: {
+    liveGiftId: string;
+    senderId: string;
+    streamId: string;
+    giftId: string;
+    creatorId: string;
+    amountCents: number;
+    currency: string;
+    paymentIntentId: string | null;
+  }) {
+    const existing = await this.prisma.liveGift.findUnique({
+      where: { id: params.liveGiftId },
+      include: {
+        sender: {
+          select: { profile: { select: { username: true, avatar: true } } },
+        },
+      },
+    });
+
+    if (!existing) {
+      this.logger.warn(`LiveGift ${params.liveGiftId} not found for webhook`);
+      return;
+    }
+
+    if (existing.status === 'COMPLETED') {
+      return; // idempotent
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const transaction = await tx.transaction.create({
+        data: {
+          type: 'DIRECT_LIVE_GIFT',
+          amount: params.amountCents,
+          currency: params.currency.toUpperCase(),
+          senderId: params.senderId,
+          receiverId: params.creatorId,
+          liveStreamId: params.streamId,
+          stripePaymentIntentId: params.paymentIntentId,
+          status: 'COMPLETED',
+          description: `Live gift ${params.giftId} on stream ${params.streamId}`,
+        },
+      });
+
+      const gift = await tx.liveGift.update({
+        where: { id: params.liveGiftId },
+        data: {
+          status: 'COMPLETED',
+          completedAt: new Date(),
+          transactionId: transaction.id,
+          amountCents: params.amountCents,
+        },
+      });
+
+      await tx.monetization.upsert({
+        where: { userId: params.creatorId },
+        update: {
+          lifetimeEarningsCents: {
+            increment: Math.floor(params.amountCents * 0.8),
+          },
+        },
+        create: {
+          userId: params.creatorId,
+          lifetimeEarningsCents: Math.floor(params.amountCents * 0.8),
+        },
+      });
+
+      return gift;
+    });
+
+    this.gateway.server.to(`live:${params.streamId}`).emit('live:gift', {
+      streamId: params.streamId,
+      giftId: params.giftId,
+      amountCents: params.amountCents,
+      senderId: params.senderId,
+      senderUsername: existing.sender.profile?.username,
+      senderAvatar: existing.sender.profile?.avatar,
+      receiverId: params.creatorId,
+      liveGiftId: result.id,
+      sentAt: new Date().toISOString(),
+    });
+
+    this.logger.log(
+      `Live gift ${params.liveGiftId} completed on stream ${params.streamId}`,
+    );
   }
 
   private async createToken(
@@ -304,10 +477,23 @@ export class LiveService {
     participantName: string,
     isHost: boolean,
   ) {
-    const apiKey =
-      this.configService.get<string>('LIVEKIT_API_KEY') || 'devkey';
-    const apiSecret =
-      this.configService.get<string>('LIVEKIT_API_SECRET') || 'secret';
+    const apiKey = this.configService.get<string>('LIVEKIT_API_KEY');
+    const apiSecret = this.configService.get<string>('LIVEKIT_API_SECRET');
+    const isProd = this.configService.get('NODE_ENV') === 'production';
+
+    if (!apiKey || !apiSecret) {
+      if (isProd) {
+        throw new Error(
+          'SECURITY ALERT: LIVEKIT_API_KEY and LIVEKIT_API_SECRET are required in production.',
+        );
+      }
+      this.logger.warn(
+        'LIVEKIT_API_KEY/SECRET missing — using ephemeral unsigned-unsafe tokens only allowed outside production',
+      );
+      throw new BadRequestException(
+        'Live streaming is not configured (missing LiveKit credentials)',
+      );
+    }
 
     const at = new AccessToken(apiKey, apiSecret, {
       identity: participantName,
@@ -323,4 +509,3 @@ export class LiveService {
     return await at.toJwt();
   }
 }
-
