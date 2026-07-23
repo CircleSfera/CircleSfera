@@ -5,6 +5,8 @@ import {
   DollarSign,
   Image as ImageIcon,
   Megaphone,
+  Pause,
+  Play,
   Plus,
   RefreshCw,
   TrendingUp,
@@ -15,6 +17,7 @@ import {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type {
+  CancelPromotionResult,
   CreatorPost,
   CreatorPromotion,
 } from '../../services/creator.service';
@@ -298,18 +301,49 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
   });
 
   const cancelMutation = useMutation({
-    mutationFn: (id: string) => creatorApi.cancelPromotion(id),
-    onSuccess: () => {
+    mutationFn: (id: string) =>
+      creatorApi.cancelPromotion(id).then((r) => r.data),
+    onSuccess: (result: CancelPromotionResult) => {
       queryClient.invalidateQueries({ queryKey: ['creator', 'promotions'] });
-      onToast(t('creator.promotions.finished'), 'success');
+      if (result.refund?.status === 'succeeded' && result.refund.amount > 0) {
+        onToast(
+          t('creator.promotions.finished_refund', {
+            amount: result.refund.amount.toFixed(2),
+            currency: result.refund.currency,
+          }),
+          'success',
+        );
+      } else {
+        onToast(t('creator.promotions.finished'), 'success');
+      }
       setConfirmCancel(null);
     },
     onError: () => onToast(t('creator.promotions.error_cancel'), 'error'),
   });
 
+  const pauseMutation = useMutation({
+    mutationFn: (id: string) => creatorApi.pausePromotion(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['creator', 'promotions'] });
+      onToast(t('creator.promotions.paused'), 'success');
+    },
+    onError: () => onToast(t('creator.promotions.error_pause'), 'error'),
+  });
+
+  const resumeMutation = useMutation({
+    mutationFn: (id: string) => creatorApi.resumePromotion(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['creator', 'promotions'] });
+      onToast(t('creator.promotions.resumed'), 'success');
+    },
+    onError: () => onToast(t('creator.promotions.error_resume'), 'error'),
+  });
+
   const activePromos =
     data?.data?.filter((p) =>
-      ['ACTIVE', 'PENDING', 'active', 'pending'].includes(p.status),
+      ['ACTIVE', 'PENDING', 'PAUSED', 'active', 'pending', 'paused'].includes(
+        p.status,
+      ),
     ) || [];
   const completedPromos =
     data?.data?.filter((p) =>
@@ -482,57 +516,105 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
 
                         {/* Admin Action */}
                         <div className="shrink-0 flex flex-col items-stretch md:items-end gap-2">
-                          <Button
-                            variant="secondary"
-                            onClick={() => {
-                              const next = new Date(promo.endDate);
-                              next.setDate(next.getDate() + 1);
-                              creatorApi
-                                .updatePromotion(promo.id, {
-                                  endDate: next.toISOString(),
-                                })
-                                .then(() => {
-                                  queryClient.invalidateQueries({
-                                    queryKey: ['creator', 'promotions'],
-                                  });
-                                  onToast(
-                                    t(
-                                      'creator.promotions.extended',
-                                      'Campaign extended by 1 day',
+                          {(promo.status === 'PAUSED' ||
+                            promo.status === 'paused') && (
+                            <span className="text-amber-400 text-[10px] font-black uppercase tracking-wide self-end">
+                              {t('creator.promotions.paused_badge')}
+                            </span>
+                          )}
+                          {(promo.status === 'ACTIVE' ||
+                            promo.status === 'active' ||
+                            promo.status === 'PAUSED' ||
+                            promo.status === 'paused') && (
+                            <Button
+                              variant="secondary"
+                              onClick={() => {
+                                const next = new Date(promo.endDate);
+                                next.setDate(next.getDate() + 1);
+                                creatorApi
+                                  .updatePromotion(promo.id, {
+                                    endDate: next.toISOString(),
+                                  })
+                                  .then(() => {
+                                    queryClient.invalidateQueries({
+                                      queryKey: ['creator', 'promotions'],
+                                    });
+                                    onToast(
+                                      t('creator.promotions.extended'),
+                                      'success',
+                                    );
+                                  })
+                                  .catch(() =>
+                                    onToast(
+                                      t('creator.promotions.error_edit'),
+                                      'error',
                                     ),
-                                    'success',
                                   );
-                                })
-                                .catch(() =>
-                                  onToast(
-                                    t(
-                                      'creator.promotions.error_edit',
-                                      'Could not update campaign',
-                                    ),
-                                    'error',
-                                  ),
-                                );
-                            }}
-                            className="w-full md:w-auto"
-                          >
-                            {t('creator.promotions.extend', '+1 day')}
-                          </Button>
+                              }}
+                              className="w-full md:w-auto"
+                            >
+                              {t('creator.promotions.extend')}
+                            </Button>
+                          )}
+                          {(promo.status === 'ACTIVE' ||
+                            promo.status === 'active') && (
+                            <Button
+                              variant="secondary"
+                              onClick={() => pauseMutation.mutate(promo.id)}
+                              isLoading={pauseMutation.isPending}
+                              className="w-full md:w-auto"
+                            >
+                              <Pause size={14} className="mr-2" />
+                              {t('creator.promotions.pause')}
+                            </Button>
+                          )}
+                          {(promo.status === 'PAUSED' ||
+                            promo.status === 'paused') && (
+                            <Button
+                              variant="secondary"
+                              onClick={() => resumeMutation.mutate(promo.id)}
+                              isLoading={resumeMutation.isPending}
+                              className="w-full md:w-auto"
+                            >
+                              <Play size={14} className="mr-2" />
+                              {t('creator.promotions.resume')}
+                            </Button>
+                          )}
                           {confirmCancel === promo.id ? (
-                            <div className="flex items-center gap-2 w-full md:w-auto">
-                              <Button
-                                variant="danger"
-                                onClick={() => cancelMutation.mutate(promo.id)}
-                                isLoading={cancelMutation.isPending}
-                                className="flex-1 md:flex-none"
-                              >
-                                {t('creator.promotions.confirm')}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                onClick={() => setConfirmCancel(null)}
-                              >
-                                {t('creator.promotions.no')}
-                              </Button>
+                            <div className="flex flex-col gap-2 w-full md:w-auto">
+                              {promo.budget > 0 &&
+                                (promo.status === 'ACTIVE' ||
+                                  promo.status === 'active' ||
+                                  promo.status === 'PAUSED' ||
+                                  promo.status === 'paused') && (
+                                  <p className="text-zinc-400 text-[10px] max-w-[220px] text-right leading-relaxed">
+                                    {t(
+                                      'creator.promotions.cancel_refund_hint',
+                                      {
+                                        amount: promo.budget.toFixed(2),
+                                        currency: promo.currency,
+                                      },
+                                    )}
+                                  </p>
+                                )}
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="danger"
+                                  onClick={() =>
+                                    cancelMutation.mutate(promo.id)
+                                  }
+                                  isLoading={cancelMutation.isPending}
+                                  className="flex-1 md:flex-none"
+                                >
+                                  {t('creator.promotions.confirm')}
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  onClick={() => setConfirmCancel(null)}
+                                >
+                                  {t('creator.promotions.no')}
+                                </Button>
+                              </div>
                             </div>
                           ) : (
                             <Button

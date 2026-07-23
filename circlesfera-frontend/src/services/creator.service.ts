@@ -73,11 +73,21 @@ export interface CreatorPromotion {
   endDate: string;
   reach: number;
   createdAt: string;
+  refundPolicy?: string;
+  refundedAt?: string | null;
   target?: {
     caption?: string | null;
     thumbnail?: string | null;
     type?: string;
   } | null;
+}
+
+export interface CancelPromotionResult extends CreatorPromotion {
+  refund?: {
+    amount: number;
+    currency: string;
+    status: string;
+  };
 }
 
 // ─── API ─────────────────────────────────────────────────────────
@@ -138,7 +148,14 @@ export const creatorApi = {
       params: { seconds },
     }),
 
-  cancelPromotion: (id: string) => apiClient.delete(`creator/promotions/${id}`),
+  cancelPromotion: (id: string) =>
+    apiClient.delete<CancelPromotionResult>(`creator/promotions/${id}`),
+
+  pausePromotion: (id: string) =>
+    apiClient.post<CreatorPromotion>(`creator/promotions/${id}/pause`),
+
+  resumePromotion: (id: string) =>
+    apiClient.post<CreatorPromotion>(`creator/promotions/${id}/resume`),
 
   updatePromotion: (
     id: string,

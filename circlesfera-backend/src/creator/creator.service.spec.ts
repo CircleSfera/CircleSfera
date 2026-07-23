@@ -38,6 +38,8 @@ describe('CreatorService', () => {
     },
     promotion: {
       count: vi.fn(),
+      findFirst: vi.fn(),
+      update: vi.fn(),
     },
     creatorSubscription: {
       count: vi.fn(),
@@ -60,6 +62,8 @@ describe('CreatorService', () => {
 
   const mockStripeService = {
     createAccountLink: vi.fn(),
+    createRefundFromCheckoutSession: vi.fn(),
+    expireCheckoutSession: vi.fn(),
   };
 
   const mockConfigService = {
@@ -145,6 +149,120 @@ describe('CreatorService', () => {
       const csv = await service.exportAnalyticsCsv('creator-1', '30d');
       expect(csv).toContain('Metric,Value,Unit/Currency');
       expect(csv).toContain('Gross Revenue,0.00,EUR');
+    });
+  });
+
+  describe('promotion lifecycle', () => {
+    const future = new Date(Date.now() + 7 * 86_400_000);
+
+    it('should pause an active promotion without refunding', async () => {
+      mockPrismaService.promotion.findFirst.mockResolvedValue({
+        id: 'promo-1',
+        userId: 'creator-1',
+        status: 'ACTIVE',
+        endDate: future,
+        budget: 10,
+      });
+      mockPrismaService.promotion.update.mockResolvedValue({
+        id: 'promo-1',
+        status: 'PAUSED',
+      });
+
+      const result = await service.pausePromotion('creator-1', 'promo-1');
+      expect(result.status).toBe('PAUSED');
+      expect(
+        mockStripeService.createRefundFromCheckoutSession,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('should resume a paused promotion', async () => {
+      mockPrismaService.promotion.findFirst.mockResolvedValue({
+        id: 'promo-1',
+        userId: 'creator-1',
+        status: 'PAUSED',
+        endDate: future,
+        budget: 5,
+      });
+      mockPrismaService.promotion.update.mockResolvedValue({
+        id: 'promo-1',
+        status: 'ACTIVE',
+      });
+
+      const result = await service.resumePromotion('creator-1', 'promo-1');
+      expect(result.status).toBe('ACTIVE');
+    });
+
+    it('should cancel with proportional Stripe refund of remaining budget', async () => {
+      mockPrismaService.promotion.findFirst.mockResolvedValue({
+        id: 'promo-1',
+        userId: 'creator-1',
+        status: 'ACTIVE',
+        endDate: future,
+        budget: 4.5,
+        currency: 'EUR',
+        refundPolicy: 'PROPORTIONAL',
+        refundedAt: null,
+        chargedAt: new Date(),
+        stripePaymentIntentId: 'cs_test_1',
+      });
+      mockStripeService.createRefundFromCheckoutSession.mockResolvedValue({
+        id: 're_1',
+        amount: 450,
+        currency: 'eur',
+      });
+      mockPrismaService.promotion.update.mockResolvedValue({
+        id: 'promo-1',
+        status: 'CANCELLED',
+        refundedAt: new Date(),
+        currency: 'EUR',
+      });
+
+      const result = await service.cancelPromotion('creator-1', 'promo-1');
+      expect(
+        mockStripeService.createRefundFromCheckoutSession,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          checkoutSessionId: 'cs_test_1',
+          amountInCents: 450,
+          idempotencyKey: 'promotion-cancel-refund-promo-1',
+        }),
+      );
+      expect(result.refund?.status).toBe('succeeded');
+      expect(result.refund?.amount).toBe(4.5);
+      expect(mockPrismaService.promotion.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'CANCELLED',
+            refundedAt: expect.any(Date),
+          }),
+        }),
+      );
+    });
+
+    it('should not refund when refundPolicy is NONE', async () => {
+      mockPrismaService.promotion.findFirst.mockResolvedValue({
+        id: 'promo-2',
+        userId: 'creator-1',
+        status: 'ACTIVE',
+        endDate: future,
+        budget: 8,
+        currency: 'EUR',
+        refundPolicy: 'NONE',
+        refundedAt: null,
+        chargedAt: new Date(),
+        stripePaymentIntentId: 'cs_test_2',
+      });
+      mockPrismaService.promotion.update.mockResolvedValue({
+        id: 'promo-2',
+        status: 'CANCELLED',
+        currency: 'EUR',
+      });
+
+      const result = await service.cancelPromotion('creator-1', 'promo-2');
+      expect(
+        mockStripeService.createRefundFromCheckoutSession,
+      ).not.toHaveBeenCalled();
+      expect(result.refund?.status).toBe('skipped_policy');
     });
   });
 });

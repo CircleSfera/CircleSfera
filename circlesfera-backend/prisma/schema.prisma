@@ -1044,7 +1044,8 @@ model Promotion {
   countries   String?
   dailyBudget Float?
 
-  // Monetization fixes
+  // Monetization: Checkout Session ID is stored in stripePaymentIntentId (legacy field name).
+  // chargedAt is set on checkout.session.completed. Cancel refunds remaining budget when PROPORTIONAL.
   stripePaymentIntentId String?               @unique
   chargedAt             DateTime?
   refundPolicy          PromotionRefundPolicy @default(PROPORTIONAL)
@@ -1069,6 +1070,7 @@ enum PromotionRefundPolicy {
 enum PromotionStatus {
   PENDING
   ACTIVE
+  PAUSED
   COMPLETED
   REJECTED
   CANCELLED

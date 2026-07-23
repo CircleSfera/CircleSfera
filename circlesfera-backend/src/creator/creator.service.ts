@@ -1,6 +1,16 @@
 /** Trigger re-index */
-import { Inject, Injectable } from '@nestjs/common';
-import { PromotionStatus, PromotionTargetType } from '@prisma/client';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  PromotionRefundPolicy,
+  PromotionStatus,
+  PromotionTargetType,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 // ─── Interfaces ──────────────────────────────────────────────────
@@ -28,6 +38,8 @@ import { StripeService } from '../common/stripe/stripe.service.js';
 
 @Injectable()
 export class CreatorService {
+  private readonly logger = new Logger(CreatorService.name);
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(AnalyticsService)
@@ -396,11 +408,11 @@ export class CreatorService {
   // ─── Promotions ─────────────────────────────────────────────────
 
   async getPromotions(userId: string, page = 1, limit = 10) {
-    // 1. Auto-mark expired active promotions as completed
+    // 1. Auto-mark expired active/paused promotions as completed (no refund)
     await this.prisma.promotion.updateMany({
       where: {
         userId,
-        status: PromotionStatus.ACTIVE,
+        status: { in: [PromotionStatus.ACTIVE, PromotionStatus.PAUSED] },
         endDate: { lt: new Date() },
       },
       data: { status: PromotionStatus.COMPLETED },
@@ -408,12 +420,13 @@ export class CreatorService {
 
     // 2. Keep cancelled promotions in history (no hard delete)
 
-    // 3. Fetch active + completed + pending + cancelled, with related post/story data
+    // 3. Fetch in-flight + history statuses, with related post/story data
     const where = {
       userId,
       status: {
         in: [
           PromotionStatus.ACTIVE,
+          PromotionStatus.PAUSED,
           PromotionStatus.COMPLETED,
           PromotionStatus.PENDING,
           PromotionStatus.CANCELLED,
@@ -632,25 +645,177 @@ export class CreatorService {
     return { success: true };
   }
 
-  async cancelPromotion(userId: string, promotionId: string) {
-    const promo = await this.prisma.promotion.findFirst({
-      where: { id: promotionId, userId },
-    });
-    if (!promo) throw new Error('Promotion not found');
-    if (promo.status === PromotionStatus.COMPLETED) {
-      throw new Error('Cannot cancel completed promotion');
-    }
-    if (promo.status === PromotionStatus.CANCELLED) {
+  /**
+   * Pause delivery without refund. Resume later while endDate/budget remain valid.
+   */
+  async pausePromotion(userId: string, promotionId: string) {
+    const promo = await this.requireOwnedPromotion(userId, promotionId);
+
+    if (promo.status === PromotionStatus.PAUSED) {
       return promo;
+    }
+    if (promo.status !== PromotionStatus.ACTIVE) {
+      throw new BadRequestException('Only active promotions can be paused');
+    }
+    if (promo.endDate <= new Date()) {
+      throw new BadRequestException('Cannot pause an expired promotion');
     }
 
     return this.prisma.promotion.update({
       where: { id: promotionId },
+      data: { status: PromotionStatus.PAUSED },
+    });
+  }
+
+  /**
+   * Resume a paused campaign into the feed while schedule and budget allow.
+   */
+  async resumePromotion(userId: string, promotionId: string) {
+    const promo = await this.requireOwnedPromotion(userId, promotionId);
+
+    if (promo.status === PromotionStatus.ACTIVE) {
+      return promo;
+    }
+    if (promo.status !== PromotionStatus.PAUSED) {
+      throw new BadRequestException('Only paused promotions can be resumed');
+    }
+    if (promo.endDate <= new Date()) {
+      throw new BadRequestException('Cannot resume an expired promotion');
+    }
+    if (promo.budget <= 0) {
+      throw new BadRequestException('Cannot resume a promotion with no budget');
+    }
+
+    return this.prisma.promotion.update({
+      where: { id: promotionId },
+      data: { status: PromotionStatus.ACTIVE },
+    });
+  }
+
+  /**
+   * Permanently cancel. Remaining unused budget is refunded proportionally when
+   * `refundPolicy=PROPORTIONAL` and the campaign was charged (ACTIVE/PAUSED).
+   * Pause does not refund; natural expiry does not refund.
+   */
+  async cancelPromotion(userId: string, promotionId: string) {
+    const promo = await this.requireOwnedPromotion(userId, promotionId);
+
+    if (promo.status === PromotionStatus.COMPLETED) {
+      throw new BadRequestException('Cannot cancel completed promotion');
+    }
+    if (promo.status === PromotionStatus.CANCELLED) {
+      return {
+        ...promo,
+        refund: {
+          amount: 0,
+          currency: promo.currency,
+          status: promo.refundedAt ? 'already_refunded' : 'none',
+        },
+      };
+    }
+    if (
+      promo.status !== PromotionStatus.ACTIVE &&
+      promo.status !== PromotionStatus.PAUSED &&
+      promo.status !== PromotionStatus.PENDING
+    ) {
+      throw new BadRequestException(
+        `Cannot cancel promotion in status ${promo.status}`,
+      );
+    }
+
+    let refundResult: {
+      amount: number;
+      currency: string;
+      status: 'succeeded' | 'skipped_policy' | 'skipped_unpaid' | 'none';
+    } = { amount: 0, currency: promo.currency, status: 'none' };
+
+    // Expire unpaid checkout so the creator cannot pay after cancelling.
+    if (
+      promo.status === PromotionStatus.PENDING &&
+      promo.stripePaymentIntentId
+    ) {
+      try {
+        await this.stripeService.expireCheckoutSession(
+          promo.stripePaymentIntentId,
+        );
+      } catch (err) {
+        this.logger.warn(
+          `Could not expire checkout for promotion ${promotionId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+
+    const wasCharged =
+      promo.status === PromotionStatus.ACTIVE ||
+      promo.status === PromotionStatus.PAUSED ||
+      Boolean(promo.chargedAt);
+
+    if (
+      wasCharged &&
+      promo.refundPolicy === PromotionRefundPolicy.PROPORTIONAL &&
+      !promo.refundedAt &&
+      promo.stripePaymentIntentId
+    ) {
+      const amountInCents = Math.max(0, Math.round(promo.budget * 100));
+      if (amountInCents > 0) {
+        try {
+          const refund =
+            await this.stripeService.createRefundFromCheckoutSession({
+              checkoutSessionId: promo.stripePaymentIntentId,
+              amountInCents,
+              idempotencyKey: `promotion-cancel-refund-${promotionId}`,
+              metadata: {
+                promotionId,
+                userId,
+                type: 'PROMOTION_CANCEL',
+              },
+            });
+
+          if (refund) {
+            refundResult = {
+              amount: (refund.amount || amountInCents) / 100,
+              currency: (refund.currency || promo.currency).toUpperCase(),
+              status: 'succeeded',
+            };
+          } else {
+            refundResult = {
+              amount: 0,
+              currency: promo.currency,
+              status: 'skipped_unpaid',
+            };
+          }
+        } catch (err) {
+          this.logger.error(
+            `Stripe refund failed for promotion ${promotionId}`,
+            err instanceof Error ? err.stack : String(err),
+          );
+          throw new BadRequestException(
+            'Could not process refund. Promotion was not cancelled; please retry.',
+          );
+        }
+      }
+    } else if (promo.refundPolicy === PromotionRefundPolicy.NONE) {
+      refundResult = {
+        amount: 0,
+        currency: promo.currency,
+        status: 'skipped_policy',
+      };
+    }
+
+    const updated = await this.prisma.promotion.update({
+      where: { id: promotionId },
       data: {
         status: PromotionStatus.CANCELLED,
         endDate: new Date(),
+        ...(refundResult.status === 'succeeded'
+          ? { refundedAt: new Date() }
+          : {}),
       },
     });
+
+    return { ...updated, refund: refundResult };
   }
 
   async updatePromotion(
@@ -664,22 +829,22 @@ export class CreatorService {
       dailyBudget?: number;
     },
   ) {
-    const promo = await this.prisma.promotion.findFirst({
-      where: { id: promotionId, userId },
-    });
-    if (!promo) throw new Error('Promotion not found');
+    const promo = await this.requireOwnedPromotion(userId, promotionId);
     if (
       promo.status !== PromotionStatus.ACTIVE &&
-      promo.status !== PromotionStatus.PENDING
+      promo.status !== PromotionStatus.PENDING &&
+      promo.status !== PromotionStatus.PAUSED
     ) {
-      throw new Error('Only active or pending promotions can be edited');
+      throw new BadRequestException(
+        'Only active, paused, or pending promotions can be edited',
+      );
     }
 
     let endDate: Date | undefined;
     if (data.endDate) {
       endDate = new Date(data.endDate);
       if (Number.isNaN(endDate.getTime()) || endDate <= new Date()) {
-        throw new Error('endDate must be a future date');
+        throw new BadRequestException('endDate must be a future date');
       }
     }
 
@@ -695,6 +860,16 @@ export class CreatorService {
         ...(endDate ? { endDate } : {}),
       },
     });
+  }
+
+  private async requireOwnedPromotion(userId: string, promotionId: string) {
+    const promo = await this.prisma.promotion.findFirst({
+      where: { id: promotionId, userId },
+    });
+    if (!promo) {
+      throw new NotFoundException('Promotion not found');
+    }
+    return promo;
   }
 
   // ─── Advanced Analytics ──────────────────────────────────────────
