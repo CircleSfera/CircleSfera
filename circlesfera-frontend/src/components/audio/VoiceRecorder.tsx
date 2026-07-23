@@ -1,6 +1,7 @@
 import { Loader2, Mic, Pause, Play, Send, Square, Trash2 } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../services/api';
 import { logger } from '../../utils/logger';
 
@@ -11,12 +12,16 @@ interface VoiceRecorderProps {
     voiceWaveform: number[];
   }) => void;
   onCancel?: () => void;
+  /** Icon-only idle button for compact layouts (e.g. comment composer) */
+  compact?: boolean;
 }
 
 export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   onSendVoice,
   onCancel,
+  compact = false,
 }) => {
+  const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [uploading, setUploading] = useState(false);
@@ -241,23 +246,41 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
   if (uploading) {
     return (
-      <div className="flex items-center space-x-2 px-3 py-2 bg-white/5 border border-white/10 rounded-2xl text-xs text-accent-blue font-semibold">
+      <div className="flex items-center space-x-2 px-3 py-2 bg-white/5 border border-white/10 rounded-2xl text-xs text-accent-blue font-semibold shrink-0">
         <Loader2 className="w-4 h-4 animate-spin" />
-        <span>Subiendo nota de voz...</span>
+        {!compact && (
+          <span>{t('voice.uploading', 'Subiendo nota de voz...')}</span>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="flex items-center space-x-2 p-1.5 bg-black/40 border border-white/10 rounded-2xl">
+    <div
+      className={`flex items-center space-x-2 shrink-0 ${
+        compact && !isRecording && !recordedBlob
+          ? ''
+          : 'p-1.5 bg-black/40 border border-white/10 rounded-2xl'
+      }`}
+    >
       {!isRecording && !recordedBlob ? (
         <button
           type="button"
           onClick={startRecording}
-          className="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 active:scale-95 text-red-400 border border-red-500/30 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all"
+          className={
+            compact
+              ? 'w-10 h-10 flex items-center justify-center bg-red-500/20 hover:bg-red-500/30 active:scale-95 text-red-400 border border-red-500/30 rounded-full transition-all'
+              : 'px-3 py-2 bg-red-500/20 hover:bg-red-500/30 active:scale-95 text-red-400 border border-red-500/30 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all'
+          }
+          aria-label={t('voice.record', 'Grabar Voz')}
+          title={t('voice.record', 'Grabar Voz')}
         >
           <Mic className="w-4 h-4" />
-          <span>Grabar Voz</span>
+          {!compact && (
+            <span className="hidden sm:inline">
+              {t('voice.record', 'Grabar Voz')}
+            </span>
+          )}
         </button>
       ) : isRecording ? (
         <>
@@ -266,7 +289,6 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             <span>{formatTimer(recordingSeconds)}</span>
           </div>
 
-          {/* Live Frequency Visualizer */}
           <div className="flex items-center space-x-0.5 h-5 px-1">
             {(liveWaveform.length > 0
               ? liveWaveform
@@ -287,7 +309,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             type="button"
             onClick={stopRecording}
             className="p-2 bg-white/10 hover:bg-white/20 active:scale-95 text-white rounded-xl transition-all"
-            title="Detener grabación"
+            title={t('voice.stop', 'Detener grabación')}
           >
             <Square className="w-4 h-4 fill-white" />
           </button>
@@ -296,7 +318,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             type="button"
             onClick={cancelRecording}
             className="p-2 bg-red-500/20 hover:bg-red-500/30 active:scale-95 text-red-400 rounded-xl transition-all"
-            title="Cancelar"
+            title={t('common.cancel', 'Cancelar')}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -307,7 +329,11 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             type="button"
             onClick={togglePreview}
             className="p-2 bg-white/10 hover:bg-white/20 active:scale-95 text-accent-blue rounded-xl transition-all"
-            title={isPreviewPlaying ? 'Pausar vista previa' : 'Escuchar borrador'}
+            title={
+              isPreviewPlaying
+                ? t('voice.pause_preview', 'Pausar vista previa')
+                : t('voice.play_preview', 'Escuchar borrador')
+            }
           >
             {isPreviewPlaying ? (
               <Pause className="w-4 h-4 fill-accent-blue" />
@@ -317,14 +343,14 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           </button>
 
           <div className="px-2.5 py-1.5 bg-accent-blue/10 border border-accent-blue/20 rounded-xl text-xs font-bold text-accent-blue">
-            Listo ({formatTimer(recordingSeconds)})
+            {t('voice.ready', 'Listo')} ({formatTimer(recordingSeconds)})
           </div>
 
           <button
             type="button"
             onClick={sendRecording}
             className="p-2 bg-accent-blue text-white hover:bg-accent-blue/90 active:scale-95 rounded-xl transition-all shadow-md"
-            title="Enviar nota de voz"
+            title={t('voice.send', 'Enviar nota de voz')}
           >
             <Send className="w-4 h-4" />
           </button>
@@ -333,7 +359,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             type="button"
             onClick={cancelRecording}
             className="p-2 bg-white/10 hover:bg-white/20 active:scale-95 text-gray-400 rounded-xl transition-all"
-            title="Descartar"
+            title={t('voice.discard', 'Descartar')}
           >
             <Trash2 className="w-4 h-4" />
           </button>

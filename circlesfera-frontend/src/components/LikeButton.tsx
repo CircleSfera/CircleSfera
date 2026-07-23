@@ -7,12 +7,14 @@ interface LikeButtonProps {
   postId: string;
   onToggle?: (liked: boolean) => void;
   iconClassName?: string;
+  className?: string;
 }
 
 export default function LikeButton({
   postId,
   onToggle,
   iconClassName = 'w-5 h-5',
+  className = '',
 }: LikeButtonProps) {
   const queryClient = useQueryClient();
   const [isLiked, setIsLiked] = useState<boolean | null>(null);
@@ -66,7 +68,7 @@ export default function LikeButton({
       onClick={handleLike}
       variant="ghost"
       size="icon"
-      className="transition-transform hover:scale-110 active:scale-95 bg-transparent border-none"
+      className={`transition-transform hover:scale-110 active:scale-95 bg-transparent border-none ${className}`}
       aria-label={liked ? 'Unlike post' : 'Like post'}
       data-testid="like-button"
     >

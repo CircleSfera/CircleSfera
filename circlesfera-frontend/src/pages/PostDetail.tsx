@@ -4,9 +4,8 @@ import { useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import CommentList from '../components/CommentList';
 import SEO from '../components/common/SEO';
-import PostCard from '../components/PostCard';
+import PostDetailView from '../components/post/PostDetailView';
 import { commentsApi, postsApi } from '../services';
 
 export default function PostDetail() {
@@ -60,13 +59,13 @@ export default function PostDetail() {
   if (isLoading || !post) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pb-24 md:pt-6 md:flex md:items-center relative">
+    <div className="min-h-screen md:pb-24 md:pt-6 md:flex md:items-center relative">
       {/* Brand Background */}
       <div className="fixed inset-0 z-[-1] pointer-events-none overflow-hidden bg-black">
         <div className="absolute inset-0 bg-linear-to-br from-brand-primary/30 via-black to-brand-primary/10" />
@@ -93,7 +92,7 @@ export default function PostDetail() {
           <h1 className="text-base font-bold text-white uppercase tracking-wider">
             {t('post.detail.title', 'Publicación')}
           </h1>
-          <div className="w-6" /> {/* Spacer for centering */}
+          <div className="w-6" />
         </div>
 
         {/* Back Button (Desktop) */}
@@ -107,37 +106,10 @@ export default function PostDetail() {
           </Link>
         </div>
 
-        {/* Post Card in Detail Mode */}
-        <PostCard
+        <PostDetailView
           post={post.data}
-          isDetailMode={true}
-          renderComments={(props) => (
-            <div
-              className={
-                props?.isDetailMode
-                  ? 'h-full flex flex-col min-h-0'
-                  : 'flex flex-col h-full'
-              }
-            >
-              {!props?.isDetailMode && (
-                <h2 className="text-base font-bold text-white mb-4 flex items-center gap-2 shrink-0 px-2">
-                  <span>{t('post.detail.comments')}</span>
-                  <span className="text-sm font-normal text-gray-300">
-                    ({comments?.data.data.length || 0})
-                  </span>
-                </h2>
-              )}
-              {id && (
-                <div className="flex-1 pb-4 min-h-0">
-                  <CommentList
-                    postId={id}
-                    comments={comments?.data.data || []}
-                    {...props}
-                  />
-                </div>
-              )}
-            </div>
-          )}
+          comments={comments?.data.data || []}
+          priority
         />
       </div>
     </div>
