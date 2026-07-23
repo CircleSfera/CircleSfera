@@ -9,6 +9,7 @@ import {
   Visibility,
 } from '@prisma/client';
 import type { Queue } from 'bullmq';
+import type Stripe from 'stripe';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
@@ -279,53 +280,93 @@ export class UsersService {
     return { url: session.url || returnUrl };
   }
 
-  async handleIdentityWebhook(session: any) {
-    const userId = session.metadata?.userId;
+  /** Resolve CircleSfera user from Stripe Identity session metadata or stored session id. */
+  private async resolveIdentityUserId(
+    session: Pick<Stripe.Identity.VerificationSession, 'id' | 'metadata'>,
+  ): Promise<string | null> {
+    const metaUserId = session.metadata?.userId;
+    if (metaUserId) {
+      return metaUserId;
+    }
+    if (!session.id) {
+      return null;
+    }
+    const user = await this.prisma.user.findFirst({
+      where: { stripeIdentitySessionId: session.id },
+      select: { id: true },
+    });
+    return user?.id ?? null;
+  }
 
-    if (userId) {
-      const dob = session.verified_outputs?.dob;
-      let dateOfBirth: Date | null = null;
-      let isActive = true;
-      const verificationLevel = 'VERIFIED';
+  /** Persist KYC success from a verified Stripe Identity session. */
+  private async applyVerifiedIdentity(
+    userId: string,
+    session: Stripe.Identity.VerificationSession,
+  ) {
+    const dob = session.verified_outputs?.dob;
+    let dateOfBirth: Date | null = null;
+    let isActive = true;
+    const verificationLevel = 'VERIFIED';
 
-      if (dob?.year && dob?.month && dob?.day) {
-        dateOfBirth = new Date(dob.year, dob.month - 1, dob.day);
+    if (dob?.year && dob?.month && dob?.day) {
+      dateOfBirth = new Date(dob.year, dob.month - 1, dob.day);
 
-        // Calculate age
-        const today = new Date();
-        let age = today.getFullYear() - dateOfBirth.getFullYear();
-        const m = today.getMonth() - dateOfBirth.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < dateOfBirth.getDate())) {
-          age--;
-        }
-
-        if (age < 16) {
-          isActive = false; // Suspend under 16 for GDPR compliance
-          console.log(
-            `User ${userId} suspended due to being under 16 (Age: ${age})`,
-          );
-        } else if (age < 18) {
-          console.log(`User ${userId} verified but under 18 (Age: ${age})`);
-        }
+      const today = new Date();
+      let age = today.getFullYear() - dateOfBirth.getFullYear();
+      const m = today.getMonth() - dateOfBirth.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dateOfBirth.getDate())) {
+        age--;
       }
 
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { verificationLevel: true },
-      });
+      if (age < 16) {
+        isActive = false;
+        console.log(
+          `User ${userId} suspended due to being under 16 (Age: ${age})`,
+        );
+      } else if (age < 18) {
+        console.log(`User ${userId} verified but under 18 (Age: ${age})`);
+      }
+    }
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { verificationLevel: true },
+    });
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        identityVerifiedAt: new Date(),
+        ...(dateOfBirth && { dateOfBirth }),
+        ...(user?.verificationLevel === 'BASIC' && {
+          verificationLevel: verificationLevel,
+        }),
+        isActive: isActive,
+      },
+    });
+    console.log(`Successfully verified identity for user ${userId}`);
+  }
+
+  async handleIdentityWebhook(session: Stripe.Identity.VerificationSession) {
+    const userId = await this.resolveIdentityUserId(session);
+    if (!userId) {
+      console.warn(
+        `Identity webhook session ${session.id ?? 'unknown'} has no resolvable user`,
+      );
+      return;
+    }
+
+    if (session.status === 'verified') {
+      await this.applyVerifiedIdentity(userId, session);
+      return;
+    }
+
+    // Incomplete / abandoned sessions: clear so the user can start a new flow
+    if (session.status === 'canceled' || session.status === 'requires_input') {
       await this.prisma.user.update({
         where: { id: userId },
-        data: {
-          identityVerifiedAt: new Date(),
-          ...(dateOfBirth && { dateOfBirth }),
-          ...(user?.verificationLevel === 'BASIC' && {
-            verificationLevel: verificationLevel,
-          }),
-          isActive: isActive,
-        },
+        data: { stripeIdentitySessionId: null },
       });
-      console.log(`Successfully verified identity for user ${userId}`);
     }
   }
 
@@ -352,22 +393,16 @@ export class UsersService {
     );
 
     if (session.status === 'verified') {
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: {
-          identityVerifiedAt: new Date(),
-          ...(user.verificationLevel === 'BASIC' && {
-            verificationLevel: 'VERIFIED',
-          }),
-        },
-      });
+      await this.applyVerifiedIdentity(userId, session);
       return { status: 'verified' };
-    } else if (session.status === 'canceled') {
+    }
+
+    if (session.status === 'canceled' || session.status === 'requires_input') {
       await this.prisma.user.update({
         where: { id: userId },
         data: { stripeIdentitySessionId: null },
       });
-      return { status: 'canceled' };
+      return { status: session.status };
     }
 
     return { status: session.status };

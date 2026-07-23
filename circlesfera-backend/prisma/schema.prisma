@@ -1288,7 +1288,6 @@ enum TransactionType {
   DIRECT_TIP
   STRIPE_SUBSCRIPTION
   PROMOTION_PAYMENT
-  PAYOUT
 }
 
 enum TransactionStatus {

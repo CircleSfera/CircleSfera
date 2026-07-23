@@ -1,13 +1,14 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Check, Loader2, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { paymentsApi } from '../../services/payments.service';
 import { usersApi } from '../../services/users.service';
 import { useAuthStore } from '../../stores/authStore';
 import type { PlatformPlanDto } from '../../types';
+import { logger } from '../../utils/logger';
 
 const planVerificationMap: Record<string, string> = {
   Premium: 'VERIFIED',
@@ -33,7 +34,23 @@ const planButtonText: Record<string, string> = {
 export default function Pricing() {
   const { isAuthenticated, profile: currentUser } = useAuthStore();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser || currentUser.identityVerifiedAt) {
+      return;
+    }
+    usersApi
+      .syncIdentitySession()
+      .then((res) => {
+        if (res?.status === 'verified') {
+          queryClient.invalidateQueries({ queryKey: ['myProfile'] });
+          toast.success('Your identity has been verified!');
+        }
+      })
+      .catch((err) => logger.error('Failed to sync identity session:', err));
+  }, [isAuthenticated, currentUser, queryClient]);
 
   const { data: plans, isLoading } = useQuery<PlatformPlanDto[]>({
     queryKey: ['platform-plans'],

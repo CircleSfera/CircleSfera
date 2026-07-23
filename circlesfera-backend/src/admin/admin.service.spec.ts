@@ -3,9 +3,11 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
+import { CreatorService } from '../creator/creator.service.js';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { UsersService } from '../users/users.service.js';
 import { AdminService } from './admin.service.js';
 
 describe('AdminService', () => {
@@ -55,6 +57,11 @@ describe('AdminService', () => {
     moderateContent: vi.fn(),
   };
 
+  const mockCreatorService = {};
+  const mockUsersService = {
+    syncIdentitySession: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -66,6 +73,8 @@ describe('AdminService', () => {
         { provide: getQueueToken('ai-processing'), useValue: mockQueue },
         { provide: getQueueToken('analytics-processing'), useValue: mockQueue },
         { provide: AIService, useValue: mockAIService },
+        { provide: CreatorService, useValue: mockCreatorService },
+        { provide: UsersService, useValue: mockUsersService },
       ],
     }).compile();
 

@@ -32,7 +32,8 @@ Follow-up: CI runs `scripts/check-prisma-schema-migrations.sh`; catch-up `202607
 ## Still deferred / out of scope
 
 - Feed-preference domain tables (absent by design in PRD future)
-- Live gifts billing (stub only); `TransactionType.PAYOUT` writers (Connect Express is payout path)
+- Live gifts billing (stub only)
+- Creator payouts: Stripe Connect Express only (`TransactionType.PAYOUT` removed; no internal payout ledger)
 
 ## Doc / source of truth
 

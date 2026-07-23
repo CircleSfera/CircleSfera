@@ -326,31 +326,29 @@ export default function Settings() {
   }, [profile, initialized]);
 
   useEffect(() => {
-    if (
-      activeTab === 'account' &&
-      profile?.user?.verificationLevel &&
-      profile.user.verificationLevel !== 'VERIFIED' &&
-      profile.user.verificationLevel !== 'BUSINESS' &&
-      profile.user.verificationLevel !== 'ELITE'
-    ) {
-      usersApi
-        .syncIdentitySession()
-        .then((res) => {
-          if (res?.status === 'verified') {
-            queryClient.invalidateQueries({ queryKey: ['myProfile'] });
-            toast.success(
-              t(
-                'settings.account.verification.success',
-                'Your identity has been verified!',
-              ),
-            );
-          }
-        })
-        .catch((err) => {
-          logger.error('Failed to sync identity session:', err);
-        });
+    // Sync KYC from Stripe whenever identity is not yet marked verified.
+    // Must not gate on verificationLevel: BUSINESS/ELITE users still need KYC.
+    if (!profile || profile.identityVerifiedAt) {
+      return;
     }
-  }, [activeTab, profile?.user?.verificationLevel, queryClient, t]);
+
+    usersApi
+      .syncIdentitySession()
+      .then((res) => {
+        if (res?.status === 'verified') {
+          queryClient.invalidateQueries({ queryKey: ['myProfile'] });
+          toast.success(
+            t(
+              'settings.account.verification.success',
+              'Your identity has been verified!',
+            ),
+          );
+        }
+      })
+      .catch((err) => {
+        logger.error('Failed to sync identity session:', err);
+      });
+  }, [profile, queryClient, t]);
 
   // --- Handlers ---
   const checkUsernameAvailability = useCallback(

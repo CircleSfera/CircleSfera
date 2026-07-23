@@ -30,12 +30,16 @@ export class CreatorSubscriptionsService {
       where: { userId: creatorId },
       select: { subscriptionPriceCents: true, username: true },
     });
-    const priceCents = creatorProfile?.subscriptionPriceCents;
-    if (priceCents == null || priceCents < 100) {
+    if (
+      !creatorProfile ||
+      creatorProfile.subscriptionPriceCents == null ||
+      creatorProfile.subscriptionPriceCents < 100
+    ) {
       throw new BadRequestException(
         'Creator has not set a valid VIP subscription price',
       );
     }
+    const priceCents = creatorProfile.subscriptionPriceCents;
 
     // Dev-only free path requires explicit opt-in (never accidental in staging)
     if (
