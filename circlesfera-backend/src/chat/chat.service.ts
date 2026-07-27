@@ -419,7 +419,9 @@ export class ChatService {
         replyToId,
         voiceUrl,
         voiceDuration,
-        voiceWaveform: voiceWaveform ? JSON.parse(JSON.stringify(voiceWaveform)) : undefined,
+        voiceWaveform: voiceWaveform
+          ? JSON.parse(JSON.stringify(voiceWaveform))
+          : undefined,
       },
       include: {
         sender: {

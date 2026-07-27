@@ -323,7 +323,8 @@ export default memo(function MessageBubble({
                   <div className="bg-zinc-900/95 backdrop-blur-2xl p-1.5 rounded-full flex gap-1 shadow-2xl border border-white/10 ring-1 ring-white/5">
                     {EMOJI_OPTIONS.map((emoji) => {
                       const isSelected = msg.reactions?.some(
-                        (r) => r.reaction === emoji && r.userId === currentUserId,
+                        (r) =>
+                          r.reaction === emoji && r.userId === currentUserId,
                       );
                       return (
                         <motion.button
@@ -337,7 +338,11 @@ export default memo(function MessageBubble({
                               ? 'bg-blue-500/30 ring-1 ring-blue-400/50'
                               : 'hover:bg-white/10'
                           }`}
-                          title={isSelected ? 'Quitar reacción' : `Reaccionar ${emoji}`}
+                          title={
+                            isSelected
+                              ? 'Quitar reacción'
+                              : `Reaccionar ${emoji}`
+                          }
                         >
                           {emoji}
                         </motion.button>
@@ -386,50 +391,54 @@ export default memo(function MessageBubble({
           </div>
 
           {/* Reactions Display (Grouped by emoji with smooth animations) */}
-          {msg.reactions && msg.reactions.filter((r) => Boolean(r.reaction)).length > 0 && (
-            <div
-              className={`absolute -top-4 ${
-                isMe ? '-left-3' : '-right-3'
-              } flex flex-wrap gap-1 z-50 pointer-events-auto p-0.5`}
-              onPointerDown={(e) => e.stopPropagation()}
-              role="none"
-            >
-              {[
-                ...new Set(
-                  msg.reactions
-                    .filter((r) => Boolean(r.reaction))
-                    .map((r) => r.reaction),
-                ),
-              ].map((emoji) => {
-                const count =
-                  msg.reactions?.filter((r) => r.reaction === emoji).length || 0;
-                const hasReacted = msg.reactions?.some(
-                  (r) => r.reaction === emoji && r.userId === currentUserId,
-                );
+          {msg.reactions &&
+            msg.reactions.filter((r) => Boolean(r.reaction)).length > 0 && (
+              <div
+                className={`absolute -top-4 ${
+                  isMe ? '-left-3' : '-right-3'
+                } flex flex-wrap gap-1 z-50 pointer-events-auto p-0.5`}
+                onPointerDown={(e) => e.stopPropagation()}
+                role="none"
+              >
+                {[
+                  ...new Set(
+                    msg.reactions
+                      .filter((r) => Boolean(r.reaction))
+                      .map((r) => r.reaction),
+                  ),
+                ].map((emoji) => {
+                  const count =
+                    msg.reactions?.filter((r) => r.reaction === emoji).length ||
+                    0;
+                  const hasReacted = msg.reactions?.some(
+                    (r) => r.reaction === emoji && r.userId === currentUserId,
+                  );
 
-                return (
-                  <motion.button
-                    type="button"
-                    key={emoji}
-                    initial={{ scale: 0.7, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.7, opacity: 0 }}
-                    whileHover={{ scale: 1.18 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => onReact(msg.id!, emoji)}
-                    className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold backdrop-blur-xl transition-all shadow-lg ${
-                      hasReacted
-                        ? 'bg-blue-600/90 border-blue-400 text-white shadow-blue-500/40 ring-2 ring-blue-400/30'
-                        : 'bg-zinc-900/90 border-white/20 text-white hover:bg-zinc-800'
-                    } border`}
-                  >
-                    <span>{emoji}</span>
-                    {count > 1 && <span className="opacity-90 text-[10px]">{count}</span>}
-                  </motion.button>
-                );
-              })}
-            </div>
-          )}
+                  return (
+                    <motion.button
+                      type="button"
+                      key={emoji}
+                      initial={{ scale: 0.7, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.7, opacity: 0 }}
+                      whileHover={{ scale: 1.18 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => onReact(msg.id!, emoji)}
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold backdrop-blur-xl transition-all shadow-lg ${
+                        hasReacted
+                          ? 'bg-blue-600/90 border-blue-400 text-white shadow-blue-500/40 ring-2 ring-blue-400/30'
+                          : 'bg-zinc-900/90 border-white/20 text-white hover:bg-zinc-800'
+                      } border`}
+                    >
+                      <span>{emoji}</span>
+                      {count > 1 && (
+                        <span className="opacity-90 text-[10px]">{count}</span>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            )}
         </div>
       </div>
     </motion.div>
