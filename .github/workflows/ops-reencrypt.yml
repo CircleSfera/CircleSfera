@@ -46,10 +46,19 @@ jobs:
 
             echo "=== Classify message crypto (host script → container) ==="
             # Image WORKDIR is /app/circlesfera-backend (where node_modules lives).
+            # Also try local/dev key from host .env if present (historical misconfig probe).
+            EXTRA=""
+            if [ -f .env ] && grep -q '^ENCRYPTION_KEY=' .env; then
+              # shellcheck disable=SC1091
+              EXTRA="$(grep '^ENCRYPTION_KEY=' .env | head -1 | cut -d= -f2-)"
+            fi
             docker compose -f docker-compose.prod.yml --env-file .env.production cp \
               scripts/diagnose-message-crypto.mjs backend:/app/circlesfera-backend/diagnose-message-crypto.mjs
-            docker compose -f docker-compose.prod.yml --env-file .env.production exec -T backend \
-              node /app/circlesfera-backend/diagnose-message-crypto.mjs
+            docker compose -f docker-compose.prod.yml --env-file .env.production exec -T \
+              -e "ENCRYPTION_KEY_CANDIDATES=${EXTRA}" \
+              backend node /app/circlesfera-backend/diagnose-message-crypto.mjs || {
+              echo "WARN: diagnose exited non-zero — inspect shape/status above before reencrypt"
+            }
 
             echo "=== Reencrypt dry-run (image script) ==="
             docker compose -f docker-compose.prod.yml --env-file .env.production exec -T backend \
