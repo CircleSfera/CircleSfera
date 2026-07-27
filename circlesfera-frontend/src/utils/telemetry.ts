@@ -65,8 +65,15 @@ class TelemetryManager {
       await apiClient.post('/analytics/events/batch', { events: eventsToSend });
     } catch (err) {
       console.error('Failed to send telemetry batch:', err);
-      // Restore failed events to the queue
-      this.queue = [...eventsToSend, ...this.queue].slice(0, 100); // Limit queue size to avoid overflow
+      // CSRF 403 is retried once inside apiClient; do not requeue or we hammer the API.
+      const status =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { status?: number } }).response?.status
+          : undefined;
+      if (status === 403) {
+        return;
+      }
+      this.queue = [...eventsToSend, ...this.queue].slice(0, 100);
     }
   }
 }
