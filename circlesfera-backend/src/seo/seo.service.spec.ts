@@ -53,14 +53,18 @@ describe('SeoService', () => {
     it('should generate valid robots.txt string', () => {
       const robots = service.generateRobotsTxt();
       expect(robots).toContain('User-agent: *');
-      expect(robots).toContain('Sitemap: https://circlesfera.com/api/v1/sitemap.xml');
+      expect(robots).toContain(
+        'Sitemap: https://circlesfera.com/api/v1/sitemap.xml',
+      );
     });
   });
 
   describe('generateOpenGraphHtml', () => {
     it('should generate fallback meta tags for home route', async () => {
       const html = await service.generateOpenGraphHtml('/');
-      expect(html).toContain('<title>CircleSfera - The Next-Gen Social Network</title>');
+      expect(html).toContain(
+        '<title>CircleSfera - The Next-Gen Social Network</title>',
+      );
       expect(html).toContain('og:image');
     });
   });
@@ -70,7 +74,10 @@ describe('SeoService', () => {
       mockPrismaService.post.findUnique.mockResolvedValueOnce({
         id: 'post-1',
         caption: 'Hello World',
-        user: { profile: { username: 'creator', fullName: 'Creator User' }, verificationLevel: 'VERIFIED' },
+        user: {
+          profile: { username: 'creator', fullName: 'Creator User' },
+          verificationLevel: 'VERIFIED',
+        },
         _count: { likes: 10, comments: 2 },
       });
 

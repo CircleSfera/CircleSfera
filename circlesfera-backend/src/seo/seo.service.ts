@@ -155,7 +155,7 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
           description = profile.bio
             ? profile.bio
             : `Follow @${profile.username} on CircleSfera. ${profile.user?._count?.followers || 0} Followers.`;
-          
+
           // Point to dynamic OpenGraph image generator endpoint
           imageUrl = `${baseUrl}/api/v1/og-image/profile/${username}`;
         }
@@ -205,10 +205,15 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
       },
     });
 
-    const authorName = post?.user.profile?.fullName || post?.user.profile?.username || 'CircleSfera User';
+    const authorName =
+      post?.user.profile?.fullName ||
+      post?.user.profile?.username ||
+      'CircleSfera User';
     const username = post?.user.profile?.username || 'user';
     const caption = post?.caption
-      ? post.caption.length > 90 ? `${post.caption.substring(0, 90)}...` : post.caption
+      ? post.caption.length > 90
+        ? `${post.caption.substring(0, 90)}...`
+        : post.caption
       : 'Visual content on CircleSfera';
     const likes = post?._count.likes || 0;
     const comments = post?._count.comments || 0;
@@ -249,16 +254,21 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
       include: {
         user: {
           include: {
-            _count: { select: { followers: true, following: true, posts: true } },
+            _count: {
+              select: { followers: true, following: true, posts: true },
+            },
           },
         },
       },
     });
 
-    const fullName = profile?.fullName || profile?.username || 'CircleSfera User';
+    const fullName =
+      profile?.fullName || profile?.username || 'CircleSfera User';
     const userHandle = profile?.username || username;
     const bio = profile?.bio
-      ? profile.bio.length > 100 ? `${profile.bio.substring(0, 100)}...` : profile.bio
+      ? profile.bio.length > 100
+        ? `${profile.bio.substring(0, 100)}...`
+        : profile.bio
       : `Explore @${userHandle} profile on CircleSfera.`;
     const followers = profile?.user?._count?.followers || 0;
     const following = profile?.user?._count?.following || 0;
