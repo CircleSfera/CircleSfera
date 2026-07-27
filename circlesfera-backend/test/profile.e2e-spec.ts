@@ -5,6 +5,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from './../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { uniqueSuffix } from './utils/unique-id.js';
 
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 
@@ -16,7 +17,7 @@ describe('Profiles (e2e)', () => {
   let csrfCookie: string;
 
   // Unique user for this test run
-  const uniqueId = Date.now();
+  const uniqueId = uniqueSuffix();
   const testUser = {
     email: `profile_e2e_${uniqueId}@example.com`,
     password: 'Password123!',
@@ -44,12 +45,13 @@ describe('Profiles (e2e)', () => {
     const cookies = (csrfRes.get('Set-Cookie') as string[]) || [];
     csrfCookie = cookies.find((c) => c.startsWith('x-csrf-token=')) || '';
 
-    // 2. Register and login
+    // 2. Register and login (asserted so a broken fixture fails here, not as 401s)
     await request(app.getHttpServer())
       .post('/api/v1/auth/register')
       .set('Cookie', [csrfCookie])
       .set('x-csrf-token', csrfToken)
-      .send(testUser);
+      .send(testUser)
+      .expect(201);
 
     const loginRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
@@ -58,11 +60,13 @@ describe('Profiles (e2e)', () => {
       .send({
         identifier: testUser.email,
         password: testUser.password,
-      });
+      })
+      .expect(200);
 
     const authCookies = (loginRes.get('Set-Cookie') as string[]) || [];
     const accessCookie = authCookies.find((c) => c.startsWith('access_token='));
     accessToken = accessCookie?.split(';')[0].split('=')[1] || '';
+    expect(accessToken).not.toBe('');
 
     // Refresh CSRF cookie if it changed during login
     const sessionCsrfCookie = authCookies.find((c) =>

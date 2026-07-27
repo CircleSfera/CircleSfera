@@ -4,13 +4,14 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from './../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { uniqueSuffix } from './utils/unique-id.js';
 
 describe('Authentication (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
 
   // Unique user for this test run
-  const uniqueId = Date.now();
+  const uniqueId = uniqueSuffix();
   const testUser = {
     email: `e2e_test_${uniqueId}@example.com`,
     password: 'Password123!',

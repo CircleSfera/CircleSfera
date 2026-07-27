@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 - Deploy compose service name (`nginx` → `nginx-proxy`)
 - Account grace restore used obsolete `deletedAt > now` check; now uses `scheduledDeletionAt`
 - Migration `20260727140000` targets `users` table (`@@map`), not `"User"`
+- Flaky backend e2e: spec fixtures keyed on `Date.now()` could collide across parallel workers and a `contains`-scoped cleanup deleted another spec's user mid-run (login 500 / profile 401-404). Fixtures now use a random per-spec suffix, cleanups match exact emails, and e2e spec files run sequentially against the shared CI database
 
 ### Changed
 

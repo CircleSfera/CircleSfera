@@ -2,6 +2,9 @@ import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // Transformation is handled by unplugin-swc (decorator metadata); Vite's
+  // built-in Oxc transform must be disabled explicitly since Vite 7.
+  oxc: false,
   test: {
     globals: true,
     root: './',
