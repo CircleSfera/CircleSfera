@@ -275,21 +275,30 @@ jobs:
               PREV_SHA="$(cat .deploy-sha)"
             fi
 
-            # Pre-migrate Postgres backup (best-effort; requires pg_dump on host or via container)
+            # Pre-migrate Postgres backup (best-effort; never fail the deploy).
+            # Prefer a path writable by the deploy user (/srv/...), not /var/backups.
             echo "Taking pre-deploy Postgres backup..."
-            mkdir -p /var/backups/circlesfera/postgres
+            set +e
+            BACKUP_ROOT="/srv/circlesfera/backups/postgres"
+            mkdir -p "${BACKUP_ROOT}"
+            MKDIR_RC=$?
             set -a
             # shellcheck disable=SC1091
             source .env.production
             set +a
-            BACKUP_FILE="/var/backups/circlesfera/postgres/pre_deploy_${IMAGE_SHA:0:12}_$(date -u +%Y%m%d_%H%M%S).dump"
-            if docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
-              pg_dump -U "${POSTGRES_USER}" -Fc "${POSTGRES_DB}" > "${BACKUP_FILE}" 2>/dev/null; then
-              echo "✅ Backup written to ${BACKUP_FILE}"
+            if [ "$MKDIR_RC" -eq 0 ]; then
+              BACKUP_FILE="${BACKUP_ROOT}/pre_deploy_${IMAGE_SHA:0:12}_$(date -u +%Y%m%d_%H%M%S).dump"
+              if docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
+                pg_dump -U "${POSTGRES_USER}" -Fc "${POSTGRES_DB}" > "${BACKUP_FILE}"; then
+                echo "✅ Backup written to ${BACKUP_FILE}"
+              else
+                echo "⚠️  Pre-deploy backup skipped/failed (continuing deploy). Ensure cron backups are configured."
+                rm -f "${BACKUP_FILE}" || true
+              fi
             else
-              echo "⚠️  Pre-deploy backup skipped/failed (continuing deploy). Ensure cron backups are configured."
-              rm -f "${BACKUP_FILE}" || true
+              echo "⚠️  Could not create ${BACKUP_ROOT} (permission denied). Skipping pre-deploy backup."
             fi
+            set -e
 
             # Pull SHA-tagged images (and latest for redis/postgres/nginx)
             docker compose -f docker-compose.prod.yml --env-file .env.production pull
