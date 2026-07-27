@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
+import { EmptyState, ErrorState } from '../components/ErrorEmptyStates';
 import FrameItem from '../components/FrameItem';
 import { LoadingSpinner } from '../components/LoadingStates';
 import { postsApi } from '../services';
@@ -17,21 +18,28 @@ export default function Frames() {
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    useInfiniteQuery<PaginatedResponse<Post>>({
-      queryKey: ['frames'],
-      queryFn: async ({ pageParam }) => {
-        const res = await postsApi.getFrames(pageParam as number, 10);
-        return res.data;
-      },
-      getNextPageParam: (lastPage) => {
-        if (lastPage.meta.page < lastPage.meta.totalPages) {
-          return lastPage.meta.page + 1;
-        }
-        return undefined;
-      },
-      initialPageParam: 1,
-    });
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+    refetch,
+  } = useInfiniteQuery<PaginatedResponse<Post>>({
+    queryKey: ['frames'],
+    queryFn: async ({ pageParam }) => {
+      const res = await postsApi.getFrames(pageParam as number, 10);
+      return res.data;
+    },
+    getNextPageParam: (lastPage) => {
+      if (lastPage.meta.page < lastPage.meta.totalPages) {
+        return lastPage.meta.page + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
+  });
 
   const frames = data?.pages.flatMap((page) => page.data) || [];
 
@@ -129,13 +137,29 @@ export default function Frames() {
     );
   }
 
+  if (isError) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center">
+        <ErrorState
+          title={t('frames.load_error_title', 'Could not load Frames')}
+          message={t(
+            'frames.load_error_message',
+            'Something went wrong while loading Frames. Please try again.',
+          )}
+          onRetry={() => refetch()}
+        />
+      </div>
+    );
+  }
+
   if (frames.length === 0) {
     return (
-      <div className="h-screen w-full flex items-center justify-center text-white">
-        <div className="text-center">
-          <h2 className="text-xl font-bold mb-2">{t('frames.no_frames')}</h2>
-          <p className="text-gray-300">{t('frames.be_first')}</p>
-        </div>
+      <div className="h-screen w-full flex items-center justify-center">
+        <EmptyState
+          icon="posts"
+          title={t('frames.no_frames')}
+          message={t('frames.be_first')}
+        />
       </div>
     );
   }

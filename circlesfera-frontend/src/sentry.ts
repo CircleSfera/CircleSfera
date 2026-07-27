@@ -6,8 +6,23 @@ import {
   useLocation,
   useNavigationType,
 } from 'react-router-dom';
+import { getCookieConsent } from './utils/cookieConsent';
 
+let sentryInitialized = false;
+
+/**
+ * Initialize Sentry only when analytics cookie consent is granted.
+ * Call again after the user accepts analytics in CookieConsent.
+ */
 export function initSentry() {
+  if (sentryInitialized) return;
+
+  const consent = getCookieConsent();
+  if (!consent?.analytics) {
+    // Sentry waits until analytics is accepted (cs_cookie_consent.analytics).
+    return;
+  }
+
   const isProd = import.meta.env.MODE === 'production';
 
   Sentry.init({
@@ -31,4 +46,6 @@ export function initSentry() {
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
   });
+
+  sentryInitialized = true;
 }
