@@ -1,0 +1,66 @@
+name: Ops — reencrypt messages + install backup cron
+
+# One-shot / occasional VPS ops. Does not deploy images.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run_only:
+        description: "If true, only run reencrypt --dry-run (no writes)"
+        type: boolean
+        default: false
+      install_cron:
+        description: "Install daily backup cron on the VPS"
+        type: boolean
+        default: true
+
+jobs:
+  ops:
+    name: VPS ops
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (for scripts reference on VPS via git pull)
+        uses: actions/checkout@v4
+
+      - name: Run reencrypt + optional cron install
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /srv/circlesfera
+            git fetch origin
+            git reset --hard origin/main
+
+            echo "=== Pre-reencrypt Postgres dump ==="
+            mkdir -p /srv/circlesfera/backups/postgres
+            set -a
+            # shellcheck disable=SC1091
+            source .env.production
+            set +a
+            DUMP="/srv/circlesfera/backups/postgres/pre_reencrypt_$(date -u +%Y%m%d_%H%M%S).dump"
+            docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
+              pg_dump -U "${POSTGRES_USER}" -Fc "${POSTGRES_DB}" > "${DUMP}"
+            echo "✅ Dump: ${DUMP}"
+
+            echo "=== Reencrypt dry-run ==="
+            docker compose -f docker-compose.prod.yml --env-file .env.production exec -T backend \
+              node dist/scripts/reencrypt-messages.js --dry-run
+
+            if [ "${{ inputs.dry_run_only }}" = "true" ]; then
+              echo "dry_run_only=true — skipping real reencrypt"
+            else
+              echo "=== Reencrypt REAL ==="
+              docker compose -f docker-compose.prod.yml --env-file .env.production exec -T backend \
+                node dist/scripts/reencrypt-messages.js
+              echo "✅ Reencrypt finished"
+            fi
+
+            if [ "${{ inputs.install_cron }}" = "true" ]; then
+              echo "=== Install backup cron ==="
+              chmod +x scripts/install-backup-cron.sh
+              ./scripts/install-backup-cron.sh
+            fi
+
+            echo "=== Done ==="
