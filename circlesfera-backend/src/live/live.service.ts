@@ -114,7 +114,7 @@ export class LiveService {
         where: { id: streamId },
         select: { viewerCount: true },
       });
-      if (!stream || stream.viewerCount <= 0) return 0;
+      if ((stream?.viewerCount ?? 0) <= 0) return 0;
 
       const updated = await this.prisma.liveStream.update({
         where: { id: streamId },
@@ -289,7 +289,7 @@ export class LiveService {
       },
     });
 
-    if (!stream || stream.status !== 'LIVE') {
+    if (stream?.status !== 'LIVE') {
       throw new NotFoundException('Live stream not active');
     }
 

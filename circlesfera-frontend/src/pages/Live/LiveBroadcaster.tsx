@@ -22,19 +22,34 @@ export default function LiveBroadcaster() {
   const [coHostUsernameInput, setCoHostUsernameInput] = useState('');
   const [coHostUsername, setCoHostUsername] = useState<string | null>(null);
   const [isInviting, setIsInviting] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
+  const [hasStarted, setHasStarted] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
   const navigate = useNavigate();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    api.post('/live/start', { title: 'My Live Stream' }).then((res: any) => {
-      setToken(res.data.token);
-      setStreamId(res.data.stream.id);
-    });
+    if (!hasStarted) return;
 
     return () => {
       api.post('/live/end');
     };
-  }, []);
+  }, [hasStarted]);
+
+  const handleStart = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const title =
+      titleInput.trim() || t('live.default_title', 'My Live Stream');
+    setIsStarting(true);
+    try {
+      const res: any = await api.post('/live/start', { title });
+      setToken(res.data.token);
+      setStreamId(res.data.stream.id);
+      setHasStarted(true);
+    } catch {
+      setIsStarting(false);
+    }
+  };
 
   useEffect(() => {
     if (!streamId) return;
@@ -114,10 +129,46 @@ export default function LiveBroadcaster() {
     socket.emit('live:heart', { streamId });
   };
 
-  if (token === '') {
+  if (!hasStarted || token === '') {
     return (
-      <div className="flex h-screen items-center justify-center">
-        {t('live.starting')}
+      <div className="flex h-screen flex-col items-center justify-center px-4 gap-6">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="absolute top-4 left-4 p-2 bg-black/50 rounded-full text-white"
+        >
+          <X className="w-6 h-6" />
+        </button>
+        <h1 className="text-2xl font-semibold text-white">
+          {t('live.setup_title', 'Go live')}
+        </h1>
+        <form
+          onSubmit={handleStart}
+          className="w-full max-w-sm flex flex-col gap-4"
+        >
+          <label className="flex flex-col gap-2 text-left">
+            <span className="text-sm text-zinc-400">
+              {t('live.title_label', 'Stream title')}
+            </span>
+            <input
+              type="text"
+              value={titleInput}
+              onChange={(e) => setTitleInput(e.target.value)}
+              placeholder={t('live.title_placeholder', 'My Live Stream')}
+              maxLength={100}
+              className="rounded-full bg-white/10 border border-white/10 px-4 py-2.5 text-white placeholder-white/40 outline-none focus:border-brand-primary"
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={isStarting}
+            className="rounded-full bg-brand-primary px-6 py-2.5 text-white font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+          >
+            {isStarting
+              ? t('live.starting')
+              : t('live.start_button', 'Start streaming')}
+          </button>
+        </form>
       </div>
     );
   }
