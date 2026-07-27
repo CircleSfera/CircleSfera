@@ -34,6 +34,15 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -65,6 +74,26 @@ jobs:
         env:
           DATABASE_URL: postgresql://prisma:prisma@localhost:5432/schema_check
         run: ./scripts/check-prisma-schema-migrations.sh
+
+      - name: "Backend: E2E Tests"
+        env:
+          DATABASE_URL: postgresql://prisma:prisma@localhost:5432/schema_check
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          NODE_ENV: test
+          JWT_SECRET: ci-e2e-jwt-secret-not-for-production-use-only-testing-1234567890
+          JWT_REFRESH_SECRET: ci-e2e-refresh-secret-not-for-production-use-only-testing-0987654321
+          CSRF_SECRET: ci-e2e-csrf-secret-not-for-production-use-only-testing-abcdefghijklmno
+          ENCRYPTION_KEY: test-encryption-key-32-characters!!
+          STRIPE_SECRET_KEY: sk_test_dummy
+          STRIPE_WEBHOOK_SECRET: whsec_dummy
+          CLOUDINARY_NAME: dummy
+          CLOUDINARY_API_KEY: dummy
+          CLOUDINARY_API_SECRET: dummy
+          CORS_ORIGIN: http://localhost:5173
+        run: |
+          cd circlesfera-backend
+          npm run test:e2e
 
       - name: "Frontend: Install, Lint, Test and Build"
         run: |
@@ -131,6 +160,13 @@ jobs:
             )"
           fi
 
+          SENTRY_DSN="$(
+            grep -E '^VITE_SENTRY_DSN=' "$ENV_FILE" \
+              | head -1 \
+              | cut -d= -f2- \
+              | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"
+          )"
+
           rm -f "$ENV_FILE"
 
           if [ -z "$API_URL" ]; then
@@ -146,8 +182,9 @@ jobs:
           {
             echo "api_url=$API_URL"
             echo "livekit_url=$LIVEKIT_URL"
+            echo "sentry_dsn=$SENTRY_DSN"
           } >> "$GITHUB_OUTPUT"
-          echo "✅ Vite build args resolved (API + LiveKit URL)."
+          echo "✅ Vite build args resolved (API + LiveKit URL + optional Sentry)."
 
       - name: Build and push Backend
         uses: docker/build-push-action@v6
@@ -155,7 +192,9 @@ jobs:
           context: .
           file: ./circlesfera-backend/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }}
           # cache-from: type=gha
           # cache-to: type=gha,mode=max
 
@@ -165,10 +204,13 @@ jobs:
           context: .
           file: ./circlesfera-frontend/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
           build-args: |
             VITE_API_URL=${{ steps.vite_args.outputs.api_url }}
             VITE_LIVEKIT_URL=${{ steps.vite_args.outputs.livekit_url }}
+            VITE_SENTRY_DSN=${{ steps.vite_args.outputs.sentry_dsn }}
           # cache-from: type=gha
           # cache-to: type=gha,mode=max
 
@@ -227,14 +269,50 @@ jobs:
             DEPLOY_WEBHOOK=$(grep '^SLACK_WEBHOOK_DEPLOYMENTS=' .env.production | cut -d '=' -f2- || echo "")
 
             export REGISTRY=ghcr.io/circlesfera/circlesfera
+            export IMAGE_SHA="${{ github.sha }}"
+            PREV_SHA=""
+            if [ -f .deploy-sha ]; then
+              PREV_SHA="$(cat .deploy-sha)"
+            fi
 
-            # Pull latest images
+            # Pre-migrate Postgres backup (best-effort; requires pg_dump on host or via container)
+            echo "Taking pre-deploy Postgres backup..."
+            mkdir -p /var/backups/circlesfera/postgres
+            set -a
+            # shellcheck disable=SC1091
+            source .env.production
+            set +a
+            BACKUP_FILE="/var/backups/circlesfera/postgres/pre_deploy_${IMAGE_SHA:0:12}_$(date -u +%Y%m%d_%H%M%S).dump"
+            if docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
+              pg_dump -U "${POSTGRES_USER}" -Fc "${POSTGRES_DB}" > "${BACKUP_FILE}" 2>/dev/null; then
+              echo "✅ Backup written to ${BACKUP_FILE}"
+            else
+              echo "⚠️  Pre-deploy backup skipped/failed (continuing deploy). Ensure cron backups are configured."
+              rm -f "${BACKUP_FILE}" || true
+            fi
+
+            # Pull SHA-tagged images (and latest for redis/postgres/nginx)
             docker compose -f docker-compose.prod.yml --env-file .env.production pull
 
-            # Restart stack; backend command runs `prisma migrate deploy` then starts the app.
-            # --remove-orphans drops deprecated containers (e.g. CircleSfera-Landing) holding the network.
-            docker compose -f docker-compose.prod.yml --env-file .env.production down --remove-orphans
-            docker compose -f docker-compose.prod.yml --env-file .env.production up -d --remove-orphans
+            # Rolling recreate without full stack downtime (keep postgres/redis up).
+            # Override image tags via environment if compose supports REGISTRY; pin via pull of :latest after tagging.
+            docker pull "${REGISTRY}/backend:${IMAGE_SHA}"
+            docker pull "${REGISTRY}/frontend:${IMAGE_SHA}"
+            docker tag "${REGISTRY}/backend:${IMAGE_SHA}" "${REGISTRY}/backend:latest"
+            docker tag "${REGISTRY}/frontend:${IMAGE_SHA}" "${REGISTRY}/frontend:latest"
+
+            docker compose -f docker-compose.prod.yml --env-file .env.production up -d --no-deps --remove-orphans backend frontend nginx-proxy
+
+            rollback() {
+              echo "🔁 Rolling back to previous images..."
+              if [ -n "$PREV_SHA" ]; then
+                docker pull "${REGISTRY}/backend:${PREV_SHA}" || true
+                docker pull "${REGISTRY}/frontend:${PREV_SHA}" || true
+                docker tag "${REGISTRY}/backend:${PREV_SHA}" "${REGISTRY}/backend:latest" || true
+                docker tag "${REGISTRY}/frontend:${PREV_SHA}" "${REGISTRY}/frontend:latest" || true
+                docker compose -f docker-compose.prod.yml --env-file .env.production up -d --no-deps backend frontend nginx-proxy || true
+              fi
+            }
 
             # Poll backend health (migrate + Nest boot can take >20s)
             echo "Waiting for backend to become healthy..."
@@ -260,8 +338,9 @@ jobs:
 
             if [ "$STATUS" != "running" ] || [ "$HEALTH" != "healthy" ]; then
               echo "❌ Backend is not healthy (status=$STATUS, health=$HEALTH). Deploy FAILED."
+              rollback
               if [ -n "$DEPLOY_WEBHOOK" ]; then
-                curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 *Deployment FAILED* to OVH VPS. Backend is not healthy."}' "$DEPLOY_WEBHOOK" || true
+                curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 *Deployment FAILED* to OVH VPS. Backend is not healthy; rollback attempted."}' "$DEPLOY_WEBHOOK" || true
               fi
               exit 1
             fi
@@ -297,12 +376,14 @@ jobs:
             if [ "$smoke_ok" != "1" ]; then
               echo "❌ Post-deploy API smoke FAILED."
               docker logs CircleSfera-Backend --tail=100 2>&1 || true
+              rollback
               if [ -n "$DEPLOY_WEBHOOK" ]; then
-                curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 *Deployment FAILED* smoke: API returned 5xx after healthy check."}' "$DEPLOY_WEBHOOK" || true
+                curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 *Deployment FAILED* smoke: API returned 5xx after healthy check; rollback attempted."}' "$DEPLOY_WEBHOOK" || true
               fi
               exit 1
             fi
             echo "✅ Post-deploy API smoke passed."
+            echo "${IMAGE_SHA}" > .deploy-sha
 
             # Clean up dangling images
             docker system prune -f
