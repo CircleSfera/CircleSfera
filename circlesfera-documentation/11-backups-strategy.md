@@ -14,7 +14,7 @@
 | [`scripts/backup-uploads.sh`](../scripts/backup-uploads.sh) | Tar.gz of local uploads volume (+ optional S3) |
 | [`scripts/restore-postgres.sh`](../scripts/restore-postgres.sh) | `pg_restore` (requires `CONFIRM=YES`) |
 
-Deploy CD takes a **best-effort pre-migrate dump** on the VPS before rolling backend/frontend (see `.github/workflows/deploy.yml`). Schedule daily cron on the VPS for `backup-postgres.sh` and `backup-uploads.sh` with `BACKUP_DIR` outside the app disk when possible.
+Deploy CD takes a **best-effort pre-migrate dump** on the VPS before rolling backend/frontend (see `.github/workflows/deploy.yml`), writing to `/srv/circlesfera/backups/postgres` when the deploy user can create that path. Schedule daily cron on the VPS for `backup-postgres.sh` and `backup-uploads.sh` with `BACKUP_DIR=/srv/circlesfera/backups` (writable by the deploy user; avoid `/var/backups` unless the user has write access).
 
 Runbooks: [`runbooks/restore-postgres.md`](./runbooks/restore-postgres.md), [`runbooks/rollback-deploy.md`](./runbooks/rollback-deploy.md).
 

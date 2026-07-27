@@ -3,7 +3,7 @@
 # Usage:
 #   DATABASE_URL=postgresql://... ./scripts/backup-postgres.sh
 # Optional:
-#   BACKUP_DIR=/var/backups/circlesfera RETENTION_DAYS=30 S3_BACKUP_BUCKET=...
+#   BACKUP_DIR=/srv/circlesfera/backups RETENTION_DAYS=30 S3_BACKUP_BUCKET=...
 set -euo pipefail
 
 DATABASE_URL="${DATABASE_URL:?DATABASE_URL is required}"
