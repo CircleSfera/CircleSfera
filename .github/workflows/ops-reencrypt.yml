@@ -44,7 +44,13 @@ jobs:
               pg_dump -U "${POSTGRES_USER}" -Fc "${POSTGRES_DB}" > "${DUMP}"
             echo "✅ Dump: ${DUMP}"
 
-            echo "=== Reencrypt dry-run ==="
+            echo "=== Classify message crypto (host script → container) ==="
+            docker compose -f docker-compose.prod.yml --env-file .env.production cp \
+              scripts/diagnose-message-crypto.mjs backend:/tmp/diagnose-message-crypto.mjs
+            docker compose -f docker-compose.prod.yml --env-file .env.production exec -T backend \
+              node /tmp/diagnose-message-crypto.mjs
+
+            echo "=== Reencrypt dry-run (image script) ==="
             docker compose -f docker-compose.prod.yml --env-file .env.production exec -T backend \
               node dist/scripts/reencrypt-messages.js --dry-run
 

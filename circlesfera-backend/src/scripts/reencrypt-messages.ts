@@ -51,7 +51,8 @@ async function main() {
   let cursor: string | undefined;
   let scanned = 0;
   let updated = 0;
-  let skipped = 0;
+  let alreadyCurrent = 0;
+  let notCiphertext = 0;
   let failed = 0;
 
   console.log(
@@ -75,7 +76,7 @@ async function main() {
         scanned++;
         cursor = msg.id;
         if (!msg.content?.includes(':')) {
-          skipped++;
+          notCiphertext++;
           continue;
         }
 
@@ -89,15 +90,21 @@ async function main() {
             });
           }
           updated++;
+          continue;
         } catch {
-          // Already on new key, or plaintext / corrupt — leave alone.
-          skipped++;
+          // try current key below
+        }
+
+        try {
+          CryptoService.decryptWithKey(msg.content, newKey);
+          alreadyCurrent++;
+        } catch {
           failed++;
         }
       }
 
       console.log(
-        `… scanned=${scanned} updated=${updated} skipped=${skipped} decrypt_miss=${failed}`,
+        `… scanned=${scanned} updated=${updated} already_current=${alreadyCurrent} not_ciphertext=${notCiphertext} decrypt_miss=${failed}`,
       );
     }
   } finally {
@@ -106,8 +113,14 @@ async function main() {
   }
 
   console.log(
-    `Done. scanned=${scanned} updated=${updated} skipped=${skipped} decrypt_miss=${failed}`,
+    `Done. scanned=${scanned} updated=${updated} already_current=${alreadyCurrent} not_ciphertext=${notCiphertext} decrypt_miss=${failed}`,
   );
+  if (failed > 0) {
+    console.error(
+      `WARNING: ${failed} message(s) decrypt with neither ENCRYPTION_KEY_LEGACY nor ENCRYPTION_KEY.`,
+    );
+    process.exitCode = 2;
+  }
 }
 
 main().catch((err) => {
