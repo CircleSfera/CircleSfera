@@ -52,7 +52,9 @@ describe('AudioService', () => {
       });
 
       const result = await service.create(dto);
-      expect(mockPrismaService.audio.create).toHaveBeenCalledWith({ data: dto });
+      expect(mockPrismaService.audio.create).toHaveBeenCalledWith({
+        data: dto,
+      });
       expect(result).toHaveProperty('id', 'audio-1');
     });
   });
