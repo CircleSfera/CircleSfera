@@ -24,34 +24,34 @@ if [[ ! -f .env.production ]]; then
 fi
 
 # Ensure REDIS_PASSWORD is present before uploading
-if ! grep -q '^REDIS_PASSWORD=.' .env.production; then
-  echo "ERROR: REDIS_PASSWORD is missing/empty in .env.production"
-  exit 1
-fi
-if ! grep -q '^JWT_SECRET=.' .env.production; then
-  echo "ERROR: JWT_SECRET is missing/empty in .env.production"
-  exit 1
-fi
-if ! grep -q '^JWT_REFRESH_SECRET=.' .env.production; then
-  echo "ERROR: JWT_REFRESH_SECRET is missing/empty in .env.production"
-  exit 1
-fi
-if ! grep -q '^OPENAI_API_KEY=.' .env.production; then
-  echo "ERROR: OPENAI_API_KEY is missing/empty in .env.production (required in production)"
-  exit 1
-fi
-if ! grep -q '^LIVEKIT_API_KEY=.' .env.production; then
-  echo "ERROR: LIVEKIT_API_KEY is missing/empty in .env.production"
-  exit 1
-fi
-if ! grep -q '^LIVEKIT_API_SECRET=.' .env.production; then
-  echo "ERROR: LIVEKIT_API_SECRET is missing/empty in .env.production"
-  exit 1
-fi
+require_var() {
+  local key="$1"
+  local hint="${2:-}"
+  if ! grep -q "^${key}=." .env.production; then
+    echo "ERROR: ${key} is missing/empty in .env.production"
+    [ -n "$hint" ] && echo "       $hint"
+    exit 1
+  fi
+}
+
+require_var REDIS_PASSWORD
+require_var JWT_SECRET
+require_var JWT_REFRESH_SECRET
+require_var CSRF_SECRET
+require_var ENCRYPTION_KEY "Min 32 chars. Re-encrypt existing DMs with scripts/reencrypt-messages.ts before rotating."
+require_var OPENAI_API_KEY "Required in production"
+require_var LIVEKIT_API_KEY
+require_var LIVEKIT_API_SECRET
 if ! grep -qE '^(LIVEKIT_URL|VITE_LIVEKIT_URL)=.' .env.production; then
   echo "ERROR: LIVEKIT_URL (or VITE_LIVEKIT_URL) is missing/empty in .env.production"
   echo "       Use your LiveKit Cloud WSS URL, e.g. wss://xxxx.livekit.cloud"
   exit 1
+fi
+if ! grep -q '^SENTRY_DSN=.' .env.production; then
+  echo "WARNING: SENTRY_DSN is empty — backend error reporting will be disabled in production."
+fi
+if ! grep -q '^VITE_SENTRY_DSN=.' .env.production; then
+  echo "WARNING: VITE_SENTRY_DSN is empty — frontend Sentry will be inactive unless baked another way."
 fi
 
 echo "Uploading .env.production as secret ENV_PRODUCTION_B64..."
