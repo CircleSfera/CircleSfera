@@ -109,7 +109,11 @@ describe('MonetizationService', () => {
       });
 
       await expect(
-        service.createPostUnlockSession('user-1', 'post-1', 'http://localhost/return'),
+        service.createPostUnlockSession(
+          'user-1',
+          'post-1',
+          'http://localhost/return',
+        ),
       ).rejects.toThrow();
     });
 
@@ -122,7 +126,11 @@ describe('MonetizationService', () => {
       });
 
       await expect(
-        service.createPostUnlockSession('user-1', 'post-1', 'http://localhost/return'),
+        service.createPostUnlockSession(
+          'user-1',
+          'post-1',
+          'http://localhost/return',
+        ),
       ).rejects.toThrow();
     });
   });
@@ -130,13 +138,23 @@ describe('MonetizationService', () => {
   describe('createTipSession', () => {
     it('should throw if amount is less than 100 cents', async () => {
       await expect(
-        service.createTipSession('user-1', 'creator-1', 50, 'http://localhost/return'),
+        service.createTipSession(
+          'user-1',
+          'creator-1',
+          50,
+          'http://localhost/return',
+        ),
       ).rejects.toThrow();
     });
 
     it('should throw if tipping yourself', async () => {
       await expect(
-        service.createTipSession('user-1', 'user-1', 500, 'http://localhost/return'),
+        service.createTipSession(
+          'user-1',
+          'user-1',
+          500,
+          'http://localhost/return',
+        ),
       ).rejects.toThrow();
     });
   });
