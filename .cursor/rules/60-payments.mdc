@@ -1,0 +1,45 @@
+---
+description: Stripe, platform fee, entitlement and webhook rules for CircleSfera money flows
+globs: circlesfera-backend/src/payments/**, circlesfera-backend/src/monetization/**, circlesfera-backend/src/creator/**, circlesfera-backend/src/live/**, circlesfera-backend/src/common/stripe/**
+alwaysApply: false
+---
+
+Money is the highest-risk surface in the codebase. Monetization changes are on the `AGENTS.md`
+confirmation list.
+
+Facts, verified:
+
+- **Platform plans** are `PlatformPlan` rows, not an enum: `Premium`, `Elite Creator`, `Business`. One
+  active plan per user (ADR-0003).
+- **Creator VIP price** is canonical on `Profile.subscriptionPriceCents`; a client-supplied
+  `priceCents` is ignored.
+- **Platform fee is 20%** on Connect charges: `application_fee_amount = floor(amount * 0.2)` for tips,
+  unlocks and gifts, `application_fee_percent: 20.0` for creator subscriptions, and the local ledger
+  credits `floor(amount * 0.8)` to `Monetization.lifetimeEarningsCents`. The Stripe fee and the local
+  credit must always agree. The constant is duplicated across four services — see
+  `.ai/core/known-gaps.md` B2. Changing the percentage requires confirmation and supersedes ADR-0010.
+- **Gift prices are server-side** in `src/live/gift-catalog.ts`. Never trust a client amount.
+- **Currency** is EUR for tips, unlocks and gifts. Integer cents everywhere, never floats.
+- **Webhooks** are deduplicated via `WebhookEvent`, marked `PROCESSED` only after success, and return
+  HTTP 5xx on failure so Stripe retries. Never swallow a webhook error.
+- **Payouts are read-only** — Connect balance and recent payouts only. There is no internal payout
+  ledger and reintroducing one would supersede ADR-0002.
+- **KYC:** `IdentityVerifiedGuard` protects connect, tip, unlock, unlock-story, checkout and gift
+  sending.
+- **Entitlement** is verified server-side against `PostUnlock`, `StoryUnlock`, an active
+  `CreatorSubscription`, or ownership — never from the client, never only in the UI. A dispute revokes
+  unlocks; keep revocation consistent for anything new.
+- Every money movement writes a `Transaction` with the right `TransactionType`.
+
+Never:
+
+- Trust a client-supplied amount, price, plan or entitlement.
+- Mark a transaction complete before Stripe confirms.
+- Make a Stripe call inside a database transaction.
+- Log a full Stripe payload, customer object or payment method details.
+- Hardcode a price, product or key — they come from the database or config.
+
+Every change here needs tests on the money path: fee math, idempotency on double delivery, and the
+failure matrix (expired, failed, refunded, disputed, cancelled).
+
+Full checks: @.ai/agents/payments.md

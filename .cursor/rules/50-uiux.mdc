@@ -1,0 +1,45 @@
+---
+description: CircleSfera design system tokens, visual identity and UX rules
+globs: circlesfera-frontend/src/components/**, circlesfera-frontend/src/pages/**, circlesfera-frontend/src/index.css, circlesfera-frontend/tailwind.config.js
+alwaysApply: false
+---
+
+Improve usability without changing CircleSfera's visual identity.
+
+**Tokens are in `circlesfera-frontend/src/index.css`** (`:root` + Tailwind v4 `@theme`), not in
+`tailwind.config.js`:
+
+```text
+--brand-primary #833ab4   --brand-secondary #fd1d1d   --brand-accent #fcb045   --brand-blue #405de6
+--surface-base #030303    --surface-elevated #0a0a0a  --surface-raised #1c1c1c --surface-high #262626
+--glass-border / --glass-surface / --glass-highlight
+```
+
+Use them as `bg-brand-primary`, `bg-surface-raised`, and so on. A raw hex or a stock Tailwind palette
+colour in a component is a finding.
+
+Rules:
+
+- Dark theme only (`color-scheme: dark`). No light theme, no toggle.
+- Reuse the primitives in `src/components/ui/` (Avatar, Button, Card, Dialog, Input, PullToRefresh,
+  Select, Switch, Textarea, Tooltip). Extend rather than fork.
+- Icons: `lucide-react` only. Chrome typography: Inter. Display fonts are for content styling in the
+  editor surfaces, not for UI chrome.
+- Surfaces use the existing glass language (`.glass-panel`, `.glass-panel-post`, `.modal-glass`). No
+  new material, no parallel spacing or radius scale.
+- Animations come from the registered set in `@theme`, and everything animated must stay neutralised
+  under `prefers-reduced-motion: reduce`.
+- `backdrop-filter` is disabled at 768px and below for performance — do not reintroduce expensive effects
+  there.
+- Hover, focus, active and disabled states defined. Never remove a visible focus indicator.
+- Handle loading, empty, error and offline with the existing `LoadingStates`, `EmptyState`,
+  `ErrorState`.
+- Every string through i18n, keys in both `en.json` and `es.json`.
+- Touch targets at least 44×44 CSS pixels.
+
+**Benchmarking:** studying Instagram, TikTok, X, Threads, YouTube and Apple is encouraged — extract the
+principle and *why it works*. Never replicate layout, iconography, colour, typography, animation or
+components. Never trade a product principle (user control, transparency, no hidden suppression) for
+engagement.
+
+Full checks: @.ai/agents/design-system.md

@@ -1,0 +1,38 @@
+---
+description: Test strategy and conventions for CircleSfera (Vitest, Testing Library, Playwright)
+globs: circlesfera-backend/src/**/*.spec.ts, circlesfera-backend/test/**/*.e2e-spec.ts, circlesfera-frontend/src/**/*.test.ts, circlesfera-frontend/src/**/*.test.tsx, e2e/**/*.spec.ts
+alwaysApply: false
+---
+
+| Layer | Location | Command |
+| --- | --- | --- |
+| Backend unit | `circlesfera-backend/src/**/*.spec.ts` | `npm test` |
+| Backend e2e | `circlesfera-backend/test/*.e2e-spec.ts` — real Postgres + Redis, `fileParallelism: false` | `npm run test:e2e` |
+| Frontend unit | `circlesfera-frontend/src/**/*.{test,spec}.{ts,tsx}` | `npm test` |
+| Browser e2e | root `e2e/*.spec.ts`, Playwright, baseURL `http://localhost:5173` | `npm run test:e2e` |
+
+Coverage thresholds are 30% statements/lines. That is a floor, not a target.
+
+Rules:
+
+- A change without a test that **fails before it and passes after** is unverified.
+- Test the deny path: forbidden, unauthenticated, wrong owner, missing staff permission, invalid
+  payload. Model: `src/auth/guards/admin.guard.spec.ts`.
+- Prefer the cheapest level that would actually catch the regression: unit for business rules, backend
+  e2e for contract behaviour (status codes, auth, CSRF, validation rejection), Testing Library for
+  user-visible component behaviour, Playwright for a critical journey.
+- Keep `e2e/smoke.spec.ts` fast and auth-free — it gates every PR.
+- Backend e2e tests share one database and run serially; clean up your fixtures.
+- Frontend tests assert what the user sees, not internal state. `src/test/setup.ts` already mocks
+  `matchMedia`, `IntersectionObserver` and `react-i18next`.
+- Deterministic only: no real clock, no real network, no dependence on file order.
+- Never leave `.skip` or `.only`. Never weaken an assertion to make a test pass. Never write a test
+  that only exercises its own mocks.
+- Never assert a test run you did not perform. If you skipped tests, say why.
+
+Edge cases worth enumerating every time: auth state (anonymous, suspended, banned, scheduled for
+deletion), relationships (blocked, muted, private, pending follow, close friends), content state
+(`HIDDEN`/`REMOVED`, `MATURE`, premium and locked, expired story), roles, plan state, money failure
+paths, and empty/single/last-page lists.
+
+Full strategy: @.ai/agents/qa.md
