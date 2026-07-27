@@ -41,7 +41,11 @@ describe('CloseFriendsService', () => {
         { id: 'cf-1', userId: 'user-1', friendId: 'friend-1' },
       ]);
       mockPrismaService.user.findMany.mockResolvedValue([
-        { id: 'friend-1', email: 'friend@example.com', profile: { username: 'friend' } },
+        {
+          id: 'friend-1',
+          email: 'friend@example.com',
+          profile: { username: 'friend' },
+        },
       ]);
 
       const result = await service.getCloseFriends('user-1');

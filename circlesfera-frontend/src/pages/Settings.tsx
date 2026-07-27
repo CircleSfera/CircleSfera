@@ -271,10 +271,36 @@ export default function Settings() {
   });
 
   const deleteAccountMutation = useMutation({
-    mutationFn: () => profileApi.deleteAccount(),
+    mutationFn: () => usersApi.scheduleDeletion(),
     onSuccess: () => {
+      toast.success(
+        t(
+          'settings.account.delete_scheduled',
+          'Account scheduled for deletion. Log in within 30 days to restore it.',
+        ),
+      );
       logout();
       navigate('/accounts/login');
+    },
+  });
+
+  const cancelDeletionMutation = useMutation({
+    mutationFn: () => usersApi.cancelScheduledDeletion(),
+    onSuccess: () => {
+      toast.success(
+        t(
+          'settings.account.delete_cancelled',
+          'Account deletion cancelled. Your account is active again.',
+        ),
+      );
+    },
+    onError: () => {
+      toast.error(
+        t(
+          'settings.account.delete_cancel_error',
+          'Could not cancel deletion. Try logging in again within the grace period.',
+        ),
+      );
     },
   });
 
@@ -516,11 +542,18 @@ export default function Settings() {
   const handleDelete = () => {
     if (
       window.confirm(
-        'Are you sure you want to PERMANENTLY delete your account? This action cannot be undone.',
+        t(
+          'settings.account.delete.confirm',
+          'Schedule permanent deletion? You can restore by logging in within 30 days.',
+        ),
       )
     ) {
       deleteAccountMutation.mutate();
     }
+  };
+
+  const handleCancelDeletion = () => {
+    cancelDeletionMutation.mutate();
   };
 
   const handleLogout = () => {
@@ -1424,16 +1457,32 @@ export default function Settings() {
                       {t('settings.account.delete.title')}
                     </h3>
                     <p className="text-sm text-gray-500 leading-relaxed font-medium mb-5">
-                      {t('settings.account.delete.desc')}
+                      {t(
+                        'settings.account.delete.desc',
+                        'Schedules deletion with a 30-day grace period. Log in again within that window to restore your account.',
+                      )}
                     </p>
-                    <Button
-                      onClick={handleDelete}
-                      isLoading={deleteAccountMutation.isPending}
-                      variant="danger"
-                      className="w-full px-5 py-2 font-black text-xs uppercase tracking-wide"
-                    >
-                      {t('settings.account.delete.btn')}
-                    </Button>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        onClick={handleDelete}
+                        isLoading={deleteAccountMutation.isPending}
+                        variant="danger"
+                        className="w-full px-5 py-2 font-black text-xs uppercase tracking-wide"
+                      >
+                        {t('settings.account.delete.btn')}
+                      </Button>
+                      <Button
+                        onClick={handleCancelDeletion}
+                        isLoading={cancelDeletionMutation.isPending}
+                        variant="outline"
+                        className="w-full px-5 py-2 font-black text-xs uppercase tracking-wide border-white/15 text-gray-300"
+                      >
+                        {t(
+                          'settings.account.delete.cancel_btn',
+                          'Cancel scheduled deletion',
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>

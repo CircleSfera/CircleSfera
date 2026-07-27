@@ -1,9 +1,9 @@
-/** Trigger re-index */
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   AccountType,
   ContentRating,
+  type Prisma,
   SubscriptionStatus,
   VerificationLevel,
   Visibility,
@@ -107,7 +107,7 @@ export class UsersService {
   async unbanUser(id: string) {
     return this.prisma.user.update({
       where: { id },
-      data: { isActive: true },
+      data: { isActive: true, suspendedUntil: null },
     });
   }
 
@@ -120,11 +120,72 @@ export class UsersService {
       where: { id: userId },
       include: {
         profile: true,
+        settings: true,
         refreshTokens: true,
         posts: {
           include: {
             media: true,
             _count: { select: { likes: true, comments: true } },
+          },
+        },
+        stories: {
+          select: {
+            id: true,
+            url: true,
+            mediaType: true,
+            createdAt: true,
+            expiresAt: true,
+            isCloseFriendsOnly: true,
+          },
+        },
+        likes: {
+          select: { id: true, postId: true, createdAt: true },
+        },
+        notifications: {
+          select: {
+            id: true,
+            type: true,
+            content: true,
+            read: true,
+            createdAt: true,
+            postId: true,
+            storyId: true,
+          },
+        },
+        appeals: true,
+        collections: {
+          select: {
+            id: true,
+            name: true,
+            coverUrl: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        sentTransactions: {
+          select: {
+            id: true,
+            type: true,
+            amount: true,
+            currency: true,
+            status: true,
+            createdAt: true,
+            receiverId: true,
+            postId: true,
+            storyId: true,
+          },
+        },
+        receivedTransactions: {
+          select: {
+            id: true,
+            type: true,
+            amount: true,
+            currency: true,
+            status: true,
+            createdAt: true,
+            senderId: true,
+            postId: true,
+            storyId: true,
           },
         },
         followers: {
@@ -143,6 +204,25 @@ export class UsersService {
         },
         comments: true,
         bookmarks: { include: { post: { select: { caption: true } } } },
+        messages: {
+          select: {
+            id: true,
+            conversationId: true,
+            content: true,
+            url: true,
+            mediaType: true,
+            voiceUrl: true,
+            postId: true,
+            storyId: true,
+            createdAt: true,
+            updatedAt: true,
+            isEdited: true,
+            isDeleted: true,
+            expiresAt: true,
+          },
+        },
+        supportTickets: true,
+        reports: true,
       },
     });
 
@@ -150,6 +230,7 @@ export class UsersService {
 
     // Use an explicit allowlist approach for GDPR data export
     // to prevent accidental leakage of sensitive fields (e2e keys, 2FA secrets, etc.)
+    // Message.content may be ciphertext; exported as stored (not decrypted).
     const safeData = {
       id: user.id,
       email: user.email,
@@ -159,12 +240,29 @@ export class UsersService {
       role: user.role,
       verificationLevel: user.verificationLevel,
       accountType: user.accountType,
+      dateOfBirth: user.dateOfBirth,
       profile: user.profile,
+      settings: user.settings,
       posts: user.posts,
+      stories: user.stories,
+      likes: user.likes,
+      notifications: user.notifications,
+      appeals: user.appeals,
+      collections: user.collections,
+      transactions: {
+        sent: user.sentTransactions,
+        received: user.receivedTransactions,
+      },
       followers: user.followers,
       following: user.following,
       comments: user.comments,
       bookmarks: user.bookmarks,
+      messages: {
+        note: 'Message content may be encrypted at rest; values are exported as stored ciphertext.',
+        items: user.messages,
+      },
+      supportTickets: user.supportTickets,
+      reportsFiled: user.reports,
     };
 
     return safeData as Record<string, unknown>;
@@ -188,20 +286,23 @@ export class UsersService {
   }
 
   /**
-   * Schedule user account for deletion after 30 days.
+   * Schedule user account for deletion after 30 days (GDPR grace window).
+   * Sets deletedAt = now (soft leave) and scheduledDeletionAt = now + 30d (hard delete due).
    * @param userId - The user ID
-   * @returns The scheduled deletion date
+   * @returns The scheduled hard-deletion date
    */
   async scheduleDeletion(userId: string) {
-    const scheduledDeletionAt = new Date();
+    const now = new Date();
+    const scheduledDeletionAt = new Date(now);
     scheduledDeletionAt.setDate(scheduledDeletionAt.getDate() + 30);
 
     await this.prisma.user.update({
       where: { id: userId },
       data: {
         isActive: false,
-        deletedAt: scheduledDeletionAt,
-      },
+        deletedAt: now,
+        scheduledDeletionAt,
+      } satisfies Prisma.UserUpdateInput,
     });
 
     // Schedule BullMQ job for Hard Delete (Exactly 30 days from now)
@@ -213,6 +314,42 @@ export class UsersService {
     );
 
     return scheduledDeletionAt;
+  }
+
+  /**
+   * Cancel a pending scheduled deletion within the grace window.
+   * @param userId - The user ID
+   */
+  async cancelScheduledDeletion(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new Error('User not found');
+    if (!user.scheduledDeletionAt) {
+      throw new Error('No scheduled deletion to cancel');
+    }
+    if (user.scheduledDeletionAt <= new Date()) {
+      throw new Error('Deletion grace window has expired');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isActive: true,
+        deletedAt: null,
+        scheduledDeletionAt: null,
+      } satisfies Prisma.UserUpdateInput,
+    });
+
+    try {
+      const job = await this.usersQueue.getJob(`delete-${userId}`);
+      if (job) await job.remove();
+    } catch {
+      // Job may already have been consumed; cron purge still respects scheduledDeletionAt.
+    }
+
+    return {
+      success: true,
+      message: 'Account restoration scheduled deletion cancelled',
+    };
   }
 
   /**
