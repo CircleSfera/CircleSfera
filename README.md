@@ -21,6 +21,7 @@ CircleSfera is a complete social media application that allows users to share ph
 ```
 CircleSfera/
 ├── .ai/                       # AI Engineering Framework (context, orchestrator, agents, playbooks)
+├── .agents/                   # Antigravity rules & workflows routing into .ai/
 ├── .cursor/rules/             # Cursor project rules routing into .ai/
 ├── circlesfera-backend/       # NestJS REST API
 │   ├── README.md
@@ -213,6 +214,7 @@ AI work on this repo is governed by [`AGENTS.md`](./AGENTS.md) and operationalis
 - [`.ai/orchestrator.md`](./.ai/orchestrator.md) — routes a request to the right playbook and specialist roles.
 - [`.ai/agents/`](./.ai/agents/README.md), [`.ai/playbooks/`](./.ai/playbooks/README.md), [`.ai/checklists/`](./.ai/checklists/README.md), [`.ai/templates/`](./.ai/templates/README.md) — roles, workflows, done-gates and document skeletons.
 - [`.cursor/rules/`](./.cursor/rules/) — thin Cursor rules that auto-attach the relevant `.ai/` context per file path.
+- [`.agents/`](./.agents/README.md) — Antigravity adapter: the same routing as workspace rules, plus the playbooks as slash commands (`/feature`, `/bug`, `/incident`, …).
 
 Verified inconsistencies between docs and code are tracked in [`.ai/core/known-gaps.md`](./.ai/core/known-gaps.md) instead of being silently "fixed".
 

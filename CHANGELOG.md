@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ### Added
 
-- **AI Engineering Framework** under `.ai/`: repo context (`core/`), task router (`orchestrator.md`), 24 specialist roles (`agents/`), 11 workflows (`playbooks/`), 9 done-gates (`checklists/`) and 7 document skeletons (`templates/`), plus 11 `.cursor/rules/*.mdc` routers that auto-attach the relevant context per file path. Verified doc/code drift is recorded in `.ai/core/known-gaps.md`
+- **AI Engineering Framework** under `.ai/`: repo context (`core/`), task router (`orchestrator.md`), 24 specialist roles (`agents/`), 11 workflows (`playbooks/`), 9 done-gates (`checklists/`) and 7 document skeletons (`templates/`). Tool adapters: 11 `.cursor/rules/*.mdc` routers, and `.agents/` for Antigravity (11 workspace rules + 11 `/slash-command` workflows). Verified doc/code drift is recorded in `.ai/core/known-gaps.md`
+- ADR-0011: in-repository AI engineering framework under `.ai/` (precedence, alternatives, constraints)
 - **P0 security**: required `ENCRYPTION_KEY` (no hardcoded fallback); `src/scripts/reencrypt-messages.ts` (ships in prod image); optional `ENCRYPTION_KEY_LEGACY` decrypt fallback during rotation
 - **P0 GDPR**: `scheduledDeletionAt` + unified `DELETE /users/me` / restore; login restores during grace; Settings cancel deletion
 - **P0 backups**: `scripts/backup-postgres.sh`, `backup-uploads.sh`, `restore-postgres.sh`; pre-deploy dump in CD

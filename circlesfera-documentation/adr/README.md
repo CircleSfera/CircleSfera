@@ -14,5 +14,6 @@ ADRs live here and sit at priority tier 4 in `AGENTS.md` (after schema, code, an
 | [0008](./0008-storage-providers.md) | Pluggable storage providers (S3, Cloudinary, local) | Accepted |
 | [0009](./0009-feed-fan-out.md) | Hybrid feed fan-out | Accepted |
 | [0010](./0010-platform-fee-20-percent.md) | 20% platform application fee on Connect charges | Accepted |
+| [0011](./0011-ai-engineering-framework.md) | In-repository AI engineering framework under `.ai/` | Accepted |
 
 When adding a durable architectural choice, create `NNNN-slug.md` and link it from this table and from [00-status.md](../00-status.md) when relevant.

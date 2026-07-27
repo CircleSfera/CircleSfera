@@ -28,7 +28,7 @@ AI agents are welcome, but they follow the same rules as humans:
 
 - [AGENTS.md](./AGENTS.md) has the highest precedence and overrides anything under `.ai/`.
 - [`.ai/orchestrator.md`](./.ai/orchestrator.md) routes a task to a playbook in [`.ai/playbooks/`](./.ai/playbooks/README.md) and the specialist roles in [`.ai/agents/`](./.ai/agents/README.md).
-- Cursor users get the relevant context automatically through [`.cursor/rules/`](./.cursor/rules/); other tools should be pointed at `.ai/core/` plus the applicable playbook.
+- Cursor users get the relevant context automatically through [`.cursor/rules/`](./.cursor/rules/); Antigravity users through [`.agents/`](./.agents/README.md), which also exposes the playbooks as slash commands. Other tools should be pointed at `.ai/core/` plus the applicable playbook.
 - `.ai/` is documentation, not a source of truth. If a statement there contradicts the code, the code wins and the `.ai/` file is corrected in the same PR.
 
 ## Commit style

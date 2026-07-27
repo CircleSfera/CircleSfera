@@ -7,9 +7,16 @@ Also add a row to circlesfera-documentation/adr/README.md, and link it from 00-s
 relevant. Match the tone of the existing ADRs: short, factual, decision-first.
 -->
 
-**Status:** Proposed | Accepted | Superseded by ADR-NNNN
-**Date:** YYYY-MM
-**Scope:** <backend | frontend | data | infra | product | payments | trust & safety>
+- **Status:** Proposed | Accepted | Superseded by ADR-NNNN
+- **Date:** YYYY-MM-DD
+- **Deciders:** <who decided — the shipped ADRs use "CircleSfera engineering / product">
+- **Scope:** <backend | frontend | data | infra | product | payments | trust & safety>
+
+<!-- Header format matches the shipped ADRs (see 0010-platform-fee-20-percent.md). -->
+
+The sections below are the full form. The shipped ADRs 0001–0010 use a shorter
+Context / Decision / Consequences shape; keep at least those three, and add the rest when the
+decision had real alternatives or needs traceable anchors.
 
 ## Context
 
