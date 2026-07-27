@@ -16,7 +16,10 @@ import {
   CurrentUser,
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
-import { AdminGuard } from '../auth/guards/admin.guard.js';
+import {
+  AdminGuard,
+  RequireStaffPermissions,
+} from '../auth/guards/admin.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
@@ -130,6 +133,7 @@ export class PostsController {
   /** Admin-only post deletion (bypasses ownership check). */
   @Delete(':id/admin')
   @UseGuards(AdminGuard)
+  @RequireStaffPermissions('content')
   @HttpCode(HttpStatus.NO_CONTENT)
   async adminRemove(@Param('id') id: string) {
     await this.postsService.adminRemove(id);
