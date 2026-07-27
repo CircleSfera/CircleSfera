@@ -14,11 +14,15 @@
  * If ENCRYPTION_KEY_LEGACY is omitted, the historical insecure default is used.
  * ALWAYS take a DB backup before running without --dry-run.
  */
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import pkg from 'pg';
 import {
   CryptoService,
   LEGACY_DEFAULT_ENCRYPTION_KEY,
 } from '../common/services/crypto.service.js';
+
+const { Pool } = pkg;
 
 const dryRun = process.argv.includes('--dry-run');
 const batchSize = 200;
@@ -27,6 +31,7 @@ async function main() {
   const legacySecret =
     process.env.ENCRYPTION_KEY_LEGACY || LEGACY_DEFAULT_ENCRYPTION_KEY;
   const newSecret = process.env.ENCRYPTION_KEY;
+  const databaseUrl = process.env.DATABASE_URL;
 
   if (!newSecret || newSecret.length < 32) {
     throw new Error('ENCRYPTION_KEY (new) must be set and at least 32 chars');
@@ -34,10 +39,14 @@ async function main() {
   if (legacySecret === newSecret) {
     throw new Error('ENCRYPTION_KEY_LEGACY and ENCRYPTION_KEY must differ');
   }
+  if (!databaseUrl) {
+    throw new Error('DATABASE_URL must be set');
+  }
 
   const oldKey = CryptoService.deriveKey(legacySecret);
   const newKey = CryptoService.deriveKey(newSecret);
-  const prisma = new PrismaClient();
+  const pool = new Pool({ connectionString: databaseUrl });
+  const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
   let cursor: string | undefined;
   let scanned = 0;
@@ -51,47 +60,51 @@ async function main() {
       : 'Re-encrypting messages… (backup first!)',
   );
 
-  for (;;) {
-    const messages = await prisma.message.findMany({
-      take: batchSize,
-      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-      orderBy: { id: 'asc' },
-      select: { id: true, content: true },
-    });
+  try {
+    for (;;) {
+      const messages = await prisma.message.findMany({
+        take: batchSize,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+        orderBy: { id: 'asc' },
+        select: { id: true, content: true },
+      });
 
-    if (messages.length === 0) break;
+      if (messages.length === 0) break;
 
-    for (const msg of messages) {
-      scanned++;
-      cursor = msg.id;
-      if (!msg.content?.includes(':')) {
-        skipped++;
-        continue;
-      }
-
-      try {
-        const plaintext = CryptoService.decryptWithKey(msg.content, oldKey);
-        const reencrypted = CryptoService.encryptWithKey(plaintext, newKey);
-        if (!dryRun) {
-          await prisma.message.update({
-            where: { id: msg.id },
-            data: { content: reencrypted },
-          });
+      for (const msg of messages) {
+        scanned++;
+        cursor = msg.id;
+        if (!msg.content?.includes(':')) {
+          skipped++;
+          continue;
         }
-        updated++;
-      } catch {
-        // Already on new key, or plaintext / corrupt — leave alone.
-        skipped++;
-        failed++;
-      }
-    }
 
-    console.log(
-      `… scanned=${scanned} updated=${updated} skipped=${skipped} decrypt_miss=${failed}`,
-    );
+        try {
+          const plaintext = CryptoService.decryptWithKey(msg.content, oldKey);
+          const reencrypted = CryptoService.encryptWithKey(plaintext, newKey);
+          if (!dryRun) {
+            await prisma.message.update({
+              where: { id: msg.id },
+              data: { content: reencrypted },
+            });
+          }
+          updated++;
+        } catch {
+          // Already on new key, or plaintext / corrupt — leave alone.
+          skipped++;
+          failed++;
+        }
+      }
+
+      console.log(
+        `… scanned=${scanned} updated=${updated} skipped=${skipped} decrypt_miss=${failed}`,
+      );
+    }
+  } finally {
+    await prisma.$disconnect();
+    await pool.end();
   }
 
-  await prisma.$disconnect();
   console.log(
     `Done. scanned=${scanned} updated=${updated} skipped=${skipped} decrypt_miss=${failed}`,
   );
