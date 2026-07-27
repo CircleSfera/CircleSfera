@@ -28,6 +28,7 @@ import {
 } from './decorators/current-user.decorator.js';
 import {
   LoginDto,
+  RefreshTokenDto,
   RegisterDto,
   RequestResetDto,
   ResetPasswordDto,
@@ -123,7 +124,7 @@ export class AuthController {
   })
   async refresh(
     @Req() req: Request,
-    @Body() body: { refreshToken?: string },
+    @Body() body: RefreshTokenDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string }> {
     const refreshToken = this.getRefreshToken(req, body);
@@ -148,7 +149,7 @@ export class AuthController {
   async logout(
     @CurrentUser() user: CurrentUserData,
     @Req() req: Request,
-    @Body() body: { refreshToken?: string },
+    @Body() body: RefreshTokenDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
     const refreshToken = this.getRefreshToken(req, body);

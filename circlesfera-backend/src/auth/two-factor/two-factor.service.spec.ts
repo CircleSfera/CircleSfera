@@ -118,7 +118,7 @@ describe('TwoFactorService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         twoFactorSecret: 'GENERATED_SECRET',
       });
-      vi.mocked(verifySync).mockReturnValue({ valid: false, delta: 0 });
+      vi.mocked(verifySync).mockReturnValue({ valid: false });
 
       const isValid = await service.isTwoFactorAuthenticationCodeValid(
         'wrong-code',
@@ -148,7 +148,7 @@ describe('TwoFactorService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         twoFactorSecret: 'GENERATED_SECRET',
       });
-      vi.mocked(verifySync).mockReturnValue({ valid: false, delta: 0 });
+      vi.mocked(verifySync).mockReturnValue({ valid: false });
 
       await expect(
         service.turnOnTwoFactorAuthentication('user-1', 'bad-code'),
@@ -176,7 +176,7 @@ describe('TwoFactorService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         twoFactorSecret: 'GENERATED_SECRET',
       });
-      vi.mocked(verifySync).mockReturnValue({ valid: false, delta: 0 });
+      vi.mocked(verifySync).mockReturnValue({ valid: false });
 
       await expect(
         service.turnOffTwoFactorAuthentication('user-1', 'bad-code'),

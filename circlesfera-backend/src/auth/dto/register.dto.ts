@@ -1,5 +1,11 @@
 import type { RegisterDto as IRegisterDto } from '@circlesfera/shared';
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsDateString,
+  IsEmail,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class RegisterDto implements IRegisterDto {
   @IsEmail()
@@ -20,4 +26,8 @@ export class RegisterDto implements IRegisterDto {
   @IsString()
   @IsOptional()
   inviteCode?: string;
+
+  /** ISO date (YYYY-MM-DD). Must be 16+ (enforced in AuthService). */
+  @IsDateString()
+  dateOfBirth!: string;
 }

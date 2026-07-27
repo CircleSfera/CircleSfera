@@ -50,6 +50,19 @@ export class AuthService {
   async register(
     dto: RegisterDto,
   ): Promise<{ accessToken: string; refreshToken: string }> {
+    const dateOfBirth = new Date(dto.dateOfBirth);
+    if (Number.isNaN(dateOfBirth.getTime())) {
+      throw new BadRequestException('Invalid date of birth');
+    }
+    const minimumDob = new Date();
+    minimumDob.setFullYear(minimumDob.getFullYear() - 16);
+    minimumDob.setHours(0, 0, 0, 0);
+    if (dateOfBirth > minimumDob) {
+      throw new BadRequestException(
+        'You must be at least 16 years old to register',
+      );
+    }
+
     // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -96,6 +109,7 @@ export class AuthService {
         email: dto.email,
         password: hashedPassword,
         verificationToken,
+        dateOfBirth,
         inviteCode:
           randomUUID().split('-')[0].toUpperCase() +
           Math.random().toString(36).substring(2, 6).toUpperCase(),
@@ -292,11 +306,15 @@ export class AuthService {
     }
 
     if (!user.isActive) {
-      if (user.deletedAt && user.deletedAt > new Date()) {
+      if (user.scheduledDeletionAt && user.scheduledDeletionAt > new Date()) {
         // Auto-restore account if logged in during GDPR grace period
         await this.prisma.user.update({
           where: { id: user.id },
-          data: { isActive: true, deletedAt: null },
+          data: {
+            isActive: true,
+            deletedAt: null,
+            scheduledDeletionAt: null,
+          },
         });
 
         // Cancel the scheduled hard delete job safely
@@ -310,6 +328,11 @@ export class AuthService {
         } catch (_err) {
           // Ignore queue connection issues during login restore
         }
+      } else if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+        throw new UnauthorizedException({
+          message: 'ACCOUNT_SUSPENDED',
+          suspendedUntil: user.suspendedUntil.toISOString(),
+        });
       } else {
         const secret =
           this.configService.get<string>('JWT_SECRET') ||
@@ -323,6 +346,11 @@ export class AuthService {
           appealToken,
         });
       }
+    } else if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+      throw new UnauthorizedException({
+        message: 'ACCOUNT_SUSPENDED',
+        suspendedUntil: user.suspendedUntil.toISOString(),
+      });
     }
 
     if (user.isTwoFactorEnabled) {
@@ -372,11 +400,15 @@ export class AuthService {
     }
 
     if (!user.isActive) {
-      if (user.deletedAt && user.deletedAt > new Date()) {
+      if (user.scheduledDeletionAt && user.scheduledDeletionAt > new Date()) {
         // Auto-restore account if logged in during GDPR grace period
         await this.prisma.user.update({
           where: { id: user.id },
-          data: { isActive: true, deletedAt: null },
+          data: {
+            isActive: true,
+            deletedAt: null,
+            scheduledDeletionAt: null,
+          },
         });
 
         // Cancel the scheduled hard delete job
@@ -384,6 +416,11 @@ export class AuthService {
         if (job) {
           await job.remove();
         }
+      } else if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+        throw new UnauthorizedException({
+          message: 'ACCOUNT_SUSPENDED',
+          suspendedUntil: user.suspendedUntil.toISOString(),
+        });
       } else {
         const secret = this.configService.getOrThrow<string>('JWT_SECRET');
         const appealToken = this.jwtService.sign(
@@ -395,6 +432,11 @@ export class AuthService {
           appealToken,
         });
       }
+    } else if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+      throw new UnauthorizedException({
+        message: 'ACCOUNT_SUSPENDED',
+        suspendedUntil: user.suspendedUntil.toISOString(),
+      });
     }
 
     return this.generateTokens(user.id, user.email);
@@ -409,10 +451,15 @@ export class AuthService {
   async refreshToken(
     dto: RefreshTokenDto,
   ): Promise<{ accessToken: string; refreshToken: string }> {
+    if (!dto.refreshToken) {
+      throw new UnauthorizedException('Refresh token required');
+    }
+    const refreshToken = dto.refreshToken;
+
     try {
       // Verify refresh token
       const payload = this.jwtService.verify<{ sub: string; email: string }>(
-        dto.refreshToken,
+        refreshToken,
         {
           secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
         },
@@ -420,7 +467,7 @@ export class AuthService {
 
       // Check if refresh token exists in database
       const storedToken = await this.prisma.refreshToken.findUnique({
-        where: { token: dto.refreshToken },
+        where: { token: refreshToken },
       });
 
       if (!storedToken || storedToken.userId !== payload.sub) {

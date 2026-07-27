@@ -18,21 +18,21 @@ export default function AdminGuard({ children }: AdminGuardProps) {
   const location = useLocation();
 
   const userRole = profile?.user?.role;
-  const isAdmin = userRole === 'ADMIN';
+  const isStaff = userRole === 'ADMIN' || userRole === 'MODERATOR';
 
   useEffect(() => {
-    if (isAuthenticated && !isAdmin) {
+    if (isAuthenticated && !isStaff) {
       logger.warn(
-        `Security Alert: Non-admin user (${profile?.username}) tried to access ${location.pathname}`,
+        `Security Alert: Non-staff user (${profile?.username}) tried to access ${location.pathname}`,
       );
     }
-  }, [isAuthenticated, isAdmin, profile, location]);
+  }, [isAuthenticated, isStaff, profile, location]);
 
   if (!isAuthenticated) {
     return <Navigate to="/accounts/login" state={{ from: location }} replace />;
   }
 
-  if (!isAdmin) {
+  if (!isStaff) {
     return <Navigate to="/" replace />;
   }
 

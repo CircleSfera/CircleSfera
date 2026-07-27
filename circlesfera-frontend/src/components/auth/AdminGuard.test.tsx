@@ -33,7 +33,27 @@ describe('AdminGuard', () => {
     expect(screen.getByText('Admin Content')).toBeInTheDocument();
   });
 
-  it('blocks non-admin authenticated users', () => {
+  it('renders children for MODERATOR role', () => {
+    vi.mocked(useAuthStore).mockReturnValue({
+      isAuthenticated: true,
+      profile: {
+        username: 'mod',
+        user: { role: 'MODERATOR' },
+      },
+    } as unknown as ReturnType<typeof useAuthStore>);
+
+    render(
+      <MemoryRouter>
+        <AdminGuard>
+          <div>Mod Content</div>
+        </AdminGuard>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Mod Content')).toBeInTheDocument();
+  });
+
+  it('blocks non-staff authenticated users', () => {
     vi.mocked(useAuthStore).mockReturnValue({
       isAuthenticated: true,
       profile: {

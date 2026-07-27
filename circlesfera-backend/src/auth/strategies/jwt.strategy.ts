@@ -50,6 +50,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User not found or account deactivated');
     }
 
+    if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+      throw new UnauthorizedException({
+        message: 'ACCOUNT_SUSPENDED',
+        suspendedUntil: user.suspendedUntil.toISOString(),
+      });
+    }
+
     const role = (user as { role?: string }).role || 'USER';
 
     return {
