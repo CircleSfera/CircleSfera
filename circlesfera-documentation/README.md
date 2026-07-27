@@ -6,6 +6,8 @@ Index of the **12** product/technical documents (01–12) under `circlesfera-doc
 
 Freshness notes: [00-status.md](./00-status.md). ADRs: [adr/](./adr/). Ops runbooks: [runbooks/](./runbooks/).
 
+AI-assisted engineering context lives outside this folder, in [`.ai/`](../.ai/README.md) (governed by [AGENTS.md](../AGENTS.md)). It summarises and links to these documents; it does not replace them.
+
 | # | Document |
 | --- | --- |
 | 01 | [01-product-requirements-document.md](./01-product-requirements-document.md) |

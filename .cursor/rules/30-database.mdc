@@ -1,0 +1,44 @@
+---
+description: Prisma schema and migration rules for CircleSfera
+globs: circlesfera-backend/prisma/**
+alwaysApply: false
+---
+
+`schema.prisma` is the canonical data model. Schema changes are on the `AGENTS.md` confirmation list:
+**propose, then wait.**
+
+A schema edit without a matching migration has already caused a production outage here — `polls`,
+`qna_boxes`, `live_streams` and voice columns existed in the schema with no migration, and feed and
+stories returned 500 in production.
+
+Mandatory sequence:
+
+```bash
+# after confirmation, and after reading the current model
+npm run prisma:migrate            # then READ the generated SQL
+npm run prisma:generate
+npm run build                     # fix every type error this surfaces
+npm run prisma:check-migrations   # drift gate, needs an empty Postgres
+npm test && npm run test:e2e
+```
+
+Rules:
+
+- `PascalCase` singular model with `@@map` to the snake_case plural table.
+- A new non-nullable column on a populated table needs a default or a stated backfill.
+- Relations need a deliberate `onDelete`. Audit what a `User` hard delete now removes — GDPR deletion
+  depends on it.
+- Composite indexes go in the query's actual column order. Follow the existing shape on `Post` and
+  `Follow`.
+- Money is integer cents. Never a float.
+- Adding an enum value is usually safe; removing or renaming one breaks rows and code — trace every
+  comparison first.
+- High-volume tables need a retention answer; crons live in `src/maintenance/`.
+- Never edit an already-applied migration. Add a new one.
+- `prisma migrate deploy` runs at **container start** in production, so a change must be backward
+  compatible with the previously deployed image. Destructive or narrowing changes are split across
+  releases: add → backfill → switch reads → stop writing → drop.
+- Do not reintroduce a dropped concept without checking why it went — `payout_requests` and
+  `PayoutStatus` were removed deliberately (ADR-0002).
+
+Full process and checklist: @.ai/playbooks/schema-change.md

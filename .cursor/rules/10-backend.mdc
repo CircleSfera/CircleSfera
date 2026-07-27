@@ -1,0 +1,35 @@
+---
+description: NestJS backend patterns, validation, authorization and Prisma access for CircleSfera
+globs: circlesfera-backend/src/**/*.ts
+alwaysApply: false
+---
+
+Pattern: **Controller (thin, guards + DTO) → Service (business rules + `PrismaService`) → Postgres.**
+
+There is no repository layer, no mapper layer and no event bus (`EventEmitter2` is not installed).
+Do not introduce one as a side effect — that is an ADR-level decision.
+
+Load-bearing facts:
+
+- Global prefix `api/v1` (`src/main.ts`). Global `ValidationPipe` with `whitelist` and
+  `forbidNonWhitelisted`, so an undecorated DTO property returns 400. Never loosen the pipe.
+- Global `ThrottlerGuard` and `AllExceptionsFilter`, both registered in `src/app.module.ts`.
+- **Ownership is checked inside services**, comparing the entity's `userId` to the caller and throwing
+  `ForbiddenException`. There is no generic ownership guard — if you add a mutation, you add the check.
+- Guards available in `src/auth/guards/`: `JwtAuthGuard`, `JwtOptionalGuard`, `AdminGuard`
+  (deny-by-default for moderators, needs `@RequireStaffPermissions`), `SubscriptionGuard` +
+  `@RequiresPlan`, `IdentityVerifiedGuard` for money paths.
+- Reuse `src/common/dto/pagination.dto.ts` and `createPaginatedResult` for lists. No unbounded
+  `findMany`.
+- Slow, external or fan-out work goes to an existing BullMQ queue; processors live in
+  `src/<module>/processors/`. They run **in the API process**, so heavy jobs become request latency.
+- Cache via injected `CACHE_MANAGER` with an explicit TTL and a written invalidation path.
+- ESM: relative imports must carry the `.js` extension, or the build breaks.
+- Preserve the semantic error strings the frontend branches on (`ACCOUNT_SUSPENDED`,
+  `ACCOUNT_BANNED`).
+- Chat content is encrypted through `src/common/services/crypto.service.ts`. Never persist plaintext.
+
+Verify with `npm run lint`, `npm test` and `npm run build`. The build is the only real backend
+typecheck — CI's `test` job does not run it.
+
+Full checks: @.ai/agents/backend.md

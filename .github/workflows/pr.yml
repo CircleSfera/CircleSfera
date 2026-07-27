@@ -136,6 +136,7 @@ jobs:
       JWT_SECRET: ci-smoke-jwt-secret-not-for-production-use-only-testing-1234567890
       JWT_REFRESH_SECRET: ci-smoke-refresh-secret-not-for-production-use-only-testing-0987654321
       CSRF_SECRET: ci-smoke-csrf-secret-not-for-production-use-only-testing-abcdefghijklmno
+      ENCRYPTION_KEY: test-encryption-key-32-characters!!
       STRIPE_SECRET_KEY: sk_test_dummy
       STRIPE_WEBHOOK_SECRET: whsec_dummy
       CLOUDINARY_NAME: dummy

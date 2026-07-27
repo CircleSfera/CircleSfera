@@ -1,0 +1,35 @@
+---
+description: React 19 frontend patterns, data fetching and state management for CircleSfera
+globs: circlesfera-frontend/src/**/*.ts, circlesfera-frontend/src/**/*.tsx
+alwaysApply: false
+---
+
+Server state belongs to TanStack Query. Client and UI state belongs to Zustand. Never mirror server
+data into a store.
+
+Load-bearing facts:
+
+- Every request goes through a domain service in `src/services/*.service.ts`, which uses the single
+  `ApiClient` in `src/services/api.ts`. That client handles `withCredentials`, the `x-csrf-token`
+  header on non-GET requests, and the 401 → `POST /auth/refresh` → logout path. Never call `fetch` or
+  `axios` from a component.
+- Auth is httpOnly cookies. `authStore` persists profile flags only. Never read, write or store a
+  token client-side.
+- Query keys are ad-hoc strings with no central factory — match the domain's existing shape
+  (`['feed', tab]`, `['profile', username]`, `['post', id]`) and list every key a mutation must
+  invalidate.
+- Optimistic updates follow the local pattern: `onMutate` cancel + snapshot, `onError` rollback,
+  `onSettled` invalidate. Copy `src/components/LikeButton.tsx`.
+- Routes are declared in `src/App.tsx`, heavy ones via `React.lazy`. Keep the legacy redirects working
+  (`/post/:id` → `/p/:id`, `/messages` → `/direct/inbox`, `/settings` → `/accounts/edit`).
+- Handle all four states with the existing `LoadingStates`, `EmptyState`, `ErrorState`.
+- Every user-facing string goes through `useTranslation`, with the key added to **both**
+  `src/locales/en.json` and `src/locales/es.json`.
+- Reuse the primitives in `src/components/ui/`; decompose components past ~300 lines.
+- There is **no list virtualization** in the app, so avoid creating objects, callbacks or unstable keys
+  inline in list rows.
+- `AuthGuard` / `AdminGuard` / `CreatorStudioGuard` are UX, never security. The server decides.
+
+Verify with `npm run lint`, `npm test` and `npm run build` (`tsc -b && vite build` is the typecheck).
+
+Full checks: @.ai/agents/frontend.md
