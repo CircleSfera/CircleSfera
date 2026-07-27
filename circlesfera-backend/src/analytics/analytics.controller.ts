@@ -9,6 +9,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
+import {
+  AdminGuard,
+  RequireStaffPermissions,
+} from '../auth/guards/admin.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { AnalyticsService } from './analytics.service.js';
@@ -89,8 +93,10 @@ export class AnalyticsController {
     return this.analyticsService.getPostInsights(postId);
   }
 
-  /** Manual trigger for testing aggregation (temporary) */
+  /** Manual trigger for testing aggregation (ADMIN only) */
   @Post('debug/aggregate')
+  @UseGuards(AdminGuard)
+  @RequireStaffPermissions('system')
   async debugAggregate(@CurrentUser('id') userId: string) {
     return this.analyticsService.performDailyAggregation(userId);
   }
