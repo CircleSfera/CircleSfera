@@ -56,7 +56,9 @@ export class CommentsService {
         mediaType: dto.mediaType,
         voiceUrl: dto.voiceUrl,
         voiceDuration: dto.voiceDuration,
-        voiceWaveform: dto.voiceWaveform ? JSON.parse(JSON.stringify(dto.voiceWaveform)) : undefined,
+        voiceWaveform: dto.voiceWaveform
+          ? JSON.parse(JSON.stringify(dto.voiceWaveform))
+          : undefined,
       },
       include: {
         user: {

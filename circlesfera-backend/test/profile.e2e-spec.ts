@@ -21,6 +21,7 @@ describe('Profiles (e2e)', () => {
     email: `profile_e2e_${uniqueId}@example.com`,
     password: 'Password123!',
     username: `profile_user_${uniqueId}`,
+    dateOfBirth: '1990-01-15',
   };
 
   beforeAll(async () => {

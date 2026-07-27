@@ -8,7 +8,7 @@ describe('CryptoService', () => {
 
   const mockConfigService = {
     get: vi.fn((key: string) => {
-      if (key === 'ENCRYPTION_KEY') return 'test-32-character-secret-key!!';
+      if (key === 'ENCRYPTION_KEY') return 'test-32-character-secret-key!!!!';
       return null;
     }),
   };
@@ -27,6 +27,20 @@ describe('CryptoService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('should refuse to boot without ENCRYPTION_KEY', async () => {
+    await expect(
+      Test.createTestingModule({
+        providers: [
+          CryptoService,
+          {
+            provide: ConfigService,
+            useValue: { get: vi.fn(() => null) },
+          },
+        ],
+      }).compile(),
+    ).rejects.toThrow(/ENCRYPTION_KEY/);
   });
 
   describe('encrypt and decrypt', () => {
@@ -49,6 +63,35 @@ describe('CryptoService', () => {
     it('should return unencrypted text if format does not match AES-GCM tag structure', () => {
       const plain = 'unencrypted_string';
       expect(service.decrypt(plain)).toBe(plain);
+    });
+
+    it('should decrypt ciphertext produced with ENCRYPTION_KEY_LEGACY', async () => {
+      const legacySecret = 'legacy-secret-key-32-chars-long!!';
+      const currentSecret = 'test-32-character-secret-key!!!!';
+      const legacyKey = CryptoService.deriveKey(legacySecret);
+      const ciphertext = CryptoService.encryptWithKey(
+        'legacy message',
+        legacyKey,
+      );
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          CryptoService,
+          {
+            provide: ConfigService,
+            useValue: {
+              get: vi.fn((key: string) => {
+                if (key === 'ENCRYPTION_KEY') return currentSecret;
+                if (key === 'ENCRYPTION_KEY_LEGACY') return legacySecret;
+                return null;
+              }),
+            },
+          },
+        ],
+      }).compile();
+
+      const withLegacy = module.get<CryptoService>(CryptoService);
+      expect(withLegacy.decrypt(ciphertext)).toBe('legacy message');
     });
   });
 });

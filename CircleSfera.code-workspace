@@ -5,6 +5,8 @@
     }
   ],
   "settings": {
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "typescript.tsdk": "circlesfera-backend/node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true
   }
 }

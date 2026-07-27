@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 
@@ -115,20 +116,25 @@ export class MaintenanceService {
   }
 
   /**
-   * Cleans up search history older than 30 days for privacy.
+   * Cleans up search history past expiresAt (GDPR 90-day retention),
+   * or older than 90 days when expiresAt was never set.
    * Runs daily at midnight.
    */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async cleanupOldSearchHistory() {
-    this.logger.log('Cleaning up old search history...');
+    this.logger.log('Cleaning up expired search history...');
 
     try {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const now = new Date();
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
       const result = await this.prisma.searchHistory.deleteMany({
         where: {
-          createdAt: { lt: thirtyDaysAgo },
+          OR: [
+            { expiresAt: { not: null, lte: now } },
+            { expiresAt: null, createdAt: { lt: ninetyDaysAgo } },
+          ],
         },
       });
 
@@ -141,23 +147,112 @@ export class MaintenanceService {
   }
 
   /**
-   * GDPR Hard Delete Worker: Permanently purges user accounts soft-deleted > 30 days ago.
-   * Runs daily at midnight. Removes PII and records an anonymized audit log.
+   * Purge resolved/rejected reports older than 2 years.
+   * Uses resolvedAt when set; otherwise updatedAt for RESOLVED/REJECTED.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async purgeOldResolvedReports() {
+    this.logger.log('Purging resolved reports older than 2 years...');
+
+    try {
+      const twoYearsAgo = new Date();
+      twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+
+      const result = await this.prisma.report.deleteMany({
+        where: {
+          status: { in: ['RESOLVED', 'REJECTED'] },
+          OR: [
+            { resolvedAt: { not: null, lt: twoYearsAgo } },
+            { resolvedAt: null, updatedAt: { lt: twoYearsAgo } },
+          ],
+        } satisfies Prisma.ReportWhereInput,
+      });
+
+      if (result.count > 0) {
+        this.logger.log(`Purged ${result.count} old resolved reports.`);
+      }
+    } catch (error) {
+      this.logger.error('Error in purgeOldResolvedReports cron job', error);
+    }
+  }
+
+  /**
+   * Purge webhook_events older than 30 days.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async purgeOldWebhookEvents() {
+    this.logger.log('Purging webhook events older than 30 days...');
+
+    try {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const result = await this.prisma.webhookEvent.deleteMany({
+        where: {
+          createdAt: { lt: thirtyDaysAgo },
+        },
+      });
+
+      if (result.count > 0) {
+        this.logger.log(`Purged ${result.count} old webhook events.`);
+      }
+    } catch (error) {
+      this.logger.error('Error in purgeOldWebhookEvents cron job', error);
+    }
+  }
+
+  /**
+   * Lift temporary suspensions whose suspendedUntil has passed.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async liftExpiredSuspensions() {
+    this.logger.log('Lifting expired temporary suspensions...');
+
+    try {
+      const now = new Date();
+      const result = await this.prisma.user.updateMany({
+        where: {
+          suspendedUntil: { not: null, lte: now },
+          isActive: false,
+          scheduledDeletionAt: null,
+        } satisfies Prisma.UserWhereInput,
+        data: {
+          isActive: true,
+          suspendedUntil: null,
+        },
+      });
+
+      if (result.count > 0) {
+        this.logger.log(`Lifted ${result.count} expired suspensions.`);
+      }
+    } catch (error) {
+      this.logger.error('Error in liftExpiredSuspensions cron job', error);
+    }
+  }
+
+  /**
+   * GDPR Hard Delete Worker: Permanently purges accounts whose scheduledDeletionAt has passed.
+   * Falls back to deletedAt + 30d for legacy rows without scheduledDeletionAt.
+   * Runs daily at midnight.
    */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async purgeGdprDeletedUsers() {
     this.logger.log('Starting GDPR hard delete purge worker...');
 
     try {
+      const now = new Date();
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
       const usersToPurge = await this.prisma.user.findMany({
         where: {
-          deletedAt: {
-            not: null,
-            lt: thirtyDaysAgo,
-          },
-        },
+          OR: [
+            { scheduledDeletionAt: { not: null, lte: now } },
+            {
+              scheduledDeletionAt: null,
+              deletedAt: { not: null, lt: thirtyDaysAgo },
+            },
+          ],
+        } satisfies Prisma.UserWhereInput,
         select: { id: true },
       });
 

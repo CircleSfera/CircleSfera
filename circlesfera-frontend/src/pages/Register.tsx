@@ -18,6 +18,7 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [searchParams] = useSearchParams();
   const [inviteCode, setInviteCode] = useState(
     searchParams.get('inviteCode') || '',
@@ -30,6 +31,7 @@ export default function Register() {
         password,
         username,
         fullName,
+        dateOfBirth,
         inviteCode: inviteCode || undefined,
       }),
     onSuccess: async () => {
@@ -48,6 +50,26 @@ export default function Register() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!dateOfBirth) {
+      toast.error(t('auth.register.dob_required', 'Date of birth is required'));
+      return;
+    }
+    const dob = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age -= 1;
+    }
+    if (age < 16) {
+      toast.error(
+        t(
+          'auth.register.age_error',
+          'You must be at least 16 years old to register.',
+        ),
+      );
+      return;
+    }
     registerMutation.mutate();
   };
 
@@ -146,6 +168,27 @@ export default function Register() {
                 placeholder={t('auth.register.password_placeholder')}
                 autoComplete="new-password"
               />
+            </div>
+
+            <div>
+              <label
+                htmlFor="dateOfBirth"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
+              >
+                {t('auth.register.dob_label')}
+              </label>
+              <input
+                id="dateOfBirth"
+                type="date"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+                required
+                className="w-full px-2 py-1 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
+                autoComplete="bday"
+              />
+              <p className="mt-1 px-1 text-[10px] text-gray-500">
+                {t('auth.register.dob_hint')}
+              </p>
             </div>
 
             <div>

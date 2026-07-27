@@ -55,8 +55,9 @@ export class AnalyticsService {
       });
 
       if (dto.targetType === 'POST' && dto.targetId) {
-        this.updatePostPerformanceScore(dto.targetId, dto.dwellTime || 0).catch((err) =>
-          this.logger.error(`Async performance score update failed: ${err}`),
+        this.updatePostPerformanceScore(dto.targetId, dto.dwellTime || 0).catch(
+          (err) =>
+            this.logger.error(`Async performance score update failed: ${err}`),
         );
       }
 
@@ -94,7 +95,9 @@ export class AnalyticsService {
 
       for (const [postId, totalDwellTime] of postDwellMap.entries()) {
         this.updatePostPerformanceScore(postId, totalDwellTime).catch((err) =>
-          this.logger.error(`Batch performance score update failed for post ${postId}: ${err}`),
+          this.logger.error(
+            `Batch performance score update failed for post ${postId}: ${err}`,
+          ),
         );
       }
 
@@ -126,7 +129,10 @@ export class AnalyticsService {
 
       if (!post) return;
 
-      const additionalSeconds = Math.max(0, Math.floor(additionalDwellTimeMs / 1000));
+      const additionalSeconds = Math.max(
+        0,
+        Math.floor(additionalDwellTimeMs / 1000),
+      );
       const newWatchTime = post.watchTime + additionalSeconds;
 
       const likesWeight = post._count.likes * 2.0;
@@ -135,7 +141,12 @@ export class AnalyticsService {
       const watchTimeWeight = Math.log10(newWatchTime + 1) * 1.5;
 
       const newScore = parseFloat(
-        (likesWeight + commentsWeight + bookmarksWeight + watchTimeWeight).toFixed(2),
+        (
+          likesWeight +
+          commentsWeight +
+          bookmarksWeight +
+          watchTimeWeight
+        ).toFixed(2),
       );
 
       await this.prisma.post.update({
@@ -147,7 +158,10 @@ export class AnalyticsService {
         },
       });
     } catch (error) {
-      this.logger.error(`Failed to update performance score for post ${postId}:`, error);
+      this.logger.error(
+        `Failed to update performance score for post ${postId}:`,
+        error,
+      );
     }
   }
 

@@ -23,7 +23,10 @@ import {
 import type { Request, Response } from 'express';
 import { AudioService } from '../audio/audio.service.js';
 import { CreateAudioDto } from '../audio/dto/create-audio.dto.js';
-import { AdminGuard } from '../auth/guards/admin.guard.js';
+import {
+  AdminGuard,
+  RequireStaffPermissions,
+} from '../auth/guards/admin.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { AdminService } from './admin.service.js';
 import { AdminOpsService } from './admin-ops.service.js';
@@ -49,6 +52,7 @@ export class AdminController {
   // ─── Statistics ───────────────────────────────────────────────────
 
   /** Basic stats (backwards compatible). */
+  @RequireStaffPermissions('users.read')
   @Get('stats')
   @HttpCode(HttpStatus.OK)
   async getStats() {
@@ -56,6 +60,7 @@ export class AdminController {
   }
 
   /** Enhanced stats with growth percentages and engagement metrics. */
+  @RequireStaffPermissions('users.read')
   @Get('stats/enhanced')
   @HttpCode(HttpStatus.OK)
   async getEnhancedStats() {
@@ -63,6 +68,7 @@ export class AdminController {
   }
 
   /** System health metrics (Database, AI Queues, Stripe Webhooks). */
+  @RequireStaffPermissions('system')
   @Get('health')
   @HttpCode(HttpStatus.OK)
   async getSystemHealth() {
@@ -71,6 +77,7 @@ export class AdminController {
 
   /** Send a broadcast email to all active users. */
   @Post('broadcast')
+  @RequireStaffPermissions('system')
   async sendBroadcast(@Body() dto: BroadcastEmailDto, @Req() req: AuthRequest) {
     return this.adminService.sendBroadcastEmail(req.user.userId, dto);
   }
@@ -78,6 +85,7 @@ export class AdminController {
   // ─── Users ────────────────────────────────────────────────────────
 
   /** Export all users as CSV — must be ABOVE :id routes. */
+  @RequireStaffPermissions('users.read')
   @Get('users/export')
   async exportUsersCSV(@Res() res: Response) {
     const csv = await this.adminService.exportUsersCSV();
@@ -90,6 +98,7 @@ export class AdminController {
   }
 
   /** Paginated user list with optional search and status filter. */
+  @RequireStaffPermissions('users.read')
   @Get('users')
   async getUsers(@Query() query: AdminQueryDto) {
     return this.adminService.getUsers(
@@ -102,28 +111,33 @@ export class AdminController {
 
   /** Ban a user. */
   @Patch('users/:id/ban')
+  @RequireStaffPermissions('users.ban')
   async banUser(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.adminService.banUser(req.user.userId, id);
   }
 
   /** Unban a user. */
   @Patch('users/:id/unban')
+  @RequireStaffPermissions('users.ban')
   async unbanUser(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.adminService.unbanUser(req.user.userId, id);
   }
 
   /** Promote user to admin role. */
   @Patch('users/:id/promote')
+  @RequireStaffPermissions('users.write')
   async promoteUser(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.adminService.promoteUser(req.user.userId, id);
   }
 
   /** Demote user from admin to regular user. */
   @Patch('users/:id/demote')
+  @RequireStaffPermissions('users.write')
   async demoteUser(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.adminService.demoteUser(req.user.userId, id);
   }
   /** Update user status (verification level, account type, active status). */
+  @RequireStaffPermissions('users.write')
   @Patch('users/:id/status')
   async updateUserStatus(
     @Param('id') id: string,
@@ -135,24 +149,28 @@ export class AdminController {
   }
 
   /** Revoke Stripe Identity KYC status. */
+  @RequireStaffPermissions('users.write')
   @Post('users/:id/revoke-kyc')
   async revokeUserKYC(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.adminService.revokeUserKYC(req.user.userId, id);
   }
 
   /** Sync Stripe Identity KYC status into CircleSfera. */
+  @RequireStaffPermissions('users.write')
   @Post('users/:id/sync-kyc')
   async syncUserKYC(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.adminService.syncUserKYC(req.user.userId, id);
   }
 
   /** Hard-delete a user account. */
+  @RequireStaffPermissions('users.ban')
   @Delete('users/:id')
   async deleteUser(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.adminService.deleteUser(req.user.userId, id);
   }
 
   /** Paginated whitelist list with optional search. */
+  @RequireStaffPermissions('users.read')
   @Get('whitelist')
   async getWhitelist(@Query() query: AdminQueryDto) {
     return this.adminService.getWhitelist(
@@ -163,6 +181,7 @@ export class AdminController {
   }
 
   /** Update a whitelist entry. */
+  @RequireStaffPermissions('users.write')
   @Patch('whitelist/:id')
   async updateWhitelist(
     @Param('id') id: string,
@@ -173,6 +192,7 @@ export class AdminController {
   }
 
   /** Delete a whitelist entry. */
+  @RequireStaffPermissions('users.write')
   @Delete('whitelist/:id')
   async deleteWhitelist(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.adminService.deleteWhitelist(req.user.userId, id);
@@ -181,6 +201,7 @@ export class AdminController {
   // ─── Posts ────────────────────────────────────────────────────────
 
   /** Export all posts as CSV — must be ABOVE :id routes. */
+  @RequireStaffPermissions('content')
   @Get('posts/export')
   async exportPostsCSV(@Res() res: Response) {
     const csv = await this.adminService.exportPostsCSV();
@@ -193,6 +214,7 @@ export class AdminController {
   }
 
   /** Paginated post list with optional search and type filter. */
+  @RequireStaffPermissions('content')
   @Get('posts')
   async getPosts(@Query() query: AdminQueryDto) {
     return this.adminService.getPosts(
@@ -204,6 +226,7 @@ export class AdminController {
   }
 
   /** Delete a post (admin moderation). */
+  @RequireStaffPermissions('content')
   @Delete('posts/:id')
   async deletePost(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.adminService.deletePost(req.user.userId, id);
@@ -212,6 +235,7 @@ export class AdminController {
   // ─── Reports ──────────────────────────────────────────────────────
 
   /** Paginated reports with optional search and status filter. */
+  @RequireStaffPermissions('reports')
   @Get('reports')
   async getReports(@Query() query: AdminQueryDto) {
     return this.adminService.getReports(
@@ -222,18 +246,33 @@ export class AdminController {
     );
   }
 
-  /** Update a report's status (resolve/dismiss). */
+  /** Update a report's status (resolve/dismiss/reviewing). */
   @Patch('reports/:id')
+  @RequireStaffPermissions('reports')
   async updateReport(
     @Param('id') id: string,
     @Body('status') status: ReportStatus,
+    @Body('internalNotes') internalNotes: string | undefined,
     @Req() req: AuthRequest,
   ) {
-    return this.adminService.updateReportStatus(req.user.userId, id, status);
+    return this.adminService.updateReportStatus(
+      req.user.userId,
+      id,
+      status,
+      internalNotes,
+    );
+  }
+
+  /** Claim a report into REVIEWING. */
+  @Post('reports/:id/claim')
+  @RequireStaffPermissions('reports')
+  async claimReport(@Param('id') id: string, @Req() req: AuthRequest) {
+    return this.adminService.claimReport(req.user.userId, id);
   }
 
   /** Resolve a report and apply a moderation penalty. */
   @Post('reports/:id/resolve-penalty')
+  @RequireStaffPermissions('reports')
   async resolveReportWithPenalty(
     @Param('id') id: string,
     @Body('action') action: 'IGNORE' | 'STRIKE' | 'BAN',
@@ -246,10 +285,45 @@ export class AdminController {
     );
   }
 
+  /** Formal warning (audit + notification). ADMIN-only permission users.ban. */
+  @Patch('users/:id/warn')
+  @RequireStaffPermissions('users.ban')
+  async warnUser(
+    @Param('id') id: string,
+    @Body('reason') reason: string | undefined,
+    @Req() req: AuthRequest,
+  ) {
+    return this.adminService.warnUser(req.user.userId, id, reason);
+  }
+
+  /** Temporary suspension. */
+  @Patch('users/:id/suspend')
+  @RequireStaffPermissions('users.ban')
+  async suspendUser(
+    @Param('id') id: string,
+    @Body() body: { days?: number; reason?: string },
+    @Req() req: AuthRequest,
+  ) {
+    return this.adminService.suspendUser(
+      req.user.userId,
+      id,
+      body.days ?? 7,
+      body.reason,
+    );
+  }
+
+  /** Restore after suspension. */
+  @Patch('users/:id/restore')
+  @RequireStaffPermissions('users.ban')
+  async restoreSuspendedUser(@Param('id') id: string, @Req() req: AuthRequest) {
+    return this.adminService.restoreUser(req.user.userId, id);
+  }
+
   // ─── Audit Logs ───────────────────────────────────────────────────
 
   /** Paginated audit logs for admin accountability. */
   @Get('audit-logs')
+  @RequireStaffPermissions('audit')
   async getAuditLogs(@Query() query: AdminQueryDto) {
     return this.adminService.getAuditLogs(query.page ?? 1, query.limit ?? 20, {
       action: query.action,
@@ -262,12 +336,14 @@ export class AdminController {
   // ─── Activity Chart ──────────────────────────────────────────────
 
   /** Posts and new users grouped by day (last 14 days). */
+  @RequireStaffPermissions('users.read')
   @Get('stats/activity-chart')
   async getActivityChart() {
     return this.adminService.getActivityChart();
   }
 
   /** Top 5 users by engagement (likes + comments). */
+  @RequireStaffPermissions('users.read')
   @Get('stats/top-users')
   async getTopUsers() {
     return this.adminService.getTopUsers();
@@ -276,6 +352,7 @@ export class AdminController {
   // ─── Hashtags ────────────────────────────────────────────────────
 
   /** Paginated hashtags sorted by post count. */
+  @RequireStaffPermissions('content')
   @Get('hashtags')
   async getHashtags(@Query() query: AdminQueryDto) {
     return this.adminService.getHashtags(
@@ -288,6 +365,7 @@ export class AdminController {
   // ─── Comments ────────────────────────────────────────────────────
 
   /** Paginated comments with author and post info. */
+  @RequireStaffPermissions('content')
   @Get('comments')
   async getComments(@Query() query: AdminQueryDto) {
     return this.adminService.getComments(
@@ -298,6 +376,7 @@ export class AdminController {
   }
 
   /** Delete a comment (admin moderation). */
+  @RequireStaffPermissions('content')
   @Delete('comments/:id')
   async deleteComment(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.adminService.deleteComment(req.user.userId, id);
@@ -306,6 +385,7 @@ export class AdminController {
   // ─── Stories ─────────────────────────────────────────────────────
 
   /** Paginated stories with view counts. */
+  @RequireStaffPermissions('content')
   @Get('stories')
   async getStories(@Query() query: AdminQueryDto) {
     return this.adminService.getStories(query.page ?? 1, query.limit ?? 10, {
@@ -315,6 +395,7 @@ export class AdminController {
   }
 
   /** Delete a story (admin moderation). */
+  @RequireStaffPermissions('content')
   @Delete('stories/:id')
   async deleteStory(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.adminService.deleteStory(req.user.userId, id);
@@ -323,6 +404,7 @@ export class AdminController {
   // ─── User Detail ─────────────────────────────────────────────────
 
   /** Enriched user detail with followers, posts, reports. */
+  @RequireStaffPermissions('users.read')
   @Get('users/:id/detail')
   async getUserDetail(@Param('id') id: string) {
     return this.adminService.getUserDetail(id);
@@ -331,6 +413,7 @@ export class AdminController {
   // ─── Analytics ───────────────────────────────────────────────────
 
   /** Global Monetization Analytics (Forces linter refresh on TS Server) */
+  @RequireStaffPermissions('payments')
   @Get('analytics/monetization')
   async getMonetizationAnalytics() {
     return await this.adminService.getMonetizationAnalytics();
@@ -339,6 +422,7 @@ export class AdminController {
   // ─── Audio Management ────────────────────────────────────────────
 
   /** List all audio tracks (paginated, searchable). */
+  @RequireStaffPermissions('content')
   @Get('audio')
   async getAudio(
     @Query('page') page = 1,
@@ -349,6 +433,7 @@ export class AdminController {
   }
 
   /** Create a new audio track. */
+  @RequireStaffPermissions('content')
   @Post('audio')
   async createAudio(@Body() dto: CreateAudioDto, @Req() req: AuthRequest) {
     const result = await this.audioService.create(dto);
@@ -363,6 +448,7 @@ export class AdminController {
   }
 
   /** Update an audio track. */
+  @RequireStaffPermissions('content')
   @Patch('audio/:id')
   async updateAudio(
     @Param('id') id: string,
@@ -381,6 +467,7 @@ export class AdminController {
   }
 
   /** Delete an audio track. */
+  @RequireStaffPermissions('content')
   @Delete('audio/:id')
   async deleteAudio(@Param('id') id: string, @Req() req: AuthRequest) {
     const result = await this.audioService.delete(id);
@@ -396,6 +483,7 @@ export class AdminController {
   // ─── Promotions ──────────────────────────────────────────────────
 
   /** Paginated list of promotions for approval. */
+  @RequireStaffPermissions('content')
   @Get('promotions')
   async getPromotions(@Query() query: AdminQueryDto) {
     return this.adminService.getPromotions(
@@ -407,6 +495,7 @@ export class AdminController {
   }
 
   /** Update promotion status (Approve/Reject). */
+  @RequireStaffPermissions('content')
   @Patch('promotions/:id')
   async updatePromotionStatus(
     @Param('id') id: string,
@@ -425,6 +514,7 @@ export class AdminController {
   // ─── Moderation Management ────────────────────────────────────────
 
   /** Get a list of flagged/hidden content for review. */
+  @RequireStaffPermissions('moderation')
   @Get('moderation/queue')
   async getModerationQueue(@Query() query: AdminQueryDto) {
     return this.adminService.getModerationQueue(
@@ -436,6 +526,7 @@ export class AdminController {
   }
 
   /** Update moderation status for a post, story, or comment. */
+  @RequireStaffPermissions('moderation')
   @Patch('moderation/:type/:id')
   async updateModerationStatus(
     @Param('type') type: 'POST' | 'STORY' | 'COMMENT',
@@ -455,6 +546,7 @@ export class AdminController {
   // ─── AI Vector Firewall ───────────────────────────────────────────
 
   /** Get paginated AI Vector Firewall signatures */
+  @RequireStaffPermissions('moderation')
   @Get('firewall')
   async getFirewallSignatures(@Query() query: AdminQueryDto) {
     return this.adminOpsService.getFirewallSignatures(
@@ -464,6 +556,7 @@ export class AdminController {
   }
 
   /** Add a new signature to the AI Vector Firewall */
+  @RequireStaffPermissions('moderation')
   @Post('firewall')
   async addFirewallSignature(
     @Body() body: { text: string; category: string },
@@ -477,6 +570,7 @@ export class AdminController {
   }
 
   /** Delete a signature from the AI Vector Firewall */
+  @RequireStaffPermissions('moderation')
   @Delete('firewall/:id')
   async deleteFirewallSignature(
     @Param('id') id: string,
@@ -487,6 +581,7 @@ export class AdminController {
 
   // ─── User Experiments (A/B Testing) ───────────────────────────────
 
+  @RequireStaffPermissions('experiments')
   @Get('experiments/users')
   async getUserExperiments(@Query() query: AdminQueryDto) {
     return this.adminOpsService.getUserExperiments(
@@ -496,6 +591,7 @@ export class AdminController {
     );
   }
 
+  @RequireStaffPermissions('experiments')
   @Post('experiments/users')
   async assignUserExperiment(
     @Body() body: { userId: string; experimentKey: string; variant: string },
@@ -509,6 +605,7 @@ export class AdminController {
     );
   }
 
+  @RequireStaffPermissions('experiments')
   @Delete('experiments/users/:id')
   async removeUserExperiment(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.adminOpsService.removeUserExperiment(req.user.userId, id);
@@ -516,6 +613,7 @@ export class AdminController {
 
   // ─── Support tickets ──────────────────────────────────────────────
 
+  @RequireStaffPermissions('support')
   @Get('support/tickets')
   async getSupportTickets(@Query() query: AdminQueryDto) {
     return this.adminOpsService.getSupportTickets(
@@ -525,6 +623,7 @@ export class AdminController {
     );
   }
 
+  @RequireStaffPermissions('support')
   @Patch('support/tickets/:id')
   async updateSupportTicket(
     @Param('id') id: string,
@@ -537,11 +636,13 @@ export class AdminController {
   // ─── Feature flags ────────────────────────────────────────────────
 
   @Get('feature-flags')
+  @RequireStaffPermissions('experiments')
   async listFeatureFlags() {
     return this.adminOpsService.listFeatureFlags();
   }
 
   @Put('feature-flags/:key')
+  @RequireStaffPermissions('experiments')
   async upsertFeatureFlag(
     @Param('key') key: string,
     @Body()
@@ -562,6 +663,7 @@ export class AdminController {
   // ─── Webhook events ───────────────────────────────────────────────
 
   @Get('webhooks')
+  @RequireStaffPermissions('payments')
   async getWebhookEvents(@Query() query: AdminQueryDto) {
     return this.adminOpsService.getWebhookEvents(
       query.page ?? 1,
@@ -571,11 +673,13 @@ export class AdminController {
   }
 
   @Get('webhooks/:id')
+  @RequireStaffPermissions('payments')
   async getWebhookEvent(@Param('id') id: string) {
     return this.adminOpsService.getWebhookEvent(id);
   }
 
   @Post('webhooks/:id/replay')
+  @RequireStaffPermissions('payments')
   async replayWebhookEvent(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.adminOpsService.replayWebhookEvent(req.user.userId, id);
   }
@@ -583,6 +687,7 @@ export class AdminController {
   // ─── Bulk reports ─────────────────────────────────────────────────
 
   @Post('reports/bulk')
+  @RequireStaffPermissions('reports')
   async bulkUpdateReports(
     @Body() body: { ids: string[]; status: ReportStatus },
     @Req() req: AuthRequest,
@@ -597,6 +702,7 @@ export class AdminController {
   // ─── Trust queue ──────────────────────────────────────────────────
 
   @Get('trust/queue')
+  @RequireStaffPermissions('reports')
   async getTrustQueue() {
     return this.adminService.getTrustQueue();
   }
@@ -604,6 +710,7 @@ export class AdminController {
   // ─── Transactions JSON ────────────────────────────────────────────
 
   @Get('transactions')
+  @RequireStaffPermissions('payments')
   async getTransactions(@Query() query: AdminQueryDto) {
     return this.adminService.getTransactions(
       query.page ?? 1,
@@ -616,6 +723,7 @@ export class AdminController {
   // ─── Live streams ─────────────────────────────────────────────────
 
   @Get('live')
+  @RequireStaffPermissions('live')
   async getLiveStreams(@Query() query: AdminQueryDto) {
     return this.adminService.getLiveStreams(
       query.page ?? 1,
@@ -625,6 +733,7 @@ export class AdminController {
   }
 
   @Post('live/:id/end')
+  @RequireStaffPermissions('live')
   async endLiveStream(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.adminService.endLiveStream(req.user.userId, id);
   }

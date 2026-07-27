@@ -7,6 +7,10 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import {
+  AdminGuard,
+  RequireStaffPermissions,
+} from '../auth/guards/admin.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { AudioService } from './audio.service.js';
 import { CreateAudioDto } from './dto/create-audio.dto.js';
@@ -17,8 +21,10 @@ import { CreateAudioDto } from './dto/create-audio.dto.js';
 export class AudioController {
   constructor(private readonly audioService: AudioService) {}
 
-  /** Create a new audio track. */
+  /** Create a new audio track (ADMIN only). */
   @Post()
+  @UseGuards(AdminGuard)
+  @RequireStaffPermissions('content')
   create(@Body() dto: CreateAudioDto) {
     return this.audioService.create(dto);
   }

@@ -158,11 +158,10 @@ Do **not** present the following as current product reality unless/until they ex
 
 - Communities or groups as first-class social spaces.
 - Brand–creator marketplace.
-- Persisted feed-preference profiles as dedicated tables.
 - Entitlements as a separate persisted entity (beyond what subscriptions/transactions already cover).
 - Fully separate “moderation_actions” case-management tables beyond reports, appeals, and admin audit logs.
 
-> **Schema correction vs older drafts:** `Mute`, `Appeal`, `CreatorSubscription`, and `Transaction` **are** present in the current schema and must be documented as modeled capabilities (see §4.1), even when UI/activation is gradual.
+> **Schema correction vs older drafts:** `Mute`, `Appeal`, `CreatorSubscription`, `Transaction`, and feed-preference tables (`FeedHiddenPost`, `FeedHiddenAuthor`, `FeedMutedKeyword`) **are** present in the current schema and must be documented as modeled capabilities (see §4.1 and [ADR-0004](./adr/0004-feed-preferences.md)), even when UI/activation is gradual.
 
 ---
 
@@ -342,8 +341,7 @@ Older documentation treated stories and frames as “phase 2.” That no longer 
 
 - Communities.
 - Brand–creator marketplace.
-- Complex creator payouts.
-- Dedicated feed-preference tables.
+- Complex creator payouts (beyond Stripe Connect Express read-only UI).
 - Deeper moderation case management beyond reports + appeals + audit logs.
 
 ---

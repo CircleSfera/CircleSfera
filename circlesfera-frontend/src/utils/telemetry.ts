@@ -1,4 +1,5 @@
 import { apiClient } from '../services/api';
+import { getCookieConsent } from './cookieConsent';
 
 export type UserEventType =
   | 'IMPRESSION'
@@ -31,6 +32,10 @@ class TelemetryManager {
   private maxBatchSize = 10;
 
   track(event: TelemetryEvent) {
+    if (!getCookieConsent()?.analytics) {
+      return;
+    }
+
     this.queue.push(event);
 
     if (this.queue.length >= this.maxBatchSize) {
@@ -47,6 +52,11 @@ class TelemetryManager {
     }
 
     if (this.queue.length === 0) return;
+
+    if (!getCookieConsent()?.analytics) {
+      this.queue = [];
+      return;
+    }
 
     const eventsToSend = [...this.queue];
     this.queue = [];

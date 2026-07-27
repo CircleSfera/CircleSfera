@@ -16,6 +16,7 @@ describe('Authentication (e2e)', () => {
     password: 'Password123!',
     username: `e2e_user_${uniqueId}`,
     fullName: 'E2E Test User',
+    dateOfBirth: '1990-01-15',
   };
 
   beforeAll(async () => {

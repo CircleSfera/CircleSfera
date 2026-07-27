@@ -4,7 +4,7 @@ import type { Request } from 'express';
 export interface CurrentUserData {
   userId: string;
   email: string;
-  role: 'USER' | 'ADMIN';
+  role: 'USER' | 'ADMIN' | 'MODERATOR';
 }
 
 interface RequestWithUser extends Request {

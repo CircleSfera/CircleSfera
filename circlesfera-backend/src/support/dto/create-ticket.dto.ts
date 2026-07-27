@@ -7,8 +7,9 @@ import {
 } from 'class-validator';
 
 export class CreateTicketDto {
+  @IsOptional()
   @IsEmail()
-  email!: string;
+  email?: string;
 
   @IsString()
   @IsNotEmpty()

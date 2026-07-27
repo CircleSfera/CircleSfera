@@ -94,6 +94,7 @@ describe('AuthService', () => {
       password: 'password123',
       username: 'testuser',
       fullName: 'Test User',
+      dateOfBirth: '1990-01-15',
     };
 
     it('should hash password with argon2 and create user', async () => {
@@ -112,6 +113,16 @@ describe('AuthService', () => {
       };
       expect(createArgs.data.password).toContain('$argon2');
       expect(result).toHaveProperty('accessToken');
+    });
+
+    it('should throw BadRequestException if under 16', async () => {
+      const underage = {
+        ...dto,
+        dateOfBirth: new Date().toISOString().slice(0, 10),
+      };
+      await expect(service.register(underage)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw ConflictException if email exists', async () => {
@@ -262,9 +273,11 @@ describe('AuthService', () => {
 
   describe('session management', () => {
     it('should fetch user sessions', async () => {
-      mockPrismaService.refreshToken.findMany = vi.fn().mockResolvedValue([
-        { id: 's1', userAgent: 'Chrome', ipAddress: '127.0.0.1' },
-      ]);
+      mockPrismaService.refreshToken.findMany = vi
+        .fn()
+        .mockResolvedValue([
+          { id: 's1', userAgent: 'Chrome', ipAddress: '127.0.0.1' },
+        ]);
       const sessions = await service.getUserSessions('user-1');
       expect(sessions).toHaveLength(1);
     });

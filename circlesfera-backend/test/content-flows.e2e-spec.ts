@@ -20,12 +20,14 @@ describe('Content Flows (e2e)', () => {
     email: `creator_${uniqueId}@example.com`,
     password: 'Password123!',
     username: `creator_${uniqueId}`,
+    dateOfBirth: '1990-01-15',
   };
 
   const mentionedUser = {
     email: `mentioned_${uniqueId}@example.com`,
     password: 'Password123!',
     username: `mentioned_${uniqueId}`,
+    dateOfBirth: '1990-01-15',
   };
 
   beforeAll(async () => {

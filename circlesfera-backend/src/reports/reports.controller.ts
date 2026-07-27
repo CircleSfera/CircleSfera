@@ -15,7 +15,10 @@ import {
   CurrentUser,
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
-import { AdminGuard } from '../auth/guards/admin.guard.js';
+import {
+  AdminGuard,
+  RequireStaffPermissions,
+} from '../auth/guards/admin.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { CreateReportDto } from './dto/create-report.dto.js';
 import { ReportsService } from './reports.service.js';
@@ -47,6 +50,7 @@ export class ReportsController {
   /** List all reports (admin only). */
   @Get()
   @UseGuards(AdminGuard)
+  @RequireStaffPermissions('reports')
   async findAll(): Promise<any[]> {
     return this.reportsService.findAll();
   }
@@ -54,6 +58,7 @@ export class ReportsController {
   /** Update a report's status (admin only). */
   @Patch(':id')
   @UseGuards(AdminGuard)
+  @RequireStaffPermissions('reports')
   async update(
     @Param('id') id: string,
     @Body('status') status: ReportStatus,

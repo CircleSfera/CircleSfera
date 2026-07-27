@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Bookmark } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { EmptyState, ErrorState } from '../components/ErrorEmptyStates';
 import PostCard from '../components/PostCard';
 import { bookmarksApi } from '../services';
 
 export default function Saved() {
   const { t } = useTranslation();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['bookmarks'],
     queryFn: () => bookmarksApi.getAll(1, 50),
   });
@@ -34,14 +35,24 @@ export default function Saved() {
           <div className="flex justify-center py-12">
             <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full" />
           </div>
+        ) : isError ? (
+          <ErrorState
+            title={t(
+              'collections.load_error_title',
+              'Could not load saved posts',
+            )}
+            message={t(
+              'collections.load_error_message',
+              'Something went wrong. Please try again.',
+            )}
+            onRetry={() => refetch()}
+          />
         ) : posts.length === 0 ? (
-          <div className="text-center py-16">
-            <Bookmark size={64} className="mx-auto mb-4 text-gray-600" />
-            <h2 className="text-xl font-semibold text-white mb-2">
-              {t('collections.no_saved')}
-            </h2>
-            <p className="text-gray-300">{t('collections.no_saved_desc')}</p>
-          </div>
+          <EmptyState
+            icon="posts"
+            title={t('collections.no_saved')}
+            message={t('collections.no_saved_desc')}
+          />
         ) : (
           <div className="space-y-4">
             {posts.map((post) => (

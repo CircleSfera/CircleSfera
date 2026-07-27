@@ -9,6 +9,8 @@ interface SEOProps {
   ogImage?: string;
   ogType?: string;
   twitterHandle?: string;
+  /** When true, emits robots noindex,nofollow (e.g. 404 pages). */
+  noIndex?: boolean;
 }
 
 export default function SEO({
@@ -20,6 +22,7 @@ export default function SEO({
   ogImage = '/og-image.jpg', // Default OG image
   ogType = 'website',
   twitterHandle = '@circlesfera',
+  noIndex = false,
 }: SEOProps) {
   const siteTitle = title.includes('CircleSfera')
     ? title
@@ -31,6 +34,7 @@ export default function SEO({
       {/* Standard Metadata */}
       <title>{siteTitle}</title>
       <meta name="description" content={metaDescription} />
+      {noIndex && <meta name="robots" content="noindex, nofollow" />}
       {canonical && <link rel="canonical" href={canonical} />}
 
       {/* Open Graph / Facebook */}

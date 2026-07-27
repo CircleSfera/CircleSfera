@@ -21,6 +21,7 @@ describe('Posts (e2e)', () => {
     email: `post_e2e_${uniqueId}@example.com`,
     password: 'Password123!',
     username: `post_user_${uniqueId}`,
+    dateOfBirth: '1990-01-15',
   };
 
   beforeAll(async () => {

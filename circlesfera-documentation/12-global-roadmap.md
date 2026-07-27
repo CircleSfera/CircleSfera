@@ -114,3 +114,27 @@ CircleSfera already has a solid social core (feed, profiles, posts, frames, stor
 *   **Communities (Forums), Business Manager (B2B)**, and **Public APIs (OAuth)** for third-party integrations (Zapier, bots).
 **Success Metrics (KPIs):**
 *   Active B2B investment and number of third-party apps using the API ecosystem.
+
+---
+
+## 7. Gap-closure progress vs “100% ops” (Jul 2026)
+
+Product gap-closure (live gifts billing, feed preferences, auth bootstrap, ADRs, governance, frontend hardenings) advances the **shipped web product**. It does **not** mean every item in this master plan is done.
+
+### Explicitly OUT OF SCOPE for gap-closure (vs product)
+
+These remain Later / non-goals unless product reopens them — do not treat them as incomplete “ops 100%” checklist items:
+
+| Item | Notes |
+| --- | --- |
+| Native apps | Store binaries / React Native |
+| Communities | Forums / first-class groups |
+| B2B Business Manager | Brand tooling |
+| Public OAuth | Third-party developer platform |
+| SSR profiles | SEO indexable profile pages |
+| Subscriber badges | First-class badge product surface |
+| Data warehouse / BI | ClickHouse/BigQuery, executive LTV dashboards |
+| SOC2 / bug bounty | Formal certification and public bounty program |
+
+See also [00-status.md](./00-status.md) and [ADRs](./adr/README.md).
+

@@ -12,7 +12,7 @@ Sentry.init({
 });
 
 import { ConfigService } from '@nestjs/config';
-import { HttpAdapterHost, NestFactory } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
@@ -22,7 +22,6 @@ import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module.js';
 import { RedisIoAdapter } from './common/adapters/redis-io.adapter.js';
 import { doubleCsrfProtection } from './common/config/csrf.config.js';
-import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, {
@@ -121,7 +120,8 @@ async function bootstrap(): Promise<void> {
   });
 
   // const { httpAdapter } = app.get(HttpAdapterHost);
-  app.useGlobalFilters(new AllExceptionsFilter(app.get(HttpAdapterHost)));
+  // Exception filter is registered via APP_FILTER in AppModule (with SlackService DI).
+  // Do not register a second instance here.
 
   // Stripe Webhook needs raw body for signature verification
   app.use(
@@ -160,6 +160,7 @@ async function bootstrap(): Promise<void> {
       'CSRF_SECRET',
       'STRIPE_SECRET_KEY',
       'STRIPE_WEBHOOK_SECRET',
+      'ENCRYPTION_KEY',
     ];
     for (const key of secrets) {
       const val = configService.get<string>(key);
@@ -168,12 +169,25 @@ async function bootstrap(): Promise<void> {
       if (
         !val ||
         (isProd &&
-          (val.length < 64 ||
+          (val.length < 32 ||
             val.includes('CHANGE_ME') ||
-            val.includes('dummy')))
+            val.includes('dummy') ||
+            val === 'default-secret-key-32-chars-long!'))
       ) {
         throw new Error(
           `SECURITY ALERT: ${key} is missing, too weak, or contains placeholder values.`,
+        );
+      }
+      // JWT/CSRF still require stronger secrets in production
+      if (
+        isProd &&
+        (key === 'JWT_SECRET' ||
+          key === 'JWT_REFRESH_SECRET' ||
+          key === 'CSRF_SECRET') &&
+        val.length < 64
+      ) {
+        throw new Error(
+          `SECURITY ALERT: ${key} must be at least 64 characters in production.`,
         );
       }
     }

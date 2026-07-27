@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import {
   AppealsTab,
   AudioTab,
@@ -26,12 +26,14 @@ import {
 } from '../components/admin';
 import AdminShell from '../components/admin/AdminShell';
 import type { AdminTab } from '../components/admin/adminNav';
+import { isAdminTab } from '../components/admin/adminNav';
 import { adminToast } from '../components/admin/adminToast';
 
 export default function Admin() {
   const { tab } = useParams<{ tab: string }>();
   const navigate = useNavigate();
-  const activeTab = (tab as AdminTab) || 'analytics';
+  const isInvalidTab = !!tab && !isAdminTab(tab);
+  const activeTab: AdminTab = isAdminTab(tab) ? tab : 'analytics';
 
   const handleTabChange = useCallback(
     (newTab: AdminTab) => {
@@ -43,6 +45,10 @@ export default function Admin() {
   const addToast = useCallback((message: string, type: 'success' | 'error') => {
     adminToast(message, type);
   }, []);
+
+  if (isInvalidTab) {
+    return <Navigate to="/admin/analytics" replace />;
+  }
 
   return (
     <AdminShell activeTab={activeTab} onTabChange={handleTabChange}>

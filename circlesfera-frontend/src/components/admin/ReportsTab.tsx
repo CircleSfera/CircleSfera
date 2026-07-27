@@ -6,10 +6,11 @@ import {
   Check,
   Gavel,
   Ghost,
+  Hand,
   Trash2,
   X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminReport } from '../../services/admin.service';
@@ -58,6 +59,7 @@ export default function ReportsTab({ onToast }: Props) {
   const [statusFilter, setStatusFilter] = useState('PENDING'); // Default to pending for moderation flow
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [internalNotes, setInternalNotes] = useState('');
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -80,16 +82,43 @@ export default function ReportsTab({ onToast }: Props) {
         .then((res) => res.data as PaginatedResponse<AdminReport>),
   });
 
+  const reports = data?.data ?? [];
+  const selectedReport = reports.find((r) => r.id === selectedReportId);
+
+  useEffect(() => {
+    setInternalNotes(selectedReport?.internalNotes ?? '');
+  }, [selectedReport?.internalNotes]);
+
   const updateMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      adminApi.updateReport(id, status),
+    mutationFn: ({
+      id,
+      status,
+      internalNotes: notes,
+    }: {
+      id: string;
+      status: string;
+      internalNotes?: string;
+      keepSelection?: boolean;
+    }) => adminApi.updateReport(id, { status, internalNotes: notes }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'reports'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
-      if (selectedReportId === variables.id) setSelectedReportId(null);
+      if (!variables.keepSelection && selectedReportId === variables.id) {
+        setSelectedReportId(null);
+      }
       onToast(t('admin.reports.toast_updated'), 'success');
     },
     onError: () => onToast(t('admin.reports.toast_update_error'), 'error'),
+  });
+
+  const claimMutation = useMutation({
+    mutationFn: (id: string) => adminApi.claimReport(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'reports'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+      onToast(t('admin.reports.toast_claimed'), 'success');
+    },
+    onError: () => onToast(t('admin.reports.toast_claim_error'), 'error'),
   });
 
   const penaltyMutation = useMutation({
@@ -131,9 +160,6 @@ export default function ReportsTab({ onToast }: Props) {
     },
     onError: () => onToast(t('admin.reports.toast_bulk_error'), 'error'),
   });
-
-  const reports = data?.data ?? [];
-  const selectedReport = reports.find((r) => r.id === selectedReportId);
 
   const isFiltered =
     debouncedSearch.length > 0 ||
@@ -195,6 +221,7 @@ export default function ReportsTab({ onToast }: Props) {
           options={[
             { value: '', label: t('admin.reports.status_all') },
             { value: 'PENDING', label: t('admin.reports.status_pending') },
+            { value: 'REVIEWING', label: t('admin.reports.status_reviewing') },
             { value: 'RESOLVED', label: t('admin.reports.status_resolved') },
             { value: 'REJECTED', label: t('admin.reports.status_rejected') },
           ]}
@@ -290,49 +317,80 @@ export default function ReportsTab({ onToast }: Props) {
                   compact
                 />
               ) : (
-                reports.map((report) => (
-                  <AdminListRow
-                    key={report.id}
-                    onClick={() => setSelectedReportId(report.id)}
-                    className={
-                      selectedReportId === report.id
-                        ? 'border-brand-primary/30 bg-brand-primary/10'
-                        : undefined
-                    }
-                    title={`@${report.targetContent?.author || t('admin.shared.unknown')}`}
-                    subtitle={report.targetType}
-                    badge={
-                      <span className="text-xs font-semibold uppercase tracking-wide text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">
-                        {report.reason}
-                      </span>
-                    }
-                    meta={timeAgo(report.createdAt, t)}
-                    avatar={
-                      <div className="flex items-start gap-2">
-                        <input
-                          type="checkbox"
-                          className="mt-1 rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
-                          checked={selectedIds.has(report.id)}
-                          onChange={(e) => toggleSelect(report.id, e)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                        <div className="w-10 h-10 rounded-lg bg-white/5 overflow-hidden shrink-0">
-                          {report.targetContent?.thumbnail ? (
-                            <img
-                              src={report.targetContent.thumbnail}
-                              className="w-full h-full object-cover"
-                              alt=""
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-zinc-700">
-                              <Ghost size={16} />
-                            </div>
+                reports.map((report) => {
+                  const assignee =
+                    report.assignedTo?.profile?.username ||
+                    (report.assignedToId
+                      ? report.assignedToId.slice(0, 8)
+                      : null);
+                  return (
+                    <AdminListRow
+                      key={report.id}
+                      onClick={() => setSelectedReportId(report.id)}
+                      className={
+                        selectedReportId === report.id
+                          ? 'border-brand-primary/30 bg-brand-primary/10'
+                          : undefined
+                      }
+                      title={`@${report.targetContent?.author || t('admin.shared.unknown')}`}
+                      subtitle={
+                        <span className="flex flex-col gap-0.5">
+                          <span>{report.targetType}</span>
+                          {assignee && (
+                            <span className="text-[11px] text-brand-primary/80">
+                              {t('admin.reports.assigned_to', {
+                                username: assignee,
+                              })}
+                            </span>
                           )}
+                        </span>
+                      }
+                      badge={
+                        <span className="text-xs font-semibold uppercase tracking-wide text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">
+                          {report.reason}
+                        </span>
+                      }
+                      meta={
+                        <span className="flex flex-col items-end gap-0.5">
+                          <span>{timeAgo(report.createdAt, t)}</span>
+                          {report.resolvedAt && (
+                            <span className="text-[11px] text-gray-500">
+                              {t('admin.reports.resolved_at', {
+                                date: new Date(
+                                  report.resolvedAt,
+                                ).toLocaleDateString(),
+                              })}
+                            </span>
+                          )}
+                        </span>
+                      }
+                      avatar={
+                        <div className="flex items-start gap-2">
+                          <input
+                            type="checkbox"
+                            className="mt-1 rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
+                            checked={selectedIds.has(report.id)}
+                            onChange={(e) => toggleSelect(report.id, e)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <div className="w-10 h-10 rounded-lg bg-white/5 overflow-hidden shrink-0">
+                            {report.targetContent?.thumbnail ? (
+                              <img
+                                src={report.targetContent.thumbnail}
+                                className="w-full h-full object-cover"
+                                alt=""
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                                <Ghost size={16} />
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    }
-                  />
-                ))
+                      }
+                    />
+                  );
+                })
               )}
             </div>
 
@@ -388,6 +446,21 @@ export default function ReportsTab({ onToast }: Props) {
                     </div>
                   </div>
                   {selectedReport.status === 'PENDING' && (
+                    <div className="flex flex-wrap gap-1.5">
+                      <Button
+                        onClick={() => claimMutation.mutate(selectedReport.id)}
+                        isLoading={claimMutation.isPending}
+                        className="bg-brand-primary/20 text-brand-primary hover:bg-brand-primary/30 border border-brand-primary/40 text-xs sm:text-sm font-semibold min-h-10 sm:min-h-11 px-2 sm:px-4"
+                      >
+                        <Hand size={16} className="mr-1 sm:mr-2 shrink-0" />
+                        <span className="truncate">
+                          {t('admin.reports.claim')}
+                        </span>
+                      </Button>
+                    </div>
+                  )}
+                  {(selectedReport.status === 'PENDING' ||
+                    selectedReport.status === 'REVIEWING') && (
                     <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-row sm:flex-wrap">
                       {selectedReport.targetType === 'USER' &&
                       selectedReport.details?.includes('[URGENT]') ? (
@@ -464,6 +537,7 @@ export default function ReportsTab({ onToast }: Props) {
                               updateMutation.mutate({
                                 id: selectedReport.id,
                                 status: 'REJECTED',
+                                internalNotes: internalNotes || undefined,
                               })
                             }
                             isLoading={updateMutation.isPending}
@@ -497,6 +571,8 @@ export default function ReportsTab({ onToast }: Props) {
                                       updateMutation.mutate({
                                         id: selectedReport.id,
                                         status: 'RESOLVED',
+                                        internalNotes:
+                                          internalNotes || undefined,
                                       });
                                       onToast(
                                         t(
@@ -637,7 +713,7 @@ export default function ReportsTab({ onToast }: Props) {
                           </dd>
                         </div>
                       )}
-                      <div className="flex items-center justify-between gap-3 py-2.5">
+                      <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
                         <dt className="text-xs font-medium text-gray-500">
                           {t('admin.reports.status_label')}
                         </dt>
@@ -646,13 +722,71 @@ export default function ReportsTab({ onToast }: Props) {
                             className={`px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-wide ${
                               selectedReport.status === 'PENDING'
                                 ? 'bg-yellow-500/15 text-yellow-500'
-                                : selectedReport.status === 'RESOLVED'
-                                  ? 'bg-green-500/15 text-green-400'
-                                  : 'bg-white/10 text-gray-300'
+                                : selectedReport.status === 'REVIEWING'
+                                  ? 'bg-blue-500/15 text-blue-400'
+                                  : selectedReport.status === 'RESOLVED'
+                                    ? 'bg-green-500/15 text-green-400'
+                                    : 'bg-white/10 text-gray-300'
                             }`}
                           >
                             {selectedReport.status}
                           </span>
+                        </dd>
+                      </div>
+                      {(selectedReport.assignedTo?.profile?.username ||
+                        selectedReport.assignedToId) && (
+                        <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
+                          <dt className="text-xs font-medium text-gray-500 shrink-0 pt-0.5">
+                            {t('admin.reports.assigned_label')}
+                          </dt>
+                          <dd className="text-white font-semibold text-right">
+                            @
+                            {selectedReport.assignedTo?.profile?.username ||
+                              selectedReport.assignedToId?.slice(0, 8)}
+                          </dd>
+                        </div>
+                      )}
+                      {selectedReport.resolvedAt && (
+                        <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
+                          <dt className="text-xs font-medium text-gray-500 shrink-0 pt-0.5">
+                            {t('admin.reports.resolved_label')}
+                          </dt>
+                          <dd className="text-gray-300 text-right">
+                            {new Date(
+                              selectedReport.resolvedAt,
+                            ).toLocaleString()}
+                          </dd>
+                        </div>
+                      )}
+                      <div className="py-2.5">
+                        <dt className="text-xs font-medium text-gray-500 mb-1.5">
+                          {t('admin.reports.internal_notes_label')}
+                        </dt>
+                        <dd>
+                          <textarea
+                            value={internalNotes}
+                            onChange={(e) => setInternalNotes(e.target.value)}
+                            rows={4}
+                            placeholder={t(
+                              'admin.reports.internal_notes_placeholder',
+                            )}
+                            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-brand-primary/50 resize-y min-h-[5rem]"
+                          />
+                          <Button
+                            onClick={() =>
+                              updateMutation.mutate({
+                                id: selectedReport.id,
+                                status: selectedReport.status,
+                                internalNotes,
+                                keepSelection: true,
+                              })
+                            }
+                            isLoading={updateMutation.isPending}
+                            variant="secondary"
+                            className="mt-2 text-xs font-semibold border-white/10 min-h-9 px-3"
+                          >
+                            {t('admin.reports.save_notes')}
+                          </Button>
                         </dd>
                       </div>
                     </dl>

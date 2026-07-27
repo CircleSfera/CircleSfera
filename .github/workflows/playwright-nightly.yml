@@ -1,0 +1,73 @@
+name: Playwright Nightly
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  NODE_OPTIONS: '--no-deprecation'
+
+jobs:
+  e2e:
+    name: Full Playwright E2E
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Note: `secrets` cannot appear in job/step `if:` expressions (GitHub Actions rule).
+      - name: Check E2E secrets
+        id: secrets
+        env:
+          E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+        run: |
+          if [ -z "$E2E_USER_EMAIL" ] || [ -z "$E2E_USER_PASSWORD" ]; then
+            if [ "${{ github.event_name }}" = "schedule" ]; then
+              echo "E2E secrets not configured; skipping scheduled run."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Missing required secrets: E2E_USER_EMAIL and/or E2E_USER_PASSWORD"
+            exit 1
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node.js
+        if: steps.secrets.outputs.skip != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        if: steps.secrets.outputs.skip != 'true'
+        run: npm install
+
+      - name: Install Playwright browsers
+        if: steps.secrets.outputs.skip != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright E2E
+        if: steps.secrets.outputs.skip != 'true'
+        env:
+          E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+          SKIP_GLOBAL_SETUP: 'false'
+        run: |
+          # Optional identity/URLs: defaults match .env.example when secrets are absent.
+          export E2E_USER_USERNAME="${E2E_USER_USERNAME:-e2euser}"
+          export E2E_USER_FULL_NAME="${E2E_USER_FULL_NAME:-E2E Test User}"
+          export BASE_URL="${BASE_URL:-http://localhost:5173}"
+          export BACKEND_URL="${BACKEND_URL:-http://localhost:3005/api/v1}"
+          npm run test:e2e
+
+      - name: Upload Playwright report
+        if: failure() && steps.secrets.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

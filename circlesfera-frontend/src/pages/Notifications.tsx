@@ -13,6 +13,7 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import SEO from '../components/common/SEO';
+import { EmptyState } from '../components/ErrorEmptyStates';
 import { LoadingSpinner } from '../components/LoadingStates';
 import PendingFollowRequests from '../components/notifications/PendingFollowRequests';
 import UserAvatar from '../components/UserAvatar';
@@ -147,14 +148,10 @@ export default function Notifications() {
       <div className="flex flex-col">
         <PendingFollowRequests />
         {notifs.length === 0 ? (
-          <div className="text-center py-32 opacity-50 flex flex-col items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
-              <Bell size={32} className="text-white/20" />
-            </div>
-            <p className="text-lg font-medium">
-              {t('notifications.no_activity')}
-            </p>
-          </div>
+          <EmptyState
+            icon="notifications"
+            title={t('notifications.no_activity')}
+          />
         ) : (
           notifs.map((notif) => (
             <div

@@ -4,6 +4,7 @@ import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { UsersService } from '../users/users.service.js';
 import { ProfilesService } from './profiles.service.js';
 
 describe('ProfilesService', () => {
@@ -30,6 +31,10 @@ describe('ProfilesService', () => {
     add: vi.fn().mockResolvedValue(undefined),
   };
 
+  const mockUsersService = {
+    scheduleDeletion: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -37,6 +42,7 @@ describe('ProfilesService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: CACHE_MANAGER, useValue: mockCacheManager },
         { provide: getQueueToken('ai-processing'), useValue: mockAiQueue },
+        { provide: UsersService, useValue: mockUsersService },
       ],
     }).compile();
 

@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Prisma } from '@prisma/client';
 import type { Job } from 'bullmq';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -111,12 +112,19 @@ export class GdprProcessor extends WorkerHost {
   async cleanExpiredAccounts() {
     this.logger.log('Starting daily purge of expired Accounts...');
     try {
+      const now = new Date();
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const expiredUsers = await this.prisma.user.findMany({
         where: {
-          deletedAt: {
-            lt: new Date(),
-          },
-        },
+          OR: [
+            { scheduledDeletionAt: { not: null, lte: now } },
+            {
+              scheduledDeletionAt: null,
+              deletedAt: { not: null, lt: thirtyDaysAgo },
+            },
+          ],
+        } satisfies Prisma.UserWhereInput,
+        select: { id: true },
       });
 
       let deletedCount = 0;

@@ -41,6 +41,7 @@ async function globalSetup(config: FullConfig) {
         username,
         password,
         fullName,
+        dateOfBirth: '1995-06-15',
       },
     });
 

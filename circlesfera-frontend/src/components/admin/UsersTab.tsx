@@ -32,7 +32,15 @@ interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
 }
 
-type ConfirmType = 'ban' | 'unban' | 'promote' | 'demote' | 'delete';
+type ConfirmType =
+  | 'ban'
+  | 'unban'
+  | 'promote'
+  | 'demote'
+  | 'delete'
+  | 'warn'
+  | 'suspend'
+  | 'restore';
 
 function usernameOf(user: AdminUser) {
   return user.profile?.username || '';
@@ -40,6 +48,11 @@ function usernameOf(user: AdminUser) {
 
 function displayHandle(user: AdminUser) {
   return `@${user.profile?.username || 'user'}`;
+}
+
+function isSuspended(user: AdminUser) {
+  if (!user.suspendedUntil) return false;
+  return new Date(user.suspendedUntil).getTime() > Date.now();
 }
 
 export default function UsersTab({ onToast }: Props) {
@@ -56,6 +69,8 @@ export default function UsersTab({ onToast }: Props) {
     type: ConfirmType | null;
     id: string | null;
     username: string;
+    days?: number;
+    reason?: string;
   }>({ type: null, id: null, username: '' });
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
@@ -90,16 +105,54 @@ export default function UsersTab({ onToast }: Props) {
   const clearConfirm = () =>
     setConfirmAction({ type: null, id: null, username: '' });
 
-  const askConfirm = (type: ConfirmType, user: AdminUser) => {
+  const askConfirm = (
+    type: ConfirmType,
+    user: AdminUser,
+    extra?: { days?: number; reason?: string },
+  ) => {
     setConfirmAction({
       type,
       id: user.id,
       username: usernameOf(user),
+      days: extra?.days,
+      reason: extra?.reason,
+    });
+  };
+
+  const askWarn = (user: AdminUser) => {
+    const reason = window.prompt(t('admin.users.prompt_warn_reason'));
+    if (reason === null) return;
+    askConfirm('warn', user, { reason: reason.trim() || undefined });
+  };
+
+  const askSuspend = (user: AdminUser) => {
+    const daysRaw = window.prompt(t('admin.users.prompt_suspend_days'), '7');
+    if (daysRaw === null) return;
+    const days = Number.parseInt(daysRaw, 10);
+    if (!Number.isFinite(days) || days < 1) {
+      onToast(t('admin.users.toast_suspend_days_invalid'), 'error');
+      return;
+    }
+    const reason = window.prompt(t('admin.users.prompt_suspend_reason'));
+    if (reason === null) return;
+    askConfirm('suspend', user, {
+      days,
+      reason: reason.trim() || undefined,
     });
   };
 
   const actionMutation = useMutation({
-    mutationFn: async ({ type, id }: { type: ConfirmType; id: string }) => {
+    mutationFn: async ({
+      type,
+      id,
+      days,
+      reason,
+    }: {
+      type: ConfirmType;
+      id: string;
+      days?: number;
+      reason?: string;
+    }) => {
       switch (type) {
         case 'ban':
           return adminApi.banUser(id);
@@ -111,6 +164,12 @@ export default function UsersTab({ onToast }: Props) {
           return adminApi.demoteUser(id);
         case 'delete':
           return adminApi.deleteUser(id);
+        case 'warn':
+          return adminApi.warnUser(id, reason);
+        case 'suspend':
+          return adminApi.suspendUser(id, days ?? 7, reason);
+        case 'restore':
+          return adminApi.restoreUser(id);
       }
     },
     onSuccess: (_data, variables) => {
@@ -126,6 +185,9 @@ export default function UsersTab({ onToast }: Props) {
         promote: 'admin.users.toast_promoted',
         demote: 'admin.users.toast_demoted',
         delete: 'admin.users.toast_deleted',
+        warn: 'admin.users.toast_warned',
+        suspend: 'admin.users.toast_suspended',
+        restore: 'admin.users.toast_restored',
       }[variables.type];
       onToast(t(toastKey), 'success');
     },
@@ -136,6 +198,9 @@ export default function UsersTab({ onToast }: Props) {
         promote: 'admin.users.toast_promote_error',
         demote: 'admin.users.toast_demote_error',
         delete: 'admin.users.toast_delete_error',
+        warn: 'admin.users.toast_warn_error',
+        suspend: 'admin.users.toast_suspend_error',
+        restore: 'admin.users.toast_restore_error',
       }[variables.type];
       onToast(t(toastKey), 'error');
     },
@@ -143,7 +208,12 @@ export default function UsersTab({ onToast }: Props) {
 
   const handleConfirm = () => {
     if (!confirmAction.id || !confirmAction.type) return;
-    actionMutation.mutate({ type: confirmAction.type, id: confirmAction.id });
+    actionMutation.mutate({
+      type: confirmAction.type,
+      id: confirmAction.id,
+      days: confirmAction.days,
+      reason: confirmAction.reason,
+    });
   };
 
   const handleExport = async () => {
@@ -198,6 +268,31 @@ export default function UsersTab({ onToast }: Props) {
       }),
       confirmText: t('admin.users.confirm_delete_confirm'),
       destructive: true,
+    },
+    warn: {
+      title: t('admin.users.confirm_warn_title'),
+      message: t('admin.users.confirm_warn_message', {
+        username: confirmAction.username,
+      }),
+      confirmText: t('admin.users.confirm_warn_confirm'),
+      destructive: false,
+    },
+    suspend: {
+      title: t('admin.users.confirm_suspend_title'),
+      message: t('admin.users.confirm_suspend_message', {
+        username: confirmAction.username,
+        days: confirmAction.days ?? 7,
+      }),
+      confirmText: t('admin.users.confirm_suspend_confirm'),
+      destructive: true,
+    },
+    restore: {
+      title: t('admin.users.confirm_restore_title'),
+      message: t('admin.users.confirm_restore_message', {
+        username: confirmAction.username,
+      }),
+      confirmText: t('admin.users.confirm_restore_confirm'),
+      destructive: false,
     },
   };
 
@@ -302,104 +397,138 @@ export default function UsersTab({ onToast }: Props) {
                   compact
                 />
               ) : (
-                users.map((user) => (
-                  <AdminListRow
-                    key={user.id}
-                    onClick={() => setSelectedUserId(user.id)}
-                    className={
-                      selectedUserId === user.id
-                        ? 'border-brand-primary/30 bg-brand-primary/10'
-                        : undefined
-                    }
-                    title={
-                      <span className="inline-flex items-center gap-1">
-                        {displayHandle(user)}
-                        <VerificationBadge
-                          level={user.verificationLevel as VerificationLevel}
-                          size={14}
-                        />
-                      </span>
-                    }
-                    subtitle={user.email}
-                    meta={
-                      <>
-                        <span>
-                          {user.role === 'ADMIN'
-                            ? t('admin.users.role_admin')
-                            : t('admin.users.role_user')}{' '}
-                          ·{' '}
-                          {t('admin.users.posts_count', {
-                            count: user.postCount,
-                          })}
+                users.map((user) => {
+                  const suspended = isSuspended(user);
+                  return (
+                    <AdminListRow
+                      key={user.id}
+                      onClick={() => setSelectedUserId(user.id)}
+                      className={
+                        selectedUserId === user.id
+                          ? 'border-brand-primary/30 bg-brand-primary/10'
+                          : undefined
+                      }
+                      title={
+                        <span className="inline-flex items-center gap-1">
+                          {displayHandle(user)}
+                          <VerificationBadge
+                            level={user.verificationLevel as VerificationLevel}
+                            size={14}
+                          />
                         </span>
-                        <span>
-                          {new Date(user.createdAt).toLocaleDateString(
-                            dateLocale,
+                      }
+                      subtitle={user.email}
+                      meta={
+                        <>
+                          <span>
+                            {user.role === 'ADMIN'
+                              ? t('admin.users.role_admin')
+                              : t('admin.users.role_user')}{' '}
+                            ·{' '}
+                            {t('admin.users.posts_count', {
+                              count: user.postCount,
+                            })}
+                          </span>
+                          <span>
+                            {new Date(user.createdAt).toLocaleDateString(
+                              dateLocale,
+                            )}
+                          </span>
+                          {user.suspendedUntil && (
+                            <span className="text-amber-400/90">
+                              {t('admin.users.suspended_until', {
+                                date: new Date(
+                                  user.suspendedUntil,
+                                ).toLocaleDateString(dateLocale),
+                              })}
+                            </span>
                           )}
-                        </span>
-                      </>
-                    }
-                    badge={
-                      <StatusBadge
-                        status={user.isActive ? 'active' : 'banned'}
-                      />
-                    }
-                    avatar={
-                      <UserAvatar
-                        src={user.profile?.avatar || undefined}
-                        thumbnailUrl={user.profile?.thumbnailUrl || undefined}
-                        standardUrl={user.profile?.standardUrl || undefined}
-                        alt={user.profile?.username || 'user'}
-                        size="sm"
-                      />
-                    }
-                    primaryAction={
-                      user.isActive ? (
-                        <ActionButton
-                          onClick={() => askConfirm('ban', user)}
-                          label={t('admin.users.action_ban')}
-                          variant="danger"
-                          icon={Ban}
-                          disabled={isPending}
+                        </>
+                      }
+                      badge={
+                        <StatusBadge
+                          status={
+                            suspended
+                              ? 'banned'
+                              : user.isActive
+                                ? 'active'
+                                : 'banned'
+                          }
                         />
-                      ) : (
-                        <ActionButton
-                          onClick={() => askConfirm('unban', user)}
-                          label={t('admin.users.action_unban')}
-                          variant="success"
-                          icon={UserCheck}
-                          disabled={isPending}
+                      }
+                      avatar={
+                        <UserAvatar
+                          src={user.profile?.avatar || undefined}
+                          thumbnailUrl={user.profile?.thumbnailUrl || undefined}
+                          standardUrl={user.profile?.standardUrl || undefined}
+                          alt={user.profile?.username || 'user'}
+                          size="sm"
                         />
-                      )
-                    }
-                    secondaryActions={[
-                      {
-                        label: t('admin.users.action_view_detail'),
-                        onClick: () => setSelectedUserId(user.id),
-                      },
-                      {
-                        label:
-                          user.role === 'USER'
-                            ? t('admin.users.action_promote_admin')
-                            : t('admin.users.action_demote'),
-                        onClick: () =>
-                          askConfirm(
-                            user.role === 'USER' ? 'promote' : 'demote',
-                            user,
-                          ),
-                      },
-                      {
-                        label: t('admin.users.action_view_profile'),
-                        onClick: () => openProfile(user),
-                      },
-                      {
-                        label: t('admin.users.action_delete'),
-                        variant: 'danger',
-                        onClick: () => askConfirm('delete', user),
-                      },
-                    ]}
-                  />
-                ))
+                      }
+                      primaryAction={
+                        user.isActive ? (
+                          <ActionButton
+                            onClick={() => askConfirm('ban', user)}
+                            label={t('admin.users.action_ban')}
+                            variant="danger"
+                            icon={Ban}
+                            disabled={isPending}
+                          />
+                        ) : (
+                          <ActionButton
+                            onClick={() => askConfirm('unban', user)}
+                            label={t('admin.users.action_unban')}
+                            variant="success"
+                            icon={UserCheck}
+                            disabled={isPending}
+                          />
+                        )
+                      }
+                      secondaryActions={[
+                        {
+                          label: t('admin.users.action_view_detail'),
+                          onClick: () => setSelectedUserId(user.id),
+                        },
+                        {
+                          label: t('admin.users.action_warn'),
+                          onClick: () => askWarn(user),
+                        },
+                        {
+                          label: t('admin.users.action_suspend'),
+                          onClick: () => askSuspend(user),
+                        },
+                        ...(suspended || !user.isActive
+                          ? [
+                              {
+                                label: t('admin.users.action_restore'),
+                                onClick: () => askConfirm('restore', user),
+                              },
+                            ]
+                          : []),
+                        {
+                          label:
+                            user.role === 'USER'
+                              ? t('admin.users.action_promote_admin')
+                              : t('admin.users.action_demote'),
+                          onClick: () =>
+                            askConfirm(
+                              user.role === 'USER' ? 'promote' : 'demote',
+                              user,
+                            ),
+                        },
+                        {
+                          label: t('admin.users.action_view_profile'),
+                          onClick: () => openProfile(user),
+                        },
+                        {
+                          label: t('admin.users.action_delete'),
+                          variant: 'danger' as const,
+                          onClick: () => askConfirm('delete', user),
+                        },
+                      ]}
+                    />
+                  );
+                })
               )}
             </div>
             <div className="shrink-0 pt-2 border-t border-white/5">

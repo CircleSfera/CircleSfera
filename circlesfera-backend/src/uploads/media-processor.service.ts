@@ -39,7 +39,9 @@ export class MediaProcessorService {
       file.mimetype === 'image/svg+xml' || file.mimetype === 'image/gif';
 
     if (isVideo) {
-      this.logger.log(`Video format detected (${file.mimetype}). Routing to HLS pipeline.`);
+      this.logger.log(
+        `Video format detected (${file.mimetype}). Routing to HLS pipeline.`,
+      );
     }
 
     // 1. Skip processing for non-images or special images (SVG/GIF)
@@ -149,7 +151,9 @@ export class MediaProcessorService {
    * Generates adaptive HLS manifests (.m3u8) and multi-resolution variants (720p, 1080p) for video uploads.
    */
   async processVideoHls(file: UploadedFile): Promise<HlsStreamManifest> {
-    this.logger.log(`Generating adaptive HLS manifest for video: ${file.originalname}`);
+    this.logger.log(
+      `Generating adaptive HLS manifest for video: ${file.originalname}`,
+    );
 
     const baseName = file.originalname.replace(/\.[^/.]+$/, '');
     const masterPlaylist = `#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-STREAM-INF:BANDWIDTH=2800000,RESOLUTION=1280x720\n${baseName}_720p.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=5000000,RESOLUTION=1920x1080\n${baseName}_1080p.m3u8\n`;

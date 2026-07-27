@@ -39,6 +39,8 @@ A unified design system that establishes principles, patterns, and reusable comp
 
 ## 2. Color Palette
 
+> **Implementation note (Jul 2026):** Brand CSS tokens in `circlesfera-frontend/src/index.css` are `--brand-primary: #833ab4`, `--brand-secondary: #fd1d1d`, `--brand-accent: #fcb045`, `--brand-blue: #405de6`. The shared `Button` primary variant currently uses Tailwind `blue-600` / `blue-500` (not brand-primary). Prefer those live tokens/classes over the palette scales below when matching shipped UI; the purple/pink scales remain a design reference, not a guarantee of current component usage.
+
 ### 2.1 Primary Colors (Warm Purple)
 ```
 Primary Purple (Main Purple)

@@ -15,7 +15,7 @@ import type { Report } from '../types';
 
 export const reportsApi = {
   create: (data: {
-    targetType: 'USER' | 'POST';
+    targetType: 'USER' | 'POST' | 'COMMENT' | 'STORY' | 'MESSAGE';
     targetId: string;
     reason: string;
     details?: string;

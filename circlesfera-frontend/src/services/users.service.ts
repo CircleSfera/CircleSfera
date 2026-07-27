@@ -35,4 +35,16 @@ export const usersApi = {
     contentPreference?: 'GENERAL' | 'MATURE';
     blurSensitiveContent?: boolean;
   }) => apiClient.put('/users/me/settings', data),
+
+  /** Schedule account deletion (30-day GDPR grace). Canonical endpoint. */
+  scheduleDeletion: () =>
+    apiClient.delete<{
+      success: boolean;
+      message: string;
+      scheduled_deletion_at: string;
+    }>('/users/me'),
+
+  /** Cancel scheduled deletion within the grace window. */
+  cancelScheduledDeletion: () =>
+    apiClient.post<{ success: boolean; message: string }>('/users/me/restore'),
 };

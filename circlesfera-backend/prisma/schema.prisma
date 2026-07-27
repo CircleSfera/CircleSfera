@@ -19,9 +19,11 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Account Status
-  isActive    Boolean   @default(true)
-  strikeCount Int       @default(0)
-  deletedAt   DateTime?
+  isActive             Boolean   @default(true)
+  strikeCount          Int       @default(0)
+  deletedAt            DateTime? // Soft-delete / deactivation timestamp (when user left)
+  scheduledDeletionAt  DateTime? // Hard-delete due date (grace window); null = not scheduled
+  suspendedUntil       DateTime? // Temporary suspension; null = not suspended
 
   profile           Profile?
   posts             Post[]
@@ -72,7 +74,8 @@ model User {
   taggedPosts PostTag[]
 
   // Reports
-  reports Report[]
+  reports         Report[] @relation("ReportReporter")
+  assignedReports Report[] @relation("ReportAssignee")
 
   // Search History
   searchHistory SearchHistory[]
@@ -165,6 +168,8 @@ model User {
   @@index([isOnline])
   @@index([verificationToken])
   @@index([resetToken])
+  @@index([scheduledDeletionAt])
+  @@index([suspendedUntil])
   @@map("users")
 }
 
@@ -187,6 +192,7 @@ model EditProject {
 enum Role {
   USER
   ADMIN
+  MODERATOR
 }
 
 enum VerificationLevel {
@@ -969,14 +975,23 @@ model Report {
   targetType ReportTargetType
   targetId   String
 
+  // Queue workflow
+  assignedToId String?
+  assignedTo   User?     @relation("ReportAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  resolvedAt   DateTime?
+  internalNotes String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  reporter      User           @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reporter      User           @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
   notifications Notification[]
 
   @@index([reporterId])
   @@index([targetType, targetId])
+  @@index([status, createdAt])
+  @@index([assignedToId])
+  @@index([resolvedAt])
   @@map("reports")
 }
 

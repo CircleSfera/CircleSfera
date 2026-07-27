@@ -15,7 +15,10 @@ import {
   CurrentUser,
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
-import { AdminGuard } from '../auth/guards/admin.guard.js';
+import {
+  AdminGuard,
+  RequireStaffPermissions,
+} from '../auth/guards/admin.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { DataExportService } from './data-export.service.js';
 
@@ -46,6 +49,7 @@ export class UsersController {
   /** Ban a user (admin only). */
   @Patch(':id/ban')
   @UseGuards(AdminGuard)
+  @RequireStaffPermissions('users.ban')
   async banUser(@Param('id') id: string) {
     return this.usersService.banUser(id);
   }
@@ -53,6 +57,7 @@ export class UsersController {
   /** Unban a user (admin only). */
   @Patch(':id/unban')
   @UseGuards(AdminGuard)
+  @RequireStaffPermissions('users.ban')
   async unbanUser(@Param('id') id: string) {
     return this.usersService.unbanUser(id);
   }
@@ -76,7 +81,7 @@ export class UsersController {
     return { message: 'Account deleted successfully' };
   }
 
-  /** DELETE /users/me: Scheduled account deletion (GDPR). */
+  /** DELETE /users/me: Scheduled account deletion (GDPR, 30-day grace). */
   @Delete('me')
   async deleteMe(@CurrentUser() user: CurrentUserData) {
     const scheduledDeletionAt = await this.usersService.scheduleDeletion(
@@ -87,6 +92,12 @@ export class UsersController {
       message: 'Account scheduled for deletion',
       scheduled_deletion_at: scheduledDeletionAt.toISOString(),
     };
+  }
+
+  /** POST /users/me/restore: Cancel scheduled deletion within the grace window. */
+  @Post('me/restore')
+  async restoreMe(@CurrentUser() user: CurrentUserData) {
+    return this.usersService.cancelScheduledDeletion(user.userId);
   }
 
   /** Get user settings. */

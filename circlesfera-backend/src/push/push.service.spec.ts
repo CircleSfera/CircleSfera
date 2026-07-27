@@ -17,7 +17,11 @@ describe('PushService', () => {
 
   const mockConfigService = {
     get: vi.fn((key: string) => {
-      if (key === 'VAPID_PUBLIC_KEY' || key === 'VAPID_PRIVATE_KEY' || key === 'VAPID_SUBJECT') {
+      if (
+        key === 'VAPID_PUBLIC_KEY' ||
+        key === 'VAPID_PRIVATE_KEY' ||
+        key === 'VAPID_SUBJECT'
+      ) {
         return null;
       }
       return null;
@@ -78,10 +82,16 @@ describe('PushService', () => {
 
   describe('unsubscribe', () => {
     it('should delete push subscription by endpoint', async () => {
-      mockPrismaService.pushSubscription.deleteMany.mockResolvedValue({ count: 1 });
+      mockPrismaService.pushSubscription.deleteMany.mockResolvedValue({
+        count: 1,
+      });
 
-      const result = await service.unsubscribe('https://push.example.com/sub-1');
-      expect(mockPrismaService.pushSubscription.deleteMany).toHaveBeenCalledWith({
+      const result = await service.unsubscribe(
+        'https://push.example.com/sub-1',
+      );
+      expect(
+        mockPrismaService.pushSubscription.deleteMany,
+      ).toHaveBeenCalledWith({
         where: { endpoint: 'https://push.example.com/sub-1' },
       });
       expect(result).toEqual({ count: 1 });

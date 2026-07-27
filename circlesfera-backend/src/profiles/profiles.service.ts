@@ -9,6 +9,7 @@ import {
 import type { Queue } from 'bullmq';
 import type { Cache } from 'cache-manager';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { UsersService } from '../users/users.service.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 
 /**
@@ -21,6 +22,7 @@ export class ProfilesService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
+    @Inject(UsersService) private readonly usersService: UsersService,
   ) {}
 
   private buildProfileEmbeddingText(profile: {
@@ -400,22 +402,21 @@ export class ProfilesService {
   }
 
   /**
-   * Mark the authenticated user's account as deleted (soft delete with timestamp).
-   * @param userId - The user's ID
+   * Schedule account deletion with 30-day grace window (canonical GDPR flow).
+   * Delegates to UsersService so BullMQ hard-delete job is always enqueued.
+   * Prefer DELETE /users/me from new clients; this keeps DELETE /profiles/me compatible.
    */
   async deleteAccount(userId: string) {
     const profile = await this.prisma.profile.findUnique({ where: { userId } });
-    // Soft delete
-    const result = await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        isActive: false,
-        deletedAt: new Date(),
-      },
-    });
+    const scheduledDeletionAt =
+      await this.usersService.scheduleDeletion(userId);
     if (profile) {
       await this.cacheManager.del(`profile:${profile.username}`);
     }
-    return result;
+    return {
+      success: true,
+      message: 'Account scheduled for deletion',
+      scheduled_deletion_at: scheduledDeletionAt.toISOString(),
+    };
   }
 }

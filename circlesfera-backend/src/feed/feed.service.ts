@@ -357,10 +357,14 @@ export class FeedService {
         userId,
       );
 
-      // Simple mock total since accurate counts are heavy for algorithmic feeds
+      // hasMore-style total: avoid a fake fixed total for algorithmic feeds
+      const total =
+        feedWithPromotions.length < limit
+          ? (page - 1) * limit + feedWithPromotions.length
+          : page * limit + 1;
       const result = createPaginatedResult(
         feedWithPromotions,
-        1000,
+        total,
         page,
         limit,
       );
@@ -585,19 +589,26 @@ export class FeedService {
       mutedIds = mutes.map((m) => m.mutedId);
     }
 
-    const posts = await this.prisma.post.findMany({
-      where: {
-        visibility: Visibility.PUBLIC,
-        moderationStatus: 'VISIBLE',
-        scheduledStatus: 'PUBLISHED',
-        ...(mutedIds.length > 0 ? { userId: { notIn: mutedIds } } : {}),
-        ...(viewerSettings.allowMature ? {} : { contentRating: 'GENERAL' }),
-      },
-      orderBy: [{ performanceScore: 'desc' }, { createdAt: 'desc' }],
-      skip,
-      take: limit,
-      include: this.postHydrationInclude(currentUserId),
-    });
+    const where = {
+      visibility: Visibility.PUBLIC,
+      moderationStatus: 'VISIBLE' as const,
+      scheduledStatus: 'PUBLISHED' as const,
+      ...(mutedIds.length > 0 ? { userId: { notIn: mutedIds } } : {}),
+      ...(viewerSettings.allowMature
+        ? {}
+        : { contentRating: 'GENERAL' as const }),
+    };
+
+    const [posts, total] = await Promise.all([
+      this.prisma.post.findMany({
+        where,
+        orderBy: [{ performanceScore: 'desc' }, { createdAt: 'desc' }],
+        skip,
+        take: limit,
+        include: this.postHydrationInclude(currentUserId),
+      }),
+      this.prisma.post.count({ where }),
+    ]);
 
     let subscribedCreatorIds = new Set<string>();
     let unlockedPostIds = new Set<string>();
@@ -661,7 +672,12 @@ export class FeedService {
       currentUserId,
     );
 
-    const result = createPaginatedResult(feedWithPromotions, 1000, page, limit);
+    const result = createPaginatedResult(
+      feedWithPromotions,
+      total,
+      page,
+      limit,
+    );
 
     // Save to cache for 5 minutes (300000 ms)
     const ttl = process.env.NODE_ENV === 'production' ? 300000 : 1000;

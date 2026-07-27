@@ -12,13 +12,13 @@ export class SupportService {
     private slackService: SlackService,
   ) {}
 
-  async createTicket(dto: CreateTicketDto) {
+  async createTicket(dto: CreateTicketDto & { email: string; userId: string }) {
     const ticket = await this.prisma.supportTicket.create({
       data: {
         email: dto.email,
         subject: dto.subject,
         message: dto.message,
-        userId: dto.userId || null,
+        userId: dto.userId,
       },
     });
 

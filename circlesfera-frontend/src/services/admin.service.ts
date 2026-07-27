@@ -59,6 +59,7 @@ export interface AdminUser {
   accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
   createdAt: string;
   postCount: number;
+  suspendedUntil?: string | null;
   profile?: {
     username: string;
     fullName: string | null;
@@ -134,6 +135,14 @@ export interface AdminReport {
   targetType: string;
   targetId: string;
   createdAt: string;
+  assignedToId?: string | null;
+  assignedTo?: {
+    profile?: {
+      username: string;
+    } | null;
+  } | null;
+  resolvedAt?: string | null;
+  internalNotes?: string | null;
   reporter?: {
     profile?: {
       username: string;
@@ -433,6 +442,14 @@ export const adminApi = {
 
   unbanUser: (id: string) => apiClient.patch(`admin/users/${id}/unban`),
 
+  warnUser: (id: string, reason?: string) =>
+    apiClient.patch(`admin/users/${id}/warn`, { reason }),
+
+  suspendUser: (id: string, days: number, reason?: string) =>
+    apiClient.patch(`admin/users/${id}/suspend`, { days, reason }),
+
+  restoreUser: (id: string) => apiClient.patch(`admin/users/${id}/restore`),
+
   promoteUser: (id: string) => apiClient.patch(`admin/users/${id}/promote`),
 
   demoteUser: (id: string) => apiClient.patch(`admin/users/${id}/demote`),
@@ -471,8 +488,12 @@ export const adminApi = {
       params: { page, limit, search, status },
     }),
 
-  updateReport: (id: string, status: string) =>
-    apiClient.patch(`admin/reports/${id}`, { status }),
+  updateReport: (
+    id: string,
+    data: { status: string; internalNotes?: string },
+  ) => apiClient.patch(`admin/reports/${id}`, data),
+
+  claimReport: (id: string) => apiClient.post(`admin/reports/${id}/claim`),
 
   bulkUpdateReports: (ids: string[], status: string) =>
     apiClient.post<{ updated: number }>('admin/reports/bulk', { ids, status }),

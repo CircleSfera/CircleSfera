@@ -234,3 +234,9 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = ADMIN_NAV_GROUPS.flatMap(
 export function findAdminNavItem(tab: AdminTab): AdminNavItem | undefined {
   return ADMIN_NAV_ITEMS.find((i) => i.id === tab);
 }
+
+export const ADMIN_TAB_IDS: AdminTab[] = ADMIN_NAV_ITEMS.map((i) => i.id);
+
+export function isAdminTab(tab: string | undefined): tab is AdminTab {
+  return !!tab && (ADMIN_TAB_IDS as string[]).includes(tab);
+}

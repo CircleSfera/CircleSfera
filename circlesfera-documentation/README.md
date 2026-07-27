@@ -4,7 +4,7 @@ Index of the **12** product/technical documents (01–12) under `circlesfera-doc
 
 **Source of truth:** `circlesfera-backend/prisma/schema.prisma` and implemented NestJS/React code supersede Abr 2026 snapshots for domains such as **Appeal**, **Mute**, **CreatorSubscription**, **Live**, and **Polls** (interactive). Prefer schema + controllers when docs disagree.
 
-Freshness notes: [00-status.md](./00-status.md). Planned ADRs: [adr/](./adr/).
+Freshness notes: [00-status.md](./00-status.md). ADRs: [adr/](./adr/). Ops runbooks: [runbooks/](./runbooks/).
 
 | # | Document |
 | --- | --- |
@@ -15,7 +15,7 @@ Freshness notes: [00-status.md](./00-status.md). Planned ADRs: [adr/](./adr/).
 | 05 | [05-deployment-strategy.md](./05-deployment-strategy.md) |
 | 06 | [06-security-privacy-compliance.md](./06-security-privacy-compliance.md) |
 | 07 | [07-content-moderation-policy.md](./07-content-moderation-policy.md) |
-| 08 | [08-schema-prisma.md](./08-schema-prisma.md) |
+| 08 | [08-schema-prisma.md](./08-schema-prisma.md) — pointer to live `schema.prisma` only |
 | 09 | [09-design-system.md](./09-design-system.md) |
 | 10 | [10-roadmap-monetization.md](./10-roadmap-monetization.md) |
 | 11 | [11-backups-strategy.md](./11-backups-strategy.md) |

@@ -112,9 +112,9 @@ describe('BookmarksService', () => {
         userId: 'other-user',
       });
 
-      await expect(
-        service.getByCollection('user-1', 'col-1'),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.getByCollection('user-1', 'col-1')).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 });

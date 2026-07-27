@@ -20,6 +20,7 @@ describe('Authentication Flows (e2e)', () => {
     password: 'Password123!',
     username: `auth_user_${uniqueId}`,
     fullName: 'Auth Flow User',
+    dateOfBirth: '1990-01-15',
   };
 
   beforeAll(async () => {

@@ -10,9 +10,8 @@ import AdminGuard from './components/auth/AdminGuard';
 import AuthGuard from './components/auth/AuthGuard';
 import CreatorStudioGuard from './components/auth/CreatorStudioGuard';
 import GuestGuard from './components/auth/GuestGuard';
+import CookieConsent from './components/CookieConsent';
 import CreatePostModal from './components/CreatePostModal';
-import ChatWindow from './components/chat/ChatWindow';
-import SelectChat from './components/chat/SelectChat';
 import ScrollToTop from './components/common/ScrollToTop';
 import CreateBottomSheet from './components/modals/CreateBottomSheet';
 import { GlobalCallContainer } from './components/navigation/GlobalCallContainer';
@@ -21,13 +20,19 @@ import LayoutWrapper from './layouts/LayoutWrapper';
 
 const Admin = lazy(() => import('./pages/Admin'));
 const Creator = lazy(() => import('./pages/Creator'));
+const EditsStudio = lazy(() => import('./pages/EditsStudio'));
+const Frames = lazy(() => import('./pages/Frames'));
+const Profile = lazy(() => import('./pages/Profile'));
+const ChatWindow = lazy(() => import('./components/chat/ChatWindow'));
+const SelectChat = lazy(() => import('./components/chat/SelectChat'));
+const Pricing = lazy(() => import('./pages/payments/Pricing'));
+const Settings = lazy(() => import('./pages/Settings'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 import CommunityGuidelines from './pages/CommunityGuidelines';
-import EditsStudio from './pages/EditsStudio';
 import Explore from './pages/Explore';
 import ExploreLanding from './pages/ExploreLanding';
 import ForgotPassword from './pages/ForgotPassword';
-import Frames from './pages/Frames';
 // Page routes
 import HighlightViewerPage from './pages/HighlightViewerPage';
 import Home from './pages/Home';
@@ -39,16 +44,10 @@ import Messages from './pages/Messages';
 import Notifications from './pages/Notifications';
 import PostDetail from './pages/PostDetail';
 import PrivacyPolicy from './pages/PrivacyPolicy';
-import Profile from './pages/Profile';
-import { Support } from './pages/Support';
-
-const Pricing = lazy(() => import('./pages/payments/Pricing'));
-
 import Register from './pages/Register';
 import ResetPassword from './pages/ResetPassword';
 import Saved from './pages/Saved';
-
-const Settings = lazy(() => import('./pages/Settings'));
+import { Support } from './pages/Support';
 
 import TagFeed from './pages/TagFeed';
 import TermsOfService from './pages/TermsOfService';
@@ -124,6 +123,7 @@ function App() {
     <LayoutWrapper>
       <ScrollToTop />
       <GlobalCallContainer />
+      <CookieConsent />
 
       <CreateBottomSheet />
       <Suspense
@@ -250,7 +250,7 @@ function App() {
           {/* Keep old route for compatibility */}
           <Route path="/post/:id" element={<Navigate to="/p/:id" replace />} />
 
-          {/* Direct messages */}
+          {/* Direct messages — Messages shell stays eager; chat panes are lazy */}
           <Route
             path="/direct/inbox"
             element={
@@ -372,7 +372,13 @@ function App() {
             }
           />
 
-          {/* User profile (MUST be last to avoid conflicts) */}
+          {/* Static Pages — before /:username so they are not captured as usernames */}
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/guidelines" element={<CommunityGuidelines />} />
+          <Route path="/support" element={<Support />} />
+
+          {/* User profile (after static routes to avoid conflicts) */}
           <Route
             path="/:username"
             element={
@@ -382,11 +388,8 @@ function App() {
             }
           />
 
-          {/* Static Pages */}
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/guidelines" element={<CommunityGuidelines />} />
-          <Route path="/support" element={<Support />} />
+          {/* Catch-all 404 — must be last (after /:username) */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </LayoutWrapper>

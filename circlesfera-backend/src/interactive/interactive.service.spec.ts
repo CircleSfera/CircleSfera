@@ -67,7 +67,11 @@ describe('InteractiveService', () => {
         createdAt: new Date(),
       });
 
-      const res = await service.answerQna('user-1', 'qna-1', 'My favorite tool is CircleSfera');
+      const res = await service.answerQna(
+        'user-1',
+        'qna-1',
+        'My favorite tool is CircleSfera',
+      );
       expect(res.answerText).toContain('CircleSfera');
     });
   });

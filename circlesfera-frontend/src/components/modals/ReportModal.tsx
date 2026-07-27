@@ -6,18 +6,58 @@ import { reportsApi } from '../../services';
 import { logger } from '../../utils/logger';
 import { Button, Textarea } from '../ui';
 
+export type ReportTargetType =
+  | 'USER'
+  | 'POST'
+  | 'COMMENT'
+  | 'STORY'
+  | 'MESSAGE';
+
 interface ReportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  targetType: 'USER' | 'POST';
+  targetType: ReportTargetType;
   targetId: string;
 }
 
 const REPORT_REASONS = [
-  { id: 'SPAM', label: "It's spam" },
-  { id: 'HARASSMENT', label: 'Harassment or bullying' },
-  { id: 'HATE_SPEECH', label: 'Inappropriate content or hate speech' },
-  { id: 'OTHER', label: 'Something else' },
+  { id: 'SPAM', labelKey: 'report.reason.spam', fallback: "It's spam" },
+  {
+    id: 'HARASSMENT',
+    labelKey: 'report.reason.harassment',
+    fallback: 'Harassment or bullying',
+  },
+  {
+    id: 'HATE_SPEECH',
+    labelKey: 'report.reason.hate',
+    fallback: 'Hate speech',
+  },
+  {
+    id: 'VIOLENCE',
+    labelKey: 'report.reason.violence',
+    fallback: 'Violence or dangerous content',
+  },
+  {
+    id: 'ILLEGAL_CONTENT',
+    labelKey: 'report.reason.illegal',
+    fallback: 'Illegal content',
+  },
+  {
+    id: 'IMPERSONATION',
+    labelKey: 'report.reason.impersonation',
+    fallback: 'Impersonation',
+  },
+  {
+    id: 'SCAM',
+    labelKey: 'report.reason.scam',
+    fallback: 'Scam or fraud',
+  },
+  {
+    id: 'CSAM',
+    labelKey: 'report.reason.csam',
+    fallback: 'Child sexual exploitation (CSAM)',
+  },
+  { id: 'OTHER', labelKey: 'report.reason.other', fallback: 'Something else' },
 ];
 
 export default function ReportModal({
@@ -33,7 +73,6 @@ export default function ReportModal({
   const [isSuccess, setIsSuccess] = useState(false);
   const dragControls = useDragControls();
 
-  // Lock body scroll when open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -82,7 +121,6 @@ export default function ReportModal({
             onClick={onClose}
           />
 
-          {/* Bottom Sheet Container */}
           <div className="fixed inset-0 z-101 pointer-events-none flex flex-col justify-end md:justify-center md:items-center">
             <motion.div
               initial={{ y: '100%' }}
@@ -102,8 +140,9 @@ export default function ReportModal({
               className="pointer-events-auto w-full bg-black/80 backdrop-blur-2xl border border-white/10 rounded-t-[32px] md:max-w-md md:rounded-[32px] shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]"
               onPointerDown={(e) => e.stopPropagation()}
               role="dialog"
+              aria-modal="true"
+              aria-labelledby="report-modal-title"
             >
-              {/* Drag Handle Area */}
               <div
                 className="w-full flex md:hidden justify-center pt-4 pb-2 cursor-grab active:cursor-grabbing touch-none"
                 onPointerDown={(e) => dragControls.start(e)}
@@ -111,95 +150,83 @@ export default function ReportModal({
                 <div className="w-10 h-1.5 bg-white/20 rounded-full" />
               </div>
 
-              {/* Header with brand-vibrant accent line */}
               <div className="relative pt-4 md:pt-8 pb-1 px-6 text-center">
                 <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-brand-primary via-brand-secondary to-brand-accent opacity-80" />
 
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/5">
                   <div className="flex items-center gap-2">
                     <AlertCircle size={20} className="text-red-500" />
-                    <h3 className="font-bold text-white tracking-tight">
-                      {t('report.title')}
-                    </h3>
+                    <h2
+                      id="report-modal-title"
+                      className="text-white font-bold text-lg"
+                    >
+                      {t('report.title', 'Report')}
+                    </h2>
                   </div>
-                  <Button
+                  <button
+                    type="button"
                     onClick={onClose}
-                    variant="ghost"
-                    size="icon"
-                    className="text-gray-500 hover:text-white rounded-full hover:bg-white/5"
+                    className="p-2 rounded-full hover:bg-white/10 text-white/60"
+                    aria-label={t('common.close', 'Close')}
                   >
-                    <X size={20} />
-                  </Button>
+                    <X size={18} />
+                  </button>
                 </div>
               </div>
 
-              {/* Rest of the component content */}
-              {isSuccess ? (
-                <div className="p-8 text-center space-y-4">
-                  <div className="flex justify-center">
-                    <CheckCircle2
-                      size={48}
-                      className="text-green-500 animate-bounce"
-                    />
+              <div className="px-6 pb-8 overflow-y-auto flex-1">
+                {isSuccess ? (
+                  <div className="flex flex-col items-center gap-3 py-10 text-center">
+                    <CheckCircle2 className="text-green-400" size={40} />
+                    <p className="text-white font-semibold">
+                      {t('report.success', 'Thanks for your report')}
+                    </p>
                   </div>
-                  <p className="text-white font-medium">
-                    {t('report.success')}
-                  </p>
-                </div>
-              ) : (
-                <div className="p-4 space-y-4">
-                  <p className="text-gray-300 text-sm">
-                    {t('report.why_report', {
-                      targetType: targetType.toLowerCase(),
-                    })}
-                  </p>
-
-                  <div className="space-y-2">
-                    {REPORT_REASONS.map((r) => (
-                      <button
-                        type="button"
-                        key={r.id}
-                        onClick={() => setReason(r.id)}
-                        className={`w-full text-left p-3 rounded-lg transition-all border ${
-                          reason === r.id
-                            ? 'bg-red-500/10 border-red-500 text-white'
-                            : 'bg-white/5 border-transparent text-gray-300 hover:bg-white/10'
-                        }`}
-                      >
-                        {t(`report.reasons.${r.id.toLowerCase()}`)}
-                      </button>
-                    ))}
-                  </div>
-
-                  {reason && (
-                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                      <label
-                        htmlFor="report-details"
-                        className="text-xs text-gray-500 uppercase font-bold px-1"
-                      >
-                        {t('report.additional_details')}
-                      </label>
-                      <Textarea
-                        id="report-details"
-                        value={details}
-                        onChange={(e) => setDetails(e.target.value)}
-                        placeholder={t('report.placeholder')}
-                        className="min-h-[100px] resize-none"
-                      />
+                ) : (
+                  <>
+                    <p className="text-white/50 text-sm mb-4">
+                      {t(
+                        'report.subtitle',
+                        'Why are you reporting this {{type}}?',
+                        { type: targetType.toLowerCase() },
+                      )}
+                    </p>
+                    <div className="space-y-2 mb-4">
+                      {REPORT_REASONS.map((r) => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => setReason(r.id)}
+                          className={`w-full text-left px-4 py-3 rounded-xl border transition ${
+                            reason === r.id
+                              ? 'border-brand-primary bg-brand-primary/20 text-white'
+                              : 'border-white/10 text-white/80 hover:bg-white/5'
+                          }`}
+                        >
+                          {t(r.labelKey, r.fallback)}
+                        </button>
+                      ))}
                     </div>
-                  )}
-
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={!reason}
-                    isLoading={isSubmitting}
-                    variant="danger"
-                    className="w-full font-bold py-3 text-base"
-                  >
-                    {t('report.submit')}
-                  </Button>
-                </div>
-              )}
+                    <Textarea
+                      value={details}
+                      onChange={(e) => setDetails(e.target.value)}
+                      placeholder={t(
+                        'report.details_placeholder',
+                        'Additional details (optional)',
+                      )}
+                      className="mb-4"
+                    />
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={!reason || isSubmitting}
+                      isLoading={isSubmitting}
+                      className="w-full"
+                    >
+                      {t('report.submit', 'Submit report')}
+                    </Button>
+                  </>
+                )}
+              </div>
             </motion.div>
           </div>
         </>
