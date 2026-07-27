@@ -31,39 +31,38 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const { httpAdapter } = this.httpAdapterHost;
     const ctx = host.switchToHttp();
+    const request = ctx.getRequest<Record<string, unknown>>();
+    const path = httpAdapter.getRequestUrl(request) as string;
+    const method = httpAdapter.getRequestMethod(request) as string;
 
-    let httpStatus =
+    // csrf-csrf throws ForbiddenError (not HttpException). Treat as client 403 —
+    // never escalate to Sentry/Slack (telemetry retries make this noisy).
+    if (this.isCsrfError(exception)) {
+      this.logger.warn(`Invalid CSRF token [${method}] ${path}`);
+      httpAdapter.reply(
+        ctx.getResponse(),
+        {
+          statusCode: HttpStatus.FORBIDDEN,
+          timestamp: new Date().toISOString(),
+          path,
+          message: 'Invalid CSRF Token',
+          details: null,
+        },
+        HttpStatus.FORBIDDEN,
+      );
+      return;
+    }
+
+    const httpStatus =
       exception instanceof HttpException
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    // Handle CSRF ForbiddenError (which might not be an HttpException)
-    // csrf-csrf throws ForbiddenError with code 'EBADCSRFTOKEN' or message 'invalid csrf token'
-    interface CsrfError extends Error {
-      code?: string;
-    }
-    const errObj = exception as CsrfError;
-    const isCsrfError =
-      errObj?.code === 'EBADCSRFTOKEN' ||
-      errObj?.message?.toLowerCase().includes('csrf') ||
-      errObj?.name?.toLowerCase().includes('csrf');
-
-    if (
-      httpStatus === (HttpStatus.INTERNAL_SERVER_ERROR as number) &&
-      isCsrfError
-    ) {
-      httpStatus = HttpStatus.FORBIDDEN;
-    }
-
-    const request = ctx.getRequest<Record<string, unknown>>();
     const responseBody = {
       statusCode: httpStatus,
       timestamp: new Date().toISOString(),
-      path: httpAdapter.getRequestUrl(request) as string,
-      message:
-        httpStatus === (HttpStatus.FORBIDDEN as number) && isCsrfError
-          ? 'Invalid CSRF Token'
-          : 'Internal server error',
+      path,
+      message: 'Internal server error',
       details: null as unknown,
     };
 
@@ -88,25 +87,38 @@ export class AllExceptionsFilter implements ExceptionFilter {
       responseBody.details = errorStack;
 
       this.logger.error(
-        `Unhandled exception [${httpAdapter.getRequestMethod(request)}] ${httpAdapter.getRequestUrl(request)}: ${errorStack}`,
+        `Unhandled exception [${method}] ${path}: ${errorStack}`,
       );
 
-      // Report internal server errors to Sentry
-      Sentry.captureException(exception);
+      // Report true unexpected errors only (not mapped client 4xx)
+      if (httpStatus >= 500) {
+        Sentry.captureException(exception);
 
-      // Also notify Slack for 500 errors
-      if (this.slackService) {
-        this.slackService
-          .sendProductionAlert({
-            message:
-              exception instanceof Error ? exception.message : 'Unknown Error',
-            stack: errorStack,
-            path: httpAdapter.getRequestUrl(request) as string,
-          })
-          .catch((e) => this.logger.error('Failed to send slack alert', e));
+        if (this.slackService) {
+          this.slackService
+            .sendProductionAlert({
+              message:
+                exception instanceof Error
+                  ? exception.message
+                  : 'Unknown Error',
+              stack: errorStack,
+              path,
+            })
+            .catch((e) => this.logger.error('Failed to send slack alert', e));
+        }
       }
     }
 
     httpAdapter.reply(ctx.getResponse(), responseBody, httpStatus);
+  }
+
+  private isCsrfError(exception: unknown): boolean {
+    if (!exception || typeof exception !== 'object') return false;
+    const err = exception as { code?: string; message?: string; name?: string };
+    return (
+      err.code === 'EBADCSRFTOKEN' ||
+      err.message?.toLowerCase().includes('csrf') === true ||
+      err.name?.toLowerCase().includes('csrf') === true
+    );
   }
 }
