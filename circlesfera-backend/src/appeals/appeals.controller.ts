@@ -12,8 +12,14 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
-import { AdminGuard } from '../auth/guards/admin.guard.js';
+import {
+  CurrentUser,
+  type CurrentUserData,
+} from '../auth/decorators/current-user.decorator.js';
+import {
+  AdminGuard,
+  RequireStaffPermissions,
+} from '../auth/guards/admin.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { AppealsService } from './appeals.service.js';
@@ -62,13 +68,14 @@ export class AppealsController {
 
   @Get('my-appeals')
   @UseGuards(JwtAuthGuard)
-  findMyUserAppeals(@CurrentUser('userId') userId: string) {
-    return this.appealsService.findMyUserAppeals(userId);
+  findMyUserAppeals(@CurrentUser() user: CurrentUserData) {
+    return this.appealsService.findMyUserAppeals(user.userId);
   }
 
   // Admin Routes
   @Get('admin')
   @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireStaffPermissions('appeals')
   findAll(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -83,7 +90,12 @@ export class AppealsController {
 
   @Patch('admin/:id')
   @UseGuards(JwtAuthGuard, AdminGuard)
-  update(@Param('id') id: string, @Body() updateAppealDto: UpdateAppealDto) {
-    return this.appealsService.update(id, updateAppealDto);
+  @RequireStaffPermissions('appeals')
+  update(
+    @Param('id') id: string,
+    @Body() updateAppealDto: UpdateAppealDto,
+    @CurrentUser() admin: CurrentUserData,
+  ) {
+    return this.appealsService.update(id, updateAppealDto, admin.userId);
   }
 }

@@ -4,6 +4,7 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -49,6 +50,8 @@ interface UserWithVerification
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger(AdminService.name);
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(EmailService) private readonly emailService: EmailService,
@@ -372,6 +375,9 @@ export class AdminService {
         verificationLevel: u.verificationLevel,
         accountType: u.accountType,
         createdAt: u.createdAt,
+        suspendedUntil: u.suspendedUntil,
+        scheduledDeletionAt: u.scheduledDeletionAt,
+        deletedAt: u.deletedAt,
         profile: u.profile,
         postCount: u._count.posts,
         identityVerifiedAt: u.identityVerifiedAt,
@@ -414,7 +420,7 @@ export class AdminService {
   async unbanUser(adminId: string, userId: string) {
     const result = await this.prisma.user.update({
       where: { id: userId },
-      data: { isActive: true },
+      data: { isActive: true, suspendedUntil: null },
     });
     await this.logAction(adminId, AdminAction.UNBAN_USER, 'user', userId);
     await this.invalidateProfileCache(userId);
@@ -718,6 +724,13 @@ export class AdminService {
               },
             },
           },
+          assignedTo: {
+            include: {
+              profile: {
+                select: { username: true, avatar: true },
+              },
+            },
+          },
         },
       }),
       this.prisma.report.count({ where }),
@@ -861,18 +874,36 @@ export class AdminService {
     adminId: string,
     reportId: string,
     status: ReportStatus,
+    internalNotes?: string,
   ) {
     const existing = await this.prisma.report.findUnique({
       where: { id: reportId },
     });
+    const data: Prisma.ReportUncheckedUpdateInput = {
+      status,
+      resolvedAt:
+        status === ReportStatus.RESOLVED || status === ReportStatus.REJECTED
+          ? new Date()
+          : (existing?.resolvedAt ?? undefined),
+      assignedToId:
+        status === ReportStatus.REVIEWING
+          ? adminId
+          : (existing?.assignedToId ?? undefined),
+      ...(internalNotes !== undefined ? { internalNotes } : {}),
+    };
     const result = await this.prisma.report.update({
       where: { id: reportId },
-      data: { status },
+      data,
     });
-    const action =
-      status === ReportStatus.RESOLVED
-        ? AdminAction.REPORT_RESOLVED
-        : AdminAction.REPORT_DISMISSED;
+
+    let action: AdminAction = AdminAction.REPORT_REVIEWED;
+    if (status === ReportStatus.RESOLVED) {
+      action = AdminAction.REPORT_RESOLVED;
+    } else if (status === ReportStatus.REJECTED) {
+      action = AdminAction.REPORT_DISMISSED;
+    } else if (status === ReportStatus.REVIEWING) {
+      action = AdminAction.REPORT_REVIEWED;
+    }
     await this.logAction(adminId, action, 'report', reportId);
 
     if (existing && existing.status !== status) {
@@ -885,10 +916,107 @@ export class AdminService {
           postId:
             existing.targetType === 'POST' ? existing.targetId : undefined,
         })
-        .catch((e) => console.error(e));
+        .catch((e) => this.logger.error(e));
     }
 
     return result;
+  }
+
+  /** Claim a pending report into REVIEWING for the current moderator. */
+  async claimReport(adminId: string, reportId: string) {
+    const report = await this.prisma.report.findUnique({
+      where: { id: reportId },
+    });
+    if (!report) throw new NotFoundException('Report not found');
+
+    const result = await this.prisma.report.update({
+      where: { id: reportId },
+      data: {
+        status: ReportStatus.REVIEWING,
+        assignedToId: adminId,
+      } satisfies Prisma.ReportUncheckedUpdateInput,
+    });
+    await this.logAction(
+      adminId,
+      AdminAction.REPORT_REVIEWED,
+      'report',
+      reportId,
+      'Claimed for review',
+    );
+    return result;
+  }
+
+  /** Issue a formal warning (audit + notification) without banning. */
+  async warnUser(adminId: string, userId: string, reason?: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    await this.logAction(
+      adminId,
+      AdminAction.ACCOUNT_WARNED,
+      'user',
+      userId,
+      reason || 'Formal warning',
+    );
+    await this.notificationsService
+      .create({
+        recipientId: userId,
+        senderId: adminId,
+        type: NotificationType.MODERATION,
+        content:
+          reason ||
+          'You received a formal warning for violating CircleSfera policies.',
+      })
+      .catch((e) => this.logger.error(e));
+    return { success: true };
+  }
+
+  /** Temporary suspension via suspendedUntil (does not permanently ban). */
+  async suspendUser(
+    adminId: string,
+    userId: string,
+    days: number,
+    reason?: string,
+  ) {
+    const until = new Date();
+    until.setDate(until.getDate() + Math.max(1, days));
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isActive: false,
+        suspendedUntil: until,
+      } satisfies Prisma.UserUpdateInput,
+    });
+    await this.logAction(
+      adminId,
+      AdminAction.ACCOUNT_SUSPENDED,
+      'user',
+      userId,
+      `Suspended until ${until.toISOString()}: ${reason || ''}`,
+    );
+    await this.notificationsService
+      .create({
+        recipientId: userId,
+        senderId: adminId,
+        type: NotificationType.MODERATION,
+        content:
+          `Your account is suspended until ${until.toISOString().slice(0, 10)}. ${reason || ''}`.trim(),
+      })
+      .catch((e) => this.logger.error(e));
+    return { success: true, suspendedUntil: until };
+  }
+
+  /** Lift suspension / restore account activity. */
+  async restoreUser(adminId: string, userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isActive: true,
+        suspendedUntil: null,
+      } satisfies Prisma.UserUpdateInput,
+    });
+    await this.logAction(adminId, AdminAction.ACCOUNT_RESTORED, 'user', userId);
+    return { success: true };
   }
 
   /**
@@ -940,11 +1068,29 @@ export class AdminService {
         where: { id: targetUserId },
         data: { strikeCount: { increment: 1 } },
       });
+      await this.notificationsService
+        .create({
+          recipientId: targetUserId,
+          senderId: adminId,
+          type: NotificationType.MODERATION,
+          content:
+            'A moderation strike was applied to your account after a report review.',
+        })
+        .catch((e) => this.logger.error(e));
     } else if (penaltyAction === 'BAN' && targetUserId) {
       await this.prisma.user.update({
         where: { id: targetUserId },
         data: { isActive: false },
       });
+      await this.notificationsService
+        .create({
+          recipientId: targetUserId,
+          senderId: adminId,
+          type: NotificationType.MODERATION,
+          content:
+            'Your account was deactivated after a report review. You may appeal from the login screen.',
+        })
+        .catch((e) => this.logger.error(e));
     } else if (
       penaltyAction === 'IGNORE' &&
       targetUserId &&
@@ -974,7 +1120,10 @@ export class AdminService {
 
     return await this.prisma.report.update({
       where: { id: reportId },
-      data: { status: ReportStatus.RESOLVED },
+      data: {
+        status: ReportStatus.RESOLVED,
+        resolvedAt: new Date(),
+      } satisfies Prisma.ReportUncheckedUpdateInput,
     });
   }
 

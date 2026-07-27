@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { NotificationType } from '@prisma/client';
+import { NotificationType, type Prisma, Role } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SlackService } from '../slack/slack.service.js';
@@ -96,7 +96,7 @@ export class AppealsService {
     return appeal;
   }
 
-  async update(id: string, dto: UpdateAppealDto) {
+  async update(id: string, dto: UpdateAppealDto, adminId?: string) {
     // Determine if we need to reactivate account or restore post based on approval
     const appeal = await this.findOne(id);
 
@@ -114,7 +114,10 @@ export class AppealsService {
           // Restore User Account
           await tx.user.update({
             where: { id: appeal.userId },
-            data: { isActive: true },
+            data: {
+              isActive: true,
+              suspendedUntil: null,
+            } satisfies Prisma.UserUpdateInput,
           });
         }
         // If targetType is POST_REMOVAL, restore post
@@ -128,6 +131,32 @@ export class AppealsService {
 
       return res;
     });
+
+    const reviewerId =
+      adminId ||
+      (
+        await this.prisma.user.findFirst({
+          where: { role: { in: [Role.ADMIN, Role.MODERATOR] } },
+          select: { id: true },
+        })
+      )?.id;
+
+    if (reviewerId) {
+      await this.prisma.adminAuditLog
+        .create({
+          data: {
+            adminId: reviewerId,
+            action:
+              dto.status === 'APPROVED'
+                ? 'ACCOUNT_RESTORED'
+                : 'REPORT_REVIEWED',
+            targetType: 'appeal',
+            targetId: appeal.id,
+            details: `Appeal ${dto.status}: ${dto.adminNotes || ''}`.trim(),
+          },
+        })
+        .catch((e) => console.error(e));
+    }
 
     this.slackService
       .sendModerationAlert({
@@ -145,15 +174,11 @@ export class AppealsService {
         : dto.status === 'REJECTED'
           ? 'rejected'
           : dto.status.toLowerCase();
-    const adminSender = await this.prisma.user.findFirst({
-      where: { role: 'ADMIN' },
-      select: { id: true },
-    });
-    if (adminSender) {
+    if (reviewerId) {
       await this.notificationsService
         .create({
           recipientId: appeal.userId,
-          senderId: adminSender.id,
+          senderId: reviewerId,
           type: NotificationType.MODERATION,
           content: `Your appeal was ${outcomeLabel}.${dto.adminNotes ? ` Notes: ${dto.adminNotes}` : ''}`,
           postId:
