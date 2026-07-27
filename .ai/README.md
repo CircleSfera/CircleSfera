@@ -8,7 +8,7 @@ next to the code so it evolves with the product.
 
 ## Why this exists
 
-CircleSfera is a production social platform: 65 Prisma models, 41 NestJS feature modules, a
+CircleSfera is a production social platform: 65 Prisma models, 46 NestJS modules, a
 React 19 SPA, Stripe Connect money flows, chat encryption, moderation and GDPR obligations.
 At that size, isolated prompts produce inconsistent decisions. This framework makes the
 decision process itself consistent.

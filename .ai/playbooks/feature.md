@@ -75,7 +75,8 @@ Keep the feature behind a flag if it is risky. Do not refactor unrelated code on
 cd circlesfera-backend && npm run lint && npm test && npm run build
 cd circlesfera-backend && npm run test:e2e            # if the contract changed
 cd circlesfera-frontend && npm run lint && npm test && npm run build
-cd /workspace && npm run check
+npx biome check --write --files-ignore-unknown=true --no-errors-on-unmatched \
+  $(git diff --name-only HEAD)   # scoped on purpose; see ../core/quality.md
 ```
 
 Report real output. Then walk the primary flow manually if a UI is involved, and try the edge cases

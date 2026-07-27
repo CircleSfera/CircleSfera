@@ -64,7 +64,8 @@ row. A fix based on an unconfirmed hypothesis usually creates a second bug.
 ```bash
 cd circlesfera-backend && npm test && npm run build      # backend fix
 cd circlesfera-frontend && npm test && npm run build     # frontend fix
-cd /workspace && npm run check
+npx biome check --write --files-ignore-unknown=true --no-errors-on-unmatched \
+  $(git diff --name-only HEAD)   # scoped on purpose; see ../core/quality.md
 ```
 
 Reproduce the original scenario and confirm it is gone. Then check the neighbours: other callers of

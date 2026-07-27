@@ -29,7 +29,7 @@ compatibility, documentation.
 
 ## Checks
 
-1. **Does an endpoint already exist?** Grep the controllers before adding. 41 modules hide a lot.
+1. **Does an endpoint already exist?** Grep the controllers before adding. 46 modules hide a lot.
 2. **Resource naming** consistent with neighbours in the same controller. Do not introduce a new
    casing or pluralization style.
 3. **Verb semantics.** GET is side-effect free and cacheable; POST creates or acts; PATCH partially

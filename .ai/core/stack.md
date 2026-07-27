@@ -95,9 +95,14 @@ npm run check      # biome check --write .
 ## Root
 
 ```bash
-npm run check      # biome check --write . across the monorepo
+npm run check      # biome check --write . across the monorepo — see the caveat below
 npm run test:e2e   # npx playwright test (testDir ./e2e, baseURL http://localhost:5173)
 ```
+
+Biome versions are not aligned: root and frontend **2.4.12**, backend **2.5.0**, `circlesfera-shared`
+**1.9.4** (a different major with a different config format). Running the unscoped root `npm run
+check` today reformats 7 files that no CI job covers — scope Biome to your changed paths instead
+(gap T1 in `known-gaps.md`).
 
 Playwright's `globalSetup` (`e2e/global-setup.ts`) needs a reachable backend at `BACKEND_URL`
 (default `http://localhost:3005/api/v1`) and E2E credentials; skip with `SKIP_GLOBAL_SETUP=true`
@@ -131,6 +136,10 @@ the full Playwright suite on a cron. `ops-reencrypt.yml` is manual-only ops tool
 
 There is no dedicated backend typecheck step in the PR `test` job — `nest build` only runs in the
 Playwright job. Do not assume type errors will be caught by `npm test`.
+
+There is also no root Biome step. Each `npm run lint` is `biome lint .` inside its own package, so
+formatting is never enforced in CI, and `prisma/`, `e2e/` and `scripts/` are outside every linted
+scope.
 
 ## Environment variables
 

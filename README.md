@@ -20,6 +20,8 @@ CircleSfera is a complete social media application that allows users to share ph
 
 ```
 CircleSfera/
+├── .ai/                       # AI Engineering Framework (context, orchestrator, agents, playbooks)
+├── .cursor/rules/             # Cursor project rules routing into .ai/
 ├── circlesfera-backend/       # NestJS REST API
 │   ├── README.md
 │   ├── prisma/                # Database schema & migrations
@@ -92,26 +94,26 @@ sequenceDiagram
 
 ### Backend
 
-- **Framework**: NestJS 11.1.10
-- **Database**: PostgreSQL 15+ + Prisma 7.4.0
+- **Framework**: NestJS 11.1.26
+- **Database**: PostgreSQL 15+ + Prisma (`@prisma/client` 7.8.0, CLI 7.6.0)
 - **Auth**: JWT with Passport
 - **Validation**: class-validator
-- **Testing**: Vitest 3.0.5
-- **Security**: bcrypt, throttler
+- **Testing**: Vitest 4.1.9
+- **Security**: argon2 / bcrypt, throttler
 
 ### Frontend
 
-- **Framework**: React 19.2.3 with Vite 7.2.4
+- **Framework**: React 19.2.4 with Vite 7.3.5
 - **State**: Zustand 5.0.11 + TanStack Query 5.90.20
 - **Styling**: Tailwind CSS 4.1.18
-- **Routing**: React Router 7.13.0
-- **HTTP**: Axios 1.13.4
+- **Routing**: React Router 7.18.0
+- **HTTP**: Axios 1.13.2
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 24 (CI workflows and the Docker images both pin `node:24`)
 - PostgreSQL 15+
 - npm or yarn
 
@@ -154,7 +156,7 @@ npm run dev
 
 ### Important env / ops notes
 
-- **`ENCRYPTION_KEY`**: required for message encryption at rest; see root `.env.example`. Rotating keys may need a re-encrypt path (`circlesfera-backend/scripts/reencrypt-messages.ts` when present).
+- **`ENCRYPTION_KEY`**: required for message encryption at rest; see root `.env.example`. Rotating keys uses `circlesfera-backend/src/scripts/reencrypt-messages.ts` (shipped in the production image; also runnable via the manual `ops-reencrypt.yml` workflow).
 - **Backups**: `scripts/backup-postgres.sh`, `scripts/backup-uploads.sh`, `scripts/restore-postgres.sh` — see [runbooks](./circlesfera-documentation/runbooks/README.md) and [11-backups-strategy.md](./circlesfera-documentation/11-backups-strategy.md).
 
 ### Access the Application
@@ -191,6 +193,8 @@ Password: password123
 
 | Document | Description |
 | --- | --- |
+| [AGENTS.md](./AGENTS.md) | Operating rules for AI-assisted work (highest precedence) |
+| [.ai/](./.ai/README.md) | AI Engineering Framework: repo context, orchestrator, specialist roles, playbooks, checklists |
 | [Product & tech docs](./circlesfera-documentation/README.md) | Indexed docs (PRD, API, status, etc.) |
 | [ADRs](./circlesfera-documentation/adr/README.md) | Architecture Decision Records (LiveKit, Redis/BullMQ, auth, storage, feed, fees, …) |
 | [Runbooks](./circlesfera-documentation/runbooks/README.md) | Restore / rollback / incident stubs |
@@ -199,6 +203,18 @@ Password: password123
 | [CONTRIBUTING](./CONTRIBUTING.md) / [SECURITY](./SECURITY.md) | Contribution and vulnerability reporting |
 
 > Snapshots under `circlesfera-documentation/` may lag — `schema.prisma` and Nest controllers remain the source of truth. `08-schema-prisma.md` is only a pointer to the live schema.
+
+## 🤖 AI-assisted development
+
+AI work on this repo is governed by [`AGENTS.md`](./AGENTS.md) and operationalised by the
+**AI Engineering Framework** in [`.ai/`](./.ai/README.md):
+
+- [`.ai/core/`](./.ai/core/) — permanent project context: product identity, engineering principles, stack, architecture, conventions, quality bar, glossary, and the precedence order in [`sources-of-truth.md`](./.ai/core/sources-of-truth.md).
+- [`.ai/orchestrator.md`](./.ai/orchestrator.md) — routes a request to the right playbook and specialist roles.
+- [`.ai/agents/`](./.ai/agents/README.md), [`.ai/playbooks/`](./.ai/playbooks/README.md), [`.ai/checklists/`](./.ai/checklists/README.md), [`.ai/templates/`](./.ai/templates/README.md) — roles, workflows, done-gates and document skeletons.
+- [`.cursor/rules/`](./.cursor/rules/) — thin Cursor rules that auto-attach the relevant `.ai/` context per file path.
+
+Verified inconsistencies between docs and code are tracked in [`.ai/core/known-gaps.md`](./.ai/core/known-gaps.md) instead of being silently "fixed".
 
 ## 🔧 Development
 

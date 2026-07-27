@@ -56,7 +56,8 @@ simplify conditional / remove duplication / inline needless indirection.
 ```bash
 cd circlesfera-backend && npm run lint && npm test && npm run build
 cd circlesfera-frontend && npm run lint && npm test && npm run build
-cd /workspace && npm run check
+npx biome check --write --files-ignore-unknown=true --no-errors-on-unmatched \
+  $(git diff --name-only HEAD)   # scoped on purpose; see ../core/quality.md
 ```
 
 The same tests that passed in step 3 must pass **unchanged**. If you had to modify a test assertion,

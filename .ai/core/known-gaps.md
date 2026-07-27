@@ -35,6 +35,12 @@ it deliberately with tests and remove the entry in the same PR. Do not batch unr
 | F9 | Frontend TypeScript is **5.9.3** while the backend is **6.0.3**. | both `package.json` files | Low. Behaviour can differ across the shared package. |
 | F10 | `@playwright/test` is a frontend devDependency but Playwright only has a config at the repo root. | `circlesfera-frontend/package.json` | Low. Redundant dependency. |
 
+## Tooling and CI
+
+| # | Finding | Evidence | Risk |
+| --- | --- | --- | --- |
+| T1 | Root `npm run check` (`biome check --write .`) currently reformats **7 files nothing in CI covers**: `circlesfera-backend/prisma/seed.ts`, `e2e/happy-path.spec.ts`, `e2e/live-gifts.spec.ts`, `e2e/live.spec.ts`, `e2e/monetization.spec.ts`, `e2e/settings.spec.ts`, `scripts/diagnose-message-crypto.mjs`. PR CI only runs `biome lint .` inside `circlesfera-backend`, `circlesfera-frontend` and `circlesfera-shared`, which checks lint rules but not formatting, and never covers `prisma/`, `e2e/` or `scripts/`. | `npx biome ci .` at root; `.github/workflows/pr.yml` has no root Biome step | Medium for review hygiene. Running the root script pollutes an unrelated diff with 7 reformatted files. Scope Biome to your changed paths, or fix all 7 in a dedicated formatting PR. |
+
 ## Documentation
 
 | # | Finding | Evidence |

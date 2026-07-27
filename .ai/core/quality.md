@@ -7,7 +7,8 @@ What "done" means here. Gates that are checkable, plus the judgement calls that 
 A change is done when all of the following are true:
 
 1. It compiles and typechecks.
-2. Lint passes (`npm run check` at the root).
+2. Lint and format pass **for the files you touched** (see the scoped Biome command below — the
+   unscoped root `npm run check` rewrites unrelated files, gap T1 in `known-gaps.md`).
 3. Relevant tests pass, and new behaviour has at least one test that would fail without the change.
 4. Contracts hold: DTOs, Prisma models, API responses and frontend types agree.
 5. Authorization is explicit for every touched endpoint, including ownership.
@@ -20,8 +21,12 @@ Claiming any of 1–3 without running it violates `AGENTS.md`. If you could not 
 ## Verification commands
 
 ```bash
-# root
-npm run check
+# root — scope Biome to what you changed. The unscoped `npm run check`
+# (biome check --write .) reformats 7 pre-existing files no CI job covers (gap T1).
+BIOME="npx biome check --write --files-ignore-unknown=true --no-errors-on-unmatched"
+
+$BIOME $(git diff --name-only HEAD)                              # working tree
+$BIOME $(git diff --name-only $(git merge-base HEAD origin/main) HEAD)  # whole branch
 
 # backend
 cd circlesfera-backend

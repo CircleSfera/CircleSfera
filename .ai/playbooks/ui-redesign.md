@@ -83,7 +83,8 @@ Non-negotiable ([`../agents/design-system.md`](../agents/design-system.md)):
 
 ```bash
 cd circlesfera-frontend && npm run lint && npm test && npm run build
-cd /workspace && npm run check
+npx biome check --write --files-ignore-unknown=true --no-errors-on-unmatched \
+  $(git diff --name-only HEAD)   # scoped on purpose; see ../core/quality.md
 ```
 
 Then manually: keyboard-only walkthrough, mobile viewport, empty and error states, reduced-motion

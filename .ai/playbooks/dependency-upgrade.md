@@ -57,7 +57,7 @@ approval.
 cd circlesfera-shared && npm install && npm run build
 cd circlesfera-backend && npm install && npm run lint && npm test && npm run build && npm run test:e2e
 cd circlesfera-frontend && npm install && npm run lint && npm test && npm run build
-cd /workspace && npm run check && npm run test:e2e -- e2e/smoke.spec.ts
+cd "$(git rev-parse --show-toplevel)" && npm run test:e2e -- e2e/smoke.spec.ts
 ```
 
 Commit the updated `package-lock.json`. Check the built frontend chunk sizes if a frontend dependency
