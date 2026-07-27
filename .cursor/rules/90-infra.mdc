@@ -1,0 +1,41 @@
+---
+description: Docker, nginx, CI/CD and deployment rules for CircleSfera infrastructure
+globs: docker-compose.yml, docker-compose.prod.yml, nginx/**, scripts/**, circlesfera-backend/Dockerfile, circlesfera-frontend/Dockerfile
+alwaysApply: false
+---
+
+Infrastructure, deployment and secrets are on the `AGENTS.md` confirmation list: **propose, then wait.**
+
+How production actually works:
+
+- OVH VPS, Docker Compose, images from GHCR tagged `latest` and the commit SHA. TLS terminates on the
+  host nginx; the compose proxy service is **`nginx-proxy`** on port 8082.
+- `push` to `main` triggers `.github/workflows/deploy.yml`: test job → buildx push → SSH
+  (`git reset --hard origin/main`, write `.env.production` from a base64 secret, best-effort `pg_dump`,
+  `docker compose pull`, `up -d --no-deps backend frontend nginx-proxy`) → health poll → API smoke on
+  `/health`, `/feed/foryou`, `/stories`, `/live/active` → automatic rollback to the previous
+  `.deploy-sha` on failure.
+- The backend entrypoint runs `npx prisma migrate deploy` **before** `node dist/main`. A bad migration
+  therefore blocks startup, and an image rollback does **not** revert the database.
+- Dev compose: backend on host port 3005 → container 3000, frontend 5173, proxy 8080.
+- nginx sets security headers, body limits 50m/100m, gzip, `expires 30d` on `/uploads/`, and WebSocket
+  upgrade for `/api/v1/socket.io/`. There are no `limit_req` directives — rate limiting is in the app.
+- Backups: `scripts/backup-postgres.sh`, `backup-uploads.sh`, `restore-postgres.sh` (requires
+  `CONFIRM=YES`), `install-backup-cron.sh`.
+
+Rules:
+
+- Never remove or weaken a CI gate to make a pipeline pass. The PR job must keep lint, backend unit,
+  the Prisma drift check, backend e2e, the frontend build and the Playwright smoke.
+- Any new environment variable must be added to `.env.example`, to `ENV_PRODUCTION_B64`, **and** to the
+  compose service that consumes it. Production fails fast without `ENCRYPTION_KEY`, `OPENAI_API_KEY`
+  and LiveKit credentials.
+- Never print a secret in workflow output or bake one into an image layer.
+- Never ship a destructive migration through the automated deploy without an approved plan and a fresh
+  verified dump.
+- A new service needs a health check; a new critical route belongs in the post-deploy smoke list.
+- Keep the `deploy-production` concurrency group with cancel-in-progress.
+- Verify a restore path, not just a dump. An untested backup is not a backup.
+- Never deploy `circlesfera-landing` — it is deprecated and its nginx listener was removed.
+
+Full checks: @.ai/agents/devops.md

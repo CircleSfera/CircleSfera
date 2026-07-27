@@ -1,0 +1,38 @@
+---
+description: Auth, authorization, CSRF and data-exposure rules for CircleSfera security-sensitive code
+globs: circlesfera-backend/src/auth/**, circlesfera-backend/src/admin/**, circlesfera-backend/src/main.ts, circlesfera-backend/src/common/config/**, circlesfera-backend/src/common/services/crypto.service.ts
+alwaysApply: false
+---
+
+The current posture, which you must preserve rather than redesign:
+
+- **Sessions:** JWT in an httpOnly `access_token` cookie (15 min) plus a `refresh_token` cookie
+  (7 days) persisted in the `RefreshToken` table and rotated on refresh. Bearer header is a fallback.
+- **CSRF:** `csrf-csrf` double-submit. Token from `GET /api/v1/csrf-token`, sent as `x-csrf-token`.
+  The exclusion list in `src/main.ts` is deliberate (login, register, refresh, Stripe webhook,
+  socket.io). **Adding an exclusion is a security decision requiring justification.**
+- **Validation:** global `ValidationPipe` with `whitelist` and `forbidNonWhitelisted`.
+- **Rate limiting:** global `ThrottlerGuard` plus tighter `@Throttle` on auth routes.
+- **Staff:** `AdminGuard` covers `ADMIN` and `MODERATOR` and is **deny-by-default for moderators** — a
+  moderator route must declare `@RequireStaffPermissions`. Consequential actions write `AdminAuditLog`.
+- **Money paths:** `IdentityVerifiedGuard` requires `identityVerifiedAt`.
+- **Suspension and bans** are enforced at login and in `jwt.strategy.ts` (`suspendedUntil`,
+  `isActive`), and the response payloads (`ACCOUNT_SUSPENDED`, `ACCOUNT_BANNED` + `appealToken`) are
+  part of the API contract.
+
+Non-negotiable:
+
+- Every endpoint has an explicit authorization decision. Public is a decision, and it must be
+  deliberate.
+- Ownership is checked in the service for every mutation of user-owned data. There is no generic
+  ownership guard.
+- Every client-supplied id is authorized against the caller. Enumerable ids are not access control.
+- No privileged field is settable from a DTO: `role`, `verificationLevel`, `isPremium`, `priceCents`,
+  `moderationStatus`, `status`, another user's id.
+- Never log or return a secret, token, cookie, authorization header, message plaintext, full payment
+  payload or another user's personal data. Do not weaken the Pino `redact` list.
+- Never cache an authorization decision. Never omit the viewer dimension from a personalized cache key.
+- Test the **deny** path, not only the happy path.
+- If a change may affect privacy, compliance or data integrity, stop and warn first.
+
+Full audit process: @.ai/agents/security.md
