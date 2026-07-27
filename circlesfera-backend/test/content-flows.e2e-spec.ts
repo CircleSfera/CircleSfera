@@ -5,6 +5,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from './../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { uniqueSuffix } from './utils/unique-id.js';
 
 /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 
@@ -15,7 +16,7 @@ describe('Content Flows (e2e)', () => {
   let csrfToken: string;
   let csrfCookie: string;
 
-  const uniqueId = Date.now();
+  const uniqueId = uniqueSuffix();
   const creator = {
     email: `creator_${uniqueId}@example.com`,
     password: 'Password123!',
@@ -42,9 +43,9 @@ describe('Content Flows (e2e)', () => {
 
     prisma = app.get(PrismaService);
 
-    // Pre-test cleanup (in case previous runs failed)
+    // Pre-test cleanup (in case previous runs failed), scoped to this spec's fixtures
     await prisma.user.deleteMany({
-      where: { email: { contains: uniqueId.toString() } },
+      where: { email: { in: [creator.email, mentionedUser.email] } },
     });
     await prisma.hashtag.deleteMany({ where: { tag: 'testflow' } });
 
