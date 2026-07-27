@@ -10,10 +10,10 @@
 
 This document replaces the previous security, privacy, and compliance version to align it with CircleSfera's real system. The main correction is twofold:
 
-1. It must reflect the real capabilities of the current model, including passkeys, refresh tokens, reports, admin audit logs, stories, chat, promotions, mutes, appeals, live streaming, and billing with Stripe.
-2. It must not promise persisted mechanisms that the current schema does not explicitly model, such as `moderation_actions`, `feed_preferences`, or detailed persisted analytics.
+1. It must reflect the real capabilities of the current model, including passkeys, refresh tokens, reports, admin audit logs, stories, chat, promotions, mutes, appeals, live streaming, feed preferences, and billing with Stripe.
+2. It must not promise persisted mechanisms that the current schema does not explicitly model, such as `moderation_actions` or detailed persisted analytics.
 
-> **Jul 2026 correction:** an earlier revision of this document listed `mutes` and `appeals` alongside unmodeled mechanisms. Both are real, persisted models (`Mute`, `Appeal`) with shipped endpoints — see §10.1. What genuinely remains unmodeled is a dedicated `moderation_actions` table and persisted `feed_preferences`.
+> **Jul 2026 correction:** an earlier revision of this document listed `mutes`, `appeals`, and `feed_preferences` alongside unmodeled mechanisms. `Mute`, `Appeal`, and feed-preference tables (`feed_hidden_posts` / `feed_hidden_authors` / `feed_muted_keywords`) are real, persisted models with shipped endpoints — see §10.1 and [ADR-0004](./adr/0004-feed-preferences.md). What genuinely remains unmodeled is a dedicated `moderation_actions` table.
 
 ---
 
@@ -358,6 +358,6 @@ Stripe reduces scope, but does not eliminate security obligations around webhook
 - Passkeys are incorporated into the official security document.
 - Chat is incorporated as an explicit privacy and security surface.
 - Real billing with webhooks is incorporated as a critical flow.
-- `Mute` and `Appeal` are recognized as real, persisted mechanisms (§10.1) and removed from the "does not exist" list.
-- Any closed assertion about `moderation_actions`, `feed_preferences`, and unimplemented GDPR dashboards is removed from the official document as current technical reality.
+- `Mute`, `Appeal`, and feed preferences are recognized as real, persisted mechanisms (§10.1 / [ADR-0004](./adr/0004-feed-preferences.md)) and removed from the "does not exist" list.
+- Any closed assertion about `moderation_actions` and unimplemented GDPR dashboards is removed from the official document as current technical reality.
 - Every public promise of transparency or compliance must be operationally sustainable.

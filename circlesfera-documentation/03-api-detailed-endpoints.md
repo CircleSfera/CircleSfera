@@ -3,10 +3,32 @@
 ## CircleSfera REST API (controller inventory)
 
 **Generated:** 2026-07-22 from NestJS controllers under `circlesfera-backend/src/**/*.controller.ts`.
+**Last additive sync:** 2026-07-27 (gap-closure).
 **Global prefix:** `api/v1` (see `main.ts`).
 **Production base:** `https://circlesfera.com/api/v1` (TLS terminates on the VPS host).
 
 > **Source of truth:** routes that exist in code. Prefer controllers + `schema.prisma` when docs disagree.
+
+### Jul 2026 additive routes (not in original 2026-07-22 dump)
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| GET/POST/DELETE | `/feed/preferences/*` | Hide post/author, mute keywords |
+| GET | `/monetization/payouts` | Connect payouts (read-only) |
+| GET | `/reports/me` | Reporter history |
+| POST | `/users/me/restore` | Cancel scheduled deletion |
+| POST | `/admin/reports/:id/claim` | Claim → REVIEWING |
+| PATCH | `/admin/users/:id/warn` | Formal warning |
+| PATCH | `/admin/users/:id/suspend` | Temporary suspension |
+| PATCH | `/admin/users/:id/restore` | Lift suspension |
+| POST | `/admin/users/:id/sync-kyc` | Stripe Identity sync |
+| GET/PATCH | `/admin/support/tickets*` | Support ops |
+| GET/PUT | `/admin/feature-flags*` | Experiments |
+| GET/POST | `/admin/webhooks*` | Webhook ledger + replay |
+| POST | `/admin/reports/bulk` | Bulk status |
+| GET | `/admin/trust/queue` | Trust hub counts |
+| GET | `/admin/transactions` | Ledger JSON |
+| GET/POST | `/admin/live*` | Live ops / force-end |
 
 ## Conventions
 

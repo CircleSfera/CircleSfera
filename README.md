@@ -30,10 +30,17 @@ CircleSfera/
 ├── circlesfera-shared/        # Shared types & utilities (partial adoption)
 │   └── src/
 ├── circlesfera-documentation/ # Product & technical docs (see README inside)
-│   └── adr/                   # ADRs planned (next documentation milestone)
+│   ├── adr/                   # Architecture Decision Records (0001+)
+│   └── runbooks/              # Ops stubs (restore, rollback, incidents)
+├── scripts/                   # Backup/restore, env upload, schema checks
 ├── circlesfera-landing/       # DEPRECATED / unused — do not build on this
 ├── e2e/                       # Playwright end-to-end tests
 ├── nginx/                     # Reverse-proxy templates & config
+├── LICENSE                    # MIT
+├── SECURITY.md
+├── CONTRIBUTING.md
+├── CODE_OF_CONDUCT.md
+├── CHANGELOG.md
 └── README.md                  # This file
 ```
 
@@ -67,16 +74,19 @@ sequenceDiagram
 
 ## ✨ Features
 
-| Feature               | Description                                    |
-| --------------------- | ---------------------------------------------- |
-| 🔐 **Authentication** | JWT-based auth with access/refresh tokens      |
-| 👤 **Profiles**       | Customizable user profiles with bio and avatar |
-| 📸 **Posts**          | Create, edit, delete posts with images         |
-| 📖 **Stories**        | 24-hour ephemeral stories                      |
-| 👥 **Social**         | Follow/unfollow users                          |
-| ❤️ **Engagement**     | Like and comment on posts                      |
-| 🔔 **Notifications**  | Real-time notification system                  |
-| 🔍 **Discovery**      | Explore feed with all posts                    |
+| Feature | Description |
+| --- | --- |
+| Authentication | HTTP-only cookie JWT + refresh rotation, CSRF, email verify / password reset, passkeys |
+| Profiles & social | Profiles, follow/block/mute, bookmarks, highlights |
+| Content | Posts (multi-media), Stories (24h + PPV unlock), Frames |
+| Engagement | Likes, comments, mentions, real-time notifications |
+| Discovery | Explore, tags, semantic search readiness (pgvector embeddings) |
+| Messaging | Direct messages over WebSockets (+ Redis adapter) |
+| Live | LiveKit broadcasts, co-hosts, billed gifts (Stripe) |
+| Creator economy | Stripe Connect tips/unlocks/subs/promotions; 20% platform fee |
+| Feed controls | Hide post/author, mute keywords (`/feed/preferences`) |
+| Admin / Creator | Admin console + Creator studio |
+| Trust & safety | Reports, AI moderation hooks, appeals, audit log |
 
 ## 🛠 Technology Stack
 
@@ -121,12 +131,13 @@ cd ..
 # Setup Backend
 cd circlesfera-backend
 npm install
-cp .env.example .env
-# Edit .env with your database credentials
+cp ../.env.example .env   # or local backend .env.example if present
+# Edit .env: DATABASE_URL, CSRF_SECRET, ENCRYPTION_KEY (message crypto),
+# JWT secrets, and optional Stripe / LiveKit / OpenAI / storage keys
 
 # Setup Database
 npx prisma generate
-npx prisma migrate dev --name init
+npx prisma migrate dev
 npm run prisma:seed  # Optional: seed with sample data
 
 # Start Backend
@@ -140,6 +151,11 @@ cp .env.example .env
 # Start Frontend
 npm run dev
 ```
+
+### Important env / ops notes
+
+- **`ENCRYPTION_KEY`**: required for message encryption at rest; see root `.env.example`. Rotating keys may need a re-encrypt path (`circlesfera-backend/scripts/reencrypt-messages.ts` when present).
+- **Backups**: `scripts/backup-postgres.sh`, `scripts/backup-uploads.sh`, `scripts/restore-postgres.sh` — see [runbooks](./circlesfera-documentation/runbooks/README.md) and [11-backups-strategy.md](./circlesfera-documentation/11-backups-strategy.md).
 
 ### Access the Application
 
@@ -173,13 +189,16 @@ Password: password123
 
 ## 📚 Documentation
 
-| Document                                                               | Description                                      |
-| ---------------------------------------------------------------------- | ------------------------------------------------ |
-| [Product & tech docs](./circlesfera-documentation/README.md)           | Indexed docs (PRD, API, schema snapshots, etc.)  |
-| [Backend README](./circlesfera-backend/README.md)                      | API documentation, endpoints, security           |
-| [Frontend README](./circlesfera-frontend/README.md)                    | Components, state management, styling            |
+| Document | Description |
+| --- | --- |
+| [Product & tech docs](./circlesfera-documentation/README.md) | Indexed docs (PRD, API, status, etc.) |
+| [ADRs](./circlesfera-documentation/adr/README.md) | Architecture Decision Records (LiveKit, Redis/BullMQ, auth, storage, feed, fees, …) |
+| [Runbooks](./circlesfera-documentation/runbooks/README.md) | Restore / rollback / incident stubs |
+| [Backend README](./circlesfera-backend/README.md) | API documentation, endpoints, security |
+| [Frontend README](./circlesfera-frontend/README.md) | Components, state management, styling |
+| [CONTRIBUTING](./CONTRIBUTING.md) / [SECURITY](./SECURITY.md) | Contribution and vulnerability reporting |
 
-> Snapshots under `circlesfera-documentation/` (esp. Abr 2026) may lag `schema.prisma` and Nest controllers — those remain the source of truth.
+> Snapshots under `circlesfera-documentation/` may lag — `schema.prisma` and Nest controllers remain the source of truth. `08-schema-prisma.md` is only a pointer to the live schema.
 
 ## 🔧 Development
 
@@ -264,15 +283,16 @@ npm run preview      # Preview build
 
 ## 🤝 Contributing
 
+See [CONTRIBUTING.md](./CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md). Short version:
+
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Commit your changes
+4. Push to the branch and open a Pull Request
 
 ## 📄 License
 
-This project is intended to be distributed under the MIT License. A formal `LICENSE` file has not been added to the repository yet.
+MIT — see [LICENSE](./LICENSE).
 
 ## 👥 Team
 

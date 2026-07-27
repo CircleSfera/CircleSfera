@@ -1,8 +1,22 @@
 # Backup Strategy - CircleSfera
 
-**Version:** 2.0 (Adapted for PostgreSQL)  
-**Date:** June 2026  
+**Version:** 2.1 (OVH VPS + scripts in repo)  
+**Date:** July 2026  
 **Owner:** DevOps Lead @ CircleSfera
+
+---
+
+## Implemented scripts (source of truth)
+
+| Script | Purpose |
+|--------|---------|
+| [`scripts/backup-postgres.sh`](../scripts/backup-postgres.sh) | `pg_dump -Fc` + TOC verify + local retention (+ optional S3) |
+| [`scripts/backup-uploads.sh`](../scripts/backup-uploads.sh) | Tar.gz of local uploads volume (+ optional S3) |
+| [`scripts/restore-postgres.sh`](../scripts/restore-postgres.sh) | `pg_restore` (requires `CONFIRM=YES`) |
+
+Deploy CD takes a **best-effort pre-migrate dump** on the VPS before rolling backend/frontend (see `.github/workflows/deploy.yml`). Schedule daily cron on the VPS for `backup-postgres.sh` and `backup-uploads.sh` with `BACKUP_DIR` outside the app disk when possible.
+
+Runbooks: [`runbooks/restore-postgres.md`](./runbooks/restore-postgres.md), [`runbooks/rollback-deploy.md`](./runbooks/rollback-deploy.md).
 
 ---
 

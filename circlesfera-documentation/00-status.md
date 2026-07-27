@@ -1,6 +1,32 @@
 # Documentation status
 
-**Last status note:** Jul 2026 — Closure-to-100% hardening: live gifts billing, feed preferences, Stripe payouts read-only UI, auth session bootstrap, AI/LiveKit prod fail-fast
+**Last status note:** Jul 2026 — Production gap-closure closed (blockers + T&S wiring + deploy readiness)
+
+## Jul 2026 production closure (verified)
+
+- **Deploy blocker**: CD uses compose service `nginx-proxy` (not `nginx`)
+- **Encryption rotation**: `ENCRYPTION_KEY` required; `ENCRYPTION_KEY_LEGACY` decrypt fallback; re-encrypt via `node dist/scripts/reencrypt-messages.js` in the backend image
+- **Account deletion**: `scheduledDeletionAt` grace; login restores during window; Settings can cancel; hard-delete cron + BullMQ
+- **T&S**: `AdminGuard` deny-by-default for moderators; claim/REVIEWING/notes in Admin UI; warn/suspend/restore + `suspendedUntil` enforced in JWT/login + daily lift cron
+- **Compliance**: CookieConsent mounted; telemetry gated; GDPR export includes stories/likes/notifications/settings/appeals/collections/transactions; age ≥16 client+server
+- **Migration**: `20260727140000_account_deletion_and_suspension` alters `users` (+ MODERATOR, report queue fields)
+
+## Jul 2026 full roadmap gap-closure
+
+- **P0**: `ENCRYPTION_KEY` required (no insecure fallback); `src/scripts/reencrypt-messages.ts`; unified account deletion (`deletedAt` + `scheduledDeletionAt`); backup/restore scripts; env files synced (`.env`, `.env.production`, backend `.env`/`.env.backup`, examples)
+- **Ops**: deploy rolling update + SHA tags + smoke rollback; Sentry bake-time; backend e2e on deploy; nginx body 50m
+- **T&S**: `Role.MODERATOR`; report claim/REVIEWING/`resolvedAt`; warn/suspend/restore; ReportModal all target types + reasons; anti-shadowban label
+- **Compliance**: cookie consent; GDPR export expanded; retention crons; age ≥16 on register
+- **Quality**: Dependabot, Playwright nightly, AdminGuard specs, endpoint hardening
+- **Frontend/docs**: 404, lazy routes, ADRs 0005–0010, governance files, runbooks
+
+## Jul 2026 gap-closure (frontend/docs pass)
+
+- **Frontend**: 404 + SEO noindex; Admin invalid-tab redirect; Live title before start; lazy EditsStudio/Profile/Frames/Chat panes; EmptyState/ErrorState on Frames/Saved/Notifications
+- **Docs accuracy**: live gifts **are** billed; feed preferences **are** implemented — corrected in 01/02/04/06; `08-schema-prisma.md` is a pointer only
+- **Governance**: root `LICENSE` (MIT), `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`
+- **ADRs**: 0005 LiveKit, 0006 Redis+BullMQ, 0007 cookies+CSRF, 0008 storage providers, 0009 feed fan-out, 0010 20% platform fee
+- **Runbooks**: `circlesfera-documentation/runbooks/` stubs → `scripts/backup-*.sh`, `restore-postgres.sh`
 
 ## Jul 2026 closure-to-100% (implemented)
 
@@ -31,7 +57,7 @@
 - Ops handlers: `checkout.session.expired`, `invoice.payment_failed`, `charge.refunded`, `charge.dispute.created` (revoke unlocks), `account.updated` (Connect capability cache)
 - Story PPV: persist `isPremium`/`priceCents`; `StoryUnlock` + `POST /monetization/unlock-story`; feed redacts locked media
 - Creator VIP price UI in Creator finance tab (`PATCH /creator/subscription-price`)
-- Platform fee: **20%** application fee on Connect tips/unlocks/creator subs/**live gifts**
+- Platform fee: **20%** application fee on Connect tips/unlocks/creator subs/**live gifts** — [ADR-0010](./adr/0010-platform-fee-20-percent.md)
 
 ## Production incident (Jul 2026)
 
@@ -39,24 +65,26 @@ After merging feed hydration for `poll` / `qnaBox`, prod returned feed/stories *
 
 Follow-up: CI runs `scripts/check-prisma-schema-migrations.sh`; catch-up `20260723020000_appeals_profile_embeddings_drop_payouts`; post-deploy API smoke on 5xx.
 
-## Still deferred / out of scope
+## Still deferred / OUT OF SCOPE
 
-- Creator payouts: Stripe Connect Express only (`TransactionType.PAYOUT` removed; no internal payout ledger) — see [ADR-0002](./adr/0002-stripe-connect-payouts.md). Read-only balance UI is shipped; initiating payouts stays in Stripe Express dashboard.
-- Native apps, Communities/forums, B2B Business Manager, public OAuth APIs (doc 12 Later horizon)
+Product/ops gap-closure is **not** “100% of every corporate vision item.” Explicitly **OUT OF SCOPE** for this closure track (remain Later / non-goals unless product reopens them):
+
+- Native mobile apps (React Native / store binaries)
+- Communities / forums
+- B2B Business Manager
+- Public OAuth / third-party developer platform
+- SSR indexable profiles
+- Subscriber badges as a first-class product surface
+- Data warehouse / BI (ClickHouse/BigQuery, executive LTV dashboards)
+- SOC2 certification and public bug-bounty program
+
+Also deferred:
+
+- Creator payouts: Stripe Connect Express only — see [ADR-0002](./adr/0002-stripe-connect-payouts.md). Read-only balance UI is shipped; initiating payouts stays in Stripe Express dashboard.
 
 ## Doc / source of truth
 
-Documents **01–08** (Abr 2026 origins) remain **partially stale** in places relative to the current `schema.prisma` and backend modules, except where explicitly revised (e.g. **01 PRD v4.0**, **03 API inventory**, **ADR-0001**, and the Jul 2026 sync of **02, 04, 06, 07, 08** for `Mute`/`Appeal`/`LiveStream`/`Poll`/`QnaBox`). **08-schema-prisma.md** is a point-in-time snapshot, not a live mirror — always defer to `circlesfera-backend/prisma/schema.prisma`.
-
-When in doubt: `schema.prisma` → implemented code → API contracts → these markdown files.
-
-## Production infra (current)
-
-- Deploy target: **OVH VPS** via GitHub Actions + `docker-compose.prod.yml` (this is production today).
-- **TLS/SSL**: certificates are generated and renewed **on the VPS host**; the compose nginx proxy is HTTP-only behind the host reverse proxy.
-- Doc **05-deployment-strategy**: §2 = live OVH topology; Cloudflare/ECS/AWS described only as a **future** target (not in use).
-- API inventory regenerated in [03-api-detailed-endpoints.md](./03-api-detailed-endpoints.md) (Jul 2026).
-- [ADR-0001](./adr/0001-profile-embedding-retention.md): keep `ProfileEmbedding`; writer on update + backfill script available.
-- [ADR-0002](./adr/0002-stripe-connect-payouts.md): Connect Express only; read-only payouts UI OK.
-- [ADR-0003](./adr/0003-one-active-platform-plan.md): one active platform plan enforced.
-- [ADR-0004](./adr/0004-feed-preferences.md): feed preference tables (Accepted).
+- Schema: `circlesfera-backend/prisma/schema.prisma` (not `08-schema-prisma.md`)
+- ADRs: [adr/README.md](./adr/README.md)
+- Runbooks: [runbooks/README.md](./runbooks/README.md)
+- Documents **01–07** may still lag in places; prefer code + schema when they conflict.

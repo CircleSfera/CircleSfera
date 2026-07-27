@@ -1,0 +1,43 @@
+# Changelog
+
+All notable changes to CircleSfera are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/) where version tags exist.
+
+## [Unreleased]
+
+### Added
+
+- **P0 security**: required `ENCRYPTION_KEY` (no hardcoded fallback); `src/scripts/reencrypt-messages.ts` (ships in prod image); optional `ENCRYPTION_KEY_LEGACY` decrypt fallback during rotation
+- **P0 GDPR**: `scheduledDeletionAt` + unified `DELETE /users/me` / restore; login restores during grace; Settings cancel deletion
+- **P0 backups**: `scripts/backup-postgres.sh`, `backup-uploads.sh`, `restore-postgres.sh`; pre-deploy dump in CD
+- Role `MODERATOR` + **deny-by-default** `AdminGuard` (`@RequireStaffPermissions` on T&S routes); report claim/REVIEWING/`resolvedAt`/`internalNotes`; warn/suspend/restore (UI + auto-lift cron)
+- Cookie consent banner mounted; telemetry gated on analytics consent; expanded GDPR export; retention crons (reports 2y, webhooks 30d); age ≥16 on register (client + server)
+- Deploy: SHA image tags, rolling `up --no-deps` (`nginx-proxy`), smoke rollback; Sentry DSN bake; backend e2e on deploy CD
+- Frontend 404 (`NotFound`) catch-all route with SEO `noindex`
+- Admin invalid-tab redirect (aligned with Creator studio)
+- Live broadcast title input before start
+- Lazy-loaded heavy routes (EditsStudio, Profile, Frames; lazy Chat panes)
+- Root governance files: `LICENSE`, `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`
+- ADRs 0005–0010 (LiveKit, Redis/BullMQ, auth cookies+CSRF, storage providers, feed fan-out, 20% platform fee)
+- Ops runbook stubs under `circlesfera-documentation/runbooks/`
+- Dependabot + Playwright nightly workflow
+
+### Fixed
+
+- Documentation false negatives: live gifts are billed; feed preferences are implemented
+- `08-schema-prisma.md` reduced to a pointer at the live Prisma schema
+- Report status audit logged `DISMISSED` for non-RESOLVED (including REVIEWING)
+- Duplicate `AllExceptionsFilter` registration in `main.ts`
+- Deploy compose service name (`nginx` → `nginx-proxy`)
+- Account grace restore used obsolete `deletedAt > now` check; now uses `scheduledDeletionAt`
+- Migration `20260727140000` targets `users` table (`@@map`), not `"User"`
+
+### Changed
+
+- Empty/error states on Frames, Saved, and Notifications use shared `EmptyState` / `ErrorState`
+- Design-system doc notes real brand tokens vs `Button` `blue-600` usage
+- Roadmap/status docs mark gap-closure progress and explicit out-of-scope product/ops items
+- ReportModal supports COMMENT/STORY/MESSAGE and full reason enum
+- nginx `client_max_body_size` aligned to 50m with Nest body parser

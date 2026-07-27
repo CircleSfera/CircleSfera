@@ -10,7 +10,7 @@
 
 This document replaces the previous version of user stories to align them with the project's reality. The main correction is that CircleSfera is no longer documented as a reduced MVP of posts and follows, but as a platform whose current model already supports stories, frames as a post variant, bookmarks, collections, highlights, chat, passkeys, promotions, reporting, platform plans, mutes, appeals, live streaming, and polls/Q&A.
 
-**Jul 2026 correction:** an earlier revision of this document said stories for persisted `mutes` and persisted `appeals` were removed because those entities didn't exist. That is no longer accurate — `Mute` and `Appeal` are real, persisted models in `schema.prisma` with shipped endpoints and UI (see §3.5 and §3.11). What genuinely remains unmodeled: a dedicated `moderation_actions` table (traceability instead lives in `Report` + `AdminAuditLog` + `Appeal`) and persisted feed preferences (hide post/author, mute keywords — see [ADR-0004](./adr/0004-feed-preferences.md)) or detailed analytics backed by their own tables.
+**Jul 2026 correction:** an earlier revision of this document said stories for persisted `mutes` and persisted `appeals` were removed because those entities didn't exist. That is no longer accurate — `Mute` and `Appeal` are real, persisted models in `schema.prisma` with shipped endpoints and UI (see §3.5 and §3.11). Feed preferences (hide post/author, mute keywords) are also implemented — see [ADR-0004](./adr/0004-feed-preferences.md) and US notes below. What genuinely remains unmodeled: a dedicated `moderation_actions` table (traceability instead lives in `Report` + `AdminAuditLog` + `Appeal`) and detailed analytics backed by their own tables.
 
 ---
 
@@ -398,7 +398,7 @@ Includes user-submitted appeals of moderation decisions and admin review/resolut
 **Acceptance criteria**
 - A `LiveStream` is created on `POST /live/start` and closed on `POST /live/end`.
 - A co-host can be invited, accept, and be removed.
-- Viewers can send a gift during the stream (`POST /live/:streamId/gift`); **gifts are a social/UI event only and are not currently billed or ledgered** — no `Transaction` is created.
+- Viewers can send a gift during the stream (`POST /live/:streamId/gift`); **gifts are billed** via Stripe Checkout, persisted as `LiveGift` + `TransactionType.DIRECT_LIVE_GIFT` (20% platform application fee). Catalog prices are server-side; webhook completion emits `live:gift`.
 
 ### US-030 Add a poll or Q&A box to a post or story
 **As a** creator  
@@ -431,11 +431,10 @@ Includes user-submitted appeals of moderation decisions and admin review/resolut
 These stories are no longer official in their previous form:
 
 - Moderation actions as an already implemented table (still no dedicated `ModerationAction` model; see §1).
-- Feed preferences persisted as an official resource (still not implemented; see [ADR-0004](./adr/0004-feed-preferences.md)).
 - Detailed analytics backed by dedicated tables already available.
 - Frames as an independent data entity.
 
-> Note: an earlier revision of this list also included "persisted mute as its own entity" and "persisted appeals as a closed module." Both are now implemented (see US-015b, US-031) and are no longer retired.
+> Note: an earlier revision of this list also included "persisted mute as its own entity", "persisted appeals as a closed module", and "feed preferences persisted as an official resource." Mute, Appeal, and feed preferences (`feed_hidden_posts` / `feed_hidden_authors` / `feed_muted_keywords`, `/feed/preferences`) are now implemented (see US-015b, US-031, [ADR-0004](./adr/0004-feed-preferences.md)) and are no longer retired.
 
 ---
 

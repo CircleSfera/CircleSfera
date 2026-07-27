@@ -263,7 +263,7 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `mutedId` (FK → users.id)
 - `createdAt`
 - UNIQUE (`muterId`, `mutedId`)
-- Excludes the muted user's posts from `FeedService` queries (`foryou` and `following`); exposed via `POST/DELETE /users/:username/follow/mute` and `GET /users/me/follow/muted`. Full-account mute only — no per-keyword or per-post muting yet (see [ADR-0004](./adr/0004-feed-preferences.md)).
+- Excludes the muted user's posts from `FeedService` queries (`foryou` and `following`); exposed via `POST/DELETE /users/:username/follow/mute` and `GET /users/me/follow/muted`. Full-account mute is separate from feed preferences (hide post/author, mute keywords) — see [ADR-0004](./adr/0004-feed-preferences.md).
 
 ---
 
@@ -459,7 +459,7 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `hlsUrl` (nullable)
 - `replayUrl` (nullable)
 - Endpoints: `POST /live/start`, `POST /live/end`, `GET /live/active`, `GET /live/:streamId`, `GET /live/join/:streamId`, co-host invite/accept/remove, `POST /live/:streamId/gift`.
-- **Gifts are not billed**: `LiveService.sendGift` broadcasts a gift event only; it does not create a `Transaction` or charge Stripe (`CreatorService.giftsTotal` is hardcoded `0`).
+- **Gifts are billed**: Stripe Checkout + `LiveGift` + `TransactionType.DIRECT_LIVE_GIFT` (20% application fee); webhook completion emits `live:gift`; catalog prices are server-side.
 
 ### polls
 - `id` (PK)
@@ -620,10 +620,9 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `chat`, `highlights`, `collections`, `passkeys`, `promotions`, `audio`, `search_history`, `whitelist_entries`, `user_settings`, and `post_embeddings` now appear in the official ERD.
 
 ### Revision note (Jul 2026)
-An earlier revision of this document stated that `mutes`, `appeals`, and `moderation_actions` were "removed from the official ERD." That was inaccurate for `mutes` and `appeals`: both are real, persisted models in the live `schema.prisma` (`mutes` → §6, `appeals` → §11) and are wired to shipped API endpoints and UI (mute/unmute on profile and post menus; `Settings → Appeals`). There is still **no** separate `moderation_actions` table — `Report` + `AdminAuditLog` (+ `Appeal`) remain the persisted moderation surface. `feed_preferences` (hide post/author, mute keywords) genuinely does not exist yet; see [ADR-0004](./adr/0004-feed-preferences.md).
+An earlier revision of this document stated that `mutes`, `appeals`, and `moderation_actions` were "removed from the official ERD." That was inaccurate for `mutes` and `appeals`: both are real, persisted models in the live `schema.prisma` (`mutes` → §6, `appeals` → §11) and are wired to shipped API endpoints and UI (mute/unmute on profile and post menus; `Settings → Appeals`). There is still **no** separate `moderation_actions` table — `Report` + `AdminAuditLog` (+ `Appeal`) remain the persisted moderation surface. Feed-preference tables (`feed_hidden_posts`, `feed_hidden_authors`, `feed_muted_keywords`) **are implemented** — see [ADR-0004](./adr/0004-feed-preferences.md). Live gifts are billed (`LiveGift` + `DIRECT_LIVE_GIFT`).
 
 ### Kept as future application logic
 - A dedicated `ModerationAction` table (currently unmodeled; traceability lives in `AdminAuditLog`/`Report`).
-- Feed-preference domain tables (hide post/author, mute keywords) — see [ADR-0004](./adr/0004-feed-preferences.md).
 - Aggregated analytics persisted in dedicated tables.
 - Communities and marketplace.
