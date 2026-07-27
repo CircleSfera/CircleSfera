@@ -25,8 +25,9 @@ Decision context:
   (7 days). Refresh tokens are persisted in the `RefreshToken` table and rotated on refresh. Bearer
   header is a fallback.
 - **CSRF:** `csrf-csrf` double-submit; token issued by `GET /api/v1/csrf-token`, sent as
-  `x-csrf-token`. The exclusion list in `main.ts` covers login, register, refresh, the Stripe
-  webhook and socket.io.
+  `x-csrf-token`. The exclusion list in `main.ts` covers login, register, refresh, verify-email,
+  request-reset, reset-password, the two passkey login routes, `/csrf-token`, the Stripe webhook and
+  socket.io. Read the list in the file — it is longer than people assume.
 - **Validation:** global `ValidationPipe` with `whitelist` and `forbidNonWhitelisted`.
 - **Rate limiting:** global `ThrottlerGuard` with short/medium/long windows, plus tighter
   `@Throttle` on auth routes.

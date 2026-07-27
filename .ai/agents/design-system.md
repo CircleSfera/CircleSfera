@@ -60,7 +60,7 @@ shadow recipes in `index.css`. Do not invent a parallel scale.
 4. Does the surface honour the glass language, or does it introduce a new material?
 5. Are hover, focus, active and disabled all defined? Focus must stay visible.
 6. Do animations respect reduced motion and stay under roughly 300ms for interaction feedback?
-7. Mobile: does it degrade correctly where `backdrop-filter` is disabled under 768px?
+7. Mobile: does it degrade correctly where `backdrop-filter` is disabled (768px and below)?
 8. Is any user-facing string going through i18n with keys in **both** `en.json` and `es.json`?
 
 ## Hard rules

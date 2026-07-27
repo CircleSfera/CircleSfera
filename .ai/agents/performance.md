@@ -59,7 +59,7 @@ An optimization without a before number is not an optimization; it is a guess wi
   does.
 - **Main thread:** media processing belongs in `src/workers/mediaProcessor.worker.ts`.
 - **Perceived speed:** optimistic updates and skeletons over spinners.
-- **Mobile:** `backdrop-filter` is already disabled below 768px — do not reintroduce expensive
+- **Mobile:** `backdrop-filter` is already disabled at 768px and below — do not reintroduce expensive
   effects there.
 
 ## Hard rules

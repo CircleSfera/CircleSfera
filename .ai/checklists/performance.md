@@ -47,7 +47,7 @@ Run for changes on hot paths: feed, chat, stories, search, profile, notification
 - [ ] Media processing runs in `src/workers/mediaProcessor.worker.ts`, not on the main thread.
 - [ ] Long lists rely on the existing mitigations (`content-visibility`, `IntersectionObserver`
       infinite scroll); adding virtualization was not done silently as a dependency change.
-- [ ] Mobile is not made more expensive — `backdrop-filter` remains disabled under 768px.
+- [ ] Mobile is not made more expensive — `backdrop-filter` remains disabled at 768px and below.
 - [ ] Perceived speed favoured: optimistic update or skeleton over a spinner.
 
 ## Correctness after optimization

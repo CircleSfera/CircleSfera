@@ -56,7 +56,8 @@ Global providers in `src/app.module.ts`:
 | `APP_FILTER` | `AllExceptionsFilter` |
 
 Bootstrap in `src/main.ts`: `helmet`, CORS, `cookieParser`, `setGlobalPrefix('api/v1')`, CSRF
-middleware with an explicit exclusion list (login, register, refresh, Stripe webhook, socket.io),
+middleware with an explicit exclusion list (the unauthenticated auth routes, `/csrf-token`, the
+Stripe webhook and socket.io — read the list in the file),
 `RedisIoAdapter`, Swagger at `/api/docs`, Sentry init.
 
 Because `forbidNonWhitelisted` is on, an undecorated DTO property is a **400**, not a silently

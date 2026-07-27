@@ -28,7 +28,7 @@ disciplined competitor benchmarking.
 5. **Perceived speed.** Optimistic updates already exist for likes and follows; skeletons and
    `ProgressiveImage` exist for media. Prefer these over spinners.
 6. **Mobile reality.** This is a mobile-first PWA with `BottomNav` and safe-area utilities. Check
-   thumb reach, and remember `backdrop-filter` is disabled under 768px for performance.
+   thumb reach, and remember `backdrop-filter` is disabled at 768px and below for performance.
 7. **Reversibility.** Can the user undo? Destructive actions need confirmation and, where feasible,
    a grace period — account deletion already uses `scheduledDeletionAt`.
 8. **Benchmarking discipline.** Studying Instagram, TikTok, X, Threads, YouTube and Apple is

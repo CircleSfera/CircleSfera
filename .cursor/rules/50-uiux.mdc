@@ -29,7 +29,7 @@ Rules:
   new material, no parallel spacing or radius scale.
 - Animations come from the registered set in `@theme`, and everything animated must stay neutralised
   under `prefers-reduced-motion: reduce`.
-- `backdrop-filter` is disabled below 768px for performance — do not reintroduce expensive effects
+- `backdrop-filter` is disabled at 768px and below for performance — do not reintroduce expensive effects
   there.
 - Hover, focus, active and disabled states defined. Never remove a visible focus indicator.
 - Handle loading, empty, error and offline with the existing `LoadingStates`, `EmptyState`,

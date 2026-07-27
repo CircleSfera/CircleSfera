@@ -28,7 +28,7 @@ Run with [`accessibility.md`](./accessibility.md) whenever visible UI changes.
 
 - [ ] Verified at mobile, tablet, laptop and desktop widths.
 - [ ] Mobile shell respected: `BottomNav`, safe-area utilities (`.pb-safe`, `.pt-safe`).
-- [ ] Degrades correctly below 768px where `backdrop-filter` is disabled.
+- [ ] Degrades correctly at 768px and below, where `backdrop-filter` is disabled.
 - [ ] No horizontal overflow; long text, long usernames and long captions handled.
 - [ ] Touch targets at least 44×44 CSS pixels.
 

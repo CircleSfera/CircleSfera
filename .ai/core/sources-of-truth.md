@@ -18,7 +18,7 @@ and go read the right file.
 | What are the design tokens? | `circlesfera-frontend/src/index.css` | `:root` + Tailwind v4 `@theme`. `09-design-system.md` is the narrative layer and already flags where it diverges. |
 | How is it deployed? | `.github/workflows/deploy.yml`, `docker-compose.prod.yml`, `nginx/master.conf.template` | Narrative: `05-deployment-strategy.md`. |
 | How do we operate an incident? | `circlesfera-documentation/runbooks/` | `incident-response.md`, `rollback-deploy.md`, `restore-postgres.md`. |
-| What types cross the boundary? | `circlesfera-shared/src/` | Partial: 5 enums, ~21 interfaces, 7 DTOs. Not generated from Prisma. |
+| What types cross the boundary? | `circlesfera-shared/src/` | Partial: 5 enums, 20 model interfaces, 7 DTO interfaces. Not generated from Prisma. |
 | What does CI enforce? | `.github/workflows/pr.yml` | The real definition of "green". |
 
 ## Rules for agents

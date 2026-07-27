@@ -43,7 +43,7 @@ removed (`nginx/master.conf.template`). Never target it.
 Commands:
 
 ```bash
-npm run dev                      # nest start --watch
+npm run dev                      # nest start --watch --exec "node dist/main.js" (alias: start:dev)
 npm run build                    # nest build
 npm test                         # vitest run (unit, src/**/*.spec.ts)
 npm run test:e2e                 # vitest run --config ./vitest.e2e.config.ts (test/*.e2e-spec.ts)

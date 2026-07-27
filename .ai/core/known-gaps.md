@@ -47,7 +47,7 @@ it deliberately with tests and remove the entry in the same PR. Do not batch unr
 | --- | --- | --- |
 | D1 | Docs `01`–`07` are Abr 2026 snapshots patched in Jul 2026; `00-status.md` states they may lag. Prefer schema + controllers. | `00-status.md` |
 | D2 | `11-backups-strategy.md` mixes shipped scripts with aspirational WAL/PITR and named S3 buckets. Do not treat the aspirational parts as existing infrastructure. | `11-backups-strategy.md` |
-| D3 | `circlesfera-shared` interfaces are hand-written, not generated from Prisma, and cover only part of the domain (5 enums, ~21 interfaces, 7 DTOs). They can drift from the schema. | `circlesfera-shared/src/` |
+| D3 | `circlesfera-shared` interfaces are hand-written, not generated from Prisma, and cover only part of the domain (5 enums, 20 model interfaces, 7 DTO interfaces). They can drift from the schema. | `circlesfera-shared/src/` |
 | D4 | `circlesfera-landing/` still exists on disk with a Dockerfile while being deprecated and unreferenced by any pipeline. | `circlesfera-landing/README.md`, workflows |
 
 ## Maintenance
