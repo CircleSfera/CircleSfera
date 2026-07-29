@@ -23,7 +23,7 @@
     "@ffmpeg/util": "0.12.2",
     "@livekit/components-react": "2.9.23",
     "@livekit/components-styles": "1.2.0",
-    "@sentry/browser": "10.47.0",
+    "@sentry/browser": "10.69.0",
     "@sentry/react": "10.47.0",
     "@sentry/tracing": "7.120.4",
     "@simplewebauthn/browser": "13.2.2",
