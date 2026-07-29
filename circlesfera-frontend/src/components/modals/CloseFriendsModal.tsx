@@ -108,13 +108,13 @@ export default function CloseFriendsModal({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="flex-1 overflow-y-auto p-4 min-h-[350px] flex flex-col">
           {isLoading ? (
-            <div className="p-4 text-center text-gray-300">
+            <div className="p-6 text-center text-gray-300 m-auto">
               {t('settings.close_friends_modal.loading')}
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-1 flex-1 flex flex-col">
               {/* If searching, show search results. Else show close friends list (or suggested) */}
               {searchTerm ? (
                 isSearching ? (
@@ -138,7 +138,7 @@ export default function CloseFriendsModal({
               ) : (
                 <>
                   {closeFriends.length === 0 && (
-                    <div className="p-8 text-center">
+                    <div className="p-8 text-center m-auto flex flex-col items-center justify-center h-full">
                       <div className="w-16 h-16 rounded-full bg-white/5 mx-auto mb-4 flex items-center justify-center">
                         <Star size={32} className="text-gray-500" />
                       </div>
