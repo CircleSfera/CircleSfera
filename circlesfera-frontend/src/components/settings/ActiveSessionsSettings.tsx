@@ -97,7 +97,7 @@ export const ActiveSessionsSettings: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-3">
           <div className="p-2.5 bg-accent-blue/10 text-accent-blue rounded-xl">
             <Shield className="w-5 h-5" />
