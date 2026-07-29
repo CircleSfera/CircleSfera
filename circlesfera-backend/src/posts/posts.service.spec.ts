@@ -1,4 +1,3 @@
-import { ForbiddenException } from '@nestjs/common';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
