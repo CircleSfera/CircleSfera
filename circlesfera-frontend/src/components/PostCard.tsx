@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDwellTime } from '../hooks/useDwellTime';
 import { usePostInteractions } from '../hooks/usePostInteractions';
@@ -19,6 +19,7 @@ interface PostCardProps {
 
 export default memo(function PostCard({ post, priority }: PostCardProps) {
   const { t } = useTranslation();
+  const [showWhy, setShowWhy] = useState(false);
   const interactions = usePostInteractions(post);
   useDwellTime(post.id, interactions.postRef);
 
@@ -91,14 +92,23 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
             </div>
             {post.recommendationSignals &&
               post.recommendationSignals.length > 0 && (
-                <details className="mt-1 text-xs text-gray-500">
-                  <summary className="cursor-pointer hover:text-gray-400 font-medium">
+                <div className="mt-1 text-xs text-gray-500">
+                  <button
+                    type="button"
+                    onClick={() => setShowWhy(!showWhy)}
+                    className="cursor-pointer hover:text-gray-400 font-medium flex items-center gap-1 focus:outline-none"
+                  >
+                    <span className="text-[10px] opacity-70">
+                      {showWhy ? '▼' : '▶'}
+                    </span>
                     {t('post.recommendation.why', 'Why?')}
-                  </summary>
-                  <div className="mt-1 pl-2 text-gray-600">
-                    {post.recommendationSignals.join(', ')}
-                  </div>
-                </details>
+                  </button>
+                  {showWhy && (
+                    <div className="mt-1 pl-2 text-gray-600">
+                      {post.recommendationSignals.join(', ')}
+                    </div>
+                  )}
+                </div>
               )}
           </div>
         )}
