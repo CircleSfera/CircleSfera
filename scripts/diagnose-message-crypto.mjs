@@ -27,9 +27,7 @@ function analyzeShape(encryptedText) {
   return {
     parts: parts.length,
     lengths: parts.map((p) => p.length),
-    hexOk: parts
-      .slice(0, 3)
-      .map((p) => /^[0-9a-f]+$/i.test(p)),
+    hexOk: parts.slice(0, 3).map((p) => /^[0-9a-f]+$/i.test(p)),
   };
 }
 
