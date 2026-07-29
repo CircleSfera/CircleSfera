@@ -23,7 +23,11 @@ export default function LayoutWrapper({
   const location = useLocation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { connect, disconnect } = useSocketStore();
-  const hideNavRoutes = ['/accounts/login', '/accounts/emailsignup'];
+  const hideNavRoutes = [
+    '/accounts/login',
+    '/accounts/emailsignup',
+    '/onboarding',
+  ];
 
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isCreatorRoute = location.pathname.startsWith('/creator');
