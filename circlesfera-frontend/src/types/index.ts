@@ -90,6 +90,7 @@ export interface ProfileWithUser extends IProfile {
   accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
   verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
   isVerified?: boolean;
+  isPrivate?: boolean;
   banner?: string | null;
   inviteCode?: string;
   referredById?: string | null;

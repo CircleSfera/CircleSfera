@@ -275,7 +275,6 @@ export class ProfilesService {
       ...updated,
       accountType: updated.user?.accountType,
       verificationLevel: updated.user?.verificationLevel,
-      // @ts-expect-error
       isPrivate: updated.user?.settings?.privacyLevel === 'PRIVATE',
     };
 
