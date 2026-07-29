@@ -4,9 +4,9 @@ import { Search, User } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { adminApi } from '../../services';
 import { ADMIN_NAV_ITEMS, type AdminTab, findAdminNavItem } from './adminNav';
-import { useFocusTrap } from './useFocusTrap';
 
 const QUICK_ACTION_TABS: AdminTab[] = [
   'appeals',

@@ -37,7 +37,7 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
   };
 
   return (
-    <aside className="hidden lg:flex w-64 xl:w-72 flex-col h-[calc(100vh-5.5rem)] sticky top-6 overflow-hidden z-20 bg-white/[0.02] border-r border-white/5 p-3 xl:p-4">
+    <aside className="hidden lg:flex w-64 xl:w-72 flex-col h-[calc(100vh-5.5rem)] sticky top-6 overflow-hidden z-20 bg-white/2 border border-white/5 rounded-2xl p-3 xl:p-4">
       <div className="px-2 mb-4 space-y-2.5 pb-3 border-b border-white/5">
         <Link to="/" className="block">
           <img src={logoSrc} alt="CircleSfera" className="h-7 w-auto" />

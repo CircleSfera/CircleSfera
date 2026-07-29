@@ -1,5 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NotificationType, type Prisma, Role } from '@prisma/client';
+import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SlackService } from '../slack/slack.service.js';
@@ -13,6 +14,7 @@ export class AppealsService {
     @Inject(SlackService) private readonly slackService: SlackService,
     @Inject(NotificationsService)
     private readonly notificationsService: NotificationsService,
+    @Inject(EmailService) private readonly emailService: EmailService,
   ) {}
 
   async create(userId: string, dto: CreateAppealDto) {
@@ -89,7 +91,9 @@ export class AppealsService {
     const appeal = await this.prisma.appeal.findUnique({
       where: { id },
       include: {
-        user: true,
+        user: {
+          include: { profile: true },
+        },
       },
     });
     if (!appeal) throw new NotFoundException('Appeal not found');
@@ -187,6 +191,25 @@ export class AppealsService {
               : undefined,
         })
         .catch((e) => console.error(e));
+
+      if (appeal.user?.email) {
+        const actionLabel =
+          dto.status === 'APPROVED'
+            ? 'Restaurado (Apelación Aprobada)'
+            : 'Rechazado (Decisión Mantenida)';
+        await this.emailService
+          .sendModerationEmail(
+            appeal.user.email,
+            appeal.user.profile?.fullName ||
+              appeal.user.profile?.username ||
+              'Usuario',
+            actionLabel,
+            appeal.targetType,
+            dto.adminNotes ||
+              'Se ha revisado tu apelación según nuestros términos de servicio.',
+          )
+          .catch((e) => console.error(e));
+      }
     }
 
     return updatedAppeal;

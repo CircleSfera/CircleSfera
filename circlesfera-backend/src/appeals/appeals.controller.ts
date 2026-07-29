@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { ApiTags } from '@nestjs/swagger';
 import {
   CurrentUser,
   type CurrentUserData,
@@ -26,7 +27,9 @@ import { AppealsService } from './appeals.service.js';
 import { CreateAppealDto } from './dto/create-appeal.dto.js';
 import { UpdateAppealDto } from './dto/update-appeal.dto.js';
 
+@ApiTags('Moderation')
 @Controller('appeals')
+@UseGuards(JwtAuthGuard)
 export class AppealsController {
   constructor(
     private readonly appealsService: AppealsService,
