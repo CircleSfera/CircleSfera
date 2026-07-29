@@ -102,14 +102,16 @@ export default function ProfileHeader({
   const { t } = useTranslation();
 
   return (
-    <div className="glass-panel rounded-xl md:rounded-3xl p-4 md:p-6 mb-3 md:mb-4 overflow-hidden relative border border-white/5 shadow-2xl backdrop-blur-2xl">
+    <div className="glass-panel rounded-xl md:rounded-3xl p-4 md:p-6 mb-3 md:mb-4 relative border border-white/5 shadow-2xl backdrop-blur-2xl">
       {/* Background Accent Gradient (Parallax Effect) */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1.5, ease: 'easeOut' }}
-        className="absolute -top-20 -right-20 w-64 md:w-96 h-64 md:h-96 bg-linear-to-br from-brand-primary/20 to-brand-secondary/20 blur-[100px] -z-10 rounded-full"
-      />
+      <div className="absolute inset-0 overflow-hidden rounded-xl md:rounded-3xl pointer-events-none -z-10">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.5, ease: 'easeOut' }}
+          className="absolute -top-20 -right-20 w-64 md:w-96 h-64 md:h-96 bg-linear-to-br from-brand-primary/20 to-brand-secondary/20 blur-[100px] rounded-full"
+        />
+      </div>
 
       <div className="flex flex-col gap-3 md:gap-7">
         <div className="flex flex-col md:flex-row items-center md:items-start gap-3 md:gap-6">
