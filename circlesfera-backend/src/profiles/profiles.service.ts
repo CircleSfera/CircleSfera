@@ -96,7 +96,7 @@ export class ProfilesService {
       where: {
         userId: profile.userId,
         status: SubscriptionStatus.ACTIVE,
-        plan: { name: { contains: 'Verified', mode: 'insensitive' } },
+        plan: { features: { has: 'verified_badge' } },
       },
       select: { id: true },
     });
@@ -344,6 +344,9 @@ export class ProfilesService {
             inviteCode: true,
             referredById: true,
             identityVerifiedAt: true,
+            settings: {
+              select: { isOnboarded: true },
+            },
             _count: {
               select: {
                 followers: { where: { status: 'ACCEPTED' } },
@@ -364,7 +367,7 @@ export class ProfilesService {
       where: {
         userId: profile.userId,
         status: SubscriptionStatus.ACTIVE,
-        plan: { name: { contains: 'Verified', mode: 'insensitive' } },
+        plan: { features: { has: 'verified_badge' } },
       },
       select: { id: true },
     });

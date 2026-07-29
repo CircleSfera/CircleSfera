@@ -1,4 +1,3 @@
-import { type UseMutationResult } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   Ban,
@@ -10,7 +9,6 @@ import {
   MoreHorizontal,
   Plus,
   Settings,
-  Star,
   VolumeX,
   Wand2,
 } from 'lucide-react';
@@ -70,9 +68,7 @@ interface ProfileHeaderProps {
   isCreatorModeActive: boolean;
   setCreatorMode: (active: boolean) => void;
   openCreateMenu: () => void;
-  subscribeMutation: UseMutationResult<any, any, any, any>;
-  cancelSubscribeMutation?: UseMutationResult<any, any, any, any>;
-  isSubscribedToCreator?: boolean;
+
   isCreatingChat: boolean;
   handleMessageClick: () => void;
   setShowFollowsModal: (modal: 'followers' | 'following' | null) => void;
@@ -92,9 +88,7 @@ export default function ProfileHeader({
   isCreatorModeActive,
   setCreatorMode,
   openCreateMenu,
-  subscribeMutation,
-  cancelSubscribeMutation,
-  isSubscribedToCreator = false,
+
   isCreatingChat,
   handleMessageClick,
   setShowFollowsModal,
@@ -108,7 +102,7 @@ export default function ProfileHeader({
   const { t } = useTranslation();
 
   return (
-    <div className="glass-panel rounded-xl md:rounded-[24px] p-4 md:p-6 mb-3 md:mb-4 overflow-hidden relative border border-white/5 shadow-2xl backdrop-blur-2xl">
+    <div className="glass-panel rounded-xl md:rounded-3xl p-4 md:p-6 mb-3 md:mb-4 overflow-hidden relative border border-white/5 shadow-2xl backdrop-blur-2xl">
       {/* Background Accent Gradient (Parallax Effect) */}
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
@@ -244,48 +238,6 @@ export default function ProfileHeader({
                 <>
                   <FollowButton username={profile.data.username} />
 
-                  {profile.data.accountType === 'CREATOR' &&
-                    (isSubscribedToCreator ||
-                      !!profile.data.subscriptionPriceCents) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (isSubscribedToCreator) {
-                            if (
-                              window.confirm(
-                                t(
-                                  'profile.actions.cancel_subscription_confirm',
-                                  'Cancel your subscription to this creator?',
-                                ),
-                              )
-                            ) {
-                              cancelSubscribeMutation?.mutate(undefined);
-                            }
-                            return;
-                          }
-                          subscribeMutation.mutate(undefined);
-                        }}
-                        disabled={
-                          subscribeMutation.isPending ||
-                          cancelSubscribeMutation?.isPending
-                        }
-                        className={`px-4 py-2 rounded-lg font-black text-xs uppercase tracking-wide transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1 disabled:opacity-50 ${
-                          isSubscribedToCreator
-                            ? 'bg-white/10 hover:bg-white/15 text-white border border-white/10'
-                            : 'bg-linear-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-white'
-                        }`}
-                      >
-                        <Star
-                          size={14}
-                          fill="currentColor"
-                          aria-hidden="true"
-                        />
-                        {isSubscribedToCreator
-                          ? t('profile.actions.subscribed', 'Subscribed')
-                          : t('profile.actions.subscribe')}
-                      </button>
-                    )}
-
                   <button
                     type="button"
                     onClick={() => setShowTipModal(true)}
@@ -320,7 +272,7 @@ export default function ProfileHeader({
                     </button>
 
                     {showMenu && (
-                      <div className="absolute top-full mt-2 right-0 bg-surface-raised border border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-[180px] z-60 backdrop-blur-xl animate-in fade-in zoom-in-95">
+                      <div className="absolute top-full mt-2 right-0 bg-surface-raised border border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-45 z-60 backdrop-blur-xl animate-in fade-in zoom-in-95">
                         <button
                           type="button"
                           onClick={() => {
