@@ -1,5 +1,5 @@
-import fs from 'fs/promises';
-import path from 'path';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 async function walk(dir) {
   let results = [];
@@ -7,7 +7,7 @@ async function walk(dir) {
   for (let file of list) {
     file = path.resolve(dir, file);
     const stat = await fs.stat(file);
-    if (stat && stat.isDirectory()) {
+    if (stat?.isDirectory()) {
       results = results.concat(await walk(file));
     } else {
       if (file.endsWith('.js')) {
