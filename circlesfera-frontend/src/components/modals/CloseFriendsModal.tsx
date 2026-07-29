@@ -71,37 +71,39 @@ export default function CloseFriendsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-surface-high w-full max-w-md rounded-xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh] border border-white/10">
-        <div className="p-4 border-b border-white/10 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
-              <Star size={16} className="text-white fill-white" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+      <div className="bg-zinc-950/95 backdrop-blur-3xl w-full max-w-md rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[85vh] border border-white/10">
+        <div className="p-5 border-b border-white/10 flex items-center justify-between">
+          <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-green-500/20 text-green-500 border border-green-500/30 flex items-center justify-center">
+              <Star size={18} className="fill-green-500" />
             </div>
-            {t('settings.close_friends_modal.title')}
+            {t('settings.close_friends_modal.title', 'Mejores Amigos')}
           </h2>
-          <Button
+          <button
+            type="button"
             onClick={onClose}
-            variant="ghost"
-            size="icon"
-            className="text-gray-300 hover:text-white"
+            className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
           >
-            <X size={24} />
-          </Button>
+            <X size={20} />
+          </button>
         </div>
 
-        <div className="p-4 border-b border-white/10">
+        <div className="p-4 border-b border-white/10 bg-white/5">
           <div className="relative">
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
               size={18}
             />
             <input
               type="text"
-              placeholder={t('settings.close_friends_modal.search')}
+              placeholder={t(
+                'settings.close_friends_modal.search',
+                'Buscar...',
+              )}
               value={searchTerm}
               onChange={handleSearch}
-              className="w-full bg-surface-high border-none rounded-lg py-2 pl-10 text-white placeholder-gray-500 focus:ring-0"
+              className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all text-sm"
             />
           </div>
         </div>
@@ -164,13 +166,13 @@ export default function CloseFriendsModal({
           )}
         </div>
 
-        <div className="p-4 border-t border-white/10">
+        <div className="p-5 border-t border-white/10 bg-zinc-950/50">
           <Button
             onClick={onClose}
             variant="primary"
-            className="w-full py-3 font-semibold bg-blue-500 hover:bg-blue-600"
+            className="w-full font-bold uppercase tracking-wider"
           >
-            {t('settings.close_friends_modal.done')}
+            {t('settings.close_friends_modal.done', 'Hecho')}
           </Button>
         </div>
       </div>

@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 import { usersApi } from '../../services/users.service';
+import { Switch } from '../ui';
 
 export default function NotificationsSettings() {
   const {
@@ -130,74 +131,37 @@ export default function NotificationsSettings() {
       {/* Platform Notification Preferences */}
       {settingsLoaded && (
         <>
-          <div className="bg-white/2 p-4 rounded-xl border border-white/5">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-bold text-white tracking-tight">
-                  {t(
-                    'settings.notifications.push_notifications',
-                    'Push Notifications',
-                  )}
-                </h3>
-                <p className="text-sm text-gray-300 mt-1 leading-relaxed">
-                  {t(
-                    'settings.notifications.push_desc',
-                    'Receive in-app notifications',
-                  )}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handlePushToggle(!pushNotifications)}
-                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-all duration-300 focus:outline-none ring-offset-2 ring-offset-zinc-900 focus:ring-2 focus:ring-blue-500/50 ${
-                  pushNotifications
-                    ? 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]'
-                    : 'bg-white/10'
-                }`}
-              >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
-                    pushNotifications ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
+          <div className="bg-white/2 rounded-xl border border-white/5 divide-y divide-white/5 mb-6">
+            <div className="p-4">
+              <Switch
+                checked={pushNotifications}
+                onChange={(e) => handlePushToggle(e.target.checked)}
+                label={t(
+                  'settings.notifications.push_notifications',
+                  'Push Notifications',
+                )}
+                description={t(
+                  'settings.notifications.push_desc',
+                  'Receive in-app notifications',
+                )}
+              />
+            </div>
+
+            <div className="p-4">
+              <Switch
+                checked={emailNotifications}
+                onChange={(e) => handleEmailToggle(e.target.checked)}
+                label={t(
+                  'settings.notifications.email_notifications',
+                  'Email Notifications',
+                )}
+                description={t(
+                  'settings.notifications.email_desc',
+                  'Receive email updates and alerts',
+                )}
+              />
             </div>
           </div>
-
-          <div className="bg-white/2 p-4 rounded-xl border border-white/5">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-bold text-white tracking-tight">
-                  {t(
-                    'settings.notifications.email_notifications',
-                    'Email Notifications',
-                  )}
-                </h3>
-                <p className="text-sm text-gray-300 mt-1 leading-relaxed">
-                  {t(
-                    'settings.notifications.email_desc',
-                    'Receive email updates and alerts',
-                  )}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleEmailToggle(!emailNotifications)}
-                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-all duration-300 focus:outline-none ring-offset-2 ring-offset-zinc-900 focus:ring-2 focus:ring-blue-500/50 ${
-                  emailNotifications
-                    ? 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]'
-                    : 'bg-white/10'
-                }`}
-              >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
-                    emailNotifications ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-          </div>
-
           {/* Content Preferences */}
           <div className="space-y-4">
             <h3 className="text-xs font-black uppercase tracking-wider text-gray-500 ml-1">
