@@ -1,9 +1,13 @@
+import { motion } from 'framer-motion';
 import { Bookmark, Gift, MessageCircle, Send } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { Post } from '../../types';
 import LikeButton from '../LikeButton';
 import { Button } from '../ui';
+
+const MotionButton = motion(Button);
+const MotionLink = motion(Link as any) as any;
 
 interface PostActionsProps {
   post: Post;
@@ -49,13 +53,15 @@ export default function PostActions({
           className={isLg ? 'w-11 h-11' : undefined}
         />
         {!hideCommentLink && (
-          <Link
+          <MotionLink
             to={`/p/${post.id}`}
             className={`${btnClass} inline-flex items-center justify-center text-white/60 hover:text-white transition-all`}
             aria-label={t('post.actions.comments')}
+            whileTap={{ scale: 0.85 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
           >
             <MessageCircle className={iconClass} strokeWidth={1.8} />
-          </Link>
+          </MotionLink>
         )}
         {hideCommentLink && (
           <span
@@ -65,26 +71,30 @@ export default function PostActions({
             <MessageCircle className={iconClass} strokeWidth={1.8} />
           </span>
         )}
-        <Button
+        <MotionButton
           onClick={onShare}
           variant="ghost"
           size="icon"
           className={`${btnClass} text-white/60 hover:text-white bg-transparent border-none`}
           aria-label={t('post.actions.share')}
+          whileTap={{ scale: 0.85, rotate: -10 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
         >
           <Send className={iconClass} />
-        </Button>
-        <Button
+        </MotionButton>
+        <MotionButton
           onClick={onTip}
           variant="ghost"
           size="icon"
           className={`${btnClass} text-yellow-500 hover:text-yellow-400 drop-shadow-[0_0_5px_rgba(234,179,8,0.5)] bg-transparent border-none`}
           aria-label={t('post.actions.tip')}
+          whileTap={{ scale: 0.85, y: -2 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
         >
           <Gift className={iconClass} />
-        </Button>
+        </MotionButton>
       </div>
-      <Button
+      <MotionButton
         onClick={onToggleBookmark}
         isLoading={isBookmarkPending}
         variant="ghost"
@@ -95,12 +105,14 @@ export default function PostActions({
             ? t('post.actions.remove_bookmark')
             : t('post.actions.add_bookmark')
         }
+        whileTap={{ scale: 0.85, y: -2 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 17 }}
       >
         <Bookmark
           size={isLg ? 24 : 20}
           className={`transition-all ${isBookmarked ? 'text-white fill-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]' : 'text-white/60 hover:text-white'}`}
         />
-      </Button>
+      </MotionButton>
     </div>
   );
 }

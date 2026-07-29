@@ -59,7 +59,12 @@ export default function PostMedia({
           }
         >
           <Carousel
-            media={post.media}
+            media={post.media.map((m) => ({
+              ...m,
+              standardUrl: m.standardUrl || undefined,
+              thumbnailUrl: m.thumbnailUrl || undefined,
+              filter: m.filter || undefined,
+            }))}
             aspectRatio={aspectRatio}
             objectFit={objectFit}
             isLocked={post.isLocked}

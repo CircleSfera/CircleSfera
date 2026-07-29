@@ -38,35 +38,35 @@ export default function PostHeader({
       className={`${isLg ? 'p-3' : 'p-2'} flex items-center gap-2 border-b border-white/5`}
     >
       <Link
-        to={`/${post.user.profile.username}`}
+        to={`/${post.user.profile?.username}`}
         className="relative"
         onClick={handleProfileClick}
       >
         <div className="absolute -inset-0.5 bg-linear-to-tr from-purple-500 to-blue-500 rounded-full opacity-70 blur-sm" />
         <UserAvatar
-          src={post.user.profile.avatar || undefined}
-          thumbnailUrl={post.user.profile.thumbnailUrl}
-          standardUrl={post.user.profile.standardUrl}
-          alt={post.user.profile.username}
+          src={post.user.profile?.avatar || undefined}
+          thumbnailUrl={post.user.profile?.thumbnailUrl}
+          standardUrl={post.user.profile?.standardUrl}
+          alt={post.user.profile?.username || ''}
           className={`relative ${isLg ? 'w-9 h-9' : 'w-7 h-7'} rounded-full object-cover border border-white/20`}
         />
       </Link>
       <Link
-        to={`/${post.user.profile.username}`}
+        to={`/${post.user.profile?.username}`}
         className="flex-1 min-w-0 hover:opacity-80 transition-opacity"
         onClick={handleProfileClick}
       >
         <div
           className={`font-bold ${isLg ? 'text-sm' : 'text-sm'} bg-linear-to-r from-white to-white/70 bg-clip-text text-transparent flex items-center gap-1 truncate`}
         >
-          {post.user.profile.fullName || post.user.profile.username}
+          {post.user.profile?.fullName || post.user.profile?.username}
           <VerificationBadge
             level={post.user.verificationLevel as VerificationLevel}
           />
         </div>
         <div className="flex items-center gap-2">
           <div className="text-xs tracking-wider font-medium text-gray-500 truncate">
-            @{post.user.profile.username}
+            @{post.user.profile?.username}
           </div>
           {post.isPromoted && (
             <>

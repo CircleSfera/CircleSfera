@@ -688,16 +688,8 @@ export class PostsService {
    * @throws NotFoundException if post not found
    * @throws ForbiddenException if user is not the author
    */
-  async update(id: string, userId: string, dto: UpdatePostDto) {
-    const post = await this.prisma.post.findUnique({ where: { id } });
-
-    if (!post) {
-      throw new NotFoundException('Post not found');
-    }
-
-    if (post.userId !== userId) {
-      throw new ForbiddenException('You can only update your own posts');
-    }
+  async update(id: string, dto: UpdatePostDto) {
+    // The OwnershipGuard ensures the post exists and belongs to the user
 
     return this.prisma.post.update({
       where: { id },
@@ -729,7 +721,7 @@ export class PostsService {
    * @throws NotFoundException if post not found
    * @throws ForbiddenException if user is not the author
    */
-  async remove(id: string, userId: string) {
+  async remove(id: string) {
     const post = await this.prisma.post.findUnique({
       where: { id },
       include: { media: true },
@@ -739,9 +731,7 @@ export class PostsService {
       throw new NotFoundException('Post not found');
     }
 
-    if (post.userId !== userId) {
-      throw new ForbiddenException('You can only delete your own posts');
-    }
+    // Ownership check is handled by OwnershipGuard at the controller level
 
     // Delete associated media files from cloud storage
     if (post.media && post.media.length > 0) {
@@ -909,16 +899,8 @@ export class PostsService {
       });
     }
 
-    // Fetch user's active subscriptions
-    const subscriptions = await this.prisma.creatorSubscription.findMany({
-      where: {
-        subscriberId: currentUserId,
-        status: 'ACTIVE',
-        expiresAt: { gt: new Date() },
-      },
-      select: { creatorId: true },
-    });
-    const subscribedCreatorIds = new Set(subscriptions.map((s) => s.creatorId));
+    // VIP subscriptions removed
+    const subscribedCreatorIds = new Set<string>();
 
     // Fetch user's unlocked posts
     const unlocks = await this.prisma.postUnlock.findMany({

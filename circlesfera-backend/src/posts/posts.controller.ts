@@ -12,16 +12,19 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import {
   CurrentUser,
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
+import { RequireOwnership } from '../auth/decorators/require-ownership.decorator.js';
 import {
   AdminGuard,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
+import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { FindPostsQueryDto } from './dto/find-posts-query.dto.js';
@@ -30,6 +33,7 @@ import { UpdatePostDto } from './dto/update-post.dto.js';
 import { PostsService } from './posts.service.js';
 
 /** REST controller for post CRUD, feed generation, discovery, and admin operations. */
+@ApiTags('Posts')
 @Controller('posts')
 export class PostsController {
   constructor(
@@ -114,21 +118,19 @@ export class PostsController {
 
   /** Update a post (author only). */
   @Put(':id')
-  @UseGuards(JwtAuthGuard)
-  async update(
-    @Param('id') id: string,
-    @CurrentUser() user: CurrentUserData,
-    @Body() dto: UpdatePostDto,
-  ) {
-    return this.postsService.update(id, user.userId, dto);
+  @UseGuards(JwtAuthGuard, OwnershipGuard)
+  @RequireOwnership({ model: 'Post' })
+  async update(@Param('id') id: string, @Body() dto: UpdatePostDto) {
+    return this.postsService.update(id, dto);
   }
 
   /** Delete a post (author only). */
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OwnershipGuard)
+  @RequireOwnership({ model: 'Post' })
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: string, @CurrentUser() user: CurrentUserData) {
-    await this.postsService.remove(id, user.userId);
+  async remove(@Param('id') id: string) {
+    await this.postsService.remove(id);
   }
   /** Admin-only post deletion (bypasses ownership check). */
   @Delete(':id/admin')
