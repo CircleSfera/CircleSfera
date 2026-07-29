@@ -256,6 +256,9 @@ export class ProfilesService {
             createdAt: true,
             verificationLevel: true,
             accountType: true,
+            settings: {
+              select: { privacyLevel: true },
+            },
             _count: {
               select: {
                 followers: { where: { status: 'ACCEPTED' } },
@@ -272,6 +275,8 @@ export class ProfilesService {
       ...updated,
       accountType: updated.user?.accountType,
       verificationLevel: updated.user?.verificationLevel,
+      // @ts-expect-error
+      isPrivate: updated.user?.settings?.privacyLevel === 'PRIVATE',
     };
 
     const embeddingText = this.buildProfileEmbeddingText(updated);
