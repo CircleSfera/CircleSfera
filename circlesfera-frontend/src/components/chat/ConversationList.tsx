@@ -91,7 +91,7 @@ export default function ConversationList() {
       (p: Participant) => p.userId !== me?.userId,
     )?.user;
     const name =
-      c.name || other?.profile.fullName || other?.profile.username || '';
+      c.name || other?.profile?.fullName || other?.profile?.username || '';
     return name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
@@ -164,7 +164,7 @@ export default function ConversationList() {
                 <h3 className="text-base font-semibold text-white">
                   {t('chat.no_messages')}
                 </h3>
-                <p className="text-xs text-gray-500 max-w-[180px] mx-auto mt-1 leading-relaxed">
+                <p className="text-xs text-gray-500 max-w-45 mx-auto mt-1 leading-relaxed">
                   {t('chat.start_connecting')}
                 </p>
               </div>
@@ -190,7 +190,7 @@ export default function ConversationList() {
               );
               const other = otherParticipant?.user;
 
-              const lastMsg = conv.messages[0];
+              const lastMsg = conv.messages?.[0];
               const isActive = activeId === conv.id;
               const status = other ? userStatuses[other.id] : undefined;
               const isOnline = status

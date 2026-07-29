@@ -17,15 +17,15 @@ export default function SharedPost({ post }: SharedPostProps) {
     >
       <div className="flex items-center gap-2 p-2 border-b border-white/5">
         <UserAvatar
-          src={post.user.profile.avatar || undefined}
-          thumbnailUrl={post.user.profile.thumbnailUrl}
-          standardUrl={post.user.profile.standardUrl}
-          alt={post.user.profile.username}
+          src={post.user.profile?.avatar || ''}
+          thumbnailUrl={post.user.profile?.thumbnailUrl || ''}
+          standardUrl={post.user.profile?.standardUrl || ''}
+          alt={post.user.profile?.username || ''}
           size="sm"
           className="w-8 h-8 rounded-full object-cover border border-white/10"
         />
         <span className="text-xs font-semibold text-white/90">
-          {post.user.profile.username}
+          {post.user.profile?.username}
         </span>
       </div>
 

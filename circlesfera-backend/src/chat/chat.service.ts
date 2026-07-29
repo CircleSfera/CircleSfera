@@ -686,13 +686,26 @@ export class ChatService {
             },
           },
         },
+        messageUnlocks: userId ? { where: { userId } } : false,
       },
     });
 
-    // Decrypt messages
-    return messages.map((m) => {
+    // Decrypt and obscure messages
+    return (messages as any[]).map((m: any) => {
       if (m.content) {
         m.content = this.cryptoService.decrypt(m.content);
+      }
+
+      if (m.isLocked && userId && m.senderId !== userId) {
+        const isUnlocked = m.messageUnlocks && m.messageUnlocks.length > 0;
+        if (!isUnlocked) {
+          m.content = 'This message is locked. Pay to unlock.';
+          m.url = null;
+          m.standardUrl = null;
+          m.thumbnailUrl = null;
+          m.mediaType = null;
+          m.voiceUrl = null;
+        }
       }
       return m;
     }) as any;
