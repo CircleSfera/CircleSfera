@@ -213,7 +213,9 @@ export default function Settings() {
       setUsername(response.data.username || '');
       setBio(response.data.bio || '');
       setWebsite(response.data.website || '');
-      setIsPrivate(false);
+      if (response.data.isPrivate !== undefined) {
+        setIsPrivate(response.data.isPrivate);
+      }
 
       if (response.data.username !== profile?.username) {
         navigate(`/${response.data.username}`);
@@ -1015,7 +1017,7 @@ export default function Settings() {
                 </AnimatePresence>
 
                 {/* Sticky Guard Bar (Mobile Footer) */}
-                <div className="sticky bottom-0 md:static -mx-6 md:mx-0 p-4 md:p-0 mt-8 z-30 bg-zinc-950/80 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-t border-white/5 md:border-none">
+                <div className="sticky bottom-0 md:static -mx-4 md:mx-0 p-4 md:p-0 mt-8 z-30 bg-zinc-950/80 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-t border-white/5 md:border-none">
                   <Button
                     type="submit"
                     variant="primary"
