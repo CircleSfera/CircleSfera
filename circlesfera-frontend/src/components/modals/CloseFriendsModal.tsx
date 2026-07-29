@@ -108,7 +108,7 @@ export default function CloseFriendsModal({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 min-h-[350px] flex flex-col">
+        <div className="flex-1 overflow-y-auto p-4 min-h-87.5 flex flex-col">
           {isLoading ? (
             <div className="p-6 text-center text-gray-300 m-auto">
               {t('settings.close_friends_modal.loading')}
