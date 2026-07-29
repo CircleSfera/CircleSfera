@@ -68,6 +68,18 @@
       "notifications": {
         "label": "Notifications",
         "desc": "Alerts"
+      },
+      "appeals": {
+        "label": "Appeals",
+        "desc": "Content moderation"
+      },
+      "reports": {
+        "label": "Reports",
+        "desc": "Reports history"
+      },
+      "feed_prefs": {
+        "label": "Feed Preferences",
+        "desc": "Customize your content"
       }
     },
     "profile": {
@@ -139,7 +151,22 @@
         "title": "Permanent Erasure",
         "desc": "Permanently delete your account and all data. This is IRREVERSIBLE.",
         "btn": "DELETE ACCOUNT",
-        "btn_loading": "DELETING..."
+        "btn_loading": "DELETING...",
+        "cancel_btn": "CANCEL SCHEDULED DELETION"
+      },
+      "export": {
+        "title": "Export Data",
+        "desc": "Download a copy of your data including your profile, posts, and messages. This process may take a few minutes.",
+        "btn": "REQUEST EXPORT"
+      },
+      "export_success": "Data export started. You will receive an email when it is ready.",
+      "export_error": "Failed to request data export.",
+      "verification": {
+        "title": "Identity Verification",
+        "success": "Your identity has been verified!",
+        "verified_desc": "Your identity has been successfully verified. This badge adds trust to your profile and helps keep the community safe.",
+        "unverified_desc": "Verify your identity to get the verified badge and unlock additional security features for your account. You will need a valid ID or Passport.",
+        "btn": "Verify Identity"
       }
     },
     "billing": {
