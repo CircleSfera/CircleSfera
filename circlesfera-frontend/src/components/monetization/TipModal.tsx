@@ -64,7 +64,7 @@ export default function TipModal({
             initial={{ scale: 0.95, opacity: 0, y: 10 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0, y: 10 }}
-            className="w-full max-w-sm rounded-[32px] overflow-hidden modal-glass"
+            className="w-full max-w-sm rounded-4xl overflow-hidden modal-glass"
           >
             <div className="relative pt-8 pb-4 px-6 text-center border-b border-white/5">
               <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-emerald-400 via-brand-primary to-teal-500 opacity-80" />
