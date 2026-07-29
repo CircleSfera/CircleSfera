@@ -68,6 +68,18 @@
       "notifications": {
         "label": "Notificaciones",
         "desc": "Alertas"
+      },
+      "appeals": {
+        "label": "Apelaciones",
+        "desc": "Moderación de contenido"
+      },
+      "reports": {
+        "label": "Reportes",
+        "desc": "Historial de reportes"
+      },
+      "feed_prefs": {
+        "label": "Preferencias de Feed",
+        "desc": "Personaliza tu contenido"
       }
     },
     "profile": {
@@ -139,7 +151,22 @@
         "title": "Borrado Permanente",
         "desc": "Elimina tu cuenta y todos tus datos permanentemente. Esto es IRREVERSIBLE.",
         "btn": "ELIMINAR CUENTA",
-        "btn_loading": "ELIMINANDO..."
+        "btn_loading": "ELIMINANDO...",
+        "cancel_btn": "CANCELAR ELIMINACIÓN PROGRAMADA"
+      },
+      "export": {
+        "title": "Exportar Datos",
+        "desc": "Descarga una copia de todos tus datos incluyendo tu perfil, publicaciones y mensajes. Este proceso puede tardar unos minutos.",
+        "btn": "SOLICITAR EXPORTACIÓN"
+      },
+      "export_success": "Exportación iniciada. Recibirás un correo cuando esté lista.",
+      "export_error": "Error al solicitar la exportación de datos.",
+      "verification": {
+        "title": "Verificación de Identidad",
+        "success": "¡Tu identidad ha sido verificada!",
+        "verified_desc": "Tu identidad ha sido verificada con éxito. Esta insignia añade confianza a tu perfil y ayuda a mantener la comunidad segura.",
+        "unverified_desc": "Verifica tu identidad para obtener la insignia de verificado y desbloquear funciones adicionales de seguridad para tu cuenta. Necesitarás un DNI o Pasaporte válido.",
+        "btn": "Verificar Identidad"
       }
     },
     "billing": {
