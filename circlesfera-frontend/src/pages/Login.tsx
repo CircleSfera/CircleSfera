@@ -1,3 +1,4 @@
+import { ApiErrorCode } from '@circlesfera/shared';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { useMutation } from '@tanstack/react-query';
 import { AlertOctagon, Fingerprint } from 'lucide-react';
@@ -119,8 +120,8 @@ export default function Login() {
   const errorMessage = err
     ? err.response?.data?.message || err.message
     : undefined;
-  const is2FARequired = errorMessage === '2FA_REQUIRED';
-  const isBanned = errorMessage === 'ACCOUNT_BANNED';
+  const is2FARequired = errorMessage === ApiErrorCode.TWO_FA_REQUIRED;
+  const isBanned = errorMessage === ApiErrorCode.ACCOUNT_BANNED;
   const receivedAppealToken = err?.response?.data?.appealToken;
 
   if (isBanned && receivedAppealToken && !appealToken) {
