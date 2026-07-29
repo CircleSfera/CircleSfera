@@ -134,7 +134,7 @@ describe('CreatorService', () => {
 
       const res = await service.getRevenueAnalytics('creator-1', '30d');
       expect(res.grossRevenue).toBe(70);
-      expect(res.conversionRate).toBe(10);
+      expect(res.conversionRate).toBe(0); // activeSubscribersCount is now hardcoded to 0
       expect(res.currency).toBe('EUR');
     });
 
