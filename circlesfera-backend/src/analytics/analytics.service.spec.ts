@@ -1,3 +1,4 @@
+import { getQueueToken } from '@nestjs/bullmq';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { UserEventType } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,6 +31,10 @@ describe('AnalyticsService', () => {
       providers: [
         AnalyticsService,
         { provide: PrismaService, useValue: mockPrismaService },
+        {
+          provide: getQueueToken('analytics-processing'),
+          useValue: { add: vi.fn() },
+        },
       ],
     }).compile();
 

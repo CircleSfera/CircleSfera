@@ -1,6 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AppException } from '../common/errors/app.exception.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FollowsService } from './follows.service.js';
@@ -120,7 +121,7 @@ describe('FollowsService', () => {
 
       await expect(
         service.toggle(followingUsername, followerId),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(AppException);
     });
 
     it('should throw NotFoundException if user is blocked', async () => {
@@ -131,7 +132,7 @@ describe('FollowsService', () => {
 
       await expect(
         service.toggle(followingUsername, followerId),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(AppException);
     });
   });
 
@@ -205,10 +206,10 @@ describe('FollowsService', () => {
       expect(mockPrismaService.follow.deleteMany).toHaveBeenCalled();
     });
 
-    it('should throw BadRequestException when blocking self', async () => {
+    it('should throw AppException when blocking self', async () => {
       mockPrismaService.profile.findFirst.mockResolvedValue({ userId: '1' });
       await expect(service.blockUser('1', 'self')).rejects.toThrow(
-        BadRequestException,
+        AppException,
       );
     });
 
@@ -284,7 +285,7 @@ describe('FollowsService', () => {
       mockPrismaService.follow.findUnique.mockResolvedValue(null);
 
       await expect(service.acceptFollowRequest('1', 'user2')).rejects.toThrow(
-        NotFoundException,
+        AppException,
       );
     });
   });

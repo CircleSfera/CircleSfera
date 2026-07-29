@@ -210,16 +210,6 @@ describe('PostsService', () => {
   });
 
   describe('update', () => {
-    it('should throw ForbiddenException if user is not author', async () => {
-      mockPrismaService.post.findUnique.mockResolvedValue({
-        id: 'post-1',
-        userId: 'other-user',
-      });
-      await expect(
-        service.update('post-1', 'me', { caption: 'new' }),
-      ).rejects.toThrow(ForbiddenException);
-    });
-
     it('should update post if user is author', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue({
         id: 'post-1',
@@ -228,22 +218,12 @@ describe('PostsService', () => {
 
       mockPrismaService.post.update.mockResolvedValue({ id: 'post-1' });
 
-      await service.update('post-1', 'me', { caption: 'new' });
+      await service.update('post-1', { caption: 'new' });
       expect(mockPrismaService.post.update).toHaveBeenCalled();
     });
   });
 
   describe('remove', () => {
-    it('should throw ForbiddenException if user is not author', async () => {
-      mockPrismaService.post.findUnique.mockResolvedValue({
-        id: 'post-1',
-        userId: 'other-user',
-      });
-      await expect(service.remove('post-1', 'me')).rejects.toThrow(
-        ForbiddenException,
-      );
-    });
-
     it('should delete post if user is author', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue({
         id: 'post-1',
@@ -252,7 +232,7 @@ describe('PostsService', () => {
 
       mockPrismaService.post.delete.mockResolvedValue({ id: 'post-1' });
 
-      await service.remove('post-1', 'me');
+      await service.remove('post-1');
       expect(mockPrismaService.post.delete).toHaveBeenCalled();
     });
   });
