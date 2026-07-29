@@ -253,7 +253,7 @@ export class MaintenanceService {
             },
           ],
         } satisfies Prisma.UserWhereInput,
-        select: { id: true },
+        include: { profile: true },
       });
 
       if (usersToPurge.length === 0) {
@@ -267,6 +267,28 @@ export class MaintenanceService {
 
       for (const user of usersToPurge) {
         try {
+          // Physical deletion of media to comply with GDPR
+          if (user.profile) {
+            const mediaToDelete = [
+              user.profile.avatar,
+              user.profile.standardUrl,
+              user.profile.thumbnailUrl,
+              user.profile.cover,
+              user.profile.coverStandardUrl,
+            ].filter(Boolean) as string[];
+
+            for (const url of mediaToDelete) {
+              await this.uploadsService
+                .deleteFile(url)
+                .catch((e) =>
+                  this.logger.warn(
+                    `Failed to delete media ${url} for user ${user.id}`,
+                    e,
+                  ),
+                );
+            }
+          }
+
           await this.prisma.user.delete({
             where: { id: user.id },
           });

@@ -1,0 +1,3 @@
+export const PLATFORM_FEE_DECIMAL = 0.2;
+export const PLATFORM_FEE_PERCENT = 20.0;
+export const CREATOR_SHARE_DECIMAL = 1.0 - PLATFORM_FEE_DECIMAL; // 0.8
