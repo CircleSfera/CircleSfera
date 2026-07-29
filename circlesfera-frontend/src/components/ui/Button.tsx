@@ -35,7 +35,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variants = {
       primary:
-        'bg-blue-600 text-white hover:bg-blue-500 focus:ring-blue-500 shadow-sm shadow-blue-900/20 hover:shadow-[0_0_15px_rgba(37,99,235,0.5)] border border-blue-500/50',
+        'bg-brand-primary text-white hover:brightness-110 focus:ring-brand-primary shadow-sm shadow-brand-primary/20 border border-brand-primary/50',
       secondary: 'bg-white/10 text-white hover:bg-white/20 focus:ring-white/20',
       danger:
         'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 focus:ring-red-500',
@@ -65,6 +65,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         className={classes}
         disabled={disabled || isLoading}
+        aria-busy={isLoading}
         whileTap={disabled || isLoading ? undefined : { scale: 0.95 }}
         whileHover={disabled || isLoading ? undefined : { scale: 1.02 }}
         {...(props as any)}

@@ -227,7 +227,7 @@ export default function StoryViewer({
   const modalContent = (
     <div className="fixed inset-0 z-50 bg-black flex items-center justify-center overflow-hidden">
       <div className="sr-only" aria-live="polite" aria-atomic="true">
-        {`Story ${currentIndex + 1} of ${stories.length} from ${currentStory.user.profile.username}`}
+        {`Story ${currentIndex + 1} of ${stories.length} from ${currentStory.user.profile?.username}`}
       </div>
 
       {/* Blurred Background Layer */}
@@ -373,7 +373,7 @@ export default function StoryViewer({
                 </div>
                 <div className="flex flex-col gap-0.5 justify-center">
                   <span className="text-white font-semibold text-[15px] leading-tight drop-shadow-md flex items-center gap-1">
-                    {currentStory.user.profile.username}
+                    {currentStory.user.profile?.username}
                     <VerificationBadge
                       level={
                         currentStory.user.verificationLevel as VerificationLevel
@@ -545,7 +545,7 @@ export default function StoryViewer({
             >
               <span className="text-base">{r.reaction}</span>
               <span className="text-xs font-medium text-white">
-                {r.user.profile.username}
+                {r.user.profile?.username}
               </span>
             </div>
           ))}

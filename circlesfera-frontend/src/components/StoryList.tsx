@@ -217,10 +217,10 @@ export default function StoryList() {
                 >
                   <div className="w-full h-full bg-black rounded-full p-0.5 group-hover:opacity-90 transition-opacity flex items-center justify-center">
                     <UserAvatar
-                      src={group.user.profile.avatar}
-                      thumbnailUrl={group.user.profile.thumbnailUrl}
-                      standardUrl={group.user.profile.standardUrl}
-                      alt={group.user.profile.username}
+                      src={group.user.profile?.avatar}
+                      thumbnailUrl={group.user.profile?.thumbnailUrl}
+                      standardUrl={group.user.profile?.standardUrl}
+                      alt={group.user.profile?.username || ''}
                       size="full"
                       hasStory={false}
                       verificationLevel={
@@ -232,7 +232,7 @@ export default function StoryList() {
                 <span
                   className={`text-xs ${allViewed ? 'text-gray-500' : 'text-gray-300'} max-w-[64px] truncate group-hover:text-white transition-colors`}
                 >
-                  {group.user.profile.username}
+                  {group.user.profile?.username}
                 </span>
               </button>
             );

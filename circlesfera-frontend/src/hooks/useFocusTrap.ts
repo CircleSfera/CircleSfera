@@ -1,8 +1,14 @@
 import { useEffect, useRef } from 'react';
 
-export function useFocusTrap<T extends HTMLElement>(isActive: boolean) {
-  const containerRef = useRef<T>(null);
+export function useFocusTrap<T extends HTMLElement>(
+  isActive: boolean,
+  externalRef?: React.RefObject<T | null>,
+  options?: { onEscape?: () => void },
+) {
+  const internalRef = useRef<T>(null);
+  const containerRef = externalRef || internalRef;
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const onEscape = options?.onEscape;
 
   useEffect(() => {
     if (!isActive) {
@@ -46,6 +52,11 @@ export function useFocusTrap<T extends HTMLElement>(isActive: boolean) {
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onEscape?.();
+        return;
+      }
       if (e.key !== 'Tab') return;
       if (!focusableElements.length) {
         e.preventDefault(); // Trap strictly if no focusable elements
@@ -70,7 +81,7 @@ export function useFocusTrap<T extends HTMLElement>(isActive: boolean) {
     return () => {
       container.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isActive]);
+  }, [isActive, containerRef, onEscape]);
 
   return containerRef;
 }

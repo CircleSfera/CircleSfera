@@ -18,7 +18,7 @@ export default function TopNav() {
     profile?.username && location.pathname === `/${profile.username}`;
 
   return (
-    <div className="flex md:hidden sticky top-0 left-0 right-0 pt-[env(safe-area-inset-top)] border-b border-white/5 bg-transparent backdrop-blur-2xl z-50 items-center justify-between px-3 h-[calc(3.5rem+env(safe-area-inset-top))]">
+    <div className="flex md:hidden sticky top-0 left-0 right-0 pt-[env(safe-area-inset-top)] border-b border-white/10 bg-black/40 backdrop-blur-3xl shadow-[0_4px_30px_rgba(0,0,0,0.5)] z-50 items-center justify-between px-3 h-[calc(3.5rem+env(safe-area-inset-top))]">
       {/* Left: Create Button */}
       <div className="flex-1 flex justify-start">
         <button
@@ -65,7 +65,7 @@ export default function TopNav() {
             >
               <MessageCircle size={22} />
               {unreadMessagesCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center text-xs font-bold text-white bg-red-500 rounded-full px-1 shadow-lg shadow-red-500/50">
+                <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 flex items-center justify-center text-xs font-bold text-white bg-red-500 rounded-full px-1 shadow-lg shadow-red-500/50">
                   {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
                 </span>
               )}

@@ -82,7 +82,7 @@ export default function BottomNav() {
   return (
     <nav
       aria-label="Mobile navigation"
-      className="flex md:hidden fixed bottom-[calc(0.5rem+env(safe-area-inset-bottom,0px))] left-4 right-4 h-14 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.5)] z-50"
+      className="flex md:hidden fixed bottom-[calc(0.5rem+env(safe-area-inset-bottom,0px))] left-4 right-4 h-14 bg-black/50 backdrop-blur-3xl border border-white/20 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.2)] z-50"
     >
       <div className="flex items-center justify-between w-full px-2 relative z-10">
         {navItems.map((item) => {
@@ -96,18 +96,20 @@ export default function BottomNav() {
 
           const content = (
             <motion.div
-              className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300 relative ${
+              className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-500 relative ${
                 isActive
-                  ? 'bg-linear-to-r from-brand-primary/20 to-brand-secondary/20 text-white shadow-[0_0_15px_rgba(131,58,180,0.3)] border border-white/10'
-                  : 'text-gray-300 hover:text-white'
+                  ? 'bg-linear-to-r from-brand-primary/30 to-brand-secondary/30 text-white shadow-[0_0_20px_rgba(131,58,180,0.5),inset_0_1px_1px_rgba(255,255,255,0.3)] border border-white/20'
+                  : 'text-gray-400 hover:text-white'
               }`}
-              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.1, y: -2 }}
+              whileTap={{ scale: 0.85, y: 2 }}
+              layoutId={isActive ? 'activeNav' : undefined}
             >
-              <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+              <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
 
               {/* Notification Badge */}
               {item.badge > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center text-[10px] font-bold text-white bg-red-500 rounded-full px-1 shadow-lg shadow-red-500/50 animate-pulse">
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 flex items-center justify-center text-[10px] font-bold text-white bg-red-500 rounded-full px-1 shadow-lg shadow-red-500/50 animate-pulse">
                   {item.badge > 99 ? '99+' : item.badge}
                 </span>
               )}

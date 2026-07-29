@@ -72,6 +72,7 @@ export interface CreatorPromotion {
   startDate: string;
   endDate: string;
   reach: number;
+  clicks: number;
   createdAt: string;
   refundPolicy?: string;
   refundedAt?: string | null;
@@ -210,19 +211,4 @@ export const creatorApi = {
       params: { period },
       responseType: 'text' as unknown as undefined,
     }),
-
-  // Creator subscriptions
-  getMyCreatorSubscriptions: () => apiClient.get('creator/subscriptions/me'),
-
-  checkCreatorSubscription: (creatorId: string) =>
-    apiClient.get(`creator/subscription/${creatorId}`),
-
-  cancelCreatorSubscription: (creatorId: string) =>
-    apiClient.delete(`creator/subscription/${creatorId}`),
-
-  setSubscriptionPrice: (priceCents: number) =>
-    apiClient.patch<{ subscriptionPriceCents: number; username: string }>(
-      'creator/subscription-price',
-      { priceCents },
-    ),
 };

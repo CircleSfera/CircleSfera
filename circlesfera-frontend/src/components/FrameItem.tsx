@@ -260,7 +260,7 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
   };
 
   const followMutation = useMutation({
-    mutationFn: () => followsApi.toggle(post.user.profile.username),
+    mutationFn: () => followsApi.toggle(post.user.profile?.username || ''),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['frames'] });
     },
@@ -313,7 +313,7 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
         <HlsVideoPlayer
           ref={videoRef}
           src={videoMedia.url}
-          hlsUrl={videoMedia.standardUrl}
+          hlsUrl={videoMedia.standardUrl || undefined}
           className={`w-full h-full object-cover bg-black md:rounded-[20px] transition-all duration-300 ${post.isLocked ? 'blur-2xl scale-[1.2] pointer-events-none' : ''}`}
           loop
           playsInline
@@ -379,22 +379,22 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
         {/* User Info Row */}
         <div className="flex items-center gap-2.5 mb-2.5 pointer-events-auto">
           <Link
-            to={`/${post.user.profile.username}`}
+            to={`/${post.user.profile?.username}`}
             className="relative shrink-0"
           >
             <img
-              src={post.user.profile.avatar || '#noimage'}
-              alt={post.user.profile.username}
+              src={post.user.profile?.avatar || ''}
+              alt={post.user.profile?.username}
               className="w-10 h-10 rounded-full object-cover border border-white/20 shadow-md"
             />
           </Link>
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <Link
-                to={`/${post.user.profile.username}`}
+                to={`/${post.user.profile?.username}`}
                 className="font-bold text-[15px] text-white drop-shadow-md hover:underline transition-all"
               >
-                {post.user.profile.username}
+                {post.user.profile?.username}
               </Link>
               {!isOwner && (
                 <button
@@ -406,6 +406,7 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
                 </button>
               )}
             </div>
+
             {post.isPromoted && (
               <span className="text-[10px] font-black uppercase tracking-widest text-yellow-400 drop-shadow-md mt-0.5">
                 Patrocinado
@@ -441,14 +442,14 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
           <Music size={14} className="shrink-0" />
           <div className="overflow-hidden whitespace-nowrap w-48 relative mask-[linear-gradient(to_right,white_80%,transparent)]">
             <div className="animate-marquee inline-block text-[13px] font-medium">
-              {post.user.profile.username} • Audio original
+              {post.user.profile?.username} • Audio original
             </div>
           </div>
         </div>
       </div>
 
       {/* Right Sidebar Actions */}
-      <div className="absolute bottom-6 right-2 w-[60px] py-5 flex flex-col items-center justify-end gap-6 z-20 pointer-events-auto bg-black/30 backdrop-blur-xl border border-white/10 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+      <div className="absolute bottom-6 right-2 w-15 py-5 flex flex-col items-center justify-end gap-6 z-20 pointer-events-auto bg-black/30 backdrop-blur-xl border border-white/10 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
         <div className="flex flex-col items-center gap-1 group">
           <LikeButton
             postId={post.id}
@@ -513,7 +514,7 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
         {/* Spinning Music Record */}
         <div className="mt-2 w-11 h-11 rounded-full bg-zinc-900 border-8 border-zinc-800 overflow-hidden flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] relative shrink-0 animate-[spin_4s_linear_infinite]">
           <img
-            src={post.user.profile.avatar || '#noimage'}
+            src={post.user.profile?.avatar || ''}
             alt="Audio"
             className="w-full h-full object-cover"
           />

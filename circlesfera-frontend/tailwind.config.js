@@ -10,10 +10,10 @@ export default {
           accent: 'var(--brand-accent)',
           blue: 'var(--brand-blue)',
         },
-        aspectRatio: {
-          '4/5': '4 / 5',
-          '9/16': '9 / 16',
-        },
+      },
+      aspectRatio: {
+        '4/5': '4 / 5',
+        '9/16': '9 / 16',
       },
     },
   },

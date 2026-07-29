@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import { likesApi } from '../services';
-import { Button } from './ui';
 
 interface LikeButtonProps {
   postId: string;
@@ -64,38 +64,68 @@ export default function LikeButton({
   const liked = isLiked !== null ? isLiked : data?.data.liked || false;
 
   return (
-    <Button
+    <motion.button
+      type="button"
       onClick={handleLike}
-      variant="ghost"
-      size="icon"
-      className={`transition-transform hover:scale-110 active:scale-95 bg-transparent border-none ${className}`}
+      className={`relative inline-flex items-center justify-center transition-colors focus:outline-none bg-transparent border-none ${className}`}
       aria-label={liked ? 'Unlike post' : 'Like post'}
       data-testid="like-button"
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.9 }}
     >
-      {liked ? (
-        <svg
-          aria-hidden="true"
-          className={`${iconClassName} text-red-500 fill-current`}
-          viewBox="0 0 24 24"
-        >
-          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-        </svg>
-      ) : (
-        <svg
-          aria-hidden="true"
-          className={`${iconClassName} text-white transition-colors drop-shadow-lg`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+      <AnimatePresence>
+        {liked && (
+          <motion.div
+            key="glow"
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: [0, 1, 0], scale: [0.5, 1.5, 2] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="absolute inset-0 bg-red-500/30 rounded-full blur-md"
           />
-        </svg>
-      )}
-    </Button>
+        )}
+      </AnimatePresence>
+      <motion.div
+        animate={
+          liked
+            ? {
+                scale: [1, 1.3, 1],
+                rotate: [0, -10, 10, 0],
+              }
+            : { scale: 1, rotate: 0 }
+        }
+        transition={{
+          type: 'spring',
+          stiffness: 400,
+          damping: 15,
+        }}
+        className="relative z-10 flex items-center justify-center"
+      >
+        {liked ? (
+          <svg
+            aria-hidden="true"
+            className={`${iconClassName} text-red-500 fill-current drop-shadow-[0_0_8px_rgba(239,68,68,0.5)]`}
+            viewBox="0 0 24 24"
+          >
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+          </svg>
+        ) : (
+          <svg
+            aria-hidden="true"
+            className={`${iconClassName} text-white/80 hover:text-white transition-colors drop-shadow-md`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
+          </svg>
+        )}
+      </motion.div>
+    </motion.button>
   );
 }

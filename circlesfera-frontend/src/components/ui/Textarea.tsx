@@ -24,10 +24,10 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         <textarea
           id={textareaId}
           ref={ref}
-          className={`flex min-h-[72px] w-full rounded-lg border bg-zinc-900/50 px-3 py-1.5 text-sm text-white placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 disabled:cursor-not-allowed disabled:opacity-50 transition-all ${
+          className={`flex min-h-20 w-full rounded-xl border bg-white/5 backdrop-blur-md px-4 py-3 text-sm text-white placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:border-brand-primary/50 disabled:cursor-not-allowed disabled:opacity-50 transition-all shadow-inner ${
             error
-              ? 'border-red-500/50 focus-visible:ring-red-500/50'
-              : 'border-white/10 hover:border-white/20'
+              ? 'border-red-500/50 focus-visible:border-red-500/50 focus-visible:ring-red-500/40'
+              : 'border-white/10 hover:border-white/20 hover:bg-white/10'
           } ${className}`}
           {...props}
         />

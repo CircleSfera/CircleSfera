@@ -52,12 +52,12 @@ export default defineConfig({
     proxy: {
       '/api/v1': {
         // In Docker Compose the backend service is reachable as http://backend:3000.
-        // Local host runs use the published port http://localhost:3005.
-        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3005',
+        // Local host runs use the published port http://localhost:3000.
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3000',
         changeOrigin: true,
       },
       '/socket.io': {
-        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3005',
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:3000',
         ws: true,
         changeOrigin: true,
       },
@@ -70,13 +70,7 @@ export default defineConfig({
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-ui': ['framer-motion', 'lucide-react'],
           'vendor-viz': ['recharts', 'html-to-image'],
-          'vendor-utils': [
-            'axios',
-            '@tanstack/react-query',
-            'zustand',
-            'clsx',
-            'tailwind-merge',
-          ],
+          'vendor-utils': ['axios', '@tanstack/react-query', 'zustand', 'clsx'],
         },
       },
     },
