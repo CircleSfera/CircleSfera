@@ -109,8 +109,8 @@ export const PasskeySettings: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-start sm:items-center gap-3">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
+        <div className="flex items-start md:items-center gap-3">
           <div className="p-3 bg-brand-primary/10 rounded-2xl text-brand-primary border border-brand-primary/20">
             <Fingerprint size={24} />
           </div>
@@ -138,7 +138,7 @@ export const PasskeySettings: React.FC = () => {
           type="button"
           onClick={handleRegister}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2.5 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-brand-primary/20 disabled:opacity-50"
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-[11px] uppercase tracking-wider rounded-lg transition-all shadow-lg shadow-brand-primary/20 disabled:opacity-50 shrink-0"
         >
           {loading ? (
             <Loader2 size={16} className="animate-spin" />
