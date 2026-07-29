@@ -24,7 +24,7 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const profile = useAuthStore((state) => state.profile);
-  const checkSession = useAuthStore((state) => state.checkSession);
+  const setProfile = useAuthStore((state) => state.setProfile);
 
   const [step, setStep] = useState<1 | 2>(1);
   const [bio, setBio] = useState('');
@@ -54,10 +54,15 @@ export default function Onboarding() {
       });
     },
     onSuccess: async () => {
-      await checkSession();
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-      navigate('/');
-      toast.success(t('onboarding.success', 'Welcome to CircleSfera!'));
+      try {
+        const { data } = await profileApi.getMyProfile();
+        setProfile(data);
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
+        navigate('/');
+        toast.success(t('onboarding.success', 'Welcome to CircleSfera!'));
+      } catch {
+        toast.error('Failed to reload profile');
+      }
     },
     onError: () => {
       toast.error(t('onboarding.error', 'Something went wrong.'));
@@ -98,7 +103,7 @@ export default function Onboarding() {
 
       <div className="relative z-10 w-full max-w-lg p-6">
         {/* Step Indicator */}
-        <div className="flex justify-center mb-10 space-x-2">
+        <div className="flex justify-center mb-6 space-x-2">
           <div
             className={`h-1.5 rounded-full transition-all duration-500 ${step === 1 ? 'w-12 bg-brand-primary' : 'w-4 bg-white/20'}`}
           />
@@ -112,8 +117,8 @@ export default function Onboarding() {
           <div
             className={`transition-all duration-700 absolute inset-0 ${step === 1 ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}
           >
-            <div className="text-center mb-10">
-              <h1 className="text-4xl font-black mb-3 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-white to-white/60">
+            <div className="text-center mb-6">
+              <h1 className="text-4xl font-black mb-2 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-white to-white/60">
                 Welcome, {profile?.username || 'Creator'}!
               </h1>
               <p className="text-gray-400 text-sm font-medium">
@@ -121,7 +126,7 @@ export default function Onboarding() {
               </p>
             </div>
 
-            <div className="flex flex-col items-center mb-10">
+            <div className="flex flex-col items-center mb-6">
               <label className="relative cursor-pointer group block">
                 <div className="w-32 h-32 rounded-full overflow-hidden bg-white/5 border border-white/10 ring-4 ring-black/50 group-hover:ring-brand-primary/50 transition-all duration-300 relative z-10">
                   {avatarPreview || profile?.avatar ? (
@@ -152,7 +157,7 @@ export default function Onboarding() {
               </label>
             </div>
 
-            <div className="space-y-2 mb-10">
+            <div className="space-y-2 mb-6">
               <label
                 htmlFor="bio-input"
                 className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1"
@@ -164,7 +169,7 @@ export default function Onboarding() {
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 placeholder="Tell the world about yourself..."
-                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary/50 focus:bg-white/10 transition-all resize-none min-h-30"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary/50 focus:bg-white/10 transition-all resize-none h-24"
                 maxLength={160}
               />
               <div className="text-right text-[10px] text-gray-600 font-medium mt-1">
@@ -188,8 +193,8 @@ export default function Onboarding() {
           <div
             className={`transition-all duration-700 absolute inset-0 ${step === 2 ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'}`}
           >
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-black mb-3 tracking-tighter flex items-center justify-center gap-2">
+            <div className="text-center mb-6">
+              <h1 className="text-3xl font-black mb-2 tracking-tighter flex items-center justify-center gap-2">
                 <Sparkles className="text-brand-primary" /> Find your circle
               </h1>
               <p className="text-gray-400 text-sm font-medium">
@@ -197,7 +202,7 @@ export default function Onboarding() {
               </p>
             </div>
 
-            <div className="glass-panel p-4 rounded-3xl mb-8 min-h-75">
+            <div className="glass-panel p-4 rounded-3xl mb-6 max-h-[50vh] overflow-y-auto">
               {isLoadingSuggestions ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-4 py-20">
                   <Loader2 className="animate-spin" size={32} />
