@@ -166,15 +166,15 @@ export default function Notifications() {
               {/* Avatar with Type Icon Badge */}
               <div className="relative shrink-0">
                 <Link
-                  to={`/${notif.sender?.profile.username}`}
+                  to={`/${notif.sender?.profile?.username}`}
                   className="block transition-transform active:scale-95"
                 >
                   <UserAvatar
-                    src={notif.sender?.profile.avatar}
-                    thumbnailUrl={notif.sender?.profile.thumbnailUrl}
-                    standardUrl={notif.sender?.profile.standardUrl}
+                    src={notif.sender?.profile?.avatar}
+                    thumbnailUrl={notif.sender?.profile?.thumbnailUrl}
+                    standardUrl={notif.sender?.profile?.standardUrl}
                     alt={
-                      notif.sender?.profile.username ||
+                      notif.sender?.profile?.username ||
                       t('notifications.unknown_user')
                     }
                     size="sm"
@@ -190,10 +190,10 @@ export default function Notifications() {
               <div className="flex-1">
                 <p className="text-sm leading-snug">
                   <Link
-                    to={`/${notif.sender?.profile.username}`}
+                    to={`/${notif.sender?.profile?.username}`}
                     className="font-bold text-white hover:text-brand-primary/90 transition-colors"
                   >
-                    {notif.sender?.profile.username ||
+                    {notif.sender?.profile?.username ||
                       t('notifications.unknown_user')}
                   </Link>
                   <span className="text-white/80 ml-1.5">
