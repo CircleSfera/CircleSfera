@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { ApiErrorCode } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,
@@ -330,7 +331,7 @@ export class AuthService {
         }
       } else if (user.suspendedUntil && user.suspendedUntil > new Date()) {
         throw new UnauthorizedException({
-          message: 'ACCOUNT_SUSPENDED',
+          message: ApiErrorCode.ACCOUNT_SUSPENDED,
           suspendedUntil: user.suspendedUntil.toISOString(),
         });
       } else {
@@ -342,20 +343,20 @@ export class AuthService {
           { expiresIn: '15m', secret },
         );
         throw new UnauthorizedException({
-          message: 'ACCOUNT_BANNED',
+          message: ApiErrorCode.ACCOUNT_BANNED,
           appealToken,
         });
       }
     } else if (user.suspendedUntil && user.suspendedUntil > new Date()) {
       throw new UnauthorizedException({
-        message: 'ACCOUNT_SUSPENDED',
+        message: ApiErrorCode.ACCOUNT_SUSPENDED,
         suspendedUntil: user.suspendedUntil.toISOString(),
       });
     }
 
     if (user.isTwoFactorEnabled) {
       if (!dto.twoFactorCode) {
-        throw new UnauthorizedException('2FA_REQUIRED'); // Custom error message so frontend knows
+        throw new UnauthorizedException(ApiErrorCode.TWO_FA_REQUIRED); // Custom error message so frontend knows
       }
 
       if (!user.twoFactorSecret) {
@@ -418,7 +419,7 @@ export class AuthService {
         }
       } else if (user.suspendedUntil && user.suspendedUntil > new Date()) {
         throw new UnauthorizedException({
-          message: 'ACCOUNT_SUSPENDED',
+          message: ApiErrorCode.ACCOUNT_SUSPENDED,
           suspendedUntil: user.suspendedUntil.toISOString(),
         });
       } else {
@@ -428,13 +429,13 @@ export class AuthService {
           { expiresIn: '15m', secret },
         );
         throw new UnauthorizedException({
-          message: 'ACCOUNT_BANNED',
+          message: ApiErrorCode.ACCOUNT_BANNED,
           appealToken,
         });
       }
     } else if (user.suspendedUntil && user.suspendedUntil > new Date()) {
       throw new UnauthorizedException({
-        message: 'ACCOUNT_SUSPENDED',
+        message: ApiErrorCode.ACCOUNT_SUSPENDED,
         suspendedUntil: user.suspendedUntil.toISOString(),
       });
     }

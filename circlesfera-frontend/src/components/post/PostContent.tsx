@@ -31,10 +31,10 @@ export default function PostContent({
       {!hideCaption && post.caption && (
         <div className="text-sm text-gray-300 mb-1 leading-relaxed">
           <Link
-            to={`/${post.user.profile.username}`}
+            to={`/${post.user.profile?.username}`}
             className="font-semibold text-white mr-1.5 hover:underline"
           >
-            {post.user.profile.username}
+            {post.user.profile?.username}
           </Link>
           <RichText text={post.caption} />
         </div>

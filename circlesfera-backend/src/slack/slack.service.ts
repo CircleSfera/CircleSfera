@@ -405,16 +405,11 @@ export class SlackService {
       const pendingReports = await this.prisma.report.count({
         where: { status: 'PENDING' },
       });
-      const newCreatorSubscriptions =
-        await this.prisma.creatorSubscription.count({
-          where: { createdAt: { gte: yesterday } },
-        });
       const newPlatformSubscriptions =
         await this.prisma.platformSubscription.count({
           where: { createdAt: { gte: yesterday } },
         });
-      const newSubscriptions =
-        newCreatorSubscriptions + newPlatformSubscriptions;
+      const newSubscriptions = newPlatformSubscriptions;
 
       const metrics = { newUsers, newPosts, pendingReports, newSubscriptions };
       const aiSummary = await this.aiService.generateMorningBriefing(metrics);

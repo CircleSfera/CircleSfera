@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Reply, Smile, Trash2 } from 'lucide-react';
+import { Lock, Reply, Smile, Trash2 } from 'lucide-react';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStoryStore } from '../../stores/storyStore';
@@ -18,6 +18,7 @@ interface MessageBubbleProps {
   onReact: (messageId: string, emoji: string) => void;
   onDelete?: (messageId: string) => void;
   onEdit?: (msg: Message, decryptedText: string) => void;
+  onUnlock?: (messageId: string) => void;
   isRead?: boolean;
   currentUserId?: string;
 }
@@ -33,6 +34,7 @@ export default memo(function MessageBubble({
   onReact,
   onDelete,
   onEdit,
+  onUnlock,
   isRead,
   currentUserId,
 }: MessageBubbleProps) {
@@ -66,9 +68,9 @@ export default memo(function MessageBubble({
   return (
     <motion.div
       key={msg.id || msg.tempId}
-      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+      initial={{ opacity: 0, scale: 0.8, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
       className={`flex ${isMe ? 'justify-end' : 'justify-start'} group items-end mb-1 hover:z-50 ${!isSeq ? 'mt-8' : 'mt-3'}`}
     >
       {!isMe && (
@@ -208,22 +210,49 @@ export default memo(function MessageBubble({
             {/* Text Content */}
             {(msg.content || msg.isDeleted) && (
               <div className="relative">
-                <span
-                  className={`break-all whitespace-pre-wrap ${msg.isDeleted ? 'opacity-70 italic' : ''}`}
-                >
-                  {msg.isDeleted ? (
-                    <>
-                      🚫{' '}
-                      {t('chat.message_deleted', {
-                        defaultValue: 'Este mensaje fue eliminado',
+                {msg.content === 'This message is locked. Pay to unlock.' ? (
+                  <div className="flex flex-col items-center justify-center p-4 min-w-50 gap-3 bg-black/20 rounded-xl backdrop-blur-md border border-amber-500/30">
+                    <div className="w-12 h-12 rounded-full bg-linear-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                      <Lock className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="text-center">
+                      <p className="font-semibold text-white">
+                        Mensaje Exclusivo
+                      </p>
+                      <p className="text-xs text-white/70 mt-1">
+                        Desbloquear para ver el contenido
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onUnlock && msg.id && onUnlock(msg.id)}
+                      className="mt-2 w-full py-2 px-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-full transition-colors text-sm shadow-md"
+                    >
+                      Desbloquear por{' '}
+                      {((msg.priceCents || 0) / 100).toLocaleString('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
                       })}
-                    </>
-                  ) : isDecrypting ? (
-                    <span className="opacity-50 italic">Descifrando...</span>
-                  ) : (
-                    decryptedText
-                  )}
-                </span>
+                    </button>
+                  </div>
+                ) : (
+                  <span
+                    className={`break-all whitespace-pre-wrap ${msg.isDeleted ? 'opacity-70 italic' : ''}`}
+                  >
+                    {msg.isDeleted ? (
+                      <>
+                        🚫{' '}
+                        {t('chat.message_deleted', {
+                          defaultValue: 'Este mensaje fue eliminado',
+                        })}
+                      </>
+                    ) : isDecrypting ? (
+                      <span className="opacity-50 italic">Descifrando...</span>
+                    ) : (
+                      decryptedText
+                    )}
+                  </span>
+                )}
                 <span className="inline-block w-16 h-4" />{' '}
                 {/* Spacer for absolute timestamp */}
               </div>

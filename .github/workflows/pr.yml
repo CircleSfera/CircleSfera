@@ -48,18 +48,21 @@ jobs:
       - name: Install Monorepo Dependencies
         run: npm install
 
+      - name: "Root: Biome CI (Format & Lint)"
+        run: npx biome ci .
+
       - name: "Shared: Install and Build"
         run: |
           cd circlesfera-shared
           npm install
           npm run build
 
-      - name: "Backend: Install, Lint and Test"
+      - name: "Backend: Install, Build, Lint and Test"
         run: |
           cd circlesfera-backend
           npm install
           npx prisma generate
-          npm run lint
+          npm run build
           npm run test
 
       - name: "Prisma: schema vs migrations"
@@ -96,7 +99,6 @@ jobs:
         run: |
           cd circlesfera-frontend
           npm install
-          npm run lint
           npm run test
           npm run build
 

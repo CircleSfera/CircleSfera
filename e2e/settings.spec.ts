@@ -21,7 +21,9 @@ test.describe('Settings Page & Navigation', () => {
     await page.goto('/settings');
 
     // Click Security tab
-    const securityTab = page.locator('button', { hasText: /Seguridad|Security/i }).first();
+    const securityTab = page
+      .locator('button', { hasText: /Seguridad|Security/i })
+      .first();
     if (await securityTab.isVisible()) {
       await securityTab.click();
     }

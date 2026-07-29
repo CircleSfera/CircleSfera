@@ -1,4 +1,5 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -51,6 +52,12 @@ export default function Home() {
   });
 
   const posts = data?.pages.flatMap((page) => page.data) ?? [];
+  const virtualizer = useWindowVirtualizer({
+    count: posts.length,
+    estimateSize: () => 600, // Estimated height of a post card
+    overscan: 2,
+  });
+
   const loadMoreRef = useInfiniteScroll(
     fetchNextPage,
     hasNextPage,
@@ -174,13 +181,47 @@ export default function Home() {
                   </div>
                 ) : (
                   <>
-                    {posts.map((post, index) => (
-                      <PostCard
-                        key={post.id}
-                        post={post}
-                        priority={index === 0}
-                      />
-                    ))}
+                    <div
+                      style={{
+                        height: `${virtualizer.getTotalSize()}px`,
+                        width: '100%',
+                        position: 'relative',
+                      }}
+                    >
+                      {virtualizer.getVirtualItems().map((virtualItem) => {
+                        const post = posts[virtualItem.index];
+                        return (
+                          <motion.div
+                            key={post.id}
+                            ref={virtualizer.measureElement}
+                            data-index={virtualItem.index}
+                            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{
+                              type: 'spring',
+                              stiffness: 400,
+                              damping: 30,
+                              delay: Math.min(
+                                (virtualItem.index % 10) * 0.1,
+                                0.5,
+                              ),
+                            }}
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              transform: `translateY(${virtualItem.start}px)`,
+                            }}
+                          >
+                            <PostCard
+                              post={post}
+                              priority={virtualItem.index === 0}
+                            />
+                          </motion.div>
+                        );
+                      })}
+                    </div>
                     <div ref={loadMoreRef} className="h-1" aria-hidden="true" />
                     {isFetchingNextPage && (
                       <div className="flex justify-center py-6">

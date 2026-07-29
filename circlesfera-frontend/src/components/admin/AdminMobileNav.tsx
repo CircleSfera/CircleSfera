@@ -4,9 +4,9 @@ import { ArrowLeft, X } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { adminApi } from '../../services/admin.service';
 import { ADMIN_NAV_GROUPS, type AdminTab } from './adminNav';
-import { useFocusTrap } from './useFocusTrap';
 
 interface Props {
   activeTab: AdminTab;
@@ -151,7 +151,7 @@ export function AdminMobileDrawer({
                         'w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm font-semibold border text-left min-h-11',
                         isSelected
                           ? 'bg-brand-primary/20 text-white border-brand-primary/40'
-                          : 'bg-white/[0.03] text-gray-300 border-white/5',
+                          : 'bg-white/3 text-gray-300 border-white/5',
                       )}
                     >
                       <div className="flex items-center gap-3 min-w-0">

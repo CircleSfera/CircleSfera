@@ -6,6 +6,7 @@ import {
   useLocation,
   useParams,
 } from 'react-router-dom';
+
 import AdminGuard from './components/auth/AdminGuard';
 import AuthGuard from './components/auth/AuthGuard';
 import CreatorStudioGuard from './components/auth/CreatorStudioGuard';
@@ -15,25 +16,14 @@ import CreatePostModal from './components/CreatePostModal';
 import ScrollToTop from './components/common/ScrollToTop';
 import CreateBottomSheet from './components/modals/CreateBottomSheet';
 import { GlobalCallContainer } from './components/navigation/GlobalCallContainer';
-
+import { useGlobalSocket } from './hooks/useGlobalSocket';
 import LayoutWrapper from './layouts/LayoutWrapper';
 
-const Admin = lazy(() => import('./pages/Admin'));
-const Creator = lazy(() => import('./pages/Creator'));
-const EditsStudio = lazy(() => import('./pages/EditsStudio'));
-const Frames = lazy(() => import('./pages/Frames'));
-const Profile = lazy(() => import('./pages/Profile'));
-const ChatWindow = lazy(() => import('./components/chat/ChatWindow'));
-const SelectChat = lazy(() => import('./components/chat/SelectChat'));
-const Pricing = lazy(() => import('./pages/payments/Pricing'));
-const Settings = lazy(() => import('./pages/Settings'));
-const NotFound = lazy(() => import('./pages/NotFound'));
-
+// Page routes
 import CommunityGuidelines from './pages/CommunityGuidelines';
 import Explore from './pages/Explore';
 import ExploreLanding from './pages/ExploreLanding';
 import ForgotPassword from './pages/ForgotPassword';
-// Page routes
 import HighlightViewerPage from './pages/HighlightViewerPage';
 import Home from './pages/Home';
 import LandingPage from './pages/LandingPage';
@@ -48,13 +38,24 @@ import Register from './pages/Register';
 import ResetPassword from './pages/ResetPassword';
 import Saved from './pages/Saved';
 import { Support } from './pages/Support';
-
 import TagFeed from './pages/TagFeed';
 import TermsOfService from './pages/TermsOfService';
 import VerifyEmail from './pages/VerifyEmail';
+
 import { useAuthStore } from './stores/authStore';
 import { useExperimentStore } from './stores/useExperimentStore';
 
+const Admin = lazy(() => import('./pages/Admin'));
+const ChatWindow = lazy(() => import('./components/chat/ChatWindow'));
+const Creator = lazy(() => import('./pages/Creator'));
+const EditsStudio = lazy(() => import('./pages/EditsStudio'));
+const Frames = lazy(() => import('./pages/Frames'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const Pricing = lazy(() => import('./pages/payments/Pricing'));
+const Profile = lazy(() => import('./pages/Profile'));
+const SelectChat = lazy(() => import('./components/chat/SelectChat'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
 // Helper to redirect /profile to current user's profile
 
 // Component to redirect /profile to current user's profile
@@ -90,6 +91,9 @@ function App() {
   const isSessionChecked = useAuthStore((state) => state.isSessionChecked);
   const checkSession = useAuthStore((state) => state.checkSession);
   const fetchFlags = useExperimentStore((state) => state.fetchFlags);
+
+  // Initialize Global Socket for Real-time Notifications
+  useGlobalSocket();
 
   useEffect(() => {
     // Bootstrap once per app load: the persisted `isAuthenticated` flag can be
@@ -168,6 +172,16 @@ function App() {
               ) : (
                 <LandingPage />
               )
+            }
+          />
+
+          {/* Onboarding Wizard */}
+          <Route
+            path="/onboarding"
+            element={
+              <AuthGuard>
+                <Onboarding />
+              </AuthGuard>
             }
           />
 

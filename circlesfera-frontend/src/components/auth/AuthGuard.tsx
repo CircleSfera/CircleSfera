@@ -33,5 +33,17 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     return <Navigate to="/accounts/login" replace />;
   }
 
+  const profile = useAuthStore.getState().profile;
+  const isOnboarded = profile?.user?.settings?.isOnboarded;
+
+  // Prevent redirect loop if we're already trying to render Onboarding
+  if (
+    isAuthenticated &&
+    isOnboarded === false &&
+    window.location.pathname !== '/onboarding'
+  ) {
+    return <Navigate to="/onboarding" replace />;
+  }
+
   return <>{children}</>;
 }

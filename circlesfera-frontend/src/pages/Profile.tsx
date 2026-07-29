@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Bookmark,
   Clapperboard,
@@ -21,7 +21,6 @@ import ProfileTabs, { type TabType } from '../components/profile/ProfileTabs';
 import StoryViewer from '../components/StoryViewer';
 import {
   chatApi,
-  creatorApi,
   followsApi,
   highlightsApi,
   postsApi,
@@ -122,60 +121,6 @@ export default function Profile() {
     username,
   ]);
 
-  const subscribeMutation = useMutation({
-    mutationFn: () =>
-      import('../services').then((m) =>
-        m.api.post('/creator/subscribe', {
-          creatorId: profile?.data.userId,
-          returnUrl: window.location.href.split('?')[0],
-        }),
-      ),
-    onSuccess: (res) => {
-      if (res.data?.url) {
-        window.location.href = res.data.url;
-      } else {
-        toast.success(t('profile.messages.subscribed_success'));
-        queryClient.invalidateQueries({
-          queryKey: ['creator-subscription', profile?.data.userId],
-        });
-        queryClient.invalidateQueries({ queryKey: ['userProfile', username] });
-      }
-    },
-    onError: (e: any) => {
-      toast.error(e.response?.data?.message || t('profile.messages.error'));
-    },
-  });
-
-  const cancelSubscribeMutation = useMutation({
-    mutationFn: () =>
-      creatorApi.cancelCreatorSubscription(profile!.data.userId),
-    onSuccess: () => {
-      toast.success(
-        t('profile.messages.unsubscribed_success', 'Subscription cancelled'),
-      );
-      queryClient.invalidateQueries({
-        queryKey: ['creator-subscription', profile?.data.userId],
-      });
-    },
-    onError: (e: any) => {
-      toast.error(e.response?.data?.message || t('profile.messages.error'));
-    },
-  });
-
-  const { data: creatorSubStatus } = useQuery({
-    queryKey: ['creator-subscription', profile?.data.userId],
-    queryFn: async () => {
-      const res = await creatorApi.checkCreatorSubscription(
-        profile!.data.userId,
-      );
-      return res.data as { isSubscribed: boolean; expiresAt?: string };
-    },
-    enabled:
-      !!profile?.data.userId &&
-      !isMe &&
-      profile?.data.accountType === 'CREATOR',
-  });
-
   const { data: followStatus } = useQuery({
     queryKey: ['follow', username],
     queryFn: () => followsApi.check(username!),
@@ -207,8 +152,7 @@ export default function Profile() {
   // We can't use 'profile' in the condition if it's not loaded yet,
   // but we can check if username exists.
   // Better: use 'enabled' flag in queries to handle dependencies.
-  const canView =
-    isMe || (profile?.data && !profile.data.isPrivate) || isFollowing;
+  const canView = isMe || (profile?.data && true) || isFollowing;
 
   const { data: posts } = useQuery({
     queryKey: ['userPosts', username],
@@ -467,9 +411,6 @@ export default function Profile() {
           isCreatorModeActive={isCreatorModeActive}
           setCreatorMode={setCreatorMode}
           openCreateMenu={openCreateMenu}
-          subscribeMutation={subscribeMutation}
-          cancelSubscribeMutation={cancelSubscribeMutation}
-          isSubscribedToCreator={!!creatorSubStatus?.isSubscribed}
           isCreatingChat={isCreatingChat}
           handleMessageClick={handleMessageClick}
           setShowFollowsModal={setShowFollowsModal}

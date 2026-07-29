@@ -10,9 +10,11 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service.js';
 
+@ApiTags('Media')
 @Controller('media')
 export class MediaController {
   private readonly logger = new Logger(MediaController.name);

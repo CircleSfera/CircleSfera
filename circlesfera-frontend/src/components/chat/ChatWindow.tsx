@@ -139,6 +139,28 @@ export default function ChatWindow() {
     }
   }, []);
 
+  const handleUnlockMessage = useCallback(
+    async (messageId: string) => {
+      try {
+        const res = await apiClient.post('/monetization/unlock-message', {
+          messageId,
+          returnUrl: window.location.href,
+        });
+        if (res.data?.url) {
+          window.location.href = res.data.url;
+        }
+      } catch (err) {
+        logger.error('Failed to unlock message', err);
+        toast.error(
+          t('monetization.failed_to_unlock', {
+            defaultValue: 'Failed to unlock message',
+          }),
+        );
+      }
+    },
+    [t],
+  );
+
   // Smooth scroll on new messages or typing
   useEffect(() => {
     if (messages.length > 0) {
@@ -952,6 +974,7 @@ export default function ChatWindow() {
                   onReact={sendReaction}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onUnlock={handleUnlockMessage}
                   isRead={isRead}
                   currentUserId={currentUserId}
                 />

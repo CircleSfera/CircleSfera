@@ -55,4 +55,17 @@ export const monetizationApi = {
     const { data } = await api.get('/monetization');
     return data;
   },
+  getIncomeStats: async () => {
+    const { data } = await api.get<{ month: string; income: number }[]>(
+      '/monetization/analytics/income',
+    );
+    return data;
+  },
+  getFinancialSummary: async () => {
+    const { data } = await api.get<{
+      currentMonthIncome: number;
+      totalTips: number;
+    }>('/monetization/analytics/summary');
+    return data;
+  },
 };

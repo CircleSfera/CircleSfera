@@ -12,6 +12,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import {
@@ -37,6 +38,7 @@ import {
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 
 /** Handles authentication endpoints: register, login, token refresh, logout, email verification, and password reset. */
+@ApiTags('Authentication')
 @Controller('auth')
 @UseGuards(ThrottlerGuard)
 export class AuthController {

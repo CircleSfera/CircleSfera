@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { GlobalKeyboardShortcuts } from '../components/common/GlobalKeyboardShortcuts';
+import { OfflineIndicator } from '../components/common/OfflineIndicator';
 import BottomNav from '../components/navigation/BottomNav';
 import Sidebar from '../components/navigation/Sidebar';
 import TopNav from '../components/navigation/TopNav';
@@ -67,6 +68,7 @@ export default function LayoutWrapper({
       >
         Skip to content
       </a>
+      <OfflineIndicator />
       <GlobalKeyboardShortcuts />
 
       {/* ARIA Live Region for Real-time Announcements */}
@@ -83,9 +85,9 @@ export default function LayoutWrapper({
       <div className="fixed inset-0 z-[-1] bg-surface-base">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E')] opacity-10 brightness-100 contrast-150 pointer-events-none mix-blend-overlay"></div>
         {/* Animated Orbs */}
-        <div className="absolute top-[-10%] left-[-10%] w-[400px] h-[400px] md:w-[600px] md:h-[600px] bg-brand-primary/20 rounded-full blur-[120px] animate-blob filter mix-blend-screen"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] md:w-[600px] md:h-[600px] bg-brand-blue/20 rounded-full blur-[120px] animate-blob animation-delay-2000 filter mix-blend-screen"></div>
-        <div className="absolute top-[40%] left-[40%] w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-brand-secondary/15 rounded-full blur-[100px] animate-blob animation-delay-4000 filter mix-blend-screen"></div>
+        <div className="absolute top-[-10%] left-[-10%] w-100 h-100 md:w-150 md:h-150 bg-brand-primary/20 rounded-full blur-[120px] animate-blob filter mix-blend-screen"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-100 h-100 md:w-150 md:h-150 bg-brand-blue/20 rounded-full blur-[120px] animate-blob animation-delay-2000 filter mix-blend-screen"></div>
+        <div className="absolute top-[40%] left-[40%] w-75 h-75 md:w-125 md:h-125 bg-brand-secondary/15 rounded-full blur-[100px] animate-blob animation-delay-4000 filter mix-blend-screen"></div>
       </div>
 
       {/* Navigation - Each handles its own visibility via media queries */}

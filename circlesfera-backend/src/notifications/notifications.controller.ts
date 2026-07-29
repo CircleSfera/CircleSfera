@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Put, Query, UseGuards } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import {
   CurrentUser,
   type CurrentUserData,
@@ -8,6 +9,7 @@ import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { NotificationsService } from './notifications.service.js';
 
 /** REST controller for notifications. All endpoints require authentication. */
+@ApiTags('Notifications')
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
 export class NotificationsController {

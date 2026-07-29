@@ -1,9 +1,7 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { ErrorCode } from '@circlesfera/shared';
+import { Injectable, Logger } from '@nestjs/common';
+import { PLATFORM_FEE_DECIMAL } from '../common/constants/monetization.constants.js';
+import { AppException } from '../common/errors/app.exception.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -98,24 +96,32 @@ export class MonetizationService {
     });
 
     if (!post?.isPremium || !post.priceCents) {
-      throw new BadRequestException('This post is not premium or has no price');
+      throw AppException.BadRequest(
+        ErrorCode.NOT_PREMIUM_OR_NO_PRICE,
+        'This post is not premium or has no price',
+      );
     }
     if (post.userId === userId) {
-      throw new BadRequestException('You cannot buy your own post');
+      throw AppException.BadRequest(
+        ErrorCode.CANNOT_BUY_OWN_CONTENT,
+        'You cannot buy your own post',
+      );
     }
 
     const creator = post.user;
     if (!creator.stripeConnectAccountId) {
-      throw new BadRequestException(
+      throw AppException.BadRequest(
+        ErrorCode.CREATOR_STRIPE_NOT_SETUP,
         'Creator has not setup their Stripe account',
       );
     }
 
     const buyer = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!buyer) throw new NotFoundException('Buyer not found');
+    if (!buyer)
+      throw AppException.NotFound(ErrorCode.BUYER_NOT_FOUND, 'Buyer not found');
 
     // Platform takes 20% commission
-    const platformFee = Math.floor(post.priceCents * 0.2);
+    const platformFee = Math.floor(post.priceCents * PLATFORM_FEE_DECIMAL);
 
     const session = await this.stripeService.createCheckoutSession(
       {
@@ -173,32 +179,41 @@ export class MonetizationService {
     });
 
     if (!story?.isPremium || !story.priceCents) {
-      throw new BadRequestException(
+      throw AppException.BadRequest(
+        ErrorCode.NOT_PREMIUM_OR_NO_PRICE,
         'This story is not premium or has no price',
       );
     }
     if (story.userId === userId) {
-      throw new BadRequestException('You cannot buy your own story');
+      throw AppException.BadRequest(
+        ErrorCode.CANNOT_BUY_OWN_CONTENT,
+        'You cannot buy your own story',
+      );
     }
 
     const existing = await this.prisma.storyUnlock.findUnique({
       where: { userId_storyId: { userId, storyId } },
     });
     if (existing) {
-      throw new BadRequestException('Story already unlocked');
+      throw AppException.BadRequest(
+        ErrorCode.CONTENT_ALREADY_UNLOCKED,
+        'Story already unlocked',
+      );
     }
 
     const creator = story.user;
     if (!creator.stripeConnectAccountId) {
-      throw new BadRequestException(
+      throw AppException.BadRequest(
+        ErrorCode.CREATOR_STRIPE_NOT_SETUP,
         'Creator has not setup their Stripe account',
       );
     }
 
     const buyer = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!buyer) throw new NotFoundException('Buyer not found');
+    if (!buyer)
+      throw AppException.NotFound(ErrorCode.BUYER_NOT_FOUND, 'Buyer not found');
 
-    const platformFee = Math.floor(story.priceCents * 0.2);
+    const platformFee = Math.floor(story.priceCents * PLATFORM_FEE_DECIMAL);
 
     const session = await this.stripeService.createCheckoutSession(
       {
@@ -242,6 +257,96 @@ export class MonetizationService {
     return { url: session.url };
   }
 
+  async createMessageUnlockSession(
+    userId: string,
+    messageId: string,
+    returnUrl: string,
+    idempotencyKey?: string,
+  ) {
+    const message = (await this.prisma.message.findUnique({
+      where: { id: messageId },
+      include: { sender: true },
+    })) as any;
+
+    if (!message?.isLocked || !message.priceCents) {
+      throw AppException.BadRequest(
+        ErrorCode.NOT_PREMIUM_OR_NO_PRICE,
+        'This message is not locked or has no price',
+      );
+    }
+    if (message.senderId === userId) {
+      throw AppException.BadRequest(
+        ErrorCode.CANNOT_BUY_OWN_CONTENT,
+        'You cannot unlock your own message',
+      );
+    }
+
+    const existing = await (this.prisma as any).messageUnlock.findUnique({
+      where: { userId_messageId: { userId, messageId } },
+    });
+    if (existing) {
+      throw AppException.BadRequest(
+        ErrorCode.CONTENT_ALREADY_UNLOCKED,
+        'Message already unlocked',
+      );
+    }
+
+    const creator = message.sender;
+    if (!creator.stripeConnectAccountId) {
+      throw AppException.BadRequest(
+        ErrorCode.CREATOR_STRIPE_NOT_SETUP,
+        'Creator has not setup their Stripe account',
+      );
+    }
+
+    const buyer = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!buyer)
+      throw AppException.NotFound(ErrorCode.BUYER_NOT_FOUND, 'Buyer not found');
+
+    const platformFee = Math.floor(message.priceCents * PLATFORM_FEE_DECIMAL);
+
+    const session = await this.stripeService.createCheckoutSession(
+      {
+        payment_method_types: ['card'],
+        mode: 'payment',
+        customer_email: buyer.email,
+        client_reference_id: userId,
+        line_items: [
+          {
+            price_data: {
+              currency: 'eur',
+              product_data: {
+                name: 'Locked Message Unlock',
+                description: `Unlock exclusive message from ${creator.email}`,
+              },
+              unit_amount: message.priceCents,
+            },
+            quantity: 1,
+          },
+        ],
+        payment_intent_data: {
+          application_fee_amount: platformFee,
+          transfer_data: {
+            destination: creator.stripeConnectAccountId,
+          },
+        },
+        metadata: {
+          type: 'DIRECT_MESSAGE_UNLOCK',
+          messageId,
+          creatorId: creator.id,
+        },
+        success_url: appendCheckoutQuery(
+          returnUrl,
+          'success=true&session_id={CHECKOUT_SESSION_ID}',
+        ),
+        cancel_url: appendCheckoutQuery(returnUrl, 'canceled=true'),
+      },
+      { idempotencyKey },
+    );
+
+    return { url: session.url };
+  }
+
   async createTipSession(
     senderId: string,
     receiverId: string,
@@ -251,16 +356,23 @@ export class MonetizationService {
     idempotencyKey?: string,
   ) {
     if (amountCents < 100) {
-      throw new BadRequestException('Minimum tip is €1.00');
+      throw AppException.BadRequest(
+        ErrorCode.MINIMUM_TIP_NOT_MET,
+        'Minimum tip is €1.00',
+      );
     }
     if (senderId === receiverId)
-      throw new BadRequestException('Cannot tip yourself');
+      throw AppException.BadRequest(
+        ErrorCode.CANNOT_TIP_SELF,
+        'Cannot tip yourself',
+      );
 
     const receiver = await this.prisma.user.findUnique({
       where: { id: receiverId },
     });
     if (!receiver?.stripeConnectAccountId) {
-      throw new BadRequestException(
+      throw AppException.BadRequest(
+        ErrorCode.CREATOR_STRIPE_NOT_SETUP,
         'Creator cannot receive tips yet (no Stripe account)',
       );
     }
@@ -268,9 +380,13 @@ export class MonetizationService {
     const sender = await this.prisma.user.findUnique({
       where: { id: senderId },
     });
-    if (!sender) throw new NotFoundException('Sender not found');
+    if (!sender)
+      throw AppException.NotFound(
+        ErrorCode.SENDER_NOT_FOUND,
+        'Sender not found',
+      );
 
-    const platformFee = Math.floor(amountCents * 0.2);
+    const platformFee = Math.floor(amountCents * PLATFORM_FEE_DECIMAL);
 
     const session = await this.stripeService.createCheckoutSession(
       {
@@ -322,7 +438,8 @@ export class MonetizationService {
     refreshUrl: string,
   ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user)
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
     try {
       let accountId = user.stripeConnectAccountId;
@@ -345,7 +462,8 @@ export class MonetizationService {
       return { url: link.url };
     } catch (error: unknown) {
       this.logger.error('Stripe Connect Onboarding Error:', error);
-      throw new BadRequestException(
+      throw AppException.BadRequest(
+        ErrorCode.STRIPE_ONBOARDING_FAILED,
         error instanceof Error
           ? error.message
           : 'Failed to connect with Stripe',
@@ -355,7 +473,8 @@ export class MonetizationService {
 
   async getAccountStatus(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user)
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
     if (!user.stripeConnectAccountId) {
       return {
@@ -400,10 +519,14 @@ export class MonetizationService {
 
   async getDashboardLink(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user)
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
     if (!user.stripeConnectAccountId) {
-      throw new BadRequestException('Stripe Connect account not set up yet');
+      throw AppException.BadRequest(
+        ErrorCode.STRIPE_CONNECT_NOT_SETUP,
+        'Stripe Connect account not set up yet',
+      );
     }
 
     const link = await this.stripeService.createLoginLink(
@@ -433,9 +556,13 @@ export class MonetizationService {
       where: { id: userId },
       select: { stripeConnectAccountId: true },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user)
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
     if (!user.stripeConnectAccountId) {
-      throw new BadRequestException('Stripe Connect account not set up yet');
+      throw AppException.BadRequest(
+        ErrorCode.STRIPE_CONNECT_NOT_SETUP,
+        'Stripe Connect account not set up yet',
+      );
     }
 
     const [balance, payouts] = await Promise.all([
@@ -464,6 +591,101 @@ export class MonetizationService {
         method: p.method,
         type: p.type,
       })),
+    };
+  }
+
+  async getIncomeStats(userId: string) {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    const transactions = await this.prisma.transaction.findMany({
+      where: {
+        receiverId: userId,
+        status: 'COMPLETED',
+        type: {
+          in: [
+            'DIRECT_POST_UNLOCK',
+            'DIRECT_STORY_UNLOCK',
+            'DIRECT_MESSAGE_UNLOCK',
+            'DIRECT_TIP',
+            'DIRECT_LIVE_GIFT',
+          ],
+        },
+        createdAt: {
+          gte: sixMonthsAgo,
+        },
+      },
+      select: {
+        amount: true,
+        createdAt: true,
+      },
+    });
+
+    const months = new Map<string, number>();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const key = d.toISOString().slice(0, 7); // YYYY-MM
+      months.set(key, 0);
+    }
+
+    for (const tx of transactions) {
+      const key = tx.createdAt.toISOString().slice(0, 7);
+      if (months.has(key)) {
+        months.set(key, months.get(key)! + tx.amount);
+      }
+    }
+
+    return Array.from(months.entries()).map(([month, income]) => ({
+      month,
+      income,
+    }));
+  }
+
+  async getFinancialSummary(userId: string) {
+    const currentMonth = new Date();
+    currentMonth.setDate(1);
+    currentMonth.setHours(0, 0, 0, 0);
+
+    const [currentMonthTx, allTimeTipsTx] = await Promise.all([
+      this.prisma.transaction.aggregate({
+        where: {
+          receiverId: userId,
+          status: 'COMPLETED',
+          type: {
+            in: [
+              'DIRECT_POST_UNLOCK',
+              'DIRECT_STORY_UNLOCK',
+              'DIRECT_MESSAGE_UNLOCK',
+              'DIRECT_TIP',
+              'DIRECT_LIVE_GIFT',
+            ],
+          },
+          createdAt: {
+            gte: currentMonth,
+          },
+        },
+        _sum: {
+          amount: true,
+        },
+      }),
+      this.prisma.transaction.aggregate({
+        where: {
+          receiverId: userId,
+          status: 'COMPLETED',
+          type: 'DIRECT_TIP',
+        },
+        _sum: {
+          amount: true,
+        },
+      }),
+    ]);
+
+    return {
+      currentMonthIncome: currentMonthTx._sum.amount || 0,
+      totalTips: allTimeTipsTx._sum.amount || 0,
     };
   }
 }

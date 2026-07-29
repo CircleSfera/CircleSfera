@@ -44,7 +44,7 @@ export default function Register() {
         logger.error('Failed to fetch profile:', error);
       }
       toast.success(t('auth.register.success'), { duration: 5000 });
-      navigate('/');
+      navigate('/onboarding');
     },
   });
 

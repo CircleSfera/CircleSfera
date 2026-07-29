@@ -1,5 +1,7 @@
+import { motion } from 'framer-motion';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDwellTime } from '../hooks/useDwellTime';
 import { usePostInteractions } from '../hooks/usePostInteractions';
 import type { Post } from '../types';
 import { PollWidget } from './interactive/PollWidget';
@@ -18,6 +20,7 @@ interface PostCardProps {
 export default memo(function PostCard({ post, priority }: PostCardProps) {
   const { t } = useTranslation();
   const interactions = usePostInteractions(post);
+  useDwellTime(post.id, interactions.postRef);
 
   if (interactions.isDeleted) return null;
 
@@ -37,10 +40,14 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
 
   return (
     <>
-      <div
+      <motion.div
         ref={postRef}
         className="glass-panel-post rounded-lg overflow-hidden mb-2 content-visibility-auto"
         data-post-card="true"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+        layout
       >
         {post.recommendationReason && (
           <div className="px-3 py-1.5 text-xs border-b border-white/5 bg-white/2">
@@ -128,7 +135,7 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
           />
           <PostContent post={post} likesCount={likesCount} />
         </div>
-      </div>
+      </motion.div>
 
       <PostOverlays post={post} interactions={interactions} />
     </>

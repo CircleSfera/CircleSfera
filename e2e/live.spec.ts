@@ -6,12 +6,16 @@ test.describe('Live Spaces / Stream Feature', () => {
     await expect(page).toHaveURL(/.*\/live\/broadcast/);
   });
 
-  test('should navigate to Live Viewer page for a stream ID', async ({ page }) => {
+  test('should navigate to Live Viewer page for a stream ID', async ({
+    page,
+  }) => {
     await page.goto('/live/test-stream-id-123');
     await expect(page).toHaveURL(/.*\/live\/test-stream-id-123/);
   });
 
-  test('should render live stream elements without breaking UI', async ({ page }) => {
+  test('should render live stream elements without breaking UI', async ({
+    page,
+  }) => {
     await page.goto('/live/broadcast');
     // Check page container loads
     await expect(page.locator('body')).toBeVisible();

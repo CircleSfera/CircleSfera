@@ -245,6 +245,39 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
           </div>
         </div>
 
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
+            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">
+              {t('creator.promotions.clicks', 'Clicks')}
+            </p>
+            <p className="text-white font-bold text-base">
+              {promo.clicks?.toLocaleString() || 0}
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
+            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">
+              CTR
+            </p>
+            <p className="text-emerald-400 font-bold text-base">
+              {promo.reach > 0
+                ? (((promo.clicks || 0) / promo.reach) * 100).toFixed(2)
+                : '0.00'}
+              %
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
+            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">
+              CPC
+            </p>
+            <p className="text-brand-accent font-bold text-base">
+              €
+              {promo.clicks > 0
+                ? (promo.budget / promo.clicks).toFixed(2)
+                : '0.00'}
+            </p>
+          </div>
+        </div>
+
         {active && (
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-semibold text-gray-400">

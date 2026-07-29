@@ -57,9 +57,17 @@ export class SubscriptionGuard implements CanActivate {
       return true;
     }
 
-    // Define plan hierarchy
-    const planHierarchy = ['Premium', 'Elite Creator', 'Business'];
-    const requiredLevel = planHierarchy.indexOf(requiredPlan);
+    // Fetch the required plan details dynamically to determine its tier (using price as rank)
+    const dbRequiredPlan = await this.prisma.platformPlan.findFirst({
+      where: { name: requiredPlan },
+    });
+
+    if (!dbRequiredPlan) {
+      this.logger.error(
+        `Required plan '${requiredPlan}' does not exist in the database.`,
+      );
+      return false;
+    }
 
     // Check for active subscription
     const userSubscription = await this.prisma.platformSubscription.findFirst({
@@ -78,9 +86,8 @@ export class SubscriptionGuard implements CanActivate {
       );
     }
 
-    const userLevel = planHierarchy.indexOf(userSubscription.plan.name);
-
-    if (userLevel < requiredLevel) {
+    // Compare prices to determine if the user's plan is equal or higher tier
+    if (userSubscription.plan.price < dbRequiredPlan.price) {
       throw new ForbiddenException(
         `Your current plan '${userSubscription.plan.name}' is not sufficient. This feature requires at least '${requiredPlan}'.`,
       );

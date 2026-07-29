@@ -34,6 +34,10 @@ export default function NewPromoModal({
   const [countries, setCountries] = useState('');
   const [interests, setInterests] = useState('');
 
+  const totalBudget = budget * duration;
+  const minReach = totalBudget * 300;
+  const maxReach = totalBudget * 700;
+
   const { data: postsData, isLoading: loadingPosts } = useQuery<
     PaginatedResponse<CreatorPost>
   >({
@@ -280,6 +284,16 @@ export default function NewPromoModal({
         {/* Footer */}
         {step === 'configure' && (
           <div className="p-8 border-t border-white/5 bg-black/40">
+            <div className="mb-4 bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
+              <span className="text-gray-300 text-sm font-bold flex items-center gap-2">
+                <Megaphone size={16} className="text-brand-accent" />
+                {t('creator.promotions.estimated_reach', 'Alcance estimado')}
+              </span>
+              <span className="text-white font-black text-sm">
+                {minReach.toLocaleString()} - {maxReach.toLocaleString()}
+              </span>
+            </div>
+
             <Button
               variant="primary"
               size="lg"

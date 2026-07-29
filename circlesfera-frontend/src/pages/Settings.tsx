@@ -39,7 +39,6 @@ import {
 } from '../components';
 import CloseFriendsModal from '../components/modals/CloseFriendsModal';
 import AppealsSettings from '../components/settings/AppealsSettings';
-import CreatorSubscriptionsList from '../components/settings/CreatorSubscriptionsList';
 import FeedPreferencesSettings from '../components/settings/FeedPreferencesSettings';
 import MyReportsSettings from '../components/settings/MyReportsSettings';
 import NotificationsSettings from '../components/settings/NotificationsSettings';
@@ -214,7 +213,7 @@ export default function Settings() {
       setUsername(response.data.username || '');
       setBio(response.data.bio || '');
       setWebsite(response.data.website || '');
-      setIsPrivate(response.data.isPrivate || false);
+      setIsPrivate(false);
 
       if (response.data.username !== profile?.username) {
         navigate(`/${response.data.username}`);
@@ -348,7 +347,7 @@ export default function Settings() {
       setUsername(profile.username || '');
       setBio(profile.bio || '');
       setWebsite(profile.website || '');
-      setIsPrivate(profile.isPrivate || false);
+      setIsPrivate(false);
       setAccountType(profile.user?.accountType || 'PERSONAL');
       setInitialized(true);
     }
@@ -1504,16 +1503,6 @@ export default function Settings() {
                   handleBillingPortal={handleBillingPortal}
                   isProcessingPortal={isProcessingPortal}
                 />
-
-                <div className="space-y-3 pt-2">
-                  <h3 className="text-sm font-black uppercase tracking-wide text-gray-400">
-                    {t(
-                      'settings.billing.creator_subs_title',
-                      'Creator subscriptions',
-                    )}
-                  </h3>
-                  <CreatorSubscriptionsList />
-                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-white/2 p-4 rounded-xl border border-white/5 flex items-center gap-4">

@@ -1,15 +1,12 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ErrorCode } from '@circlesfera/shared';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   $Enums,
   type FollowStatus,
   type Profile,
   type User,
 } from '@prisma/client';
+import { AppException } from '../common/errors/app.exception.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -50,13 +47,16 @@ export class FollowsService {
     });
 
     if (!profile) {
-      throw new NotFoundException('User not found');
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
     }
 
     const followingId = profile.userId;
 
     if (followerId === followingId) {
-      throw new BadRequestException('You cannot follow yourself');
+      throw AppException.BadRequest(
+        ErrorCode.CANNOT_FOLLOW_SELF,
+        'You cannot follow yourself',
+      );
     }
 
     // Check if blocked
@@ -70,7 +70,7 @@ export class FollowsService {
     });
 
     if (block) {
-      throw new NotFoundException('User not found'); // Mimic not found when blocked
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found'); // Mimic not found when blocked
     }
 
     const existingFollow = await this.prisma.follow.findUnique({
@@ -179,7 +179,8 @@ export class FollowsService {
       where: { username: { equals: username, mode: 'insensitive' } },
     });
 
-    if (!profile) throw new NotFoundException('User not found');
+    if (!profile)
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
     const followers = await this.prisma.follow.findMany({
       where: {
@@ -206,7 +207,8 @@ export class FollowsService {
       where: { username: { equals: username, mode: 'insensitive' } },
     });
 
-    if (!profile) throw new NotFoundException('User not found');
+    if (!profile)
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
     const following = await this.prisma.follow.findMany({
       where: {
@@ -236,11 +238,15 @@ export class FollowsService {
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: blockedUsername, mode: 'insensitive' } },
     });
-    if (!profile) throw new NotFoundException('User not found');
+    if (!profile)
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
     const blockedId = profile.userId;
     if (blockerId === blockedId)
-      throw new BadRequestException('Cannot block yourself');
+      throw AppException.BadRequest(
+        ErrorCode.CANNOT_BLOCK_SELF,
+        'Cannot block yourself',
+      );
 
     // Create block
     await this.prisma.block.create({
@@ -272,7 +278,8 @@ export class FollowsService {
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: blockedUsername, mode: 'insensitive' } },
     });
-    if (!profile) throw new NotFoundException('User not found');
+    if (!profile)
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
     await this.prisma.block.delete({
       where: {
@@ -313,11 +320,15 @@ export class FollowsService {
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: mutedUsername, mode: 'insensitive' } },
     });
-    if (!profile) throw new NotFoundException('User not found');
+    if (!profile)
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
     const mutedId = profile.userId;
     if (muterId === mutedId)
-      throw new BadRequestException('Cannot mute yourself');
+      throw AppException.BadRequest(
+        ErrorCode.CANNOT_MUTE_SELF,
+        'Cannot mute yourself',
+      );
 
     await this.prisma.mute.upsert({
       where: {
@@ -346,7 +357,8 @@ export class FollowsService {
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: mutedUsername, mode: 'insensitive' } },
     });
-    if (!profile) throw new NotFoundException('User not found');
+    if (!profile)
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
     try {
       await this.prisma.mute.delete({
@@ -409,7 +421,8 @@ export class FollowsService {
     const requesterProfile = await this.prisma.profile.findFirst({
       where: { username: { equals: requesterUsername, mode: 'insensitive' } },
     });
-    if (!requesterProfile) throw new NotFoundException('User not found');
+    if (!requesterProfile)
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
     const follow = await this.prisma.follow.findUnique({
       where: {
@@ -421,7 +434,10 @@ export class FollowsService {
     });
 
     if (follow?.status !== 'PENDING') {
-      throw new NotFoundException('Follow request not found');
+      throw AppException.NotFound(
+        ErrorCode.FOLLOW_REQUEST_NOT_FOUND,
+        'Follow request not found',
+      );
     }
 
     await this.prisma.follow.update({
@@ -453,7 +469,8 @@ export class FollowsService {
     const requesterProfile = await this.prisma.profile.findFirst({
       where: { username: { equals: requesterUsername, mode: 'insensitive' } },
     });
-    if (!requesterProfile) throw new NotFoundException('User not found');
+    if (!requesterProfile)
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
     const follow = await this.prisma.follow.findUnique({
       where: {
@@ -465,7 +482,10 @@ export class FollowsService {
     });
 
     if (follow?.status !== 'PENDING') {
-      throw new NotFoundException('Follow request not found');
+      throw AppException.NotFound(
+        ErrorCode.FOLLOW_REQUEST_NOT_FOUND,
+        'Follow request not found',
+      );
     }
 
     await this.prisma.follow.delete({ where: { id: follow.id } });

@@ -31,4 +31,8 @@ export class UpdateSettingsDto {
   @IsBoolean()
   @IsOptional()
   pushNotifications?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  isOnboarded?: boolean;
 }

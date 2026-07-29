@@ -51,3 +51,4 @@ scratch/
 deploy_jobs.json
 deploy_runs.json
 .local/
+circlesfera-shared/src/prisma/

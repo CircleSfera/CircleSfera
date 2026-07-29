@@ -7,10 +7,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { ConnectStripeDto } from './dto/connect-stripe.dto.js';
 import { SendTipDto } from './dto/send-tip.dto.js';
+import { UnlockMessageDto } from './dto/unlock-message.dto.js';
 import { UnlockPostDto } from './dto/unlock-post.dto.js';
 import { UnlockStoryDto } from './dto/unlock-story.dto.js';
 import { MonetizationService } from './monetization.service.js';
@@ -19,6 +21,7 @@ interface AuthRequest extends Request {
   user: { userId: string; email: string; role: string };
 }
 
+@ApiTags('Monetization')
 @Controller('monetization')
 @UseGuards(JwtAuthGuard)
 export class MonetizationController {
@@ -92,6 +95,16 @@ export class MonetizationController {
     );
   }
 
+  @Post('unlock-message')
+  @UseGuards(IdentityVerifiedGuard)
+  async unlockMessage(@Req() req: AuthRequest, @Body() body: UnlockMessageDto) {
+    return this.monetizationService.createMessageUnlockSession(
+      req.user.userId,
+      body.messageId,
+      body.returnUrl,
+    );
+  }
+
   @Get('dashboard')
   async getDashboard(@Req() req: AuthRequest) {
     return this.monetizationService.getDashboardLink(req.user.userId);
@@ -100,5 +113,15 @@ export class MonetizationController {
   @Get('payouts')
   async getPayouts(@Req() req: AuthRequest) {
     return this.monetizationService.getConnectPayoutsSummary(req.user.userId);
+  }
+
+  @Get('analytics/income')
+  async getIncomeAnalytics(@Req() req: AuthRequest) {
+    return this.monetizationService.getIncomeStats(req.user.userId);
+  }
+
+  @Get('analytics/summary')
+  async getFinancialSummary(@Req() req: AuthRequest) {
+    return this.monetizationService.getFinancialSummary(req.user.userId);
   }
 }

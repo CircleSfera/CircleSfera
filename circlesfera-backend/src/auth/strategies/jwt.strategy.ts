@@ -1,3 +1,4 @@
+import { ApiErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
@@ -52,7 +53,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (user.suspendedUntil && user.suspendedUntil > new Date()) {
       throw new UnauthorizedException({
-        message: 'ACCOUNT_SUSPENDED',
+        message: ApiErrorCode.ACCOUNT_SUSPENDED,
         suspendedUntil: user.suspendedUntil.toISOString(),
       });
     }

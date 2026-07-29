@@ -34,6 +34,7 @@ export const usersApi = {
     emailNotifications?: boolean;
     contentPreference?: 'GENERAL' | 'MATURE';
     blurSensitiveContent?: boolean;
+    isOnboarded?: boolean;
   }) => apiClient.put('/users/me/settings', data),
 
   /** Schedule account deletion (30-day GDPR grace). Canonical endpoint. */

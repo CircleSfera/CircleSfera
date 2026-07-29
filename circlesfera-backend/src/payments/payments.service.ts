@@ -11,9 +11,11 @@ import {
 import { SubscriptionStatus } from '@prisma/client';
 import * as Sentry from '@sentry/nestjs';
 import type Stripe from 'stripe';
+import { CREATOR_SHARE_DECIMAL } from '../common/constants/monetization.constants.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
 import { LiveService } from '../live/live.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SlackService } from '../slack/slack.service.js';
 import { UsersService } from '../users/users.service.js';
@@ -28,6 +30,9 @@ export class PaymentsService {
     @Inject(SlackService) private readonly slackService: SlackService,
     @Inject(EmailService) private readonly emailService: EmailService,
     @Inject(UsersService) private readonly usersService: UsersService,
+    @Optional()
+    @Inject(forwardRef(() => NotificationsService))
+    private readonly notificationsService?: NotificationsService,
     @Optional()
     @Inject(forwardRef(() => LiveService))
     private readonly liveService?: LiveService,
@@ -454,12 +459,14 @@ export class PaymentsService {
                 where: { userId: creatorId },
                 update: {
                   lifetimeEarningsCents: {
-                    increment: Math.floor(amount * 0.8),
+                    increment: Math.floor(amount * CREATOR_SHARE_DECIMAL),
                   },
                 },
                 create: {
                   userId: creatorId,
-                  lifetimeEarningsCents: Math.floor(amount * 0.8),
+                  lifetimeEarningsCents: Math.floor(
+                    amount * CREATOR_SHARE_DECIMAL,
+                  ),
                 },
               });
             });
@@ -520,15 +527,87 @@ export class PaymentsService {
                 where: { userId: creatorId },
                 update: {
                   lifetimeEarningsCents: {
-                    increment: Math.floor(amount * 0.8),
+                    increment: Math.floor(amount * CREATOR_SHARE_DECIMAL),
                   },
                 },
                 create: {
                   userId: creatorId,
-                  lifetimeEarningsCents: Math.floor(amount * 0.8),
+                  lifetimeEarningsCents: Math.floor(
+                    amount * CREATOR_SHARE_DECIMAL,
+                  ),
                 },
               });
             });
+          }
+        } else if (metadata?.type === 'DIRECT_MESSAGE_UNLOCK') {
+          const clientReferenceId = session.client_reference_id;
+          const { messageId, creatorId } = metadata;
+          const amount = session.amount_total || 0;
+          const paymentIntentId =
+            typeof session.payment_intent === 'string'
+              ? session.payment_intent
+              : session.payment_intent?.id || session.id;
+
+          if (clientReferenceId && messageId && creatorId) {
+            await this.prisma.$transaction(async (tx: any) => {
+              await tx.messageUnlock.upsert({
+                where: {
+                  userId_messageId: { userId: clientReferenceId, messageId },
+                },
+                update: {},
+                create: {
+                  userId: clientReferenceId,
+                  messageId,
+                  pricePaid: amount,
+                },
+              });
+
+              await tx.transaction.create({
+                data: {
+                  type: 'DIRECT_MESSAGE_UNLOCK' as any,
+                  amount,
+                  currency: (session.currency || 'eur').toUpperCase(),
+                  senderId: clientReferenceId,
+                  receiverId: creatorId,
+                  messageId,
+                  stripePaymentIntentId:
+                    typeof session.payment_intent === 'string'
+                      ? session.payment_intent
+                      : session.payment_intent?.id || null,
+                  status: 'COMPLETED',
+                  description: `Direct Message Unlock (Intent: ${paymentIntentId})`,
+                },
+              });
+
+              await tx.monetization.upsert({
+                where: { userId: creatorId },
+                update: {
+                  lifetimeEarningsCents: {
+                    increment: Math.floor(amount * CREATOR_SHARE_DECIMAL),
+                  },
+                },
+                create: {
+                  userId: creatorId,
+                  lifetimeEarningsCents: Math.floor(
+                    amount * CREATOR_SHARE_DECIMAL,
+                  ),
+                },
+              });
+            });
+
+            // Emit Real-time Notification
+            if (this.notificationsService) {
+              const amountFormatted = (amount / 100).toLocaleString('en-US', {
+                style: 'currency',
+                currency: session.currency || 'eur',
+              });
+              await this.notificationsService.create({
+                recipientId: creatorId,
+                senderId: clientReferenceId,
+                type: 'PAYMENT' as any,
+                content: `Someone unlocked your private message for ${amountFormatted}!`,
+              });
+            }
           }
         } else if (metadata?.type === 'DIRECT_TIP') {
           // Handle Direct Tips
@@ -563,12 +642,14 @@ export class PaymentsService {
                 where: { userId: creatorId },
                 update: {
                   lifetimeEarningsCents: {
-                    increment: Math.floor(amount * 0.8),
+                    increment: Math.floor(amount * CREATOR_SHARE_DECIMAL),
                   },
                 },
                 create: {
                   userId: creatorId,
-                  lifetimeEarningsCents: Math.floor(amount * 0.8),
+                  lifetimeEarningsCents: Math.floor(
+                    amount * CREATOR_SHARE_DECIMAL,
+                  ),
                 },
               });
             });
@@ -584,6 +665,21 @@ export class PaymentsService {
                 userId: clientReferenceId,
               })
               .catch((e) => this.logger.error(e));
+
+            // Emit Real-time Notification
+            if (this.notificationsService) {
+              const amountFormatted = (amount / 100).toLocaleString('en-US', {
+                style: 'currency',
+                currency: session.currency || 'eur',
+              });
+              await this.notificationsService.create({
+                recipientId: creatorId,
+                senderId: clientReferenceId,
+                type: 'PAYMENT' as any,
+                content: `You received a ${amountFormatted} tip!`,
+                postId: postId || undefined,
+              });
+            }
           }
         } else if (metadata?.type === 'DIRECT_LIVE_GIFT') {
           const clientReferenceId = session.client_reference_id;
@@ -630,82 +726,8 @@ export class PaymentsService {
             );
           }
         } else if (metadata?.type === 'STRIPE_SUBSCRIPTION') {
-          // Handle Creator Subscriptions
-          const subscriberId = session.client_reference_id;
-          const { creatorId, priceCents } = metadata;
-          const stripeSubscriptionId = session.subscription as string;
-
-          if (subscriberId && creatorId && stripeSubscriptionId) {
-            const expiresAt = new Date();
-            expiresAt.setMonth(expiresAt.getMonth() + 1);
-
-            await this.prisma.creatorSubscription.upsert({
-              where: { subscriberId_creatorId: { subscriberId, creatorId } },
-              update: {
-                status: 'ACTIVE',
-                stripeSubscriptionId,
-                priceCents: parseInt(priceCents, 10),
-                expiresAt,
-              },
-              create: {
-                subscriberId,
-                creatorId,
-                status: 'ACTIVE',
-                stripeSubscriptionId,
-                priceCents: parseInt(priceCents, 10),
-                expiresAt,
-              },
-            });
-
-            await this.prisma.transaction.create({
-              data: {
-                type: 'STRIPE_SUBSCRIPTION',
-                amount: session.amount_total || parseInt(priceCents, 10) || 0,
-                currency: (session.currency || 'eur').toUpperCase(),
-                status: 'COMPLETED',
-                senderId: subscriberId,
-                receiverId: creatorId,
-                description: `Creator VIP subscription ${stripeSubscriptionId}`,
-              },
-            });
-
-            this.logger.log(
-              `Successfully processed Creator Subscription from ${subscriberId} to ${creatorId}`,
-            );
-
-            const user = await this.prisma.user.findUnique({
-              where: { id: subscriberId },
-              select: { email: true },
-            });
-            const creator = await this.prisma.user.findUnique({
-              where: { id: creatorId },
-              select: { profile: true },
-            });
-
-            if (user && creator?.profile) {
-              const formattedAmount = new Intl.NumberFormat('es-ES', {
-                style: 'currency',
-                currency: session.currency?.toUpperCase() || 'EUR',
-              }).format(parseInt(priceCents, 10) / 100);
-              this.emailService
-                .sendSubscriptionReceipt(
-                  user.email,
-                  `Suscripción a ${creator.profile.username}`,
-                  formattedAmount,
-                )
-                .catch((e) => this.logger.error(e));
-            }
-
-            this.slackService
-              .sendPaymentAlert({
-                eventType: 'Creator Subscription',
-                amount: parseInt(priceCents, 10),
-                currency: session.currency || 'eur',
-                description: `User ${subscriberId} subscribed to creator ${creatorId}`,
-                userId: subscriberId,
-              })
-              .catch((e) => this.logger.error(e));
-          }
+          // VIP Subscriptions removed in Phase 11
+          console.log('Legacy VIP Subscription event ignored.');
         } else {
           // Handle Subscriptions (Existing logic)
           const userId = metadata?.userId;
@@ -820,22 +842,7 @@ export class PaymentsService {
           },
         });
 
-        const creatorSubStatus =
-          subscription.status === 'active' || subscription.status === 'trialing'
-            ? 'ACTIVE'
-            : 'CANCELLED';
-        await this.prisma.creatorSubscription.updateMany({
-          where: { stripeSubscriptionId: subscription.id },
-          data: {
-            status: creatorSubStatus,
-            autoRenew: !subscription.cancel_at_period_end,
-            ...(creatorSubStatus === 'CANCELLED'
-              ? { expiresAt: new Date() }
-              : {
-                  expiresAt: new Date(subscription.current_period_end * 1000),
-                }),
-          },
-        });
+        // VIP Subscriptions are removed
 
         // Sync user tier if this was a platform subscription
         const platformSub = await this.prisma.platformSubscription.findFirst({
@@ -884,10 +891,6 @@ export class PaymentsService {
           await this.prisma.platformSubscription.updateMany({
             where: { stripeSubscriptionId: subscriptionId },
             data: { status: SubscriptionStatus.PAST_DUE },
-          });
-          await this.prisma.creatorSubscription.updateMany({
-            where: { stripeSubscriptionId: subscriptionId },
-            data: { status: 'CANCELLED', autoRenew: false },
           });
           const platformSub = await this.prisma.platformSubscription.findFirst({
             where: { stripeSubscriptionId: subscriptionId },

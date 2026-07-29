@@ -138,10 +138,10 @@ model User {
   monetization         Monetization?
   sentTransactions     Transaction[]         @relation("SentTransactions")
   receivedTransactions Transaction[]         @relation("ReceivedTransactions")
-  subscribedToCreator  CreatorSubscription[] @relation("SubscribedToCreator")
-  creatorSubscribers   CreatorSubscription[] @relation("CreatorSubscribers")
+
   postUnlocks          PostUnlock[]
   storyUnlocks         StoryUnlock[]
+  messageUnlocks       MessageUnlock[]
   sentLiveGifts        LiveGift[]            @relation("LiveGiftSender")
   receivedLiveGifts    LiveGift[]            @relation("LiveGiftReceiver")
 
@@ -249,8 +249,7 @@ model Profile {
   coverThumbnailUrl String?
   website           String?
   location          String?
-  /// Monthly VIP subscription price in cents (null = not offering)
-  subscriptionPriceCents Int?
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -805,6 +804,8 @@ enum NotificationType {
   MODERATION
   SUBSCRIPTION
   MESSAGE
+  PAYMENT
+  SYSTEM
   REPLY_MESSAGE
 }
 
@@ -858,6 +859,11 @@ model Message {
   // GDPR: Retention
   expiresAt DateTime?
 
+  // Premium Content (PPV)
+  isLocked       Boolean @default(false)
+  priceCents     Int     @default(0)
+  messageUnlocks MessageUnlock[]
+
   // New: Post Sharing
   postId String?
   post   Post?   @relation("SharedPosts", fields: [postId], references: [id])
@@ -882,6 +888,7 @@ model Message {
 
   reactions     MessageReaction[]
   notifications Notification[]
+  transactions  Transaction[]
 
   @@index([conversationId])
   @@index([senderId, createdAt])
@@ -1069,6 +1076,7 @@ model Promotion {
   startDate  DateTime            @default(now())
   endDate    DateTime
   reach      Int                 @default(0)
+  clicks     Int                 @default(0)
 
   // Sponsored Placements Segmentation
   objective   String? @default("PROFILE_VISITS")
@@ -1138,6 +1146,7 @@ model UserSettings {
   blurSensitiveContent Boolean       @default(true)
   emailNotifications   Boolean       @default(true)
   pushNotifications    Boolean       @default(true)
+  isOnboarded          Boolean       @default(false)
 
   updatedAt DateTime @updatedAt
 
@@ -1155,6 +1164,8 @@ enum ReportTargetType {
   COMMENT
   STORY
   MESSAGE
+  PAYMENT
+  SYSTEM
 }
 
 enum ReportStatus {
@@ -1266,6 +1277,20 @@ model PostUnlock {
   @@map("post_unlocks")
 }
 
+model MessageUnlock {
+  id        String   @id @default(uuid())
+  userId    String
+  messageId String
+  pricePaid Int // In cents
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, messageId])
+  @@map("message_unlocks")
+}
+
 model StoryUnlock {
   id        String   @id @default(uuid())
   userId    String
@@ -1294,6 +1319,7 @@ model Transaction {
   // Associated entities
   postId       String?
   storyId      String?
+  messageId    String?
   promotionId  String?
   liveStreamId String?
 
@@ -1306,6 +1332,7 @@ model Transaction {
   receiver   User?       @relation("ReceivedTransactions", fields: [receiverId], references: [id], onDelete: SetNull)
   liveStream LiveStream? @relation(fields: [liveStreamId], references: [id], onDelete: SetNull)
   liveGift   LiveGift?
+  message    Message?    @relation(fields: [messageId], references: [id], onDelete: SetNull)
 
   @@index([senderId])
   @@index([receiverId])
@@ -1317,6 +1344,7 @@ model Transaction {
 enum TransactionType {
   DIRECT_POST_UNLOCK
   DIRECT_STORY_UNLOCK
+  DIRECT_MESSAGE_UNLOCK
   DIRECT_TIP
   DIRECT_LIVE_GIFT
   STRIPE_SUBSCRIPTION
@@ -1328,29 +1356,6 @@ enum TransactionStatus {
   COMPLETED
   FAILED
   REFUNDED
-}
-
-model CreatorSubscription {
-  id           String             @id @default(uuid())
-  subscriberId String
-  creatorId    String
-  status       SubscriptionStatus @default(ACTIVE)
-
-  priceCents           Int // Price per month in cents
-  stripeSubscriptionId String? @unique // Stripe Billing ID
-
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  autoRenew Boolean  @default(true)
-
-  subscriber User @relation("SubscribedToCreator", fields: [subscriberId], references: [id], onDelete: Cascade)
-  creator    User @relation("CreatorSubscribers", fields: [creatorId], references: [id], onDelete: Cascade)
-
-  @@unique([subscriberId, creatorId])
-  @@index([creatorId])
-  @@index([status])
-  @@map("creator_subscriptions")
 }
 
 // Support Tickets
@@ -1649,4 +1654,9 @@ model QnaAnswer {
 
   @@index([qnaBoxId])
   @@map("qna_answers")
+}
+
+generator sharedClient {
+  provider = "prisma-client-js"
+  output   = "../../circlesfera-shared/src/prisma"
 }

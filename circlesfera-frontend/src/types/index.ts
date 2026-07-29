@@ -78,6 +78,9 @@ export interface ProfileWithUser extends IProfile {
     verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
     accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
     stripeConnectAccountId?: string | null;
+    settings?: {
+      isOnboarded: boolean;
+    } | null;
     _count?: {
       posts: number;
       followers: number;

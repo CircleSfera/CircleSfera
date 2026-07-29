@@ -135,12 +135,20 @@ test.describe('Happy Path', () => {
     await bioField.fill(newBio);
 
     // Ensure Submit button is enabled
-    const submitBtn = page.getByRole('button', { name: /Guardar|Save|Submit/i }).first();
+    const submitBtn = page
+      .getByRole('button', { name: /Guardar|Save|Submit/i })
+      .first();
     await expect(submitBtn).toBeEnabled({ timeout: 10000 });
     await submitBtn.click();
 
     // Verify success message
-    await expect(page.getByText(/Profile updated successfully|¡Perfil actualizado con éxito!/i).first()).toBeVisible({ timeout: 15000 });
+    await expect(
+      page
+        .getByText(
+          /Profile updated successfully|¡Perfil actualizado con éxito!/i,
+        )
+        .first(),
+    ).toBeVisible({ timeout: 15000 });
 
     // Verify on profile page
     await page.goto(`/${randomUser}`);

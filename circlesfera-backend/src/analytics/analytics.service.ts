@@ -1,4 +1,6 @@
+import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Queue } from 'bullmq';
 import { format, startOfDay, subDays } from 'date-fns';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateEventBatchDto, CreateEventDto } from './dto/create-event.dto.js';
@@ -7,14 +9,17 @@ import { CreateEventBatchDto, CreateEventDto } from './dto/create-event.dto.js';
 export class AnalyticsService {
   private readonly logger = new Logger(AnalyticsService.name);
 
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @InjectQueue('analytics-processing') private readonly analyticsQueue: Queue,
+  ) {}
 
   /**
    * Automated task to aggregate stats for all active creators.
    * Runs every day at midnight via BullMQ.
    */
   async handleDailyAggregation() {
-    this.logger.log('Starting daily analytics aggregation...');
+    this.logger.log('Starting daily analytics aggregation... queueing jobs');
     try {
       // Find all users who have created a post in the last 24h or have active promotions
       const creators = await this.prisma.user.findMany({
@@ -27,15 +32,19 @@ export class AnalyticsService {
         select: { id: true },
       });
 
-      this.logger.log(`Aggregating stats for ${creators.length} creators`);
+      this.logger.log(
+        `Queueing aggregation stats for ${creators.length} creators`,
+      );
 
       for (const creator of creators) {
-        await this.performDailyAggregation(creator.id);
+        await this.analyticsQueue.add('aggregate-creator', {
+          userId: creator.id,
+        });
       }
 
-      this.logger.log('Daily analytics aggregation completed successfully');
+      this.logger.log('Daily analytics aggregation jobs queued successfully');
     } catch (error) {
-      this.logger.error('Failed to perform daily aggregation:', error);
+      this.logger.error('Failed to queue daily aggregation jobs:', error);
     }
   }
 

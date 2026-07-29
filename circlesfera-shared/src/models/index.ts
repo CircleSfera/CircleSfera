@@ -22,7 +22,6 @@ export interface Profile {
   thumbnailUrl: string | null;
   website: string | null;
   location?: string | null;
-  isPrivate: boolean;
   createdAt: Date | string;
   updatedAt: Date | string;
 }
@@ -53,10 +52,10 @@ export interface Audio {
 export interface PostMedia {
   id: string;
   url: string;
-  standardUrl?: string;
-  thumbnailUrl?: string;
+  standardUrl?: string | null;
+  thumbnailUrl?: string | null;
   type: string;
-  filter?: string;
+  filter?: string | null;
   order: number;
 }
 
@@ -72,15 +71,15 @@ export interface Post {
   currency?: string;
   isPurchased?: boolean;
 
-  audioId?: string;
-  audio?: Audio;
+  audioId?: string | null;
+  audio?: Audio | null;
 
   createdAt: Date | string;
   updatedAt: Date | string;
   user: {
     id: string;
     email: string;
-    profile: Profile;
+    profile: Profile | null;
     role?: string;
     verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
     accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
@@ -97,16 +96,16 @@ export interface Comment {
   postId: string;
   userId: string;
   content: string;
-  url?: string;
-  standardUrl?: string;
-  thumbnailUrl?: string;
-  mediaType?: string;
+  url?: string | null;
+  standardUrl?: string | null;
+  thumbnailUrl?: string | null;
+  mediaType?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
   user: {
     id: string;
     email: string;
-    profile: Profile;
+    profile: Profile | null;
   };
   parentId?: string | null;
   replies?: Comment[];
@@ -128,8 +127,8 @@ export interface Story {
   id: string;
   userId: string;
   url: string;
-  standardUrl?: string;
-  thumbnailUrl?: string;
+  standardUrl?: string | null;
+  thumbnailUrl?: string | null;
   mediaType: string;
   filter?: string;
   expiresAt: Date | string;
@@ -144,13 +143,13 @@ export interface Story {
   user: {
     id: string;
     email: string;
-    profile: Profile;
+    profile: Profile | null;
     verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
     accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
   };
-  isCloseFriendsOnly?: boolean;
-  audioId?: string;
-  audio?: Audio;
+  isCloseFriendsOnly?: boolean | null;
+  audioId?: string | null;
+  audio?: Audio | null;
   isViewed?: boolean;
   _count?: {
     views: number;
@@ -187,6 +186,8 @@ export interface Message {
   updatedAt: Date | string;
   isDeleted?: boolean;
   isEdited?: boolean;
+  isLocked?: boolean;
+  priceCents?: number;
   sender?: {
     id: string;
     profile: Profile;
@@ -226,7 +227,7 @@ export interface Notification {
   sender: {
     id: string;
     email: string;
-    profile: Profile;
+    profile: Profile | null;
   } | null;
 }
 

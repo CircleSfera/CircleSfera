@@ -16,6 +16,7 @@ import {
   Loader2,
   Move,
   Palette,
+  PenTool,
   Plus,
   RotateCw as RedoIcon,
   RotateCcw,
@@ -36,6 +37,7 @@ import { toast } from 'react-hot-toast';
 import type { StoryElement } from '../../types';
 import { logger } from '../../utils/logger';
 import ColorPicker from './ColorPicker';
+import { StoryCanvas, type StoryCanvasRef } from './Editor/StoryCanvas';
 
 // ─── Font Library ───
 const FONTS = [
@@ -582,7 +584,7 @@ export default function StoryComposer({
   const [elements, setInternalElements] =
     useState<StoryElement[]>(initialElements);
   const [activeTab, setActiveTab] = useState<
-    'none' | 'text' | 'stickers' | 'background' | 'templates' | 'poll'
+    'none' | 'text' | 'stickers' | 'background' | 'templates' | 'poll' | 'draw'
   >('none');
   const [panelTab, setPanelTab] = useState<PanelTab>('style');
   const [isExporting, setIsExporting] = useState(false);
@@ -600,6 +602,11 @@ export default function StoryComposer({
   const [showVGuide, setShowVGuide] = useState(false);
   const [showHGuide, setShowHGuide] = useState(false);
   const [activeStickerCategory, setActiveStickerCategory] = useState(0);
+
+  // Drawing state
+  const [brushColor, setBrushColor] = useState('#FFFFFF');
+  const [brushWidth, setBrushWidth] = useState(5);
+  const storyCanvasRef = useRef<StoryCanvasRef>(null);
 
   // Undo/Redo State
   const [historyState, setHistoryState] = useState({
@@ -902,6 +909,7 @@ export default function StoryComposer({
           {(
             [
               { tab: 'background' as const, icon: ImageIcon },
+              { tab: 'draw' as const, icon: PenTool },
               { tab: 'text' as const, icon: Type },
               { tab: 'stickers' as const, icon: Smile },
               { tab: 'poll' as const, icon: BarChart2 },
@@ -1005,6 +1013,14 @@ export default function StoryComposer({
                 }}
               />
             ))}
+
+          <StoryCanvas
+            ref={storyCanvasRef}
+            isDrawingMode={activeTab === 'draw'}
+            brushColor={brushColor}
+            brushWidth={brushWidth}
+          />
+
           {/* Darken overlay */}
           {bgDarken > 0 && !backgroundUrl && (
             <div
@@ -1511,6 +1527,69 @@ export default function StoryComposer({
                   )}
                 </div>
               )}
+            </motion.div>
+          )}
+
+          {/* === DRAW TOOLS === */}
+          {activeTab === 'draw' && (
+            <motion.div
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 50, opacity: 0 }}
+              className="absolute bottom-24 left-0 right-0 px-4 md:px-8"
+              style={{ zIndex: 300 }}
+            >
+              <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-white/80 font-semibold text-sm">
+                    Freehand Draw
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => storyCanvasRef.current?.undo()}
+                      className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                    >
+                      <RotateCcw size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => storyCanvasRef.current?.clear()}
+                      className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-red-400 hover:text-red-300 transition-colors"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <label
+                      htmlFor="brush-size"
+                      className="text-white/60 text-xs font-semibold mb-2 block"
+                    >
+                      Brush Size
+                    </label>
+                    <input
+                      id="brush-size"
+                      type="range"
+                      min="1"
+                      max="30"
+                      value={brushWidth}
+                      onChange={(e) => setBrushWidth(Number(e.target.value))}
+                      className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-primary"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <span className="text-white/60 text-xs font-semibold mb-2 block">
+                    Color
+                  </span>
+                  <ColorPicker
+                    selectedColor={brushColor}
+                    onColorSelect={setBrushColor}
+                  />
+                </div>
+              </div>
             </motion.div>
           )}
 

@@ -32,11 +32,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             id={inputId}
             ref={ref}
-            className={`flex h-9 w-full rounded-lg border bg-zinc-900/50 px-3 py-1.5 text-sm text-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 disabled:cursor-not-allowed disabled:opacity-50 transition-all ${
+            className={`flex h-11 w-full rounded-xl border bg-white/5 backdrop-blur-md px-4 py-2 text-sm text-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 focus-visible:border-brand-primary/50 disabled:cursor-not-allowed disabled:opacity-50 transition-all shadow-inner ${
               error
-                ? 'border-red-500/50 focus-visible:border-red-500'
-                : 'border-white/10 hover:border-white/20'
-            } ${icon ? 'pl-10' : ''} ${rightElement ? 'pr-10' : ''} ${className}`}
+                ? 'border-red-500/50 focus-visible:border-red-500/50 focus-visible:ring-red-500/40'
+                : 'border-white/10 hover:border-white/20 hover:bg-white/10'
+            } ${icon ? 'pl-11' : ''} ${rightElement ? 'pr-11' : ''} ${className}`}
+            aria-invalid={!!error}
+            aria-describedby={error ? `${inputId}-error` : undefined}
             {...props}
           />
           {rightElement && (
@@ -44,7 +46,12 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         {error && (
-          <p className="text-xs font-bold text-red-400 ml-1 mt-1">{error}</p>
+          <p
+            id={`${inputId}-error`}
+            className="text-xs font-bold text-red-400 ml-1 mt-1"
+          >
+            {error}
+          </p>
         )}
       </div>
     );

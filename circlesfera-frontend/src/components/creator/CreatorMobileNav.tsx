@@ -39,20 +39,25 @@ export function CreatorMobileDrawer({
             className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md lg:hidden"
           />
           <motion.aside
-            initial={{ x: '-100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '-100%' }}
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-            className="fixed inset-y-0 left-0 z-50 w-[min(100vw-3rem,20rem)] bg-[rgb(18,18,20)] border-r border-white/10 shadow-2xl flex flex-col lg:hidden pt-[env(safe-area-inset-top)]"
+            className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] bg-[rgb(18,18,20)] border-t border-white/10 shadow-[0_-8px_32px_rgba(0,0,0,0.5)] flex flex-col lg:hidden pb-[env(safe-area-inset-bottom)] rounded-t-4xl"
           >
-            <div className="px-4 py-4 border-b border-white/10 flex items-center justify-between shrink-0">
+            {/* Grabber */}
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="w-12 h-1.5 bg-white/20 rounded-full" />
+            </div>
+
+            <div className="px-5 py-3 flex items-center justify-between shrink-0">
               <Link to="/" className="block" onClick={onClose}>
                 <img src={logoSrc} alt="CircleSfera" className="h-7 w-auto" />
               </Link>
               <button
                 type="button"
                 onClick={onClose}
-                className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-white rounded-xl hover:bg-white/5"
+                className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white rounded-full hover:bg-white/10 bg-white/5"
                 aria-label={t('common.close', 'Cerrar')}
               >
                 <X size={20} />
@@ -62,13 +67,13 @@ export function CreatorMobileDrawer({
             <Link
               to="/"
               onClick={onClose}
-              className="mx-4 mt-3 mb-2 flex items-center gap-2 text-sm font-semibold text-gray-400 hover:text-white transition-colors"
+              className="mx-5 mb-2 flex items-center gap-2 text-sm font-semibold text-gray-400 hover:text-white transition-colors"
             >
               <ArrowLeft size={14} className="text-brand-primary" />
               {t('creator.back_to_app', 'Volver a CircleSfera')}
             </Link>
 
-            <nav className="flex-1 overflow-y-auto custom-scrollbar px-3 py-2 space-y-5 pb-8">
+            <nav className="flex-1 overflow-y-auto custom-scrollbar px-4 py-2 space-y-5 pb-10">
               {CREATOR_NAV_GROUPS.map((group) => (
                 <div key={group.labelKey} className="space-y-1.5">
                   <h3 className="px-2 text-xs font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-2">

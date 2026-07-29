@@ -100,7 +100,9 @@ test.describe('Monetization & Virtual Economy', () => {
 
     // 5. Expect a success toast to appear
     await expect(
-      page.getByText(/desbloqueada con éxito|Post successfully unlocked/i).first(),
+      page
+        .getByText(/desbloqueada con éxito|Post successfully unlocked/i)
+        .first(),
     ).toBeVisible({
       timeout: 10000,
     });

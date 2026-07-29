@@ -58,11 +58,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    const responseBody = {
+    const responseBody: Record<string, unknown> = {
       statusCode: httpStatus,
       timestamp: new Date().toISOString(),
       path,
       message: 'Internal server error',
+      errorCode: 'INTERNAL_SERVER_ERROR',
       details: null as unknown,
     };
 
@@ -72,9 +73,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
         const responseObj = response as Record<string, unknown>;
         responseBody.message =
           (responseObj.message as string) || exception.message;
-        responseBody.details = responseObj.errors || null;
+        responseBody.errorCode =
+          (responseObj.errorCode as string) || 'HTTP_EXCEPTION';
+        responseBody.details =
+          responseObj.details || responseObj.errors || null;
       } else {
         responseBody.message = String(response);
+        responseBody.errorCode = 'HTTP_EXCEPTION';
       }
     } else {
       const errorStack =

@@ -10,6 +10,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import {
   CurrentUser,
   type CurrentUserData,
@@ -19,6 +20,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { ProfilesService } from './profiles.service.js';
 
 /** REST controller for user profiles, username validation, and account management. */
+@ApiTags('Profiles')
 @Controller('profiles')
 export class ProfilesController {
   constructor(
