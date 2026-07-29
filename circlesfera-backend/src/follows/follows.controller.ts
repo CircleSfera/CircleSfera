@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import type { Profile, User } from '@prisma/client';
 import {
   CurrentUser,
@@ -8,6 +9,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { FollowsService } from './follows.service.js';
 
 /** REST controller for follow management, blocking, and follow requests. All endpoints require authentication. */
+@ApiTags('Social Graph')
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class FollowsController {

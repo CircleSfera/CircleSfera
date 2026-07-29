@@ -384,6 +384,7 @@ export class UsersService {
         blurSensitiveContent: dto.blurSensitiveContent,
         emailNotifications: dto.emailNotifications,
         pushNotifications: dto.pushNotifications,
+        ...(dto.isOnboarded !== undefined && { isOnboarded: dto.isOnboarded }),
       },
       create: {
         userId,
@@ -393,6 +394,7 @@ export class UsersService {
         blurSensitiveContent: dto.blurSensitiveContent ?? true,
         emailNotifications: dto.emailNotifications ?? true,
         pushNotifications: dto.pushNotifications ?? true,
+        isOnboarded: dto.isOnboarded ?? false,
       },
     });
   }
