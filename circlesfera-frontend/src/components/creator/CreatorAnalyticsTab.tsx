@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Clock, Download, MapPin, Users } from 'lucide-react';
+import { Clock, DollarSign, Download, MapPin, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   Area,
@@ -21,6 +21,7 @@ import type {
   CreatorStats,
 } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
+import { monetizationApi } from '../../services/monetization.service';
 import { exportToCSV } from '../../utils/exportUtils';
 import SafeResponsiveContainer from '../common/SafeResponsiveContainer';
 
@@ -39,13 +40,24 @@ export default function CreatorAnalyticsTab() {
     queryFn: () => creatorApi.getStats().then((r) => r.data),
   });
 
-  const isLoading = isChartLoading || isStatsLoading;
+  const { data: incomeStats, isLoading: isIncomeLoading } = useQuery({
+    queryKey: ['creator', 'income-stats'],
+    queryFn: () => monetizationApi.getIncomeStats(),
+  });
+
+  const { data: financialSummary, isLoading: isFinancialLoading } = useQuery({
+    queryKey: ['creator', 'financial-summary'],
+    queryFn: () => monetizationApi.getFinancialSummary(),
+  });
+
+  const isLoading =
+    isChartLoading || isStatsLoading || isIncomeLoading || isFinancialLoading;
 
   if (isLoading) {
     return (
-      <div className="p-6 bg-surface-elevated rounded-xl border border-white/5 animate-pulse min-h-[400px]">
+      <div className="p-6 bg-surface-elevated rounded-xl border border-white/5 animate-pulse min-h-100">
         <div className="h-6 w-48 bg-white/10 rounded-md mb-8" />
-        <div className="h-[300px] bg-white/5 rounded-xl" />
+        <div className="h-75 bg-white/5 rounded-xl" />
       </div>
     );
   }
@@ -72,7 +84,7 @@ export default function CreatorAnalyticsTab() {
           )}
         </div>
 
-        <div className="h-[300px] w-full">
+        <div className="h-75 w-full mt-2">
           {chartData && chartData.length > 0 ? (
             <SafeResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
@@ -167,6 +179,113 @@ export default function CreatorAnalyticsTab() {
         </div>
       </div>
 
+      {/* 1.5. Financials (Income & Summary) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Income Chart */}
+        <div className="p-6 bg-surface-elevated rounded-xl border border-white/5 relative overflow-hidden lg:col-span-2 flex flex-col">
+          <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none" />
+          <div className="flex items-center gap-2 mb-6">
+            <DollarSign size={16} className="text-emerald-500" />
+            <h3 className="text-sm font-semibold text-white tracking-wide">
+              {t(
+                'creator.analytics.income_history',
+                'Historial de Ingresos (6 Meses)',
+              )}
+            </h3>
+          </div>
+          <div className="h-60 w-full flex-1">
+            {incomeStats && incomeStats.length > 0 ? (
+              <SafeResponsiveContainer width="100%" height="100%">
+                <AreaChart data={incomeStats}>
+                  <defs>
+                    <linearGradient
+                      id="incomeGradient"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    strokeOpacity={0.05}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="month"
+                    stroke="#ffffff"
+                    strokeOpacity={0.3}
+                    fontSize={10}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    stroke="#ffffff"
+                    strokeOpacity={0.3}
+                    fontSize={10}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(val) => `€${(val / 100).toFixed(0)}`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#18181b',
+                      borderColor: 'rgba(255,255,255,0.1)',
+                      borderRadius: '12px',
+                    }}
+                    itemStyle={{ fontSize: '12px', color: '#fff' }}
+                    formatter={(value: any) => [
+                      `€${(Number(value) / 100).toFixed(2)}`,
+                      'Ingresos',
+                    ]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="income"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#incomeGradient)"
+                  />
+                </AreaChart>
+              </SafeResponsiveContainer>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-zinc-400 text-xs font-bold">
+                {t(
+                  'creator.analytics.no_income_data',
+                  'No hay datos de ingresos en este periodo',
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Financial KPIs */}
+        <div className="flex flex-col gap-4">
+          <div className="p-6 bg-surface-elevated rounded-xl border border-emerald-500/20 relative overflow-hidden flex-1 flex flex-col justify-center">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[60px] rounded-full pointer-events-none" />
+            <h3 className="text-xs font-medium text-emerald-400/80 uppercase tracking-wider mb-2">
+              {t('creator.analytics.current_month_income', 'Ingresos este mes')}
+            </h3>
+            <div className="text-4xl font-bold text-white tracking-tight">
+              €{((financialSummary?.currentMonthIncome || 0) / 100).toFixed(2)}
+            </div>
+          </div>
+          <div className="p-6 bg-surface-elevated rounded-xl border border-white/5 relative overflow-hidden flex-1 flex flex-col justify-center">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 blur-[60px] rounded-full pointer-events-none" />
+            <h3 className="text-xs font-medium text-amber-400/80 uppercase tracking-wider mb-2">
+              {t('creator.analytics.total_tips', 'Propinas Totales')}
+            </h3>
+            <div className="text-4xl font-bold text-white tracking-tight">
+              €{((financialSummary?.totalTips || 0) / 100).toFixed(2)}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* 2. Demographics, Activity Hours, and Retention Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Geographic Distribution */}
@@ -180,7 +299,7 @@ export default function CreatorAnalyticsTab() {
               )}
             </h3>
           </div>
-          <div className="h-[240px] w-full flex-1">
+          <div className="h-60 w-full flex-1">
             {stats?.geoDistribution && stats.geoDistribution.length > 0 ? (
               <SafeResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.geoDistribution} layout="vertical">
@@ -245,13 +364,13 @@ export default function CreatorAnalyticsTab() {
               )}
             </h3>
           </div>
-          <div className="h-[240px] w-full flex-1 flex flex-col md:flex-row items-center justify-around gap-4">
+          <div className="h-60 w-full flex-1 flex flex-col md:flex-row items-center justify-around gap-4">
             {stats?.retentionStatus &&
             (stats.retentionStatus.active > 0 ||
               stats.retentionStatus.churning > 0 ||
               stats.retentionStatus.churned > 0) ? (
               <>
-                <div className="h-[180px] w-[180px] shrink-0">
+                <div className="h-45 w-45 shrink-0">
                   <SafeResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -353,7 +472,7 @@ export default function CreatorAnalyticsTab() {
               )}
             </h3>
           </div>
-          <div className="h-[240px] w-full flex-1">
+          <div className="h-60 w-full flex-1">
             {stats?.activityHours && stats.activityHours.length > 0 ? (
               <SafeResponsiveContainer width="100%" height="100%">
                 <LineChart data={stats.activityHours}>

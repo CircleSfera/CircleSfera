@@ -5,12 +5,11 @@ import { MonetizationModule } from '../monetization/monetization.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { CreatorController } from './creator.controller.js';
 import { CreatorService } from './creator.service.js';
-import { CreatorSubscriptionsService } from './creator-subscriptions.service.js';
 
 @Module({
   imports: [PrismaModule, AnalyticsModule, MonetizationModule],
   controllers: [CreatorController],
-  providers: [CreatorService, CreatorSubscriptionsService, StripeService],
+  providers: [CreatorService, StripeService],
   exports: [CreatorService],
 })
 export class CreatorModule {}

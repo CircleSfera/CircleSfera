@@ -20,11 +20,6 @@ import { RequiresPlan } from '../auth/decorators/requires-plan.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { SubscriptionGuard } from '../auth/guards/subscription.guard.js';
 import { CreatorService } from './creator.service.js';
-import { CreatorSubscriptionsService } from './creator-subscriptions.service.js';
-import {
-  SetCreatorSubscriptionPriceDto,
-  SubscribeCreatorDto,
-} from './dto/subscribe-creator.dto.js';
 
 interface AuthRequest extends Request {
   user: { userId: string; email: string; role: string };
@@ -38,7 +33,6 @@ export class CreatorController {
   constructor(
     @Inject(CreatorService)
     private readonly creatorService: CreatorService,
-    private readonly creatorSubscriptionsService: CreatorSubscriptionsService,
   ) {}
 
   /** Creator stats for authenticated user. */
@@ -189,6 +183,12 @@ export class CreatorController {
     ) as Promise<unknown>;
   }
 
+  /** Track clicks on a promotion. */
+  @Post('promotions/:id/click')
+  async recordPromotionClick(@Req() req: AuthRequest, @Param('id') id: string) {
+    return this.creatorService.recordPromotionClick(id, req.user?.userId);
+  }
+
   /** Edit targeting / schedule for an active, paused, or pending promotion. */
   @Patch('promotions/:id')
   @UseGuards(SubscriptionGuard)
@@ -210,57 +210,6 @@ export class CreatorController {
       id,
       body,
     ) as Promise<unknown>;
-  }
-
-  // --- Subscriptions (any authenticated fan) ---
-  @Post('subscribe')
-  async subscribe(@Req() req: AuthRequest, @Body() body: SubscribeCreatorDto) {
-    return this.creatorSubscriptionsService.createSubscriptionSession(
-      req.user.userId,
-      body.creatorId,
-      body.returnUrl,
-    );
-  }
-
-  /** Set canonical VIP monthly price (Elite creators). */
-  @Patch('subscription-price')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
-  async setSubscriptionPrice(
-    @Req() req: AuthRequest,
-    @Body() body: SetCreatorSubscriptionPriceDto,
-  ) {
-    return this.creatorSubscriptionsService.setSubscriptionPrice(
-      req.user.userId,
-      body.priceCents,
-    );
-  }
-
-  @Get('subscriptions/me')
-  async getMySubscriptions(@Req() req: AuthRequest) {
-    return this.creatorSubscriptionsService.getMySubscriptions(req.user.userId);
-  }
-
-  @Get('subscription/:creatorId')
-  async checkSubscription(
-    @Req() req: AuthRequest,
-    @Param('creatorId') creatorId: string,
-  ) {
-    return this.creatorSubscriptionsService.checkSubscription(
-      req.user.userId,
-      creatorId,
-    );
-  }
-
-  @Delete('subscription/:creatorId')
-  async cancelSubscription(
-    @Req() req: AuthRequest,
-    @Param('creatorId') creatorId: string,
-  ) {
-    return this.creatorSubscriptionsService.cancelSubscription(
-      req.user.userId,
-      creatorId,
-    );
   }
 
   // --- Advanced Analytics ---

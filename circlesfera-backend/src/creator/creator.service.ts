@@ -197,26 +197,13 @@ export class CreatorService {
         ? Math.round((activeFollowersCount / followerCount) * 100)
         : 0;
 
-    // Calculate monetization metrics (MRR, Subscribers & Retention Status)
-    const creatorSubscriptions = await this.prisma.creatorSubscription.findMany(
-      {
-        where: { creatorId: userId },
-      },
-    );
+    // VIP Subscriptions are removed; setting legacy metrics to 0
+    const mrr = 0;
+    const subscriberCount = 0;
 
-    const activeSubscriptions = creatorSubscriptions.filter(
-      (sub) => sub.status === 'ACTIVE' && sub.expiresAt > new Date(),
-    );
-
-    const mrr =
-      activeSubscriptions.reduce((acc, sub) => acc + sub.priceCents, 0) / 100;
-    const subscriberCount = activeSubscriptions.length;
-
-    const active = activeSubscriptions.filter((sub) => sub.autoRenew).length;
-    const churning = activeSubscriptions.filter((sub) => !sub.autoRenew).length;
-    const churned = creatorSubscriptions.filter(
-      (sub) => sub.status !== 'ACTIVE' || sub.expiresAt <= new Date(),
-    ).length;
+    const active = 0;
+    const churning = 0;
+    const churned = 0;
 
     const retentionStatus = { active, churning, churned };
 
@@ -969,9 +956,7 @@ export class CreatorService {
             createdAt: { gte: startDate },
           },
         }),
-        this.prisma.creatorSubscription.count({
-          where: { creatorId: userId, status: 'ACTIVE' },
-        }),
+        Promise.resolve(0), // creatorSubscription.count
         this.prisma.follow.count({
           where: { followingId: userId, status: 'ACCEPTED' },
         }),
@@ -1114,5 +1099,37 @@ export class CreatorService {
     ];
 
     return rows.map((r) => r.join(',')).join('\n');
+  }
+
+  async recordPromotionClick(promotionId: string, viewerId?: string) {
+    const promo = await this.prisma.promotion.findUnique({
+      where: { id: promotionId },
+    });
+
+    if (promo?.status !== 'ACTIVE') {
+      return { success: false };
+    }
+
+    if (promo.userId === viewerId) {
+      return { success: false };
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.promotion.update({
+        where: { id: promotionId },
+        data: { clicks: { increment: 1 } },
+      });
+
+      await tx.interactionEvent.create({
+        data: {
+          userId: viewerId || null,
+          eventType: 'SPONSORED_PLACEMENT_CLICK',
+          targetId: promo.targetId,
+          targetType: 'PROMOTION',
+        },
+      });
+    });
+
+    return { success: true };
   }
 }
