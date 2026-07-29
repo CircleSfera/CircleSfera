@@ -191,21 +191,10 @@ export default function Home() {
                       {virtualizer.getVirtualItems().map((virtualItem) => {
                         const post = posts[virtualItem.index];
                         return (
-                          <motion.div
+                          <div
                             key={post.id}
                             ref={virtualizer.measureElement}
                             data-index={virtualItem.index}
-                            initial={{ opacity: 0, y: 30, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            transition={{
-                              type: 'spring',
-                              stiffness: 400,
-                              damping: 30,
-                              delay: Math.min(
-                                (virtualItem.index % 10) * 0.1,
-                                0.5,
-                              ),
-                            }}
                             style={{
                               position: 'absolute',
                               top: 0,
@@ -214,11 +203,25 @@ export default function Home() {
                               transform: `translateY(${virtualItem.start}px)`,
                             }}
                           >
-                            <PostCard
-                              post={post}
-                              priority={virtualItem.index === 0}
-                            />
-                          </motion.div>
+                            <motion.div
+                              initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              transition={{
+                                type: 'spring',
+                                stiffness: 400,
+                                damping: 30,
+                                delay: Math.min(
+                                  (virtualItem.index % 10) * 0.1,
+                                  0.5,
+                                ),
+                              }}
+                            >
+                              <PostCard
+                                post={post}
+                                priority={virtualItem.index === 0}
+                              />
+                            </motion.div>
+                          </div>
                         );
                       })}
                     </div>
