@@ -223,9 +223,8 @@ export default function CreatePostModal() {
           )}
         </AnimatePresence>
 
-        {/* Content — Animated Step Transitions */}
         <div
-          className={`flex-1 flex flex-col min-h-[300px] relative ${
+          className={`flex-1 flex flex-col min-h-75 relative ${
             step === 'edit' ? 'overflow-hidden' : 'overflow-y-auto'
           }`}
         >

@@ -59,7 +59,7 @@ export default memo(function UserAvatar({
     <>
       {/* Animated Story Ring */}
       {hasStory && (
-        <div className="absolute -inset-1 rounded-full p-[2px] bg-linear-to-tr from-brand-primary via-brand-secondary to-brand-accent animate-spin-slow opacity-90 group-hover:opacity-100 transition-opacity">
+        <div className="absolute -inset-1 rounded-full p-0.5 bg-linear-to-tr from-brand-primary via-brand-secondary to-brand-accent animate-spin-slow opacity-90 group-hover:opacity-100 transition-opacity">
           <div className="absolute inset-0 bg-black rounded-full" />
         </div>
       )}
