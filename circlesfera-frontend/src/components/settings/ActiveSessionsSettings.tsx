@@ -97,7 +97,7 @@ export const ActiveSessionsSettings: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
         <div className="flex items-center space-x-3">
           <div className="p-2.5 bg-accent-blue/10 text-accent-blue rounded-xl">
             <Shield className="w-5 h-5" />
@@ -117,7 +117,7 @@ export const ActiveSessionsSettings: React.FC = () => {
             type="button"
             onClick={handleRevokeOthers}
             disabled={revokingOthers}
-            className="flex items-center space-x-2 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center justify-center space-x-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors disabled:opacity-50 shrink-0"
           >
             {revokingOthers ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
