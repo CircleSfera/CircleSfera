@@ -298,17 +298,11 @@ export class FeedService {
       let unlockedPostIds = new Set<string>();
 
       if (userId) {
-        const [subs, unlocks] = await Promise.all([
-          this.prisma.creatorSubscription.findMany({
-            where: { subscriberId: userId, status: 'ACTIVE' },
-            select: { creatorId: true },
-          }),
-          this.prisma.postUnlock.findMany({
-            where: { userId },
-            select: { postId: true },
-          }),
-        ]);
-        subscribedCreatorIds = new Set(subs.map((s) => s.creatorId));
+        const unlocks = await this.prisma.postUnlock.findMany({
+          where: { userId },
+          select: { postId: true },
+        });
+        subscribedCreatorIds = new Set();
         unlockedPostIds = new Set(unlocks.map((u) => u.postId));
       }
 
@@ -502,17 +496,11 @@ export class FeedService {
     let unlockedPostIds = new Set<string>();
 
     if (userId) {
-      const [subs, unlocks] = await Promise.all([
-        this.prisma.creatorSubscription.findMany({
-          where: { subscriberId: userId, status: 'ACTIVE' },
-          select: { creatorId: true },
-        }),
-        this.prisma.postUnlock.findMany({
-          where: { userId },
-          select: { postId: true },
-        }),
-      ]);
-      subscribedCreatorIds = new Set(subs.map((s) => s.creatorId));
+      const unlocks = await this.prisma.postUnlock.findMany({
+        where: { userId },
+        select: { postId: true },
+      });
+      subscribedCreatorIds = new Set();
       unlockedPostIds = new Set(unlocks.map((u) => u.postId));
     }
 
@@ -614,17 +602,11 @@ export class FeedService {
     let unlockedPostIds = new Set<string>();
 
     if (currentUserId) {
-      const [subs, unlocks] = await Promise.all([
-        this.prisma.creatorSubscription.findMany({
-          where: { subscriberId: currentUserId, status: 'ACTIVE' },
-          select: { creatorId: true },
-        }),
-        this.prisma.postUnlock.findMany({
-          where: { userId: currentUserId },
-          select: { postId: true },
-        }),
-      ]);
-      subscribedCreatorIds = new Set(subs.map((s) => s.creatorId));
+      const unlocks = await this.prisma.postUnlock.findMany({
+        where: { userId: currentUserId },
+        select: { postId: true },
+      });
+      subscribedCreatorIds = new Set();
       unlockedPostIds = new Set(unlocks.map((u) => u.postId));
     }
 
