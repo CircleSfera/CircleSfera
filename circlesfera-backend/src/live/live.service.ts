@@ -7,6 +7,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AccessToken } from 'livekit-server-sdk';
+import {
+  CREATOR_SHARE_DECIMAL,
+  PLATFORM_FEE_DECIMAL,
+} from '../common/constants/monetization.constants.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
@@ -313,7 +317,7 @@ export class LiveService {
     });
     if (!sender) throw new NotFoundException('User not found');
 
-    const platformFee = Math.floor(amountCents * 0.2);
+    const platformFee = Math.floor(amountCents * PLATFORM_FEE_DECIMAL);
     const giftName = LIVE_GIFT_CATALOG[giftId].name;
 
     const pendingGift = await this.prisma.liveGift.create({
@@ -443,12 +447,14 @@ export class LiveService {
         where: { userId: params.creatorId },
         update: {
           lifetimeEarningsCents: {
-            increment: Math.floor(params.amountCents * 0.8),
+            increment: Math.floor(params.amountCents * CREATOR_SHARE_DECIMAL),
           },
         },
         create: {
           userId: params.creatorId,
-          lifetimeEarningsCents: Math.floor(params.amountCents * 0.8),
+          lifetimeEarningsCents: Math.floor(
+            params.amountCents * CREATOR_SHARE_DECIMAL,
+          ),
         },
       });
 

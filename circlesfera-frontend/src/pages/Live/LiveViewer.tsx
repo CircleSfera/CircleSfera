@@ -1,15 +1,13 @@
 import '@livekit/components-styles';
-import {
-  LiveKitRoom,
-  RoomAudioRenderer,
-  VideoConference,
-} from '@livekit/components-react';
+import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Eye, Gift, Heart, Send, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import CinematicStage from '../../components/live/CinematicStage';
 import CoHostInviteBanner from '../../components/live/CoHostInviteBanner';
 import LiveGiftModal from '../../components/live/LiveGiftModal';
 import LivePinnedComment, {
@@ -242,26 +240,32 @@ export default function LiveViewer() {
           className="h-full w-full"
           onDisconnected={() => navigate(-1)}
         >
-          <VideoConference />
+          <CinematicStage />
           <RoomAudioRenderer />
         </LiveKitRoom>
       </div>
 
       {/* Floating Reactions Overlay */}
       <div className="pointer-events-none absolute bottom-36 right-8 top-16 flex w-20 flex-col-reverse items-center justify-start overflow-hidden pb-4 z-40">
-        {reactions.map((r) => (
-          <div
-            key={r.id}
-            className="animate-float-up absolute bottom-0 opacity-0 text-3xl drop-shadow-lg"
-            style={{ transform: `translateX(${r.x}px)` }}
-          >
-            {r.emoji === '❤️' ? (
-              <Heart className="h-8 w-8 fill-red-500 text-red-500" />
-            ) : (
-              <span>{r.emoji}</span>
-            )}
-          </div>
-        ))}
+        <AnimatePresence>
+          {reactions.map((r) => (
+            <motion.div
+              key={r.id}
+              initial={{ opacity: 0, y: 50, scale: 0.5 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -50, scale: 0.8 }}
+              transition={{ duration: 2, ease: 'easeOut' }}
+              className="absolute bottom-0 text-3xl drop-shadow-lg"
+              style={{ transform: `translateX(${r.x}px)` }}
+            >
+              {r.emoji === '❤️' ? (
+                <Heart className="h-8 w-8 fill-red-500 text-red-500" />
+              ) : (
+                <span>{r.emoji}</span>
+              )}
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
 
       {/* Chat & Interactivity Overlay */}
@@ -271,17 +275,23 @@ export default function LiveViewer() {
 
         {/* Live Chat Messages */}
         <div className="overflow-y-auto max-h-44 mb-3 space-y-2 no-scrollbar">
-          {chatMessages.map((msg) => (
-            <div
-              key={msg.id}
-              className="text-white text-sm bg-black/30 backdrop-blur-xs px-2.5 py-1 rounded-xl w-fit max-w-[85%]"
-            >
-              <span className="font-bold text-blue-300">
-                {msg.user.username}:{' '}
-              </span>
-              <span className="text-gray-100">{msg.message}</span>
-            </div>
-          ))}
+          <AnimatePresence initial={false}>
+            {chatMessages.map((msg) => (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, x: -20, scale: 0.9 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                className="text-white text-sm bg-black/30 backdrop-blur-xs px-2.5 py-1 rounded-xl w-fit max-w-[85%]"
+              >
+                <span className="font-bold text-blue-300">
+                  {msg.user.username}:{' '}
+                </span>
+                <span className="text-gray-100">{msg.message}</span>
+              </motion.div>
+            ))}
+          </AnimatePresence>
           <div ref={chatEndRef} />
         </div>
 

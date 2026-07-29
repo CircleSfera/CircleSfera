@@ -1,13 +1,10 @@
 import '@livekit/components-styles';
-import {
-  LiveKitRoom,
-  RoomAudioRenderer,
-  VideoConference,
-} from '@livekit/components-react';
+import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import { Heart, Send, UserMinus, UserPlus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import CinematicStage from '../../components/live/CinematicStage';
 import { apiClient as api } from '../../services/api';
 import { liveApi } from '../../services/live';
 import { useSocketStore } from '../../stores/socketStore';
@@ -251,7 +248,7 @@ export default function LiveBroadcaster() {
           className="h-full w-full"
           onDisconnected={() => navigate(-1)}
         >
-          <VideoConference />
+          <CinematicStage isBroadcaster={true} />
           <RoomAudioRenderer />
         </LiveKitRoom>
       </div>
