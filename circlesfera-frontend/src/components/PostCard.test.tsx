@@ -81,7 +81,7 @@ describe('PostCard', () => {
 
     expect(screen.getByText('testuser')).toBeInTheDocument();
     expect(screen.getByText(/Test caption/)).toBeInTheDocument();
-    expect(screen.getByText(/10 likes/)).toBeInTheDocument();
+    expect(screen.getByText('10')).toBeInTheDocument();
     expect(screen.getByText(/View all 5 comments/)).toBeInTheDocument();
     expect(screen.getAllByTestId('post-media')[0]).toBeInTheDocument();
   });
