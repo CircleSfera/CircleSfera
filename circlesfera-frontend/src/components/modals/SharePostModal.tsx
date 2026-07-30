@@ -118,7 +118,7 @@ export default function SharePostModal({
                   onClose();
                 }
               }}
-              className="pointer-events-auto w-full bg-black/80 backdrop-blur-2xl border border-white/10 rounded-t-[32px] md:max-w-md md:rounded-[32px] shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]"
+              className="pointer-events-auto w-full bg-black/80 backdrop-blur-2xl border border-white/10 rounded-t-4xl md:max-w-md md:rounded-4xl shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[85vh]"
             >
               {/* Drag Handle Area */}
               <div
@@ -130,7 +130,7 @@ export default function SharePostModal({
 
               {/* Header with brand-vibrant accent line */}
               <div className="relative pt-4 md:pt-8 pb-4 px-6">
-                <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-brand-primary via-brand-secondary to-brand-accent opacity-80" />
+                <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-[#ff5757] to-[#8c52ff] opacity-80" />
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-bold text-white tracking-tight">
                     {t('modals.share.share_to')}

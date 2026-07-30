@@ -118,27 +118,42 @@ export default function Sidebar() {
   });
 
   return (
-    <div className="hidden md:flex md:flex-col fixed left-4 top-4 bottom-4 w-16 xl:w-56 border border-white/10 bg-black/40 backdrop-blur-3xl z-50 transition-all duration-300 rounded-[24px] shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
+    <div
+      className="hidden md:flex md:flex-col fixed left-3 top-3 bottom-3 w-14 xl:w-52 z-50 transition-all duration-300"
+      style={{
+        background:
+          'linear-gradient(180deg, rgba(12,8,20,0.92) 0%, rgba(8,6,16,0.95) 100%)',
+        backdropFilter: 'blur(32px) saturate(200%)',
+        WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+        border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: '20px',
+        boxShadow:
+          '0 10px 48px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07), inset 0 -1px 0 rgba(255,255,255,0.03)',
+      }}
+    >
       {/* Logo Area */}
-      <div className="p-4 mb-2 flex justify-center xl:justify-start">
+      <div className="p-3 mb-1 flex justify-center xl:justify-start">
         <Link to="/" className="block">
           {/* Desktop Logo */}
           <img
             src={logoSrc}
             alt="CircleSfera Logo"
-            className="hidden xl:block h-8 w-auto object-contain"
+            className="hidden xl:block h-7 w-auto object-contain"
           />
           {/* Tablet Logo (Icon) */}
           <img
             src={logoSrc}
             alt="CircleSfera Logo"
-            className="xl:hidden h-8 w-8 object-contain"
+            className="xl:hidden h-7 w-7 object-contain"
           />
         </Link>
       </div>
 
+      {/* Separator */}
+      <div className="mx-3 mb-1.5 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
+
       {/* Navigation Items */}
-      <nav className="flex-1 px-2 space-y-1">
+      <nav className="flex-1 px-1.5 space-y-0.5">
         {navItems.map((item) => {
           const isActive =
             item.label === t('nav.profile')
@@ -151,29 +166,43 @@ export default function Sidebar() {
           const content = (
             <>
               <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="relative"
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.94 }}
+                className="relative shrink-0"
               >
-                <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+                <item.icon
+                  size={17}
+                  strokeWidth={isActive ? 2.5 : 2}
+                  className={
+                    isActive ? 'drop-shadow-[0_0_6px_rgba(140,82,255,0.7)]' : ''
+                  }
+                />
 
                 {/* Notification Badge (Hidden on Desktop Expanded View) */}
                 {item.badge > 0 && (
-                  <span className="xl:hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center text-xs font-bold text-white bg-red-500 rounded-full px-1 shadow-lg shadow-red-500/50 animate-pulse">
+                  <span className="xl:hidden absolute -top-1.5 -right-1.5 min-w-4 h-4 flex items-center justify-center text-[10px] font-bold text-white bg-linear-to-br from-red-500 to-red-600 rounded-full px-1 shadow-md">
                     {item.badge > 99 ? '99+' : item.badge}
                   </span>
                 )}
               </motion.div>
-              <span className="hidden xl:block text-sm">{item.label}</span>
+              <span
+                className={`hidden xl:block text-xs transition-all duration-200 ${isActive ? 'font-bold' : 'font-medium'}`}
+              >
+                {item.label}
+              </span>
 
               {/* Badge for desktop expanded view */}
               {item.badge > 0 && (
-                <span className="hidden xl:flex ml-auto min-w-[22px] h-[22px] items-center justify-center text-xs font-bold text-white bg-red-500 rounded-full px-1.5">
+                <span className="hidden xl:flex ml-auto min-w-4.5 h-4.5 items-center justify-center text-[10px] font-bold text-white bg-linear-to-br from-red-500 to-red-600 rounded-full px-1 shadow-md">
                   {item.badge > 99 ? '99+' : item.badge}
                 </span>
               )}
             </>
           );
+
+          const activeClass = 'nav-active text-white';
+          const inactiveClass =
+            'text-gray-400/90 hover:bg-white/5 hover:text-white/90';
 
           if (item.onClick) {
             return (
@@ -182,12 +211,11 @@ export default function Sidebar() {
                 key={item.label}
                 onClick={item.onClick}
                 aria-label={item.label}
-                className={`w-full flex items-center gap-3 py-2 px-3 rounded-xl transition-all duration-200 group active:scale-95 ${
-                  isActive
-                    ? 'bg-linear-to-r from-brand-primary/20 to-brand-secondary/10 text-white font-bold shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_8px_20px_-6px_rgba(131,58,180,0.3)] border border-white/10'
-                    : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                className={`relative w-full flex items-center gap-3 py-2.5 px-3 rounded-xl transition-all duration-200 group active:scale-95 overflow-hidden ${
+                  isActive ? activeClass : inactiveClass
                 }`}
               >
+                {isActive && <span className="nav-active-indicator" />}
                 {content}
               </button>
             );
@@ -199,29 +227,37 @@ export default function Sidebar() {
               to={item.to!}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
-              className={`flex items-center gap-3 py-2 px-3 rounded-xl transition-all duration-200 group active:scale-95 ${
-                isActive
-                  ? 'bg-linear-to-r from-brand-primary/20 to-brand-secondary/10 text-white font-bold shadow-[inset_0_1px_1px_rgba(255,255,255,0.15),0_8px_20px_-6px_rgba(131,58,180,0.3)] border border-white/10'
-                  : 'text-gray-400 hover:bg-white/5 hover:text-white'
+              className={`relative flex items-center gap-3 py-2.5 px-3 rounded-xl transition-all duration-200 group active:scale-95 overflow-hidden ${
+                isActive ? activeClass : inactiveClass
               }`}
             >
+              {isActive && <span className="nav-active-indicator" />}
               {content}
             </Link>
           );
         })}
       </nav>
 
+      {/* Separator before bottom area */}
+      <div className="mx-3 mt-2 mb-2 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
+
       {/* Bottom Area (More/Settings) */}
-      <div className="p-3 mt-auto mb-2 space-y-1">
+      <div className="p-2 mb-1 space-y-0.5">
         <Link
           to="/pricing"
           aria-label="Premium"
-          className="flex items-center gap-3 py-2 px-3 rounded-xl text-amber-400 hover:bg-amber-400/10 hover:text-amber-300 transition-all duration-200 group relative overflow-hidden active:scale-95"
+          className="flex items-center gap-3 py-2.5 px-3 rounded-xl text-amber-400/90 hover:text-amber-300 transition-all duration-200 group relative overflow-hidden active:scale-95"
+          style={{
+            background:
+              'linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(252,176,69,0.04) 100%)',
+            border: '1px solid rgba(251,191,36,0.12)',
+          }}
         >
-          <div className="absolute inset-0 bg-linear-to-r from-amber-400/0 via-amber-400/5 to-amber-400/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+          {/* Shimmer sweep */}
+          <div className="absolute inset-0 bg-linear-to-r from-amber-400/0 via-amber-400/8 to-amber-400/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
           <Sparkles
-            size={20}
-            className="drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]"
+            size={18}
+            className="drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] shrink-0"
           />
           <span className="hidden xl:block text-sm font-bold tracking-wide">
             {t('nav.premium')}
@@ -231,10 +267,12 @@ export default function Sidebar() {
         <Link
           to="/accounts/edit"
           aria-label="Settings"
-          className="flex items-center gap-3 py-2 px-3 rounded-xl text-gray-400 hover:bg-white/5 hover:text-white transition-all duration-200 active:scale-95"
+          className="flex items-center gap-3 py-2.5 px-3 rounded-xl text-gray-400/80 hover:bg-white/5 hover:text-white/90 transition-all duration-200 active:scale-95"
         >
-          <Settings size={20} />
-          <span className="hidden xl:block text-sm">{t('nav.settings')}</span>
+          <Settings size={18} className="shrink-0" />
+          <span className="hidden xl:block text-sm font-medium">
+            {t('nav.settings')}
+          </span>
         </Link>
 
         {/* Logout Button */}
@@ -242,10 +280,12 @@ export default function Sidebar() {
           type="button"
           onClick={logout}
           aria-label="Log out"
-          className="w-full flex items-center gap-3 py-2 px-3 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200 active:scale-95"
+          className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl text-red-400/80 hover:bg-red-500/8 hover:text-red-300 transition-all duration-200 active:scale-95"
         >
-          <LogOut size={20} />
-          <span className="hidden xl:block text-sm">{t('nav.log_out')}</span>
+          <LogOut size={18} className="shrink-0" />
+          <span className="hidden xl:block text-sm font-medium">
+            {t('nav.log_out')}
+          </span>
         </button>
       </div>
     </div>

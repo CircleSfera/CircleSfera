@@ -108,7 +108,7 @@ export default function StoryList() {
             const allViewed = myGroup.stories.every((s) => s.isViewed);
             const ringColorClass = allViewed
               ? 'bg-zinc-800 border border-white/10'
-              : 'bg-linear-to-tr from-yellow-400 via-pink-500 to-purple-500';
+              : 'bg-linear-to-r from-[#ff5757] to-[#8c52ff]';
 
             return (
               <button
@@ -203,7 +203,7 @@ export default function StoryList() {
               ? 'bg-zinc-800 border border-white/10'
               : hasCloseFriendStory
                 ? 'bg-green-500'
-                : 'bg-linear-to-tr from-yellow-400 via-pink-500 to-purple-500';
+                : 'bg-linear-to-r from-[#ff5757] to-[#8c52ff]';
 
             return (
               <button
@@ -230,7 +230,7 @@ export default function StoryList() {
                   </div>
                 </div>
                 <span
-                  className={`text-xs ${allViewed ? 'text-gray-500' : 'text-gray-300'} max-w-[64px] truncate group-hover:text-white transition-colors`}
+                  className={`text-xs ${allViewed ? 'text-gray-500' : 'text-gray-300'} max-w-16 truncate group-hover:text-white transition-colors`}
                 >
                   {group.user.profile?.username}
                 </span>

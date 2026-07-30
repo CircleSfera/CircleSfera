@@ -22,7 +22,9 @@ export function useGlobalSocket() {
     if (!socketRef.current) {
       // API_URL might be http://localhost:3000/api/v1, so we need the base origin
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const baseUrl = new URL(apiUrl).origin;
+      const baseUrl = apiUrl.startsWith('/')
+        ? window.location.origin
+        : new URL(apiUrl).origin;
 
       socketRef.current = io(`${baseUrl}/events`, {
         path: '/socket.io',

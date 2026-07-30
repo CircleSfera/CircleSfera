@@ -57,14 +57,44 @@ export default memo(function UserAvatar({
 
   const innerContent = (
     <>
-      {/* Animated Story Ring */}
+      {/* Animated Story Ring — dual-layer for cinematic depth */}
       {hasStory && (
-        <div className="absolute -inset-1 rounded-full p-0.5 bg-linear-to-tr from-brand-primary via-brand-secondary to-brand-accent animate-spin-slow opacity-90 group-hover:opacity-100 transition-opacity">
-          <div className="absolute inset-0 bg-black rounded-full" />
-        </div>
+        <>
+          {/* Outer glow ring (static) */}
+          <div
+            className="absolute rounded-full pointer-events-none"
+            style={{
+              inset: '-3px',
+              background:
+                'linear-gradient(135deg, rgba(131,58,180,0.4) 0%, rgba(253,29,29,0.35) 50%, rgba(252,176,69,0.3) 100%)',
+              filter: 'blur(4px)',
+              borderRadius: '9999px',
+            }}
+          />
+          {/* Animated gradient ring */}
+          <div
+            className="absolute rounded-full animate-spin-slow"
+            style={{
+              inset: '-2px',
+              background: 'linear-gradient(90deg, #ff5757 0%, #8c52ff 100%)',
+              borderRadius: '9999px',
+              padding: '2px',
+            }}
+          >
+            {/* Inner mask to create ring shape */}
+            <div
+              className="absolute inset-0.5 bg-black rounded-full"
+              style={{ borderRadius: '9999px' }}
+            />
+          </div>
+        </>
       )}
+
+      {/* Avatar image container */}
       <div
-        className={`relative w-full h-full rounded-full overflow-hidden bg-zinc-900 border-2 ${hasStory ? 'border-black' : 'border-white/5'} shadow-inner`}
+        className={`relative w-full h-full rounded-full overflow-hidden bg-zinc-900 shadow-inner ${
+          hasStory ? 'border-2 border-black' : 'border border-white/8'
+        }`}
       >
         {/* Blurhash / Fallback Image */}
         {!isLoaded && blurUrl && (
@@ -77,7 +107,14 @@ export default memo(function UserAvatar({
 
         {/* Shimmer Skeleton (If no Blurhash available) */}
         {!isLoaded && !blurUrl && (
-          <div className="absolute inset-0 w-full h-full bg-zinc-800 animate-pulse" />
+          <div
+            className="absolute inset-0 w-full h-full"
+            style={{
+              background:
+                'linear-gradient(135deg, rgba(131,58,180,0.15) 0%, rgba(64,93,230,0.1) 100%)',
+              animation: 'pulse-slow 2s ease-in-out infinite',
+            }}
+          />
         )}
 
         {/* Main Image */}
@@ -107,9 +144,10 @@ export default memo(function UserAvatar({
         />
       </div>
 
+      {/* Verification Badge */}
       {verificationLevel && verificationLevel !== 'BASIC' && (
         <div
-          className={`absolute top-0 right-0 ${statusSizeClasses[size]} rounded-full flex items-center justify-center drop-shadow-sm`}
+          className={`absolute top-0 right-0 ${statusSizeClasses[size]} rounded-full flex items-center justify-center drop-shadow-sm z-10`}
         >
           <VerificationBadge
             level={verificationLevel}
@@ -118,15 +156,20 @@ export default memo(function UserAvatar({
         </div>
       )}
 
+      {/* Online Indicator */}
       {isOnline === true && (
         <span
           className={`
             absolute bottom-0 right-0
             ${statusSizeClasses[size]}
-            bg-green-500
             border-2 border-surface-raised rounded-full
             z-10
           `}
+          style={{
+            background: 'radial-gradient(circle, #4ade80 0%, #22c55e 100%)',
+            boxShadow: '0 0 6px rgba(74,222,128,0.6)',
+            animation: 'pulse-slow 2s ease-in-out infinite',
+          }}
         />
       )}
     </>

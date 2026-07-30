@@ -65,13 +65,7 @@ export default function PostDetail() {
   }
 
   return (
-    <div className="min-h-screen md:pb-24 md:pt-6 md:flex md:items-center relative">
-      {/* Brand Background */}
-      <div className="fixed inset-0 z-[-1] pointer-events-none overflow-hidden bg-black">
-        <div className="absolute inset-0 bg-linear-to-br from-brand-primary/30 via-black to-brand-primary/10" />
-        <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-brand-primary/20 blur-[120px] rounded-full mix-blend-screen" />
-      </div>
-
+    <div className="min-h-screen py-3 md:py-6 relative">
       <SEO
         title={`Post de @${post.data.user?.profile?.username || 'Usuario'}`}
         description={
@@ -80,29 +74,29 @@ export default function PostDetail() {
         ogImage={post.data.media?.[0]?.url || undefined}
         ogType="article"
       />
-      <div className="w-full mx-auto md:px-4 relative z-10">
+      <div className="w-full mx-auto px-2 md:px-4 relative z-10">
         {/* Sticky Header (Mobile Only) */}
-        <div className="md:hidden sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/10 flex items-center justify-between p-4 pt-[calc(1rem+env(safe-area-inset-top))]">
+        <div className="md:hidden sticky top-0 z-50 glass-panel border-b border-white/8 flex items-center justify-between p-3.5 pt-[calc(0.75rem+env(safe-area-inset-top))]">
           <Link
             to="/"
             className="p-1 -ml-1 text-white hover:bg-white/10 rounded-full transition-colors"
           >
-            <ArrowLeft size={24} />
+            <ArrowLeft size={20} />
           </Link>
-          <h1 className="text-base font-bold text-white uppercase tracking-wider">
+          <h1 className="text-xs font-bold text-white uppercase tracking-wider">
             {t('post.detail.title', 'Publicación')}
           </h1>
-          <div className="w-6" />
+          <div className="w-5" />
         </div>
 
         {/* Back Button (Desktop) */}
-        <div className="max-w-5xl mx-auto mb-4 hidden md:block">
+        <div className="max-w-4xl mx-auto mb-3 hidden md:block">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-gray-300 hover:text-white transition-colors text-sm px-4 md:px-0"
+            className="inline-flex items-center gap-1.5 text-white/70 hover:text-white transition-colors text-xs font-bold px-3 py-1.5 rounded-full glass-panel border border-white/8 hover:bg-white/10"
           >
-            <ArrowLeft size={18} />
-            <span>{t('post.detail.back_to_feed')}</span>
+            <ArrowLeft size={15} />
+            <span>{t('post.detail.back_to_feed', 'Volver al inicio')}</span>
           </Link>
         </div>
 

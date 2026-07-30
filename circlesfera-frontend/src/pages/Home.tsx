@@ -73,24 +73,24 @@ export default function Home() {
       <div className="min-h-screen pt-4 md:pt-8 pb-32">
         <SEO title={t('feed.home_title')} />
 
-        <div className="max-w-lg lg:max-w-4xl 2xl:max-w-6xl mx-auto px-4">
-          <div className="flex flex-col lg:flex-row gap-8 items-start justify-center">
+        <div className="max-w-md lg:max-w-3xl 2xl:max-w-4xl mx-auto px-3">
+          <div className="flex flex-col lg:flex-row gap-6 items-start justify-center">
             {/* Main Feed Column */}
-            <div className="flex-1 w-full max-w-lg shrink-0">
+            <div className="flex-1 w-full max-w-117.5 shrink-0">
               {/* Header Title - Hidden on mobile as TopNav replaces it */}
-              <h1 className="hidden md:block w-full text-2xl md:text-3xl font-black text-center mb-8 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
+              <h1 className="hidden md:block w-full text-xl md:text-2xl font-black text-center mb-4 tracking-tight bg-clip-text text-transparent bg-linear-to-r from-white via-white/80 to-white/40">
                 {t('feed.brand_name')}
               </h1>
               {/* Feed Tabs */}
-              <div className="flex justify-center mb-8">
-                <div className="flex items-center gap-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full p-1 shadow-2xl relative z-20">
+              <div className="flex justify-center mb-4">
+                <div className="flex items-center gap-1 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full p-1 shadow-xl relative z-20">
                   <button
                     type="button"
                     onClick={() => setActiveTab('foryou')}
-                    className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all duration-300 relative focus:outline-none ${
+                    className={`px-6 py-1.5 rounded-full text-xs font-bold transition-all duration-300 relative focus:outline-none ${
                       activeTab === 'foryou'
                         ? 'text-white'
-                        : 'text-gray-300 hover:text-gray-200'
+                        : 'text-gray-400 hover:text-gray-200'
                     }`}
                   >
                     {activeTab === 'foryou' && (
@@ -111,10 +111,10 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => setActiveTab('following')}
-                    className={`px-8 py-2.5 rounded-full text-sm font-bold transition-all duration-300 relative focus:outline-none ${
+                    className={`px-6 py-1.5 rounded-full text-xs font-bold transition-all duration-300 relative focus:outline-none ${
                       activeTab === 'following'
                         ? 'text-white'
-                        : 'text-gray-300 hover:text-gray-200'
+                        : 'text-gray-400 hover:text-gray-200'
                     }`}
                   >
                     {activeTab === 'following' && (
@@ -137,7 +137,7 @@ export default function Home() {
 
               {/* Stories Section */}
               {isLoading ? (
-                <div className="glass-panel rounded-lg p-4 mb-6 flex gap-4 overflow-hidden">
+                <div className="glass-panel rounded-lg p-3 mb-4 flex gap-3 overflow-hidden">
                   {['s1', 's2', 's3', 's4', 's5', 's6'].map((id) => (
                     <StorySkeleton key={id} />
                   ))}
@@ -147,15 +147,15 @@ export default function Home() {
               )}
 
               {/* Suggestions inline on mobile */}
-              <div className="lg:hidden mb-6">
+              <div className="lg:hidden mb-4">
                 <SuggestionsList layout="horizontal" />
               </div>
 
               {/* Posts List */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {!isAuthenticated && activeTab === 'following' ? (
-                  <div className="text-center py-6 glass-panel rounded-lg px-4 mx-auto max-w-sm mb-6">
-                    <p className="text-zinc-400 text-sm">
+                  <div className="text-center py-5 glass-panel rounded-lg px-4 mx-auto max-w-sm mb-4">
+                    <p className="text-zinc-400 text-xs">
                       {t(
                         'feed.login_required',
                         'Inicia sesión para ver tu feed personalizado.',
@@ -174,8 +174,8 @@ export default function Home() {
                     onRetry={() => refetch()}
                   />
                 ) : posts.length === 0 ? (
-                  <div className="text-center py-6 glass-panel rounded-lg px-4 mx-auto max-w-sm mb-6">
-                    <p className="text-zinc-400 text-sm">
+                  <div className="text-center py-5 glass-panel rounded-lg px-4 mx-auto max-w-sm mb-4">
+                    <p className="text-zinc-400 text-xs">
                       {t('feed.no_posts')}
                     </p>
                   </div>
@@ -195,15 +195,15 @@ export default function Home() {
                             key={post.id}
                             ref={virtualizer.measureElement}
                             data-index={virtualItem.index}
-                            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                            initial={{ opacity: 0, y: 20, scale: 0.97 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             transition={{
                               type: 'spring',
                               stiffness: 400,
                               damping: 30,
                               delay: Math.min(
-                                (virtualItem.index % 10) * 0.1,
-                                0.5,
+                                (virtualItem.index % 10) * 0.08,
+                                0.4,
                               ),
                             }}
                             style={{
@@ -223,7 +223,7 @@ export default function Home() {
                     </div>
                     <div ref={loadMoreRef} className="h-1" aria-hidden="true" />
                     {isFetchingNextPage && (
-                      <div className="flex justify-center py-6">
+                      <div className="flex justify-center py-4">
                         <LoadingSpinner size="md" />
                       </div>
                     )}
@@ -233,7 +233,7 @@ export default function Home() {
             </div>
 
             {/* Right Sidebar Suggestions (Desktop Only) */}
-            <aside className="hidden lg:block w-[320px] sticky top-24 shrink-0">
+            <aside className="hidden lg:block w-70 sticky top-20 shrink-0">
               <SuggestionsList layout="vertical" />
             </aside>
           </div>

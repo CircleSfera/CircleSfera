@@ -408,7 +408,7 @@ export default function CommentList({
           disabled={!newComment.trim() && !media}
           isLoading={commentMutation.isPending}
           variant="primary"
-          className="w-10 h-10 shrink-0 !p-0 rounded-full bg-linear-to-r from-purple-600 to-pink-600 border-transparent shadow-lg shadow-purple-500/20 sm:w-auto sm:!px-5 sm:h-10"
+          className="w-10 h-10 shrink-0 p-0! rounded-full bg-linear-to-r from-[#ff5757] to-[#8c52ff] border-transparent shadow-lg shadow-purple-500/20 sm:w-auto sm:px-5! sm:h-10"
           aria-label={t('comments.post')}
         >
           <Send size={16} className="sm:hidden" />

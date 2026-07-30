@@ -46,10 +46,10 @@ export default function VerifyEmail() {
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-          className="modal-glass p-10 rounded-[32px] w-full max-w-md relative overflow-hidden group shadow-2xl"
+          className="modal-glass p-10 rounded-4xl w-full max-w-md relative overflow-hidden group shadow-2xl"
         >
           {/* Brand Accent Line */}
-          <div className="absolute top-0 left-0 right-0 h-1.5 bg-linear-to-r from-brand-primary via-brand-secondary to-brand-accent opacity-90" />
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-linear-to-r from-[#ff5757] to-[#8c52ff] opacity-90" />
 
           {/* Decorative glow */}
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-primary/20 rounded-full blur-3xl group-hover:bg-brand-primary/30 transition-colors duration-700 pointer-events-none"></div>

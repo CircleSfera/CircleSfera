@@ -84,39 +84,47 @@ export default memo(function PostDetailView({
           [grid-template-areas:'header'_'media'_'body']
           grid-cols-1
           md:[grid-template-areas:'media_header'_'media_body']
-          md:grid-cols-[minmax(0,1fr)_380px]
-          lg:grid-cols-[minmax(0,1fr)_420px]
+          md:grid-cols-[minmax(0,1.2fr)_360px]
+          lg:grid-cols-[minmax(0,1.3fr)_390px]
           md:grid-rows-[auto_minmax(0,1fr)]
-          md:h-[calc(100vh-120px)] md:max-h-[850px] md:max-w-5xl md:mx-auto
-          md:bg-black/40 md:backdrop-blur-3xl md:border md:border-white/10
-          md:rounded-3xl md:overflow-hidden
-          md:shadow-[0_0_50px_rgba(0,0,0,0.5)]
+          md:h-[calc(100vh-140px)] md:max-h-180 md:max-w-4xl md:mx-auto
+          glass-panel rounded-2xl md:rounded-3xl overflow-hidden
+          border border-white/10 shadow-2xl
           mb-4
         "
       >
         {/* Header — full width on mobile, right column on desktop */}
-        <div className="[grid-area:header] bg-transparent">
+        <div className="[grid-area:header] border-b border-white/8 bg-black/20 backdrop-blur-xl">
           <PostHeader
             post={post}
             menuButtonRef={menuButtonRef}
             onMenuToggle={() => setShowMenu(!showMenu)}
-            size="lg"
+            size="default"
           />
         </div>
 
         {/* Media — full width on mobile, left column spanning rows on desktop */}
-        <div className="[grid-area:media] bg-black flex justify-center items-center md:border-r md:border-white/10 relative min-h-0">
+        <div className="[grid-area:media] bg-black/60 flex justify-center items-center md:border-r md:border-white/8 relative min-h-75 md:min-h-112.5 overflow-hidden group">
+          {/* Blurred backdrop image to eliminate letterbox empty black space */}
+          {post.media?.[0]?.url && (
+            <img
+              src={post.media[0].thumbnailUrl || post.media[0].url}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover blur-3xl opacity-35 scale-110 pointer-events-none"
+            />
+          )}
+
           <PostMedia
             post={post}
             aspectRatio="aspect-auto"
-            className="w-full max-h-[70vh] md:max-h-none md:h-full"
+            className="w-full h-full relative z-10"
             objectFit="contain"
             priority={priority}
           />
         </div>
 
         {/* Body — comments + actions + composer */}
-        <div className="[grid-area:body] flex flex-col min-h-0 bg-transparent">
+        <div className="[grid-area:body] flex flex-col min-h-0 bg-black/20 backdrop-blur-xl">
           {/* Mobile-only: actions + caption between media and comments */}
           <div className="md:hidden px-3 pt-3 pb-1">
             {actionsNode}

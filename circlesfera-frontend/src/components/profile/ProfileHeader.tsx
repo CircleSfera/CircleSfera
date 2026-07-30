@@ -5,6 +5,7 @@ import {
   Flag,
   Gift,
   Link as LinkIcon,
+  Lock,
   MapPin,
   MoreHorizontal,
   Plus,
@@ -51,7 +52,7 @@ function AnimatedCounter({ value, label }: { value: number; label: string }) {
 
   return (
     <div className="text-center md:text-left group cursor-pointer">
-      <span className="block text-white font-black text-base md:text-xl leading-none transition-all duration-300 origin-center md:origin-left group-hover:scale-110 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-brand-secondary group-hover:to-brand-primary">
+      <span className="block text-white font-black text-base md:text-xl leading-none transition-all duration-300 origin-center md:origin-left group-hover:scale-110 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-[#ff5757] group-hover:to-[#8c52ff]">
         {count}
       </span>
       <span className="text-zinc-400 text-[10px] md:text-xs font-bold uppercase tracking-wide mt-1 block transition-colors duration-300 group-hover:text-brand-primary/80">
@@ -109,7 +110,7 @@ export default function ProfileHeader({
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.5, ease: 'easeOut' }}
-          className="absolute -top-20 -right-20 w-64 md:w-96 h-64 md:h-96 bg-linear-to-br from-brand-primary/20 to-brand-secondary/20 blur-[100px] rounded-full"
+          className="absolute -top-20 -right-20 w-64 md:w-96 h-64 md:h-96 bg-linear-to-br from-[#ff5757]/15 to-[#8c52ff]/15 blur-[100px] rounded-full"
         />
       </div>
 
@@ -144,19 +145,28 @@ export default function ProfileHeader({
           <div className="flex-1 flex flex-col justify-center text-center md:text-left">
             <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6 mb-1 md:mb-3">
               {/* Identity */}
-              <div className="space-y-0">
-                <div className="flex items-center justify-center md:justify-start gap-2.5">
+              <div className="space-y-1">
+                <div className="flex items-center justify-center md:justify-start gap-2">
                   <h1 className="text-2xl md:text-xl font-black tracking-tight text-white">
                     {profile.data.fullName}
                   </h1>
                   <VerificationBadge
                     level={profile.data.verificationLevel as VerificationLevel}
-                    size={18}
+                    size={20}
                   />
                 </div>
-                <span className="text-white font-bold text-sm tracking-tight block">
-                  @{profile.data.username}
-                </span>
+                <div className="flex items-center justify-center md:justify-start gap-2 text-zinc-400 font-semibold text-sm">
+                  <span>@{profile.data.username}</span>
+                  {profile.data.isPrivate && (
+                    <span
+                      className="text-xs text-zinc-300 font-medium inline-flex items-center gap-1.5 bg-white/5 px-2.5 py-0.5 rounded-full border border-white/10 shadow-sm"
+                      title={t('profile.private_account', 'Cuenta privada')}
+                    >
+                      <Lock size={12} className="text-brand-primary" />
+                      <span>{t('profile.private_label', 'Privada')}</span>
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Stats */}
