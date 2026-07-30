@@ -80,6 +80,7 @@ export interface ProfileWithUser extends IProfile {
     stripeConnectAccountId?: string | null;
     settings?: {
       isOnboarded: boolean;
+      privacyLevel?: string;
     } | null;
     _count?: {
       posts: number;

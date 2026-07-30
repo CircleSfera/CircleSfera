@@ -51,8 +51,6 @@ export default function LayoutWrapper({
     return () => disconnect();
   }, [isAuthenticated, connect, disconnect]);
 
-  // Initialize E2E keys
-
   // Accessibility: Announce new notifications to screen readers
   const liveNotifications = useNotificationsStore(
     (state) => state.liveNotifications,
@@ -85,16 +83,41 @@ export default function LayoutWrapper({
         {latestNotification &&
           `New notification: ${latestNotification.content || 'You have a new update'}`}
       </div>
-      {/* Global Immersive Background */}
-      <div className="fixed inset-0 z-[-1] bg-surface-base">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E')] opacity-10 brightness-100 contrast-150 pointer-events-none mix-blend-overlay"></div>
-        {/* Animated Orbs */}
-        <div className="absolute top-[-10%] left-[-10%] w-100 h-100 md:w-150 md:h-150 bg-brand-primary/20 rounded-full blur-[120px] animate-blob filter mix-blend-screen"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-100 h-100 md:w-150 md:h-150 bg-brand-blue/20 rounded-full blur-[120px] animate-blob animation-delay-2000 filter mix-blend-screen"></div>
-        <div className="absolute top-[40%] left-[40%] w-75 h-75 md:w-125 md:h-125 bg-brand-secondary/15 rounded-full blur-[100px] animate-blob animation-delay-4000 filter mix-blend-screen"></div>
+
+      {/* ─── Global Brand Gradient Background (Refined & Balanced) ─── */}
+      <div className="fixed inset-0 z-[-1] overflow-hidden bg-[#08060f] pointer-events-none">
+        {/* Calibrated multi-stop brand gradient (eliminates muddy mid-tones while preserving brand colors) */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: `
+              radial-gradient(circle at 12% 12%, rgba(255, 87, 87, 0.10) 0%, transparent 50%),
+              radial-gradient(circle at 88% 88%, rgba(140, 82, 255, 0.16) 0%, transparent 55%),
+              linear-gradient(135deg, rgba(255, 87, 87, 0.06) 0%, rgba(140, 82, 255, 0.12) 100%)
+            `,
+          }}
+        />
+
+        {/* Anti-banding micro texture (toned down from 0.14 to 0.04 to prevent static grain) */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-[0.04] mix-blend-overlay"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+            backgroundSize: '128px 128px',
+          }}
+        />
+
+        {/* Ultra-soft vignette for central content focus */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(ellipse 100% 100% at 50% 50%, transparent 40%, rgba(5, 4, 10, 0.45) 100%)',
+          }}
+        />
       </div>
 
-      {/* Navigation - Each handles its own visibility via media queries */}
+      {/* Navigation — Each handles its own visibility via media queries */}
       {shouldShowNav && (
         <>
           {!location.pathname.includes('/direct/inbox/t/') &&
@@ -107,7 +130,7 @@ export default function LayoutWrapper({
 
       <main
         id="main-content"
-        className={`flex-1 w-full transition-all duration-300 ${shouldShowNav ? 'md:pl-24 xl:pl-64' : ''}`}
+        className={`flex-1 w-full transition-all duration-300 ${shouldShowNav ? 'md:pl-20 xl:pl-56' : ''}`}
       >
         {/* Top spacing for mobile to account for TopNav height */}
         {shouldShowNav &&

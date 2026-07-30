@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   BarChart3,
   Clapperboard,
@@ -82,7 +82,17 @@ export default function BottomNav() {
   return (
     <nav
       aria-label="Mobile navigation"
-      className="flex md:hidden fixed bottom-[calc(0.5rem+env(safe-area-inset-bottom,0px))] left-4 right-4 h-14 bg-black/50 backdrop-blur-3xl border border-white/20 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.2)] z-50"
+      className="flex md:hidden fixed bottom-[calc(0.5rem+env(safe-area-inset-bottom,0px))] left-4 right-4 h-14 z-50"
+      style={{
+        background:
+          'linear-gradient(135deg, rgba(10,7,18,0.88) 0%, rgba(6,5,14,0.92) 100%)',
+        backdropFilter: 'blur(32px) saturate(200%)',
+        WebkitBackdropFilter: 'blur(32px) saturate(200%)',
+        border: '1px solid rgba(255,255,255,0.14)',
+        borderRadius: '9999px',
+        boxShadow:
+          '0 8px 32px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.12), 0 0 0 1px rgba(131,58,180,0.06)',
+      }}
     >
       <div className="flex items-center justify-between w-full px-2 relative z-10">
         {navItems.map((item) => {
@@ -96,20 +106,43 @@ export default function BottomNav() {
 
           const content = (
             <motion.div
-              className={`flex items-center justify-center w-10 h-10 rounded-full transition-all duration-500 relative ${
-                isActive
-                  ? 'bg-linear-to-r from-brand-primary/30 to-brand-secondary/30 text-white shadow-[0_0_20px_rgba(131,58,180,0.5),inset_0_1px_1px_rgba(255,255,255,0.3)] border border-white/20'
-                  : 'text-gray-400 hover:text-white'
+              className={`flex flex-col items-center justify-center gap-0.5 w-10 h-10 rounded-full transition-all duration-300 relative ${
+                isActive ? 'text-white' : 'text-gray-400/80'
               }`}
-              whileHover={{ scale: 1.1, y: -2 }}
+              whileHover={{ scale: 1.12, y: -2 }}
               whileTap={{ scale: 0.85, y: 2 }}
-              layoutId={isActive ? 'activeNav' : undefined}
             >
-              <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+              {/* Active glow background */}
+              <AnimatePresence>
+                {isActive && (
+                  <motion.div
+                    key="active-bg"
+                    layoutId="activeNavBg"
+                    className="absolute inset-0 rounded-full"
+                    initial={{ opacity: 0, scale: 0.7 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.7 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    style={{
+                      background:
+                        'linear-gradient(135deg, rgba(131,58,180,0.3) 0%, rgba(253,29,29,0.18) 100%)',
+                      boxShadow:
+                        '0 0 18px rgba(131,58,180,0.45), inset 0 1px 1px rgba(255,255,255,0.2)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                    }}
+                  />
+                )}
+              </AnimatePresence>
+
+              <item.icon
+                size={20}
+                strokeWidth={isActive ? 2.5 : 2}
+                className={`relative z-10 ${isActive ? 'drop-shadow-[0_0_6px_rgba(131,58,180,0.8)]' : ''}`}
+              />
 
               {/* Notification Badge */}
               {item.badge > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-4 h-4 flex items-center justify-center text-[10px] font-bold text-white bg-red-500 rounded-full px-1 shadow-lg shadow-red-500/50 animate-pulse">
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 flex items-center justify-center text-[10px] font-bold text-white bg-linear-to-br from-red-500 to-red-600 rounded-full px-1 shadow-lg shadow-red-500/40">
                   {item.badge > 99 ? '99+' : item.badge}
                 </span>
               )}

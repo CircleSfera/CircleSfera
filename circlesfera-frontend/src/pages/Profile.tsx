@@ -148,11 +148,11 @@ export default function Profile() {
   const status = followStatus?.data.status as string | undefined;
   const isBlocked = status === 'BLOCKED';
 
-  // Only fetch posts/followers if allowed
-  // We can't use 'profile' in the condition if it's not loaded yet,
-  // but we can check if username exists.
-  // Better: use 'enabled' flag in queries to handle dependencies.
-  const canView = isMe || (profile?.data && true) || isFollowing;
+  const isPrivateAccount = !!(
+    profile?.data?.isPrivate ||
+    profile?.data?.user?.settings?.privacyLevel === 'PRIVATE'
+  );
+  const canView = isMe || !isPrivateAccount || isFollowing;
 
   const { data: posts } = useQuery({
     queryKey: ['userPosts', username],

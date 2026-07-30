@@ -344,14 +344,21 @@ export default function Settings() {
 
   // --- Synchronization Effects ---
   useEffect(() => {
-    if (profile && !initialized) {
-      setFullName(profile.fullName || '');
-      setUsername(profile.username || '');
-      setBio(profile.bio || '');
-      setWebsite(profile.website || '');
-      setIsPrivate(false);
-      setAccountType(profile.user?.accountType || 'PERSONAL');
-      setInitialized(true);
+    if (profile) {
+      if (!initialized) {
+        setFullName(profile.fullName || '');
+        setUsername(profile.username || '');
+        setBio(profile.bio || '');
+        setWebsite(profile.website || '');
+        setAccountType(profile.user?.accountType || 'PERSONAL');
+        setInitialized(true);
+      }
+      setIsPrivate(
+        !!(
+          profile.isPrivate ||
+          profile.user?.settings?.privacyLevel === 'PRIVATE'
+        ),
+      );
     }
   }, [profile, initialized]);
 

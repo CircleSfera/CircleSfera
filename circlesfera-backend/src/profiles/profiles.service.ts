@@ -349,7 +349,7 @@ export class ProfilesService {
             referredById: true,
             identityVerifiedAt: true,
             settings: {
-              select: { isOnboarded: true },
+              select: { isOnboarded: true, privacyLevel: true },
             },
             _count: {
               select: {
@@ -384,6 +384,7 @@ export class ProfilesService {
       inviteCode: profile.user?.inviteCode,
       referredById: profile.user?.referredById,
       identityVerifiedAt: profile.user?.identityVerifiedAt,
+      isPrivate: profile.user?.settings?.privacyLevel === 'PRIVATE',
       isVerified:
         !!isVerifiedResult ||
         profile.user?.verificationLevel === 'VERIFIED' ||
