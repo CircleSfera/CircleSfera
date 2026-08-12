@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class PaginationDto {
   @IsOptional()
@@ -14,6 +14,10 @@ export class PaginationDto {
   @Min(1)
   @Max(100)
   limit?: number = 10;
+
+  @IsOptional()
+  @IsString()
+  cursor?: string;
 }
 
 export interface PaginatedResult<T> {
@@ -23,6 +27,7 @@ export interface PaginatedResult<T> {
     page: number;
     limit: number;
     totalPages: number;
+    nextCursor?: string;
   };
 }
 
@@ -31,6 +36,7 @@ export function createPaginatedResult<T>(
   total: number,
   page: number,
   limit: number,
+  nextCursor?: string,
 ): PaginatedResult<T> {
   return {
     data,
@@ -39,6 +45,7 @@ export function createPaginatedResult<T>(
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+      nextCursor,
     },
   };
 }

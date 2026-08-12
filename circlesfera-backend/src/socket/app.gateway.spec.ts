@@ -33,9 +33,14 @@ describe('AppGateway', () => {
     },
     user: {
       update: vi.fn(),
+      findUnique: vi.fn(),
+    },
+    conversation: {
+      findFirst: vi.fn(),
     },
     participant: {
       findFirst: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
     },
   };
 
@@ -85,6 +90,11 @@ describe('AppGateway', () => {
       mockPrismaService.follow.findMany.mockResolvedValue([
         { followingId: 'user-2' },
       ]);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        isActive: true,
+        isSuspended: false,
+      });
       mockPrismaService.user.update.mockResolvedValue({});
 
       await gateway.handleConnection(mockClient);
@@ -168,6 +178,7 @@ describe('AppGateway', () => {
     const mockClient = {
       data: {
         user: { sub: 'sender-1' },
+        conversationIds: new Set(['conv-1']),
       },
     } as unknown as SocketWithAuth;
 
@@ -210,6 +221,84 @@ describe('AppGateway', () => {
         userId: 'sender-1',
         reaction: '👍',
         id: 'reaction-1',
+      });
+    });
+  });
+
+  describe('WebRTC call signaling events', () => {
+    const mockClient = {
+      data: {
+        user: { sub: 'caller-1' },
+      },
+    } as unknown as SocketWithAuth;
+
+    it('should emit call:incoming on handleCallInvite', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'caller-1',
+        profile: {
+          username: 'caller_user',
+          avatar: 'avatar.jpg',
+          fullName: 'Caller User',
+        },
+      });
+      mockPrismaService.conversation.findFirst.mockResolvedValue({
+        id: 'conv-1',
+      });
+
+      await gateway.handleCallInvite(
+        { targetId: 'target-1', type: 'video' },
+        mockClient,
+      );
+
+      expect(mockServer.to).toHaveBeenCalledWith('user:target-1');
+      expect(mockServer.emit).toHaveBeenCalledWith('call:incoming', {
+        caller: {
+          id: 'caller-1',
+          profile: {
+            username: 'caller_user',
+            avatar: 'avatar.jpg',
+            fullName: 'Caller User',
+          },
+        },
+        type: 'video',
+        signalData: null,
+      });
+    });
+
+    it('should emit call:accepted on handleCallAccept', async () => {
+      await gateway.handleCallAccept({ callerId: 'caller-1' }, mockClient);
+
+      expect(mockServer.to).toHaveBeenCalledWith('user:caller-1');
+      expect(mockServer.emit).toHaveBeenCalledWith('call:accepted', {
+        receiverId: 'caller-1',
+      });
+    });
+
+    it('should emit call:declined on handleCallDecline', async () => {
+      await gateway.handleCallDecline({ callerId: 'caller-1' });
+
+      expect(mockServer.to).toHaveBeenCalledWith('user:caller-1');
+      expect(mockServer.emit).toHaveBeenCalledWith('call:declined');
+    });
+
+    it('should emit call:ended on handleCallHangup', async () => {
+      await gateway.handleCallHangup({ targetId: 'target-1' });
+
+      expect(mockServer.to).toHaveBeenCalledWith('user:target-1');
+      expect(mockServer.emit).toHaveBeenCalledWith('call:ended');
+    });
+
+    it('should emit call:signal on handleCallSignal', async () => {
+      const signalPayload = { type: 'offer', sdp: 'dummy-sdp' };
+      await gateway.handleCallSignal(
+        { targetId: 'target-1', signal: signalPayload },
+        mockClient,
+      );
+
+      expect(mockServer.to).toHaveBeenCalledWith('user:target-1');
+      expect(mockServer.emit).toHaveBeenCalledWith('call:signal', {
+        signal: signalPayload,
+        fromId: 'caller-1',
       });
     });
   });

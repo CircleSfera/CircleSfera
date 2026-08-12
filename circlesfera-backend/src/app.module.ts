@@ -4,9 +4,14 @@ dotenv.config();
 
 import { join } from 'node:path';
 import { BullModule } from '@nestjs/bullmq';
-import { Module, ValidationPipe } from '@nestjs/common';
+import {
+  ClassSerializerInterceptor,
+  Module,
+  ValidationPipe,
+} from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -28,6 +33,7 @@ import { CommentsModule } from './comments/comments.module.js';
 import { RedisCacheModule } from './common/cache/cache.module.js';
 import { CsrfController } from './common/csrf/csrf.controller.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
+import { ObservabilityInterceptor } from './common/interceptors/observability.interceptor.js';
 import { CreatorModule } from './creator/creator.module.js';
 import { EditsModule } from './edits/edits.module.js';
 import { EmailModule } from './email/email.module.js';
@@ -82,6 +88,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     }),
 
     ScheduleModule.forRoot(),
+    EventEmitterModule.forRoot(),
     RedisCacheModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
@@ -185,6 +192,14 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ObservabilityInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ClassSerializerInterceptor,
     },
     {
       provide: APP_GUARD,

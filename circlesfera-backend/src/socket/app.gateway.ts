@@ -29,6 +29,7 @@ interface JwtPayload {
 export interface SocketWithAuth extends Socket {
   data: {
     user: JwtPayload;
+    conversationIds?: Set<string>;
   };
 }
 
@@ -68,8 +69,32 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         secret,
       });
 
+      // Validate user in DB (matching REST jwt.strategy.ts)
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+      });
+
+      if (!user?.isActive) {
+        throw new UnauthorizedException(
+          'User not found or account deactivated',
+        );
+      }
+
+      if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+        throw new UnauthorizedException('Account suspended');
+      }
+
       // Attach user to socket
       (client as SocketWithAuth).data.user = payload;
+
+      // Load all conversation IDs for the user in memory to prevent N+1 queries during chat events
+      const userConvs = await this.prisma.participant.findMany({
+        where: { userId: payload.sub, deletedAt: null },
+        select: { conversationId: true },
+      });
+      (client as SocketWithAuth).data.conversationIds = new Set(
+        userConvs.map((c) => c.conversationId),
+      );
 
       // Join user to their personal room
       await client.join(`user:${payload.sub}`);
@@ -151,19 +176,30 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(`user:${userId}`).emit('notification', notification);
   }
 
+  /**
+   * Helper to dynamically grant a user in-memory access to a new conversation room.
+   */
+  addConversationToSocket(userId: string, conversationId: string) {
+    if (!this.server?.sockets) return;
+
+    for (const [_, socket] of this.server.sockets.sockets) {
+      const client = socket as SocketWithAuth;
+      if (client.data?.user?.sub === userId) {
+        if (!client.data.conversationIds) {
+          client.data.conversationIds = new Set();
+        }
+        client.data.conversationIds.add(conversationId);
+      }
+    }
+  }
+
   // --- Chat Actions (Typing, Reactions, etc.) ---
   @SubscribeMessage('typing_start')
   async handleTypingStart(
     @MessageBody() payload: { conversationId: string; recipientId: string },
     @ConnectedSocket() client: SocketWithAuth,
   ) {
-    const isParticipant = await this.prisma.participant.findFirst({
-      where: {
-        conversationId: payload.conversationId,
-        userId: client.data.user.sub,
-      },
-    });
-    if (!isParticipant) return;
+    if (!client.data.conversationIds?.has(payload.conversationId)) return;
 
     this.server.to(`user:${payload.recipientId}`).emit('user_typing', {
       userId: client.data.user.sub,
@@ -176,13 +212,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() payload: { conversationId: string; recipientId: string },
     @ConnectedSocket() client: SocketWithAuth,
   ) {
-    const isParticipant = await this.prisma.participant.findFirst({
-      where: {
-        conversationId: payload.conversationId,
-        userId: client.data.user.sub,
-      },
-    });
-    if (!isParticipant) return;
+    if (!client.data.conversationIds?.has(payload.conversationId)) return;
 
     this.server.to(`user:${payload.recipientId}`).emit('user_stopped_typing', {
       conversationId: payload.conversationId,
@@ -228,13 +258,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() payload: { conversationId: string; recipientId: string },
     @ConnectedSocket() client: SocketWithAuth,
   ) {
-    const isParticipant = await this.prisma.participant.findFirst({
-      where: {
-        conversationId: payload.conversationId,
-        userId: client.data.user.sub,
-      },
-    });
-    if (!isParticipant) return;
+    if (!client.data.conversationIds?.has(payload.conversationId)) return;
 
     this.server.to(`user:${payload.recipientId}`).emit('messages_read', {
       conversationId: payload.conversationId,
@@ -246,11 +270,19 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // --- WebRTC VOIP Signaling ---
 
   @SubscribeMessage('call:invite')
+  @SubscribeMessage('call:initiate')
   async handleCallInvite(
-    @MessageBody() payload: { recipientId: string; type: 'audio' | 'video' },
+    @MessageBody()
+    payload: {
+      recipientId?: string;
+      targetId?: string;
+      type: 'audio' | 'video';
+    },
     @ConnectedSocket() client: SocketWithAuth,
   ) {
     const callerId = client.data.user.sub;
+    const targetId = payload.targetId || payload.recipientId;
+    if (!targetId) return;
 
     // Security: Only allow calling if they have an active 1-on-1 conversation
     const conversation = await this.prisma.conversation.findFirst({
@@ -258,14 +290,14 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         isGroup: false,
         AND: [
           { participants: { some: { userId: callerId } } },
-          { participants: { some: { userId: payload.recipientId } } },
+          { participants: { some: { userId: targetId } } },
         ],
       },
     });
 
     if (!conversation) {
       this.logger.warn(
-        `Call blocked: No active conversation between ${callerId} and ${payload.recipientId}`,
+        `Call blocked: No active conversation between ${callerId} and ${targetId}`,
       );
       return;
     }
@@ -281,10 +313,10 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
 
     this.logger.log(
-      `Call invite from ${callerId} to ${payload.recipientId} (${payload.type})`,
+      `Call invite from ${callerId} to ${targetId} (${payload.type})`,
     );
 
-    this.server.to(`user:${payload.recipientId}`).emit('call:incoming', {
+    this.server.to(`user:${targetId}`).emit('call:incoming', {
       caller: caller,
       type: payload.type,
       signalData: null, // Initial invitation, signaling will follow in call:signal
