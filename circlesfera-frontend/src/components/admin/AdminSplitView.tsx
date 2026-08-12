@@ -2,6 +2,7 @@ import { ArrowLeft } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui';
+import { AdminEmptyState } from './AdminEmptyState';
 import { useAdminEscapeClear } from './useAdminEscapeClear';
 
 interface AdminSplitViewProps {
@@ -55,7 +56,7 @@ export function AdminSplitView({
       >
         {listTitle && (
           <div className="px-1 py-2.5 border-b border-white/5 shrink-0 hidden lg:block">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+            <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wide">
               {listTitle}
             </h3>
           </div>
@@ -81,7 +82,7 @@ export function AdminSplitView({
               type="button"
               variant="ghost"
               onClick={onBack}
-              className="min-h-11 gap-2 text-gray-300 hover:text-white px-2"
+              className="min-h-11 gap-2 text-white/70 hover:text-white px-2"
             >
               <ArrowLeft size={18} />
               {t('common.back', 'Volver')}
@@ -92,12 +93,11 @@ export function AdminSplitView({
           {hasSelection
             ? detail
             : (emptyDetail ?? (
-                <div className="h-full min-h-48 flex items-center justify-center p-6 text-center text-sm text-gray-500">
-                  {t(
-                    'admin.split.select_item',
-                    'Selecciona un elemento de la lista',
-                  )}
-                </div>
+                <AdminEmptyState
+                  title={t('admin.split.select_item')}
+                  compact
+                  className="min-h-48 border-0 bg-transparent"
+                />
               ))}
         </div>
       </section>

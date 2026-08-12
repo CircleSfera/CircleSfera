@@ -16,39 +16,39 @@ export interface StatCardProps {
 }
 
 const colorMap: Record<string, string> = {
-  blue: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
-  purple: 'text-purple-400 bg-purple-400/10 border-purple-400/20',
-  pink: 'text-pink-400 bg-pink-400/10 border-pink-400/20',
-  red: 'text-red-400 bg-red-400/10 border-red-400/20',
-  green: 'text-green-400 bg-green-400/10 border-green-400/20',
-  yellow: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
+  blue: 'text-brand-blue bg-brand-blue/10 border-brand-blue/20',
+  purple: 'text-brand-primary bg-brand-primary/10 border-brand-primary/20',
+  pink: 'text-brand-accent bg-brand-accent/10 border-brand-accent/20',
+  red: 'text-brand-secondary bg-brand-secondary/10 border-brand-secondary/20',
+  green: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
+  yellow: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
 };
 
 const strokeMap: Record<string, string> = {
-  blue: '#60a5fa',
-  purple: '#c084fc',
-  pink: '#f472b6',
-  red: '#f87171',
-  green: '#4ade80',
-  yellow: '#facc15',
+  blue: '#5271ff',
+  purple: '#8c52ff',
+  pink: '#ff7657',
+  red: '#ff5757',
+  green: '#34d399',
+  yellow: '#fbbf24',
 };
 
 const gradientMap: Record<string, string> = {
-  blue: 'from-blue-600/5 to-transparent',
-  purple: 'from-purple-600/5 to-transparent',
-  pink: 'from-pink-600/5 to-transparent',
-  red: 'from-red-600/5 to-transparent',
-  green: 'from-green-600/5 to-transparent',
-  yellow: 'from-yellow-600/5 to-transparent',
+  blue: 'from-brand-blue/5 to-transparent',
+  purple: 'from-brand-primary/5 to-transparent',
+  pink: 'from-brand-accent/5 to-transparent',
+  red: 'from-brand-secondary/5 to-transparent',
+  green: 'from-emerald-600/5 to-transparent',
+  yellow: 'from-amber-600/5 to-transparent',
 };
 
 const hoverGlow: Record<string, string> = {
-  blue: 'hover:shadow-blue-500/10 hover:border-blue-500/20',
-  purple: 'hover:shadow-purple-500/10 hover:border-purple-500/20',
-  pink: 'hover:shadow-pink-500/10 hover:border-pink-500/20',
-  red: 'hover:shadow-red-500/10 hover:border-red-500/20',
-  green: 'hover:shadow-green-500/10 hover:border-green-500/20',
-  yellow: 'hover:shadow-yellow-500/10 hover:border-yellow-500/20',
+  blue: 'hover:shadow-brand-blue/10 hover:border-brand-blue/20',
+  purple: 'hover:shadow-brand-primary/10 hover:border-brand-primary/20',
+  pink: 'hover:shadow-brand-accent/10 hover:border-brand-accent/20',
+  red: 'hover:shadow-brand-secondary/10 hover:border-brand-secondary/20',
+  green: 'hover:shadow-emerald-500/10 hover:border-emerald-500/20',
+  yellow: 'hover:shadow-amber-500/10 hover:border-amber-500/20',
 };
 
 /** Animate a number from 0 → target over `duration` ms. */
@@ -113,7 +113,7 @@ export default function StatCard({
   return (
     <div
       className={clsx(
-        'p-4 rounded-lg border border-white/5 bg-white/[0.02] transition-colors cursor-default relative overflow-hidden',
+        'p-4 rounded-lg border border-white/5 bg-white/2 transition-colors cursor-default relative overflow-hidden',
         'hover:border-white/10',
         hoverGlow[color],
       )}
@@ -177,7 +177,7 @@ export default function StatCard({
         </div>
         <div
           className={clsx(
-            'p-2 rounded-lg border border-white/5 shrink-0 bg-white/[0.04]',
+            'p-2 rounded-lg border border-white/5 shrink-0 bg-white/4',
             colorMap[color],
           )}
         >

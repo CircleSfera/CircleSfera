@@ -12,6 +12,15 @@ export class AdminQueryDto extends PaginationDto {
 
   @IsOptional()
   @IsString()
+  role?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['verified', 'pending', 'not_started'])
+  kycStatus?: string;
+
+  @IsOptional()
+  @IsString()
   @IsIn(['POST', 'FRAME', 'STORY', 'COMMENT'])
   type?: string;
 

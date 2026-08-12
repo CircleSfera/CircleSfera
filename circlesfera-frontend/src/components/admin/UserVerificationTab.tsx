@@ -24,7 +24,8 @@ import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
-import { Pagination, SearchInput } from './AdminTable';
+import { FilterDropdown, Pagination, SearchInput } from './AdminTable';
+import StatCard from './StatCard';
 
 function timeAgo(
   date: string | Date,
@@ -52,12 +53,26 @@ export default function UserVerificationTab({
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebouncedValue(searchTerm, 400);
+  const [kycFilter, setKycFilter] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [confirmRevokeOpen, setConfirmRevokeOpen] = useState(false);
 
   const { data: usersData, isLoading } = useQuery({
-    queryKey: ['admin-users', page, debouncedSearch],
-    queryFn: () => adminApi.getUsers(page, 20, debouncedSearch),
+    queryKey: ['admin-users', page, debouncedSearch, kycFilter],
+    queryFn: () =>
+      adminApi.getUsers(
+        page,
+        20,
+        debouncedSearch,
+        undefined,
+        undefined,
+        kycFilter || undefined,
+      ),
+  });
+
+  const { data: statsData } = useQuery({
+    queryKey: ['admin-kyc-stats'],
+    queryFn: () => adminApi.getKycStats().then((res) => res.data),
   });
 
   const updateVerificationMutation = useMutation({
@@ -156,6 +171,27 @@ export default function UserVerificationTab({
         subtitle={t('admin.verification.subtitle')}
       />
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
+        <StatCard
+          label={t('admin.verification.kyc_completed', 'Verified users')}
+          value={statsData?.verified || 0}
+          icon={CheckCircle2}
+          color="green"
+        />
+        <StatCard
+          label={t('admin.verification.kpi_kyc_pending')}
+          value={statsData?.pending || 0}
+          icon={Clock}
+          color="yellow"
+        />
+        <StatCard
+          label={t('admin.verification.filter_not_started')}
+          value={statsData?.notStarted || 0}
+          icon={UserX}
+          color="blue"
+        />
+      </div>
+
       <AdminFilterBar>
         <div className="flex-1 min-w-0">
           <SearchInput
@@ -167,6 +203,26 @@ export default function UserVerificationTab({
             placeholder={t('admin.verification.search_placeholder')}
           />
         </div>
+        <FilterDropdown
+          label={t('admin.verification.filter_kyc_status')}
+          value={kycFilter}
+          onChange={(v) => {
+            setKycFilter(v);
+            setPage(1);
+          }}
+          options={[
+            { label: t('admin.verification.filter_all_statuses'), value: '' },
+            {
+              label: t('admin.verification.kyc_completed'),
+              value: 'verified',
+            },
+            { label: t('admin.verification.filter_pending'), value: 'pending' },
+            {
+              label: t('admin.verification.filter_not_started'),
+              value: 'not_started',
+            },
+          ]}
+        />
       </AdminFilterBar>
 
       <AdminSplitView
@@ -241,7 +297,7 @@ export default function UserVerificationTab({
                           alt={
                             user.profile?.username || t('admin.shared.unknown')
                           }
-                          size="sm"
+                          size="compact"
                         />
                       }
                     />

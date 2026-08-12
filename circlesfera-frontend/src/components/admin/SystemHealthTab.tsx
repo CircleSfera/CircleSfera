@@ -200,7 +200,7 @@ export default function SystemHealthTab() {
 
       <div className="space-y-3">
         {/* Database */}
-        <section className="rounded-lg border border-white/5 bg-white/[0.02]">
+        <section className="rounded-lg border border-white/5 bg-white/2">
           <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-white/5">
             <Database
               size={16}
@@ -234,7 +234,7 @@ export default function SystemHealthTab() {
         </section>
 
         {/* AI queue */}
-        <section className="rounded-lg border border-white/5 bg-white/[0.02]">
+        <section className="rounded-lg border border-white/5 bg-white/2">
           <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-white/5">
             <BrainCircuit
               size={16}
@@ -275,7 +275,7 @@ export default function SystemHealthTab() {
         </section>
 
         {/* Analytics queue */}
-        <section className="rounded-lg border border-white/5 bg-white/[0.02]">
+        <section className="rounded-lg border border-white/5 bg-white/2">
           <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-white/5">
             <Server
               size={16}
@@ -318,7 +318,7 @@ export default function SystemHealthTab() {
         </section>
 
         {/* Stripe webhooks */}
-        <section className="rounded-lg border border-white/5 bg-white/[0.02]">
+        <section className="rounded-lg border border-white/5 bg-white/2">
           <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-white/5">
             <Webhook size={16} className="text-gray-300" />
             <div className="min-w-0">
@@ -441,7 +441,7 @@ export default function SystemHealthTab() {
                         {canReplay && (
                           <Button
                             variant="secondary"
-                            size="sm"
+                            size="compact"
                             onClick={() => replayMutation.mutate(event.id)}
                             isLoading={replayMutation.isPending}
                             className="min-h-10 text-xs"
@@ -472,7 +472,7 @@ export default function SystemHealthTab() {
                       </div>
                     </div>
                     {isExpanded && (
-                      <div className="mt-3 p-3 rounded-lg bg-white/[0.03] text-xs space-y-2">
+                      <div className="mt-3 p-3 rounded-lg bg-white/3 text-xs space-y-2">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <div>
                             <span className="text-gray-500 uppercase tracking-wide font-semibold">

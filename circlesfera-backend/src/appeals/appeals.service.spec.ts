@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EmailService } from '../email/email.service.js';
@@ -24,7 +25,7 @@ describe('AppealsService', () => {
     sendModerationAlert: vi.fn().mockResolvedValue(true),
   };
 
-  const mockNotificationsService = {
+  const mockEventEmitter = {
     create: vi.fn().mockResolvedValue(undefined),
   };
 
@@ -36,9 +37,13 @@ describe('AppealsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AppealsService,
+        {
+          provide: NotificationsService,
+          useValue: { sendInApp: vi.fn(), push: vi.fn() },
+        },
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: SlackService, useValue: mockSlackService },
-        { provide: NotificationsService, useValue: mockNotificationsService },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
         { provide: EmailService, useValue: mockEmailService },
       ],
     }).compile();

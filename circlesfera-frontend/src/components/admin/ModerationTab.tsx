@@ -8,7 +8,7 @@ import {
   ShieldAlert,
   Trash2,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
@@ -164,13 +164,57 @@ export default function ModerationTab({ onToast }: Props) {
     }
   };
 
+  useEffect(() => {
+    if (viewMode !== 'queue') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        document.activeElement instanceof HTMLInputElement ||
+        document.activeElement instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      const currentIndex = items.findIndex(
+        (i) => itemKey(i) === selectedItemKey,
+      );
+
+      if (e.key === 'ArrowRight' || e.key.toLowerCase() === 's') {
+        if (currentIndex !== -1 && currentIndex + 1 < items.length) {
+          setSelectedItemKey(itemKey(items[currentIndex + 1]));
+        } else if (items.length > 0 && currentIndex === -1) {
+          setSelectedItemKey(itemKey(items[0]));
+        }
+      } else if (e.key === 'ArrowLeft') {
+        if (currentIndex > 0) {
+          setSelectedItemKey(itemKey(items[currentIndex - 1]));
+        }
+      } else if (e.key.toLowerCase() === 'a' && selectedItem) {
+        setActionItem({
+          id: selectedItem.id,
+          entityType: selectedItem.entityType,
+          status: 'VISIBLE',
+        });
+      } else if (e.key.toLowerCase() === 'r' && selectedItem) {
+        setActionItem({
+          id: selectedItem.id,
+          entityType: selectedItem.entityType,
+          status: 'REMOVED',
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [items, selectedItemKey, selectedItem, viewMode]);
+
   return (
     <div className="flex flex-col min-h-0 space-y-4">
       <AdminPageHeader
         title={t('admin.moderation.title')}
         subtitle={t('admin.moderation.subtitle')}
         actions={
-          <div className="flex flex-col xs:flex-row gap-1.5 xs:gap-2 border border-white/5 bg-white/[0.02] p-1 rounded-lg w-full sm:w-auto">
+          <div className="flex flex-col xs:flex-row gap-2 border border-white/5 bg-white/2 p-1 rounded-lg w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setViewMode('queue')}
@@ -223,7 +267,7 @@ export default function ModerationTab({ onToast }: Props) {
           <div className="flex justify-end">
             <Link
               to="/admin/appeals"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-primary hover:text-brand-primary/80 transition-colors"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-brand-primary hover:text-brand-primary/80 transition-colors"
             >
               {t('admin.shared.view_full_panel')}
               <ExternalLink size={12} />
@@ -244,7 +288,7 @@ export default function ModerationTab({ onToast }: Props) {
                 initial={{ opacity: 0, height: 0, marginBottom: 0 }}
                 animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
                 exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                className="flex flex-wrap items-center gap-2 px-3 py-2 border border-white/5 bg-white/[0.02] rounded-lg shrink-0"
+                className="flex flex-wrap items-center gap-2 px-3 py-2 border border-white/5 bg-white/2 rounded-lg shrink-0"
               >
                 <span className="px-2 sm:px-3 text-sm font-semibold text-white">
                   {t('admin.shared.selected_count', {
@@ -394,7 +438,7 @@ export default function ModerationTab({ onToast }: Props) {
                         <UserAvatar
                           src={selectedItem.user?.profile?.avatar || undefined}
                           alt={selectedItem.user?.profile?.username || 'User'}
-                          size="sm"
+                          size="compact"
                         />
                         <div>
                           <h3 className="text-sm font-semibold text-white">

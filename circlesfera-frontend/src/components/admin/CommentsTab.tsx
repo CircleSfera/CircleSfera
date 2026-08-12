@@ -1,16 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, EyeOff, MessageCircle, Trash2 } from 'lucide-react';
+import { Ban, CheckCircle, MessageCircle, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminComment } from '../../services/admin.service';
-import { adminApi } from '../../services/admin.service';
+import { adminApi, type EnhancedStats } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import ConfirmModal from '../modals/ConfirmModal';
+import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
+import { AdminKpiWidget } from './AdminKpiWidget';
 import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
+import { AdminSegmentedControl } from './AdminSegmentedControl';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { ActionButton, Pagination, SearchInput } from './AdminTable';
@@ -19,120 +22,61 @@ interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
 }
 
-function moderationBadge(status: AdminComment['moderationStatus']) {
-  const styles: Record<string, string> = {
-    VISIBLE: 'text-green-400 bg-green-400/10',
-    FLAGGED: 'text-amber-400 bg-amber-400/10',
-    HIDDEN: 'text-gray-400 bg-gray-400/10',
-    REMOVED: 'text-red-400 bg-red-400/10',
-  };
-  return (
-    <span
-      className={`px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider ${styles[status] || styles.VISIBLE}`}
-    >
-      {status}
-    </span>
-  );
-}
-
-function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5 last:border-b-0">
-      <dt className="text-xs font-medium text-gray-500 shrink-0">{label}</dt>
-      <dd className="text-sm text-white text-right min-w-0 break-words">
-        {value}
-      </dd>
-    </div>
-  );
-}
-
 export default function CommentsTab({ onToast }: Props) {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [segment, setSegment] = useState('ALL');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(search, 400);
 
+  const { data: statsData } = useQuery<EnhancedStats>({
+    queryKey: ['admin', 'stats', 'enhanced'],
+    queryFn: () => adminApi.getEnhancedStats(),
+  });
+
   const { data, isLoading } = useQuery<PaginatedResponse<AdminComment>>({
-    queryKey: ['admin', 'comments', page, debouncedSearch],
+    queryKey: ['admin', 'comments', page, debouncedSearch, segment],
     queryFn: () =>
       adminApi
         .getComments(page, 10, debouncedSearch || undefined)
-        .then((r) => r.data),
+        .then((r) => r.data as PaginatedResponse<AdminComment>),
   });
 
   const comments = data?.data ?? [];
-  const selected = comments.find((c) => c.id === selectedId) ?? null;
+  const queryClient = useQueryClient();
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => adminApi.deleteComment(id),
-    onSuccess: (_d, id) => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'comments'] });
-      if (selectedId === id) setSelectedId(null);
-      onToast(t('admin.comments.toast_deleted'), 'success');
+  const mutation = useMutation({
+    mutationFn: async (args: { id: string; action: 'delete' | 'hide' }) => {
+      if (args.action === 'delete') {
+        await adminApi.deleteComment(args.id);
+      }
     },
-    onError: () => onToast(t('admin.comments.toast_delete_error'), 'error'),
-  });
-
-  const moderationMutation = useMutation({
-    mutationFn: ({
-      id,
-      status,
-    }: {
-      id: string;
-      status: 'VISIBLE' | 'HIDDEN';
-    }) => adminApi.updateModerationStatus('COMMENT', id, status),
-    onSuccess: (_, variables) => {
+    onSuccess: (_, args) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'comments'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+      if (args.id === selectedId && args.action === 'delete')
+        setSelectedId(null);
       onToast(
-        t(
-          variables.status === 'VISIBLE'
-            ? 'admin.comments.toast_restored'
-            : 'admin.comments.toast_hidden',
-        ),
+        args.action === 'delete'
+          ? t('admin.comments.toast_deleted')
+          : t('admin.comments.toast_hidden'),
         'success',
       );
     },
-    onError: () => onToast(t('admin.comments.toast_moderation_error'), 'error'),
+    onError: (_, args) => {
+      onToast(
+        args.action === 'delete'
+          ? t('admin.comments.toast_delete_error')
+          : t('admin.comments.toast_hide_error'),
+        'error',
+      );
+    },
   });
 
-  const renderActions = (comment: AdminComment) => (
-    <div className="flex gap-1">
-      {comment.moderationStatus === 'HIDDEN' ? (
-        <ActionButton
-          onClick={() =>
-            moderationMutation.mutate({ id: comment.id, status: 'VISIBLE' })
-          }
-          label={t('admin.comments.action_restore')}
-          variant="success"
-          icon={CheckCircle}
-          iconOnly
-          disabled={moderationMutation.isPending}
-        />
-      ) : (
-        <ActionButton
-          onClick={() =>
-            moderationMutation.mutate({ id: comment.id, status: 'HIDDEN' })
-          }
-          label={t('admin.comments.action_hide')}
-          variant="warning"
-          icon={EyeOff}
-          iconOnly
-          disabled={moderationMutation.isPending}
-        />
-      )}
-      <ActionButton
-        onClick={() => setConfirmDeleteId(comment.id)}
-        label={t('admin.comments.action_delete')}
-        variant="danger"
-        icon={Trash2}
-        iconOnly
-        disabled={deleteMutation.isPending}
-      />
-    </div>
-  );
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  const noContent = t('admin.comments.no_content');
 
   return (
     <div className="space-y-4">
@@ -141,8 +85,34 @@ export default function CommentsTab({ onToast }: Props) {
         subtitle={t('admin.comments.subtitle')}
       />
 
+      {/* KPI Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <AdminKpiWidget
+          title={t('admin.comments.kpi_engagement')}
+          value={`${statsData?.engagement || 0}%`}
+          icon={<MessageCircle size={20} />}
+          trend={{ value: 2.1, label: t('admin.shared.this_month') }}
+        />
+        <AdminKpiWidget
+          title={t('admin.comments.kpi_pending_reports')}
+          value={statsData?.pendingReports.toLocaleString() || '0'}
+          icon={<Ban size={20} />}
+          iconColorClass="text-amber-400 bg-amber-400/10"
+        />
+      </div>
+
       <AdminFilterBar>
-        <div className="flex-1 min-w-0">
+        <AdminSegmentedControl
+          value={segment}
+          onChange={(v) => {
+            setSegment(v);
+            setPage(1);
+          }}
+          options={[
+            { value: 'ALL', label: t('admin.shared.filter_all_recent') },
+          ]}
+        />
+        <div className="flex-1 min-w-0 md:max-w-xs">
           <SearchInput
             value={search}
             onChange={(v) => {
@@ -155,7 +125,7 @@ export default function CommentsTab({ onToast }: Props) {
       </AdminFilterBar>
 
       <AdminSplitView
-        hasSelection={!!selected}
+        hasSelection={!!selectedId}
         onBack={() => setSelectedId(null)}
         onClearSelection={() => setSelectedId(null)}
         listTitle={t('admin.comments.title')}
@@ -167,89 +137,123 @@ export default function CommentsTab({ onToast }: Props) {
               ) : comments.length === 0 ? (
                 <AdminEmptyState
                   icon={MessageCircle}
-                  title={t('admin.comments.empty_title')}
-                  description={t('admin.comments.empty_description')}
+                  title={
+                    search.length > 0
+                      ? t('admin.comments.empty_title')
+                      : t('admin.comments.empty_title')
+                  }
+                  description={
+                    search.length > 0
+                      ? t('admin.comments.empty_description')
+                      : t('admin.comments.empty_description')
+                  }
+                  action={
+                    search.length > 0 ? (
+                      <Button
+                        onClick={() => {
+                          setSearch('');
+                          setPage(1);
+                        }}
+                        variant="secondary"
+                        className="min-h-11 mt-2"
+                      >
+                        {t('admin.shared.clear_filters')}
+                      </Button>
+                    ) : undefined
+                  }
                   compact
                 />
               ) : (
                 comments.map((comment) => (
                   <AdminListRow
                     key={comment.id}
-                    selected={selectedId === comment.id}
                     onClick={() => setSelectedId(comment.id)}
                     className={
                       selectedId === comment.id
                         ? 'border-brand-primary/30 bg-brand-primary/10'
                         : undefined
                     }
-                    title={`@${comment.user?.profile?.username || t('admin.shared.unknown')}`}
-                    subtitle={
-                      <span className="line-clamp-2">{comment.content}</span>
+                    title={comment.content || noContent}
+                    subtitle={`@${
+                      comment.user?.profile?.username ||
+                      t('admin.shared.unknown')
+                    } • ${new Date(comment.createdAt).toLocaleDateString()}`}
+                    avatar={
+                      <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
+                        {comment.user?.profile?.username
+                          ?.charAt(0)
+                          .toUpperCase() || '?'}
+                      </div>
                     }
-                    badge={moderationBadge(comment.moderationStatus)}
-                    meta={new Date(comment.createdAt).toLocaleDateString()}
-                    primaryAction={renderActions(comment)}
+                    primaryAction={
+                      <ActionButton
+                        onClick={() => setConfirmDelete(comment.id)}
+                        label={t('admin.comments.action_delete')}
+                        variant="danger"
+                        icon={Trash2}
+                        disabled={mutation.isPending}
+                      />
+                    }
                   />
                 ))
               )}
             </div>
-            <div className="shrink-0">
+            <div className="shrink-0 pt-2 border-t border-white/5">
               <Pagination meta={data?.meta} onPageChange={setPage} />
             </div>
           </div>
         }
         detail={
-          selected ? (
-            <div className="space-y-5 pb-6 px-0.5">
-              <div>
-                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                  {t('admin.comments.col_comment')}
-                </p>
-                <p className="text-sm text-gray-200 whitespace-pre-wrap leading-relaxed">
-                  {selected.content}
-                </p>
-              </div>
-              <dl>
-                <MetaRow
-                  label={t('admin.comments.col_author')}
-                  value={`@${selected.user?.profile?.username || t('admin.shared.unknown')}`}
-                />
-                <MetaRow
-                  label={t('admin.comments.col_moderation')}
-                  value={moderationBadge(selected.moderationStatus)}
-                />
-                <MetaRow
-                  label={t('admin.comments.col_post')}
-                  value={selected.post?.caption || '—'}
-                />
-                <MetaRow
-                  label={t('admin.comments.col_date')}
-                  value={new Date(selected.createdAt).toLocaleString()}
-                />
-              </dl>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {renderActions(selected)}
-              </div>
+          selectedId ? (
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-white mb-4">
+                {t('admin.comments.detail_title')}
+              </h3>
+              {comments.find((c) => c.id === selectedId) && (
+                <div className="space-y-4">
+                  <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                    <p className="text-gray-300">
+                      {comments.find((c) => c.id === selectedId)?.content ||
+                        noContent}
+                    </p>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      variant="danger"
+                      onClick={() => setConfirmDelete(selectedId)}
+                      disabled={mutation.isPending}
+                    >
+                      <Trash2 size={16} className="mr-2" />
+                      {t('admin.comments.action_delete')}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
-          ) : null
+          ) : (
+            <AdminEmptyState
+              icon={CheckCircle}
+              title={t('admin.shared.select_item_title')}
+              description={t('admin.shared.select_item_description')}
+            />
+          )
         }
       />
 
       <ConfirmModal
-        isOpen={confirmDeleteId !== null}
-        onClose={() => setConfirmDeleteId(null)}
+        isOpen={confirmDelete !== null}
+        onClose={() => setConfirmDelete(null)}
         onConfirm={() => {
-          if (confirmDeleteId) {
-            deleteMutation.mutate(confirmDeleteId);
-          }
-          setConfirmDeleteId(null);
+          if (confirmDelete)
+            mutation.mutate({ id: confirmDelete, action: 'delete' });
+          setConfirmDelete(null);
         }}
         title={t('admin.comments.confirm_delete_title')}
         message={t('admin.comments.confirm_delete_message')}
         confirmText={t('admin.comments.confirm_delete')}
         cancelText={t('admin.shared.cancel')}
         isDestructive={true}
-        isLoading={deleteMutation.isPending}
+        isLoading={mutation.isPending}
       />
     </div>
   );

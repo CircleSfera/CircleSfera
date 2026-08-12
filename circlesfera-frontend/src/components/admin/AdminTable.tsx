@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, Input, Select } from '../ui';
+import { AdminEmptyState } from './AdminEmptyState';
 
 // ─── Table ──────────────────────────────────────────────────────────
 
@@ -39,7 +40,7 @@ export function Table({
                 <th
                   key={typeof h === 'string' ? h : idx}
                   className={clsx(
-                    'px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap',
+                    'px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white/45 whitespace-nowrap',
                     columnWidths?.[idx],
                   )}
                 >
@@ -48,12 +49,12 @@ export function Table({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5 font-medium text-xs text-gray-200">
+          <tbody className="divide-y divide-white/5 font-medium text-xs text-white/80">
             {loading ? (
               ['s-1', 's-2', 's-3', 's-4', 's-5'].map((rowId) => (
                 <tr
                   key={rowId}
-                  className="animate-pulse hover:bg-white/[0.03] transition-colors"
+                  className="animate-pulse hover:bg-white/3 transition-colors"
                 >
                   {headers.map((h) => (
                     <td key={`${rowId}-${h}`} className="px-3 py-4">
@@ -64,24 +65,13 @@ export function Table({
               ))
             ) : isEmpty ? (
               <tr>
-                <td colSpan={headers.length} className="py-20">
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col items-center gap-3 text-gray-500"
-                  >
-                    <div className="w-14 h-14 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center text-gray-400">
-                      <Ghost size={28} />
-                    </div>
-                    <div className="text-center">
-                      <p className="font-semibold text-white text-sm mb-1">
-                        {t('admin.table.empty_title')}
-                      </p>
-                      <p className="text-xs text-gray-400 max-w-xs">
-                        {t('admin.table.empty_description')}
-                      </p>
-                    </div>
-                  </motion.div>
+                <td colSpan={headers.length} className="py-8 px-3">
+                  <AdminEmptyState
+                    icon={Ghost}
+                    title={t('admin.table.empty_title')}
+                    description={t('admin.table.empty_description')}
+                    compact
+                  />
                 </td>
               </tr>
             ) : (
@@ -105,7 +95,7 @@ const STATUS_STYLES: Record<
     icon: Clock,
   },
   valid: {
-    className: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+    className: 'text-brand-blue bg-brand-blue/10 border-brand-blue/20',
     icon: CheckCircle,
   },
   resolved: {
@@ -113,7 +103,7 @@ const STATUS_STYLES: Record<
     icon: CheckCircle,
   },
   dismissed: {
-    className: 'text-gray-400 bg-gray-400/10 border-gray-400/20',
+    className: 'text-white/45 bg-white/5 border-white/10',
     icon: CheckCircle,
   },
   active: {
