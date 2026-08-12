@@ -32,6 +32,19 @@ export const refreshTokenCookieOptions: CookieOptions = {
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
+/** Admin Panel admin cookies — host-only on admin.circlesfera.com */
+export const ADMIN_ACCESS_TOKEN_COOKIE = 'admin_access_token';
+export const adminAccessTokenCookieOptions: CookieOptions = {
+  ...baseCookieOptions,
+  maxAge: 10 * 60 * 1000, // 10 minutes
+};
+
+export const ADMIN_REFRESH_TOKEN_COOKIE = 'admin_refresh_token';
+export const adminRefreshTokenCookieOptions: CookieOptions = {
+  ...baseCookieOptions,
+  maxAge: 8 * 60 * 60 * 1000, // 8 hours
+};
+
 /** Options to clear cookies (used on logout). */
 export const clearCookieOptions: CookieOptions = {
   ...baseCookieOptions,

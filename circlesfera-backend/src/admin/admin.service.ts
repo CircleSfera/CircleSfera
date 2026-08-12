@@ -3,6 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { AdminAction } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 
 @Injectable()
 export class AdminService {
@@ -10,6 +11,8 @@ export class AdminService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
     @InjectQueue('analytics-processing') private readonly analyticsQueue: Queue,
+    @Inject(SystemSettingsService)
+    private readonly systemSettings: SystemSettingsService,
   ) {}
 
   /** Log every admin action for accountability. */
@@ -98,7 +101,7 @@ export class AdminService {
   // ─── System Settings ─────────────────────────────────────────────
 
   async getSystemSettings() {
-    return this.prisma.systemSetting.findMany();
+    return this.systemSettings.list();
   }
 
   async updateSystemSettings(adminId: string, updates: any[]) {
@@ -118,6 +121,8 @@ export class AdminService {
       });
       count++;
     }
+
+    await this.systemSettings.invalidateAll();
 
     await this.logAction(
       adminId,

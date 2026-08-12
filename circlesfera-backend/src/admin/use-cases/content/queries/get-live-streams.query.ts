@@ -6,11 +6,14 @@ import { PrismaService } from '../../../../prisma/prisma.service.js';
 export class GetLiveStreamsQuery {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async execute(page = 1, limit = 20, status?: string) {
+  async execute(page = 1, limit = 20, status?: string, userId?: string) {
     const skip = (page - 1) * limit;
     const where: Prisma.LiveStreamWhereInput = {};
     if (status && ['LIVE', 'ENDED'].includes(status)) {
       where.status = status as $Enums.LiveStatus;
+    }
+    if (userId) {
+      where.hostId = userId;
     }
 
     const [data, total] = await Promise.all([

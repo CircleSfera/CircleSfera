@@ -219,15 +219,15 @@ async function main() {
       },
     });
 
-    // 2. Cuentas Core
+    // 2. Cuentas Core (platform users — Admin Panel uses AdminIdentity)
     console.log('👤 Creando Cuentas Administradoras...');
     const adminUser = await prisma.user.upsert({
       where: { email: 'admin@circlesfera.com' },
-      update: {},
+      update: { role: 'USER' },
       create: {
         email: 'admin@circlesfera.com',
         password: hashedPassword,
-        role: 'ADMIN',
+        role: 'USER',
         accountType: 'BUSINESS',
         verificationLevel: 'BUSINESS',
         profile: {
@@ -247,11 +247,11 @@ async function main() {
 
     const feliuUser = await prisma.user.upsert({
       where: { email: 'easyfeliu@gmail.com' },
-      update: {},
+      update: { role: 'USER' },
       create: {
         email: 'easyfeliu@gmail.com',
         password: hashedPassword,
-        role: 'ADMIN',
+        role: 'USER',
         accountType: 'CREATOR',
         verificationLevel: 'VERIFIED',
         profile: {
@@ -268,6 +268,71 @@ async function main() {
       },
       include: { profile: true },
     });
+
+    // Admin Panel operators (separate from platform User.role).
+    // Do NOT overwrite totpSecret/totpEnabled on existing rows — that invalidates Authenticator apps.
+    // Optional CI only: ADMIN_E2E_FORCE_TOTP=1 seeds admin@circlesfera.com with ADMIN_E2E_TOTP_SECRET.
+    const forceE2eTotp = process.env.ADMIN_E2E_FORCE_TOTP === '1';
+    const adminE2eTotpSecret =
+      process.env.ADMIN_E2E_TOTP_SECRET || 'GK3L6YHMZSMTIZMLWAX3DJBYBOENFNJV';
+    console.log('🔐 Creando AdminIdentity (Admin Panel)...');
+    for (const [email, displayName, userId] of [
+      ['admin@circlesfera.com', 'CircleSfera Ops', adminUser.id],
+      ['easyfeliu@gmail.com', 'Luis Feliu', feliuUser.id],
+    ] as const) {
+      const isE2eAdmin = email === 'admin@circlesfera.com';
+      const seedFixedTotp = forceE2eTotp && isE2eAdmin;
+      const existing = await prisma.adminIdentity.findUnique({
+        where: { email },
+      });
+      if (!existing) {
+        const admin = await prisma.adminIdentity.create({
+          data: {
+            email,
+            passwordHash: hashedPassword,
+            displayName,
+            status: 'ACTIVE',
+            mfaRequired: true,
+            totpEnabled: seedFixedTotp,
+            totpSecret: seedFixedTotp ? adminE2eTotpSecret : null,
+            linkedUserId: userId,
+            roles: { create: [{ roleId: 'arole_super' }] },
+          },
+        });
+        console.log(`  AdminIdentity ${admin.email} (SUPER_ADMIN)`);
+        if (seedFixedTotp) {
+          console.log(
+            `  E2E MFA pre-enrolled (ADMIN_E2E_FORCE_TOTP=1). Secret for Playwright only.`,
+          );
+        } else {
+          console.log(`  MFA enrollment pending on first Admin Panel login.`);
+        }
+      } else {
+        await prisma.adminIdentity.update({
+          where: { email },
+          data: {
+            passwordHash: hashedPassword,
+            linkedUserId: userId,
+            status: 'ACTIVE',
+            // Only when explicitly forced for CI — never clobber a human Authenticator enrollment.
+            ...(seedFixedTotp
+              ? {
+                  totpEnabled: true,
+                  totpSecret: adminE2eTotpSecret,
+                  mfaRequired: true,
+                }
+              : {}),
+          },
+        });
+        await prisma.adminIdentityRole.upsert({
+          where: {
+            adminId_roleId: { adminId: existing.id, roleId: 'arole_super' },
+          },
+          create: { adminId: existing.id, roleId: 'arole_super' },
+          update: {},
+        });
+      }
+    }
 
     // 3. Crear Usuarios Ficticios
     console.log('👥 Creando Ecosistema de Creadores...');
@@ -419,6 +484,47 @@ async function main() {
     console.log(
       '✅ Sembrado Finalizado con Éxito. ¡El frontend ahora lucirá espectacular!',
     );
+
+    const systemSettingDefaults = [
+      {
+        key: 'maintenance_mode',
+        value: 'false',
+        description:
+          'When enabled, the consumer API returns 503 except health, CSRF, webhooks and Admin Panel routes.',
+      },
+      {
+        key: 'registration_open',
+        value: 'true',
+        description: 'Allow new user registration on the platform.',
+      },
+      {
+        key: 'require_invite_code',
+        value: 'false',
+        description: 'Require a valid invite code to register.',
+      },
+      {
+        key: 'content_posting_enabled',
+        value: 'true',
+        description: 'Allow creating posts and stories.',
+      },
+      {
+        key: 'live_streams_enabled',
+        value: 'true',
+        description: 'Allow starting live streams.',
+      },
+    ];
+
+    for (const setting of systemSettingDefaults) {
+      await prisma.systemSetting.upsert({
+        where: { key: setting.key },
+        update: { description: setting.description },
+        create: {
+          ...setting,
+          updatedBy: 'seed',
+        },
+      });
+    }
+    console.log('✅ System settings defaults seeded');
   } catch (err) {
     console.error('❌ Error en el sembrado de datos:', err);
   } finally {

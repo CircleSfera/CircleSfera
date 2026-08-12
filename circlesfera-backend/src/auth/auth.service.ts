@@ -15,6 +15,8 @@ import * as bcrypt from 'bcrypt';
 import type { Queue } from 'bullmq';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import type {
   LoginDto,
   RefreshTokenDto,
@@ -38,6 +40,8 @@ export class AuthService {
     @Inject(ConfigService) private readonly configService: ConfigService,
     @Inject(EmailService) private readonly emailService: EmailService,
     @InjectQueue('users-processing') private readonly usersQueue: Queue,
+    @Inject(SystemSettingsService)
+    private readonly systemSettings: SystemSettingsService,
   ) {}
 
   /**
@@ -51,6 +55,20 @@ export class AuthService {
   async register(
     dto: RegisterDto,
   ): Promise<{ accessToken: string; refreshToken: string }> {
+    const registrationOpen = await this.systemSettings.isEnabled(
+      SYSTEM_SETTING_KEYS.REGISTRATION_OPEN,
+    );
+    if (!registrationOpen) {
+      throw new BadRequestException(ApiErrorCode.REGISTRATION_CLOSED);
+    }
+
+    const requireInvite = await this.systemSettings.isEnabled(
+      SYSTEM_SETTING_KEYS.REQUIRE_INVITE_CODE,
+    );
+    if (requireInvite && !dto.inviteCode?.trim()) {
+      throw new BadRequestException(ApiErrorCode.INVITE_CODE_REQUIRED);
+    }
+
     const dateOfBirth = new Date(dto.dateOfBirth);
     if (Number.isNaN(dateOfBirth.getTime())) {
       throw new BadRequestException('Invalid date of birth');

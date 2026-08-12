@@ -1,12 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { $Enums, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 
 @Injectable()
 export class GetPostsQuery {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async execute(page = 1, limit = 10, search?: string, type?: string) {
+  async execute(
+    page = 1,
+    limit = 10,
+    search?: string,
+    type?: string,
+    userId?: string,
+    moderationStatus?: string,
+  ) {
     const skip = (page - 1) * limit;
     const where: Prisma.PostWhereInput = {};
 
@@ -23,8 +30,19 @@ export class GetPostsQuery {
       ];
     }
 
+    if (userId) {
+      where.userId = userId;
+    }
+
     if (type === 'POST' || type === 'FRAME') {
       where.type = type;
+    }
+
+    if (
+      moderationStatus &&
+      ['VISIBLE', 'FLAGGED', 'HIDDEN', 'REMOVED'].includes(moderationStatus)
+    ) {
+      where.moderationStatus = moderationStatus as $Enums.ModerationStatus;
     }
 
     const [posts, total] = await Promise.all([

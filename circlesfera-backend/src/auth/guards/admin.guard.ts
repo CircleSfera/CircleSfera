@@ -4,11 +4,12 @@ import {
   ForbiddenException,
   Injectable,
   SetMetadata,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import type { CurrentUserData } from '../decorators/current-user.decorator.js';
+import type { CurrentAdminData } from '../decorators/current-admin.decorator.js';
 
-/** Permission scopes for staff (ADMIN has all; MODERATOR has a subset). */
+/** Permission scopes for Admin Panel staff (loaded from AdminPermission.key). */
 export type StaffPermission =
   | 'reports'
   | 'appeals'
@@ -22,60 +23,33 @@ export type StaffPermission =
   | 'support'
   | 'audit'
   | 'live'
-  | 'content';
+  | 'content'
+  | 'admins.manage';
 
 export const STAFF_PERMISSIONS_KEY = 'staff_permissions';
+export const ADMIN_STEP_UP_KEY = 'admin_step_up';
 
-/** Require one of the listed permissions (ADMIN always passes). */
+/** Require one of the listed permissions (SUPER_ADMIN / all permissions pass). */
 export const RequireStaffPermissions = (...permissions: StaffPermission[]) =>
   SetMetadata(STAFF_PERMISSIONS_KEY, permissions);
 
-const MODERATOR_PERMISSIONS: ReadonlySet<StaffPermission> = new Set([
-  'reports',
-  'appeals',
-  'moderation',
-  'users.read',
-  'users.ban',
-  'support',
-  'audit',
-  'live',
-  'content',
-]);
+/** Require recent step-up re-auth (password or MFA) for critical mutations. */
+export const RequireAdminStepUp = () => SetMetadata(ADMIN_STEP_UP_KEY, true);
 
-const SUPPORT_PERMISSIONS: ReadonlySet<StaffPermission> = new Set([
-  'support',
-  'appeals',
-  'users.read',
-]);
-
-const FINANCE_PERMISSIONS: ReadonlySet<StaffPermission> = new Set([
-  'payments',
-  'users.read',
-]);
-
-const ROLE_PERMISSIONS: Record<string, ReadonlySet<StaffPermission>> = {
-  MODERATOR: MODERATOR_PERMISSIONS,
-  SUPPORT: SUPPORT_PERMISSIONS,
-  FINANCE: FINANCE_PERMISSIONS,
-};
-
+/**
+ * Authorizes Admin Panel operators after AdminJwtAuthGuard.
+ * Permissions come from AdminIdentity roles in the DB.
+ */
 @Injectable()
 export class AdminGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    const user = request.user as CurrentUserData | undefined;
+    const admin = request.user as CurrentAdminData | undefined;
 
-    if (
-      !user ||
-      !['ADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE'].includes(user.role)
-    ) {
+    if (!admin?.adminId || !Array.isArray(admin.permissions)) {
       throw new ForbiddenException('Staff access required');
-    }
-
-    if (user.role === 'ADMIN') {
-      return true;
     }
 
     const required =
@@ -86,20 +60,34 @@ export class AdminGuard implements CanActivate {
 
     if (required.length === 0) {
       throw new ForbiddenException(
-        'Explicit permissions required for non-admin',
+        'Explicit permissions required for staff routes',
       );
     }
 
-    const userPermissions = ROLE_PERMISSIONS[user.role];
-    if (!userPermissions) {
-      throw new ForbiddenException('Invalid staff role');
+    const permissionSet = new Set(admin.permissions);
+    // SUPER_ADMIN / full grant: presence of admins.manage implies all, or explicit *
+    const hasAll =
+      permissionSet.has('admins.manage') ||
+      admin.roles?.includes('SUPER_ADMIN');
+
+    if (!hasAll) {
+      const missing = required.filter((p) => !permissionSet.has(p));
+      if (missing.length > 0) {
+        throw new ForbiddenException(
+          `Access denied for: ${missing.join(', ')}`,
+        );
+      }
     }
 
-    const missing = required.filter((p) => !userPermissions.has(p));
-    if (missing.length > 0) {
-      throw new ForbiddenException(
-        `${user.role} access denied for: ${missing.join(', ')}`,
-      );
+    const needsStepUp = this.reflector.getAllAndOverride<boolean>(
+      ADMIN_STEP_UP_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    if (needsStepUp && !admin.stepUpVerified) {
+      throw new UnauthorizedException({
+        message: 'ADMIN_STEP_UP_REQUIRED',
+        code: 'ADMIN_STEP_UP_REQUIRED',
+      });
     }
 
     return true;

@@ -18,7 +18,7 @@ import {
   AdminGuard,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
 import { DeleteCommentUseCase } from './use-cases/content/commands/delete-comment.use-case.js';
 import { DeletePostUseCase } from './use-cases/content/commands/delete-post.use-case.js';
@@ -39,7 +39,7 @@ interface AuthRequest extends Request {
 }
 
 @Controller('admin')
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(AdminJwtAuthGuard, AdminGuard)
 export class AdminContentController {
   constructor(
     @Inject(GetPostsQuery) private readonly getPostsQuery: GetPostsQuery,
@@ -87,6 +87,8 @@ export class AdminContentController {
       query.limit ?? 10,
       query.search,
       query.type,
+      query.userId,
+      query.moderationStatus,
     );
   }
 
@@ -104,6 +106,7 @@ export class AdminContentController {
       query.limit ?? 10,
       query.search,
       query.status,
+      query.userId,
     );
   }
 
@@ -173,6 +176,8 @@ export class AdminContentController {
       query.page ?? 1,
       query.limit ?? 10,
       query.search,
+      query.userId,
+      query.moderationStatus,
     );
   }
 
@@ -188,6 +193,7 @@ export class AdminContentController {
     return this.getContentQuery.getStories(query.page ?? 1, query.limit ?? 10, {
       moderationStatus: query.moderationStatus,
       expired: query.expired,
+      userId: query.userId,
     });
   }
 
@@ -266,6 +272,7 @@ export class AdminContentController {
       query.page ?? 1,
       query.limit ?? 20,
       query.status,
+      query.userId,
     );
   }
 

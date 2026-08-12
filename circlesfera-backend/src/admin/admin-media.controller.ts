@@ -19,7 +19,7 @@ import {
   AdminGuard,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminService } from './admin.service.js';
 
 interface AuthRequest extends Request {
@@ -27,7 +27,7 @@ interface AuthRequest extends Request {
 }
 
 @Controller('admin')
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(AdminJwtAuthGuard, AdminGuard)
 export class AdminMediaController {
   constructor(
     @Inject(AudioService) private readonly audioService: AudioService,

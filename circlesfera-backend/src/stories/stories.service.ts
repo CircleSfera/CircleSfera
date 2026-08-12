@@ -1,6 +1,7 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,
+  ForbiddenException,
   Inject,
   Injectable,
   Logger,
@@ -20,6 +21,8 @@ import {
   MIN_PPV_PRICE_CENTS,
 } from '../common/constants/monetization.constants.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { CreateStoryDto } from './dto/create-story.dto.js';
 
@@ -42,6 +45,8 @@ export class StoriesService {
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
     @Inject(UploadsService) private readonly uploadsService: UploadsService,
     private readonly eventEmitter: EventEmitter2,
+    @Inject(SystemSettingsService)
+    private readonly systemSettings: SystemSettingsService,
   ) {}
 
   /**
@@ -50,6 +55,13 @@ export class StoriesService {
    * @param dto - Story data (url, mediaType, isCloseFriendsOnly, audioId)
    */
   async create(userId: string, dto: CreateStoryDto) {
+    const postingEnabled = await this.systemSettings.isEnabled(
+      SYSTEM_SETTING_KEYS.CONTENT_POSTING_ENABLED,
+    );
+    if (!postingEnabled) {
+      throw new ForbiddenException('CONTENT_POSTING_DISABLED');
+    }
+
     if (dto.isPremium) {
       if (
         !dto.priceCents ||

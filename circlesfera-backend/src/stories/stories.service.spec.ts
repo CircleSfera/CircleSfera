@@ -3,6 +3,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import type { Story } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import type { CreateStoryDto } from './dto/create-story.dto.js';
 import { StoriesService } from './stories.service.js';
@@ -54,6 +55,10 @@ describe('StoriesService', () => {
         { provide: 'BullQueue_ai-processing', useValue: { add: vi.fn() } },
         { provide: UploadsService, useValue: { deleteFile: vi.fn() } },
         { provide: EventEmitter2, useValue: { emit: vi.fn() } },
+        {
+          provide: SystemSettingsService,
+          useValue: { isEnabled: vi.fn(async () => true) },
+        },
       ],
     }).compile();
 

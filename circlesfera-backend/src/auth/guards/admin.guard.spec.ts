@@ -1,85 +1,95 @@
-import { ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentUserData } from '../decorators/current-user.decorator.js';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   AdminGuard,
+  RequireStaffPermissions,
   STAFF_PERMISSIONS_KEY,
-  type StaffPermission,
 } from './admin.guard.js';
 
-function mockContext(
-  user: CurrentUserData | undefined,
-  required: StaffPermission[] | undefined = undefined,
-) {
-  const reflector = {
-    getAllAndOverride: vi.fn().mockReturnValue(required ?? []),
-  } as unknown as Reflector;
+describe('AdminGuard (Admin Panel RBAC)', () => {
+  let guard: AdminGuard;
+  let reflector: Reflector;
 
-  const guard = new AdminGuard(reflector);
-  const context = {
-    switchToHttp: () => ({
-      getRequest: () => ({ user }),
-    }),
-    getHandler: () => ({}),
-    getClass: () => ({}),
-  } as unknown as Parameters<AdminGuard['canActivate']>[0];
-
-  return { guard, context, reflector };
-}
-
-describe('AdminGuard', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    reflector = new Reflector();
+    guard = new AdminGuard(reflector);
   });
 
-  it('allows ADMIN regardless of required permissions', () => {
-    const { guard, context } = mockContext(
-      { userId: '1', email: 'a@test.com', role: 'ADMIN' },
-      ['system'],
-    );
-    expect(guard.canActivate(context)).toBe(true);
+  const ctx = (user: unknown, required?: string[]) => {
+    const handler = required
+      ? RequireStaffPermissions(...(required as any))
+      : () => undefined;
+    // Apply metadata via Reflector pattern used by Nest
+    if (required) {
+      Reflect.defineMetadata(STAFF_PERMISSIONS_KEY, required, handler);
+    }
+    return {
+      switchToHttp: () => ({
+        getRequest: () => ({ user }),
+      }),
+      getHandler: () => handler,
+      getClass: () => class {},
+    } as any;
+  };
+
+  it('denies missing admin session', () => {
+    expect(() => guard.canActivate(ctx(undefined))).toThrow(/Staff access/);
   });
 
-  it('allows MODERATOR when required permissions are in the moderator set', () => {
-    const { guard, context, reflector } = mockContext(
-      { userId: '2', email: 'm@test.com', role: 'MODERATOR' },
-      ['reports', 'moderation'],
-    );
-    expect(guard.canActivate(context)).toBe(true);
-    expect(reflector.getAllAndOverride).toHaveBeenCalledWith(
-      STAFF_PERMISSIONS_KEY,
-      expect.any(Array),
-    );
+  it('denies when no permissions declared on route', () => {
+    expect(() =>
+      guard.canActivate(
+        ctx({
+          adminId: 'a1',
+          permissions: ['users.read'],
+          roles: ['SUPPORT_ADMIN'],
+        }),
+      ),
+    ).toThrow(/Explicit permissions/);
   });
 
-  it('denies MODERATOR when route has no explicit permissions (deny-by-default)', () => {
-    const { guard, context } = mockContext(
-      { userId: '2', email: 'm@test.com', role: 'MODERATOR' },
-      [],
-    );
-    expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+  it('allows SUPER_ADMIN for any required permission', () => {
+    expect(
+      guard.canActivate(
+        ctx(
+          {
+            adminId: 'a1',
+            permissions: ['admins.manage', 'users.read'],
+            roles: ['SUPER_ADMIN'],
+          },
+          ['system'],
+        ),
+      ),
+    ).toBe(true);
   });
 
-  it('denies MODERATOR for permissions outside the moderator set', () => {
-    const { guard, context } = mockContext(
-      { userId: '2', email: 'm@test.com', role: 'MODERATOR' },
-      ['payments', 'system'],
-    );
-    expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+  it('allows when permission present', () => {
+    expect(
+      guard.canActivate(
+        ctx(
+          {
+            adminId: 'a1',
+            permissions: ['users.read', 'support'],
+            roles: ['SUPPORT_ADMIN'],
+          },
+          ['users.read'],
+        ),
+      ),
+    ).toBe(true);
   });
 
-  it('denies USER', () => {
-    const { guard, context } = mockContext({
-      userId: '3',
-      email: 'u@test.com',
-      role: 'USER',
-    });
-    expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
-  });
-
-  it('denies unauthenticated requests', () => {
-    const { guard, context } = mockContext(undefined);
-    expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+  it('denies when permission missing', () => {
+    expect(() =>
+      guard.canActivate(
+        ctx(
+          {
+            adminId: 'a1',
+            permissions: ['support'],
+            roles: ['SUPPORT_ADMIN'],
+          },
+          ['payments'],
+        ),
+      ),
+    ).toThrow(/Access denied/);
   });
 });

@@ -19,6 +19,7 @@ import {
   AdminGuard,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
+import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { DataExportService } from './data-export.service.js';
 
@@ -27,7 +28,6 @@ import { UsersService } from './users.service.js';
 
 /** REST controller for user management and follow suggestions. */
 @Controller('users')
-@UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(
     @Inject(UsersService) private readonly usersService: UsersService,
@@ -37,6 +37,7 @@ export class UsersController {
 
   /** Get suggested users to follow based on popularity. */
   @Get('suggestions')
+  @UseGuards(JwtAuthGuard)
   async getSuggestions(
     @CurrentUser() user: CurrentUserData,
     @Query('limit') limit?: string,
@@ -48,7 +49,7 @@ export class UsersController {
   }
   /** Ban a user (admin only). */
   @Patch(':id/ban')
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('users.ban')
   async banUser(@Param('id') id: string) {
     return this.usersService.banUser(id);
@@ -56,7 +57,7 @@ export class UsersController {
 
   /** Unban a user (admin only). */
   @Patch(':id/unban')
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('users.ban')
   async unbanUser(@Param('id') id: string) {
     return this.usersService.unbanUser(id);
@@ -64,18 +65,21 @@ export class UsersController {
 
   /** GDPR: Request Data Export (.zip). */
   @Get('gdpr/export')
+  @UseGuards(JwtAuthGuard)
   async requestDataExport(@CurrentUser() user: CurrentUserData) {
     return this.dataExportService.requestDataExport(user.userId);
   }
 
   /** GDPR: Get Data Export History. */
   @Get('gdpr/exports')
+  @UseGuards(JwtAuthGuard)
   async getExportHistory(@CurrentUser() user: CurrentUserData) {
     return this.dataExportService.getExportHistory(user.userId);
   }
 
   /** GDPR: Full account deletion (irreversible). */
   @Delete('gdpr/account')
+  @UseGuards(JwtAuthGuard)
   async deleteAccount(@CurrentUser() user: CurrentUserData) {
     await this.usersService.deleteUser(user.userId);
     return { message: 'Account deleted successfully' };
@@ -83,6 +87,7 @@ export class UsersController {
 
   /** DELETE /users/me: Scheduled account deletion (GDPR, 30-day grace). */
   @Delete('me')
+  @UseGuards(JwtAuthGuard)
   async deleteMe(@CurrentUser() user: CurrentUserData) {
     const scheduledDeletionAt = await this.usersService.scheduleDeletion(
       user.userId,
@@ -96,18 +101,21 @@ export class UsersController {
 
   /** POST /users/me/restore: Cancel scheduled deletion within the grace window. */
   @Post('me/restore')
+  @UseGuards(JwtAuthGuard)
   async restoreMe(@CurrentUser() user: CurrentUserData) {
     return this.usersService.cancelScheduledDeletion(user.userId);
   }
 
   /** Get user settings. */
   @Get('me/settings')
+  @UseGuards(JwtAuthGuard)
   async getSettings(@CurrentUser() user: CurrentUserData) {
     return this.usersService.getSettings(user.userId);
   }
 
   /** Update user settings. */
   @Put('me/settings')
+  @UseGuards(JwtAuthGuard)
   async updateSettings(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: UpdateSettingsDto,
@@ -118,6 +126,7 @@ export class UsersController {
   // --- Identity Verification ---
 
   @Post('identity-session')
+  @UseGuards(JwtAuthGuard)
   async createIdentitySession(
     @CurrentUser() user: CurrentUserData,
     @Body() body: { returnUrl?: string },
@@ -130,6 +139,7 @@ export class UsersController {
   }
 
   @Post('identity-session/sync')
+  @UseGuards(JwtAuthGuard)
   async syncIdentitySession(
     @CurrentUser() user: CurrentUserData,
   ): Promise<{ status: string }> {

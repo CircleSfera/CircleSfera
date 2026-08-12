@@ -18,6 +18,7 @@ import {
   AdminGuard,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
+import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { CheckoutDto } from './dto/checkout.dto.js';
@@ -75,7 +76,7 @@ export class PaymentsController {
   }
 
   @Get('admin/ledger')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('payments')
   @Header('Content-Type', 'text/csv')
   @Header('Content-Disposition', 'attachment; filename="full-ledger.csv"')

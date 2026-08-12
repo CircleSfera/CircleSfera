@@ -1,5 +1,11 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { AdminAction, NotificationType, Prisma, Role } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { EmailService } from '../email/email.service.js';
@@ -43,9 +49,19 @@ export class AdminUsersService {
     targetType: string,
     targetId: string,
     details?: string,
+    meta?: { ipAddress?: string; userAgent?: string; requestId?: string },
   ) {
     await this.prisma.adminAuditLog.create({
-      data: { adminId, action, targetType, targetId, details },
+      data: {
+        adminId,
+        action,
+        targetType,
+        targetId,
+        details,
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+        requestId: meta?.requestId,
+      },
     });
   }
 
@@ -204,17 +220,95 @@ export class AdminUsersService {
     return result;
   }
 
+  /**
+   * @deprecated Platform User.role no longer grants Admin Panel access.
+   * Creates/activates a linked AdminIdentity with SUPER_ADMIN.
+   */
   async promoteUser(adminId: string, userId: string) {
-    const result = await this.prisma.user.update({
-      where: { id: userId },
-      data: { role: 'ADMIN' },
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const existing = await this.prisma.adminIdentity.findUnique({
+      where: { email: user.email },
     });
-    await this.logAction(adminId, AdminAction.PROMOTE_USER, 'user', userId);
+
+    let identityId: string;
+    if (existing) {
+      await this.prisma.adminIdentity.update({
+        where: { id: existing.id },
+        data: {
+          status: 'ACTIVE',
+          linkedUserId: user.id,
+        },
+      });
+      await this.prisma.adminIdentityRole.upsert({
+        where: {
+          adminId_roleId: { adminId: existing.id, roleId: 'arole_super' },
+        },
+        create: { adminId: existing.id, roleId: 'arole_super' },
+        update: {},
+      });
+      identityId = existing.id;
+    } else {
+      const created = await this.prisma.adminIdentity.create({
+        data: {
+          email: user.email,
+          passwordHash: '$2b$10$AdminPanel.ResetRequired.placeholderXXXXX',
+          displayName: user.email.split('@')[0],
+          status: 'ACTIVE',
+          mfaRequired: true,
+          linkedUserId: user.id,
+          roles: { create: [{ roleId: 'arole_super' }] },
+        },
+      });
+      identityId = created.id;
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { role: 'USER' },
+    });
+
+    await this.logAction(
+      adminId,
+      AdminAction.ADMIN_IDENTITY_CREATED,
+      'admin',
+      identityId,
+      `Linked from platform user ${userId}; password must be set via bootstrap-admin`,
+    );
     await this.invalidateProfileCache(userId);
-    return result;
+    return { adminIdentityId: identityId, email: user.email };
   }
 
+  /** Disables linked AdminIdentity for a platform user. */
   async demoteUser(adminId: string, userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const identity = await this.prisma.adminIdentity.findFirst({
+      where: { OR: [{ linkedUserId: userId }, { email: user.email }] },
+    });
+
+    if (identity) {
+      await this.prisma.adminIdentity.update({
+        where: { id: identity.id },
+        data: { status: 'DISABLED' },
+      });
+      await this.prisma.adminRefreshToken.deleteMany({
+        where: { adminId: identity.id },
+      });
+      await this.logAction(
+        adminId,
+        AdminAction.ADMIN_IDENTITY_DISABLED,
+        'admin',
+        identity.id,
+      );
+    }
+
     const result = await this.prisma.user.update({
       where: { id: userId },
       data: { role: 'USER' },
@@ -225,6 +319,11 @@ export class AdminUsersService {
   }
 
   async updateUserRole(adminId: string, userId: string, role: string) {
+    if (['ADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE'].includes(role)) {
+      throw new BadRequestException(
+        'Staff roles on User are deprecated. Use AdminIdentity / bootstrap-admin.',
+      );
+    }
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: { role: role as any },
@@ -406,17 +505,15 @@ export class AdminUsersService {
         profile: true,
         posts: {
           orderBy: { createdAt: 'desc' },
-          take: 5,
+          take: 3,
           select: { id: true, caption: true, createdAt: true, type: true },
-        },
-        reports: {
-          orderBy: { createdAt: 'desc' },
-          take: 5,
-          select: { id: true, reason: true, status: true, createdAt: true },
         },
         _count: {
           select: {
             posts: true,
+            comments: true,
+            stories: true,
+            liveStreams: true,
             followers: true,
             following: true,
           },
@@ -424,7 +521,26 @@ export class AdminUsersService {
       },
     });
 
-    return user;
+    const [reportsAgainst, reportsAgainstCount] = await Promise.all([
+      this.prisma.report.findMany({
+        where: { targetType: 'USER', targetId: userId },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: { id: true, reason: true, status: true, createdAt: true },
+      }),
+      this.prisma.report.count({
+        where: { targetType: 'USER', targetId: userId },
+      }),
+    ]);
+
+    return {
+      ...user,
+      reports: reportsAgainst,
+      _count: {
+        ...user._count,
+        reportsAgainst: reportsAgainstCount,
+      },
+    };
   }
 
   async getWhitelist(page = 1, limit = 10, search?: string) {

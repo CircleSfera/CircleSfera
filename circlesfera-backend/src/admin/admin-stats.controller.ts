@@ -3,12 +3,12 @@ import {
   AdminGuard,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminStatsService } from './admin-stats.service.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
 
 @Controller('admin')
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(AdminJwtAuthGuard, AdminGuard)
 export class AdminStatsController {
   constructor(
     @Inject(AdminStatsService)

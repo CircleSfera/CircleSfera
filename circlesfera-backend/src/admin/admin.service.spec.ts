@@ -1,6 +1,7 @@
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { AdminService } from './admin.service.js';
 
 describe('AdminService', () => {
@@ -19,6 +20,10 @@ describe('AdminService', () => {
             report: { count: async () => 2 },
             $queryRaw: async () => [1],
             webhookEvent: { count: async () => 0 },
+            systemSetting: {
+              findMany: async () => [],
+              upsert: async () => ({}),
+            },
           },
         },
         {
@@ -41,6 +46,13 @@ describe('AdminService', () => {
               failed: 0,
               completed: 0,
             }),
+          },
+        },
+        {
+          provide: SystemSettingsService,
+          useValue: {
+            list: async () => [],
+            invalidateAll: async () => undefined,
           },
         },
       ],

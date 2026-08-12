@@ -27,10 +27,26 @@ export class GetContentQuery {
     };
   }
 
-  async getComments(page = 1, limit = 10, search?: string) {
-    const where: Prisma.CommentWhereInput = search
-      ? { content: { contains: search, mode: 'insensitive' as const } }
-      : {};
+  async getComments(
+    page = 1,
+    limit = 10,
+    search?: string,
+    userId?: string,
+    moderationStatus?: string,
+  ) {
+    const where: Prisma.CommentWhereInput = {};
+    if (search?.trim()) {
+      where.content = { contains: search.trim(), mode: 'insensitive' };
+    }
+    if (userId) {
+      where.userId = userId;
+    }
+    if (
+      moderationStatus &&
+      ['VISIBLE', 'FLAGGED', 'HIDDEN', 'REMOVED'].includes(moderationStatus)
+    ) {
+      where.moderationStatus = moderationStatus as $Enums.ModerationStatus;
+    }
 
     const [data, total] = await Promise.all([
       this.prisma.comment.findMany({
@@ -60,9 +76,13 @@ export class GetContentQuery {
     filters?: {
       moderationStatus?: string;
       expired?: string;
+      userId?: string;
     },
   ) {
     const where: Prisma.StoryWhereInput = {};
+    if (filters?.userId) {
+      where.userId = filters.userId;
+    }
     if (
       filters?.moderationStatus &&
       ['VISIBLE', 'FLAGGED', 'HIDDEN', 'REMOVED'].includes(

@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { NotificationType, type Prisma, Role } from '@prisma/client';
+import { NotificationType, type Prisma } from '@prisma/client';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -140,7 +140,27 @@ export class AppealsService {
       adminId ||
       (
         await this.prisma.user.findFirst({
-          where: { role: { in: [Role.ADMIN, Role.MODERATOR] } },
+          where: {
+            linkedAdminIdentities: {
+              some: {
+                status: 'ACTIVE',
+                roles: {
+                  some: {
+                    role: {
+                      name: {
+                        in: [
+                          'SUPER_ADMIN',
+                          'PLATFORM_ADMIN',
+                          'MODERATION_ADMIN',
+                          'SUPPORT_ADMIN',
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
           select: { id: true },
         })
       )?.id;

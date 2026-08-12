@@ -15,9 +15,10 @@ import {
 import type { Request, Response } from 'express';
 import {
   AdminGuard,
+  RequireAdminStepUp,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminUsersService } from './admin-users.service.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
 import { BroadcastEmailDto } from './dto/broadcast-email.dto.js';
@@ -29,7 +30,7 @@ interface AuthRequest extends Request {
 }
 
 @Controller('admin')
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(AdminJwtAuthGuard, AdminGuard)
 export class AdminUsersController {
   constructor(
     @Inject(AdminUsersService)
@@ -123,6 +124,7 @@ export class AdminUsersController {
   }
 
   @RequireStaffPermissions('users.ban')
+  @RequireAdminStepUp()
   @Delete('users/:id')
   async deleteUser(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.adminUsersService.deleteUser(req.user.userId, id);

@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import type { CreatePostDto } from './dto/create-post.dto.js';
 import { PostsService } from './posts.service.js';
 
@@ -88,6 +89,10 @@ describe('PostsService', () => {
         {
           provide: getQueueToken('feed-fanout'),
           useValue: { add: vi.fn() },
+        },
+        {
+          provide: SystemSettingsService,
+          useValue: { isEnabled: vi.fn(async () => true) },
         },
       ],
     }).compile();

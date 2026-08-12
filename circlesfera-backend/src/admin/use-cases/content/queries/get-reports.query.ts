@@ -10,7 +10,13 @@ type ReportStatus = $Enums.ReportStatus;
 export class GetReportsQuery {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async execute(page = 1, limit = 10, search?: string, status?: string) {
+  async execute(
+    page = 1,
+    limit = 10,
+    search?: string,
+    status?: string,
+    userId?: string,
+  ) {
     const skip = (page - 1) * limit;
     const where: Prisma.ReportWhereInput = {};
 
@@ -19,6 +25,11 @@ export class GetReportsQuery {
       ['PENDING', 'RESOLVED', 'REJECTED', 'REVIEWING'].includes(status)
     ) {
       where.status = status as ReportStatus;
+    }
+
+    if (userId) {
+      where.targetType = 'USER';
+      where.targetId = userId;
     }
 
     if (search) {

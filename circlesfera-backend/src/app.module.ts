@@ -18,6 +18,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { LoggerModule } from 'nestjs-pino';
 import { AdminModule } from './admin/admin.module.js';
+import { AdminAuthModule } from './admin-auth/admin-auth.module.js';
 import { AIModule } from './ai/ai.module.js';
 import { AnalyticsModule } from './analytics/analytics.module.js';
 import { AppController } from './app.controller.js';
@@ -61,6 +62,7 @@ import { SlackModule } from './slack/slack.module.js';
 import { SocketModule } from './socket/socket.module.js';
 import { StoriesModule } from './stories/stories.module.js';
 import { SupportModule } from './support/support.module.js';
+import { SystemSettingsModule } from './system-settings/system-settings.module.js';
 import { UploadsModule } from './uploads/uploads.module.js';
 import { UsersModule } from './users/users.module.js';
 import { WebrtcModule } from './webrtc/webrtc.module.js';
@@ -90,6 +92,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
     RedisCacheModule,
+    SystemSettingsModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -129,6 +132,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     }),
     PrismaModule,
     AuthModule,
+    AdminAuthModule,
     ProfilesModule,
     PostsModule,
     CommentsModule,

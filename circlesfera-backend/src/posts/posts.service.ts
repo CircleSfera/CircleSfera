@@ -27,6 +27,8 @@ import {
   type PaginationDto,
 } from '../common/dto/pagination.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
 
@@ -47,6 +49,8 @@ export class PostsService {
     private readonly analyticsService: AnalyticsService,
     @InjectQueue('feed-fanout') private readonly feedFanoutQueue: Queue,
     @Inject(AIService) private readonly aiService: AIService,
+    @Inject(SystemSettingsService)
+    private readonly systemSettings: SystemSettingsService,
   ) {}
 
   /**
@@ -58,6 +62,13 @@ export class PostsService {
    * @returns The created post with user profile and engagement counts
    */
   async create(userId: string, dto: CreatePostDto) {
+    const postingEnabled = await this.systemSettings.isEnabled(
+      SYSTEM_SETTING_KEYS.CONTENT_POSTING_ENABLED,
+    );
+    if (!postingEnabled) {
+      throw new ForbiddenException('CONTENT_POSTING_DISABLED');
+    }
+
     // Extract hashtags and mentions
     // Extract hashtags and mentions with ReDoS-safe, robust patterns
     // Using word boundaries and excluding URLs/emails to avoid false positives
