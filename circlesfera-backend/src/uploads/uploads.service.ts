@@ -1,5 +1,6 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import type { Queue } from 'bullmq';
 import {
   STORAGE_PROVIDER,
@@ -100,7 +101,31 @@ export class UploadsService {
    * Delete a file from the storage provider by its URL.
    * @param url - The file URL to delete
    */
-  async deleteFile(url: string): Promise<void> {
-    return this.storageProvider.delete(url);
+  async deleteFile(fileUrl: string): Promise<void> {
+    await this.storageProvider.delete(fileUrl);
+  }
+
+  @OnEvent('media.delete_batch', { async: true })
+  async handleMediaDeleteBatch(payload: { mediaUrls: string[] }) {
+    this.logger.log(
+      `Processing media.delete_batch for ${payload.mediaUrls.length} files...`,
+    );
+
+    // We intentionally don't await this so it runs completely in the background,
+    // though the 'async: true' flag in @OnEvent already helps with this.
+    Promise.allSettled(
+      payload.mediaUrls.map((url) => this.deleteFile(url)),
+    ).then((results) => {
+      const failures = results.filter((r) => r.status === 'rejected');
+      if (failures.length > 0) {
+        this.logger.warn(
+          `Failed to delete ${failures.length} media files during batch deletion.`,
+        );
+      } else {
+        this.logger.log(
+          `Successfully deleted all ${payload.mediaUrls.length} media files.`,
+        );
+      }
+    });
   }
 }

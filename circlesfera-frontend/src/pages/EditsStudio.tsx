@@ -1,39 +1,36 @@
 import {
-  Music,
-  Plus,
+  Layers,
   Scissors,
+  SlidersHorizontal,
   Trash2,
-  Type,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 import PropertiesPanel from '../components/studio/layout/PropertiesPanel';
 import StudioPlaybackControls from '../components/studio/layout/StudioPlaybackControls';
+import StudioSidebar from '../components/studio/layout/StudioSidebar';
 import StudioTopbar from '../components/studio/layout/StudioTopbar';
 import DraftsModal from '../components/studio/modals/DraftsModal';
 import ExportModal from '../components/studio/modals/ExportModal';
 import StudioPlayer from '../components/studio/StudioPlayer';
 import Timeline from '../components/studio/Timeline';
 import { useStudioStore } from '../stores/studioStore';
-import type { MediaClip, StudioProject, TextClip } from '../types/studio';
+import type { MediaClip, StudioProject } from '../types/studio';
 import { exportStudioProject } from '../utils/ffmpegExport';
 
-const generateId = () => {
-  return typeof crypto !== 'undefined' && crypto.randomUUID
+const generateId = () =>
+  typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
     : Math.random().toString(36).substring(2);
-};
 
 export default function Studio() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const audioInputRef = useRef<HTMLInputElement>(null);
 
   const {
     project,
@@ -45,12 +42,18 @@ export default function Studio() {
     zoom,
     setZoom,
     playhead,
+    togglePlayback,
+    undo,
+    redo,
   } = useStudioStore();
 
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportedBlob, setExportedBlob] = useState<Blob | null>(null);
   const [showDraftsModal, setShowDraftsModal] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'tools' | 'player' | 'properties'>(
+    'player',
+  );
 
   const selectedClip = project?.tracks
     .flatMap((t) => t.clips)
@@ -61,15 +64,34 @@ export default function Studio() {
     if (!project) {
       const newProject: StudioProject = {
         id: generateId(),
-        name: t('studio.default_project_name'),
+        name: t('studio.default_project_name') || 'Mi Vídeo Studio',
         duration: 10,
         fps: 30,
+        aspectRatio: '9:16',
         resolution: { width: 1080, height: 1920 },
         tracks: [
           {
             id: generateId(),
             type: 'video',
-            name: t('studio.default_track_name'),
+            name: 'Pista de Vídeo',
+            clips: [],
+            muted: false,
+            hidden: false,
+            locked: false,
+          },
+          {
+            id: generateId(),
+            type: 'text',
+            name: 'Pista de Texto',
+            clips: [],
+            muted: false,
+            hidden: false,
+            locked: false,
+          },
+          {
+            id: generateId(),
+            type: 'audio',
+            name: 'Pista de Audio',
             clips: [],
             muted: false,
             hidden: false,
@@ -83,14 +105,67 @@ export default function Studio() {
     }
   }, [project, setProject, t]);
 
-  const handleAddMedia = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0 || !project) return;
+  // Keyboard Shortcuts Handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger when typing in inputs/textareas
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
 
-    const file = e.target.files[0];
+      // Space -> Toggle Playback
+      if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlayback();
+      }
+      // Cmd+Z / Ctrl+Z -> Undo
+      else if (
+        (e.metaKey || e.ctrlKey) &&
+        !e.shiftKey &&
+        e.key.toLowerCase() === 'z'
+      ) {
+        e.preventDefault();
+        undo();
+      }
+      // Cmd+Shift+Z / Ctrl+Shift+Z -> Redo
+      else if (
+        (e.metaKey || e.ctrlKey) &&
+        e.shiftKey &&
+        e.key.toLowerCase() === 'z'
+      ) {
+        e.preventDefault();
+        redo();
+      }
+      // Delete / Backspace -> Remove selected clip
+      else if (
+        (e.key === 'Delete' || e.key === 'Backspace') &&
+        selectedClipId
+      ) {
+        e.preventDefault();
+        removeClip(selectedClipId);
+      }
+      // S -> Split Clip
+      else if (e.key.toLowerCase() === 's' && selectedClipId) {
+        e.preventDefault();
+        splitClip();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [togglePlayback, undo, redo, selectedClipId, removeClip, splitClip]);
+
+  const handleAddMediaFile = (file: File) => {
+    if (!project) return;
     const isVideo = file.type.startsWith('video');
-    const trackId = project.tracks.find((t) => t.type === 'video')?.id;
-
-    if (!trackId) return;
+    const trackId =
+      project.tracks.find((t) => t.type === 'video')?.id ||
+      project.tracks[0].id;
 
     const fileUrl = URL.createObjectURL(file);
 
@@ -113,6 +188,7 @@ export default function Studio() {
           transform: { scale: 1, rotation: 0, x: 0, y: 0 },
         };
         addClip(trackId, newClip);
+        toast.success('Vídeo añadido al timeline');
       };
     } else {
       const newClip: MediaClip = {
@@ -130,38 +206,12 @@ export default function Studio() {
         transform: { scale: 1, rotation: 0, x: 0, y: 0 },
       };
       addClip(trackId, newClip);
+      toast.success('Imagen añadida al timeline');
     }
   };
 
-  const handleAddText = () => {
+  const handleAddAudioFile = (file: File) => {
     if (!project) return;
-    let trackId = project.tracks.find((t) => t.type === 'text')?.id;
-    if (!trackId) trackId = project.tracks[0].id;
-
-    const newClip: TextClip = {
-      id: generateId(),
-      trackId,
-      type: 'text',
-      startAt: playhead,
-      duration: 3,
-      content: t('studio.default_text'),
-      style: {
-        color: '#ffffff',
-        fontSize: 40,
-        fontFamily: 'Arial',
-        backgroundColor: 'transparent',
-        textAlign: 'center',
-      },
-      transform: { scale: 1, rotation: 0, x: 0, y: 0 },
-    };
-
-    addClip(trackId, newClip);
-  };
-
-  const handleAddAudio = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0 || !project) return;
-
-    const file = e.target.files[0];
     let trackId = project.tracks.find((t) => t.type === 'audio')?.id;
     if (!trackId) trackId = project.tracks[0].id;
 
@@ -184,6 +234,7 @@ export default function Studio() {
         transform: { scale: 1, rotation: 0, x: 0, y: 0 },
       };
       addClip(trackId as string, newClip);
+      toast.success('Pista de audio añadida');
     };
   };
 
@@ -198,7 +249,7 @@ export default function Studio() {
       setExportedBlob(exportedFile);
     } catch (error) {
       console.error('Export failed', error);
-      toast.error(t('studio.export_error'));
+      toast.error(t('studio.export_error') || 'Error al exportar');
     } finally {
       setIsExporting(false);
     }
@@ -226,7 +277,7 @@ export default function Studio() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[url('/noise.png')] bg-repeat bg-[#0a0a0c] text-white overflow-hidden font-sans p-2 lg:p-4 gap-2 lg:gap-4">
+    <div className="flex flex-col h-full bg-[#070709] text-white overflow-hidden font-sans p-2 lg:p-3 gap-2 select-none">
       <SEO title="Studio | CircleSfera" />
 
       {/* Modals */}
@@ -250,100 +301,127 @@ export default function Studio() {
         isExporting={isExporting}
       />
 
-      {/* Layout Grid: Mobile First (Stack) -> Desktop Pro (Grid) */}
-      <div className="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-12 lg:grid-rows-[1fr_auto] overflow-hidden gap-2 lg:gap-4">
-        {/* PLAYER AREA */}
-        <div className="relative flex-1 lg:col-span-8 xl:col-span-9 flex flex-col bg-[#0e0e12] border border-white/5 rounded-xl lg:rounded-2xl lg:row-span-1 min-h-[40vh] lg:min-h-0 overflow-hidden shadow-2xl">
+      {/* Main Studio Dock Workspace */}
+      <div className="flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-12 lg:grid-rows-[1fr_auto] overflow-hidden gap-2">
+        {/* Left Sidebar (Desktop Sidebar / Mobile Tab View) */}
+        <div
+          className={`lg:col-span-3 xl:col-span-3 lg:row-span-1 h-full overflow-hidden ${
+            mobileTab === 'tools' ? 'block' : 'hidden lg:block'
+          }`}
+        >
+          <StudioSidebar
+            onAddMediaFile={handleAddMediaFile}
+            onAddAudioFile={handleAddAudioFile}
+          />
+        </div>
+
+        {/* Center Canvas & Player Workspace */}
+        <div
+          className={`relative flex-1 lg:col-span-6 xl:col-span-6 flex flex-col bg-[#0e0e12] border border-white/10 rounded-xl lg:rounded-2xl lg:row-span-1 min-h-[35vh] lg:min-h-0 overflow-hidden shadow-2xl ${
+            mobileTab === 'player' ? 'flex' : 'hidden lg:flex'
+          }`}
+        >
           <div className="flex-1 relative overflow-hidden flex items-center justify-center">
             <StudioPlayer />
           </div>
           <StudioPlaybackControls />
         </div>
 
-        {/* PROPERTIES PANEL AREA */}
+        {/* Right Properties Panel Workspace */}
         <div
-          className={`lg:col-span-4 xl:col-span-3 lg:row-span-1 bg-[#121216] overflow-hidden flex flex-col z-30 transition-all ${selectedClip ? 'absolute inset-x-0 bottom-[35vh] lg:static lg:h-full border border-white/5 rounded-t-xl lg:rounded-2xl shadow-2xl' : 'hidden lg:flex border border-white/5 rounded-2xl shadow-2xl'}`}
+          className={`lg:col-span-3 xl:col-span-3 lg:row-span-1 h-full overflow-hidden ${
+            mobileTab === 'properties' || selectedClip
+              ? 'block'
+              : 'hidden lg:block'
+          }`}
         >
           {selectedClip ? (
             <PropertiesPanel />
           ) : (
-            <div className="hidden lg:flex flex-1 items-center justify-center text-center p-8 text-white/30">
-              {t('studio.select_clip_hint')}
+            <div className="hidden lg:flex flex-1 h-full border border-white/10 rounded-2xl bg-[#121216]/95 items-center justify-center text-center p-6 text-white/30 text-xs font-semibold">
+              Selecciona un elemento del lienzo o timeline para editar sus
+              propiedades
             </div>
           )}
         </div>
 
-        {/* TIMELINE AREA */}
-        <div className="h-[35vh] lg:h-auto lg:col-span-12 lg:row-span-1 flex flex-col bg-[#0e0e12] relative z-10 shadow-2xl border border-white/5 shrink-0 lg:min-h-[300px] lg:max-h-[40vh] rounded-xl lg:rounded-2xl overflow-hidden">
+        {/* Bottom Timeline Workspace */}
+        <div className="h-[32vh] lg:h-auto lg:col-span-12 lg:row-span-1 flex flex-col bg-[#0e0e12] relative z-10 shadow-2xl border border-white/10 shrink-0 lg:min-h-64 lg:max-h-[38vh] rounded-xl lg:rounded-2xl overflow-hidden">
           {/* Main Toolbar */}
-          <div className="h-12 bg-[#121216]/50 flex items-center justify-between px-2 sm:px-4 border-b border-white/5 shrink-0">
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 bg-brand-primary text-white hover:bg-brand-primary/90 px-3 py-1.5 rounded-lg transition-colors"
-              >
-                <Plus size={16} />
-                <span className="text-xs font-semibold">
-                  {t('studio.media')}
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={handleAddText}
-                className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
-              >
-                <Type size={16} />
-                <span className="text-xs font-medium">{t('studio.text')}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => audioInputRef.current?.click()}
-                className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
-              >
-                <Music size={16} />
-                <span className="text-xs font-medium">{t('studio.audio')}</span>
-              </button>
-
-              <div className="w-px h-5 bg-white/10 mx-1 sm:mx-2 shrink-0" />
-
+          <div className="h-11 bg-[#121216]/80 backdrop-blur-md flex items-center justify-between px-3 border-b border-white/10 shrink-0">
+            <div className="flex items-center gap-1 sm:gap-2">
               <button
                 type="button"
                 onClick={splitClip}
                 disabled={!selectedClipId}
-                className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-                title={t('studio.split_title')}
+                className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/10 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                title="Dividir clip en el cursor (S)"
               >
-                <Scissors size={16} />
-                <span className="text-xs font-medium hidden sm:inline">
-                  {t('studio.split')}
-                </span>
+                <Scissors size={15} />
+                <span>Dividir (S)</span>
               </button>
+
               <button
                 type="button"
                 onClick={() => selectedClipId && removeClip(selectedClipId)}
                 disabled={!selectedClipId}
-                className="flex items-center gap-1.5 text-red-400 hover:text-red-300 hover:bg-red-400/10 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                className="flex items-center gap-1.5 text-red-400 hover:text-red-300 hover:bg-red-400/10 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                title="Eliminar clip (Supr)"
               >
-                <Trash2 size={16} />
-                <span className="text-xs font-medium hidden sm:inline">
-                  {t('studio.delete')}
-                </span>
+                <Trash2 size={15} />
+                <span>Borrar</span>
+              </button>
+            </div>
+
+            {/* Mobile View Switcher */}
+            <div className="flex lg:hidden items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/10">
+              <button
+                type="button"
+                onClick={() => setMobileTab('tools')}
+                className={`p-1 rounded text-xs font-bold ${
+                  mobileTab === 'tools'
+                    ? 'bg-brand-primary text-white'
+                    : 'text-white/40'
+                }`}
+              >
+                <Layers size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileTab('player')}
+                className={`p-1 rounded text-xs font-bold ${
+                  mobileTab === 'player'
+                    ? 'bg-brand-primary text-white'
+                    : 'text-white/40'
+                }`}
+              >
+                Player
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileTab('properties')}
+                className={`p-1 rounded text-xs font-bold ${
+                  mobileTab === 'properties'
+                    ? 'bg-brand-primary text-white'
+                    : 'text-white/40'
+                }`}
+              >
+                <SlidersHorizontal size={14} />
               </button>
             </div>
 
             {/* Zoom Controls */}
-            <div className="hidden sm:flex items-center gap-2 pl-4 shrink-0 bg-[#0a0a0c] px-3 py-1 rounded-lg border border-white/5">
-              <ZoomOut size={14} className="text-white/40" />
+            <div className="hidden sm:flex items-center gap-2 shrink-0 bg-[#0a0a0c] px-3 py-1 rounded-lg border border-white/10">
+              <ZoomOut size={13} className="text-white/40" />
               <input
                 type="range"
                 min="10"
                 max="200"
                 value={zoom}
                 onChange={(e) => setZoom(Number(e.target.value))}
-                className="w-20 appearance-none bg-transparent cursor-pointer outline-none [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/20 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/20 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
+                className="w-20 appearance-none bg-transparent cursor-pointer outline-none [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/20 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1"
               />
-              <ZoomIn size={14} className="text-white/40" />
+              <ZoomIn size={13} className="text-white/40" />
             </div>
           </div>
 
@@ -353,21 +431,6 @@ export default function Studio() {
           </div>
         </div>
       </div>
-
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleAddMedia}
-        accept="video/*,image/*"
-        className="hidden"
-      />
-      <input
-        type="file"
-        ref={audioInputRef}
-        onChange={handleAddAudio}
-        accept="audio/*"
-        className="hidden"
-      />
     </div>
   );
 }

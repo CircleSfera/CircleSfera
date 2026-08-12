@@ -1,8 +1,8 @@
 import * as fs from 'node:fs';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request, Response } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MediaController } from './media.controller.js';
 
@@ -57,7 +57,7 @@ describe('MediaController', () => {
         createMockRequest(),
         createMockResponse(),
       ),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(AppException);
   });
 
   it('throws NotFoundException when standardUrl has an unexpected format', async () => {
@@ -72,7 +72,7 @@ describe('MediaController', () => {
         createMockRequest(),
         createMockResponse(),
       ),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(AppException);
   });
 
   it('blocks path traversal attempts outside the media folder', async () => {
@@ -87,7 +87,7 @@ describe('MediaController', () => {
         createMockRequest(),
         createMockResponse(),
       ),
-    ).rejects.toThrow(ForbiddenException);
+    ).rejects.toThrow(AppException);
   });
 
   it('throws NotFoundException when the resolved file does not exist on disk', async () => {
@@ -103,7 +103,7 @@ describe('MediaController', () => {
         createMockRequest(),
         createMockResponse(),
       ),
-    ).rejects.toThrow(NotFoundException);
+    ).rejects.toThrow(AppException);
   });
 
   it('truncates an .m3u8 playlist to the first two segments and appends ENDLIST', async () => {
@@ -174,7 +174,7 @@ describe('MediaController', () => {
         createMockRequest(),
         createMockResponse(),
       ),
-    ).rejects.toThrow(ForbiddenException);
+    ).rejects.toThrow(AppException);
   });
 
   it('serves other file types (e.g. thumbnails) directly', async () => {

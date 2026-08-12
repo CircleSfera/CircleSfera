@@ -1,6 +1,6 @@
-import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { EditsService } from './edits.service.js';
@@ -74,7 +74,7 @@ describe('EditsService', () => {
       mockPrismaService.editProject.findFirst.mockResolvedValue(null);
 
       await expect(service.findOne('user-1', 'invalid-id')).rejects.toThrow(
-        NotFoundException,
+        AppException,
       );
     });
 
@@ -94,7 +94,7 @@ describe('EditsService', () => {
       mockPrismaService.editProject.findFirst.mockResolvedValue(null);
 
       await expect(service.remove('user-1', 'invalid-id')).rejects.toThrow(
-        NotFoundException,
+        AppException,
       );
     });
 

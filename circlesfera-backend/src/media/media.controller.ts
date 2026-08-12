@@ -1,17 +1,10 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import {
-  Controller,
-  ForbiddenException,
-  Get,
-  Logger,
-  NotFoundException,
-  Param,
-  Req,
-  Res,
-} from '@nestjs/common';
+import { ErrorCode } from '@circlesfera/shared';
+import { Controller, Get, Logger, Param, Req, Res } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
+import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @ApiTags('Media')
@@ -36,7 +29,7 @@ export class MediaController {
       this.logger.warn(
         `Teaser requested for missing media: ${mediaId} by ${req.ip}`,
       );
-      throw new NotFoundException('Media not found');
+      throw AppException.NotFound(ErrorCode.MEDIA_NOT_FOUND, 'Media not found');
     }
 
     // Determine the base upload directory from standardUrl (e.g., "/uploads/video_123/master.m3u8")
@@ -45,7 +38,10 @@ export class MediaController {
       this.logger.error(
         `Invalid media path format for media ${mediaId}: ${media.standardUrl}`,
       );
-      throw new NotFoundException('Invalid media path');
+      throw AppException.NotFound(
+        ErrorCode.INVALID_MEDIA_PATH,
+        'Invalid media path',
+      );
     }
 
     const baseFolder = match[1];
@@ -61,11 +57,14 @@ export class MediaController {
       this.logger.warn(
         `Path traversal blocked for media ${mediaId}: ${relativeFile}`,
       );
-      throw new ForbiddenException('Invalid file path');
+      throw AppException.Forbidden(
+        ErrorCode.INVALID_MEDIA_PATH,
+        'Invalid file path',
+      );
     }
 
     if (!fs.existsSync(absolutePath)) {
-      throw new NotFoundException('File not found');
+      throw AppException.NotFound(ErrorCode.MEDIA_NOT_FOUND, 'File not found');
     }
 
     // If it's a playlist (.m3u8), we slice it to keep only the first 5 seconds (usually ~2 segments)
@@ -103,7 +102,10 @@ export class MediaController {
       if (segmentMatch) {
         const segmentIndex = parseInt(segmentMatch[1], 10);
         if (segmentIndex >= 2) {
-          throw new ForbiddenException('Premium content locked');
+          throw AppException.Forbidden(
+            ErrorCode.PREMIUM_CONTENT_LOCKED,
+            'Premium content locked',
+          );
         }
       }
 
