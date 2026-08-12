@@ -14,7 +14,8 @@ it deliberately with tests and remove the entry in the same PR. Do not batch unr
 | B6 | No repository layer, no mappers, no domain event bus. | `rg Repository` in `src/` finds none | Accepted architecture. Listed so agents stop proposing layers. |
 
 ## Frontend
-*(No known gaps)*
+
+*(No open known gaps — F1 nav height drift and F2 avatar `lg` drift closed in Wave 1 UI foundation, August 2026. See `14-uiux-improvement-roadmap.md`.)*
 
 ## Tooling and CI
 *(No known gaps)*

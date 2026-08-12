@@ -24,7 +24,7 @@ Cuando exista conflicto entre documentos, se debe respetar este orden de priorid
 1. `schema.prisma`
 2. Código fuente realmente implementado
 3. Contratos API vigentes
-4. ADRs (Architecture Decision Records) — carpeta prevista en `circlesfera-documentation/adr/` (hito documental pendiente; ver README allí)
+4. ADRs (Architecture Decision Records) — `circlesfera-documentation/adr/` (Actualmente contiene 11 ADRs vigentes)
 5. Documentación técnica y funcional (`circlesfera-documentation/`)
 6. Suposiciones
 
@@ -111,6 +111,21 @@ Después de modificar código, el agente debe:
 - Nunca asumir cardinalidades o relaciones sin validarlo en `schema.prisma`.
 - Evitar consultas ineficientes, N+1, writes redundantes y filtros no indexados en rutas sensibles.
 - Toda modificación de schema debe explicar impacto en producción.
+
+### Frontend y Diseño (Mobile-First & Densidad Visual)
+
+- **Filosofía Mobile-First**: Todo componente, vista o pantalla debe diseñarse y comprobarse primero para móvil (**390×844 px** - iPhone 15 Pro). Desktop es una adaptación que añade columnas de contenido paralelas, **nunca agigantando ni escalando proporcionalmente los componentes o textos**.
+- **Prohibición de Interfaces Sobredimensionadas**: Nunca crear componentes gigantes, tarjetas con padding desmedido ni botones sobredimensionados que malgasten espacio útil.
+- **Benchmark de Densidad de Información**: CircleSfera prioriza una alta densidad visual comparable o ligeramente superior a **Instagram, Threads, X y TikTok**. El usuario debe ver siempre más contenido real que interfaz o decoración.
+- **Límites Estrictos de Tamaño (Component Sizing)**:
+  - Botones principales/secundarios: altura de `44px` a `48px`.
+  - Campos de entrada (Inputs): altura de `48px` a `52px`.
+  - Avatares: `32px` (pequeño), `40px` (estándar), `56px` (grande/perfil).
+  - Contenedores / Cards: Altura dinámica basada estrictamente en el contenido, sin alturas fijas excesivas.
+- **Escala de Espaciado Estricta (4px / 8px base)**:
+  - Usar siempre la escala estándar (`4`, `8`, `12`, `16`, `20`, `24`, `32`, `40`, `48`, `64`).
+  - Márgenes exteriores de pantalla: `16px–24px`. Separación entre bloques: `8px–16px`.
+- **Aprovechamiento del Viewport**: Cada pantalla finalizada debe aprovechar entre el **80% y el 90%** del área útil del viewport en dispositivos móviles antes de dar el trabajo por completado.
 
 ## Seguridad
 

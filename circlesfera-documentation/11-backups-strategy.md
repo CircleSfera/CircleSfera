@@ -48,65 +48,61 @@ Define the backup strategy to ensure data recovery in case of loss, corruption, 
 
 ---
 
-## Backup Strategy
+## Backup Strategy (Current Implementation)
 
 ### PostgreSQL
 
 #### Frequency
-- **Full backups (Full Dumps):** Daily at 02:00 UTC
-- **Incremental / continuous backups (WAL Archiving):** Configured at cluster / cloud provider level (continuous Point-In-Time Recovery - PITR)
-- **Pre-migration backups:** Manual (executed in CI/CD before `npx prisma migrate deploy`)
+- **Full backups (Full Dumps):** Executed via `scripts/backup-postgres.sh` (typically scheduled daily).
+- **Pre-migration backups:** Manual (executed in CI/CD before `npx prisma migrate deploy`).
 
 #### Retention
-- **Daily backups (Dumps):** 30 days
-- **WAL files (PITR):** 7 to 14 days (depending on environment and provider)
-- **Monthly backups (Archived):** 12 months (last backup of each month in cold storage)
+- **Local backups:** 30 days (managed by `backup-postgres.sh` via `-mtime`).
 
 #### Method
-For manual logical extractions or on-premise scripts:
+- Logical extraction using the custom format (`-Fc`) via the `backup-postgres.sh` script:
 ```bash
-# Full backup in compressed directory format (optimized for pg_restore)
-pg_dump --dbname="$DATABASE_URL" --format=directory --jobs=4 --file=/backups/postgres/full/$(date +%Y%m%d_%H%M%S)
+pg_dump --dbname="${DATABASE_URL}" -Fc --file="${BACKUP_FILE}"
 ```
 
-#### Compression
-- Use native `pg_dump` compression or subsequently compress the tarball with `gzip`/`zstd` to save space.
-- Estimated compression time depends on database size and allocated resources.
-
 #### Storage
-- **Temporary local:** `/backups/postgres/`
-- **Remote:** S3 bucket `circlesfera-db-backups` (medium/long retention)
-- **Region:** Multiple regions for redundancy (Cross-Region Replication on S3).
+- **Local:** `postgres/full` inside the defined `BACKUP_DIR` (e.g., `/srv/circlesfera/backups`).
+- **Remote (Optional):** Uploaded via `aws s3 cp` to `S3_BACKUP_BUCKET` if the environment variable is set.
 
-### MinIO/S3
+### Media (Uploads)
 
 #### Frequency
-- **Full backups (Base sync):** Weekly (Sundays at 03:00 UTC)
-- **Incremental sync:** Daily at 04:00 UTC (depending on whether Lifecycle Policies or native AWS Backup are used)
+- **Full backups (Tarball):** Executed via `scripts/backup-uploads.sh` (typically scheduled daily).
 
 #### Retention
-- **Weekly backups:** 8 weeks
-- **Monthly backups:** 12 months in archival Storage Class (Glacier).
+- **Local backups:** 30 days (managed by `backup-uploads.sh` via `-mtime`).
 
 #### Method
+- Compressed tarball creation of the local Docker volume `uploads_data`:
 ```bash
-# Sync to backup bucket
-aws s3 sync s3://$S3_BUCKET_MEDIA s3://$BACKUP_BUCKET/media/latest --storage-class STANDARD_IA
+tar -czf "${ARCHIVE}" -C "$(dirname "${UPLOADS_DIR}")" "$(basename "${UPLOADS_DIR}")"
 ```
 
 #### Storage
-- **Primary bucket:** `circlesfera-media` (production)
-- **Backup bucket:** `circlesfera-backups-media` (Glacier/IA class for savings)
+- **Local:** `uploads/` inside the defined `BACKUP_DIR`.
+- **Remote (Optional):** Uploaded via `aws s3 cp` to `S3_BACKUP_BUCKET` if the environment variable is set.
 
 ### Redis
 
-#### Frequency
-- Not critical for long-term retention.
+- **Frequency:** Not critical for long-term retention.
+- **Method:** Rebuilt hot; sessions/cache discarded on catastrophic failure.
 
-#### Method (If RDB is required)
-```bash
-redis-cli --rdb /backups/redis/dump_$(date +%Y%m%d).rdb
-```
+---
+
+## Future Roadmap (Not Implemented)
+
+> [!WARNING]
+> The following features are aspirational and **DO NOT** exist in the current implementation. Do not rely on them during an incident.
+
+- **PostgreSQL WAL Archiving (PITR):** Continuous Point-In-Time Recovery configured at the cluster/cloud provider level.
+- **MinIO/S3 Primary Media Storage:** Syncing media to S3 as the primary source of truth.
+- **Glacier/Cold Storage:** Moving older backups (e.g., monthly backups) to an archival storage class.
+- **Cross-Region Replication:** Replicating S3 buckets automatically across multiple regions.
 
 ---
 
