@@ -47,6 +47,7 @@ export function AdminListRow({
   className,
   selected,
 }: AdminListRowProps) {
+  const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<MenuPosition | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);

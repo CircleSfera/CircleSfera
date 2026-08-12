@@ -1955,7 +1955,17 @@
       "status_paid": "Pagados",
       "status_failed": "Fallidos",
       "status_failed_cancelled": "Fallidos/Cancelados",
-      "search_placeholder": "Buscar por usuario o ID..."
+      "search_placeholder": "Buscar por usuario o ID...",
+      "title": "Retiros (Stripe)",
+      "description": "Auditoría de los retiros automáticos gestionados por Stripe Connect.",
+      "kpi_paid": "Pagados",
+      "kpi_pending": "Pendientes",
+      "kpi_failed": "Fallidos",
+      "filter_status": "Estado",
+      "filter_all": "Todos",
+      "filter_failed_cancelled": "Fallidos/Cancelados",
+      "empty_title": "No hay pagos registrados",
+      "empty_description": "Los retiros de Stripe Connect aparecerán aquí."
     },
     "roles": {
       "search_placeholder": "Buscar administradores..."

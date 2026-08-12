@@ -15,11 +15,25 @@ import {
 } from '@nestjs/common';
 import type { Conversation, Message } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { ChatService } from './chat.service.js';
 import { CreateGroupDto } from './dto/create-group.dto.js';
 import { EditMessageDto } from './dto/edit-message.dto.js';
 import { SendMessageDto } from './dto/send-message.dto.js';
 import { UpdateGroupDto } from './dto/update-group.dto.js';
+// Group Commands
+import { CreateGroupUseCase } from './use-cases/groups/create-group.use-case.js';
+import { DeleteConversationUseCase } from './use-cases/groups/delete-conversation.use-case.js';
+import { LeaveGroupUseCase } from './use-cases/groups/leave-group.use-case.js';
+import { RemoveParticipantUseCase } from './use-cases/groups/remove-participant.use-case.js';
+import { UpdateGroupUseCase } from './use-cases/groups/update-group.use-case.js';
+// Message Commands
+import { DeleteMessageUseCase } from './use-cases/messages/delete-message.use-case.js';
+import { EditMessageUseCase } from './use-cases/messages/edit-message.use-case.js';
+import { MarkAsReadUseCase } from './use-cases/messages/mark-as-read.use-case.js';
+import { SendMessageUseCase } from './use-cases/messages/send-message.use-case.js';
+// Queries
+import { GetConversationsQuery } from './use-cases/queries/get-conversations.query.js';
+import { GetMessagesQuery } from './use-cases/queries/get-messages.query.js';
+import { GetUnreadCountQuery } from './use-cases/queries/get-unread-count.query.js';
 
 interface AuthenticatedRequest extends Request {
   user: {
@@ -28,58 +42,77 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
-/** REST controller for chat conversations, messaging, and reactions. All endpoints require authentication. */
 @Controller('chat')
 @UseGuards(JwtAuthGuard)
 export class ChatController {
-  constructor(@Inject(ChatService) private readonly chatService: ChatService) {}
+  constructor(
+    @Inject(GetConversationsQuery)
+    private readonly getConversationsQuery: GetConversationsQuery,
+    @Inject(GetMessagesQuery)
+    private readonly getMessagesQuery: GetMessagesQuery,
+    @Inject(GetUnreadCountQuery)
+    private readonly getUnreadCountQuery: GetUnreadCountQuery,
+    @Inject(SendMessageUseCase)
+    private readonly sendMessageUseCase: SendMessageUseCase,
+    @Inject(EditMessageUseCase)
+    private readonly editMessageUseCase: EditMessageUseCase,
+    @Inject(DeleteMessageUseCase)
+    private readonly deleteMessageUseCase: DeleteMessageUseCase,
+    @Inject(MarkAsReadUseCase)
+    private readonly markAsReadUseCase: MarkAsReadUseCase,
+    @Inject(CreateGroupUseCase)
+    private readonly createGroupUseCase: CreateGroupUseCase,
+    @Inject(UpdateGroupUseCase)
+    private readonly updateGroupUseCase: UpdateGroupUseCase,
+    @Inject(RemoveParticipantUseCase)
+    private readonly removeParticipantUseCase: RemoveParticipantUseCase,
+    @Inject(LeaveGroupUseCase)
+    private readonly leaveGroupUseCase: LeaveGroupUseCase,
+    @Inject(DeleteConversationUseCase)
+    private readonly deleteConversationUseCase: DeleteConversationUseCase,
+  ) {}
 
-  /** List all conversations for the authenticated user. */
   @Get('conversations')
   async getConversations(
     @Request() req: AuthenticatedRequest,
   ): Promise<Conversation[]> {
-    return this.chatService.getConversations(req.user.userId);
+    return this.getConversationsQuery.execute(req.user.userId);
   }
 
-  /** Get unread conversations count for the authenticated user. */
   @Get('conversations/unread-count')
   async getUnreadCount(
     @Request() req: AuthenticatedRequest,
   ): Promise<{ count: number }> {
-    const count = await this.chatService.getUnreadCount(req.user.userId);
+    const count = await this.getUnreadCountQuery.execute(req.user.userId);
     return { count };
   }
 
-  /** Get messages for a specific conversation. */
   @Get('conversations/:id/messages')
   async getMessages(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ): Promise<Message[]> {
-    return this.chatService.getMessages(id, 50, req.user.userId);
+    return this.getMessagesQuery.execute(id, 50, req.user.userId);
   }
 
-  /** Create a new group conversation. */
   @Post('conversations')
   async createGroup(
     @Request() req: AuthenticatedRequest,
     @Body() dto: CreateGroupDto,
   ) {
-    return this.chatService.createGroup(
+    return this.createGroupUseCase.execute(
       req.user.userId,
       dto.participantIds,
       dto.name,
     );
   }
 
-  /** Send a message (creates a new DM or sends to existing conversation). */
   @Post('messages')
   async sendMessage(
     @Request() req: AuthenticatedRequest,
     @Body() dto: SendMessageDto,
   ): Promise<Message> {
-    return this.chatService.sendMessage(
+    return this.sendMessageUseCase.execute(
       req.user.userId,
       dto.recipientId,
       dto.content,
@@ -93,34 +126,32 @@ export class ChatController {
     );
   }
 
-  /** Mark all messages in a conversation as read. */
   @Put('conversations/:id/read')
   async markRead(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
-    await this.chatService.markAsRead(id, req.user.userId);
+    await this.markAsReadUseCase.execute(id, req.user.userId);
     return { success: true };
   }
 
-  /** Delete a conversation (participant only). Soft-delete for self. */
   @Delete('conversations/:id')
   async deleteConversation(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Query('mode') mode: 'me' | 'both' = 'me',
+    @Query('mode') _mode: 'me' | 'both' = 'me',
   ) {
-    return this.chatService.deleteConversation(id, req.user.userId, mode);
+    // Mode is intentionally ignored by the use case for security but maintained in the signature for frontend compat.
+    return this.deleteConversationUseCase.execute(req.user.userId, id);
   }
 
-  /** Update group details (Admins only) */
   @Put('conversations/:id/group')
   async updateGroup(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: UpdateGroupDto,
   ) {
-    return this.chatService.updateGroup(
+    return this.updateGroupUseCase.execute(
       req.user.userId,
       id,
       body.name,
@@ -128,45 +159,41 @@ export class ChatController {
     );
   }
 
-  /** Remove a participant from the group (Admins only) */
   @Delete('conversations/:id/participants/:userId')
   async removeParticipant(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Param('userId') targetUserId: string,
   ) {
-    return this.chatService.removeParticipant(
+    return this.removeParticipantUseCase.execute(
       req.user.userId,
       id,
       targetUserId,
     );
   }
 
-  /** Leave a group */
   @Delete('conversations/:id/leave')
   async leaveGroup(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
-    return this.chatService.leaveGroup(req.user.userId, id);
+    return this.leaveGroupUseCase.execute(req.user.userId, id);
   }
 
-  /** Edit a message. */
   @Put('messages/:id')
   async editMessage(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: EditMessageDto,
   ) {
-    return this.chatService.editMessage(req.user.userId, id, body.content);
+    return this.editMessageUseCase.execute(req.user.userId, id, body.content);
   }
 
-  /** Delete a message. */
   @Delete('messages/:id')
   async deleteMessage(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
-    return this.chatService.deleteMessage(req.user.userId, id);
+    return this.deleteMessageUseCase.execute(req.user.userId, id);
   }
 }

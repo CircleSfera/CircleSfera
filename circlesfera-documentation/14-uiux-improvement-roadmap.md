@@ -1,6 +1,6 @@
 # CircleSfera UI/UX Improvement Roadmap
 
-> **Status**: Wave 3 Tools **shipped** (August 2026) — Wave 4 Admin remains planned  
+> **Status**: Waves 0–4 **shipped** (August 2026) — roadmap complete for Phase 1 UI/UX consolidation  
 > **Created**: August 2026  
 > **Horizon**: Phase 1 / NOW — consolidación de identidad visual y UX  
 > **Related**: [09-design-system.md](./09-design-system.md), [13-layout-guidelines.md](./13-layout-guidelines.md), [12-global-roadmap.md](./12-global-roadmap.md), [00-status.md](./00-status.md)
@@ -246,7 +246,7 @@ Benchmarking allowed only as **principles** (content-first, predictable structur
 
 ## 12. Wave 4 — Admin
 
-**Status:** Planned  
+**Status:** Shipped (August 2026)  
 **Prerequisite:** Wave 1 state kit + tokens.
 
 | Item | Change |
@@ -259,7 +259,7 @@ Benchmarking allowed only as **principles** (content-first, predictable structur
 
 **Anchors:** `pages/Admin.tsx`, `components/admin/AdminShell.tsx`, `adminNav.ts`, tab components under `components/admin/`.
 
-**Defer:** merging AdminShell with consumer LayoutWrapper.
+**Defer:** merging AdminShell with consumer LayoutWrapper. Residual stock-palette (`text-gray-*` / `zinc-*`) in deep tab detail chrome is follow-up polish, not a Wave 4 blocker.
 
 ---
 
@@ -288,7 +288,7 @@ Benchmarking allowed only as **principles** (content-first, predictable structur
 | --- | --- |
 | First | Wave 0 inventory → Wave 1 foundation complete |
 | Next | Wave 2 in listed order (Feed → Profile → Chat → Stories/Frames → Explore/Activity/Saved) |
-| Later | Wave 3 Tools → Wave 4 Admin |
+| Later | Opportunistic stock-palette purge in deep Admin tab chrome |
 | Defer | New micro-animations; landing marketing overhaul; single Admin+Consumer shell |
 | Reject | Light theme; new UI kit; communities UI; B2B manager; badge-centric product; in-app payout start |
 
@@ -367,3 +367,16 @@ Qualitative: users should never feel they left CircleSfera when moving between F
 | Pricing | Dense cards + `LoadingSpinner` |
 | Analytics KPIs | Brand token gradients |
 | Create-post subscreens | `bg-surface-elevated`, tighter radius (Dialog fullscreen editors deferred) |
+
+---
+
+## Appendix D — Wave 4 shipped checklist (August 2026)
+
+| Surface | Changes |
+| --- | --- |
+| Locales | Expanded `admin.*` keys (shared, users/posts/comments KPIs, lives, settings, firewall, verification, payouts, roles, split) in `en.json` / `es.json` |
+| Tabs i18n | Users, Posts, Comments, LiveStreams, Settings, Firewall shell/rules, UserVerification, Payouts, Roles |
+| Shell / list chrome | AdminShell, AdminSplitView, AdminList → `text-white/…`; split empty → `AdminEmptyState` |
+| Tables / KPIs | AdminTable empty → compact `AdminEmptyState`; StatusBadge + StatCard brand tokens |
+| Live detail | `admin.lives.no_video_source`; muted chrome → white/opacity |
+| Follow-up (non-blocking) | Deep tab detail still has `text-gray-*` / chart hex in Stats/Reports/Monetization/etc.; CommandPalette Spanish fallbacks; AdminShell search fallbacks |

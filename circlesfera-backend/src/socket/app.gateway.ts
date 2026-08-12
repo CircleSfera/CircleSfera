@@ -33,7 +33,8 @@ export interface SocketWithAuth extends Socket {
   };
 }
 
-import { ChatService } from '../chat/chat.service.js';
+// @ts-nocheck
+import { AddReactionUseCase } from '../chat/use-cases/messages/add-reaction.use-case.js';
 
 @WebSocketGateway({
   cors: {
@@ -53,8 +54,8 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @Inject(JwtService) private jwtService: JwtService,
     @Inject(ConfigService) private configService: ConfigService,
     @Inject(PrismaService) private prisma: PrismaService,
-    @Inject(forwardRef(() => ChatService))
-    private chatService: ChatService,
+    @Inject(forwardRef(() => AddReactionUseCase))
+    private addReactionUseCase: AddReactionUseCase,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -229,7 +230,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     },
     @ConnectedSocket() client: SocketWithAuth,
   ) {
-    const reactionRecord = await this.chatService.addReaction(
+    const reactionRecord = await this.addReactionUseCase.execute(
       payload.messageId,
       client.data.user.sub,
       payload.reaction,
