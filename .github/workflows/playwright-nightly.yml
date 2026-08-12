@@ -58,6 +58,9 @@ jobs:
       CORS_ORIGIN: http://localhost:5173
       BASE_URL: http://localhost:5173
       BACKEND_URL: http://localhost:3005/api/v1
+      # Frontend must talk to the CI backend (PORT=3005), not the local default :3000
+      VITE_API_URL: http://localhost:3005/api/v1
+      VITE_API_PROXY_TARGET: http://localhost:3005
       SKIP_GLOBAL_SETUP: 'false'
       CI: true
     steps:
