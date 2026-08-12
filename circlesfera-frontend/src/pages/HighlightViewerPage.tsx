@@ -13,7 +13,7 @@ export default function HighlightViewerPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
   const [editingTitle, setEditingTitle] = useState(false);
   const [title, setTitle] = useState('');
 
@@ -69,7 +69,7 @@ export default function HighlightViewerPage() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="px-6 py-2 bg-white text-black rounded-full font-bold"
+            className="px-6 py-2 bg-white text-black rounded-full font-bold min-h-11"
           >
             {t('story.go_back')}
           </button>
@@ -83,7 +83,7 @@ export default function HighlightViewerPage() {
   return (
     <>
       {isOwner && (
-        <div className="fixed top-4 right-4 z-[60] flex items-center gap-2">
+        <div className="fixed top-4 right-4 z-60 flex items-center gap-2">
           {editingTitle ? (
             <form
               className="flex gap-2"
@@ -96,12 +96,12 @@ export default function HighlightViewerPage() {
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="bg-black/70 border border-white/20 rounded-lg px-3 py-1.5 text-sm text-white"
+                className="bg-black/70 border border-white/20 rounded-lg px-3 py-2 text-sm text-white"
                 placeholder={highlight.title}
               />
               <button
                 type="submit"
-                className="px-3 py-1.5 rounded-lg bg-white text-black text-xs font-bold"
+                className="px-4 min-h-11 rounded-lg bg-white text-black text-xs font-bold flex items-center justify-center"
               >
                 {t('common.save', 'Save')}
               </button>
@@ -113,7 +113,7 @@ export default function HighlightViewerPage() {
                 setTitle(highlight.title || '');
                 setEditingTitle(true);
               }}
-              className="p-2 rounded-full bg-black/60 border border-white/10 text-white hover:bg-white/10"
+              className="w-11 h-11 flex items-center justify-center rounded-full bg-black/60 border border-white/10 text-white hover:bg-white/10"
               aria-label={t('story.edit_highlight', 'Edit highlight')}
             >
               <Pencil size={16} />
@@ -130,7 +130,7 @@ export default function HighlightViewerPage() {
                 deleteMutation.mutate();
               }
             }}
-            className="p-2 rounded-full bg-black/60 border border-white/10 text-red-400 hover:bg-red-500/20"
+            className="w-11 h-11 flex items-center justify-center rounded-full bg-black/60 border border-white/10 text-red-400 hover:bg-red-500/20"
             aria-label={t('story.delete_highlight', 'Delete highlight')}
           >
             <Trash2 size={16} />

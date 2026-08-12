@@ -33,7 +33,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             ref={ref}
             className={`
-              flex h-11 w-full rounded-xl px-4 py-2 text-sm text-white
+              flex h-12 w-full rounded-xl px-4 text-sm text-white
               placeholder:text-gray-500
               disabled:cursor-not-allowed disabled:opacity-50
               transition-all duration-200
@@ -54,10 +54,12 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             }}
             onFocus={(e) => {
               if (!error) {
-                e.target.style.background = 'rgba(131,58,180,0.07)';
-                e.target.style.border = '1px solid rgba(131,58,180,0.5)';
+                e.target.style.background =
+                  'rgba(var(--brand-primary-rgb), 0.07)';
+                e.target.style.border =
+                  '1px solid rgba(var(--brand-primary-rgb), 0.5)';
                 e.target.style.boxShadow =
-                  '0 0 0 3px rgba(131,58,180,0.15), 0 0 16px rgba(131,58,180,0.08), inset 0 1px 0 rgba(255,255,255,0.06)';
+                  '0 0 0 3px rgba(var(--brand-primary-rgb), 0.15), 0 0 16px rgba(var(--brand-primary-rgb), 0.08), inset 0 1px 0 rgba(255,255,255,0.06)';
               } else {
                 e.target.style.border = '1px solid rgba(239,68,68,0.6)';
                 e.target.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.12)';

@@ -131,7 +131,7 @@ export default function Frames() {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center">
+      <div className="h-dvh w-full flex items-center justify-center">
         <LoadingSpinner size="lg" />
       </div>
     );
@@ -139,7 +139,7 @@ export default function Frames() {
 
   if (isError) {
     return (
-      <div className="h-screen w-full flex items-center justify-center">
+      <div className="h-dvh w-full flex items-center justify-center">
         <ErrorState
           title={t('frames.load_error_title', 'Could not load Frames')}
           message={t(
@@ -154,7 +154,7 @@ export default function Frames() {
 
   if (frames.length === 0) {
     return (
-      <div className="h-screen w-full flex items-center justify-center">
+      <div className="h-dvh w-full flex items-center justify-center">
         <EmptyState
           icon="posts"
           title={t('frames.no_frames')}
@@ -169,7 +169,7 @@ export default function Frames() {
     activeFrame?.media?.[0]?.thumbnailUrl || activeFrame?.media?.[0]?.url;
 
   return (
-    <div className="h-dvh md:h-screen w-full flex flex-col items-start md:justify-center md:items-center relative overflow-hidden">
+    <div className="h-dvh w-full flex flex-col items-start md:justify-center md:items-center relative overflow-hidden">
       {/* Dynamic blurred background for desktop */}
       <div className="hidden md:block absolute inset-0 z-0">
         {blurredBgImage && (
@@ -187,7 +187,7 @@ export default function Frames() {
       {/* Mobile: Edge-to-edge, Desktop: Center-aligned player */}
       <div
         ref={containerRef}
-        className="h-[calc(100dvh-4.25rem-env(safe-area-inset-bottom,0px))] w-full md:h-[calc(100vh-40px)] md:w-[450px] md:max-w-full md:rounded-[30px] mx-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide bg-black md:bg-black/20 md:backdrop-blur-3xl relative z-10 md:shadow-[0_0_50px_rgba(0,0,0,0.5)] md:border md:border-white/10"
+        className="h-[calc(100dvh-var(--nav-bottom-height,60px)-env(safe-area-inset-bottom,0px))] w-full md:h-[calc(100dvh-40px)] md:w-112.5 md:max-w-full md:rounded-[30px] mx-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide bg-black md:bg-black/20 md:backdrop-blur-3xl relative z-10 md:shadow-[0_0_50px_rgba(0,0,0,0.5)] md:border md:border-white/10"
         style={{ scrollBehavior: 'smooth' }}
       >
         {frames.map((frame, index) => {
@@ -202,7 +202,7 @@ export default function Frames() {
                 itemRefs.current[index] = el;
               }}
               data-index={index}
-              className="h-[calc(100dvh-4.25rem-env(safe-area-inset-bottom,0px))] md:h-full w-full snap-start relative bg-black md:bg-transparent flex flex-col justify-center"
+              className="h-[calc(100dvh-var(--nav-bottom-height,60px)-env(safe-area-inset-bottom,0px))] md:h-full w-full snap-start relative bg-black md:bg-transparent flex flex-col justify-center"
             >
               {isNear ? (
                 <FrameItem
@@ -217,7 +217,7 @@ export default function Frames() {
           );
         })}
         {isFetchingNextPage && (
-          <div className="h-[calc(100dvh-4.25rem-env(safe-area-inset-bottom,0px))] md:h-full w-full snap-start flex items-center justify-center bg-black md:bg-transparent">
+          <div className="h-[calc(100dvh-var(--nav-bottom-height,64px)-env(safe-area-inset-bottom,0px))] md:h-full w-full snap-start flex items-center justify-center bg-black md:bg-transparent">
             <LoadingSpinner size="md" />
           </div>
         )}

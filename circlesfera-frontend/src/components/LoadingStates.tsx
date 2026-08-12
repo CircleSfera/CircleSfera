@@ -24,7 +24,7 @@ export function LoadingSpinner({
           width: sizePx[size] * 1.4,
           height: sizePx[size] * 1.4,
           background:
-            'radial-gradient(circle, rgba(131,58,180,0.35) 0%, rgba(64,93,230,0.15) 60%, transparent 100%)',
+            'radial-gradient(circle, rgba(var(--brand-primary-rgb),0.35) 0%, rgba(64,93,230,0.15) 60%, transparent 100%)',
           animation: 'pulse-slow 2.5s ease-in-out infinite',
         }}
       />
@@ -41,7 +41,7 @@ export function LoadingSpinner({
           borderRightColor: '#8c52ff',
           borderBottomColor: 'transparent',
           borderLeftColor: '#8c52ff',
-          boxShadow: '0 0 10px rgba(140,82,255,0.4)',
+          boxShadow: '0 0 10px rgba(var(--brand-primary-rgb),0.4)',
         }}
         className="rounded-full box-border"
         animate={{ rotate: 360 }}
@@ -60,7 +60,7 @@ export function LoadingSpinner({
             width: sizePx[size] * 0.2,
             height: sizePx[size] * 0.2,
             background: 'linear-gradient(90deg, #ff5757, #8c52ff)',
-            boxShadow: '0 0 8px rgba(140,82,255,0.7)',
+            boxShadow: '0 0 8px rgba(var(--brand-primary-rgb),0.7)',
             animation: 'pulse-slow 1.5s ease-in-out infinite',
           }}
         />
@@ -75,7 +75,7 @@ interface LoadingPageProps {
 
 export function LoadingPage({ message = 'Loading...' }: LoadingPageProps) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
+    <div className="min-h-dvh flex flex-col items-center justify-center">
       <LoadingSpinner size="lg" />
       <p
         className="mt-6 text-sm font-medium tracking-wide"
@@ -114,7 +114,7 @@ export function Skeleton({ className = '', variant = 'rect' }: SkeletonProps) {
         className="absolute inset-0"
         style={{
           background:
-            'linear-gradient(90deg, transparent 0%, rgba(131,58,180,0.07) 30%, rgba(64,93,230,0.05) 60%, transparent 100%)',
+            'linear-gradient(90deg, transparent 0%, rgba(var(--brand-primary-rgb),0.07) 30%, rgba(64,93,230,0.05) 60%, transparent 100%)',
         }}
         initial={{ x: '-100%' }}
         animate={{ x: '100%' }}
@@ -171,7 +171,7 @@ export function StorySkeleton() {
         className="w-16 h-16 rounded-full p-0.5"
         style={{
           background:
-            'linear-gradient(135deg, rgba(131,58,180,0.3) 0%, rgba(64,93,230,0.2) 100%)',
+            'linear-gradient(135deg, rgba(var(--brand-primary-rgb),0.3) 0%, rgba(64,93,230,0.2) 100%)',
         }}
       >
         <Skeleton

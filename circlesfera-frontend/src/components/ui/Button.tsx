@@ -14,10 +14,20 @@ export interface ButtonProps
     | 'success'
     | 'warning'
     | 'gradient';
-  size?: 'sm' | 'md' | 'lg' | 'icon';
+  /**
+   * Design System §9.2:
+   *   lg=48px (primary), md=44px (secondary), compact=36px, icon=40px
+   */
+  size?: 'compact' | 'sm' | 'md' | 'lg' | 'icon';
   isLoading?: boolean;
 }
 
+/**
+ * Button — Design System §13.1 & §9.2
+ * Heights: lg=48px, md=44px, compact=36px (sm), icon=44×44px
+ * Touch target minimum 44×44px (§17.7) satisfied by md, lg, icon.
+ * compact is only for dense toolbars/lists where context makes it clear.
+ */
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
@@ -33,7 +43,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref,
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center rounded-xl font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 disabled:opacity-50 disabled:pointer-events-none cursor-pointer select-none';
+      'inline-flex items-center justify-center rounded-xl font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-base disabled:opacity-50 disabled:pointer-events-none cursor-pointer select-none';
 
     const variants: Record<
       NonNullable<ButtonProps['variant']>,
@@ -43,9 +53,10 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className:
           'text-white border border-brand-primary/30 focus-visible:ring-brand-primary/60',
         style: {
-          background: 'linear-gradient(90deg, #ff5757 0%, #8c52ff 100%)',
+          background:
+            'linear-gradient(90deg, var(--brand-secondary) 0%, var(--brand-primary) 100%)',
           boxShadow:
-            '0 4px 16px -2px rgba(140,82,255,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
+            '0 4px 16px -2px rgba(var(--brand-primary-rgb), 0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
         },
       },
       secondary: {
@@ -54,11 +65,11 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       },
       danger: {
         className:
-          'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 focus-visible:ring-red-500/60',
+          'bg-brand-secondary/10 text-brand-secondary hover:bg-brand-secondary/20 border border-brand-secondary/20 focus-visible:ring-brand-secondary/60',
       },
       ghost: {
         className:
-          'bg-transparent text-gray-300 hover:text-white hover:bg-white/6 focus-visible:ring-white/20',
+          'bg-transparent text-white/70 hover:text-white hover:bg-white/6 focus-visible:ring-white/20',
       },
       outline: {
         className:
@@ -74,28 +85,32 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       },
       success: {
         className:
-          'bg-green-500/10 text-green-400 hover:bg-green-500 hover:text-white border border-green-500/20 focus-visible:ring-green-500/60',
+          'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white border border-emerald-500/20 focus-visible:ring-emerald-500/60',
       },
       warning: {
         className:
-          'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500 hover:text-white border border-yellow-500/20 focus-visible:ring-yellow-500/60',
+          'bg-brand-accent/10 text-brand-accent hover:bg-brand-accent hover:text-black border border-brand-accent/20 focus-visible:ring-brand-accent/60',
       },
       gradient: {
         className:
           'text-white border-0 focus-visible:ring-brand-primary/60 btn-gradient-brand',
         style: {
-          background: 'linear-gradient(90deg, #ff5757 0%, #8c52ff 100%)',
+          background:
+            'linear-gradient(90deg, var(--brand-secondary) 0%, var(--brand-primary) 100%)',
           boxShadow:
-            '0 6px 24px -4px rgba(140,82,255,0.5), inset 0 1px 0 rgba(255,255,255,0.2)',
+            '0 6px 24px -4px rgba(var(--brand-primary-rgb), 0.5), inset 0 1px 0 rgba(255,255,255,0.2)',
         },
       },
     };
 
+    /* Design System §9.2 sizing — all with gap for icon+label */
     const sizes = {
-      sm: 'h-8 px-3 text-xs gap-1.5',
-      md: 'h-10 px-4 py-2 text-sm gap-2',
-      lg: 'h-12 px-6 text-base gap-2',
-      icon: 'h-10 w-10',
+      compact:
+        'h-9 px-3.5 text-xs font-semibold gap-1.5' /* 36px — dense contexts only */,
+      sm: 'h-9 px-3.5 text-xs font-semibold gap-1.5' /* 36px — alias for compact */,
+      md: 'h-11 px-5 text-sm font-semibold gap-2' /* 44px — secondary standard */,
+      lg: 'h-12 px-6 text-sm font-bold gap-2' /* 48px — primary standard */,
+      icon: 'h-11 w-11 shrink-0' /* 44×44px — icon buttons */,
     };
 
     const v = variants[variant];
@@ -109,15 +124,16 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         style={combinedStyle}
         disabled={disabled || isLoading}
         aria-busy={isLoading}
-        whileTap={disabled || isLoading ? undefined : { scale: 0.96 }}
+        /* Design System §15.3 — subtle active state, no dramatic movement */
+        whileTap={disabled || isLoading ? undefined : { scale: 0.97 }}
         whileHover={
           disabled || isLoading
             ? undefined
             : variant === 'primary' ||
                 variant === 'gradient' ||
                 variant === 'white'
-              ? { scale: 1.03, y: -1 }
-              : { scale: 1.02 }
+              ? { scale: 1.02, y: -1 }
+              : { scale: 1.01 }
         }
         {...(props as any)}
       >

@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { EmptyState, ErrorState } from '../components/ErrorEmptyStates';
+import { LoadingSpinner } from '../components/LoadingStates';
 import PostCard from '../components/PostCard';
 import { bookmarksApi } from '../services';
 
@@ -16,24 +17,25 @@ export default function Saved() {
   const posts = data?.data?.data || [];
 
   return (
-    <div className="min-h-screen pt-6 pb-24">
-      <div className="max-w-lg mx-auto px-4">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
+    <div className="min-h-dvh pt-2 md:pt-6 pb-20">
+      <div className="max-w-117.5 mx-auto px-4">
+        {/* Header — Design System §6.4 */}
+        <div className="flex items-center gap-3 mb-4 py-1">
           <Link
             to="/"
-            className="p-2 hover:bg-white/10 rounded-full transition-colors"
+            className="w-11 h-11 flex items-center justify-center hover:bg-white/8 rounded-xl text-white/60 hover:text-white transition-colors"
+            aria-label="Volver al inicio"
           >
-            <ArrowLeft size={24} className="text-gray-300" />
+            <ArrowLeft size={20} />
           </Link>
-          <h1 className="text-xl font-bold text-white">
+          <h1 className="text-lg font-bold text-white tracking-tight">
             {t('collections.saved_title')}
           </h1>
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full" />
+          <div className="flex justify-center py-10">
+            <LoadingSpinner size="lg" />
           </div>
         ) : isError ? (
           <ErrorState
@@ -54,7 +56,8 @@ export default function Saved() {
             message={t('collections.no_saved_desc')}
           />
         ) : (
-          <div className="space-y-4">
+          /* 12px spacing between posts */
+          <div className="space-y-3">
             {posts.map((post) => (
               <PostCard key={post.id} post={post} />
             ))}

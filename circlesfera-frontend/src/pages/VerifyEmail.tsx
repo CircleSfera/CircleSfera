@@ -41,7 +41,7 @@ export default function VerifyEmail() {
 
   return (
     <LayoutWrapper showNavigation={false}>
-      <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
+      <div className="min-h-dvh flex items-center justify-center p-4 relative z-10">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}

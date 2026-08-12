@@ -63,7 +63,7 @@ export default function PrivacyPolicy() {
   };
 
   return (
-    <div className="min-h-screen text-white pt-24 pb-24 px-6 font-sans relative overflow-hidden selection:bg-brand-primary/30 flex flex-col justify-between">
+    <div className="min-h-dvh text-white pt-24 pb-24 px-6 font-sans relative overflow-hidden selection:bg-brand-primary/30 flex flex-col justify-between">
       <SEO title={t('legal.privacy.title')} />
 
       {/* Background is now handled globally by LayoutWrapper */}
@@ -71,7 +71,7 @@ export default function PrivacyPolicy() {
       {/* Guest Navigation (Only if not logged in) */}
       {!isAuthenticated && (
         <nav className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5 px-5 py-2 flex justify-between items-center backdrop-blur-xl bg-transparent">
-          <Link to="/" className="flex items-center gap-2.5">
+          <Link to="/" className="flex items-center gap-3">
             <img
               src={logoSrc}
               alt="CircleSfera"
@@ -114,13 +114,13 @@ export default function PrivacyPolicy() {
                 </h1>
               </div>
 
-              <nav className="space-y-0.5">
+              <nav className="space-y-1">
                 {sections.map((section) => (
                   <button
                     type="button"
                     key={section.id}
                     onClick={() => scrollTo(section.id)}
-                    className="flex items-center gap-2.5 w-full p-3 rounded-xl hover:bg-white/5 transition-all group text-left border border-transparent hover:border-white/5"
+                    className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-white/5 transition-all group text-left border border-transparent hover:border-white/5"
                   >
                     <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
                       <section.icon
@@ -176,7 +176,7 @@ export default function PrivacyPolicy() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-10% 0px' }}
                   transition={{ delay: index * 0.05, duration: 0.5 }}
-                  className="glass-panel p-4 md:p-8 rounded-xl border border-white/5 relative group hover:border-brand-primary/30 hover:shadow-[0_0_40px_rgba(131,58,180,0.15)] transition-all duration-500 overflow-hidden backdrop-blur-2xl hover:-translate-y-1"
+                  className="glass-panel p-4 md:p-8 rounded-xl border border-white/5 relative group hover:border-brand-primary/30 hover:shadow-[0_0_40px_rgba(140, 82, 255,0.15)] transition-all duration-500 overflow-hidden backdrop-blur-2xl hover:-translate-y-1"
                 >
                   <div
                     className={`absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none`}

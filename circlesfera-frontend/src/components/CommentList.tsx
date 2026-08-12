@@ -63,19 +63,23 @@ const CommentItem = ({
   const likesCount = comment.likes?.length || 0;
 
   return (
-    <div className={`space-y-3 ${depth > 0 ? 'ml-8 mt-3 relative' : ''}`}>
+    <div
+      className={`space-y-2 md:space-y-3 ${depth > 0 ? 'ml-3 md:ml-6 mt-1.5 md:mt-2.5 relative' : ''}`}
+    >
       {depth > 0 && (
         <div className="absolute -left-4 top-0 bottom-0 w-px bg-white/10" />
       )}
 
-      <div className={`flex gap-3 group ${isDeleting ? 'opacity-50' : ''}`}>
+      <div
+        className={`flex gap-2 md:gap-3 group ${isDeleting ? 'opacity-50' : ''}`}
+      >
         <UserAvatar
           src={comment.user.profile.avatar || undefined}
           thumbnailUrl={comment.thumbnailUrl}
           standardUrl={comment.standardUrl}
           alt={comment.user.profile.username}
-          size="sm"
-          className="w-9 h-9 rounded-full object-cover shrink-0"
+          size="compact"
+          className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover shrink-0"
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
@@ -123,6 +127,11 @@ const CommentItem = ({
                 size="icon"
                 className={`w-8 h-8 p-0 transition-colors ${isLiked ? 'text-red-500' : 'text-gray-300 hover:text-red-400'}`}
                 title={isLiked ? t('comments.unlike') : t('comments.like')}
+                aria-label={
+                  isLiked
+                    ? t('comments.unlike', 'Ya no me gusta')
+                    : t('comments.like', 'Me gusta')
+                }
               >
                 <Heart size={14} fill={isLiked ? 'currentColor' : 'none'} />
               </Button>
@@ -133,6 +142,7 @@ const CommentItem = ({
                 size="icon"
                 className="w-8 h-8 p-0 text-gray-300 hover:text-purple-400 transition-colors"
                 title={t('comments.reply')}
+                aria-label={t('comments.reply', 'Responder')}
               >
                 <MessageCircle size={14} />
               </Button>
@@ -145,6 +155,7 @@ const CommentItem = ({
                   size="icon"
                   className="w-8 h-8 p-0 text-gray-300 hover:text-red-400 transition-colors"
                   title={t('comments.delete')}
+                  aria-label={t('comments.delete', 'Eliminar comentario')}
                 >
                   <Trash2 size={14} />
                 </Button>
@@ -207,7 +218,7 @@ export default function CommentList({
 }: CommentListProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -318,7 +329,10 @@ export default function CommentList({
   };
 
   const composerForm = (
-    <form onSubmit={handleSubmit} className={isDetailMode ? 'p-3 pt-2' : ''}>
+    <form
+      onSubmit={handleSubmit}
+      className={isDetailMode ? 'p-2 md:p-3 pt-2' : ''}
+    >
       {replyingTo && (
         <div className="flex items-center justify-between bg-white/5 px-2.5 py-1.5 rounded-lg mb-2 text-sm border border-white/10">
           <span className="text-gray-300 truncate">
@@ -422,13 +436,15 @@ export default function CommentList({
 
   return (
     <div
-      className={isDetailMode ? 'flex flex-col h-full min-h-0' : 'space-y-4'}
+      className={
+        isDetailMode ? 'flex flex-col h-full min-h-0' : 'space-y-3 md:space-y-4'
+      }
     >
       <div
         className={
           isDetailMode
-            ? 'flex-1 overflow-y-auto px-4 py-3 pb-28 md:pb-3 custom-scrollbar space-y-5 border-t border-white/5 md:border-t-0'
-            : 'space-y-4'
+            ? 'flex-1 overflow-y-auto px-3 md:px-4 py-2 md:py-3 pb-28 md:pb-3 custom-scrollbar space-y-3 md:space-y-5 border-t border-white/5 md:border-t-0'
+            : 'space-y-3 md:space-y-4'
         }
       >
         {isDetailMode && captionComponent}
@@ -457,7 +473,7 @@ export default function CommentList({
         className={
           isDetailMode
             ? 'shrink-0 border-t border-white/10 bg-black/90 backdrop-blur-xl md:bg-transparent md:backdrop-blur-none sticky bottom-14 md:static z-20 pb-[env(safe-area-inset-bottom)] md:pb-0'
-            : 'mt-6 pt-4 border-t border-white/10 sticky bottom-14 lg:bottom-0 bg-black/95 backdrop-blur-md p-4 lg:-mx-4 rounded-t-xl lg:rounded-b-2xl z-20 shadow-2xl'
+            : 'mt-4 md:mt-6 pt-3 md:pt-4 border-t border-white/10 sticky bottom-14 lg:bottom-0 bg-black/95 backdrop-blur-md p-3 md:p-4 lg:-mx-4 rounded-t-xl lg:rounded-b-2xl z-20 shadow-2xl'
         }
       >
         {isDetailMode && actionsComponent && (

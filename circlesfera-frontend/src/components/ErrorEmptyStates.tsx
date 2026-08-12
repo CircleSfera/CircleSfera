@@ -30,7 +30,7 @@ export function ErrorState({
           className="w-14 h-14 rounded-2xl flex items-center justify-center"
           style={{
             background:
-              'linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(131,58,180,0.1) 100%)',
+              'linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(var(--brand-primary-rgb),0.1) 100%)',
             border: '1px solid rgba(239,68,68,0.2)',
             boxShadow: '0 4px 20px rgba(239,68,68,0.15)',
           }}
@@ -66,9 +66,9 @@ export function ErrorState({
           className="px-6 py-2.5 text-sm font-bold text-white rounded-xl transition-all"
           style={{
             background:
-              'linear-gradient(135deg, rgba(131,58,180,0.25) 0%, rgba(64,93,230,0.15) 100%)',
-            border: '1px solid rgba(131,58,180,0.3)',
-            boxShadow: '0 4px 16px rgba(131,58,180,0.15)',
+              'linear-gradient(135deg, rgba(var(--brand-primary-rgb),0.25) 0%, rgba(64,93,230,0.15) 100%)',
+            border: '1px solid rgba(var(--brand-primary-rgb),0.3)',
+            boxShadow: '0 4px 16px rgba(var(--brand-primary-rgb),0.15)',
           }}
         >
           Try Again
@@ -133,7 +133,7 @@ export function EmptyState({
           className="absolute inset-0 rounded-2xl blur-xl opacity-50"
           style={{
             background:
-              'radial-gradient(circle, rgba(131,58,180,0.3) 0%, transparent 70%)',
+              'radial-gradient(circle, rgba(var(--brand-primary-rgb),0.3) 0%, transparent 70%)',
             transform: 'scale(1.3)',
           }}
         />
@@ -141,9 +141,9 @@ export function EmptyState({
           className="relative w-14 h-14 rounded-2xl flex items-center justify-center"
           style={{
             background:
-              'linear-gradient(135deg, rgba(131,58,180,0.18) 0%, rgba(64,93,230,0.12) 100%)',
-            border: '1px solid rgba(131,58,180,0.2)',
-            boxShadow: '0 4px 20px rgba(131,58,180,0.12)',
+              'linear-gradient(135deg, rgba(var(--brand-primary-rgb),0.18) 0%, rgba(64,93,230,0.12) 100%)',
+            border: '1px solid rgba(var(--brand-primary-rgb),0.2)',
+            boxShadow: '0 4px 20px rgba(var(--brand-primary-rgb),0.12)',
           }}
         >
           <svg
@@ -179,9 +179,9 @@ export function EmptyState({
           className="px-6 py-2.5 text-sm font-bold text-white rounded-xl transition-all"
           style={{
             background:
-              'linear-gradient(135deg, rgba(131,58,180,0.25) 0%, rgba(64,93,230,0.15) 100%)',
-            border: '1px solid rgba(131,58,180,0.3)',
-            boxShadow: '0 4px 16px rgba(131,58,180,0.15)',
+              'linear-gradient(135deg, rgba(var(--brand-primary-rgb),0.25) 0%, rgba(64,93,230,0.15) 100%)',
+            border: '1px solid rgba(var(--brand-primary-rgb),0.3)',
+            boxShadow: '0 4px 16px rgba(var(--brand-primary-rgb),0.15)',
           }}
         >
           {action.label}

@@ -70,7 +70,7 @@ export default function FollowButton({ username }: FollowButtonProps) {
       onClick={() => followMutation.mutate(username)}
       isLoading={followMutation.isPending}
       variant={getButtonVariant()}
-      className="px-6 py-2 font-semibold"
+      className="px-6 h-11 font-semibold"
     >
       {getButtonText()}
     </Button>

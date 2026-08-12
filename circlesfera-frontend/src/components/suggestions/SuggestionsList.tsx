@@ -10,7 +10,7 @@ export const SuggestionsList: React.FC<{
   layout?: 'horizontal' | 'vertical';
 }> = ({ layout = 'horizontal' }) => {
   const { t } = useTranslation();
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [users, setUsers] = useState<SuggestedUser[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -90,7 +90,7 @@ export const SuggestionsList: React.FC<{
           ? ['s1', 's2', 's3', 's4', 's5'].map((id) => (
               <div
                 key={id}
-                className="shrink-0 w-[140px] h-[200px] glass-panel rounded-lg animate-pulse"
+                className="shrink-0 w-35 h-50 glass-panel rounded-lg animate-pulse"
               />
             ))
           : users.map((user) => (

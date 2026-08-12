@@ -6,7 +6,7 @@ import { useAuthStore } from '../stores/authStore';
 
 export const Support: React.FC = () => {
   const { t } = useTranslation();
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
   const userEmail = profile?.user?.email || '';
   const userId = profile?.userId || profile?.user?.id;
   const [subject, setSubject] = useState('');

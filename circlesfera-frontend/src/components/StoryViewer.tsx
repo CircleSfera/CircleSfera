@@ -49,7 +49,7 @@ export default function StoryViewer({
   onClose,
 }: StoryViewerProps) {
   const { t } = useTranslation();
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
   const queryClient = useQueryClient();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -325,8 +325,8 @@ export default function StoryViewer({
               </div>
             )}
 
-            <div className="absolute inset-x-0 top-0 h-40 bg-linear-to-b from-black/80 via-black/40 to-transparent pointer-events-none z-20 md:rounded-t-2xl" />
-            <div className="absolute inset-x-0 bottom-0 h-48 bg-linear-to-t from-black/90 via-black/50 to-transparent pointer-events-none z-20 md:rounded-b-2xl" />
+            <div className="absolute inset-x-0 top-0 h-24 bg-linear-to-b from-black/80 via-black/40 to-transparent pointer-events-none z-20 md:rounded-t-2xl" />
+            <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-black/90 via-black/50 to-transparent pointer-events-none z-20 md:rounded-b-2xl" />
 
             {currentStory.poll?.id && !isLocked && (
               <div
@@ -368,7 +368,7 @@ export default function StoryViewer({
                     thumbnailUrl={currentStory.user.profile?.thumbnailUrl}
                     standardUrl={currentStory.user.profile?.standardUrl}
                     alt={currentStory.user.profile?.username || 'User'}
-                    size="sm"
+                    size="compact"
                   />
                 </div>
                 <div className="flex flex-col gap-0.5 justify-center">
@@ -391,7 +391,7 @@ export default function StoryViewer({
                   type="button"
                   onClick={() => setIsMuted(!isMuted)}
                   aria-label={isMuted ? 'Unmute' : 'Mute'}
-                  className="text-white/90 bg-black/30 hover:bg-black/50 p-2.5 rounded-full backdrop-blur-md transition-colors shadow-lg"
+                  className="text-white/90 bg-black/30 hover:bg-black/50 w-11 h-11 flex items-center justify-center rounded-full backdrop-blur-md transition-colors shadow-lg"
                 >
                   {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                 </button>
@@ -399,7 +399,7 @@ export default function StoryViewer({
                   type="button"
                   onClick={onClose}
                   aria-label="Close story viewer"
-                  className="text-white/90 bg-black/30 hover:bg-black/50 p-2.5 rounded-full backdrop-blur-md transition-colors shadow-lg"
+                  className="text-white/90 bg-black/30 hover:bg-black/50 w-11 h-11 flex items-center justify-center rounded-full backdrop-blur-md transition-colors shadow-lg"
                 >
                   <X size={22} />
                 </button>

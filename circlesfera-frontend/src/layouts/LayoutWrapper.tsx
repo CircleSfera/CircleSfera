@@ -61,7 +61,7 @@ export default function LayoutWrapper({
 
   return (
     <div
-      className={`relative text-white selection:bg-purple-500/30 ${isFramesRoute ? 'h-dvh overflow-hidden' : 'min-h-screen overflow-x-hidden'}`}
+      className={`relative text-white selection:bg-purple-500/30 ${isFramesRoute ? 'h-dvh overflow-hidden' : 'min-h-dvh overflow-x-hidden'}`}
     >
       {/* Skip to Content Link */}
       <a
@@ -85,7 +85,7 @@ export default function LayoutWrapper({
       </div>
 
       {/* ─── Global Brand Gradient Background (Refined & Balanced) ─── */}
-      <div className="fixed inset-0 z-[-1] overflow-hidden bg-[#08060f] pointer-events-none">
+      <div className="fixed inset-0 z-[-1] overflow-hidden bg-[var(--surface-base)] pointer-events-none">
         {/* Calibrated multi-stop brand gradient (eliminates muddy mid-tones while preserving brand colors) */}
         <div
           className="absolute inset-0 pointer-events-none"
@@ -130,16 +130,39 @@ export default function LayoutWrapper({
 
       <main
         id="main-content"
-        className={`flex-1 w-full transition-all duration-300 ${shouldShowNav ? 'md:pl-20 xl:pl-56' : ''}`}
+        className={`flex-1 w-full transition-all duration-300 ${
+          shouldShowNav
+            ? /* Sidebar: 68px collapsed (md), 260px expanded (xl) */
+              'md:pl-17 xl:pl-65'
+            : ''
+        }`}
       >
-        {/* Top spacing for mobile to account for TopNav height */}
+        {/* Top spacing for mobile to account for TopNav height (52px + safe area) */}
         {shouldShowNav &&
-          !location.pathname.startsWith('/direct') &&
+          !location.pathname.includes('/direct/inbox/t/') &&
           !isFramesRoute &&
-          !isEditsRoute && <div className="md:hidden h-16" />}
+          !isEditsRoute && (
+            <div
+              className="md:hidden shrink-0"
+              style={{
+                height:
+                  'calc(var(--nav-top-height, 52px) + env(safe-area-inset-top, 0px))',
+              }}
+            />
+          )}
 
         <div
-          className={`w-full ${location.pathname.startsWith('/direct') ? (location.pathname.includes('/t/') ? 'h-[calc(100dvh-80px)] md:h-screen' : 'h-[calc(100dvh-64px-80px)] md:h-screen') : isFramesRoute ? 'h-dvh md:h-screen' : isEditsRoute ? 'h-[calc(100dvh-64px)] md:h-screen' : `min-h-screen ${shouldShowNav ? 'pb-24 md:pb-8' : ''}`} overflow-hidden`}
+          className={`w-full ${
+            location.pathname.startsWith('/direct')
+              ? location.pathname.includes('/t/')
+                ? 'h-[calc(100dvh-var(--nav-bottom-height,60px))] md:h-dvh'
+                : 'h-[calc(100dvh-var(--nav-top-height,52px)-var(--nav-bottom-height,60px))] md:h-dvh'
+              : isFramesRoute
+                ? 'h-dvh md:h-dvh'
+                : isEditsRoute
+                  ? 'h-[calc(100dvh-var(--nav-top-height,52px))] md:h-dvh'
+                  : `min-h-dvh ${shouldShowNav ? 'pb-(--nav-bottom-height,60px) md:pb-8' : ''}`
+          } overflow-x-hidden`}
         >
           <div
             className={
@@ -148,7 +171,7 @@ export default function LayoutWrapper({
               !location.pathname.startsWith('/admin') &&
               !isFramesRoute &&
               !isEditsRoute
-                ? 'mx-auto max-w-5xl 2xl:max-w-7xl px-4'
+                ? 'mx-auto max-w-5xl 2xl:max-w-7xl px-4 md:px-5 lg:px-6'
                 : `w-full h-full ${shouldShowNav && !isFramesRoute && !isEditsRoute ? 'md:pb-10' : ''}`
             }
           >

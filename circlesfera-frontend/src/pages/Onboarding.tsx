@@ -160,28 +160,29 @@ export default function Onboarding() {
             <div className="space-y-2 mb-6">
               <label
                 htmlFor="bio-input"
-                className="text-xs font-bold text-gray-500 uppercase tracking-wider ml-1"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-widest px-1"
               >
-                Your Bio
+                Tu Bio
               </label>
               <textarea
                 id="bio-input"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Tell the world about yourself..."
-                className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary/50 focus:bg-white/10 transition-all resize-none h-24"
+                placeholder="Cuéntale al mundo sobre ti..."
+                className="input-glass w-full p-4 rounded-xl text-white placeholder-gray-500 text-sm resize-none h-24"
                 maxLength={160}
               />
-              <div className="text-right text-[10px] text-gray-600 font-medium mt-1">
+              <div className="text-right text-[10px] text-gray-500 font-medium">
                 {bio.length}/160
               </div>
             </div>
 
             <Button
               onClick={() => setStep(2)}
-              className="w-full py-4 text-sm font-bold rounded-2xl group flex items-center justify-center gap-2"
+              size="lg"
+              className="w-full font-bold group flex items-center justify-center gap-2"
             >
-              Continue
+              Continuar
               <ChevronRight
                 size={16}
                 className="group-hover:translate-x-1 transition-transform"
@@ -247,7 +248,7 @@ export default function Onboarding() {
                             !isFollowed && followMutation.mutate(user.username)
                           }
                           disabled={isFollowed || followMutation.isPending}
-                          className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                          className={`px-4 min-h-11 flex items-center justify-center rounded-full text-xs font-bold transition-all ${
                             isFollowed
                               ? 'bg-white/10 text-white cursor-default'
                               : 'bg-brand-primary text-white hover:bg-brand-primary/90 active:scale-95'
@@ -272,18 +273,20 @@ export default function Onboarding() {
               <Button
                 type="button"
                 variant="outline"
+                size="lg"
                 onClick={() => setStep(1)}
-                className="py-4 px-6 rounded-2xl"
+                className="px-6 font-semibold"
               >
-                Back
+                Atrás
               </Button>
               <Button
                 type="button"
+                size="lg"
                 onClick={handleFinish}
                 isLoading={updateProfileMutation.isPending}
-                className="flex-1 py-4 text-sm font-bold rounded-2xl flex items-center justify-center gap-2"
+                className="flex-1 font-bold flex items-center justify-center gap-2"
               >
-                Enter CircleSfera
+                Entrar a CircleSfera
                 <Sparkles size={16} />
               </Button>
             </div>

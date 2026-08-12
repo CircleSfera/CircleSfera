@@ -1,0 +1,35 @@
+
+> circlesfera-frontend@1.0.0 test
+> vitest run
+
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.9 [39m[90m/Users/ShadyFeliu/Desktop/Projects/CircleSfera/circlesfera-frontend[39m
+
+ [31m❯[39m src/components/auth/AdminGuard.test.tsx [2m([22m[2m3 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 41[2mms[22m[39m
+[31m     [31m×[31m renders children for ADMIN role[39m[32m 31[2mms[22m[39m
+[31m     [31m×[31m renders children for MODERATOR role[39m[32m 5[2mms[22m[39m
+     [32m✓[39m blocks non-staff authenticated users[32m 3[2mms[22m[39m
+ [31m❯[39m src/components/auth/CreatorStudioGuard.test.tsx [2m([22m[2m3 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 45[2mms[22m[39m
+[31m     [31m×[31m renders children for CREATOR accountType[39m[32m 35[2mms[22m[39m
+[31m     [31m×[31m renders children for BUSINESS accountType[39m[32m 3[2mms[22m[39m
+     [32m✓[39m blocks PERSONAL authenticated users[32m 5[2mms[22m[39m
+ [32m✓[39m src/stores/authStore.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 134[2mms[22m[39m
+ [32m✓[39m src/components/chat/MessageBubble.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[32m 117[2mms[22m[39m
+ [32m✓[39m src/components/live/LiveGiftModal.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 338[2mms[22m[39m
+ [32m✓[39m src/components/PostCard.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 116[2mms[22m[39m
+ [32m✓[39m src/components/creator/creatorNav.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32m✓[39m src/utils/apiUtils.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32m✓[39m src/pages/Login.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 138[2mms[22m[39m
+ [32m✓[39m src/App.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 142[2mms[22m[39m
+ [31m❯[39m src/components/monetization/MonetizationDashboard.test.tsx [2m([22m[2m5 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[33m 2116[2mms[22m[39m
+     [32m✓[39m renders lifetime earnings from the monetization query[32m 73[2mms[22m[39m
+     [32m✓[39m prompts to connect Stripe when the creator has no connected account[32m 7[2mms[22m[39m
+[31m     [31m×[31m shows the Stripe dashboard link once a Stripe account is connected[39m[33m 1008[2mms[22m[39m
+     [32m✓[39m renders transactions returned by the transactions query[32m 19[2mms[22m[39m
+[31m     [31m×[31m shows an empty state when there are no transactions[39m[33m 1006[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m3 failed[39m[22m[2m | [22m[1m[32m8 passed[39m[22m[90m (11)[39m
+[2m      Tests [22m [1m[31m6 failed[39m[22m[2m | [22m[1m[32m34 passed[39m[22m[90m (40)[39m
+[2m   Start at [22m 23:48:52
+[2m   Duration [22m 3.90s[2m (transform 2.18s, setup 2.03s, import 5.23s, tests 3.19s, environment 7.56s)[22m
+

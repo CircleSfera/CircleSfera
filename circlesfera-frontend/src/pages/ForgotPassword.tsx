@@ -34,7 +34,7 @@ export default function ForgotPassword() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="min-h-dvh flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -52,7 +52,7 @@ export default function ForgotPassword() {
           </p>
           <Link
             to="/accounts/login"
-            className="text-brand-primary hover:underline font-medium inline-flex items-center gap-2"
+            className="text-brand-primary hover:underline font-medium inline-flex items-center min-h-11 justify-center gap-2"
           >
             <ArrowLeft size={18} /> {t('auth.forgot_password.back_to_login')}
           </Link>
@@ -62,23 +62,23 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-dvh flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-panel p-4 rounded-lg max-w-md w-full"
+        className="modal-glass p-6 rounded-2xl max-w-sm w-full border border-white/8 shadow-2xl backdrop-blur-2xl"
       >
         <Link
           to="/accounts/login"
-          className="text-gray-300 hover:text-white mb-6 inline-flex items-center gap-2 text-sm transition-colors"
+          className="text-gray-400 hover:text-white mb-6 inline-flex items-center min-h-11 justify-center gap-2 text-xs font-semibold tracking-wide transition-colors"
         >
           <ArrowLeft size={16} /> {t('auth.forgot_password.back')}
         </Link>
 
-        <h1 className="text-2xl font-bold mb-2">
+        <h1 className="text-xl font-black mb-2 tracking-tight text-white">
           {t('auth.forgot_password.title')}
         </h1>
-        <p className="text-gray-300 mb-5 text-sm">
+        <p className="text-gray-400 mb-5 text-xs leading-relaxed">
           {t('auth.forgot_password.subtitle')}
         </p>
 
@@ -86,13 +86,13 @@ export default function ForgotPassword() {
           <div className="space-y-2">
             <label
               htmlFor="email"
-              className="text-xs font-bold text-gray-300 uppercase tracking-wider"
+              className="block text-xs font-bold text-gray-500 uppercase tracking-widest px-1"
             >
               {t('auth.forgot_password.email_label')}
             </label>
-            <div className="relative">
+            <div className="relative flex items-center">
               <Mail
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+                className="absolute left-3.5 text-gray-500 pointer-events-none z-10"
                 size={18}
               />
               <input
@@ -102,19 +102,25 @@ export default function ForgotPassword() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('auth.forgot_password.email_placeholder')}
-                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-brand-primary transition-colors"
+                className="input-glass w-full pl-10 pr-4 text-white placeholder-gray-600 text-sm"
+                style={{ height: 'var(--input-height-standard, 48px)' }}
                 autoComplete="email"
               />
             </div>
           </div>
 
-          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+          {error && (
+            <p className="text-red-400 text-xs font-semibold text-center bg-red-500/10 border border-red-500/20 p-2.5 rounded-xl">
+              {error}
+            </p>
+          )}
 
           <Button
             type="submit"
             variant="primary"
+            size="lg"
             isLoading={loading}
-            className="w-full font-bold py-2.5"
+            className="w-full font-bold text-sm tracking-wide"
           >
             {t('auth.forgot_password.submit')}
           </Button>

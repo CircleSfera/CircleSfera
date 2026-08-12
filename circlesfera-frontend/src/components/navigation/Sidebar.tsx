@@ -24,10 +24,20 @@ import { useAuthStore } from '../../stores/authStore';
 import { useNotificationsStore } from '../../stores/notificationsStore';
 import { useUIStore } from '../../stores/uiStore';
 
+/**
+ * Sidebar — Design System §9.4 & §18.1
+ * Collapsed (md):  68px  (--nav-sidebar-collapsed)
+ * Expanded (xl):   260px (--nav-sidebar-width)
+ * Icon size nav:   24px  (--icon-nav)
+ * Label:           text-sm (14px, --text-body-sm)
+ * Glassmorphism per §16.2
+ */
 export default function Sidebar() {
   const location = useLocation();
   const path = location.pathname;
-  const { profile, logout, isAuthenticated } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
+  const logout = useAuthStore((state) => state.logout);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const unreadCount = useNotificationsStore((state) => state.unreadCount);
   const openCreateMenu = useUIStore((state) => state.openCreateMenu);
   const unreadMessagesCount = useNotificationsStore(
@@ -39,7 +49,6 @@ export default function Sidebar() {
   );
   const { t } = useTranslation();
 
-  // Fetch unread notification count
   const { data: unreadData } = useQuery({
     queryKey: ['unreadNotifications'],
     queryFn: () => notificationsApi.getUnreadCount(),
@@ -52,7 +61,6 @@ export default function Sidebar() {
     }
   }, [unreadData, setUnreadCount]);
 
-  // Fetch unread messages count
   const { data: unreadMessagesData } = useQuery({
     queryKey: ['unreadMessages'],
     queryFn: () => chatApi.getUnreadCount(),
@@ -66,8 +74,6 @@ export default function Sidebar() {
   }, [unreadMessagesData, setUnreadMessagesCount]);
 
   const profileUrl = profile?.username ? `/${profile.username}` : '/';
-
-  // Check if current path is the user's profile
   const isProfileActive = profile?.username && path === `/${profile.username}`;
 
   const navItems = [
@@ -119,41 +125,44 @@ export default function Sidebar() {
 
   return (
     <div
-      className="hidden md:flex md:flex-col fixed left-3 top-3 bottom-3 w-14 xl:w-52 z-50 transition-all duration-300"
+      className="sidebar-root hidden md:flex md:flex-col fixed left-0 top-0 bottom-0 z-50 transition-all duration-300 w-17 xl:w-65"
       style={{
-        background:
-          'linear-gradient(180deg, rgba(12,8,20,0.92) 0%, rgba(8,6,16,0.95) 100%)',
+        background: 'rgba(8, 6, 15, 0.92)',
         backdropFilter: 'blur(32px) saturate(200%)',
         WebkitBackdropFilter: 'blur(32px) saturate(200%)',
-        border: '1px solid rgba(255,255,255,0.07)',
-        borderRadius: '20px',
+        borderRight: '1px solid rgba(255,255,255,0.07)',
         boxShadow:
-          '0 10px 48px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07), inset 0 -1px 0 rgba(255,255,255,0.03)',
+          '4px 0 24px rgba(0,0,0,0.4), inset -1px 0 0 rgba(255,255,255,0.04)',
       }}
     >
+      <style>{`
+        @media (min-width: 1280px) {
+          .sidebar-root { width: var(--nav-sidebar-width, 260px) !important; }
+        }
+      `}</style>
+
       {/* Logo Area */}
-      <div className="p-3 mb-1 flex justify-center xl:justify-start">
-        <Link to="/" className="block">
-          {/* Desktop Logo */}
+      <div className="px-3 py-4 flex justify-center xl:justify-start shrink-0">
+        <Link
+          to="/"
+          className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
+        >
           <img
             src={logoSrc}
-            alt="CircleSfera Logo"
-            className="hidden xl:block h-7 w-auto object-contain"
-          />
-          {/* Tablet Logo (Icon) */}
-          <img
-            src={logoSrc}
-            alt="CircleSfera Logo"
-            className="xl:hidden h-7 w-7 object-contain"
+            alt="CircleSfera"
+            className="h-7 w-auto object-contain"
           />
         </Link>
       </div>
 
       {/* Separator */}
-      <div className="mx-3 mb-1.5 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
+      <div className="mx-3 mb-2 h-px bg-linear-to-r from-transparent via-white/8 to-transparent shrink-0" />
 
       {/* Navigation Items */}
-      <nav className="flex-1 px-1.5 space-y-0.5">
+      <nav
+        className="flex-1 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden no-scrollbar"
+        aria-label="Main navigation"
+      >
         {navItems.map((item) => {
           const isActive =
             item.label === t('nav.profile')
@@ -165,35 +174,51 @@ export default function Sidebar() {
 
           const content = (
             <>
-              <motion.div
-                whileHover={{ scale: 1.06 }}
-                whileTap={{ scale: 0.94 }}
-                className="relative shrink-0"
+              <div
+                className="relative shrink-0 flex items-center justify-center"
+                style={{ width: 24, height: 24 }}
               >
                 <item.icon
-                  size={17}
-                  strokeWidth={isActive ? 2.5 : 2}
+                  size={20}
+                  strokeWidth={isActive ? 2.5 : 1.8}
                   className={
                     isActive ? 'drop-shadow-[0_0_6px_rgba(140,82,255,0.7)]' : ''
                   }
                 />
 
-                {/* Notification Badge (Hidden on Desktop Expanded View) */}
+                {/* Badge — collapsed mode */}
                 {item.badge > 0 && (
-                  <span className="xl:hidden absolute -top-1.5 -right-1.5 min-w-4 h-4 flex items-center justify-center text-[10px] font-bold text-white bg-linear-to-br from-red-500 to-red-600 rounded-full px-1 shadow-md">
+                  <span
+                    className="xl:hidden absolute -top-1.5 -right-1.5 min-w-4 h-4 flex items-center justify-center font-bold text-white rounded-full px-1"
+                    style={{
+                      fontSize: '9px',
+                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                      boxShadow: '0 2px 6px rgba(239,68,68,0.5)',
+                    }}
+                  >
                     {item.badge > 99 ? '99+' : item.badge}
                   </span>
                 )}
-              </motion.div>
+              </div>
+
+              {/* Label — Design System §6.3: 500 weight for labels */}
               <span
-                className={`hidden xl:block text-xs transition-all duration-200 ${isActive ? 'font-bold' : 'font-medium'}`}
+                className="hidden xl:block text-sm font-medium transition-all duration-200 truncate"
+                style={{ fontWeight: isActive ? 700 : 500 }}
               >
                 {item.label}
               </span>
 
-              {/* Badge for desktop expanded view */}
+              {/* Badge — expanded mode */}
               {item.badge > 0 && (
-                <span className="hidden xl:flex ml-auto min-w-4.5 h-4.5 items-center justify-center text-[10px] font-bold text-white bg-linear-to-br from-red-500 to-red-600 rounded-full px-1 shadow-md">
+                <span
+                  className="hidden xl:flex ml-auto min-w-4 h-4 items-center justify-center font-bold text-white rounded-full px-1"
+                  style={{
+                    fontSize: '9px',
+                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    boxShadow: '0 2px 6px rgba(239,68,68,0.5)',
+                  }}
+                >
                   {item.badge > 99 ? '99+' : item.badge}
                 </span>
               )}
@@ -202,7 +227,7 @@ export default function Sidebar() {
 
           const activeClass = 'nav-active text-white';
           const inactiveClass =
-            'text-gray-400/90 hover:bg-white/5 hover:text-white/90';
+            'text-gray-400/80 hover:bg-white/5 hover:text-white/90';
 
           if (item.onClick) {
             return (
@@ -214,9 +239,16 @@ export default function Sidebar() {
                 className={`relative w-full flex items-center gap-3 py-2.5 px-3 rounded-xl transition-all duration-200 group active:scale-95 overflow-hidden ${
                   isActive ? activeClass : inactiveClass
                 }`}
+                style={{ minHeight: 44 }}
               >
                 {isActive && <span className="nav-active-indicator" />}
-                {content}
+                <motion.div
+                  whileHover={{ scale: 1.06 }}
+                  whileTap={{ scale: 0.94 }}
+                  className="flex items-center gap-3 w-full"
+                >
+                  {content}
+                </motion.div>
               </button>
             );
           }
@@ -230,19 +262,26 @@ export default function Sidebar() {
               className={`relative flex items-center gap-3 py-2.5 px-3 rounded-xl transition-all duration-200 group active:scale-95 overflow-hidden ${
                 isActive ? activeClass : inactiveClass
               }`}
+              style={{ minHeight: 44 }}
             >
               {isActive && <span className="nav-active-indicator" />}
-              {content}
+              <motion.div
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.94 }}
+                className="flex items-center gap-3 w-full"
+              >
+                {content}
+              </motion.div>
             </Link>
           );
         })}
       </nav>
 
-      {/* Separator before bottom area */}
-      <div className="mx-3 mt-2 mb-2 h-px bg-linear-to-r from-transparent via-white/8 to-transparent" />
+      {/* Separator */}
+      <div className="mx-3 mt-2 mb-2 h-px bg-linear-to-r from-transparent via-white/8 to-transparent shrink-0" />
 
-      {/* Bottom Area (More/Settings) */}
-      <div className="p-2 mb-1 space-y-0.5">
+      {/* Bottom: Premium + Settings + Logout */}
+      <div className="px-2 pb-4 space-y-0.5 shrink-0">
         <Link
           to="/pricing"
           aria-label="Premium"
@@ -251,12 +290,12 @@ export default function Sidebar() {
             background:
               'linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(252,176,69,0.04) 100%)',
             border: '1px solid rgba(251,191,36,0.12)',
+            minHeight: 44,
           }}
         >
-          {/* Shimmer sweep */}
           <div className="absolute inset-0 bg-linear-to-r from-amber-400/0 via-amber-400/8 to-amber-400/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
           <Sparkles
-            size={18}
+            size={20}
             className="drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] shrink-0"
           />
           <span className="hidden xl:block text-sm font-bold tracking-wide">
@@ -268,21 +307,22 @@ export default function Sidebar() {
           to="/accounts/edit"
           aria-label="Settings"
           className="flex items-center gap-3 py-2.5 px-3 rounded-xl text-gray-400/80 hover:bg-white/5 hover:text-white/90 transition-all duration-200 active:scale-95"
+          style={{ minHeight: 44 }}
         >
-          <Settings size={18} className="shrink-0" />
+          <Settings size={20} className="shrink-0" />
           <span className="hidden xl:block text-sm font-medium">
             {t('nav.settings')}
           </span>
         </Link>
 
-        {/* Logout Button */}
         <button
           type="button"
           onClick={logout}
           aria-label="Log out"
           className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl text-red-400/80 hover:bg-red-500/8 hover:text-red-300 transition-all duration-200 active:scale-95"
+          style={{ minHeight: 44 }}
         >
-          <LogOut size={18} className="shrink-0" />
+          <LogOut size={20} className="shrink-0" />
           <span className="hidden xl:block text-sm font-medium">
             {t('nav.log_out')}
           </span>
