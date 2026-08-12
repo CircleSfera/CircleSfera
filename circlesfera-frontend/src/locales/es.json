@@ -399,7 +399,15 @@
   "feed": {
     "home_title": "Inicio",
     "brand_name": "CircleSfera",
-    "no_posts": "Todavía no hay publicaciones. ¡Explora para encontrar creadores!"
+    "no_posts": "Todavía no hay publicaciones. ¡Explora para encontrar creadores!",
+    "no_posts_title": "Sin publicaciones recientes",
+    "login_required_title": "Inicia sesión",
+    "login_required": "Inicia sesión para ver tu feed personalizado de los creadores que sigues.",
+    "no_following_posts_title": "Aún no sigues a nadie o no hay publicaciones",
+    "no_following_posts_desc": "Explora creadores sugeridos o pasa a Para ti para descubrir contenido trending.",
+    "switch_to_foryou": "Ir a Para ti",
+    "error_title": "No se pudo cargar el feed",
+    "error_message": "Algo salió mal al cargar las publicaciones. Inténtalo de nuevo."
   },
   "explore": {
     "page_title": "Explora el Universo",
@@ -704,6 +712,8 @@
     "title": "Actividad",
     "no_activity": "No hay actividad aún",
     "unknown_user": "Desconocido",
+    "error_title": "No se pudieron cargar las notificaciones",
+    "error_message": "Algo salió mal. Inténtalo de nuevo.",
     "types": {
       "like": "le ha gustado tu publicación.",
       "comment_like": "le ha gustado tu comentario.",
@@ -793,6 +803,14 @@
       "content_group": "Contenido",
       "content": "Publicaciones",
       "stories": "Historias"
+    },
+    "posts": {
+      "empty_title": "Aún no tienes publicaciones",
+      "empty_desc": "Publica tu primera pieza para verla aquí."
+    },
+    "stories": {
+      "empty_title": "No hay historias",
+      "empty_desc": "Comparte momentos efímeros con tus seguidores para aumentar tu alcance."
     },
     "money": {
       "sections": "Secciones de monetización",
@@ -1008,7 +1026,15 @@
       "time_ago_now": "ahora",
       "time_ago_minutes": "hace {{count}}m",
       "time_ago_hours": "hace {{count}}h",
-      "time_ago_days": "hace {{count}}d"
+      "time_ago_days": "hace {{count}}d",
+      "filter_all_recent": "Todos (Recientes)",
+      "more_actions": "Más acciones",
+      "this_month": "este mes",
+      "admins": "Admins",
+      "saving": "Guardando...",
+      "save_changes": "Guardar cambios",
+      "add": "Añadir",
+      "delete": "Eliminar"
     },
     "users": {
       "title": "Gestión de Usuarios",
@@ -1091,7 +1117,13 @@
       "confirm_suspend_confirm": "Suspender",
       "confirm_restore_title": "¿Restaurar a este usuario?",
       "confirm_restore_message": "Levantar la suspensión de @{{username}} y reactivar la cuenta.",
-      "confirm_restore_confirm": "Restaurar"
+      "confirm_restore_confirm": "Restaurar",
+      "kpi_registered": "Usuarios registrados",
+      "kpi_new_week": "Nuevos (esta semana)",
+      "kpi_active_today": "Activos hoy",
+      "kpi_pending_reports": "Reportes pendientes",
+      "segment_banned": "Baneados",
+      "segment_admins": "Admins"
     },
     "moderation": {
       "title": "Cola de Moderación AI",
@@ -1125,7 +1157,12 @@
       "toast_error": "Error al procesar moderación",
       "toast_batch_approved": "{{count}} elementos aprobados correctamente",
       "toast_batch_hidden": "{{count}} elementos ocultados correctamente",
-      "toast_batch_error": "Error al procesar lote"
+      "toast_batch_error": "Error al procesar lote",
+      "kb_navigate": "Navegar",
+      "kb_approve": "Aprobar",
+      "kb_hide": "Ocultar",
+      "kb_remove": "Eliminar",
+      "kb_deselect": "Deseleccionar"
     },
     "reports": {
       "title": "Reportes de Usuario",
@@ -1264,7 +1301,7 @@
       "filter_status": "Estado",
       "status_all": "Todos",
       "status_live": "En vivo",
-      "status_ended": "Finalizado",
+      "status_ended": "Finalizados",
       "empty_title": "Sin directos",
       "empty_description": "No hay streams con los filtros seleccionados.",
       "untitled": "Directo de @{{user}}",
@@ -1280,7 +1317,12 @@
       "col_status": "Estado",
       "col_viewers": "Espectadores",
       "col_started": "Inicio",
-      "col_actions": "Acciones"
+      "col_actions": "Acciones",
+      "kpi_active": "Directos activos",
+      "kpi_viewers": "Espectadores totales",
+      "kpi_traffic": "Pico de tráfico",
+      "kpi_traffic_normal": "Normal",
+      "status_live_now": "En vivo ahora"
     },
     "support": {
       "title": "Tickets de Soporte",
@@ -1393,7 +1435,8 @@
         "demote_user": "degradó de admin",
         "resolved_report": "resolvió un reporte",
         "dismissed_report": "descartó un reporte"
-      }
+      },
+      "days_suffix": "d"
     },
     "posts": {
       "title": "Publicaciones",
@@ -1433,7 +1476,12 @@
       "toast_csv_error": "Error al exportar CSV",
       "confirm_delete_title": "¿Eliminar publicación?",
       "confirm_delete_message": "Esta acción es irreversible y eliminará el contenido permanentemente de la plataforma.",
-      "confirm_delete": "Eliminar"
+      "confirm_delete": "Eliminar",
+      "kpi_total": "Publicaciones totales",
+      "kpi_new_week": "Nuevos (esta semana)",
+      "kpi_reported_pct": "Contenido reportado",
+      "segment_type_post": "Tipo: Post",
+      "segment_type_frame": "Tipo: Frame"
     },
     "stories": {
       "title": "Historias",
@@ -1488,7 +1536,9 @@
       "toast_moderation_error": "Error al actualizar moderación del comentario",
       "confirm_delete_title": "¿Eliminar comentario?",
       "confirm_delete_message": "¿Estás seguro de que deseas eliminar este comentario permanentemente?",
-      "confirm_delete": "Eliminar"
+      "confirm_delete": "Eliminar",
+      "kpi_engagement": "Tasa de engagement global",
+      "kpi_pending_reports": "Reportes pendientes (moderación)"
     },
     "hashtags": {
       "title": "Hashtags",
@@ -1636,7 +1686,20 @@
       "toast_delete_error": "Error al eliminar regla",
       "confirm_delete_title": "Eliminar regla vectorial",
       "confirm_delete_message": "¿Estás seguro de que deseas eliminar esta firma del Firewall? El contenido similar dejará de ser bloqueado automáticamente.",
-      "confirm_delete": "Eliminar"
+      "confirm_delete": "Eliminar",
+      "shell_title": "Escudo AI & Firewall",
+      "shell_subtitle": "Gestiona las reglas de bloqueo automático y los vectores de inteligencia artificial.",
+      "tab_rules": "Reglas estáticas",
+      "tab_signatures": "Firmas",
+      "empty_static_title": "No hay reglas estáticas",
+      "empty_static_description": "Bloquea o marca contenido que coincida con frases exactas.",
+      "new_rule": "Nueva regla",
+      "rule_details": "Detalles de la regla",
+      "save_rule": "Guardar regla",
+      "saving": "Guardando...",
+      "added_on": "Añadido el {{date}}",
+      "new_rule_hint": "Define una palabra o frase exacta para interceptar.",
+      "rule_details_hint": "Información de la regla seleccionada."
     },
     "whitelist": {
       "title": "Whitelist de Interesados",
@@ -1708,7 +1771,12 @@
       "toast_kyc_sync_error": "Error al sincronizar KYC con Stripe",
       "confirm_revoke_title": "¿Revocar verificación KYC?",
       "confirm_revoke_message": "¿Estás seguro de que quieres revocar el KYC de este usuario? Tendrá que volver a verificar su identidad con Stripe.",
-      "confirm_revoke": "Revocar"
+      "confirm_revoke": "Revocar",
+      "kpi_kyc_pending": "KYC pendiente",
+      "filter_kyc_status": "Estado KYC",
+      "filter_all_statuses": "Todos los estados",
+      "filter_pending": "Pendientes",
+      "filter_not_started": "No iniciados"
     },
     "experiments": {
       "flags_title": "Feature Flags",
@@ -1752,7 +1820,26 @@
       "save": "Guardar",
       "confirm_delete_title": "¿Eliminar experimento?",
       "confirm_delete_message": "¿Estás seguro de que deseas eliminar este experimento de usuario?",
-      "confirm_delete": "Eliminar"
+      "confirm_delete": "Eliminar",
+      "edit_flag": "Editar Flag",
+      "delete_flag": "Eliminar Flag",
+      "confirm_delete_flag_title": "¿Eliminar feature flag?",
+      "confirm_delete_flag_message": "Esta acción eliminará la flag permanentemente. Los usuarios que dependan de ella dejarán de tener acceso.",
+      "confirm_deactivate_title": "¿Desactivar feature flag?",
+      "confirm_deactivate_message": "Esta flag está activa con un {{percentage}}% de rollout. Desactivarla afectará a los usuarios incluidos.",
+      "confirm_deactivate": "Desactivar",
+      "status_active": "Activo",
+      "status_off": "Inactivo",
+      "status_full_rollout": "Rollout completo",
+      "status_no_reach": "Sin alcance",
+      "key_invalid": "Solo letras minúsculas, números y guiones bajos. Mín. 2, máx. 80 caracteres.",
+      "created_at": "Creada",
+      "updated_at": "Actualizada",
+      "tab_flags": "Feature Flags",
+      "tab_experiments": "Experimentos A/B",
+      "user_search_placeholder": "Buscar usuario por nombre o email...",
+      "searching_users": "Buscando usuarios...",
+      "no_users_found": "No se encontraron usuarios."
     },
     "health": {
       "title": "Estado del Sistema",
@@ -1837,6 +1924,46 @@
       "no_results": "Sin resultados para \"{{query}}\"",
       "user_result": "Usuario: @{{username}} ({{name}})",
       "no_username": "sin_nombre"
+    },
+    "lives": {
+      "title": "Directos",
+      "subtitle": "Gestión y monitorización de transmisiones en vivo",
+      "empty_title": "No hay directos",
+      "empty_description": "No se encontraron directos con los filtros actuales.",
+      "kpi_active": "Directos activos",
+      "kpi_viewers": "Espectadores totales",
+      "kpi_traffic": "Pico de tráfico",
+      "kpi_traffic_normal": "Normal",
+      "status_live": "En vivo ahora",
+      "status_ended": "Finalizados",
+      "status_all": "Todos",
+      "no_video_source": "No hay fuente de video disponible"
+    },
+    "settings": {
+      "title": "Configuración global",
+      "subtitle": "Ajusta los parámetros maestros del sistema.",
+      "empty_title": "No hay configuración",
+      "empty_description": "Aún no se han definido variables de configuración del sistema.",
+      "main_section": "Ajustes principales",
+      "save": "Guardar cambios",
+      "saving": "Guardando...",
+      "saved_success": "Configuración guardada correctamente",
+      "saved_error": "Error al guardar la configuración"
+    },
+    "payouts": {
+      "status_pending": "Pendientes",
+      "status_paid": "Pagados",
+      "status_failed": "Fallidos",
+      "status_failed_cancelled": "Fallidos/Cancelados",
+      "search_placeholder": "Buscar por usuario o ID..."
+    },
+    "roles": {
+      "search_placeholder": "Buscar administradores..."
+    },
+    "split": {
+      "select_item": "Selecciona un elemento de la lista",
+      "list_region": "Lista",
+      "detail_region": "Detalle"
     }
   },
   "collections": {

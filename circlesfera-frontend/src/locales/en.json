@@ -399,7 +399,15 @@
   "feed": {
     "home_title": "Home",
     "brand_name": "CircleSfera",
-    "no_posts": "No posts yet. Explore to find creators!"
+    "no_posts": "No posts yet. Explore to find creators!",
+    "no_posts_title": "No recent posts",
+    "login_required_title": "Sign in",
+    "login_required": "Sign in to see your personalized feed from creators you follow.",
+    "no_following_posts_title": "No following posts yet",
+    "no_following_posts_desc": "Explore suggested creators or switch to For You to discover trending content.",
+    "switch_to_foryou": "Go to For You",
+    "error_title": "Couldn't load feed",
+    "error_message": "Something went wrong while loading posts. Please try again."
   },
   "explore": {
     "page_title": "Explore the Universe",
@@ -704,6 +712,8 @@
     "title": "Activity",
     "no_activity": "No activity yet",
     "unknown_user": "Unknown",
+    "error_title": "Couldn't load notifications",
+    "error_message": "Something went wrong. Please try again.",
     "types": {
       "like": "liked your post.",
       "comment_like": "liked your comment.",
@@ -793,6 +803,14 @@
       "content_group": "Content",
       "content": "Posts",
       "stories": "Stories"
+    },
+    "posts": {
+      "empty_title": "No posts yet",
+      "empty_desc": "Publish your first post to see it here."
+    },
+    "stories": {
+      "empty_title": "No stories yet",
+      "empty_desc": "Share ephemeral moments with your followers to grow your reach."
     },
     "money": {
       "sections": "Monetization sections",
@@ -1008,7 +1026,15 @@
       "time_ago_now": "now",
       "time_ago_minutes": "{{count}}m ago",
       "time_ago_hours": "{{count}}h ago",
-      "time_ago_days": "{{count}}d ago"
+      "time_ago_days": "{{count}}d ago",
+      "filter_all_recent": "All (Recent)",
+      "more_actions": "More actions",
+      "this_month": "this month",
+      "admins": "Admins",
+      "saving": "Saving...",
+      "save_changes": "Save changes",
+      "add": "Add",
+      "delete": "Delete"
     },
     "users": {
       "title": "User Management",
@@ -1091,7 +1117,13 @@
       "confirm_suspend_confirm": "Suspend",
       "confirm_restore_title": "Restore this user?",
       "confirm_restore_message": "Lift the suspension for @{{username}} and reactivate the account.",
-      "confirm_restore_confirm": "Restore"
+      "confirm_restore_confirm": "Restore",
+      "kpi_registered": "Registered users",
+      "kpi_new_week": "New (this week)",
+      "kpi_active_today": "Active today",
+      "kpi_pending_reports": "Pending reports",
+      "segment_banned": "Banned",
+      "segment_admins": "Admins"
     },
     "moderation": {
       "title": "AI Moderation Queue",
@@ -1125,7 +1157,12 @@
       "toast_error": "Failed to process moderation",
       "toast_batch_approved": "{{count}} items approved successfully",
       "toast_batch_hidden": "{{count}} items hidden successfully",
-      "toast_batch_error": "Failed to process batch"
+      "toast_batch_error": "Failed to process batch",
+      "kb_navigate": "Navigate",
+      "kb_approve": "Approve",
+      "kb_hide": "Hide",
+      "kb_remove": "Remove",
+      "kb_deselect": "Deselect"
     },
     "reports": {
       "title": "User Reports",
@@ -1280,7 +1317,12 @@
       "col_status": "Status",
       "col_viewers": "Viewers",
       "col_started": "Started",
-      "col_actions": "Actions"
+      "col_actions": "Actions",
+      "kpi_active": "Active lives",
+      "kpi_viewers": "Total viewers",
+      "kpi_traffic": "Traffic peak",
+      "kpi_traffic_normal": "Normal",
+      "status_live_now": "Live now"
     },
     "support": {
       "title": "Support Tickets",
@@ -1393,7 +1435,8 @@
         "demote_user": "demoted from admin",
         "resolved_report": "resolved a report",
         "dismissed_report": "dismissed a report"
-      }
+      },
+      "days_suffix": "d"
     },
     "posts": {
       "title": "Posts",
@@ -1433,7 +1476,12 @@
       "toast_csv_error": "Failed to export CSV",
       "confirm_delete_title": "Delete this post?",
       "confirm_delete_message": "This action is irreversible and will permanently remove the content from the platform.",
-      "confirm_delete": "Delete"
+      "confirm_delete": "Delete",
+      "kpi_total": "Total posts",
+      "kpi_new_week": "New (this week)",
+      "kpi_reported_pct": "Reported content",
+      "segment_type_post": "Type: Post",
+      "segment_type_frame": "Type: Frame"
     },
     "stories": {
       "title": "Stories",
@@ -1488,7 +1536,9 @@
       "toast_moderation_error": "Failed to update comment moderation",
       "confirm_delete_title": "Delete this comment?",
       "confirm_delete_message": "Are you sure you want to permanently delete this comment?",
-      "confirm_delete": "Delete"
+      "confirm_delete": "Delete",
+      "kpi_engagement": "Global engagement rate",
+      "kpi_pending_reports": "Pending reports (moderation)"
     },
     "hashtags": {
       "title": "Hashtags",
@@ -1636,7 +1686,20 @@
       "toast_delete_error": "Failed to delete rule",
       "confirm_delete_title": "Delete vector rule",
       "confirm_delete_message": "Are you sure you want to remove this firewall signature? Similar content will no longer be blocked automatically.",
-      "confirm_delete": "Delete"
+      "confirm_delete": "Delete",
+      "shell_title": "AI Shield & Firewall",
+      "shell_subtitle": "Manage automatic block rules and AI intelligence vectors.",
+      "tab_rules": "Static rules",
+      "tab_signatures": "Signatures",
+      "empty_static_title": "No static rules",
+      "empty_static_description": "Block or flag content that matches exact phrases.",
+      "new_rule": "New rule",
+      "rule_details": "Rule details",
+      "save_rule": "Save rule",
+      "saving": "Saving...",
+      "added_on": "Added on {{date}}",
+      "new_rule_hint": "Define an exact word or phrase to intercept.",
+      "rule_details_hint": "Information for the selected rule."
     },
     "whitelist": {
       "title": "Interest Whitelist",
@@ -1708,7 +1771,12 @@
       "toast_kyc_sync_error": "Failed to sync KYC with Stripe",
       "confirm_revoke_title": "Revoke KYC verification?",
       "confirm_revoke_message": "Are you sure you want to revoke this user's KYC? They will need to verify their identity with Stripe again.",
-      "confirm_revoke": "Revoke"
+      "confirm_revoke": "Revoke",
+      "kpi_kyc_pending": "KYC pending",
+      "filter_kyc_status": "KYC status",
+      "filter_all_statuses": "All statuses",
+      "filter_pending": "Pending",
+      "filter_not_started": "Not started"
     },
     "experiments": {
       "flags_title": "Feature Flags",
@@ -1752,7 +1820,26 @@
       "save": "Save",
       "confirm_delete_title": "Delete experiment?",
       "confirm_delete_message": "Are you sure you want to remove this user experiment?",
-      "confirm_delete": "Delete"
+      "confirm_delete": "Delete",
+      "edit_flag": "Edit Flag",
+      "delete_flag": "Delete Flag",
+      "confirm_delete_flag_title": "Delete feature flag?",
+      "confirm_delete_flag_message": "This action will permanently delete the flag. Users depending on it will lose access.",
+      "confirm_deactivate_title": "Deactivate feature flag?",
+      "confirm_deactivate_message": "This flag is active with {{percentage}}% rollout. Deactivating it will affect included users.",
+      "confirm_deactivate": "Deactivate",
+      "status_active": "Active",
+      "status_off": "Off",
+      "status_full_rollout": "Full rollout",
+      "status_no_reach": "No reach",
+      "key_invalid": "Only lowercase letters, digits and underscores. Min 2, max 80 characters.",
+      "created_at": "Created",
+      "updated_at": "Updated",
+      "tab_flags": "Feature Flags",
+      "tab_experiments": "A/B Experiments",
+      "user_search_placeholder": "Search user by name or email...",
+      "searching_users": "Searching users...",
+      "no_users_found": "No users found."
     },
     "health": {
       "title": "System Status",
@@ -1837,6 +1924,46 @@
       "no_results": "No results for \"{{query}}\"",
       "user_result": "User: @{{username}} ({{name}})",
       "no_username": "no_username"
+    },
+    "lives": {
+      "title": "Live streams",
+      "subtitle": "Manage and monitor live broadcasts",
+      "empty_title": "No live streams",
+      "empty_description": "No streams found with the current filters.",
+      "kpi_active": "Active lives",
+      "kpi_viewers": "Total viewers",
+      "kpi_traffic": "Traffic peak",
+      "kpi_traffic_normal": "Normal",
+      "status_live": "Live now",
+      "status_ended": "Ended",
+      "status_all": "All",
+      "no_video_source": "No video source available"
+    },
+    "settings": {
+      "title": "Global settings",
+      "subtitle": "Adjust master system parameters.",
+      "empty_title": "No settings",
+      "empty_description": "No system configuration variables have been defined yet.",
+      "main_section": "Main settings",
+      "save": "Save changes",
+      "saving": "Saving...",
+      "saved_success": "Settings saved successfully",
+      "saved_error": "Failed to save settings"
+    },
+    "payouts": {
+      "status_pending": "Pending",
+      "status_paid": "Paid",
+      "status_failed": "Failed",
+      "status_failed_cancelled": "Failed/Cancelled",
+      "search_placeholder": "Search by user or ID..."
+    },
+    "roles": {
+      "search_placeholder": "Search administrators..."
+    },
+    "split": {
+      "select_item": "Select an item from the list",
+      "list_region": "List",
+      "detail_region": "Detail"
     }
   },
   "collections": {
