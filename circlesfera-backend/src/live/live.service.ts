@@ -1,5 +1,10 @@
 import { ErrorCode } from '@circlesfera/shared';
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
 import { AccessToken } from 'livekit-server-sdk';
@@ -11,6 +16,8 @@ import { AppException } from '../common/errors/app.exception.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
+import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { LIVE_GIFT_CATALOG, resolveGiftAmountCents } from './gift-catalog.js';
 
 function appendCheckoutQuery(returnUrl: string, query: string): string {
@@ -27,9 +34,17 @@ export class LiveService {
     private configService: ConfigService,
     private gateway: AppGateway,
     private stripeService: StripeService,
+    private systemSettings: SystemSettingsService,
   ) {}
 
   async startStream(userId: string, title?: string) {
+    const liveEnabled = await this.systemSettings.isEnabled(
+      SYSTEM_SETTING_KEYS.LIVE_STREAMS_ENABLED,
+    );
+    if (!liveEnabled) {
+      throw new ForbiddenException('LIVE_STREAMS_DISABLED');
+    }
+
     await this.prisma.liveStream.updateMany({
       where: { hostId: userId, status: 'LIVE' },
       data: { status: 'ENDED', endedAt: new Date() },

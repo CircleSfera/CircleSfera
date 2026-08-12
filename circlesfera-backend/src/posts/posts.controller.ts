@@ -22,6 +22,7 @@ import {
   AdminGuard,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
+import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
@@ -134,7 +135,7 @@ export class PostsController {
   }
   /** Admin-only post deletion (bypasses ownership check). */
   @Delete(':id/admin')
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('content')
   @HttpCode(HttpStatus.NO_CONTENT)
   async adminRemove(@Param('id') id: string) {

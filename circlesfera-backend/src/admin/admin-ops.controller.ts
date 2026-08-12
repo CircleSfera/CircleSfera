@@ -17,9 +17,10 @@ import {
 import type { Request } from 'express';
 import {
   AdminGuard,
+  RequireAdminStepUp,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminOpsService } from './admin-ops.service.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
 
@@ -28,7 +29,7 @@ interface AuthRequest extends Request {
 }
 
 @Controller('admin')
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(AdminJwtAuthGuard, AdminGuard)
 export class AdminOpsController {
   constructor(
     @Inject(AdminOpsService)
@@ -58,6 +59,7 @@ export class AdminOpsController {
   }
 
   @RequireStaffPermissions('moderation')
+  @RequireAdminStepUp()
   @Delete('firewall/:id')
   async deleteFirewallSignature(
     @Param('id') id: string,
@@ -124,6 +126,7 @@ export class AdminOpsController {
 
   @Put('feature-flags/:key')
   @RequireStaffPermissions('experiments')
+  @RequireAdminStepUp()
   async upsertFeatureFlag(
     @Param('key') key: string,
     @Body()
@@ -143,6 +146,7 @@ export class AdminOpsController {
 
   @Delete('feature-flags/:key')
   @RequireStaffPermissions('experiments')
+  @RequireAdminStepUp()
   @HttpCode(HttpStatus.OK)
   async deleteFeatureFlag(@Param('key') key: string, @Req() req: AuthRequest) {
     return this.adminOpsService.deleteFeatureFlag(req.user.userId, key);

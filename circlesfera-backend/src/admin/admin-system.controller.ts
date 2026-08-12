@@ -16,9 +16,10 @@ import {
 import type { Request } from 'express';
 import {
   AdminGuard,
+  RequireAdminStepUp,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminService } from './admin.service.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
 
@@ -27,7 +28,7 @@ interface AuthRequest extends Request {
 }
 
 @Controller('admin')
-@UseGuards(JwtAuthGuard, AdminGuard)
+@UseGuards(AdminJwtAuthGuard, AdminGuard)
 export class AdminSystemController {
   constructor(
     @Inject(AdminService) private readonly adminService: AdminService,
@@ -58,6 +59,7 @@ export class AdminSystemController {
   }
 
   @RequireStaffPermissions('moderation')
+  @RequireAdminStepUp()
   @Post('firewall/rules')
   async addFirewallRule(
     @Body() body: { keyword: string; action: any; isActive?: boolean },
@@ -77,6 +79,7 @@ export class AdminSystemController {
   }
 
   @RequireStaffPermissions('moderation')
+  @RequireAdminStepUp()
   @Delete('firewall/rules/:id')
   async deleteFirewallRule(@Param('id') id: string, @Req() req: AuthRequest) {
     return this.adminService.deleteFirewallRule(req.user.userId, id);

@@ -191,7 +191,9 @@ export class ReportsService {
         adminId ||
         (
           await this.prisma.user.findFirst({
-            where: { role: 'ADMIN' },
+            where: {
+              linkedAdminIdentities: { some: { status: 'ACTIVE' } },
+            },
             select: { id: true },
           })
         )?.id;

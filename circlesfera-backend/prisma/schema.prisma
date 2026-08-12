@@ -80,8 +80,8 @@ model User {
   // Search History
   searchHistory SearchHistory[]
 
-  // Admin Audit Logs (actions performed by this admin)
-  auditLogs AdminAuditLog[]
+  // Optional link from Admin Panel AdminIdentity (correlation only, never auth)
+  linkedAdminIdentities AdminIdentity[]
 
   // GDPR Data Export
   dataExportRequests DataExportRequest[]
@@ -1049,19 +1049,133 @@ model Audio {
   @@map("audio_tracks")
 }
 
-// Admin Audit Log — tracks all admin actions for accountability
-model AdminAuditLog {
-  id         String      @id @default(uuid())
-  adminId    String
-  action     AdminAction
-  targetType String // "user", "post", "report"
-  targetId   String
-  details    String?
-  createdAt  DateTime    @default(now())
+enum AdminIdentityStatus {
+  ACTIVE
+  DISABLED
+}
 
-  admin User @relation(fields: [adminId], references: [id])
+/// Admin Panel operator. Separate from platform User.
+model AdminIdentity {
+  id              String              @id @default(uuid())
+  email           String              @unique
+  passwordHash    String
+  displayName     String
+  status          AdminIdentityStatus @default(ACTIVE)
+  totpSecret      String?
+  totpEnabled     Boolean             @default(false)
+  mfaRequired     Boolean             @default(true)
+  lastLoginAt     DateTime?
+  lastActivityAt  DateTime?
+  failedLoginCount Int                @default(0)
+  lockedUntil     DateTime?
+  linkedUserId    String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  linkedUser    User?               @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
+  roles         AdminIdentityRole[]
+  refreshTokens AdminRefreshToken[]
+  passkeys      AdminPasskey[]
+  auditLogs     AdminAuditLog[]
+
+  @@index([linkedUserId])
+  @@index([status])
+  @@map("admin_identities")
+}
+
+model AdminRole {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  permissions AdminRolePermission[]
+  identities  AdminIdentityRole[]
+
+  @@map("admin_roles")
+}
+
+model AdminPermission {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  roles AdminRolePermission[]
+
+  @@map("admin_permissions")
+}
+
+model AdminRolePermission {
+  roleId       String
+  permissionId String
+
+  role       AdminRole       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission AdminPermission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("admin_role_permissions")
+}
+
+model AdminIdentityRole {
+  adminId String
+  roleId  String
+
+  admin AdminIdentity @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  role  AdminRole     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([adminId, roleId])
+  @@map("admin_identity_roles")
+}
+
+model AdminRefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  adminId   String
+  userAgent String?
+  ipAddress String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  admin AdminIdentity @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   @@index([adminId])
+  @@map("admin_refresh_tokens")
+}
+
+model AdminPasskey {
+  id           String   @id @default(uuid())
+  adminId      String
+  credentialID String   @unique
+  publicKey    Bytes
+  counter      BigInt
+  transports   String[] @default([])
+  createdAt    DateTime @default(now())
+
+  admin AdminIdentity @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@map("admin_passkeys")
+}
+
+// Admin Audit Log — Admin Panel actions
+model AdminAuditLog {
+  id           String       @id @default(uuid())
+  adminId      String?
+  legacyUserId String?
+  action       AdminAction
+  targetType   String // "user", "post", "report", "admin", "system"
+  targetId     String
+  details      String?
+  ipAddress    String?
+  userAgent    String?
+  requestId    String?
+  createdAt    DateTime     @default(now())
+
+  admin AdminIdentity? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([adminId])
+  @@index([legacyUserId])
   @@index([createdAt])
   @@index([action])
   @@index([targetId])
@@ -1229,6 +1343,17 @@ enum AdminAction {
   CREATE_AUDIO
   UPDATE_AUDIO
   DELETE_AUDIO
+
+  // Admin Panel auth & RBAC
+  ADMIN_LOGIN
+  ADMIN_LOGOUT
+  ADMIN_LOGIN_FAILED
+  ADMIN_MFA_ENABLED
+  ROLE_ASSIGNED
+  ROLE_REVOKED
+  ADMIN_IDENTITY_CREATED
+  ADMIN_IDENTITY_DISABLED
+  ADMIN_STEP_UP
 }
 
 enum SubscriptionStatus {

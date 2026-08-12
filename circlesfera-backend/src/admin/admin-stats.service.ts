@@ -112,7 +112,7 @@ export class AdminStatsService {
       orderBy: { createdAt: 'desc' },
       include: {
         admin: {
-          include: { profile: { select: { username: true } } },
+          select: { displayName: true, email: true },
         },
       },
     });
@@ -147,7 +147,7 @@ export class AdminStatsService {
         targetId: log.targetId,
         details: log.details,
         createdAt: log.createdAt,
-        adminUsername: log.admin?.profile?.username || 'Unknown',
+        adminUsername: log.admin?.displayName || log.admin?.email || 'Unknown',
       })),
     };
 
@@ -514,9 +514,10 @@ export class AdminStatsService {
         { details: { contains: q, mode: 'insensitive' } },
         {
           admin: {
-            profile: {
-              username: { contains: q, mode: 'insensitive' },
-            },
+            OR: [
+              { displayName: { contains: q, mode: 'insensitive' } },
+              { email: { contains: q, mode: 'insensitive' } },
+            ],
           },
         },
       ];
@@ -530,7 +531,7 @@ export class AdminStatsService {
         orderBy: { createdAt: 'desc' },
         include: {
           admin: {
-            include: { profile: { select: { username: true } } },
+            select: { displayName: true, email: true },
           },
         },
       }),
@@ -545,7 +546,10 @@ export class AdminStatsService {
         targetId: log.targetId,
         details: log.details,
         createdAt: log.createdAt,
-        adminUsername: log.admin?.profile?.username || 'Unknown',
+        ipAddress: log.ipAddress,
+        userAgent: log.userAgent,
+        requestId: log.requestId,
+        adminUsername: log.admin?.displayName || log.admin?.email || 'Unknown',
       })),
       meta: {
         total,

@@ -12,6 +12,7 @@ import * as bcrypt from 'bcrypt';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { AuthService } from './auth.service.js';
 
 describe('AuthService', () => {
@@ -66,6 +67,14 @@ describe('AuthService', () => {
     getJob: vi.fn(),
   };
 
+  const mockSystemSettings = {
+    isEnabled: vi.fn(async (key: string) => {
+      if (key === 'registration_open') return true;
+      if (key === 'require_invite_code') return false;
+      return false;
+    }),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -78,10 +87,17 @@ describe('AuthService', () => {
           provide: getQueueToken('users-processing'),
           useValue: mockUsersQueue,
         },
+        { provide: SystemSettingsService, useValue: mockSystemSettings },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
+    vi.clearAllMocks();
+    mockSystemSettings.isEnabled.mockImplementation(async (key: string) => {
+      if (key === 'registration_open') return true;
+      if (key === 'require_invite_code') return false;
+      return false;
+    });
   });
 
   it('should be defined', () => {
@@ -123,6 +139,23 @@ describe('AuthService', () => {
       await expect(service.register(underage)).rejects.toThrow(
         BadRequestException,
       );
+    });
+
+    it('should reject when registration is closed', async () => {
+      mockSystemSettings.isEnabled.mockImplementation(async (key: string) => {
+        if (key === 'registration_open') return false;
+        return false;
+      });
+      await expect(service.register(dto)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should require invite code when setting is enabled', async () => {
+      mockSystemSettings.isEnabled.mockImplementation(async (key: string) => {
+        if (key === 'registration_open') return true;
+        if (key === 'require_invite_code') return true;
+        return false;
+      });
+      await expect(service.register(dto)).rejects.toThrow(BadRequestException);
     });
 
     it('should throw ConflictException if email exists', async () => {

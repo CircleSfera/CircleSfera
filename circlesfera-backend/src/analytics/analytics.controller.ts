@@ -13,13 +13,13 @@ import {
   AdminGuard,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
+import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { AnalyticsService } from './analytics.service.js';
 import { CreateEventBatchDto, CreateEventDto } from './dto/create-event.dto.js';
 
 @Controller('analytics')
-@UseGuards(JwtAuthGuard)
 export class AnalyticsController {
   constructor(
     @Inject(AnalyticsService)
@@ -50,6 +50,7 @@ export class AnalyticsController {
 
   /** Get dashboard statistics for the current user (creator) */
   @Get('dashboard')
+  @UseGuards(JwtAuthGuard)
   async getDashboard(
     @CurrentUser('id') userId: string,
     @Query('days') days?: string,
@@ -62,6 +63,7 @@ export class AnalyticsController {
 
   /** Track a view for a specific post */
   @Post('post/:id/view')
+  @UseGuards(JwtAuthGuard)
   async trackView(
     @Param('id') postId: string,
     @CurrentUser('id') viewerId: string,
@@ -71,12 +73,14 @@ export class AnalyticsController {
 
   /** Track a loop for a specific frame */
   @Post('post/:id/loop')
+  @UseGuards(JwtAuthGuard)
   async trackLoop(@Param('id') postId: string) {
     return this.analyticsService.trackFrameLoop(postId);
   }
 
   /** Track watch time for a specific frame */
   @Post('post/:id/watch')
+  @UseGuards(JwtAuthGuard)
   async trackWatch(
     @Param('id') postId: string,
     @Query('seconds') seconds: string,
@@ -89,13 +93,14 @@ export class AnalyticsController {
 
   /** Get detailed insights for a specific post */
   @Get('post/:id/insights')
+  @UseGuards(JwtAuthGuard)
   async getPostInsights(@Param('id') postId: string) {
     return this.analyticsService.getPostInsights(postId);
   }
 
   /** Manual trigger for testing aggregation (ADMIN only) */
   @Post('debug/aggregate')
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('system')
   async debugAggregate(@CurrentUser('id') userId: string) {
     return this.analyticsService.performDailyAggregation(userId);

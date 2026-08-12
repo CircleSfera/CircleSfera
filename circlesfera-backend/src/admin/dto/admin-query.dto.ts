@@ -1,10 +1,15 @@
-import { IsIn, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUUID } from 'class-validator';
 import { PaginationDto } from '../../common/dto/pagination.dto.js';
 
 export class AdminQueryDto extends PaginationDto {
   @IsOptional()
   @IsString()
   search?: string;
+
+  /** Filter content lists by author / host user id. */
+  @IsOptional()
+  @IsUUID()
+  userId?: string;
 
   @IsOptional()
   @IsString()

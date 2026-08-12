@@ -21,6 +21,7 @@ import {
   AdminGuard,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
+import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { AppealsService } from './appeals.service.js';
@@ -29,7 +30,6 @@ import { UpdateAppealDto } from './dto/update-appeal.dto.js';
 
 @ApiTags('Moderation')
 @Controller('appeals')
-@UseGuards(JwtAuthGuard)
 export class AppealsController {
   constructor(
     private readonly appealsService: AppealsService,
@@ -77,7 +77,7 @@ export class AppealsController {
 
   // Admin Routes
   @Get('admin')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('appeals')
   findAll(
     @Query('page') page?: string,
@@ -92,7 +92,7 @@ export class AppealsController {
   }
 
   @Patch('admin/:id')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('appeals')
   update(
     @Param('id') id: string,

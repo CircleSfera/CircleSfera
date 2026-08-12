@@ -48,6 +48,7 @@ async function bootstrap(): Promise<void> {
     ? corsOrigin.split(',').map((o) => o.trim())
     : [
         'http://localhost:5173',
+        'http://admin.localhost:5173',
         'http://localhost:8080',
         'http://localhost:8081',
         'http://[::1]:5173',
@@ -108,6 +109,9 @@ async function bootstrap(): Promise<void> {
       normalizedPath.includes('/auth/reset-password') ||
       normalizedPath.includes('/auth/passkey/login-options') ||
       normalizedPath.includes('/auth/passkey/login-verify') ||
+      normalizedPath.includes('/admin-auth/login') ||
+      normalizedPath.includes('/admin-auth/mfa/verify') ||
+      normalizedPath.includes('/admin-auth/refresh') ||
       normalizedPath.includes('/csrf-token') ||
       normalizedPath.includes('/payments/webhook') ||
       normalizedPath.includes('/socket.io');

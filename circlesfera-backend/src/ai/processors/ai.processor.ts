@@ -262,7 +262,11 @@ export class AIProcessor extends WorkerHost {
           }
 
           const adminUser = await this.prisma.user.findFirst({
-            where: { role: 'ADMIN' },
+            where: {
+              linkedAdminIdentities: {
+                some: { status: 'ACTIVE' },
+              },
+            },
             select: { id: true },
           });
           if (adminUser) {
@@ -365,7 +369,11 @@ export class AIProcessor extends WorkerHost {
 
         // Find system admin to attribute the report to
         const adminUser = await this.prisma.user.findFirst({
-          where: { role: 'ADMIN' },
+          where: {
+            linkedAdminIdentities: {
+              some: { status: 'ACTIVE' },
+            },
+          },
           select: { id: true },
         });
 

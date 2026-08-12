@@ -5,6 +5,7 @@ import { AppException } from '../common/errors/app.exception.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { LiveService } from './live.service.js';
 
 describe('LiveService', () => {
@@ -66,6 +67,10 @@ describe('LiveService', () => {
         { provide: ConfigService, useValue: mockConfigService },
         { provide: AppGateway, useValue: mockGateway },
         { provide: StripeService, useValue: mockStripeService },
+        {
+          provide: SystemSettingsService,
+          useValue: { isEnabled: vi.fn(async () => true) },
+        },
       ],
     }).compile();
 

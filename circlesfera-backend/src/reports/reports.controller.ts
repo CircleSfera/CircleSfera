@@ -20,6 +20,7 @@ import {
   AdminGuard,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
+import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { CreateReportDto } from './dto/create-report.dto.js';
@@ -27,7 +28,6 @@ import { ReportsService } from './reports.service.js';
 
 /** REST controller for content/user reports. Auth required; admin-only for list/update. */
 @Controller('reports')
-@UseGuards(JwtAuthGuard)
 export class ReportsController {
   constructor(
     @Inject(ReportsService) private readonly reportsService: ReportsService,
@@ -35,6 +35,7 @@ export class ReportsController {
 
   /** File a new report. */
   @Post()
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   async create(
     @CurrentUser() user: CurrentUserData,
@@ -45,6 +46,7 @@ export class ReportsController {
 
   /** List reports filed by the current user. */
   @Get('me')
+  @UseGuards(JwtAuthGuard)
   async findMyReports(
     @CurrentUser() user: CurrentUserData,
     @Query() pagination: PaginationDto,
@@ -54,7 +56,7 @@ export class ReportsController {
 
   /** List all reports (admin only). */
   @Get()
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('reports')
   async findAll(@Query() pagination: PaginationDto): Promise<any> {
     return this.reportsService.findAll(pagination);
@@ -62,7 +64,7 @@ export class ReportsController {
 
   /** Update a report's status (admin only). */
   @Patch(':id')
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('reports')
   async update(
     @Param('id') id: string,
