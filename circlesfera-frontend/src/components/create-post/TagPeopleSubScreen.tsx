@@ -143,7 +143,7 @@ export default function TagPeopleSubScreen({
               {currentTags.map((tag, idx) => (
                 <div
                   key={`${tag.username}-${tag.x}-${tag.y}`}
-                  className="absolute flex items-center gap-2 bg-black/80 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg -translate-x-1/2 -translate-y-full mt-[-8px] cursor-pointer group border border-white/10 transition-all hover:bg-black/90 hover:scale-105"
+                  className="absolute flex items-center gap-2 bg-black/80 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg -translate-x-1/2 -translate-y-full -mt-2 cursor-pointer group border border-white/10 transition-all hover:bg-black/90 hover:scale-105"
                   style={{ left: `${tag.x * 100}%`, top: `${tag.y * 100}%` }}
                 >
                   {tag.username}
@@ -158,7 +158,7 @@ export default function TagPeopleSubScreen({
                     <X size={10} />
                   </button>
                   {/* Triangle pointer */}
-                  <div className="absolute left-1/2 -bottom-[5px] -translate-x-1/2 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[6px] border-t-black/80"></div>
+                  <div className="absolute left-1/2 -bottom-1.25 -translate-x-1/2 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[6px] border-t-black/80"></div>
                 </div>
               ))}
 
@@ -169,7 +169,7 @@ export default function TagPeopleSubScreen({
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
-                    className="absolute z-30 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl w-64 -translate-x-1/2"
+                    className="absolute z-30 bg-surface-elevated border border-white/10 rounded-xl shadow-2xl w-64 -translate-x-1/2"
                     style={{
                       left: `${activeTap.x * 100}%`,
                       top: `${activeTap.y * 100}%`,

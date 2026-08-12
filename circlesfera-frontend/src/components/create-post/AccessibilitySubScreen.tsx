@@ -35,7 +35,7 @@ export default function AccessibilitySubScreen({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-2xl p-4 animate-in fade-in duration-300">
-      <div className="bg-neutral-900 border border-white/5 w-full max-w-lg rounded-[2.5rem] overflow-hidden shadow-[0_32px_120px_-10px_rgba(0,0,0,0.9)] flex flex-col max-h-[85vh]">
+      <div className="bg-surface-elevated border border-white/5 w-full max-w-lg rounded-xl overflow-hidden shadow-[0_32px_120px_-10px_rgba(0,0,0,0.9)] flex flex-col max-h-[85vh]">
         <div className="p-6 border-b border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button

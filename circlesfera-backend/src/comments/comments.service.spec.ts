@@ -1,7 +1,7 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CommentsService } from './comments.service.js';
 
@@ -24,8 +24,8 @@ describe('CommentsService', () => {
     },
   };
 
-  const mockNotificationsService = {
-    create: vi.fn(),
+  const mockEventEmitter = {
+    emit: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -33,7 +33,7 @@ describe('CommentsService', () => {
       providers: [
         CommentsService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: NotificationsService, useValue: mockNotificationsService },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
         { provide: 'BullQueue_ai-processing', useValue: { add: vi.fn() } },
         {
           provide: 'BullQueue_analytics-processing',
@@ -72,13 +72,15 @@ describe('CommentsService', () => {
 
       expect(result).toBeDefined();
       expect(mockPrismaService.comment.create).toHaveBeenCalled();
-      expect(mockNotificationsService.create).toHaveBeenCalledWith(
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'notification.create',
         expect.objectContaining({
           recipientId: 'owner-1',
           type: 'COMMENT',
         }),
       );
-      expect(mockNotificationsService.create).toHaveBeenCalledWith(
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'notification.create',
         expect.objectContaining({
           recipientId: 'user-2',
           type: 'MENTION',
@@ -108,7 +110,8 @@ describe('CommentsService', () => {
 
       await service.create(postId, userId, replyDto);
 
-      expect(mockNotificationsService.create).toHaveBeenCalledWith(
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'notification.create',
         expect.objectContaining({
           recipientId: 'parent-owner-1',
           content: 'replied to your comment',

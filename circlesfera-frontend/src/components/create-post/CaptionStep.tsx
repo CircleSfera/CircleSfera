@@ -1,10 +1,9 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   BarChart2,
   ChevronRight,
   DollarSign,
   Eye,
-  Hash,
   MapPin,
   Music as MusicIcon,
   Settings,
@@ -22,6 +21,7 @@ import type {
 import { useAuthStore } from '../../stores/authStore';
 import type { Audio as AudioTrack } from '../../types';
 import Carousel from '../Carousel';
+import InteractiveMediaPreview from './InteractiveMediaPreview';
 
 interface CaptionStepProps {
   mediaFiles: MediaFile[];
@@ -53,12 +53,11 @@ export default function CaptionStep({
   interactiveDraft,
 }: CaptionStepProps) {
   const { t } = useTranslation();
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isFocused, setIsFocused] = useState(false);
 
   const charCount = caption.length;
-  const charPercent = Math.min((charCount / MAX_CAPTION_LENGTH) * 100, 100);
   const isNearLimit = charCount > MAX_CAPTION_LENGTH * 0.9;
   const isOverLimit = charCount > MAX_CAPTION_LENGTH;
 
@@ -160,19 +159,16 @@ export default function CaptionStep({
   ];
 
   return (
-    <div className="flex flex-col md:flex-row h-full">
-      {/* Preview Panel */}
-      <div className="w-full md:w-[45%] bg-zinc-950 flex items-center justify-center border-b md:border-b-0 md:border-r border-white/4 p-6 md:p-8 relative">
-        {/* Ambient glow */}
-        <div className="absolute inset-0 bg-radial-[at_50%_50%] from-brand-primary/4 via-transparent to-transparent pointer-events-none" />
+    <div className="flex flex-col md:flex-row h-full overflow-y-auto md:overflow-hidden">
+      {/* Desktop Media Preview Panel */}
+      <div className="hidden md:flex w-full md:w-[42%] bg-zinc-950 items-center justify-center border-r border-white/6 p-6 relative shrink-0">
+        <div className="absolute inset-0 bg-radial-[at_50%_50%] from-brand-primary/10 via-transparent to-transparent pointer-events-none" />
 
         <motion.div
           layout
           className={`relative w-full ${
-            mode === 'POST'
-              ? 'max-w-[280px] aspect-4/5'
-              : 'max-w-[220px] aspect-9/16'
-          } bg-black rounded-lg border border-white/6 overflow-hidden shadow-2xl shadow-black/60 z-10`}
+            mode === 'POST' ? 'max-w-64 aspect-4/5' : 'max-w-48 aspect-9/16'
+          } bg-black rounded-2xl border border-white/10 overflow-hidden shadow-2xl shadow-black/80 z-10`}
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         >
           <Carousel
@@ -188,35 +184,80 @@ export default function CaptionStep({
         </motion.div>
       </div>
 
-      {/* Caption Panel */}
-      <div className="w-full md:w-[55%] flex flex-col min-h-0">
-        {/* User Info */}
-        <div className="flex items-center gap-3 px-5 pt-5 pb-3">
-          <div className="w-9 h-9 rounded-full overflow-hidden bg-neutral-800 border border-white/6 shrink-0">
-            {profile?.avatar ? (
-              <img
-                src={profile.avatar}
-                alt={profile.username}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-linear-to-tr from-brand-primary to-brand-blue flex items-center justify-center text-xs font-bold text-white">
-                {profile?.username?.[0]?.toUpperCase() || 'U'}
+      {/* Main Creation & Caption Panel */}
+      <div className="flex-1 flex flex-col min-h-0 bg-zinc-900/60 overflow-y-auto no-scrollbar">
+        {/* Mobile Header: Prominent Media Card & Caption Area */}
+        <div className="flex md:hidden items-start gap-3.5 p-4 border-b border-white/8 bg-white/2 shrink-0">
+          {/* Interactive Media Card Preview */}
+          <InteractiveMediaPreview mediaFiles={mediaFiles} mode={mode} />
+
+          {/* User Profile & Expanded Caption Box */}
+          <div className="flex-1 min-w-0 flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full overflow-hidden bg-neutral-800 border border-white/10 shrink-0">
+                {profile?.avatar ? (
+                  <img
+                    src={profile.avatar}
+                    alt={profile.username}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-linear-to-tr from-brand-primary to-brand-blue flex items-center justify-center text-[10px] font-bold text-white">
+                    {profile?.username?.[0]?.toUpperCase() || 'U'}
+                  </div>
+                )}
               </div>
-            )}
+              <span className="font-bold text-xs text-white/90 truncate">
+                {profile?.username || t('createPost.caption.you')}
+              </span>
+            </div>
+
+            <textarea
+              value={caption}
+              onChange={(e) => {
+                if (e.target.value.length <= MAX_CAPTION_LENGTH + 100) {
+                  setCaption(e.target.value);
+                }
+              }}
+              placeholder={t(
+                'createPost.caption.write_caption',
+                'Escribe una descripción o pie de foto...',
+              )}
+              className="w-full bg-transparent text-white/90 border-0 resize-none focus:outline-none placeholder-white/30 text-xs sm:text-sm leading-relaxed min-h-24 max-h-36 p-0"
+            />
+
+            <div className="flex items-center justify-end text-[10px] text-white/30 font-bold tabular-nums">
+              {charCount} / {MAX_CAPTION_LENGTH}
+            </div>
           </div>
-          <span className="font-bold text-sm text-white/90">
-            {profile?.username || t('createPost.caption.you')}
-          </span>
         </div>
 
-        {/* Caption Input */}
-        <div className="px-5 pb-5 relative">
+        {/* Desktop Header: User Info & Caption Textarea */}
+        <div className="hidden md:flex flex-col px-5 pt-5 pb-3">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-9 h-9 rounded-full overflow-hidden bg-neutral-800 border border-white/10 shrink-0">
+              {profile?.avatar ? (
+                <img
+                  src={profile.avatar}
+                  alt={profile.username}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-linear-to-tr from-brand-primary to-brand-blue flex items-center justify-center text-xs font-bold text-white">
+                  {profile?.username?.[0]?.toUpperCase() || 'U'}
+                </div>
+              )}
+            </div>
+            <span className="font-bold text-sm text-white">
+              {profile?.username || t('createPost.caption.you')}
+            </span>
+          </div>
+
           <div
-            className={`relative rounded-lg transition-all duration-300 border border-white/5 ${
+            className={`relative rounded-xl transition-all duration-300 border border-white/8 ${
               isFocused
-                ? 'ring-1 ring-white/10 bg-white/5 border-white/10'
-                : 'bg-white/3'
+                ? 'ring-1 ring-brand-primary/40 bg-white/5 border-brand-primary/30'
+                : 'bg-white/3 hover:bg-white/4'
             }`}
           >
             <textarea
@@ -229,143 +270,161 @@ export default function CaptionStep({
               }}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
-              placeholder={t('createPost.caption.write_caption')}
-              className="w-full bg-transparent text-white/90 border-0 resize-none focus:ring-0 
-                         placeholder-white/20 text-[15px] leading-relaxed outline-none
-                         min-h-[100px] max-h-[220px] font-normal p-4"
-              style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
-            />
-          </div>
-
-          {/* Caption Footer: Counter + Hashtag count */}
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center gap-3">
-              {hashtagCount > 0 && (
-                <motion.div
-                  className="flex items-center gap-1 text-xs text-white/25 font-medium"
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                >
-                  <Hash size={10} />
-                  <span>{hashtagCount}</span>
-                </motion.div>
+              placeholder={t(
+                'createPost.caption.write_caption',
+                'Escribe una descripción o pie de foto...',
               )}
-            </div>
-
-            {/* Character Counter - Circular */}
-            <div className="flex items-center gap-2">
-              <AnimatePresence>
-                {charCount > 0 && (
-                  <motion.div
-                    className="flex items-center gap-1"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                  >
-                    {/* Circular progress indicator */}
-                    <svg
-                      aria-hidden="true"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 20 20"
-                      className="-rotate-90"
-                    >
-                      {/* Background circle */}
-                      <circle
-                        cx="10"
-                        cy="10"
-                        r="8"
-                        fill="none"
-                        stroke="rgba(255,255,255,0.06)"
-                        strokeWidth="2"
-                      />
-                      {/* Progress circle */}
-                      <circle
-                        cx="10"
-                        cy="10"
-                        r="8"
-                        fill="none"
-                        stroke={
-                          isOverLimit
-                            ? '#ef4444'
-                            : isNearLimit
-                              ? '#f59e0b'
-                              : 'rgba(255,255,255,0.2)'
-                        }
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeDasharray={`${2 * Math.PI * 8}`}
-                        strokeDashoffset={`${2 * Math.PI * 8 * (1 - charPercent / 100)}`}
-                        className="transition-all duration-300"
-                      />
-                    </svg>
-
-                    <span
-                      className={`text-xs font-bold tabular-nums transition-colors ${
-                        isOverLimit
-                          ? 'text-red-400'
-                          : isNearLimit
-                            ? 'text-amber-400'
-                            : 'text-white/20'
-                      }`}
-                    >
-                      {isNearLimit ? MAX_CAPTION_LENGTH - charCount : ''}
-                    </span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              className="w-full bg-transparent text-white border-0 resize-none focus:ring-0 
+                         placeholder-white/30 text-sm leading-relaxed outline-none
+                         min-h-24 max-h-48 font-normal p-4"
+            />
+            <div className="flex items-center justify-between px-4 pb-2.5">
+              <span className="text-[11px] text-white/30 font-medium">
+                {hashtagCount > 0 && `${hashtagCount} hashtags`}
+              </span>
+              <span
+                className={`text-[11px] font-bold tabular-nums ${
+                  isOverLimit
+                    ? 'text-red-400'
+                    : isNearLimit
+                      ? 'text-amber-400'
+                      : 'text-white/30'
+                }`}
+              >
+                {charCount} / {MAX_CAPTION_LENGTH}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="h-px bg-white/4 mx-5" />
+        {/* Interactive Quick-Action Chips Bar */}
+        <div className="px-4 py-2.5 border-y border-white/6 bg-white/1">
+          <span className="text-[10px] font-black uppercase tracking-wider text-white/40 mb-2 block">
+            Acciones rápidas
+          </span>
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+            <button
+              type="button"
+              onClick={() => setSubScreen('location')}
+              className={`inline-flex items-center gap-1.5 px-4 h-11 rounded-full text-xs font-bold transition-all shrink-0 border ${
+                location
+                  ? 'bg-brand-primary/20 text-brand-primary border-brand-primary/40 shadow-sm'
+                  : 'bg-white/5 hover:bg-white/10 text-white/80 border-white/10'
+              }`}
+            >
+              <MapPin
+                size={13}
+                className={location ? 'text-brand-primary' : 'text-white/60'}
+              />
+              <span className="truncate max-w-32">
+                {location || t('createPost.caption.add_location', 'Ubicación')}
+              </span>
+            </button>
 
-        {/* Action Items */}
-        <div className="flex-1 overflow-y-auto px-2 py-1">
-          {actionItems.map((item) => {
-            const Icon = item.icon;
-            return (
+            <button
+              type="button"
+              onClick={() => setSubScreen('tags')}
+              className="inline-flex items-center gap-1.5 px-4 h-11 rounded-full text-xs font-bold bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 transition-all shrink-0"
+            >
+              <UserPlus size={13} className="text-white/60" />
+              <span>{t('createPost.caption.tag_people', 'Etiquetar')}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowMusicPicker(true)}
+              className={`inline-flex items-center gap-1.5 px-4 h-11 rounded-full text-xs font-bold transition-all shrink-0 border ${
+                selectedAudio
+                  ? 'bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-sm'
+                  : 'bg-white/5 hover:bg-white/10 text-white/80 border-white/10'
+              }`}
+            >
+              <MusicIcon
+                size={13}
+                className={selectedAudio ? 'text-purple-400' : 'text-white/60'}
+              />
+              <span className="truncate max-w-32">
+                {selectedAudio
+                  ? selectedAudio.title
+                  : t('createPost.caption.add_music', 'Música')}
+              </span>
+            </button>
+
+            {(mode === 'POST' || mode === 'FRAME') && (
               <button
                 type="button"
-                key={item.key}
-                onClick={item.onClick}
-                className="w-full flex items-center gap-3 py-3.5 px-3 hover:bg-white/3 rounded-xl
-                           cursor-pointer transition-all duration-200 group"
+                onClick={() => setSubScreen('interactive')}
+                className={`inline-flex items-center gap-1.5 px-4 h-11 rounded-full text-xs font-bold transition-all shrink-0 border ${
+                  interactiveDraft
+                    ? 'bg-sky-500/20 text-sky-300 border-sky-500/40 shadow-sm'
+                    : 'bg-white/5 hover:bg-white/10 text-white/80 border-white/10'
+                }`}
               >
-                <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors
-                    ${item.isActive ? 'bg-brand-primary/10' : 'bg-white/3'}
-                  `}
-                >
-                  <Icon
-                    size={16}
-                    className={`transition-colors ${
-                      item.isActive
-                        ? item.activeColor
-                        : 'text-white/30 group-hover:text-white/50'
-                    }`}
-                    strokeWidth={1.8}
-                  />
-                </div>
-                <span
-                  className={`flex-1 text-left text-sm font-medium truncate transition-colors ${
-                    item.isActive
-                      ? `${item.activeColor} font-semibold`
-                      : 'text-white/60 group-hover:text-white/80'
-                  }`}
-                >
-                  {item.label}
+                <BarChart2
+                  size={13}
+                  className={
+                    interactiveDraft ? 'text-sky-400' : 'text-white/60'
+                  }
+                />
+                <span>
+                  {interactiveDraft ? 'Encuesta activa' : 'Encuesta / Q&A'}
                 </span>
-                {item.suffix || (
-                  <ChevronRight
-                    size={16}
-                    className="text-white/15 group-hover:text-white/30 transition-colors"
-                  />
-                )}
               </button>
-            );
-          })}
+            )}
+
+            <button
+              type="button"
+              onClick={() => setSubScreen('monetization')}
+              className={`inline-flex items-center gap-1.5 px-4 h-11 rounded-full text-xs font-bold transition-all shrink-0 border ${
+                isPremium
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
+                  : 'bg-white/5 hover:bg-white/10 text-white/80 border-white/10'
+              }`}
+            >
+              <DollarSign
+                size={13}
+                className={isPremium ? 'text-emerald-400' : 'text-white/60'}
+              />
+              <span>{isPremium ? 'De pago' : 'Monetización'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Compact Settings Options Container */}
+        <div className="p-4 space-y-2">
+          <span className="text-[10px] font-black uppercase tracking-wider text-white/40 px-1 block">
+            Ajustes de publicación
+          </span>
+          <div className="rounded-2xl border border-white/8 bg-white/2 overflow-hidden divide-y divide-white/6">
+            {actionItems
+              .filter((item) =>
+                ['accessibility', 'advanced'].includes(item.key),
+              )
+              .map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    type="button"
+                    key={item.key}
+                    onClick={item.onClick}
+                    className="w-full flex items-center justify-between p-3.5 hover:bg-white/5 transition-all text-left group"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center text-white/70 group-hover:text-white group-hover:bg-white/10 transition-all shrink-0">
+                        <Icon size={16} strokeWidth={1.8} />
+                      </div>
+                      <span className="text-xs font-bold text-white/90 group-hover:text-white truncate">
+                        {item.label}
+                      </span>
+                    </div>
+                    <ChevronRight
+                      size={16}
+                      className="text-white/30 group-hover:text-white/60 transition-colors shrink-0"
+                    />
+                  </button>
+                );
+              })}
+          </div>
         </div>
       </div>
     </div>

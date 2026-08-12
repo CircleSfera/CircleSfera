@@ -6,8 +6,8 @@ import type { Post } from '../../types';
 import LikeButton from '../LikeButton';
 import { Button } from '../ui';
 
-const MotionButton = motion(Button);
-const MotionLink = motion(Link as any) as any;
+const MotionButton = motion.create(Button);
+const MotionLink = motion.create(Link as any) as any;
 
 interface PostActionsProps {
   post: Post;
@@ -38,19 +38,19 @@ export default function PostActions({
   const isLg = size === 'lg';
   const iconClass = isLg ? 'w-6 h-6' : 'w-5 h-5';
   const btnClass = isLg
-    ? 'w-11 h-11 hover:scale-110 active:scale-95'
-    : 'hover:scale-110 active:scale-95';
+    ? 'w-12 h-12 hover:scale-110 active:scale-95'
+    : 'w-11 h-11 hover:scale-110 active:scale-95';
 
   return (
     <div
-      className={`flex items-center justify-between ${isLg ? 'mb-1' : 'mb-2'}`}
+      className={`flex items-center justify-between ${isLg ? 'mb-1' : 'mb-1 md:mb-2'}`}
     >
-      <div className={`flex items-center ${isLg ? 'gap-1' : 'gap-3'}`}>
+      <div className={`flex items-center ${isLg ? 'gap-1' : 'gap-2 md:gap-3'}`}>
         <LikeButton
           postId={post.id}
           onToggle={onLikeToggle}
           iconClassName={iconClass}
-          className={isLg ? 'w-11 h-11' : undefined}
+          className={isLg ? 'w-12 h-12' : 'w-11 h-11'}
         />
         {!hideCommentLink && (
           <MotionLink

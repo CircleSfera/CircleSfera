@@ -1,6 +1,6 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CollectionsService } from './collections.service.js';
 
@@ -77,7 +77,7 @@ describe('CollectionsService', () => {
       mockPrismaService.collection.findUnique.mockResolvedValue(null);
 
       await expect(service.findOne('user-1', 'invalid-id')).rejects.toThrow(
-        NotFoundException,
+        AppException,
       );
     });
 
@@ -88,7 +88,7 @@ describe('CollectionsService', () => {
       });
 
       await expect(service.findOne('user-1', 'col-1')).rejects.toThrow(
-        ForbiddenException,
+        AppException,
       );
     });
   });

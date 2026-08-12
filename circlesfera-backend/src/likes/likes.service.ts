@@ -1,8 +1,8 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { $Enums } from '@prisma/client';
 import { Queue } from 'bullmq';
-import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const NotificationType = $Enums.NotificationType;
@@ -15,8 +15,7 @@ const NotificationType = $Enums.NotificationType;
 export class LikesService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(NotificationsService)
-    private readonly notificationsService: NotificationsService,
+    private readonly eventEmitter: EventEmitter2,
     @InjectQueue('analytics-processing') private readonly analyticsQueue: Queue,
   ) {}
 
@@ -46,7 +45,9 @@ export class LikesService {
     if (existingLike) {
       // Unlike
       await this.prisma.like.delete({ where: { id: existingLike.id } });
-      await this.analyticsQueue.add('update-performance-score', { postId });
+      this.analyticsQueue
+        .add('update-performance-score', { postId })
+        .catch((err) => console.error('Failed to enqueue analytics', err));
       return { liked: false };
     } else {
       // Like
@@ -59,7 +60,7 @@ export class LikesService {
 
       // Create notification for post owner
       if (post.userId !== userId) {
-        await this.notificationsService.create({
+        this.eventEmitter.emit('notification.create', {
           recipientId: post.userId,
           senderId: userId,
           type: NotificationType.LIKE,
@@ -68,7 +69,9 @@ export class LikesService {
         });
       }
 
-      await this.analyticsQueue.add('update-performance-score', { postId });
+      this.analyticsQueue
+        .add('update-performance-score', { postId })
+        .catch((err) => console.error('Failed to enqueue analytics', err));
       return { liked: true };
     }
   }

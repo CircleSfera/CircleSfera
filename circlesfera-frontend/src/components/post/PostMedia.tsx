@@ -14,6 +14,21 @@ interface PostMediaProps {
   priority?: boolean;
 }
 
+function getSmartAspectRatio(
+  mediaList: any[],
+  fallbackRatio = 'aspect-4/5',
+): string {
+  if (!mediaList || mediaList.length === 0) return fallbackRatio;
+  const first = mediaList[0];
+  if (first.width && first.height) {
+    const ratio = first.width / first.height;
+    if (ratio >= 1.25) return 'aspect-video'; // Landscape (16:9)
+    if (ratio >= 0.92 && ratio < 1.25) return 'aspect-square'; // Square (1:1)
+    if (ratio < 0.92) return 'aspect-4/5'; // Portrait standard (4:5)
+  }
+  return fallbackRatio;
+}
+
 export default function PostMedia({
   post,
   className = '',
@@ -49,14 +64,24 @@ export default function PostMedia({
     const displayPrice = post.priceCents
       ? post.priceCents / 100
       : post.price || 0;
+    const isFullHeight = className.includes('h-full');
+    const computedAspectRatio = getSmartAspectRatio(post.media, aspectRatio);
+
+    const hasTransparentBg = className.includes('bg-transparent');
+    const bgClass = hasTransparentBg ? '' : 'bg-black';
+    // Use aspect-auto if we want full height, so aspect ratio doesn't conflict with parent container dimensions
+    const finalAspectRatio = isFullHeight
+      ? `${computedAspectRatio} aspect-auto`
+      : computedAspectRatio;
+
     return (
       <div
-        className={`relative bg-black overflow-hidden group ${aspectRatio} ${className}`}
+        className={`relative w-full ${bgClass} overflow-hidden group flex items-center justify-center ${className}`}
       >
         <div
-          className={
+          className={`w-full ${isFullHeight ? 'h-full' : ''} ${
             post.shouldBlurSensitive ? 'blur-xl brightness-75 select-none' : ''
-          }
+          }`}
         >
           <Carousel
             media={post.media.map((m) => ({
@@ -65,7 +90,8 @@ export default function PostMedia({
               thumbnailUrl: m.thumbnailUrl || undefined,
               filter: m.filter || undefined,
             }))}
-            aspectRatio={aspectRatio}
+            aspectRatio={finalAspectRatio}
+            className={`${isFullHeight ? 'h-full' : ''} ${hasTransparentBg ? 'bg-transparent!' : ''}`.trim()}
             objectFit={objectFit}
             isLocked={post.isLocked}
             priority={priority}

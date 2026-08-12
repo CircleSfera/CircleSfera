@@ -20,7 +20,7 @@ export default function MonetizationSubScreen({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-neutral-900 border border-white/10 w-full max-w-md rounded-lg overflow-hidden shadow-2xl flex flex-col">
+      <div className="bg-surface-elevated border border-white/10 w-full max-w-md rounded-lg overflow-hidden shadow-2xl flex flex-col">
         <div className="p-4 border-b border-white/10 flex items-center gap-4">
           <button
             type="button"
@@ -57,7 +57,7 @@ export default function MonetizationSubScreen({
                   'Premium Content (Pay-Per-View)',
                 )}
               </div>
-              <div className="text-xs text-gray-300 mt-1 max-w-[280px]">
+              <div className="text-xs text-gray-300 mt-1 max-w-70">
                 {t(
                   'createPost.caption.premium_desc',
                   'Require users to pay to unlock and view this post.',
@@ -84,7 +84,7 @@ export default function MonetizationSubScreen({
                 htmlFor="premium-price"
                 className="block text-sm font-medium text-white"
               >
-                {t('createPost.caption.price_usd', 'Price (USD)')}
+                {t('createPost.caption.price_usd', 'Price (EUR / USD)')}
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -94,7 +94,8 @@ export default function MonetizationSubScreen({
                   id="premium-price"
                   type="number"
                   min="1"
-                  step="0.01"
+                  max="500"
+                  step="0.50"
                   value={price || ''}
                   onChange={(e) =>
                     setPrice(Number.parseFloat(e.target.value) || 0)
@@ -103,12 +104,46 @@ export default function MonetizationSubScreen({
                   className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-8 pr-4 text-white focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all"
                 />
               </div>
-              <p className="text-xs text-emerald-500/80">
-                {t(
-                  'createPost.caption.creator_cut',
-                  'You will receive 80% of earnings.',
-                )}
-              </p>
+
+              {price > 0 && price < 1 && (
+                <p className="text-xs text-amber-400 font-medium">
+                  {t(
+                    'createPost.caption.min_price_warning',
+                    'Minimum price is $1.00',
+                  )}
+                </p>
+              )}
+              {price > 500 && (
+                <p className="text-xs text-amber-400 font-medium">
+                  {t(
+                    'createPost.caption.max_price_warning',
+                    'Maximum price is $500.00',
+                  )}
+                </p>
+              )}
+
+              {price >= 1 && price <= 500 && (
+                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 space-y-1">
+                  <div className="flex justify-between font-semibold">
+                    <span>
+                      {t(
+                        'createPost.caption.creator_earning',
+                        'Your earnings (80%):',
+                      )}
+                    </span>
+                    <span>${(price * 0.8).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-400">
+                    <span>
+                      {t(
+                        'createPost.caption.platform_fee',
+                        'Platform fee (20%):',
+                      )}
+                    </span>
+                    <span>${(price * 0.2).toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
