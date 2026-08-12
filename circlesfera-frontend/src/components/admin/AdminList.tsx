@@ -213,7 +213,7 @@ export function AdminListRow({
                             'w-full text-left px-3.5 py-2.5 text-sm font-medium transition-colors disabled:opacity-40 min-h-11',
                             action.variant === 'danger'
                               ? 'text-red-400 hover:bg-red-500/10'
-                              : 'text-gray-200 hover:bg-white/5',
+                              : 'text-white/80 hover:bg-white/5',
                           )}
                         >
                           {action.label}

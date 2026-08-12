@@ -1918,12 +1918,7 @@
       "not_found": "No se pudo encontrar el expediente del usuario"
     },
     "cmd": {
-      "go_to": "Ir a: {{section}}",
-      "quick_action": "Acción rápida: {{section}}",
-      "placeholder": "Buscar secciones o usuarios...",
-      "no_results": "Sin resultados para \"{{query}}\"",
-      "user_result": "Usuario: @{{username}} ({{name}})",
-      "no_username": "sin_nombre"
+      "placeholder": "Buscar secciones o usuarios..."
     },
     "lives": {
       "title": "Directos",

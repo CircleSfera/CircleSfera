@@ -19,7 +19,7 @@ function moderationBadge(status: AdminStory['moderationStatus']) {
   const styles: Record<string, string> = {
     VISIBLE: 'text-green-400 bg-green-400/10',
     FLAGGED: 'text-amber-400 bg-amber-400/10',
-    HIDDEN: 'text-gray-400 bg-gray-400/10',
+    HIDDEN: 'text-white/50 bg-white/10',
     REMOVED: 'text-red-400 bg-red-400/10',
   };
   return (
@@ -85,7 +85,7 @@ export default function StoriesTab({ onToast }: Props) {
 
   const expiryBadge = (expired: boolean) =>
     expired ? (
-      <span className="text-gray-500 text-xs font-semibold flex items-center gap-1">
+      <span className="text-white/40 text-xs font-semibold flex items-center gap-1">
         <Clock size={10} /> {t('admin.stories.status_expired')}
       </span>
     ) : (
@@ -182,7 +182,7 @@ export default function StoriesTab({ onToast }: Props) {
                 key={story.id}
                 title={`@${story.user?.profile?.username || t('admin.shared.unknown')}`}
                 subtitle={
-                  <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/10">
+                  <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-white/70 border border-white/10">
                     {story.mediaType}
                   </span>
                 }
@@ -280,7 +280,7 @@ export default function StoriesTab({ onToast }: Props) {
                   </span>
                 </td>
                 <td className="px-2 py-1">
-                  <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/10">
+                  <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-white/70 border border-white/10">
                     {story.mediaType}
                   </span>
                 </td>
@@ -291,7 +291,7 @@ export default function StoriesTab({ onToast }: Props) {
                   {expiryBadge(isExpired(story.expiresAt))}
                 </td>
                 <td className="px-2 py-1">
-                  <span className="flex items-center gap-1 text-gray-300 text-sm">
+                  <span className="flex items-center gap-1 text-white/70 text-sm">
                     <Eye size={12} /> {story._count?.views || 0}
                   </span>
                 </td>

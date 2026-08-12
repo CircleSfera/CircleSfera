@@ -20,7 +20,7 @@ export function AdminSegmentedControl({ options, value, onChange }: Props) {
           className={`flex-1 sm:flex-none px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap ${
             value === opt.value
               ? 'bg-white/10 text-white shadow-sm'
-              : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+              : 'text-white/50 hover:text-white/80 hover:bg-white/5'
           }`}
         >
           {opt.label}

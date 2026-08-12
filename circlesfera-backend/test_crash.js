@@ -1,5 +1,5 @@
-const { spawn } = require('child_process');
-const http = require('http');
+const { spawn } = require('node:child_process');
+const http = require('node:http');
 
 const server = spawn('npm', ['run', 'start:dev'], { stdio: 'pipe' });
 

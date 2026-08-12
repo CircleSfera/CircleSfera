@@ -335,7 +335,7 @@ export default function Dashboard({ onToast }: Props) {
           <Button
             onClick={handleExport}
             variant="outline"
-            className="text-sm font-semibold text-gray-300 hover:text-white border-white/10 px-4 min-h-11 w-full sm:w-auto"
+            className="text-sm font-semibold text-white/70 hover:text-white border-white/10 px-4 min-h-11 w-full sm:w-auto"
             aria-label={t('admin.users.export_csv_aria')}
           >
             <Download size={16} className="mr-2" />

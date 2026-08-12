@@ -249,9 +249,11 @@
   /* Glow tokens */
   --glow-brand-sm: 0 0 12px rgba(var(--brand-primary-rgb), 0.4);
   --glow-brand-md:
-    0 0 24px rgba(var(--brand-primary-rgb), 0.35), 0 0 8px rgba(255, 87, 87, 0.2);
+    0 0 24px rgba(var(--brand-primary-rgb), 0.35),
+    0 0 8px rgba(255, 87, 87, 0.2);
   --glow-brand-lg:
-    0 0 40px rgba(var(--brand-primary-rgb), 0.45), 0 0 16px rgba(255, 87, 87, 0.25);
+    0 0 40px rgba(var(--brand-primary-rgb), 0.45),
+    0 0 16px rgba(255, 87, 87, 0.25);
   --glow-blue-sm: 0 0 12px rgba(82, 113, 255, 0.4);
 
   /* ── Spacing Scale (4px base, Design System §7.3) ── */

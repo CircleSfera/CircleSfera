@@ -69,7 +69,7 @@ export default function WhitelistTab() {
         title={t('admin.whitelist.title')}
         subtitle={t('admin.whitelist.subtitle')}
         actions={
-          <div className="text-xs text-gray-400 bg-white/5 px-3 py-2 rounded-lg border border-white/10 italic min-h-11 flex items-center">
+          <div className="text-xs text-white/50 bg-white/5 px-3 py-2 rounded-lg border border-white/10 italic min-h-11 flex items-center">
             {t('admin.whitelist.total_count', {
               count: data?.meta.total || 0,
             })}
@@ -173,7 +173,7 @@ export default function WhitelistTab() {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="whitelist-name"
-                    className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
+                    className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
                   >
                     {t('admin.whitelist.label_name')}
                   </label>
@@ -189,7 +189,7 @@ export default function WhitelistTab() {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="whitelist-email"
-                    className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
+                    className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
                   >
                     {t('admin.whitelist.label_email')}
                   </label>
@@ -206,7 +206,7 @@ export default function WhitelistTab() {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="whitelist-status"
-                    className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
+                    className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
                   >
                     {t('admin.whitelist.label_status')}
                   </label>
@@ -229,7 +229,7 @@ export default function WhitelistTab() {
                     type="button"
                     onClick={() => setSelectedId(null)}
                     variant="secondary"
-                    className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-gray-300"
+                    className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-white/70"
                   >
                     {t('admin.shared.cancel')}
                   </Button>

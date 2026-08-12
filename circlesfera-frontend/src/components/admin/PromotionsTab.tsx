@@ -242,7 +242,7 @@ export default function PromotionsTab({ onToast }: Props) {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                          <div className="w-full h-full flex items-center justify-center text-white/25">
                             <Ghost size={16} />
                           </div>
                         )}
@@ -280,7 +280,7 @@ export default function PromotionsTab({ onToast }: Props) {
                       <h3 className="text-sm font-semibold text-white">
                         @{selectedPromo.user.profile.username}
                       </h3>
-                      <p className="text-xs text-gray-300">
+                      <p className="text-xs text-white/70">
                         {selectedPromo.user.email}
                       </p>
                     </div>
@@ -337,18 +337,18 @@ export default function PromotionsTab({ onToast }: Props) {
                 <div className="flex-1 overflow-y-auto p-3 sm:p-4 flex flex-col items-center">
                   <div className="w-full max-w-2xl mb-4 grid grid-cols-2 sm:grid-cols-4 rounded-lg bg-white/3 overflow-hidden divide-x divide-y sm:divide-y-0 divide-white/5">
                     <div className="px-3 py-2.5">
-                      <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide mb-0.5">
+                      <p className="text-[10px] text-white/40 font-semibold uppercase tracking-wide mb-0.5">
                         {t('admin.promotions.budget_label')}
                       </p>
                       <p className="text-lg font-semibold text-white tabular-nums leading-tight">
                         {selectedPromo.budget}{' '}
-                        <span className="text-sm text-gray-400 font-medium">
+                        <span className="text-sm text-white/50 font-medium">
                           {selectedPromo.currency}
                         </span>
                       </p>
                     </div>
                     <div className="px-3 py-2.5">
-                      <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide mb-0.5">
+                      <p className="text-[10px] text-white/40 font-semibold uppercase tracking-wide mb-0.5">
                         {t('admin.promotions.reach_label')}
                       </p>
                       <p className="text-base sm:text-lg font-semibold text-emerald-400 flex items-center gap-1.5 tabular-nums leading-tight">
@@ -357,7 +357,7 @@ export default function PromotionsTab({ onToast }: Props) {
                       </p>
                     </div>
                     <div className="px-3 py-2.5">
-                      <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide mb-0.5">
+                      <p className="text-[10px] text-white/40 font-semibold uppercase tracking-wide mb-0.5">
                         {t('admin.promotions.start_date_label')}
                       </p>
                       <p className="text-sm font-semibold text-white">
@@ -365,7 +365,7 @@ export default function PromotionsTab({ onToast }: Props) {
                       </p>
                     </div>
                     <div className="px-3 py-2.5">
-                      <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide mb-0.5">
+                      <p className="text-[10px] text-white/40 font-semibold uppercase tracking-wide mb-0.5">
                         {t('admin.promotions.status_label')}
                       </p>
                       <StatusBadge status={selectedPromo.status} />
@@ -373,7 +373,7 @@ export default function PromotionsTab({ onToast }: Props) {
                   </div>
 
                   <div className="w-full max-w-md">
-                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-2">
                       {t('admin.promotions.promoted_type', {
                         type: selectedPromo.targetType,
                       })}
@@ -415,7 +415,7 @@ export default function PromotionsTab({ onToast }: Props) {
                               selectedPromo.target.text}
                           </p>
                         ) : (
-                          <p className="text-gray-500 text-sm italic">
+                          <p className="text-white/40 text-sm italic">
                             {t('admin.promotions.no_description')}
                           </p>
                         )}

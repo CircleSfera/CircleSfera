@@ -288,7 +288,7 @@ Benchmarking allowed only as **principles** (content-first, predictable structur
 | --- | --- |
 | First | Wave 0 inventory → Wave 1 foundation complete |
 | Next | Wave 2 in listed order (Feed → Profile → Chat → Stories/Frames → Explore/Activity/Saved) |
-| Later | Opportunistic stock-palette purge in deep Admin tab chrome |
+| Later | — (Admin stock-palette follow-up closed) |
 | Defer | New micro-animations; landing marketing overhaul; single Admin+Consumer shell |
 | Reject | Light theme; new UI kit; communities UI; B2B manager; badge-centric product; in-app payout start |
 
@@ -379,4 +379,4 @@ Qualitative: users should never feel they left CircleSfera when moving between F
 | Shell / list chrome | AdminShell, AdminSplitView, AdminList → `text-white/…`; split empty → `AdminEmptyState` |
 | Tables / KPIs | AdminTable empty → compact `AdminEmptyState`; StatusBadge + StatCard brand tokens |
 | Live detail | `admin.lives.no_video_source`; muted chrome → white/opacity |
-| Follow-up (non-blocking) | Deep tab detail still has `text-gray-*` / chart hex in Stats/Reports/Monetization/etc.; CommandPalette Spanish fallbacks; AdminShell search fallbacks |
+| Follow-up polish | Stock `text-gray-*` / `zinc-*` purged across deep admin tabs (≈250 class replacements → `text-white/…`); chart hex → brand `#8c52ff` / `#5271ff`; CommandPalette + AdminShell search keys without Spanish fallbacks |

@@ -170,12 +170,12 @@ export default function StatsTab() {
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="gradPosts" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#8c52ff" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#8c52ff" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gradUsers" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#5271ff" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#5271ff" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
@@ -184,11 +184,11 @@ export default function StatsTab() {
                 />
                 <XAxis
                   dataKey="date"
-                  stroke="#4b5563"
+                  stroke="#737373"
                   fontSize={10}
                   tickFormatter={(v: string) => v.slice(5)}
                 />
-                <YAxis stroke="#4b5563" fontSize={10} allowDecimals={false} />
+                <YAxis stroke="#737373" fontSize={10} allowDecimals={false} />
                 <Tooltip
                   contentStyle={{
                     background: 'rgba(17,17,17,0.95)',
@@ -205,7 +205,7 @@ export default function StatsTab() {
                   type="monotone"
                   dataKey="posts"
                   name={t('admin.stats.chart_posts')}
-                  stroke="#a855f7"
+                  stroke="#8c52ff"
                   fill="url(#gradPosts)"
                   strokeWidth={2}
                 />
@@ -213,7 +213,7 @@ export default function StatsTab() {
                   type="monotone"
                   dataKey="users"
                   name={t('admin.stats.chart_new_users')}
-                  stroke="#3b82f6"
+                  stroke="#5271ff"
                   fill="url(#gradUsers)"
                   strokeWidth={2}
                 />
@@ -267,7 +267,7 @@ export default function StatsTab() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs font-semibold">
+                        <div className="w-full h-full flex items-center justify-center text-white/40 text-xs font-semibold">
                           {user.username[0]?.toUpperCase()}
                         </div>
                       )}
@@ -315,16 +315,16 @@ export default function StatsTab() {
                       <span className="text-brand-primary">
                         @{log.adminUsername}
                       </span>{' '}
-                      <span className="text-gray-300">
+                      <span className="text-white/70">
                         {formatAction(log.action)}
                       </span>
                     </p>
-                    <p className="text-gray-600 text-xs truncate">
+                    <p className="text-white/30 text-xs truncate">
                       {log.targetType} · {log.targetId.slice(0, 8)}...
                     </p>
                   </div>
                 </div>
-                <span className="text-gray-600 text-xs sm:whitespace-nowrap ml-11 sm:ml-0">
+                <span className="text-white/30 text-xs sm:whitespace-nowrap ml-11 sm:ml-0">
                   {new Date(log.createdAt).toLocaleString()}
                 </span>
               </div>

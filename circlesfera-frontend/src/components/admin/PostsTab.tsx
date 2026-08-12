@@ -92,7 +92,7 @@ export default function PostsTab({ onToast }: Props) {
           <Button
             onClick={handleExport}
             variant="outline"
-            className="text-sm font-semibold text-gray-300 hover:text-white border-white/10 px-4 min-h-11 w-full sm:w-auto"
+            className="text-sm font-semibold text-white/70 hover:text-white border-white/10 px-4 min-h-11 w-full sm:w-auto"
             aria-label={t('admin.posts.export_csv_aria')}
           >
             <Download size={16} className="mr-2" />
@@ -214,7 +214,7 @@ export default function PostsTab({ onToast }: Props) {
                       </div>
                     }
                     badge={
-                      <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-gray-300 border border-white/5">
+                      <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-white/70 border border-white/5">
                         {post.type}
                       </span>
                     }

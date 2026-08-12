@@ -116,14 +116,14 @@ export function AdminMobileDrawer({
             >
               {t('admin.panel', 'Panel de Control')}
             </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-white/40 mt-0.5">
               {t('admin.mobile_nav_subtitle', 'Elige una sección')}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-white rounded-xl hover:bg-white/5 shrink-0"
+            className="w-11 h-11 flex items-center justify-center text-white/50 hover:text-white rounded-xl hover:bg-white/5 shrink-0"
             aria-label={t('common.close', 'Cerrar')}
           >
             <X size={20} />
@@ -133,7 +133,7 @@ export function AdminMobileDrawer({
         <Link
           to="/"
           onClick={onClose}
-          className="mx-4 mt-3 mb-1 flex items-center gap-2 text-sm font-semibold text-gray-400 hover:text-white transition-colors shrink-0"
+          className="mx-4 mt-3 mb-1 flex items-center gap-2 text-sm font-semibold text-white/50 hover:text-white transition-colors shrink-0"
         >
           <ArrowLeft size={14} className="text-brand-primary" />
           {t('admin.back_to_app', 'Volver a CircleSfera')}
@@ -151,7 +151,7 @@ export function AdminMobileDrawer({
 
             return (
               <div key={group.labelKey} className="space-y-1.5">
-                <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-500 px-1 mb-2">
+                <h3 className="text-[11px] font-bold uppercase tracking-wider text-white/40 px-1 mb-2">
                   {t(group.labelKey, group.labelFallback)}
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
@@ -168,7 +168,7 @@ export function AdminMobileDrawer({
                           'w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm font-semibold border text-left min-h-11',
                           isSelected
                             ? 'bg-brand-primary/20 text-white border-brand-primary/40'
-                            : 'bg-white/3 text-gray-300 border-white/5',
+                            : 'bg-white/3 text-white/70 border-white/5',
                         )}
                       >
                         <div className="flex items-center gap-3 min-w-0">
@@ -177,7 +177,7 @@ export function AdminMobileDrawer({
                             className={
                               isSelected
                                 ? 'text-brand-primary'
-                                : 'text-gray-400'
+                                : 'text-white/50'
                             }
                           />
                           <span className="truncate">

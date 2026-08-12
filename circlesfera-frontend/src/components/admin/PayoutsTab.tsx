@@ -28,7 +28,7 @@ const STATUS_COLORS: Record<string, string> = {
   paid: 'text-green-400 bg-green-400/10 border-green-400/20',
   pending: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
   failed: 'text-red-400 bg-red-400/10 border-red-400/20',
-  canceled: 'text-gray-400 bg-gray-400/10 border-gray-400/20',
+  canceled: 'text-white/50 bg-white/10 border-white/20',
 };
 
 export default function PayoutsTab() {
@@ -183,7 +183,7 @@ export default function PayoutsTab() {
                           currency: payout.currency.toUpperCase(),
                         })}
                       </div>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-white/50">
                         {new Date(payout.arrivalDate).toLocaleDateString()}
                       </div>
                     </div>

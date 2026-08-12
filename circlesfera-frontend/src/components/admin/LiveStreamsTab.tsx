@@ -130,7 +130,7 @@ export default function LiveStreamsTab() {
                     title={stream.title || t('admin.shared.unknown')}
                     subtitle={`@${stream.host?.profile?.username || t('admin.shared.unknown')}`}
                     avatar={
-                      <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 overflow-hidden">
+                      <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center text-white/50 overflow-hidden">
                         <Radio size={20} />
                       </div>
                     }
@@ -139,7 +139,7 @@ export default function LiveStreamsTab() {
                         className={`px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider ${
                           stream.status === 'LIVE'
                             ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                            : 'bg-white/5 text-gray-400 border border-white/5'
+                            : 'bg-white/5 text-white/50 border border-white/5'
                         }`}
                       >
                         {stream.status}
@@ -193,7 +193,7 @@ export default function LiveStreamsTab() {
                     </div>
                   </>
                 ) : (
-                  <div className="text-gray-500 flex flex-col items-center">
+                  <div className="text-white/40 flex flex-col items-center">
                     <StopCircle size={40} className="mb-2 opacity-50" />
                     <span className="text-sm font-medium">
                       {t('admin.lives.status_ended', 'Transmisión finalizada')}
@@ -223,7 +223,7 @@ export default function LiveStreamsTab() {
 
               <div className="grid grid-cols-2 gap-3 mb-5">
                 <div className="p-3 rounded-lg bg-white/5 border border-white/5">
-                  <p className="text-xs text-gray-400 mb-0.5">
+                  <p className="text-xs text-white/50 mb-0.5">
                     {t('admin.lives.started_at', 'Iniciado')}
                   </p>
                   <p className="text-white text-sm font-medium">
@@ -234,7 +234,7 @@ export default function LiveStreamsTab() {
                 </div>
                 {selectedStream.endedAt && (
                   <div className="p-3 rounded-lg bg-white/5 border border-white/5">
-                    <p className="text-xs text-gray-400 mb-0.5">
+                    <p className="text-xs text-white/50 mb-0.5">
                       {t('admin.lives.ended_at', 'Finalizado')}
                     </p>
                     <p className="text-white text-sm font-medium">
