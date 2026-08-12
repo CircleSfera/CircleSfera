@@ -17,8 +17,16 @@ updates:
       interval: weekly
     open-pull-requests-limit: 3
     groups:
+      # First match wins. Keep vitest peers in lockstep across major/minor/patch.
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
       backend-deps:
         patterns: ["*"]
+        exclude-patterns:
+          - "vitest"
+          - "@vitest/*"
         update-types: ["minor", "patch"]
 
   - package-ecosystem: npm
@@ -27,8 +35,15 @@ updates:
       interval: weekly
     open-pull-requests-limit: 3
     groups:
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
       frontend-deps:
         patterns: ["*"]
+        exclude-patterns:
+          - "vitest"
+          - "@vitest/*"
         update-types: ["minor", "patch"]
 
   - package-ecosystem: npm
