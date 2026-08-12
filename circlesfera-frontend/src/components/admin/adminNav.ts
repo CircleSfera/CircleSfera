@@ -94,12 +94,47 @@ export const ADMIN_TAB_ROLES: Record<AdminTab, string[] | undefined> = {
   support: ['ADMIN', 'MODERATOR', 'SUPPORT'],
 };
 
+/** Admin Panel permission required per tab. */
+export const ADMIN_TAB_PERMISSIONS: Record<AdminTab, string> = {
+  analytics: 'users.read',
+  monetization: 'payments',
+  payouts: 'payments',
+  promotions: 'payments',
+  verification: 'users.read',
+  whitelist: 'users.write',
+  newsletter: 'system',
+  users: 'users.read',
+  moderation: 'moderation',
+  firewall: 'moderation',
+  posts: 'content',
+  stories: 'content',
+  live: 'live',
+  comments: 'content',
+  hashtags: 'content',
+  audio: 'content',
+  'system-health': 'system',
+  settings: 'system',
+  trust: 'reports',
+  experiments: 'experiments',
+  reports: 'reports',
+  audit: 'audit',
+  roles: 'admins.manage',
+  appeals: 'appeals',
+  support: 'support',
+};
+
 export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   {
     labelKey: 'admin.nav.dashboard',
     labelFallback: 'Dashboard',
     icon: LayoutDashboard,
     items: [
+      {
+        id: 'trust',
+        labelKey: 'admin.nav.trust',
+        labelFallback: 'Confianza',
+        icon: Shield,
+      },
       {
         id: 'analytics',
         labelKey: 'admin.nav.analytics',
@@ -232,15 +267,9 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       },
       {
         id: 'roles',
-        labelKey: 'admin.nav.roles',
-        labelFallback: 'Roles y Accesos',
+        labelKey: 'admin.nav.operators',
+        labelFallback: 'Operators',
         icon: ShieldAlert,
-      },
-      {
-        id: 'trust',
-        labelKey: 'admin.nav.trust',
-        labelFallback: 'Confianza',
-        icon: Shield,
       },
       {
         id: 'experiments',
@@ -288,4 +317,29 @@ export const ADMIN_TAB_IDS: AdminTab[] = ADMIN_NAV_ITEMS.map((i) => i.id);
 
 export function isAdminTab(tab: string | undefined): tab is AdminTab {
   return !!tab && (ADMIN_TAB_IDS as string[]).includes(tab);
+}
+
+/** SPA path for a tab on the Admin Panel host (no /admin prefix). */
+export function adminTabPath(tab: AdminTab, query = ''): string {
+  return `/${tab}${query}`;
+}
+
+/**
+ * Post-login / index home: Trust when permitted, else first nav tab the
+ * operator can open, else analytics.
+ */
+export function getAdminHomeTab(
+  hasPermission: (key: string) => boolean,
+): AdminTab {
+  if (hasPermission(ADMIN_TAB_PERMISSIONS.trust)) {
+    return 'trust';
+  }
+  for (const group of ADMIN_NAV_GROUPS) {
+    for (const item of group.items) {
+      if (hasPermission(ADMIN_TAB_PERMISSIONS[item.id])) {
+        return item.id;
+      }
+    }
+  }
+  return 'analytics';
 }

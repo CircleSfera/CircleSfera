@@ -128,7 +128,7 @@ export default function PromotionsTab({ onToast }: Props) {
   });
 
   return (
-    <div className="flex flex-col min-h-0 space-y-4">
+    <div className="flex flex-col min-h-0 space-y-2.5">
       <AdminPageHeader
         title={t('admin.promotions.title')}
         subtitle={t('admin.promotions.subtitle')}
@@ -425,7 +425,7 @@ export default function PromotionsTab({ onToast }: Props) {
                 </div>
               </motion.div>
             ) : (
-              <div className="flex-1 flex items-center justify-center p-6">
+              <div className="flex-1 flex items-start justify-center pt-6 px-2">
                 <AdminEmptyState
                   icon={Megaphone}
                   title={t('admin.promotions.detail_select_title')}

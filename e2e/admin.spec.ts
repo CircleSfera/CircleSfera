@@ -1,35 +1,23 @@
 import { expect, test } from '@playwright/test';
 
-test.describe('Admin Panel Redesign E2E', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/admin/analytics');
-    // Non-staff users are redirected home by AdminGuard.
-    test.skip(
-      !page.url().includes('/admin/'),
-      'E2E user is not staff; admin routes redirect to /',
-    );
-  });
+/**
+ * Admin Panel is hosted on admin.circlesfera.com (local: admin.localhost).
+ * On the apex SPA, /admin must redirect away (no in-app staff shell).
+ * Destination tabs are root paths (/trust); unauthenticated users land on /login.
+ */
+test.describe('Admin Panel redirect from apex', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
 
-  test('should load the Admin Panel page and header', async ({ page }) => {
-    await expect(page).toHaveURL(/.*\/admin\/analytics/);
-    await expect(page.locator('header')).toBeVisible({ timeout: 5000 });
-  });
-
-  test('should allow switching admin tabs seamlessly', async ({ page }) => {
-    await page.goto('/admin/users');
-    await expect(page).toHaveURL(/.*\/admin\/users/);
-
-    await page.goto('/admin/system-health');
-    await expect(page).toHaveURL(/.*\/admin\/system-health/);
-  });
-
-  test('should render search input and table elements in users tab', async ({
-    page,
-  }) => {
-    await page.goto('/admin/users');
-    const searchInput = page.getByPlaceholder(/Search users|Buscar usuarios/i);
-    if (await searchInput.isVisible()) {
-      await expect(searchInput).toBeVisible();
-    }
+  test('apex /admin redirects to Admin Panel host', async ({ page }) => {
+    await page.goto('/admin/trust');
+    await page.waitForURL(/admin\.(localhost|circlesfera\.com)/, {
+      timeout: 15_000,
+    });
+    const url = new URL(page.url());
+    expect(url.hostname).toMatch(/^admin\.(localhost|circlesfera\.com)$/);
+    // Root tabs — never admin.example.com/admin/...
+    expect(url.pathname).not.toMatch(/^\/admin(\/|$)/);
+    expect(url.hostname).not.toBe('localhost');
+    expect(url.hostname).not.toBe('127.0.0.1');
   });
 });

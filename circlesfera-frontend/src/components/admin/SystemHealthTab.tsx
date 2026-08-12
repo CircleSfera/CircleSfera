@@ -111,7 +111,7 @@ export default function SystemHealthTab() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-2.5">
         <AdminPageHeader
           title={t('admin.health.title')}
           subtitle={t('admin.health.subtitle')}
@@ -127,7 +127,7 @@ export default function SystemHealthTab() {
 
   if (isError || !health) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-2.5">
         <AdminPageHeader
           title={t('admin.health.title')}
           subtitle={t('admin.health.subtitle')}
@@ -167,7 +167,7 @@ export default function SystemHealthTab() {
         100;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-2.5">
       <AdminPageHeader
         title={t('admin.health.title')}
         subtitle={t('admin.health.subtitle_live', {
@@ -393,7 +393,7 @@ export default function SystemHealthTab() {
 
         <div className="rounded-lg border border-white/5 overflow-hidden">
           {webhooksLoading ? (
-            <div className="p-6 text-sm text-white/50 animate-pulse">
+            <div className="p-3 sm:p-4 text-sm text-white/50 animate-pulse">
               {t('admin.table.loading')}
             </div>
           ) : !webhookData || webhookData.data.length === 0 ? (

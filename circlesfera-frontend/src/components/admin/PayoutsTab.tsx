@@ -79,7 +79,7 @@ export default function PayoutsTab() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <AdminPageHeader
         title={t('admin.payouts.title', 'Retiros (Stripe)')}
         subtitle={t(
@@ -88,7 +88,7 @@ export default function PayoutsTab() {
         )}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 shrink-0">
         <StatCard
           label={t('admin.payouts.kpi_paid')}
           value={statsData?.paid || 0}

@@ -1,6 +1,8 @@
 import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import axios from 'axios';
+import { useAdminAuthStore } from '../stores/adminAuthStore';
 import { useAuthStore } from '../stores/authStore';
+import { isAdminPanelHost } from '../utils/adminPanel';
 import { handleApiError } from '../utils/apiUtils';
 
 // In production, this should be https://circlesfera.com/api/v1
@@ -26,7 +28,6 @@ class ApiClient {
 
       this.csrfTokenPromise = (async () => {
         try {
-          // Use a direct axios call to avoid the interceptor loop
           const { data } = await axios.get(`${API_URL}/csrf-token`, {
             withCredentials: true,
           });
@@ -43,7 +44,6 @@ class ApiClient {
       return this.csrfTokenPromise;
     };
 
-    // Request interceptor to inject CSRF token
     this.client.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
         const method = config.method?.toUpperCase();
@@ -60,14 +60,16 @@ class ApiClient {
       (error) => Promise.reject(error),
     );
 
-    // Response interceptor
     this.client.interceptors.response.use(
       (response) => {
         const url = response.config.url || '';
         if (
           url.includes('/auth/login') ||
           url.includes('/auth/register') ||
-          url.includes('/auth/refresh')
+          url.includes('/auth/refresh') ||
+          url.includes('/admin-auth/login') ||
+          url.includes('/admin-auth/refresh') ||
+          url.includes('/admin-auth/mfa/verify')
         ) {
           this.csrfToken = null;
         }
@@ -78,12 +80,15 @@ class ApiClient {
         const originalRequest = error.config;
         if (!originalRequest) return Promise.reject(error);
 
-        const isAuthRequest =
-          originalRequest.url?.includes('/auth/login') ||
-          originalRequest.url?.includes('/auth/register') ||
-          originalRequest.url?.includes('/auth/refresh');
+        const adminPanel = isAdminPanelHost();
+        const isAuthRequest = adminPanel
+          ? originalRequest.url?.includes('/admin-auth/login') ||
+            originalRequest.url?.includes('/admin-auth/mfa/verify') ||
+            originalRequest.url?.includes('/admin-auth/refresh')
+          : originalRequest.url?.includes('/auth/login') ||
+            originalRequest.url?.includes('/auth/register') ||
+            originalRequest.url?.includes('/auth/refresh');
 
-        // Handle CSRF failure (403 Forbidden)
         if (error.response?.status === 403 && !originalRequest._csrfRetry) {
           originalRequest._csrfRetry = true;
           this.csrfToken = null;
@@ -94,7 +99,6 @@ class ApiClient {
           }
         }
 
-        // Handle Auth failure (401 Unauthorized)
         if (
           error.response?.status === 401 &&
           !originalRequest._retry &&
@@ -103,8 +107,11 @@ class ApiClient {
           originalRequest._retry = true;
 
           try {
+            const refreshPath = adminPanel
+              ? '/admin-auth/refresh'
+              : '/auth/refresh';
             await axios.post(
-              `${API_URL}/auth/refresh`,
+              `${API_URL}${refreshPath}`,
               {},
               { withCredentials: true },
             );
@@ -112,7 +119,12 @@ class ApiClient {
             await getCSRFToken();
             return this.client(originalRequest);
           } catch (refreshError) {
-            if (
+            if (adminPanel) {
+              void useAdminAuthStore.getState().logout();
+              if (!window.location.pathname.includes('/login')) {
+                window.location.href = '/login';
+              }
+            } else if (
               !isAuthRequest &&
               !window.location.pathname.includes('/accounts/')
             ) {

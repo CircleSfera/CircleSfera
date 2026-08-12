@@ -113,8 +113,8 @@ export default function StatCard({
   return (
     <div
       className={clsx(
-        'p-4 rounded-lg border border-white/5 bg-white/2 transition-colors cursor-default relative overflow-hidden',
-        'hover:border-white/10',
+        'glass-panel p-2 sm:p-2.5 rounded-lg transition-colors cursor-default relative overflow-hidden',
+        'hover:border-brand-primary/25',
         hoverGlow[color],
       )}
     >
@@ -128,7 +128,7 @@ export default function StatCard({
       {sparklineData && sparklineData.length > 1 && (
         <svg
           aria-hidden="true"
-          className="absolute bottom-0 left-0 w-full h-1/2 opacity-20 pointer-events-none"
+          className="absolute bottom-0 left-0 w-full h-1/3 sm:h-1/2 opacity-20 pointer-events-none"
           preserveAspectRatio="none"
           viewBox="0 -10 100 120"
         >
@@ -143,12 +143,12 @@ export default function StatCard({
         </svg>
       )}
 
-      <div className="flex items-start justify-between gap-3 relative z-10">
+      <div className="flex items-start justify-between gap-2 sm:gap-3 relative z-10">
         <div className="min-w-0">
-          <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-0.5">
+          <p className="text-white/50 text-[10px] sm:text-xs font-semibold uppercase tracking-wider mb-0.5 truncate">
             {label}
           </p>
-          <p className="text-2xl font-bold text-white tabular-nums tracking-tight">
+          <p className="text-lg sm:text-xl font-bold text-white tabular-nums tracking-tight leading-tight">
             {prefix}
             {formattedValue.toLocaleString()}
             {suffix}
@@ -156,7 +156,7 @@ export default function StatCard({
           {growth !== undefined && growth !== null && (
             <div
               className={clsx(
-                'flex items-center gap-1 mt-1 text-xs font-bold',
+                'flex items-center gap-1 mt-0.5 sm:mt-1 text-[10px] sm:text-xs font-bold',
                 growth > 0 && 'text-emerald-400',
                 growth < 0 && 'text-rose-400',
                 growth === 0 && 'text-white/40',
@@ -172,16 +172,18 @@ export default function StatCard({
             </div>
           )}
           {subtitle && (
-            <p className="text-white/40 text-xs mt-0.5">{subtitle}</p>
+            <p className="text-white/40 text-[10px] sm:text-xs mt-0.5 line-clamp-2">
+              {subtitle}
+            </p>
           )}
         </div>
         <div
           className={clsx(
-            'p-2 rounded-lg border border-white/5 shrink-0 bg-white/4',
+            'p-1.5 sm:p-2 rounded-md sm:rounded-lg border border-white/5 shrink-0 bg-white/4',
             colorMap[color],
           )}
         >
-          <Icon size={18} />
+          <Icon className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
         </div>
       </div>
     </div>

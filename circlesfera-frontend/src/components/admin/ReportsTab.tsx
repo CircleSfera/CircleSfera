@@ -30,6 +30,10 @@ import {
   Pagination,
   SearchInput,
 } from './AdminTable';
+import {
+  AdminUserFilterChip,
+  useAdminQueueUserFilter,
+} from './AdminUserFilterChip';
 
 function timeAgo(
   date: string | Date,
@@ -54,9 +58,12 @@ interface Props {
 
 export default function ReportsTab({ onToast }: Props) {
   const { t } = useTranslation();
+  const { userId, username, clearUserFilter } = useAdminQueueUserFilter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('PENDING'); // Default to pending for moderation flow
+  const [statusFilter, setStatusFilter] = useState(() =>
+    userId ? '' : 'PENDING',
+  );
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [internalNotes, setInternalNotes] = useState('');
@@ -69,8 +76,15 @@ export default function ReportsTab({ onToast }: Props) {
   const debouncedSearch = useDebouncedValue(search, 400);
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    setStatusFilter(userId ? '' : 'PENDING');
+    setPage(1);
+    setSelectedReportId(null);
+    setSelectedIds(new Set());
+  }, [userId]);
+
   const { data, isLoading } = useQuery<PaginatedResponse<AdminReport>>({
-    queryKey: ['admin', 'reports', page, debouncedSearch, statusFilter],
+    queryKey: ['admin', 'reports', page, debouncedSearch, statusFilter, userId],
     queryFn: () =>
       adminApi
         .getReports(
@@ -78,6 +92,7 @@ export default function ReportsTab({ onToast }: Props) {
           10,
           debouncedSearch || undefined,
           statusFilter || undefined,
+          userId,
         )
         .then((res) => res.data as PaginatedResponse<AdminReport>),
   });
@@ -163,14 +178,16 @@ export default function ReportsTab({ onToast }: Props) {
 
   const isFiltered =
     debouncedSearch.length > 0 ||
-    (statusFilter !== '' && statusFilter !== 'PENDING');
+    Boolean(userId) ||
+    (statusFilter !== '' && statusFilter !== (userId ? '' : 'PENDING'));
 
   const clearFilters = () => {
     setSearch('');
-    setStatusFilter('PENDING');
+    setStatusFilter(userId ? '' : 'PENDING');
     setPage(1);
     setSelectedReportId(null);
     setSelectedIds(new Set());
+    if (userId) clearUserFilter();
   };
 
   const toggleSelect = (id: string, e: React.SyntheticEvent) => {
@@ -226,6 +243,9 @@ export default function ReportsTab({ onToast }: Props) {
             { value: 'REJECTED', label: t('admin.reports.status_rejected') },
           ]}
         />
+        {userId && (
+          <AdminUserFilterChip username={username} onClear={clearUserFilter} />
+        )}
       </AdminFilterBar>
 
       <AnimatePresence>
@@ -612,7 +632,7 @@ export default function ReportsTab({ onToast }: Props) {
                   )}
                 </div>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 flex flex-col lg:flex-row gap-5">
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-2.5 sm:p-3 flex flex-col lg:flex-row gap-3 sm:gap-4">
                   <div className="w-full lg:w-1/2 flex flex-col gap-4">
                     {isUserOrMessageTarget(selectedReport.targetType) ? (
                       <div className="flex flex-col gap-4 min-h-50">
@@ -797,7 +817,7 @@ export default function ReportsTab({ onToast }: Props) {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex-1 flex items-center justify-center p-6"
+                className="flex-1 flex items-start justify-center pt-6 px-2"
               >
                 <AdminEmptyState
                   icon={Check}

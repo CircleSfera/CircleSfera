@@ -13,17 +13,17 @@ export default function FirewallTab({ onToast }: Props) {
   const [activeView, setActiveView] = useState<'rules' | 'signatures'>('rules');
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col gap-3 sm:gap-4">
       <AdminPageHeader
         title={t('admin.firewall.shell_title')}
         subtitle={t('admin.firewall.shell_subtitle')}
       />
 
-      <div className="px-4 md:px-6 py-2 border-b border-white/5 flex gap-4">
+      <div className="px-1 sm:px-2 border-b border-white/5 flex gap-1 overflow-x-auto no-scrollbar">
         <button
           type="button"
           onClick={() => setActiveView('rules')}
-          className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+          className={`px-3 sm:px-4 min-h-11 sm:min-h-10 py-2.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
             activeView === 'rules'
               ? 'border-brand-primary text-white'
               : 'border-transparent text-white/40 hover:text-white/70'
@@ -34,7 +34,7 @@ export default function FirewallTab({ onToast }: Props) {
         <button
           type="button"
           onClick={() => setActiveView('signatures')}
-          className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+          className={`px-3 sm:px-4 min-h-11 sm:min-h-10 py-2.5 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
             activeView === 'signatures'
               ? 'border-brand-primary text-white'
               : 'border-transparent text-white/40 hover:text-white/70'
@@ -44,7 +44,7 @@ export default function FirewallTab({ onToast }: Props) {
         </button>
       </div>
 
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 pt-1">
         {activeView === 'rules' ? (
           <FirewallRulesTab onToast={onToast} />
         ) : (

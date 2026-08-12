@@ -71,6 +71,27 @@ export interface AdminUser {
   stripeIdentitySessionId?: string | null;
 }
 
+export interface AdminOperatorRoleOption {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+export interface AdminOperator {
+  id: string;
+  email: string;
+  displayName: string;
+  status: 'ACTIVE' | 'DISABLED';
+  totpEnabled: boolean;
+  mfaRequired: boolean;
+  lastLoginAt: string | null;
+  lastActivityAt: string | null;
+  linkedUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  roles: AdminOperatorRoleOption[];
+}
+
 export interface AdminPost {
   id: string;
   caption: string | null;
@@ -257,7 +278,15 @@ export interface AdminUserDetail {
     type: string;
   }[];
   reports: { id: string; reason: string; status: string; createdAt: string }[];
-  _count: { posts: number; followers: number; following: number };
+  _count: {
+    posts: number;
+    comments: number;
+    stories: number;
+    liveStreams: number;
+    followers: number;
+    following: number;
+    reportsAgainst: number;
+  };
 }
 
 export interface AdminStripePayoutLog {
@@ -551,9 +580,16 @@ export const adminApi = {
     }),
 
   // Posts
-  getPosts: (page = 1, limit = 10, search?: string, type?: string) =>
+  getPosts: (
+    page = 1,
+    limit = 10,
+    search?: string,
+    type?: string,
+    userId?: string,
+    moderationStatus?: string,
+  ) =>
     apiClient.get<PaginatedResponse<AdminPost>>('admin/posts', {
-      params: { page, limit, search, type },
+      params: { page, limit, search, type, userId, moderationStatus },
     }),
 
   deletePost: (id: string) => apiClient.delete(`admin/posts/${id}`),
@@ -562,9 +598,15 @@ export const adminApi = {
     apiClient.get('admin/posts/export', { responseType: 'blob' }),
 
   // Reports
-  getReports: (page = 1, limit = 10, search?: string, status?: string) =>
+  getReports: (
+    page = 1,
+    limit = 10,
+    search?: string,
+    status?: string,
+    userId?: string,
+  ) =>
     apiClient.get<PaginatedResponse<AdminReport>>('admin/reports', {
-      params: { page, limit, search, status },
+      params: { page, limit, search, status, userId },
     }),
 
   updateReport: (
@@ -604,9 +646,15 @@ export const adminApi = {
     }),
 
   // Comments
-  getComments: (page = 1, limit = 10, search?: string) =>
+  getComments: (
+    page = 1,
+    limit = 10,
+    search?: string,
+    userId?: string,
+    moderationStatus?: string,
+  ) =>
     apiClient.get<PaginatedResponse<AdminComment>>('admin/comments', {
-      params: { page, limit, search },
+      params: { page, limit, search, userId, moderationStatus },
     }),
 
   deleteComment: (id: string) => apiClient.delete(`admin/comments/${id}`),
@@ -615,7 +663,11 @@ export const adminApi = {
   getStories: (
     page = 1,
     limit = 10,
-    filters?: { moderationStatus?: string; expired?: 'true' | 'false' },
+    filters?: {
+      moderationStatus?: string;
+      expired?: 'true' | 'false';
+      userId?: string;
+    },
   ) =>
     apiClient.get<PaginatedResponse<AdminStory>>('admin/stories', {
       params: { page, limit, ...filters },
@@ -810,9 +862,9 @@ export const adminApi = {
       params: { page, limit, status, search },
     }),
 
-  getLiveStreams: (page = 1, limit = 20, status?: string) =>
+  getLiveStreams: (page = 1, limit = 20, status?: string, userId?: string) =>
     apiClient.get<PaginatedResponse<AdminLiveStream>>('admin/live', {
-      params: { page, limit, status },
+      params: { page, limit, status, userId },
     }),
 
   endLiveStream: (id: string) =>
@@ -827,4 +879,37 @@ export const adminApi = {
   updateSystemSettings: (
     updates: { key: string; value: string; description?: string }[],
   ) => apiClient.patch('admin/settings', { updates }).then((res) => res.data),
+
+  // Admin Panel operators (AdminIdentity)
+  getOperators: (page = 1, limit = 20, search?: string, status?: string) =>
+    apiClient.get<PaginatedResponse<AdminOperator>>('admin/operators', {
+      params: { page, limit, search, status },
+    }),
+
+  getOperatorRoles: () =>
+    apiClient.get<AdminOperatorRoleOption[]>('admin/operators/roles'),
+
+  getOperator: (id: string) =>
+    apiClient.get<AdminOperator>(`admin/operators/${id}`),
+
+  createOperator: (data: {
+    email: string;
+    password: string;
+    displayName: string;
+    roleIds: string[];
+  }) => apiClient.post<AdminOperator>('admin/operators', data),
+
+  updateOperatorStatus: (id: string, status: 'ACTIVE' | 'DISABLED') =>
+    apiClient.patch<AdminOperator>(`admin/operators/${id}/status`, { status }),
+
+  replaceOperatorRoles: (id: string, roleIds: string[]) =>
+    apiClient.put<AdminOperator>(`admin/operators/${id}/roles`, { roleIds }),
+
+  resetOperatorMfa: (id: string) =>
+    apiClient.post<AdminOperator>(`admin/operators/${id}/reset-mfa`),
+
+  resetOperatorPassword: (id: string, password: string) =>
+    apiClient.post<AdminOperator>(`admin/operators/${id}/reset-password`, {
+      password,
+    }),
 };

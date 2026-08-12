@@ -64,7 +64,7 @@ export default function WhitelistTab() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <AdminPageHeader
         title={t('admin.whitelist.title')}
         subtitle={t('admin.whitelist.subtitle')}
@@ -146,7 +146,7 @@ export default function WhitelistTab() {
         }
         detail={
           selectedEntry ? (
-            <div className="space-y-4 px-1">
+            <div className="space-y-2.5 sm:space-y-3 px-1">
               <div>
                 <h3 className="text-base font-semibold text-white">
                   {t('admin.whitelist.drawer_title')}
@@ -168,7 +168,7 @@ export default function WhitelistTab() {
                     },
                   });
                 }}
-                className="space-y-4"
+                className="space-y-2.5"
               >
                 <div className="space-y-1.5">
                   <label

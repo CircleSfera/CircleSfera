@@ -284,7 +284,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
                 </div>
               ) : selectedItem ? (
                 <div className="space-y-8">
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                  <div className="bg-white/5 border border-white/10 rounded-lg p-2.5 sm:p-3">
                     <h4 className="text-sm font-medium text-white/50 mb-2">
                       Palabra Clave Interceptada
                     </h4>
@@ -293,7 +293,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
                     <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
                       <p className="text-xs font-medium text-white/50 mb-1">
                         Acción Actual
@@ -312,7 +312,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
                     </div>
                   </div>
 
-                  <div className="space-y-4 pt-4 border-t border-white/10">
+                  <div className="space-y-2.5 sm:space-y-3 pt-3 border-t border-white/10">
                     <h4 className="text-sm font-semibold text-white">
                       Cambiar Acción
                     </h4>
@@ -383,8 +383,8 @@ export default function FirewallRulesTab({ onToast }: Props) {
               ) : null}
             </div>
           ) : (
-            <div className="h-full flex items-center justify-center p-6 text-center">
-              <div className="max-w-xs space-y-4">
+            <div className="h-full flex items-start justify-center pt-6 px-2 text-center">
+              <div className="max-w-xs space-y-2.5 sm:space-y-3">
                 <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-6 ring-1 ring-white/10">
                   <ShieldAlert className="w-6 h-6 text-white/50" />
                 </div>

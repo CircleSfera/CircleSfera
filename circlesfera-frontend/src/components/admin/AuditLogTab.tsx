@@ -112,7 +112,7 @@ export default function AuditLogTab() {
   const hasActiveFilters = Boolean(actionFilter || debouncedSearch.trim());
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <AdminPageHeader
         title={t('admin.audit.title')}
         subtitle={t('admin.audit.subtitle')}
@@ -208,7 +208,7 @@ export default function AuditLogTab() {
         }
         detail={
           selected ? (
-            <div className="space-y-5 pb-6 px-0.5">
+            <div className="space-y-2.5 sm:space-y-3 pb-4 sm:pb-6 px-0.5">
               <div>
                 <p
                   className={`text-base font-semibold ${ACTION_COLORS[selected.action] || 'text-white'}`}

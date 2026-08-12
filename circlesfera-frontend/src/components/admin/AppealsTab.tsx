@@ -12,7 +12,7 @@ export default function AppealsTab() {
   const [page, setPage] = useState(1);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <AdminPageHeader
         title={t('admin.appeals.title')}
         subtitle={t('admin.appeals.subtitle')}

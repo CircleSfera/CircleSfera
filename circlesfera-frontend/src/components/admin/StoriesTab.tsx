@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, Clock, Eye, EyeOff, Heart, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AdminStory } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
@@ -10,6 +10,10 @@ import { AdminFilterBar } from './AdminFilterBar';
 import { AdminList, AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
 import { ActionButton, FilterDropdown, Pagination, Table } from './AdminTable';
+import {
+  AdminUserFilterChip,
+  useAdminQueueUserFilter,
+} from './AdminUserFilterChip';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
@@ -34,18 +38,34 @@ function moderationBadge(status: AdminStory['moderationStatus']) {
 export default function StoriesTab({ onToast }: Props) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { userId, username, clearUserFilter } = useAdminQueueUserFilter();
   const [page, setPage] = useState(1);
   const [expiredFilter, setExpiredFilter] = useState('');
-  const [moderationFilter, setModerationFilter] = useState('');
+  const [moderationFilter, setModerationFilter] = useState(() =>
+    userId ? '' : 'FLAGGED',
+  );
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  useEffect(() => {
+    setModerationFilter(userId ? '' : 'FLAGGED');
+    setPage(1);
+  }, [userId]);
+
   const { data, isLoading } = useQuery<PaginatedResponse<AdminStory>>({
-    queryKey: ['admin', 'stories', page, expiredFilter, moderationFilter],
+    queryKey: [
+      'admin',
+      'stories',
+      page,
+      expiredFilter,
+      moderationFilter,
+      userId,
+    ],
     queryFn: () =>
       adminApi
         .getStories(page, 10, {
           expired: (expiredFilter || undefined) as 'true' | 'false' | undefined,
           moderationStatus: moderationFilter || undefined,
+          userId,
         })
         .then((r) => r.data),
   });
@@ -133,7 +153,7 @@ export default function StoriesTab({ onToast }: Props) {
   const stories = data?.data ?? [];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <AdminPageHeader
         title={t('admin.stories.title')}
         subtitle={t('admin.stories.subtitle')}
@@ -168,6 +188,9 @@ export default function StoriesTab({ onToast }: Props) {
             { value: 'REMOVED', label: 'REMOVED' },
           ]}
         />
+        {userId && (
+          <AdminUserFilterChip username={username} onClear={clearUserFilter} />
+        )}
       </AdminFilterBar>
 
       <AdminList

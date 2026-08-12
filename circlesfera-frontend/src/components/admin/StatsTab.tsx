@@ -57,16 +57,16 @@ export default function StatsTab() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-2.5">
         <AdminPageHeader
           title={t('admin.stats.title')}
           subtitle={t('admin.stats.subtitle')}
         />
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-2 sm:gap-3">
           {['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'].map((id) => (
             <div
               key={id}
-              className="p-4 rounded-xl border border-white/5 bg-white/2 h-28 animate-pulse"
+              className="p-2 rounded-lg glass-panel h-16 sm:h-20 animate-pulse"
             />
           ))}
         </div>
@@ -80,13 +80,13 @@ export default function StatsTab() {
   const reportSparkline = chartData?.map((d) => d.reports);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <AdminPageHeader
         title={t('admin.stats.title')}
         subtitle={t('admin.stats.subtitle')}
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-2 sm:gap-3">
         <StatCard
           label={t('admin.stats.total_users')}
           value={stats?.users || 0}
@@ -119,7 +119,7 @@ export default function StatsTab() {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-2 sm:gap-3">
         <StatCard
           label={t('admin.stats.active_today')}
           value={stats?.activeUsersToday || 0}
@@ -153,72 +153,74 @@ export default function StatsTab() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <div className="lg:col-span-2 rounded-lg border border-white/5 bg-white/2 p-3 sm:p-5">
-          <div className="flex items-center gap-2 mb-3 sm:mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-3">
+        <div className="lg:col-span-2 glass-panel rounded-lg p-2 sm:p-3">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3">
             <BarChart3 size={18} className="text-brand-primary" />
             <h3 className="text-white font-semibold text-sm">
               {t('admin.stats.activity_chart')}
             </h3>
           </div>
           {chartData && chartData.length > 0 ? (
-            <SafeResponsiveContainer
-              width="100%"
-              height={260}
-              wrapperHeight={260}
-            >
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="gradPosts" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8c52ff" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#8c52ff" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gradUsers" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#5271ff" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#5271ff" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(255,255,255,0.05)"
-                />
-                <XAxis
-                  dataKey="date"
-                  stroke="#737373"
-                  fontSize={10}
-                  tickFormatter={(v: string) => v.slice(5)}
-                />
-                <YAxis stroke="#737373" fontSize={10} allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{
-                    background: 'rgba(17,17,17,0.95)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 12,
-                    fontSize: 12,
-                  }}
-                  labelFormatter={(v) =>
-                    t('admin.stats.chart_date', { date: String(v) })
-                  }
-                />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Area
-                  type="monotone"
-                  dataKey="posts"
-                  name={t('admin.stats.chart_posts')}
-                  stroke="#8c52ff"
-                  fill="url(#gradPosts)"
-                  strokeWidth={2}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="users"
-                  name={t('admin.stats.chart_new_users')}
-                  stroke="#5271ff"
-                  fill="url(#gradUsers)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </SafeResponsiveContainer>
+            <div className="h-[180px] sm:h-[260px]">
+              <SafeResponsiveContainer
+                width="100%"
+                height="100%"
+                wrapperHeight="100%"
+              >
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="gradPosts" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8c52ff" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#8c52ff" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gradUsers" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#5271ff" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#5271ff" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(255,255,255,0.05)"
+                  />
+                  <XAxis
+                    dataKey="date"
+                    stroke="#737373"
+                    fontSize={10}
+                    tickFormatter={(v: string) => v.slice(5)}
+                  />
+                  <YAxis stroke="#737373" fontSize={10} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'rgba(17,17,17,0.95)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 12,
+                      fontSize: 12,
+                    }}
+                    labelFormatter={(v) =>
+                      t('admin.stats.chart_date', { date: String(v) })
+                    }
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Area
+                    type="monotone"
+                    dataKey="posts"
+                    name={t('admin.stats.chart_posts')}
+                    stroke="#8c52ff"
+                    fill="url(#gradPosts)"
+                    strokeWidth={2}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="users"
+                    name={t('admin.stats.chart_new_users')}
+                    stroke="#5271ff"
+                    fill="url(#gradUsers)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </SafeResponsiveContainer>
+            </div>
           ) : (
             <AdminEmptyState
               icon={BarChart3}
@@ -229,8 +231,8 @@ export default function StatsTab() {
           )}
         </div>
 
-        <div className="rounded-lg border border-white/5 bg-white/2 p-3 sm:p-5">
-          <div className="flex items-center gap-2 mb-3 sm:mb-4">
+        <div className="glass-panel rounded-lg p-2 sm:p-3">
+          <div className="flex items-center gap-2 mb-2 sm:mb-3">
             <UserCheck size={18} className="text-brand-primary" />
             <h3 className="text-white font-semibold text-sm">
               {t('admin.stats.top_engagement')}
@@ -293,8 +295,8 @@ export default function StatsTab() {
       </div>
 
       {stats?.recentActivity && stats.recentActivity.length > 0 && (
-        <div className="rounded-lg border border-white/5 bg-white/2 overflow-hidden">
-          <div className="px-3 sm:px-5 py-2.5 sm:py-3 border-b border-white/5 flex items-center gap-2">
+        <div className="glass-panel rounded-lg overflow-hidden">
+          <div className="px-2.5 sm:px-3 py-2 sm:py-2.5 border-b border-white/5 flex items-center gap-2">
             <BarChart3 size={18} className="text-brand-primary" />
             <h3 className="text-white font-semibold text-sm">
               {t('admin.stats.recent_admin_activity')}
@@ -304,7 +306,7 @@ export default function StatsTab() {
             {stats.recentActivity.map((log) => (
               <div
                 key={log.id}
-                className="px-3 sm:px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 hover:bg-white/5 transition-colors"
+                className="px-2.5 sm:px-3 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 hover:bg-white/5 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center shrink-0">

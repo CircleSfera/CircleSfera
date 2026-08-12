@@ -1,8 +1,16 @@
-import { Command, Menu, Search, ShieldCheck } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import {
+  Command,
+  ExternalLink,
+  LogOut,
+  Menu,
+  Search,
+  ShieldCheck,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
-import { useAuthStore } from '../../stores/authStore';
+import logoSrc from '../../assets/logo.png';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
+import { platformOrigin } from '../../utils/adminPanel';
 import { AdminMobileDrawer } from './AdminMobileNav';
 import AdminSidebar from './AdminSidebar';
 import type { AdminTab } from './adminNav';
@@ -37,29 +45,45 @@ export default function AdminShell({
   }, []);
 
   return (
-    <div className="min-h-dvh px-3 pb-8 pt-3 sm:px-6 sm:pt-6 lg:px-8 max-w-425 mx-auto text-white">
-      <header className="mb-4 sm:mb-6 pt-[env(safe-area-inset-top)] sm:pt-0">
-        <div className="flex items-center justify-between gap-3 bg-white/3 backdrop-blur-xl p-3 sm:p-4 rounded-xl border border-white/10 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-1/3 h-full bg-linear-to-r from-brand-primary/15 via-transparent to-transparent pointer-events-none" />
+    <div className="min-h-dvh px-3 pb-5 pt-3 sm:px-5 sm:pt-4 sm:pb-6 lg:px-6 lg:pt-5 max-w-425 mx-auto text-white">
+      <header className="mb-4 lg:mb-5 pt-[env(safe-area-inset-top)] sm:pt-0 relative z-40">
+        <div className="flex items-center justify-between gap-3 glass-panel p-2.5 sm:p-3 rounded-xl relative">
+          {/* Clip only the decorative wash — keep header overflow visible for account menu */}
+          <div
+            className="absolute inset-0 rounded-lg overflow-hidden pointer-events-none"
+            aria-hidden
+          >
+            <div className="absolute top-0 left-0 w-1/3 h-full bg-linear-to-r from-brand-primary/15 via-transparent to-transparent" />
+          </div>
 
-          <div className="flex items-center gap-3 min-w-0 relative z-10">
+          <div className="flex items-center gap-2.5 min-w-0 relative z-10">
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
-              className="lg:hidden w-11 h-11 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white shrink-0"
+              className="lg:hidden w-11 h-11 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-white shrink-0"
               aria-label={t('admin.open_nav', 'Abrir navegación')}
             >
               <Menu size={20} />
             </button>
 
-            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-brand-primary/20 rounded-xl flex items-center justify-center border border-brand-primary/30 shrink-0">
-              <ShieldCheck size={20} className="text-brand-primary" />
-            </div>
+            <img
+              src={logoSrc}
+              alt="CircleSfera"
+              className="h-6 w-auto sm:h-7 shrink-0"
+            />
             <div className="min-w-0">
-              <h1 className="text-base sm:text-xl font-bold text-white tracking-tight leading-tight truncate">
-                {t('admin.panel', 'Panel de Control')}
-              </h1>
-              <p className="text-xs text-white/40 truncate lg:hidden">
+              <div className="flex items-center gap-2 min-w-0">
+                <h1 className="text-sm sm:text-base font-bold text-white tracking-tight leading-tight truncate">
+                  {t('adminPanel.title', 'Admin Panel')}
+                </h1>
+                <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-brand-primary/15 border border-brand-primary/25 shrink-0">
+                  <ShieldCheck size={10} className="text-brand-primary" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-brand-primary">
+                    {t('adminPanel.staff', 'Staff')}
+                  </span>
+                </span>
+              </div>
+              <p className="text-[11px] text-white/40 truncate leading-tight">
                 {activeItem
                   ? t(activeItem.labelKey, activeItem.labelFallback)
                   : activeTab}
@@ -67,17 +91,11 @@ export default function AdminShell({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 relative z-10">
-            <Link
-              to="/"
-              className="lg:hidden text-xs font-semibold text-white/50 hover:text-white min-h-11 px-2 inline-flex items-center"
-            >
-              {t('admin.back_short', 'App')}
-            </Link>
+          <div className="flex items-center gap-1.5 shrink-0 relative z-10">
             <button
               type="button"
               onClick={() => setPaletteOpen(true)}
-              className="w-11 h-11 md:w-auto md:h-auto md:px-4 md:py-3 flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white/70 text-xs font-semibold rounded-xl hover:bg-white/10 hover:border-white/20 transition-all"
+              className="w-11 h-11 md:w-auto md:h-auto md:px-3 md:py-2 flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white/70 text-xs font-semibold rounded-lg hover:bg-white/10 hover:border-white/20 transition-all"
               aria-label={t('admin.search')}
             >
               <Search size={16} />
@@ -88,7 +106,7 @@ export default function AdminShell({
                 <Command size={10} /> K
               </kbd>
             </button>
-            <AdminBadge />
+            <AdminAccountMenu />
           </div>
         </div>
       </header>
@@ -100,9 +118,9 @@ export default function AdminShell({
         onClose={() => setDrawerOpen(false)}
       />
 
-      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-start">
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-5 items-start">
         <AdminSidebar activeTab={activeTab} onTabChange={onTabChange} />
-        <main className="flex-1 w-full min-w-0">{children}</main>
+        <main className="flex-1 w-full min-w-0 space-y-1">{children}</main>
       </div>
 
       <CommandPalette
@@ -113,20 +131,82 @@ export default function AdminShell({
   );
 }
 
-function AdminBadge() {
+function AdminAccountMenu() {
   const { t } = useTranslation();
-  const profile = useAuthStore((state) => state.profile);
-  if (!profile) return null;
+  const admin = useAdminAuthStore((state) => state.admin);
+  const logout = useAdminAuthStore((state) => state.logout);
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
+  if (!admin) return null;
 
   return (
-    <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-brand-primary/10 border border-brand-primary/20 rounded-xl">
-      <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse" />
-      <span className="text-xs text-white/70 font-semibold">
-        {t('admin.connected_as', 'Admin')}:{' '}
-        <span className="text-brand-primary font-bold">
-          @{profile.username}
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 max-w-40 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all min-h-9"
+        aria-expanded={open}
+        aria-haspopup="menu"
+      >
+        <span className="w-7 h-7 rounded-lg bg-brand-primary/20 border border-brand-primary/30 flex items-center justify-center shrink-0">
+          <ShieldCheck size={14} className="text-brand-primary" />
         </span>
-      </span>
+        <span className="hidden sm:block text-xs font-semibold text-white truncate">
+          {admin.displayName}
+        </span>
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-white/10 bg-surface-raised shadow-2xl overflow-hidden z-[100]"
+        >
+          <div className="px-3 py-2.5 border-b border-white/10 bg-surface-elevated">
+            <p className="text-xs font-semibold text-white truncate">
+              {admin.displayName}
+            </p>
+            <p className="text-[11px] text-white/50 truncate">{admin.email}</p>
+          </div>
+          <a
+            href={platformOrigin()}
+            role="menuitem"
+            className="flex items-center gap-2.5 px-3 py-2.5 min-h-11 text-xs font-semibold text-white/80 hover:bg-white/5 hover:text-white"
+          >
+            <ExternalLink size={14} className="text-brand-primary shrink-0" />
+            {t('admin.back_to_app', 'Volver a CircleSfera')}
+          </a>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() =>
+              void logout().then(() => {
+                window.location.href = '/login';
+              })
+            }
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 min-h-11 text-xs font-semibold text-white/80 hover:bg-white/5 hover:text-white text-left"
+          >
+            <LogOut size={14} className="text-brand-primary shrink-0" />
+            {t('adminPanel.logout', 'Sign out')}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

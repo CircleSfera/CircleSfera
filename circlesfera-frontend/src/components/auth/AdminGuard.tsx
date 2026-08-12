@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuthStore } from '../../stores/authStore';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { logger } from '../../utils/logger';
 
 interface AdminGuardProps {
@@ -8,27 +8,27 @@ interface AdminGuardProps {
 }
 
 /**
- * Guard component for Admin routes.
- *
- * Checks if the user is authenticated AND has the 'ADMIN' role.
- * If not, redirects to the home page.
+ * UX guard for Admin Panel routes.
+ * Security is enforced by AdminJwtAuthGuard on the API.
  */
 export default function AdminGuard({ children }: AdminGuardProps) {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const profile = useAuthStore((state) => state.profile);
-  const isSessionChecked = useAuthStore((state) => state.isSessionChecked);
-  const userRole = profile?.user?.role;
-  const isStaff = userRole === 'ADMIN' || userRole === 'MODERATOR';
-
+  const isAuthenticated = useAdminAuthStore((s) => s.isAuthenticated);
+  const isSessionChecked = useAdminAuthStore((s) => s.isSessionChecked);
+  const checkSession = useAdminAuthStore((s) => s.checkSession);
+  const admin = useAdminAuthStore((s) => s.admin);
   const location = useLocation();
 
   useEffect(() => {
-    if (isAuthenticated && !isStaff) {
+    void checkSession();
+  }, [checkSession]);
+
+  useEffect(() => {
+    if (isSessionChecked && !isAuthenticated) {
       logger.warn(
-        `Security Alert: Non-staff user (${profile?.username}) tried to access ${location.pathname}`,
+        `Admin Panel: unauthenticated access attempt at ${location.pathname}`,
       );
     }
-  }, [isAuthenticated, isStaff, profile, location]);
+  }, [isSessionChecked, isAuthenticated, location.pathname]);
 
   if (!isSessionChecked) {
     return (
@@ -38,12 +38,8 @@ export default function AdminGuard({ children }: AdminGuardProps) {
     );
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/accounts/login" state={{ from: location }} replace />;
-  }
-
-  if (!isStaff) {
-    return <Navigate to="/" replace />;
+  if (!isAuthenticated || !admin) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;

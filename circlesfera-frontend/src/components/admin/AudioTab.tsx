@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Clock, Music, Pencil, Plus } from 'lucide-react';
+import { Clock, Music, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
@@ -153,7 +153,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <AdminPageHeader
         title={t('admin.audio.title')}
         subtitle={t('admin.audio.subtitle')}
@@ -262,7 +262,9 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                     secondaryActions={[
                       {
                         label: t('admin.audio.action_delete'),
+                        icon: Trash2,
                         variant: 'danger',
+                        dividerBefore: true,
                         onClick: () => setDeleteTarget(track),
                       },
                     ]}
@@ -279,7 +281,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
         }
         detail={
           hasSelection ? (
-            <div className="space-y-4 px-1">
+            <div className="space-y-2.5 sm:space-y-3 px-1">
               <div>
                 <h3 className="text-base font-semibold text-white">
                   {editingTrack
@@ -287,7 +289,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                     : t('admin.audio.drawer_add_title')}
                 </h3>
               </div>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-2.5">
                 <div className="space-y-1.5">
                   <label
                     htmlFor="audio-title"

@@ -73,7 +73,7 @@ export default function SettingsTab({ onToast }: Props) {
           title={t('admin.settings.title')}
           subtitle={t('admin.settings.subtitle')}
         />
-        <div className="p-4 md:p-6">
+        <div className="p-2.5 sm:p-3 md:p-4">
           <AdminListSkeleton />
         </div>
       </div>
@@ -116,14 +116,14 @@ export default function SettingsTab({ onToast }: Props) {
         }
       />
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6">
-        <div className="max-w-3xl space-y-4 md:space-y-6">
-          <div className="bg-white/2 border border-white/5 rounded-xl p-4 md:p-5">
+      <div className="flex-1 overflow-y-auto p-2.5 sm:p-3 md:p-4">
+        <div className="max-w-3xl space-y-2.5 sm:space-y-3">
+          <div className="bg-white/2 border border-white/5 rounded-lg p-2.5 sm:p-3 md:p-4">
             <h3 className="text-base font-semibold text-white mb-4">
               {t('admin.settings.main_section')}
             </h3>
 
-            <div className="space-y-4">
+            <div className="space-y-2.5">
               {settings.map((setting) => {
                 const isBoolean =
                   setting.value === 'true' || setting.value === 'false';
@@ -139,12 +139,13 @@ export default function SettingsTab({ onToast }: Props) {
                       htmlFor={fieldId}
                       className="text-sm text-white/80 font-medium"
                     >
-                      {setting.key}
-                      {setting.description && (
-                        <span className="block text-xs text-white/40 font-normal mt-0.5">
-                          {setting.description}
-                        </span>
-                      )}
+                      {t(`admin.settings.keys.${setting.key}`, setting.key)}
+                      <span className="block text-xs text-white/40 font-normal mt-0.5">
+                        {t(
+                          `admin.settings.descriptions.${setting.key}`,
+                          setting.description || '',
+                        )}
+                      </span>
                     </label>
                     {isBoolean ? (
                       <button
@@ -156,15 +157,24 @@ export default function SettingsTab({ onToast }: Props) {
                             value === 'true' ? 'false' : 'true',
                           )
                         }
-                        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
-                          value === 'true' ? 'bg-brand-primary' : 'bg-white/10'
-                        }`}
+                        className="min-h-11 min-w-11 inline-flex items-center justify-center shrink-0"
+                        aria-pressed={value === 'true'}
                       >
                         <span
-                          className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                            value === 'true' ? 'translate-x-6' : 'translate-x-1'
+                          className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+                            value === 'true'
+                              ? 'bg-brand-primary'
+                              : 'bg-white/10'
                           }`}
-                        />
+                        >
+                          <span
+                            className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                              value === 'true'
+                                ? 'translate-x-6'
+                                : 'translate-x-1'
+                            }`}
+                          />
+                        </span>
                       </button>
                     ) : (
                       <input

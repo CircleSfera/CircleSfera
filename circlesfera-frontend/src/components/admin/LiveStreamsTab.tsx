@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Eye, Radio, StopCircle, Users } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AdminLiveStream } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
@@ -16,22 +16,35 @@ import { AdminSegmentedControl } from './AdminSegmentedControl';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { ActionButton, Pagination } from './AdminTable';
+import {
+  AdminUserFilterChip,
+  useAdminQueueUserFilter,
+} from './AdminUserFilterChip';
 
 export default function LiveStreamsTab() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { userId, username, clearUserFilter } = useAdminQueueUserFilter();
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('LIVE');
+  const [statusFilter, setStatusFilter] = useState(() =>
+    userId ? '' : 'LIVE',
+  );
   const [confirmEndId, setConfirmEndId] = useState<string | null>(null);
   const [selectedStream, setSelectedStream] = useState<AdminLiveStream | null>(
     null,
   );
 
+  useEffect(() => {
+    setStatusFilter(userId ? '' : 'LIVE');
+    setPage(1);
+    setSelectedStream(null);
+  }, [userId]);
+
   const { data, isLoading } = useQuery<PaginatedResponse<AdminLiveStream>>({
-    queryKey: ['admin', 'livestreams', page, statusFilter],
+    queryKey: ['admin', 'livestreams', page, statusFilter, userId],
     queryFn: () =>
       adminApi
-        .getLiveStreams(page, 10, statusFilter || undefined)
+        .getLiveStreams(page, 10, statusFilter || undefined, userId)
         .then((res) => res.data as PaginatedResponse<AdminLiveStream>),
   });
 
@@ -51,7 +64,7 @@ export default function LiveStreamsTab() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <AdminPageHeader
         title={t('admin.lives.title', 'Directos')}
         subtitle={t(
@@ -61,23 +74,23 @@ export default function LiveStreamsTab() {
       />
 
       {/* Summary Widgets */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <AdminKpiWidget
           title={t('admin.lives.kpi_active')}
           value={activeStreams.length}
-          icon={<Radio size={20} />}
+          icon={<Radio size={16} />}
           iconColorClass="text-red-500 bg-red-500/10"
         />
         <AdminKpiWidget
           title={t('admin.lives.kpi_viewers')}
           value={totalViewers.toLocaleString()}
-          icon={<Users size={20} />}
+          icon={<Users size={16} />}
           iconColorClass="text-brand-primary bg-brand-primary/10"
         />
         <AdminKpiWidget
           title={t('admin.lives.kpi_traffic')}
           value={t('admin.lives.kpi_traffic_normal')}
-          icon={<Eye size={20} />}
+          icon={<Eye size={16} />}
           iconColorClass="text-green-400 bg-green-400/10"
         />
       </div>
@@ -95,6 +108,9 @@ export default function LiveStreamsTab() {
             { value: '', label: t('admin.lives.status_all') },
           ]}
         />
+        {userId && (
+          <AdminUserFilterChip username={username} onClear={clearUserFilter} />
+        )}
       </AdminFilterBar>
 
       <AdminSplitView
@@ -175,7 +191,7 @@ export default function LiveStreamsTab() {
         }
         detail={
           selectedStream ? (
-            <div className="p-6">
+            <div className="p-3 sm:p-4">
               <div className="aspect-video bg-black rounded-xl border border-white/10 mb-6 flex items-center justify-center relative overflow-hidden group">
                 {selectedStream.status === 'LIVE' ? (
                   <>
@@ -221,7 +237,7 @@ export default function LiveStreamsTab() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-5">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3">
                 <div className="p-3 rounded-lg bg-white/5 border border-white/5">
                   <p className="text-xs text-white/50 mb-0.5">
                     {t('admin.lives.started_at', 'Iniciado')}

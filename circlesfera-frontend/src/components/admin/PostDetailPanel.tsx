@@ -13,7 +13,7 @@ export default function PostDetailPanel({ post }: Props) {
   const username = post.user?.profile?.username || t('admin.shared.unknown');
 
   return (
-    <div className="space-y-5 pb-6 px-0.5">
+    <div className="space-y-2.5 sm:space-y-3 pb-4 sm:pb-6 px-0.5">
       <div>
         <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-3">
           {t('admin.posts.preview_drawer_title')}

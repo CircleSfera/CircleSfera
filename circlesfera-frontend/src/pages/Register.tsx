@@ -219,11 +219,21 @@ export default function Register() {
 
             {registerMutation.isError && (
               <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center font-medium">
-                {(
-                  registerMutation.error as {
-                    response?: { data?: { message?: string } };
+                {(() => {
+                  const code = (
+                    registerMutation.error as {
+                      response?: { data?: { message?: string } };
+                    }
+                  )?.response?.data?.message;
+                  if (
+                    code === 'REGISTRATION_CLOSED' ||
+                    code === 'INVITE_CODE_REQUIRED' ||
+                    code === 'MAINTENANCE_MODE'
+                  ) {
+                    return t(`auth.register.errors.${code}`, code);
                   }
-                )?.response?.data?.message || t('auth.register.default_error')}
+                  return code || t('auth.register.default_error');
+                })()}
               </div>
             )}
 

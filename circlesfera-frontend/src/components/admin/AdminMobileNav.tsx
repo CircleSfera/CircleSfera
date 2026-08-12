@@ -1,14 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { clsx } from 'clsx';
-import { ArrowLeft, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
-
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { adminApi } from '../../services/admin.service';
-import { useAuthStore } from '../../stores/authStore';
-import { ADMIN_NAV_GROUPS, ADMIN_TAB_ROLES, type AdminTab } from './adminNav';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
+import {
+  ADMIN_NAV_GROUPS,
+  ADMIN_TAB_PERMISSIONS,
+  type AdminTab,
+} from './adminNav';
 
 interface Props {
   activeTab: AdminTab;
@@ -26,7 +28,7 @@ export function AdminMobileDrawer({
 }: Props) {
   const { t } = useTranslation();
   const sheetRef = useRef<HTMLDivElement>(null);
-  const profile = useAuthStore((state) => state.profile);
+  const hasPermission = useAdminAuthStore((s) => s.hasPermission);
 
   useFocusTrap(isOpen, sheetRef, { onEscape: onClose });
 
@@ -98,7 +100,7 @@ export function AdminMobileDrawer({
         tabIndex={-1}
         className={clsx(
           'fixed bottom-0 left-0 right-0 z-50 flex flex-col outline-none',
-          'max-h-[min(85vh,40rem)] bg-[rgb(18,18,20)] border-t border-white/10',
+          'max-h-[min(85vh,40rem)] glass-panel border-t border-white/10',
           'rounded-t-2xl shadow-2xl pb-[env(safe-area-inset-bottom)]',
           'transition-transform duration-200 ease-out will-change-transform',
           isOpen ? 'translate-y-0' : 'translate-y-full pointer-events-none',
@@ -112,9 +114,9 @@ export function AdminMobileDrawer({
           <div className="min-w-0">
             <h2
               id="admin-mobile-nav-title"
-              className="text-base font-semibold text-white tracking-tight"
+              className="text-base font-bold text-white tracking-tight"
             >
-              {t('admin.panel', 'Panel de Control')}
+              {t('admin.mobile_nav_title', 'Navegación')}
             </h2>
             <p className="text-xs text-white/40 mt-0.5">
               {t('admin.mobile_nav_subtitle', 'Elige una sección')}
@@ -130,21 +132,10 @@ export function AdminMobileDrawer({
           </button>
         </div>
 
-        <Link
-          to="/"
-          onClick={onClose}
-          className="mx-4 mt-3 mb-1 flex items-center gap-2 text-sm font-semibold text-white/50 hover:text-white transition-colors shrink-0"
-        >
-          <ArrowLeft size={14} className="text-brand-primary" />
-          {t('admin.back_to_app', 'Volver a CircleSfera')}
-        </Link>
-
-        <div className="flex-1 overflow-y-auto px-4 pb-20 custom-scrollbar space-y-6">
+        <div className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar space-y-4">
           {ADMIN_NAV_GROUPS.map((group) => {
             const visibleItems = group.items.filter((item) => {
-              if (profile?.user?.role === 'ADMIN') return true;
-              const roles = ADMIN_TAB_ROLES[item.id];
-              return roles?.includes(profile?.user?.role || 'USER');
+              return hasPermission(ADMIN_TAB_PERMISSIONS[item.id]);
             });
 
             if (visibleItems.length === 0) return null;

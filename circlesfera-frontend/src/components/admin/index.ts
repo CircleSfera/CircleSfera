@@ -16,6 +16,10 @@ export {
   StatusBadge,
   Table,
 } from './AdminTable';
+export {
+  AdminUserFilterChip,
+  useAdminQueueUserFilter,
+} from './AdminUserFilterChip';
 export { default as AppealsTab } from './AppealsTab';
 export { default as AudioTab } from './AudioTab';
 export { default as AuditLogTab } from './AuditLogTab';
@@ -23,6 +27,7 @@ export type { AdminTab } from './adminNav';
 export {
   ADMIN_NAV_GROUPS,
   ADMIN_NAV_ITEMS,
+  adminTabPath,
   findAdminNavItem,
 } from './adminNav';
 export { adminToast } from './adminToast';

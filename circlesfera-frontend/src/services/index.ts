@@ -4,6 +4,7 @@ export { apiClient }; // Export as itself
 export const api = apiClient; // Keep alias
 export type { Participant } from '../types';
 export * from './admin.service';
+export * from './admin-auth.service';
 export * from './analytics.service';
 export * from './appeals.service';
 export * from './audio.service';

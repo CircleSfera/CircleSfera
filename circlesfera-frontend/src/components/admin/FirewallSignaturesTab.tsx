@@ -105,7 +105,7 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
   );
 
   return (
-    <div className="flex flex-col space-y-4">
+    <div className="flex flex-col gap-4 sm:gap-5 lg:gap-6">
       <AdminPageHeader
         title={t('admin.firewall.title')}
         subtitle={t('admin.firewall.subtitle')}
@@ -177,7 +177,7 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
         }
         detail={
           isCreating ? (
-            <div className="space-y-4 px-1">
+            <div className="space-y-2.5 sm:space-y-3 px-1">
               <div>
                 <h3 className="text-base font-semibold text-white">
                   {t('admin.firewall.drawer_title')}
@@ -191,7 +191,7 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
                   e.preventDefault();
                   addMutation.mutate();
                 }}
-                className="space-y-4"
+                className="space-y-2.5"
               >
                 <div className="space-y-1.5">
                   <label
@@ -260,7 +260,7 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
               </form>
             </div>
           ) : selectedItem ? (
-            <div className="space-y-5 px-1">
+            <div className="space-y-2.5 sm:space-y-3 px-1">
               <div>
                 <h3 className="text-base font-semibold text-white">
                   {t('admin.firewall.col_preview')}
@@ -273,7 +273,7 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
                   )}
                 </p>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-2 sm:gap-3 sm:grid-cols-2">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-white/40">
                     {t('admin.firewall.col_category')}

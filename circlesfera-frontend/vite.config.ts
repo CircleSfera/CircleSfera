@@ -49,6 +49,9 @@ export default defineConfig({
     }),
   ],
   server: {
+    // Admin Panel e2e / local: http://admin.localhost:5173
+    host: true,
+    allowedHosts: true,
     proxy: {
       '/api/v1': {
         // In Docker Compose the backend service is reachable as http://backend:3000.

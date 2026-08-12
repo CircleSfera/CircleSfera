@@ -74,12 +74,12 @@ export default function MonetizationTab() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-2.5">
         <AdminPageHeader
           title={t('admin.monetization.title')}
           subtitle={t('admin.monetization.subtitle')}
         />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-pulse">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 animate-pulse">
           {[1, 2].map((i) => (
             <div
               key={i}
@@ -87,7 +87,7 @@ export default function MonetizationTab() {
             />
           ))}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-pulse">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 animate-pulse">
           {[1, 2].map((i) => (
             <div
               key={i}
@@ -102,7 +102,7 @@ export default function MonetizationTab() {
 
   if (error) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-2.5">
         <AdminPageHeader
           title={t('admin.monetization.title')}
           subtitle={t('admin.monetization.subtitle')}
@@ -150,7 +150,7 @@ export default function MonetizationTab() {
   const transactions = txData?.data ?? [];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <AdminPageHeader
         title={t('admin.monetization.title')}
         subtitle={t('admin.monetization.subtitle')}
@@ -168,7 +168,7 @@ export default function MonetizationTab() {
       />
 
       {/* SaaS Primary Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <StatCard
           label={t('admin.monetization.mrr_label')}
           value={analytics?.activeMRR || 0}
@@ -185,55 +185,55 @@ export default function MonetizationTab() {
       </div>
 
       {/* Stripe Integration Status */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="p-4 sm:p-5 rounded-xl border border-white/5 bg-white/2 flex flex-col justify-between min-h-25">
-          <div className="flex justify-between items-start mb-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0">
-              <Zap size={20} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+        <div className="p-2.5 sm:p-3 rounded-lg border border-white/5 bg-white/2 flex flex-col justify-between gap-2">
+          <div className="flex justify-between items-start gap-2">
+            <div className="w-8 h-8 rounded-md bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0">
+              <Zap size={16} />
             </div>
-            <span className="text-xs font-semibold uppercase tracking-wide text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full border border-green-400/20">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full border border-green-400/20">
               {t('admin.monetization.stripe_connected')}
             </span>
           </div>
           <div>
-            <h4 className="text-white font-semibold text-sm mb-1">
+            <h4 className="text-white font-semibold text-sm mb-0.5">
               {t('admin.monetization.stripe_api_title')}
             </h4>
-            <p className="text-white/50 text-xs leading-relaxed">
+            <p className="text-white/50 text-xs leading-snug line-clamp-2">
               {t('admin.monetization.stripe_api_desc')}
             </p>
           </div>
         </div>
 
-        <div className="p-4 sm:p-5 rounded-xl border border-white/5 bg-white/2 flex flex-col justify-between min-h-25">
-          <div className="flex justify-between items-start mb-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
-              <Users size={20} />
+        <div className="p-2.5 sm:p-3 rounded-lg border border-white/5 bg-white/2 flex flex-col justify-between gap-2">
+          <div className="flex justify-between items-start gap-2">
+            <div className="w-8 h-8 rounded-md bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
+              <Users size={16} />
             </div>
-            <span className="text-xs font-semibold uppercase tracking-wide text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full border border-green-400/20">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full border border-green-400/20">
               {t('admin.monetization.stripe_connect_status')}
             </span>
           </div>
           <div>
-            <h4 className="text-white font-semibold text-sm mb-1">
+            <h4 className="text-white font-semibold text-sm mb-0.5">
               {t('admin.monetization.stripe_connect_title')}
             </h4>
-            <p className="text-white/50 text-xs leading-relaxed">
+            <p className="text-white/50 text-xs leading-snug line-clamp-2">
               {t('admin.monetization.stripe_connect_desc')}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3">
         {/* Tier Distribution Chart (Linear) */}
-        <div className="rounded-xl border border-white/5 bg-white/2 p-4 sm:p-5">
-          <div className="flex items-center gap-3 mb-4 sm:mb-5">
-            <div className="w-10 h-10 rounded-lg bg-brand-secondary/10 flex items-center justify-center border border-brand-secondary/20 shrink-0">
-              <PieChart size={20} className="text-brand-secondary" />
+        <div className="rounded-lg border border-white/5 bg-white/2 p-2.5 sm:p-3">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-8 h-8 rounded-md bg-brand-secondary/10 flex items-center justify-center border border-brand-secondary/20 shrink-0">
+              <PieChart size={16} className="text-brand-secondary" />
             </div>
             <div className="min-w-0">
-              <h3 className="text-sm sm:text-base font-semibold text-white">
+              <h3 className="text-sm font-semibold text-white">
                 {t('admin.monetization.tier_distribution_title')}
               </h3>
               <p className="text-white/50 text-xs">
@@ -242,17 +242,17 @@ export default function MonetizationTab() {
             </div>
           </div>
 
-          <div className="space-y-5">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-xs font-semibold text-white/50 uppercase tracking-wide">
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-0.5">
+                <span className="text-[10px] font-semibold text-white/50 uppercase tracking-wide">
                   {t('admin.monetization.tier_composition')}
                 </span>
-                <span className="text-xs font-semibold text-white">
+                <span className="text-[10px] font-semibold text-white">
                   {t('admin.monetization.tier_active_base')}
                 </span>
               </div>
-              <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden flex border border-white/5 p-0.5">
+              <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden flex border border-white/5 p-0.5">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{
@@ -275,7 +275,7 @@ export default function MonetizationTab() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {[
                 {
                   label: t('admin.monetization.tier_verified'),
@@ -298,24 +298,24 @@ export default function MonetizationTab() {
               ].map((tier) => (
                 <div
                   key={tier.label}
-                  className="flex items-center justify-between p-3 bg-white/2 rounded-xl border border-white/5"
+                  className="flex items-center justify-between p-2 bg-white/2 rounded-lg border border-white/5"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
                     <div
-                      className={`w-2.5 h-2.5 rounded-full shrink-0 ${tier.color}`}
+                      className={`w-2 h-2 rounded-full shrink-0 ${tier.color}`}
                     />
                     <div className="flex flex-col min-w-0">
                       <span className="text-sm font-semibold text-white truncate">
                         {tier.label}
                       </span>
-                      <span className="text-xs text-white/50">
+                      <span className="text-[10px] text-white/50">
                         {t('admin.monetization.tier_members', {
                           count: tier.count,
                         })}
                       </span>
                     </div>
                   </div>
-                  <span className="text-base font-semibold text-white tabular-nums shrink-0 ml-2">
+                  <span className="text-sm font-semibold text-white tabular-nums shrink-0 ml-2">
                     {tier.percent}%
                   </span>
                 </div>
@@ -324,25 +324,25 @@ export default function MonetizationTab() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <div className="rounded-xl border border-white/5 bg-white/2 p-4 sm:p-5 flex flex-col justify-center">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-lg bg-brand-primary/10 flex items-center justify-center shrink-0">
-                <TrendingUp size={20} className="text-brand-primary" />
+        <div className="flex flex-col gap-2 sm:gap-3">
+          <div className="rounded-lg border border-white/5 bg-white/2 p-2.5 sm:p-3 flex flex-col justify-center">
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-8 h-8 rounded-md bg-brand-primary/10 flex items-center justify-center shrink-0">
+                <TrendingUp size={16} className="text-brand-primary" />
               </div>
-              <h4 className="text-sm sm:text-base font-semibold text-white">
+              <h4 className="text-sm font-semibold text-white">
                 {t('admin.monetization.growth_title')}
               </h4>
             </div>
-            <p className="text-white/50 text-sm leading-relaxed mb-3">
+            <p className="text-white/50 text-xs leading-snug mb-2 line-clamp-2">
               {t('admin.monetization.growth_description')}
             </p>
-            <p className="text-3xl font-semibold text-white tabular-nums">
+            <p className="text-2xl sm:text-3xl font-semibold text-white tabular-nums leading-tight">
               {analytics?.subscriptionGrowth !== undefined
                 ? `${analytics.subscriptionGrowth > 0 ? '+' : ''}${analytics.subscriptionGrowth}%`
                 : '—'}
             </p>
-            <p className="text-xs text-white/40 mt-1">
+            <p className="text-[10px] text-white/40 mt-0.5">
               {t('admin.monetization.growth_period')}
             </p>
           </div>
