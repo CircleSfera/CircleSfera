@@ -6,19 +6,19 @@ import {
   useLocation,
   useParams,
 } from 'react-router-dom';
-
+import { adminTabPath, getAdminHomeTab } from './components/admin/adminNav';
 import AdminGuard from './components/auth/AdminGuard';
 import AuthGuard from './components/auth/AuthGuard';
 import CreatorStudioGuard from './components/auth/CreatorStudioGuard';
 import GuestGuard from './components/auth/GuestGuard';
 import CookieConsent from './components/CookieConsent';
 import CreatePostModal from './components/CreatePostModal';
+import BrandAmbientBackground from './components/common/BrandAmbientBackground';
 import ScrollToTop from './components/common/ScrollToTop';
 import CreateBottomSheet from './components/modals/CreateBottomSheet';
 import { GlobalCallContainer } from './components/navigation/GlobalCallContainer';
 import { useGlobalSocket } from './hooks/useGlobalSocket';
 import LayoutWrapper from './layouts/LayoutWrapper';
-
 // Page routes
 import CommunityGuidelines from './pages/CommunityGuidelines';
 import Explore from './pages/Explore';
@@ -41,11 +41,13 @@ import { Support } from './pages/Support';
 import TagFeed from './pages/TagFeed';
 import TermsOfService from './pages/TermsOfService';
 import VerifyEmail from './pages/VerifyEmail';
-
+import { useAdminAuthStore } from './stores/adminAuthStore';
 import { useAuthStore } from './stores/authStore';
 import { useExperimentStore } from './stores/useExperimentStore';
+import { adminPanelOrigin, isAdminPanelHost } from './utils/adminPanel';
 
 const Admin = lazy(() => import('./pages/Admin'));
+const AdminPanelLogin = lazy(() => import('./pages/AdminPanelLogin'));
 const ChatWindow = lazy(() => import('./components/chat/ChatWindow'));
 const Creator = lazy(() => import('./pages/Creator'));
 const EditsStudio = lazy(() => import('./pages/EditsStudio'));
@@ -86,31 +88,102 @@ function CreatorRootRedirect() {
   );
 }
 
+/** Apex /admin → Admin Panel host (root tabs: /trust, not /admin/trust). */
+function AdminApexRedirect() {
+  const { tab } = useParams<{ tab?: string }>();
+  const target = `${adminPanelOrigin()}/${tab || 'trust'}`;
+  useEffect(() => {
+    window.location.replace(target);
+  }, [target]);
+  return (
+    <div className="h-screen w-full flex items-center justify-center text-white/60 text-sm">
+      Redirecting to Admin Panel…
+    </div>
+  );
+}
+
+/** Bookmarks: admin host /admin/:tab → /:tab */
+function LegacyAdminHostRedirect() {
+  const { tab } = useParams<{ tab?: string }>();
+  return <Navigate to={`/${tab || 'trust'}`} replace />;
+}
+
+/** Index `/` → permission-aware home (Trust when allowed). */
+function AdminHomeRedirect() {
+  const hasPermission = useAdminAuthStore((s) => s.hasPermission);
+  return <Navigate to={adminTabPath(getAdminHomeTab(hasPermission))} replace />;
+}
+
+function AdminPanelApp() {
+  return (
+    <div className="relative min-h-dvh text-white selection:bg-brand-primary/30 overflow-x-hidden">
+      <BrandAmbientBackground />
+      <ScrollToTop />
+      <Suspense
+        fallback={
+          <div className="h-screen w-full flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
+        <Routes>
+          <Route path="/login" element={<AdminPanelLogin />} />
+          <Route
+            path="/"
+            element={
+              <AdminGuard>
+                <AdminHomeRedirect />
+              </AdminGuard>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminGuard>
+                <AdminHomeRedirect />
+              </AdminGuard>
+            }
+          />
+          <Route path="/admin/:tab" element={<LegacyAdminHostRedirect />} />
+          <Route
+            path="/:tab"
+            element={
+              <AdminGuard>
+                <Admin />
+              </AdminGuard>
+            }
+          />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Suspense>
+    </div>
+  );
+}
+
 function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isSessionChecked = useAuthStore((state) => state.isSessionChecked);
   const checkSession = useAuthStore((state) => state.checkSession);
   const fetchFlags = useExperimentStore((state) => state.fetchFlags);
+  const adminPanel = isAdminPanelHost();
 
-  // Initialize Global Socket for Real-time Notifications
   useGlobalSocket();
 
   useEffect(() => {
-    // Bootstrap once per app load: the persisted `isAuthenticated` flag can be
-    // stale (e.g. the HTTP-only session cookie expired while the app was
-    // closed). Validate it against the backend before trusting it for route
-    // decisions, so protected/guest routes don't briefly render with the
-    // wrong auth state.
-    checkSession();
-  }, [checkSession]);
+    if (!adminPanel) {
+      checkSession();
+    }
+  }, [checkSession, adminPanel]);
 
   useEffect(() => {
-    // Fetch flags when app initializes. If auth changes, we might want to refetch,
-    // but for now fetch once on mount.
-    if (isAuthenticated !== undefined) {
+    if (!adminPanel && isAuthenticated !== undefined) {
       fetchFlags();
     }
-  }, [fetchFlags, isAuthenticated]);
+  }, [fetchFlags, isAuthenticated, adminPanel]);
+
+  if (adminPanel) {
+    return <AdminPanelApp />;
+  }
 
   // Hold route rendering until we know whether a persisted "logged in" state
   // is still valid, to avoid a flash of protected/guest content followed by
@@ -323,18 +396,9 @@ function App() {
             }
           />
 
-          <Route
-            path="/admin"
-            element={<Navigate to="/admin/analytics" replace />}
-          />
-          <Route
-            path="/admin/:tab"
-            element={
-              <AdminGuard>
-                <Admin />
-              </AdminGuard>
-            }
-          />
+          {/* Admin Panel lives on admin.circlesfera.com — redirect apex /admin */}
+          <Route path="/admin" element={<AdminApexRedirect />} />
+          <Route path="/admin/:tab" element={<AdminApexRedirect />} />
 
           {/* Notifications / Activity */}
           <Route

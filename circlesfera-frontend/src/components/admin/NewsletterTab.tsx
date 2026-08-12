@@ -61,17 +61,17 @@ export default function NewsletterTab({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <AdminPageHeader
         title={t('admin.newsletter.title')}
         subtitle={t('admin.newsletter.subtitle')}
         actions={
-          <div className="flex flex-col xs:flex-row gap-2 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button
               type="button"
               variant="secondary"
               onClick={() => setShowPreview(!showPreview)}
-              className="min-h-11 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border border-white/10 hover:bg-white/5 text-white/70 w-full xs:w-auto"
+              className="min-h-11 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border border-white/10 hover:bg-white/5 text-white/70 w-full sm:w-auto"
             >
               {showPreview
                 ? t('admin.newsletter.edit_content')
@@ -80,7 +80,7 @@ export default function NewsletterTab({
             <Button
               onClick={handleSend}
               disabled={isSending}
-              className="min-h-11 px-4 py-2.5 text-sm font-semibold w-full xs:w-auto"
+              className="min-h-11 px-4 py-2.5 text-sm font-semibold w-full sm:w-auto"
             >
               {isSending ? (
                 <>
@@ -99,7 +99,7 @@ export default function NewsletterTab({
       />
 
       <div className="p-3 sm:p-5 rounded-lg border border-white/5 bg-white/2">
-        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+        <div className="flex flex-col lg:flex-row gap-2.5 sm:gap-3">
           {!showPreview && (
             <div className="flex-1 space-y-3 order-1">
               <div className="space-y-2">
@@ -157,7 +157,7 @@ export default function NewsletterTab({
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                 <div className="space-y-2">
                   <label
                     htmlFor="buttonText"
@@ -226,7 +226,7 @@ export default function NewsletterTab({
                   </div>
                 </div>
 
-                <div className="p-4 sm:p-8 text-center space-y-3 sm:space-y-4 bg-black">
+                <div className="p-3 sm:p-4 text-center space-y-2 sm:space-y-3 bg-black">
                   <h1 className="text-lg sm:text-xl font-semibold text-white tracking-tight leading-tight">
                     {formData.title ||
                       t('admin.newsletter.preview_default_title')}

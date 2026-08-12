@@ -227,7 +227,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                   )}
                 </div>
 
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 space-y-5">
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-2.5 sm:p-3 space-y-3">
                   <dl className="text-sm">
                     <div className="py-2.5 border-b border-white/5">
                       <dt className="text-xs font-medium text-white/40 mb-1">
@@ -305,7 +305,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex-1 flex items-center justify-center p-6"
+                className="flex-1 flex items-start justify-center pt-6 px-2"
               >
                 <AdminEmptyState
                   icon={LifeBuoy}

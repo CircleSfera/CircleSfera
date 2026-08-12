@@ -7,13 +7,14 @@ interface AdminFilterBarProps {
 
 /**
  * Sticky filter / search row under the admin header.
- * Layout: column → row from sm.
+ * Layout: column → row from sm. Dense padding (ops density).
  */
 export function AdminFilterBar({ children, className }: AdminFilterBarProps) {
   return (
     <div
       className={clsx(
-        'flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2.5 sm:gap-3 shrink-0 py-1 bg-transparent',
+        'flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 shrink-0',
+        'glass-panel rounded-lg p-1.5 sm:p-2',
         className,
       )}
     >

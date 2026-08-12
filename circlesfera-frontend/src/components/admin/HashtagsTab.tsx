@@ -26,7 +26,7 @@ export default function HashtagsTab() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <AdminPageHeader
         title={t('admin.hashtags.title')}
         subtitle={t('admin.hashtags.subtitle')}

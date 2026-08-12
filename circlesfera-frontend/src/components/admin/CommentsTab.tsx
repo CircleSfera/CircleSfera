@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, CheckCircle, MessageCircle, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminComment } from '../../services/admin.service';
@@ -17,6 +17,10 @@ import { AdminSegmentedControl } from './AdminSegmentedControl';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { ActionButton, Pagination, SearchInput } from './AdminTable';
+import {
+  AdminUserFilterChip,
+  useAdminQueueUserFilter,
+} from './AdminUserFilterChip';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
@@ -24,11 +28,20 @@ interface Props {
 
 export default function CommentsTab({ onToast }: Props) {
   const { t } = useTranslation();
+  const { userId, username, clearUserFilter } = useAdminQueueUserFilter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [segment, setSegment] = useState('ALL');
+  const [segment, setSegment] = useState(() => (userId ? 'ALL' : 'FLAGGED'));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const debouncedSearch = useDebouncedValue(search, 400);
+
+  useEffect(() => {
+    setSegment(userId ? 'ALL' : 'FLAGGED');
+    setPage(1);
+    setSelectedId(null);
+  }, [userId]);
+
+  const moderationStatus = segment === 'FLAGGED' ? 'FLAGGED' : undefined;
 
   const { data: statsData } = useQuery<EnhancedStats>({
     queryKey: ['admin', 'stats', 'enhanced'],
@@ -36,10 +49,16 @@ export default function CommentsTab({ onToast }: Props) {
   });
 
   const { data, isLoading } = useQuery<PaginatedResponse<AdminComment>>({
-    queryKey: ['admin', 'comments', page, debouncedSearch, segment],
+    queryKey: ['admin', 'comments', page, debouncedSearch, segment, userId],
     queryFn: () =>
       adminApi
-        .getComments(page, 10, debouncedSearch || undefined)
+        .getComments(
+          page,
+          10,
+          debouncedSearch || undefined,
+          userId,
+          moderationStatus,
+        )
         .then((r) => r.data as PaginatedResponse<AdminComment>),
   });
 
@@ -79,24 +98,24 @@ export default function CommentsTab({ onToast }: Props) {
   const noContent = t('admin.comments.no_content');
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <AdminPageHeader
         title={t('admin.comments.title')}
         subtitle={t('admin.comments.subtitle')}
       />
 
       {/* KPI Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-2">
         <AdminKpiWidget
           title={t('admin.comments.kpi_engagement')}
           value={`${statsData?.engagement || 0}%`}
-          icon={<MessageCircle size={20} />}
+          icon={<MessageCircle size={16} />}
           trend={{ value: 2.1, label: t('admin.shared.this_month') }}
         />
         <AdminKpiWidget
           title={t('admin.comments.kpi_pending_reports')}
           value={statsData?.pendingReports.toLocaleString() || '0'}
-          icon={<Ban size={20} />}
+          icon={<Ban size={16} />}
           iconColorClass="text-amber-400 bg-amber-400/10"
         />
       </div>
@@ -109,9 +128,13 @@ export default function CommentsTab({ onToast }: Props) {
             setPage(1);
           }}
           options={[
+            { value: 'FLAGGED', label: t('admin.shared.filter_flagged') },
             { value: 'ALL', label: t('admin.shared.filter_all_recent') },
           ]}
         />
+        {userId && (
+          <AdminUserFilterChip username={username} onClear={clearUserFilter} />
+        )}
         <div className="flex-1 min-w-0 md:max-w-xs">
           <SearchInput
             value={search}
@@ -205,12 +228,12 @@ export default function CommentsTab({ onToast }: Props) {
         }
         detail={
           selectedId ? (
-            <div className="p-6">
+            <div className="p-3 sm:p-4">
               <h3 className="text-xl font-bold text-white mb-4">
                 {t('admin.comments.detail_title')}
               </h3>
               {comments.find((c) => c.id === selectedId) && (
-                <div className="space-y-4">
+                <div className="space-y-2.5">
                   <div className="p-4 bg-white/5 rounded-xl border border-white/10">
                     <p className="text-white/70">
                       {comments.find((c) => c.id === selectedId)?.content ||

@@ -209,23 +209,23 @@ export default function ModerationTab({ onToast }: Props) {
   }, [items, selectedItemKey, selectedItem, viewMode]);
 
   return (
-    <div className="flex flex-col min-h-0 space-y-4">
+    <div className="flex flex-col min-h-0 space-y-2.5">
       <AdminPageHeader
         title={t('admin.moderation.title')}
         subtitle={t('admin.moderation.subtitle')}
         actions={
-          <div className="flex flex-col xs:flex-row gap-2 border border-white/5 bg-white/2 p-1 rounded-lg w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-2 border border-white/5 bg-white/2 p-1 rounded-lg w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setViewMode('queue')}
-              className={`px-3 sm:px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors w-full xs:w-auto ${viewMode === 'queue' ? 'bg-brand-primary text-white' : 'text-white/50 hover:text-white'}`}
+              className={`px-3 sm:px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors w-full sm:w-auto ${viewMode === 'queue' ? 'bg-brand-primary text-white' : 'text-white/50 hover:text-white'}`}
             >
               {t('admin.moderation.tab_queue')}
             </button>
             <button
               type="button"
               onClick={() => setViewMode('appeals')}
-              className={`px-3 sm:px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors w-full xs:w-auto ${viewMode === 'appeals' ? 'bg-brand-primary text-white' : 'text-white/50 hover:text-white'}`}
+              className={`px-3 sm:px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors w-full sm:w-auto ${viewMode === 'appeals' ? 'bg-brand-primary text-white' : 'text-white/50 hover:text-white'}`}
             >
               {t('admin.moderation.tab_appeals')}
             </button>
@@ -266,7 +266,7 @@ export default function ModerationTab({ onToast }: Props) {
         <div className="space-y-2">
           <div className="flex justify-end">
             <Link
-              to="/admin/appeals"
+              to="/appeals"
               className="inline-flex items-center gap-2 text-xs font-semibold text-brand-primary hover:text-brand-primary/80 transition-colors"
             >
               {t('admin.shared.view_full_panel')}
@@ -450,7 +450,7 @@ export default function ModerationTab({ onToast }: Props) {
                           </p>
                         </div>
                       </div>
-                      <div className="flex flex-col xs:flex-row gap-2 w-full sm:w-auto">
+                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                         <Button
                           onClick={() =>
                             moderationMutation.mutate({
@@ -546,7 +546,7 @@ export default function ModerationTab({ onToast }: Props) {
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="flex-1 flex items-center justify-center p-6"
+                    className="flex-1 flex items-start justify-center pt-6 px-2"
                   >
                     <AdminEmptyState
                       icon={ShieldAlert}

@@ -11,7 +11,6 @@ import {
   PlusSquare,
   Search,
   Settings,
-  Shield,
   Sparkles,
   User,
 } from 'lucide-react';
@@ -106,22 +105,11 @@ export default function Sidebar() {
       badge: 0,
       roles: ['CREATOR', 'BUSINESS'],
     },
-    {
-      icon: Shield,
-      label: 'Admin Panel',
-      to: '/admin',
-      badge: 0,
-      adminOnly: true,
-    },
     { icon: User, label: t('nav.profile'), to: profileUrl, badge: 0 },
-  ].filter((item) => {
-    if ('adminOnly' in item && item.adminOnly) {
-      return profile?.user?.role === 'ADMIN';
-    }
-    return (
-      !item.roles || item.roles.includes(profile?.accountType || 'PERSONAL')
-    );
-  });
+  ].filter(
+    (item) =>
+      !item.roles || item.roles.includes(profile?.accountType || 'PERSONAL'),
+  );
 
   return (
     <div

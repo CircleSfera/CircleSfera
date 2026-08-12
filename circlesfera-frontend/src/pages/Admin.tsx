@@ -29,18 +29,25 @@ import {
 } from '../components/admin';
 import AdminShell from '../components/admin/AdminShell';
 import type { AdminTab } from '../components/admin/adminNav';
-import { isAdminTab } from '../components/admin/adminNav';
+import {
+  adminTabPath,
+  getAdminHomeTab,
+  isAdminTab,
+} from '../components/admin/adminNav';
 import { adminToast } from '../components/admin/adminToast';
+import { useAdminAuthStore } from '../stores/adminAuthStore';
 
 export default function Admin() {
   const { tab } = useParams<{ tab: string }>();
   const navigate = useNavigate();
+  const hasPermission = useAdminAuthStore((s) => s.hasPermission);
+  const homeTab = getAdminHomeTab(hasPermission);
   const isInvalidTab = !!tab && !isAdminTab(tab);
-  const activeTab: AdminTab = isAdminTab(tab) ? tab : 'analytics';
+  const activeTab: AdminTab = isAdminTab(tab) ? tab : homeTab;
 
   const handleTabChange = useCallback(
     (newTab: AdminTab) => {
-      navigate(`/admin/${newTab}`);
+      navigate(adminTabPath(newTab));
     },
     [navigate],
   );
@@ -50,7 +57,7 @@ export default function Admin() {
   }, []);
 
   if (isInvalidTab) {
-    return <Navigate to="/admin/analytics" replace />;
+    return <Navigate to={adminTabPath(homeTab)} replace />;
   }
 
   return (

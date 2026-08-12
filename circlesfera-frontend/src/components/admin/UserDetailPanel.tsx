@@ -4,18 +4,25 @@ import {
   Copy,
   Database,
   ExternalLink,
+  Film,
+  Flag,
+  ImageIcon,
   MessageSquare,
+  Radio,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import type { AdminUserDetail } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
+import { platformOrigin } from '../../utils/adminPanel';
 import { UserAvatar } from '../index';
 import { Button } from '../ui';
 import VerificationBadge, {
   type VerificationLevel,
 } from '../VerificationBadge';
 import { AdminDetailSkeleton } from './AdminSkeletons';
+import { type AdminTab, adminTabPath } from './adminNav';
 import { adminToast } from './adminToast';
 
 interface UserDetailPanelProps {
@@ -63,9 +70,34 @@ function reportStatusClass(status: string) {
   return 'bg-white/10 text-white/70';
 }
 
+function ActivityChip({
+  icon: Icon,
+  label,
+  count,
+  onClick,
+}: {
+  icon: typeof ImageIcon;
+  label: string;
+  count: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg glass-panel border border-white/10 hover:border-brand-primary/30 hover:bg-brand-primary/10 transition-colors text-left min-h-9"
+    >
+      <Icon size={13} className="text-brand-primary shrink-0" />
+      <span className="text-[11px] font-semibold text-white/70">{label}</span>
+      <span className="text-xs font-bold text-white tabular-nums">{count}</span>
+    </button>
+  );
+}
+
 /** Compact user dossier for AdminSplitView detail pane (no overlay). */
 export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const {
     data: user,
     isLoading,
@@ -78,7 +110,11 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
 
   const locale = i18n.language?.startsWith('en') ? 'en-US' : 'es-ES';
   const username = user?.profile?.username;
-  const profileHref = username ? `/${username}` : null;
+  const profileHref = username ? `${platformOrigin()}/${username}` : null;
+
+  const openQueue = (tab: AdminTab) => {
+    navigate(`${adminTabPath(tab)}?userId=${encodeURIComponent(userId)}`);
+  };
 
   const copyId = async (value: string) => {
     try {
@@ -106,7 +142,7 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
   }
 
   return (
-    <div className="space-y-6 pb-6 px-0.5">
+    <div className="space-y-2.5 sm:space-y-3 pb-4 sm:pb-6 px-0.5">
       <div>
         <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-3">
           {t('admin.user_preview.title')}
@@ -234,12 +270,53 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
         </div>
       )}
 
+      <section className="space-y-2">
+        <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide">
+          {t('admin.user_preview.activity_title')}
+        </h4>
+        <p className="text-[11px] text-white/40 leading-snug">
+          {t('admin.user_preview.activity_hint')}
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          <ActivityChip
+            icon={ImageIcon}
+            label={t('admin.user_preview.chip_posts')}
+            count={user._count.posts}
+            onClick={() => openQueue('posts')}
+          />
+          <ActivityChip
+            icon={MessageSquare}
+            label={t('admin.user_preview.chip_comments')}
+            count={user._count.comments}
+            onClick={() => openQueue('comments')}
+          />
+          <ActivityChip
+            icon={Film}
+            label={t('admin.user_preview.chip_stories')}
+            count={user._count.stories}
+            onClick={() => openQueue('stories')}
+          />
+          <ActivityChip
+            icon={Radio}
+            label={t('admin.user_preview.chip_live')}
+            count={user._count.liveStreams}
+            onClick={() => openQueue('live')}
+          />
+          <ActivityChip
+            icon={Flag}
+            label={t('admin.user_preview.chip_reports')}
+            count={user._count.reportsAgainst}
+            onClick={() => openQueue('reports')}
+          />
+        </div>
+      </section>
+
       <section className="space-y-3">
         <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide flex items-center gap-1.5">
           <Database size={12} />
           {t('admin.user_preview.system_data_title')}
         </h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2">
           <SystemField label={t('admin.user_preview.verification_level_label')}>
             <span className="font-medium uppercase tracking-wide text-xs">
               {user.verificationLevel ||
@@ -272,71 +349,37 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <section>
-          <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-            <MessageSquare size={12} className="text-brand-primary" />
-            {t('admin.user_preview.recent_posts')}
-          </h4>
-          <ul className="divide-y divide-white/5">
-            {user.posts.slice(0, 3).map((post) => (
-              <li key={post.id}>
-                <a
-                  href={`/post/${post.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="py-2 flex justify-between items-center gap-2 text-xs group"
-                >
-                  <span className="text-white/70 truncate min-w-0 group-hover:text-white transition-colors">
-                    {post.caption || t('admin.user_preview.no_caption')}
-                  </span>
-                  <ExternalLink
-                    size={12}
-                    className="text-white/40 shrink-0 group-hover:text-brand-primary"
-                  />
-                </a>
-              </li>
-            ))}
-          </ul>
-          {user.posts.length === 0 && (
-            <p className="text-xs text-white/40 py-1">
-              {t('admin.user_preview.no_recent_activity')}
-            </p>
-          )}
-        </section>
-
-        <section>
-          <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-            <AlertCircle size={12} className="text-red-400" />
-            {t('admin.user_preview.reports_title')}
-          </h4>
-          <ul className="divide-y divide-white/5">
-            {user.reports.slice(0, 3).map((report) => (
-              <li
-                key={report.id}
-                className="py-2 flex justify-between items-center gap-2 text-xs"
+      <section>
+        <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+          <AlertCircle size={12} className="text-red-400" />
+          {t('admin.user_preview.reports_title')}
+        </h4>
+        <ul className="divide-y divide-white/5">
+          {user.reports.map((report) => (
+            <li
+              key={report.id}
+              className="py-2 flex justify-between items-center gap-2 text-xs"
+            >
+              <span className="text-white/70 truncate min-w-0">
+                {report.reason}
+              </span>
+              <span
+                className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase shrink-0 ${reportStatusClass(report.status)}`}
               >
-                <span className="text-white/70 truncate min-w-0">
-                  {report.reason}
-                </span>
-                <span
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase shrink-0 ${reportStatusClass(report.status)}`}
-                >
-                  {t(
-                    `admin.user_preview.report_status_${report.status.toLowerCase()}`,
-                    report.status,
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-          {user.reports.length === 0 && (
-            <p className="text-xs text-white/40 py-1">
-              {t('admin.user_preview.no_pending_reports')}
-            </p>
-          )}
-        </section>
-      </div>
+                {t(
+                  `admin.user_preview.report_status_${report.status.toLowerCase()}`,
+                  report.status,
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+        {user.reports.length === 0 && (
+          <p className="text-xs text-white/40 py-1">
+            {t('admin.user_preview.no_pending_reports')}
+          </p>
+        )}
+      </section>
     </div>
   );
 }

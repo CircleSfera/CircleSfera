@@ -6,7 +6,12 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { adminApi } from '../../services';
-import { ADMIN_NAV_ITEMS, type AdminTab, findAdminNavItem } from './adminNav';
+import {
+  ADMIN_NAV_ITEMS,
+  type AdminTab,
+  adminTabPath,
+  findAdminNavItem,
+} from './adminNav';
 
 const QUICK_ACTION_TABS: AdminTab[] = [
   'appeals',
@@ -64,7 +69,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           }),
           icon: <item.icon size={16} />,
           action: () => {
-            navigate(`/admin/${item.id}`);
+            navigate(adminTabPath(item.id));
             onClose();
           },
           searchable: `${item.labelFallback} ${item.id} quick`,
@@ -84,7 +89,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         }),
         icon: <item.icon size={16} />,
         action: () => {
-          navigate(`/admin/${item.id}`);
+          navigate(adminTabPath(item.id));
           onClose();
         },
         searchable: `${item.labelFallback} ${item.id}`,
@@ -102,7 +107,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         }),
         icon: <User size={16} className="text-brand-primary" />,
         action: () => {
-          navigate(`/admin/users?user=${encodeURIComponent(u.id)}`);
+          navigate(adminTabPath('users', `?user=${encodeURIComponent(u.id)}`));
           onClose();
         },
         searchable: `${u.profile?.username || ''} ${u.email}`,
@@ -168,7 +173,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         aria-modal="true"
         aria-label={t('admin.search')}
         tabIndex={-1}
-        className="relative w-full max-w-lg bg-[rgb(18,18,20)] border border-white/10 rounded-xl shadow-2xl overflow-hidden outline-none"
+        className="relative w-full max-w-lg modal-glass border border-white/10 rounded-xl shadow-2xl overflow-hidden outline-none"
       >
         <div className="flex items-center px-4 py-3 border-b border-white/5">
           <Search size={20} className="text-white/70 mr-3 shrink-0" />

@@ -12,6 +12,9 @@ interface AdminListRowAction {
   onClick: (e: React.MouseEvent) => void;
   variant?: 'default' | 'danger';
   disabled?: boolean;
+  icon?: LucideIcon;
+  /** Visual separator above this item (e.g. before destructive) */
+  dividerBefore?: boolean;
 }
 
 interface AdminListRowProps {
@@ -62,10 +65,10 @@ export function AdminListRow({
     const update = () => {
       const rect = triggerRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const menuWidth = 176; // min-w-44
+      const menuWidth = 220;
       const estimatedHeight = Math.min(
-        (secondaryActions?.length || 1) * 44 + 8,
-        280,
+        (secondaryActions?.length || 1) * 44 + 24,
+        360,
       );
       const spaceBelow = window.innerHeight - rect.bottom;
       const openUp = spaceBelow < estimatedHeight + 12 && rect.top > spaceBelow;
@@ -117,8 +120,14 @@ export function AdminListRow({
     // biome-ignore lint/a11y/noStaticElementInteractions: role=button set when onClick provided
     <div
       className={clsx(
-        'relative flex items-start gap-3 p-3 rounded-lg border border-white/5 bg-white/2',
-        onClick && 'cursor-pointer hover:bg-white/4 active:bg-white/6',
+        'relative flex items-start gap-2.5 p-2.5 rounded-lg border transition-colors',
+        selected
+          ? 'bg-brand-primary/15 border-brand-primary/30'
+          : 'border-white/5 bg-white/2',
+        onClick &&
+          !selected &&
+          'cursor-pointer hover:bg-white/4 active:bg-white/6 hover:border-white/10',
+        onClick && selected && 'cursor-pointer',
         className,
       )}
       onClick={onClick}
@@ -197,28 +206,54 @@ export function AdminListRow({
                         left: menuPos.left,
                         zIndex: 100,
                       }}
-                      className="min-w-44 py-1 rounded-xl border border-white/10 bg-[rgb(22,22,24)] shadow-2xl"
+                      className={clsx(
+                        'min-w-52 py-1.5 rounded-2xl overflow-hidden',
+                        'border border-white/10 shadow-2xl',
+                        'bg-linear-to-br from-[rgba(18,12,32,0.96)] to-[rgba(10,8,20,0.98)]',
+                        'backdrop-blur-xl saturate-150',
+                        'shadow-[0_16px_48px_rgba(0,0,0,0.6),0_0_0_1px_rgba(140,82,255,0.08),inset_0_1px_0_rgba(255,255,255,0.06)]',
+                      )}
                     >
-                      {secondaryActions.map((action) => (
-                        <button
-                          type="button"
-                          role="menuitem"
-                          key={action.label}
-                          disabled={action.disabled}
-                          onClick={(e) => {
-                            action.onClick(e);
-                            setMenuOpen(false);
-                          }}
-                          className={clsx(
-                            'w-full text-left px-3.5 py-2.5 text-sm font-medium transition-colors disabled:opacity-40 min-h-11',
-                            action.variant === 'danger'
-                              ? 'text-red-400 hover:bg-red-500/10'
-                              : 'text-white/80 hover:bg-white/5',
-                          )}
-                        >
-                          {action.label}
-                        </button>
-                      ))}
+                      {secondaryActions.map((action) => {
+                        const Icon = action.icon;
+                        const isDanger = action.variant === 'danger';
+                        return (
+                          <div key={action.label}>
+                            {action.dividerBefore && (
+                              <div className="mx-3 my-1.5 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+                            )}
+                            <button
+                              type="button"
+                              role="menuitem"
+                              disabled={action.disabled}
+                              onClick={(e) => {
+                                action.onClick(e);
+                                setMenuOpen(false);
+                              }}
+                              className={clsx(
+                                'w-full flex items-center gap-2.5 px-3 py-2 text-sm font-medium tracking-tight transition-colors disabled:opacity-40 min-h-10',
+                                isDanger
+                                  ? 'text-red-400 hover:bg-red-500/10'
+                                  : 'text-white hover:bg-white/6',
+                              )}
+                            >
+                              {Icon ? (
+                                <span
+                                  className={clsx(
+                                    'w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border',
+                                    isDanger
+                                      ? 'bg-red-500/10 border-red-500/20 text-red-400'
+                                      : 'bg-white/5 border-white/10 text-white/60',
+                                  )}
+                                >
+                                  <Icon size={14} />
+                                </span>
+                              ) : null}
+                              <span className="truncate">{action.label}</span>
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>,
                     document.body,
                   )}

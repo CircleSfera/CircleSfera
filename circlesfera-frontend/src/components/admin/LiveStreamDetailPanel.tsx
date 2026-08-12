@@ -33,7 +33,7 @@ export default function LiveStreamDetailPanel({
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
         className="fixed inset-y-0 right-0 w-full max-w-xl bg-[#0F1014] border-l border-white/10 shadow-2xl z-50 flex flex-col"
       >
-        <div className="flex justify-between items-center p-6 border-b border-white/5">
+        <div className="flex justify-between items-center p-2.5 sm:p-3 border-b border-white/5">
           <div>
             <h2 className="text-xl font-bold text-white mb-1">
               {stream.title ||
@@ -64,7 +64,7 @@ export default function LiveStreamDetailPanel({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-2.5 sm:p-3 space-y-3">
           {/* Video Player Area */}
           <div className="rounded-2xl overflow-hidden bg-black aspect-video border border-white/10 relative shadow-lg">
             {videoUrl ? (
@@ -94,7 +94,7 @@ export default function LiveStreamDetailPanel({
           </div>
 
           {/* Quick Stats Grid */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <div className="p-4 rounded-xl border border-white/5 bg-white/2">
               <div className="flex items-center gap-3 text-brand-primary mb-1">
                 <Users className="w-5 h-5" />
@@ -117,7 +117,7 @@ export default function LiveStreamDetailPanel({
           </div>
 
           {/* Hosts Info */}
-          <div className="space-y-4">
+          <div className="space-y-2.5 sm:space-y-3">
             <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider">
               Participantes
             </h3>

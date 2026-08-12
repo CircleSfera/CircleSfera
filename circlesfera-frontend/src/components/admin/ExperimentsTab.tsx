@@ -423,12 +423,12 @@ export default function ExperimentsTab() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <SubTabToggle activeTab={subTab} onTabChange={setSubTab} />
 
       {/* ═══ Feature Flags Section ═══ */}
       {subTab === 'flags' && (
-        <div className="space-y-4">
+        <div className="space-y-2.5">
           <AdminPageHeader
             title={t('admin.experiments.flags_title')}
             subtitle={t('admin.experiments.flags_subtitle')}
@@ -588,7 +588,7 @@ export default function ExperimentsTab() {
             }
             detail={
               isCreatingFlag || editingFlag ? (
-                <div className="space-y-4 px-1">
+                <div className="space-y-2.5 sm:space-y-3 px-1">
                   <div>
                     <h3 className="text-base font-semibold text-white">
                       {editingFlag
@@ -659,7 +659,7 @@ export default function ExperimentsTab() {
 
       {/* ═══ User Experiments Section ═══ */}
       {subTab === 'experiments' && (
-        <div className="space-y-4">
+        <div className="space-y-2.5">
           <AdminPageHeader
             title={t('admin.experiments.ab_title')}
             subtitle={t('admin.experiments.ab_subtitle')}
@@ -762,7 +762,7 @@ export default function ExperimentsTab() {
             }
             detail={
               isAssigning ? (
-                <div className="space-y-4 px-1">
+                <div className="space-y-2.5 sm:space-y-3 px-1">
                   <div>
                     <h3 className="text-base font-semibold text-white">
                       {editingEntry
@@ -834,7 +834,7 @@ function FeatureFlagForm({
   const keyTouched = key.length > 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <div>
         <label
           htmlFor="flagKey"
@@ -954,7 +954,7 @@ function ExperimentForm({
   const [variant, setVariant] = useState(initialData?.variant || 'true');
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <div>
         <label
           htmlFor="userId"

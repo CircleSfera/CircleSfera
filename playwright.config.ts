@@ -2,6 +2,29 @@ import { defineConfig, devices } from '@playwright/test';
 
 const skipGlobalSetup = process.env.SKIP_GLOBAL_SETUP === 'true';
 
+/** SPA origin — never the Nest API (:3000/:3005). */
+function resolveApexBaseURL(): string {
+  const candidates = [
+    process.env.PLAYWRIGHT_BASE_URL,
+    process.env.BASE_URL,
+  ].filter(Boolean) as string[];
+  for (const url of candidates) {
+    try {
+      const { port, hostname } = new URL(url);
+      // Common API publish ports in this repo
+      if (port === '3000' || port === '3005') continue;
+      if (hostname === 'api.circlesfera.com') continue;
+      return url;
+    } catch {}
+  }
+  return 'http://localhost:5173';
+}
+
+const apexBaseURL = resolveApexBaseURL();
+/** Admin Panel host — hostname must start with `admin.` (see adminPanel.ts). */
+const adminBaseURL =
+  process.env.ADMIN_BASE_URL || 'http://admin.localhost:5173';
+
 export default defineConfig({
   testDir: './e2e',
   testMatch: /.*\.spec\.ts$/,
@@ -27,7 +50,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. */
   use: {
     actionTimeout: 0,
-    baseURL: process.env.BASE_URL || 'http://localhost:5173',
+    baseURL: apexBaseURL,
     storageState: skipGlobalSetup ? undefined : 'storageState.json',
     trace: 'on-first-retry',
     video: 'on-first-retry',
@@ -38,7 +61,17 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: [/admin-panel\.spec\.ts$/],
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'admin-panel',
+      testMatch: /admin-panel\.spec\.ts$/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: adminBaseURL,
+        storageState: { cookies: [], origins: [] },
+      },
     },
   ],
 
@@ -47,7 +80,7 @@ export default defineConfig({
     ? undefined
     : {
         command: 'npm --prefix circlesfera-frontend run dev',
-        url: 'http://localhost:5173',
+        url: apexBaseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 120 * 1000,
       },

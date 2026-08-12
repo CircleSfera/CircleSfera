@@ -165,13 +165,13 @@ export default function UserVerificationTab({
   };
 
   return (
-    <div className="flex flex-col min-h-0 space-y-4">
+    <div className="flex flex-col min-h-0 space-y-2.5">
       <AdminPageHeader
         title={t('admin.verification.title')}
         subtitle={t('admin.verification.subtitle')}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 shrink-0">
         <StatCard
           label={t('admin.verification.kyc_completed', 'Verified users')}
           value={statsData?.verified || 0}
@@ -472,7 +472,7 @@ export default function UserVerificationTab({
                     <h4 className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-3">
                       {t('admin.verification.level_controls_title')}
                     </h4>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3">
                       <div className="space-y-2">
                         <Select
                           label={t('admin.verification.level_label')}
@@ -527,7 +527,7 @@ export default function UserVerificationTab({
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex-1 flex items-center justify-center p-6"
+                className="flex-1 flex items-start justify-center pt-6 px-2"
               >
                 <AdminEmptyState
                   icon={ShieldCheck}

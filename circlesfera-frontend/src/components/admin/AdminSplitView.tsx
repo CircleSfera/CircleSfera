@@ -42,7 +42,7 @@ export function AdminSplitView({
 
   return (
     <div
-      className={`flex flex-col lg:flex-row min-h-0 lg:h-[calc(100vh-12rem)] lg:border-t lg:border-white/5 ${className || ''}`}
+      className={`flex flex-col lg:flex-row min-h-0 lg:min-h-[18rem] lg:h-[calc(100vh-13rem)] glass-panel rounded-xl overflow-hidden ${className || ''}`}
     >
       <section
         aria-label={
@@ -50,18 +50,18 @@ export function AdminSplitView({
         }
         className={`
           flex flex-col min-h-0 min-w-0
-          lg:w-[min(100%,360px)] xl:w-[380px] lg:shrink-0 lg:border-r lg:border-white/5 lg:overflow-hidden
+          lg:w-[min(100%,340px)] xl:w-[360px] lg:shrink-0 lg:border-r lg:border-white/5 lg:overflow-hidden
           ${hasSelection ? 'hidden lg:flex' : 'flex'}
         `}
       >
         {listTitle && (
-          <div className="px-1 py-2.5 border-b border-white/5 shrink-0 hidden lg:block">
-            <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wide">
+          <div className="px-3 py-2.5 border-b border-white/5 shrink-0 hidden lg:block">
+            <h3 className="text-[11px] font-semibold text-white/45 uppercase tracking-wide">
               {listTitle}
             </h3>
           </div>
         )}
-        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-0 lg:pr-3 lg:pt-2">
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-2 sm:p-2.5 lg:p-3">
           {list}
         </div>
       </section>
@@ -77,7 +77,7 @@ export function AdminSplitView({
         `}
       >
         {hasSelection && onBack && (
-          <div className="lg:hidden shrink-0 px-1 pb-2">
+          <div className="lg:hidden shrink-0 px-2 pb-2">
             <Button
               type="button"
               variant="ghost"
@@ -89,14 +89,18 @@ export function AdminSplitView({
             </Button>
           </div>
         )}
-        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar lg:pl-4 lg:pt-2">
+        <div
+          className={`min-h-0 overflow-y-auto custom-scrollbar p-2.5 sm:p-3 lg:p-4 ${
+            hasSelection ? 'flex-1' : 'flex-1 flex items-start justify-start'
+          }`}
+        >
           {hasSelection
             ? detail
             : (emptyDetail ?? (
                 <AdminEmptyState
                   title={t('admin.split.select_item')}
                   compact
-                  className="min-h-48 border-0 bg-transparent"
+                  className="py-4 px-2 items-start text-left mx-0 max-w-none"
                 />
               ))}
         </div>

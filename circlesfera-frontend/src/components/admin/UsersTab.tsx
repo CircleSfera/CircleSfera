@@ -1,5 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Ban, Download, ShieldCheck, UserCheck, Users } from 'lucide-react';
+import {
+  AlertTriangle,
+  Ban,
+  Download,
+  ExternalLink,
+  Eye,
+  PauseCircle,
+  ShieldCheck,
+  Trash2,
+  UserCheck,
+  UserCog,
+  Users,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -7,6 +19,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminUser } from '../../services/admin.service';
 import { adminApi, type EnhancedStats } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { platformOrigin } from '../../utils/adminPanel';
 import { UserAvatar } from '../index';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
@@ -323,11 +336,16 @@ export default function Dashboard({ onToast }: Props) {
   const openProfile = (user: AdminUser) => {
     const handle = usernameOf(user);
     if (!handle) return;
-    window.open(`/${handle}`, '_blank', 'noopener,noreferrer');
+    // Must open on platform host — admin /:tab would treat username as a tab → analytics
+    window.open(
+      `${platformOrigin()}/${handle}`,
+      '_blank',
+      'noopener,noreferrer',
+    );
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       <AdminPageHeader
         title={t('admin.users.title')}
         subtitle={t('admin.users.subtitle')}
@@ -345,11 +363,11 @@ export default function Dashboard({ onToast }: Props) {
       />
 
       {/* KPI Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         <AdminKpiWidget
           title={t('admin.users.kpi_registered')}
           value={statsData?.users.toLocaleString() || '0'}
-          icon={<Users size={20} />}
+          icon={<Users size={16} />}
           trend={{
             value: statsData?.userGrowth || 0,
             label: t('admin.shared.this_month'),
@@ -358,19 +376,19 @@ export default function Dashboard({ onToast }: Props) {
         <AdminKpiWidget
           title={t('admin.users.kpi_new_week')}
           value={statsData?.newUsersThisWeek.toLocaleString() || '0'}
-          icon={<UserCheck size={20} />}
+          icon={<UserCheck size={16} />}
           iconColorClass="text-green-400 bg-green-400/10"
         />
         <AdminKpiWidget
           title={t('admin.users.kpi_active_today')}
           value={statsData?.activeUsersToday.toLocaleString() || '0'}
-          icon={<ShieldCheck size={20} />}
+          icon={<ShieldCheck size={16} />}
           iconColorClass="text-brand-accent bg-brand-accent/10"
         />
         <AdminKpiWidget
           title={t('admin.users.kpi_pending_reports')}
           value={statsData?.pendingReports.toLocaleString() || '0'}
-          icon={<Ban size={20} />}
+          icon={<Ban size={16} />}
           iconColorClass="text-red-400 bg-red-400/10"
         />
       </div>
@@ -530,20 +548,24 @@ export default function Dashboard({ onToast }: Props) {
                       secondaryActions={[
                         {
                           label: t('admin.users.action_view_detail'),
+                          icon: Eye,
                           onClick: () => setSelectedUserId(user.id),
                         },
                         {
                           label: t('admin.users.action_warn'),
+                          icon: AlertTriangle,
                           onClick: () => askWarn(user),
                         },
                         {
                           label: t('admin.users.action_suspend'),
+                          icon: PauseCircle,
                           onClick: () => askSuspend(user),
                         },
                         ...(suspended || !user.isActive
                           ? [
                               {
                                 label: t('admin.users.action_restore'),
+                                icon: UserCheck,
                                 onClick: () => askConfirm('restore', user),
                               },
                             ]
@@ -553,6 +575,7 @@ export default function Dashboard({ onToast }: Props) {
                             user.role === 'USER'
                               ? t('admin.users.action_promote_admin')
                               : t('admin.users.action_demote'),
+                          icon: UserCog,
                           onClick: () =>
                             askConfirm(
                               user.role === 'USER' ? 'promote' : 'demote',
@@ -561,11 +584,14 @@ export default function Dashboard({ onToast }: Props) {
                         },
                         {
                           label: t('admin.users.action_view_profile'),
+                          icon: ExternalLink,
                           onClick: () => openProfile(user),
                         },
                         {
                           label: t('admin.users.action_delete'),
+                          icon: Trash2,
                           variant: 'danger' as const,
+                          dividerBefore: true,
                           onClick: () => askConfirm('delete', user),
                         },
                       ]}

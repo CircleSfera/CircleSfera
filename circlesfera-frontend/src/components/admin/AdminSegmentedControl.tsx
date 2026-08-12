@@ -11,16 +11,16 @@ interface Props {
 
 export function AdminSegmentedControl({ options, value, onChange }: Props) {
   return (
-    <div className="flex bg-black/40 p-1 rounded-lg border border-white/10 w-full sm:w-auto overflow-x-auto no-scrollbar">
+    <div className="flex glass-panel p-0.5 rounded-lg w-full sm:w-auto overflow-x-auto no-scrollbar">
       {options.map((opt) => (
         <button
           key={opt.value}
           type="button"
           onClick={() => onChange(opt.value)}
-          className={`flex-1 sm:flex-none px-4 py-1.5 text-sm font-medium rounded-md transition-all whitespace-nowrap ${
+          className={`flex-1 sm:flex-none px-3 min-h-11 sm:min-h-9 py-2 sm:py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap border inline-flex items-center justify-center ${
             value === opt.value
-              ? 'bg-white/10 text-white shadow-sm'
-              : 'text-white/50 hover:text-white/80 hover:bg-white/5'
+              ? 'bg-brand-primary/15 text-white border-brand-primary/30'
+              : 'text-white/50 border-transparent hover:text-white/80 hover:bg-white/5'
           }`}
         >
           {opt.label}

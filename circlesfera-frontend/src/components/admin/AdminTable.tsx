@@ -31,7 +31,7 @@ export function Table({
   const { t } = useTranslation();
 
   return (
-    <div className="relative w-full overflow-hidden border-t border-white/5">
+    <div className="relative w-full overflow-hidden glass-panel rounded-lg">
       <div className="w-full overflow-x-auto custom-scrollbar">
         <table className="w-full text-left border-collapse min-w-0 lg:min-w-150">
           <thead className="border-b border-white/5">
@@ -40,7 +40,7 @@ export function Table({
                 <th
                   key={typeof h === 'string' ? h : idx}
                   className={clsx(
-                    'px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white/45 whitespace-nowrap',
+                    'px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white/40 whitespace-nowrap',
                     columnWidths?.[idx],
                   )}
                 >
@@ -65,7 +65,7 @@ export function Table({
               ))
             ) : isEmpty ? (
               <tr>
-                <td colSpan={headers.length} className="py-8 px-3">
+                <td colSpan={headers.length} className="py-4 px-2">
                   <AdminEmptyState
                     icon={Ghost}
                     title={t('admin.table.empty_title')}

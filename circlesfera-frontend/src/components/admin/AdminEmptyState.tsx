@@ -12,9 +12,8 @@ interface AdminEmptyStateProps {
 }
 
 /**
- * Admin empty state — thin domain wrapper over the shared EmptyState visual language.
- * Keeps Lucide icons + ReactNode actions required by admin tables; density matches
- * consumer EmptyState (Wave 1 state kit).
+ * Flat empty state — no nested glass card (parent panes are already glass).
+ * Supports left-aligned hint via className (e.g. split empty detail).
  */
 export function AdminEmptyState({
   icon: Icon = Inbox,
@@ -24,34 +23,36 @@ export function AdminEmptyState({
   className,
   compact = false,
 }: AdminEmptyStateProps) {
+  const isStart =
+    typeof className === 'string' &&
+    (className.includes('items-start') || className.includes('text-left'));
+
   return (
     <div
       className={clsx(
-        'flex flex-col items-center justify-center text-center mx-auto max-w-sm rounded-2xl border border-white/10 bg-surface-elevated/60',
-        compact ? 'py-8 px-4 gap-2' : 'py-10 px-6 gap-3',
+        'flex flex-col mx-auto max-w-xs w-full',
+        isStart
+          ? 'items-start text-left'
+          : 'items-center justify-center text-center',
+        compact ? 'py-4 px-2 gap-1.5' : 'py-6 px-3 gap-2',
         className,
       )}
     >
       <div
         className={clsx(
-          'rounded-2xl flex items-center justify-center text-brand-primary/80 border border-brand-primary/20',
-          compact ? 'w-12 h-12' : 'w-14 h-14',
+          'rounded-lg flex items-center justify-center text-brand-primary/70 border border-brand-primary/15 bg-brand-primary/8',
+          compact ? 'w-8 h-8' : 'w-10 h-10',
         )}
-        style={{
-          background:
-            'linear-gradient(135deg, rgba(var(--brand-primary-rgb), 0.18) 0%, rgba(82, 113, 255, 0.12) 100%)',
-          boxShadow: '0 4px 20px rgba(var(--brand-primary-rgb), 0.12)',
-        }}
       >
-        <Icon size={compact ? 22 : 28} />
+        <Icon size={compact ? 14 : 18} />
       </div>
-      <p className="text-sm font-semibold text-white">{title}</p>
+      <p className="text-xs font-semibold text-white/70">{title}</p>
       {description && (
-        <p className="text-xs text-white/50 max-w-xs leading-relaxed">
+        <p className="text-[11px] text-white/40 max-w-xs leading-snug">
           {description}
         </p>
       )}
-      {action && <div className="mt-2 w-full sm:w-auto">{action}</div>}
+      {action && <div className="mt-1 w-full sm:w-auto">{action}</div>}
     </div>
   );
 }
