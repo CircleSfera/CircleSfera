@@ -1,5 +1,5 @@
 import { clsx } from 'clsx';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import {
   CheckCircle,
   ChevronLeft,
@@ -214,7 +214,7 @@ export function Pagination({ meta, onPageChange }: PaginationProps) {
 
   return (
     <div className="px-1 sm:px-2 py-2.5 flex flex-wrap items-center justify-between gap-3 border-t border-white/5">
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-white/40">
         {meta.total === 0
           ? t('admin.table.results_count', { count: 0 })
           : t('admin.table.pagination_from_to', {
@@ -225,7 +225,7 @@ export function Pagination({ meta, onPageChange }: PaginationProps) {
       </p>
       {showPager && (
         <div className="flex items-center gap-2 ml-auto">
-          <p className="text-xs text-gray-400 sm:hidden font-semibold">
+          <p className="text-xs text-white/50 sm:hidden font-semibold">
             {t('admin.table.pagination_page', {
               page: meta.page,
               totalPages: meta.totalPages,
@@ -312,7 +312,7 @@ export function SearchInput({
       icon={
         <svg
           aria-hidden="true"
-          className="text-gray-500 w-5 h-5"
+          className="text-white/40 w-5 h-5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

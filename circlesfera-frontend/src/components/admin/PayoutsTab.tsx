@@ -90,19 +90,19 @@ export default function PayoutsTab() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
         <StatCard
-          label="Pagados"
+          label={t('admin.payouts.kpi_paid')}
           value={statsData?.paid || 0}
           icon={CheckCircle2}
           color="green"
         />
         <StatCard
-          label="Pendientes"
+          label={t('admin.payouts.kpi_pending')}
           value={statsData?.pending || 0}
           icon={Clock}
           color="yellow"
         />
         <StatCard
-          label="Fallidos"
+          label={t('admin.payouts.kpi_failed')}
           value={statsData?.failed || 0}
           icon={AlertCircle}
           color="red"
@@ -114,14 +114,11 @@ export default function PayoutsTab() {
           <SearchInput
             value={searchQuery}
             onChange={handleSearchChange}
-            placeholder={t(
-              'admin.payouts.search',
-              'Buscar por usuario o ID...',
-            )}
+            placeholder={t('admin.payouts.search_placeholder')}
           />
         </div>
         <FilterDropdown
-          label="Estado"
+          label={t('admin.payouts.filter_status')}
           value={statusFilter}
           onChange={(v) => {
             setStatusFilter(v);
@@ -131,10 +128,13 @@ export default function PayoutsTab() {
             });
           }}
           options={[
-            { label: 'Todos', value: '' },
-            { label: 'Pagados', value: 'paid' },
-            { label: 'Pendientes', value: 'pending' },
-            { label: 'Fallidos/Cancelados', value: 'failed' },
+            { label: t('admin.payouts.filter_all'), value: '' },
+            { label: t('admin.payouts.kpi_paid'), value: 'paid' },
+            { label: t('admin.payouts.kpi_pending'), value: 'pending' },
+            {
+              label: t('admin.payouts.filter_failed_cancelled'),
+              value: 'failed',
+            },
           ]}
         />
       </AdminFilterBar>
@@ -145,11 +145,8 @@ export default function PayoutsTab() {
         ) : data?.data.length === 0 ? (
           <AdminEmptyState
             icon={DollarSign}
-            title={t('admin.payouts.empty', 'No hay pagos registrados')}
-            description={t(
-              'admin.payouts.empty_desc',
-              'Los retiros procesados por Stripe aparecerán aquí automáticamente.',
-            )}
+            title={t('admin.payouts.empty_title')}
+            description={t('admin.payouts.empty_description')}
           />
         ) : (
           <div className="divide-y divide-white/10">

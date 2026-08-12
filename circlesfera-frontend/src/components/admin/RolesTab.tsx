@@ -145,10 +145,7 @@ export default function RolesTab({ onToast }: Props) {
               <SearchInput
                 value={searchQuery}
                 onChange={handleSearchChange}
-                placeholder={t(
-                  'admin.roles.search',
-                  'Buscar administradores...',
-                )}
+                placeholder={t('admin.roles.search_placeholder')}
               />
             </AdminFilterBar>
 

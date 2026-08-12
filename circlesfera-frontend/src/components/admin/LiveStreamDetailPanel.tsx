@@ -76,9 +76,9 @@ export default function LiveStreamDetailPanel({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-white/40">
                 <Play className="w-12 h-12 mb-3 opacity-20" />
-                <p>No hay fuente de video disponible</p>
+                <p>{t('admin.lives.no_video_source')}</p>
               </div>
             )}
 
