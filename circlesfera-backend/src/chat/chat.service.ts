@@ -1,13 +1,9 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { ErrorCode } from '@circlesfera/shared';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { type Message, type MessageReaction } from '@prisma/client';
+import { AppException } from '../common/errors/app.exception.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PushService } from '../push/push.service.js';
@@ -26,6 +22,7 @@ export class ChatService {
     @Inject(ModuleRef) private moduleRef: ModuleRef,
     @Inject(CryptoService) private cryptoService: CryptoService,
     @Inject(PushService) private pushService: PushService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   private get gateway(): AppGateway {
@@ -45,7 +42,8 @@ export class ChatService {
     );
 
     if (uniqueParticipantIds.length === 0) {
-      throw new BadRequestException(
+      throw AppException.BadRequest(
+        ErrorCode.BAD_REQUEST,
         'Cannot create a conversation with yourself',
       );
     }
@@ -60,7 +58,8 @@ export class ChatService {
     });
 
     if (blocks.length > 0) {
-      throw new ForbiddenException(
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
         'Cannot create a conversation with blocked users',
       );
     }
@@ -147,6 +146,11 @@ export class ChatService {
       },
     });
 
+    // Grant in-memory access immediately
+    conversation.participants.forEach((p) => {
+      this.gateway.addConversationToSocket(p.userId, conversation.id);
+    });
+
     return conversation;
   }
 
@@ -164,7 +168,8 @@ export class ChatService {
     });
 
     if (!participant?.isAdmin) {
-      throw new ForbiddenException(
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
         'Only group admins can update the group details',
       );
     }
@@ -210,7 +215,10 @@ export class ChatService {
     });
 
     if (!admin?.isAdmin) {
-      throw new ForbiddenException('Only group admins can remove participants');
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
+        'Only group admins can remove participants',
+      );
     }
 
     const targetParticipant = await this.prisma.participant.findFirst({
@@ -218,7 +226,7 @@ export class ChatService {
     });
 
     if (!targetParticipant) {
-      throw new NotFoundException('Participant not found');
+      throw AppException.NotFound(ErrorCode.NOT_FOUND, 'Participant not found');
     }
 
     await this.prisma.participant.delete({
@@ -259,7 +267,8 @@ export class ChatService {
     });
 
     if (!participant) {
-      throw new ForbiddenException(
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
         'You are not a participant in this conversation',
       );
     }
@@ -326,163 +335,176 @@ export class ChatService {
     voiceDuration?: number,
     voiceWaveform?: number[],
   ): Promise<Message> {
-    let conversation: any;
+    const encryptedContent = this.cryptoService.encrypt(content);
 
-    if (conversationId) {
-      conversation = await this.prisma.conversation.findUnique({
-        where: { id: conversationId },
-        include: {
-          participants: {
+    const { message, conversation } = await this.prisma.$transaction(
+      async (tx) => {
+        let conv: any;
+
+        if (conversationId) {
+          conv = await tx.conversation.findUnique({
+            where: { id: conversationId },
             include: {
-              user: {
-                select: { id: true },
+              participants: {
+                include: {
+                  user: { select: { id: true } },
+                },
               },
             },
-          },
-        },
-      });
+          });
 
-      if (!conversation) throw new NotFoundException('Conversation not found');
+          if (!conv)
+            throw AppException.NotFound(
+              ErrorCode.NOT_FOUND,
+              'Conversation not found',
+            );
 
-      // Verify participation
-      const isParticipant = conversation.participants.some(
-        (p: any) => p.userId === senderId,
-      );
-      if (!isParticipant) throw new ForbiddenException('Not a participant');
-    } else if (recipientId) {
-      // 1. Find or create 1-on-1 conversation
-      conversation = await this.prisma.conversation.findFirst({
-        where: {
-          isGroup: false,
-          AND: [
-            { participants: { some: { userId: senderId } } },
-            { participants: { some: { userId: recipientId } } },
-          ],
-        },
-        include: {
-          participants: {
+          const isParticipant = conv.participants.some(
+            (p: any) => p.userId === senderId,
+          );
+          if (!isParticipant)
+            throw AppException.Forbidden(
+              ErrorCode.FORBIDDEN_ACCESS,
+              'Not a participant',
+            );
+        } else if (recipientId) {
+          conv = await tx.conversation.findFirst({
+            where: {
+              isGroup: false,
+              AND: [
+                { participants: { some: { userId: senderId } } },
+                { participants: { some: { userId: recipientId } } },
+              ],
+            },
             include: {
-              user: {
-                select: { id: true },
+              participants: {
+                include: {
+                  user: { select: { id: true } },
+                },
               },
             },
-          },
-        },
-      });
+          });
 
-      if (!conversation) {
-        conversation = await this.prisma.conversation.create({
-          data: {
-            isGroup: false,
-            participants: {
-              create: [{ userId: senderId }, { userId: recipientId }],
-            },
+          if (!conv) {
+            conv = await tx.conversation.create({
+              data: {
+                isGroup: false,
+                participants: {
+                  create: [{ userId: senderId }, { userId: recipientId }],
+                },
+              },
+              include: { participants: true },
+            });
+          }
+        } else {
+          throw AppException.BadRequest(
+            ErrorCode.BAD_REQUEST,
+            'Either conversationId or recipientId is required',
+          );
+        }
+
+        const participantIds = conv.participants
+          .map((p: any) => p.userId)
+          .filter((id: string) => id !== senderId);
+
+        const blocks = await tx.block.findMany({
+          where: {
+            OR: [
+              { blockerId: senderId, blockedId: { in: participantIds } },
+              { blockedId: senderId, blockerId: { in: participantIds } },
+            ],
           },
-          include: { participants: true },
         });
-      }
-    } else {
-      throw new BadRequestException(
-        'Either conversationId or recipientId is required',
-      );
-    }
 
-    const participantIds = conversation.participants
-      .map((p: any) => p.userId)
-      .filter((id: string) => id !== senderId);
+        if (blocks.length > 0) {
+          throw AppException.Forbidden(
+            ErrorCode.FORBIDDEN_ACCESS,
+            'Cannot send message: Blocked by a participant or you blocked them',
+          );
+        }
 
-    const blocks = await this.prisma.block.findMany({
-      where: {
-        OR: [
-          { blockerId: senderId, blockedId: { in: participantIds } },
-          { blockedId: senderId, blockerId: { in: participantIds } },
-        ],
-      },
-    });
-
-    if (blocks.length > 0) {
-      throw new ForbiddenException(
-        'Cannot send message: Blocked by a participant or you blocked them',
-      );
-    }
-
-    // 2. Create message (content encrypted in server)
-    const message = await this.prisma.message.create({
-      data: {
-        content: this.cryptoService.encrypt(content),
-        senderId,
-        conversationId: conversation.id,
-        url,
-        mediaType,
-        postId,
-        storyId,
-        replyToId,
-        voiceUrl,
-        voiceDuration,
-        voiceWaveform: voiceWaveform
-          ? JSON.parse(JSON.stringify(voiceWaveform))
-          : undefined,
-      },
-      include: {
-        sender: {
-          select: {
-            id: true,
-            profile: {
-              select: { username: true, avatar: true },
-            },
+        const msg = await tx.message.create({
+          data: {
+            content: encryptedContent,
+            senderId,
+            conversationId: conv.id,
+            url,
+            mediaType,
+            postId,
+            storyId,
+            replyToId,
+            voiceUrl,
+            voiceDuration,
+            voiceWaveform: voiceWaveform
+              ? JSON.parse(JSON.stringify(voiceWaveform))
+              : undefined,
           },
-        },
-        post: {
-          include: {
-            media: true,
-            user: {
-              include: { profile: true },
-            },
-          },
-        },
-        story: {
-          include: {
-            user: {
-              include: { profile: true },
-            },
-          },
-        },
-        replyTo: {
           include: {
             sender: {
               select: {
                 id: true,
-                profile: { select: { username: true } },
+                profile: {
+                  select: { username: true, avatar: true },
+                },
+              },
+            },
+            post: {
+              include: {
+                media: true,
+                user: {
+                  include: { profile: true },
+                },
+              },
+            },
+            story: {
+              include: {
+                user: {
+                  include: { profile: true },
+                },
+              },
+            },
+            replyTo: {
+              include: {
+                sender: {
+                  select: {
+                    id: true,
+                    profile: { select: { username: true } },
+                  },
+                },
+              },
+            },
+            reactions: {
+              include: {
+                user: {
+                  select: {
+                    profile: { select: { username: true } },
+                  },
+                },
               },
             },
           },
-        },
-        reactions: {
-          include: {
-            user: {
-              select: {
-                profile: { select: { username: true } },
-              },
-            },
-          },
-        },
-      },
-    });
+        });
 
-    // 3. Reactivate conversation for all participants (if they had deleted it)
-    await this.prisma.participant.updateMany({
-      where: {
-        conversationId: conversation.id,
-        deletedAt: { not: null },
+        await tx.participant.updateMany({
+          where: {
+            conversationId: conv.id,
+            deletedAt: { not: null },
+          },
+          data: {
+            deletedAt: null,
+          },
+        });
+
+        return { message: msg, conversation: conv };
       },
-      data: {
-        deletedAt: null,
-      },
-    });
+    );
 
     // 4. Emit to all participants
     // We send decrypted content to the client in real-time
     conversation.participants.forEach((p: any) => {
+      // Ensure the user has in-memory access for real-time typing events
+      this.gateway.addConversationToSocket(p.userId, conversation.id);
+
       this.gateway.server
         .to(`user:${p.userId}`)
         .emit('receiveMessage', { ...message, content, tempId });
@@ -624,15 +646,16 @@ export class ChatService {
    * @param limit - Maximum number of messages to return (default 50)
    * @param userId - Optional user ID for participant validation
    * @returns Array of messages ordered by creation time (ascending)
-   * @throws ForbiddenException if user is not a participant
+   * @throws AppException.Forbidden if user is not a participant
    */
   async getMessages(
     conversationId: string,
     limit = 50,
     userId?: string,
   ): Promise<Message[]> {
+    let isParticipant = null;
     if (userId) {
-      const isParticipant = await this.prisma.participant.findFirst({
+      isParticipant = await this.prisma.participant.findFirst({
         where: {
           conversationId,
           userId,
@@ -640,14 +663,20 @@ export class ChatService {
       });
 
       if (!isParticipant) {
-        throw new ForbiddenException(
+        throw AppException.Forbidden(
+          ErrorCode.FORBIDDEN_ACCESS,
           'You are not a participant in this conversation',
         );
       }
     }
 
+    const whereClause: any = { conversationId };
+    if (isParticipant?.clearedAt) {
+      whereClause.createdAt = { gt: isParticipant.clearedAt };
+    }
+
     const messages = await this.prisma.message.findMany({
-      where: { conversationId },
+      where: whereClause,
       orderBy: { createdAt: 'asc' },
       take: limit,
       include: {
@@ -735,7 +764,7 @@ export class ChatService {
     });
 
     if (!message) {
-      throw new NotFoundException('Message not found');
+      throw AppException.NotFound(ErrorCode.NOT_FOUND, 'Message not found');
     }
 
     const isParticipant = message.conversation.participants.some(
@@ -743,7 +772,10 @@ export class ChatService {
     );
 
     if (!isParticipant) {
-      throw new ForbiddenException('Not a participant in this conversation');
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
+        'Not a participant in this conversation',
+      );
     }
     // Check if reaction exists for toggle logic
     const existing = await this.prisma.messageReaction.findUnique({
@@ -790,10 +822,14 @@ export class ChatService {
    * Delete a conversation for a user. Only participants can delete.
    * @param conversationId - The conversation ID to delete
    * @param userId - The requesting user's ID
-   * @throws NotFoundException if conversation not found
-   * @throws ForbiddenException if user is not a participant
+   * @throws AppException.NotFound if conversation not found
+   * @throws AppException.Forbidden if user is not a participant
    */
-  async deleteConversation(conversationId: string, userId: string) {
+  async deleteConversation(
+    conversationId: string,
+    userId: string,
+    mode: 'me' | 'both' = 'me',
+  ) {
     const isParticipant = await this.prisma.participant.findFirst({
       where: {
         conversationId,
@@ -802,23 +838,40 @@ export class ChatService {
     });
 
     if (!isParticipant) {
-      throw new ForbiddenException(
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
         'You are not a participant in this conversation',
       );
     }
 
-    // Soft delete for this user only
-    await this.prisma.participant.update({
-      where: { id: isParticipant.id },
-      data: { deletedAt: new Date() },
-    });
+    if (mode === 'both') {
+      await this.prisma.participant.updateMany({
+        where: { conversationId },
+        data: { deletedAt: new Date(), clearedAt: new Date() },
+      });
 
-    // Emit only to the user who deleted it
-    this.gateway.server
-      .to(`user:${userId}`)
-      .emit('conversationDeleted', { conversationId });
+      const participants = await this.prisma.participant.findMany({
+        where: { conversationId },
+        select: { userId: true },
+      });
 
-    return { success: true, mode: 'me' };
+      participants.forEach((p) => {
+        this.gateway.server
+          .to(`user:${p.userId}`)
+          .emit('conversationDeleted', { conversationId });
+      });
+    } else {
+      await this.prisma.participant.update({
+        where: { id: isParticipant.id },
+        data: { deletedAt: new Date(), clearedAt: new Date() },
+      });
+
+      this.gateway.server
+        .to(`user:${userId}`)
+        .emit('conversationDeleted', { conversationId });
+    }
+
+    return { success: true, mode };
   }
 
   /**
@@ -830,12 +883,19 @@ export class ChatService {
       include: { conversation: { include: { participants: true } } },
     });
 
-    if (!message) throw new NotFoundException('Message not found');
+    if (!message)
+      throw AppException.NotFound(ErrorCode.NOT_FOUND, 'Message not found');
     if (message.senderId !== userId) {
-      throw new ForbiddenException('You can only edit your own messages');
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
+        'You can only edit your own messages',
+      );
     }
     if (message.isDeleted) {
-      throw new BadRequestException('Cannot edit a deleted message');
+      throw AppException.BadRequest(
+        ErrorCode.BAD_REQUEST,
+        'Cannot edit a deleted message',
+      );
     }
 
     const updated = await this.prisma.message.update({
@@ -874,9 +934,13 @@ export class ChatService {
       include: { conversation: { include: { participants: true } } },
     });
 
-    if (!message) throw new NotFoundException('Message not found');
+    if (!message)
+      throw AppException.NotFound(ErrorCode.NOT_FOUND, 'Message not found');
     if (message.senderId !== userId) {
-      throw new ForbiddenException('You can only delete your own messages');
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
+        'You can only delete your own messages',
+      );
     }
 
     // Soft delete: clear content and keys, set isDeleted
@@ -924,6 +988,30 @@ export class ChatService {
       }
     } catch (error) {
       this.logger.error('Failed to clean up expired messages', error);
+    }
+  }
+
+  @OnEvent('user.hard_deleted')
+  async handleUserDeleted(payload: { userId: string }) {
+    const messages = await this.prisma.message.findMany({
+      where: { senderId: payload.userId },
+    });
+
+    const mediaUrls = new Set<string>();
+    for (const msg of messages) {
+      if (msg.url) mediaUrls.add(msg.url);
+      if (msg.standardUrl) mediaUrls.add(msg.standardUrl);
+      if (msg.thumbnailUrl) mediaUrls.add(msg.thumbnailUrl);
+      if (msg.voiceUrl) mediaUrls.add(msg.voiceUrl);
+    }
+
+    if (mediaUrls.size > 0) {
+      this.logger.log(
+        `Emitting media.delete_batch for ${mediaUrls.size} files...`,
+      );
+      this.eventEmitter.emit('media.delete_batch', {
+        mediaUrls: Array.from(mediaUrls),
+      });
     }
   }
 }

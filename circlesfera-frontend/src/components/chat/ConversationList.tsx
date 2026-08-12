@@ -8,7 +8,8 @@ import { apiClient } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
 import type { Conversation, Message, Participant } from '../../types';
-
+import { EmptyState } from '../ErrorEmptyStates';
+import { LoadingSpinner } from '../LoadingStates';
 import UserAvatar from '../UserAvatar';
 import NewChatModal from './NewChatModal';
 
@@ -24,7 +25,7 @@ export default function ConversationList() {
     },
   });
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
-  const { profile: me } = useAuthStore();
+  const me = useAuthStore((state) => state.profile);
   const [searchQuery, setSearchQuery] = useState('');
   const { t } = useTranslation();
 
@@ -97,9 +98,9 @@ export default function ConversationList() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full bg-black/95 border-r border-white/10 items-center justify-center space-y-4">
-        <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-        <p className="text-sm text-gray-500 font-medium">{t('chat.loading')}</p>
+      <div className="flex flex-col h-full bg-black/95 border-r border-white/10 items-center justify-center gap-3">
+        <LoadingSpinner size="md" />
+        <p className="text-sm text-white/50 font-medium">{t('chat.loading')}</p>
       </div>
     );
   }
@@ -107,11 +108,11 @@ export default function ConversationList() {
   return (
     <div className="flex flex-col h-full bg-transparent">
       {/* Header Area */}
-      <div className="p-4 flex flex-col gap-4 bg-black/80 backdrop-blur-2xl sticky top-0 z-10 border-b border-white/10">
+      <div className="p-2.5 md:p-4 flex flex-col gap-3 md:gap-4 bg-black/80 backdrop-blur-2xl sticky top-0 z-10 border-b border-white/10">
         <div className="flex justify-between items-center">
           <Link
             to="/"
-            className="p-2 -ml-2 text-white hover:bg-white/10 rounded-full transition-colors"
+            className="w-11 h-11 -ml-2 text-white hover:bg-white/10 rounded-full transition-colors flex items-center justify-center"
           >
             <ChevronLeft size={28} />
           </Link>
@@ -121,7 +122,7 @@ export default function ConversationList() {
           <button
             type="button"
             onClick={() => setIsNewChatOpen(true)}
-            className="p-2 -mr-2 text-white hover:bg-white/10 rounded-full transition-colors"
+            className="w-11 h-11 -mr-2 text-white hover:bg-white/10 rounded-full transition-colors flex items-center justify-center"
           >
             <Edit size={24} />
           </button>
@@ -140,7 +141,7 @@ export default function ConversationList() {
             placeholder={t('chat.search')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/10 text-sm text-white rounded-xl py-2 pl-9 pr-4 focus:bg-white/20 outline-none placeholder-gray-400 transition-all font-medium"
+            className="w-full h-11 bg-white/10 text-sm text-white rounded-xl pl-9 pr-4 focus:bg-white/20 outline-none placeholder-gray-400 transition-all font-medium"
           />
         </div>
       </div>
@@ -152,32 +153,15 @@ export default function ConversationList() {
       <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
         <AnimatePresence initial={false}>
           {conversations.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center justify-center h-64 text-center p-8 space-y-4"
-            >
-              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center transform rotate-12 rings-1 ring-white/10">
-                <Edit className="w-7 h-7 text-white/40" />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold text-white">
-                  {t('chat.no_messages')}
-                </h3>
-                <p className="text-xs text-gray-500 max-w-45 mx-auto mt-1 leading-relaxed">
-                  {t('chat.start_connecting')}
-                </p>
-              </div>
-              <motion.button
-                type="button"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsNewChatOpen(true)}
-                className="px-5 py-2 bg-white text-black text-sm font-semibold rounded-full hover:bg-gray-100 transition-colors"
-              >
-                {t('chat.send_message')}
-              </motion.button>
-            </motion.div>
+            <EmptyState
+              icon="comments"
+              title={t('chat.no_messages')}
+              message={t('chat.start_connecting')}
+              action={{
+                label: t('chat.send_message'),
+                onClick: () => setIsNewChatOpen(true),
+              }}
+            />
           ) : (
             filteredConversations.map((conv) => {
               const participants = conv.participants || [];
@@ -213,17 +197,17 @@ export default function ConversationList() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className={`group relative flex items-center p-3 rounded-lg transition-all duration-300 ${
+                    className={`group relative flex items-center min-h-[72px] py-3 px-3 rounded-lg transition-all duration-300 ${
                       isActive
                         ? 'bg-white/10 shadow-lg shadow-black/20'
-                        : 'hover:bg-white/5 hover:scale-[1.02]'
+                        : 'hover:bg-white/5'
                     }`}
                   >
                     {/* Active Indicator Bar */}
                     {isActive && (
                       <motion.div
                         layoutId="active-bar"
-                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-linear-to-b from-brand-secondary to-brand-primary rounded-r-full shadow-[0_0_15px_rgba(131,58,180,0.5)]"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-linear-to-b from-brand-secondary to-brand-primary rounded-r-full shadow-[0_0_15px_rgba(var(--brand-primary-rgb),0.5)]"
                       />
                     )}
 
@@ -233,15 +217,15 @@ export default function ConversationList() {
                         thumbnailUrl={other?.profile?.thumbnailUrl}
                         standardUrl={other?.profile?.standardUrl}
                         alt={other?.profile?.username || 'User'}
-                        className={`w-12 h-12 transition-all hover:opacity-90`}
+                        size="md"
                         isOnline={isOnline}
                       />
                     </div>
 
-                    <div className="flex-1 min-w-0 ml-3.5">
+                    <div className="flex-1 min-w-0 ml-3">
                       <div className="flex justify-between items-center mb-0.5">
                         <span
-                          className={`truncate text-xs ${isActive || isUnread ? 'font-semibold text-white' : 'font-medium text-white/90'}`}
+                          className={`truncate text-sm ${isActive || isUnread ? 'font-semibold text-white' : 'font-medium text-white/90'}`}
                         >
                           {conv.name ||
                             other?.profile?.fullName ||
@@ -249,7 +233,7 @@ export default function ConversationList() {
                         </span>
                         {lastMsg && (
                           <span
-                            className={`text-xs font-bold ${isActive ? 'text-brand-primary drop-shadow-[0_0_5px_rgba(131,58,180,0.5)]' : 'text-gray-500'}`}
+                            className={`text-[11px] font-bold shrink-0 ml-2 ${isActive ? 'text-brand-primary drop-shadow-[0_0_5px_rgba(var(--brand-primary-rgb),0.5)]' : 'text-white/40'}`}
                           >
                             {getTimeString(lastMsg.createdAt)}
                           </span>
@@ -257,7 +241,7 @@ export default function ConversationList() {
                       </div>
                       <div className="flex items-center text-xs">
                         <p
-                          className={`truncate max-w-[85%] ${isActive ? 'text-white/70' : isUnread ? 'text-white font-bold' : 'text-gray-500'}`}
+                          className={`truncate max-w-[85%] ${isActive ? 'text-white/70' : isUnread ? 'text-white font-bold' : 'text-white/45'}`}
                         >
                           {lastMsg ? (
                             <>

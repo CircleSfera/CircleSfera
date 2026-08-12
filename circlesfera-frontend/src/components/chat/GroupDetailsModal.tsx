@@ -19,7 +19,7 @@ export default function GroupDetailsModal({
   onRemoveParticipant,
   onLeaveGroup,
 }: GroupDetailsModalProps) {
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(conversation.name || '');
   const [editAvatarUrl, setEditAvatarUrl] = useState(

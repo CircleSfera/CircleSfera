@@ -195,7 +195,7 @@ export class FeedService {
             (
               ((1 - (pe.vector <=> ${targetVectorStr}::vector)) * 0.4) +
               (COALESCE(sg.weight, 1.0) * 0.3) +
-              (COALESCE(p."performanceScore", 0) * 0.3)
+              ((1.0 - EXP(-COALESCE(p."performanceScore", 0) / 100.0)) * 0.3)
             ) * EXP(-EXTRACT(EPOCH FROM (NOW() - p."createdAt")) / 86400.0) AS final_score
             
           FROM "posts" p
@@ -249,7 +249,7 @@ export class FeedService {
             -- Final Hybrid Score Calculation (Without AI)
             (
               (COALESCE(sg.weight, 1.0) * 0.5) +
-              (COALESCE(p."performanceScore", 0) * 0.5)
+              ((1.0 - EXP(-COALESCE(p."performanceScore", 0) / 100.0)) * 0.5)
             ) * EXP(-EXTRACT(EPOCH FROM (NOW() - p."createdAt")) / 86400.0) AS final_score
             
           FROM "posts" p

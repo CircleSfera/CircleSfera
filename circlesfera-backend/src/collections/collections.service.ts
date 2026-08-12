@@ -1,9 +1,6 @@
-import {
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ErrorCode } from '@circlesfera/shared';
+import { Inject, Injectable } from '@nestjs/common';
+import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 /**
@@ -91,9 +88,13 @@ export class CollectionsService {
       },
     })) as { userId: string } | null;
 
-    if (!collection) throw new NotFoundException('Collection not found');
+    if (!collection)
+      throw AppException.NotFound(
+        ErrorCode.COLLECTION_NOT_FOUND,
+        'Collection not found',
+      );
     if (collection.userId !== userId)
-      throw new ForbiddenException('Access denied');
+      throw AppException.Forbidden(ErrorCode.FORBIDDEN_ACCESS, 'Access denied');
 
     return collection;
   }
@@ -111,9 +112,13 @@ export class CollectionsService {
       where: { id },
     })) as { userId: string } | null;
 
-    if (!collection) throw new NotFoundException('Collection not found');
+    if (!collection)
+      throw AppException.NotFound(
+        ErrorCode.COLLECTION_NOT_FOUND,
+        'Collection not found',
+      );
     if (collection.userId !== userId)
-      throw new ForbiddenException('Access denied');
+      throw AppException.Forbidden(ErrorCode.FORBIDDEN_ACCESS, 'Access denied');
 
     return await this.prisma.collection.update({
       where: { id },
@@ -133,9 +138,13 @@ export class CollectionsService {
       where: { id },
     })) as { userId: string } | null;
 
-    if (!collection) throw new NotFoundException('Collection not found');
+    if (!collection)
+      throw AppException.NotFound(
+        ErrorCode.COLLECTION_NOT_FOUND,
+        'Collection not found',
+      );
     if (collection.userId !== userId)
-      throw new ForbiddenException('Access denied');
+      throw AppException.Forbidden(ErrorCode.FORBIDDEN_ACCESS, 'Access denied');
 
     return await this.prisma.collection.delete({
       where: { id },

@@ -22,11 +22,11 @@ export default function ProfileTabs({
   if (!canView) return null;
 
   return (
-    <div className="flex justify-center gap-2 md:gap-4 mb-6 p-1 bg-black/40 backdrop-blur-xl rounded-lg border border-white/5 w-fit mx-auto">
+    <div className="flex justify-center gap-1.5 md:gap-4 mb-3 md:mb-6 p-1 bg-black/40 backdrop-blur-xl rounded-lg border border-white/5 w-fit mx-auto">
       <button
         type="button"
         onClick={() => setActiveTab('posts')}
-        className={`flex items-center gap-2.5 px-5 py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
+        className={`flex items-center gap-2.5 px-3 md:px-5 py-1.5 md:py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
           activeTab === 'posts'
             ? 'text-white'
             : 'text-zinc-400 hover:text-zinc-300'

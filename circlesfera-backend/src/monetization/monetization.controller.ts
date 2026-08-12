@@ -10,6 +10,7 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { ConnectStripeDto } from './dto/connect-stripe.dto.js';
 import { SendTipDto } from './dto/send-tip.dto.js';
 import { UnlockMessageDto } from './dto/unlock-message.dto.js';
@@ -35,13 +36,12 @@ export class MonetizationController {
   @Get('transactions')
   async getTransactions(
     @Req() req: AuthRequest,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query() pagination: PaginationDto,
   ) {
     return this.monetizationService.getTransactions(
       req.user.userId,
-      page ? Number.parseInt(page, 10) : 1,
-      limit ? Number.parseInt(limit, 10) : 20,
+      pagination.page,
+      pagination.limit,
     );
   }
 

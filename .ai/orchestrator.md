@@ -32,9 +32,10 @@ Pick the **single** best match. If two apply, take the higher row — security a
 | 17 | Docs are wrong or out of date | [`playbooks/docs-sync.md`](./playbooks/docs-sync.md) | documentation → the owning domain specialist |
 | 18 | "Is this a good idea?", scope, trade-offs, architecture direction | none — advisory | cto → staff-architect → product → the affected specialists |
 | 19 | Reviewing an existing diff or PR | none — review only | code-reviewer → security → the affected specialists |
+| 20 | Architecture audit, transversal code review, drift detection | [`playbooks/audit.md`](./playbooks/audit.md) | auditor → staff-architect → security |
 
 Cannot classify, or the request spans four or more rows? Say so, propose a split, and ask which part
-to start with. Do not silently pick one.
+to start with. Do not silently pick one. **Exception**: Requests routed to the `auditor` specialist (row 20) are exempt from this limit and may span any number of domains for read-only analysis.
 
 ## Step 2 — Run the mandatory protocol
 

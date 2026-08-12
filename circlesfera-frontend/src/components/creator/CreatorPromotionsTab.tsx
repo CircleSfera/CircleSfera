@@ -8,7 +8,6 @@ import {
   Play,
   Plus,
   RefreshCw,
-  TrendingUp,
   XCircle,
   Zap,
 } from 'lucide-react';
@@ -22,6 +21,7 @@ import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse } from '../../types';
 import { AdminListRow } from '../admin/AdminList';
 import { AdminSplitView } from '../admin/AdminSplitView';
+import { EmptyState } from '../ErrorEmptyStates';
 import { Button } from '../ui';
 import NewPromoModal from './NewPromoModal';
 
@@ -416,24 +416,15 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
           ))}
         </div>
       ) : !data?.data?.length ? (
-        <div className="text-center py-16 rounded-xl border border-dashed border-white/10">
-          <div className="inline-flex p-5 rounded-full bg-brand-primary/5 mb-5">
-            <TrendingUp size={40} className="text-brand-primary/40" />
-          </div>
-          <h4 className="text-white font-semibold text-lg mb-2">
-            {t('creator.promotions.no_active')}
-          </h4>
-          <p className="text-zinc-400 text-sm max-w-sm mx-auto mb-8">
-            {t('creator.promotions.boost_desc')}
-          </p>
-          <Button
-            variant="primary"
-            className="min-h-11"
-            onClick={() => setShowNewPromo(true)}
-          >
-            {t('creator.promotions.create_first')}
-          </Button>
-        </div>
+        <EmptyState
+          icon="posts"
+          title={t('creator.promotions.no_active')}
+          message={t('creator.promotions.boost_desc')}
+          action={{
+            label: t('creator.promotions.create_first'),
+            onClick: () => setShowNewPromo(true),
+          }}
+        />
       ) : (
         <AdminSplitView
           hasSelection={!!selected}
@@ -587,7 +578,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
         <div className="flex items-center justify-center gap-2 flex-wrap">
           <Button
             variant="ghost"
-            size="sm"
+            size="compact"
             className="min-h-11"
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -599,7 +590,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
           </span>
           <Button
             variant="ghost"
-            size="sm"
+            size="compact"
             className="min-h-11"
             disabled={page >= data.meta.totalPages}
             onClick={() =>

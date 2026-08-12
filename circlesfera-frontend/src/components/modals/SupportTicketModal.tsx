@@ -24,7 +24,7 @@ export default function SupportTicketModal({
   onClose,
 }: SupportTicketModalProps) {
   const { t } = useTranslation();
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [email, setEmail] = useState(profile?.user?.email || '');
@@ -172,7 +172,7 @@ export default function SupportTicketModal({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu@email.com"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-brand-primary/50"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-12 text-white text-sm focus:outline-none focus:border-brand-primary/50"
                 />
               </div>
 
@@ -188,7 +188,7 @@ export default function SupportTicketModal({
                     id="support-category"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-brand-primary/50"
+                    className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 h-12 text-white text-sm focus:outline-none focus:border-brand-primary/50"
                   >
                     <option value="TECHNICAL">Error Técnico</option>
                     <option value="BILLING">Facturación y Cobros</option>
@@ -211,7 +211,7 @@ export default function SupportTicketModal({
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     placeholder="Resumen del problema"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-brand-primary/50"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-12 text-white text-sm focus:outline-none focus:border-brand-primary/50"
                   />
                 </div>
               </div>
@@ -247,7 +247,7 @@ export default function SupportTicketModal({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-gray-300 transition-colors"
+                  className="flex items-center justify-center gap-2 px-3 h-10 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-gray-300 transition-colors"
                 >
                   {isUploading ? (
                     <Loader2 size={14} className="animate-spin" />
@@ -262,7 +262,7 @@ export default function SupportTicketModal({
                 <button
                   type="submit"
                   disabled={isSubmitting || isUploading}
-                  className="px-5 py-2.5 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-brand-primary/20 disabled:opacity-50 flex items-center gap-2"
+                  className="px-5 h-11 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-brand-primary/20 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
                     <Loader2 size={16} className="animate-spin" />

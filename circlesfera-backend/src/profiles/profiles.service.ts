@@ -1,6 +1,7 @@
+import { ErrorCode } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   type AccountType,
   SubscriptionStatus,
@@ -8,6 +9,7 @@ import {
 } from '@prisma/client';
 import type { Queue } from 'bullmq';
 import type { Cache } from 'cache-manager';
+import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
@@ -88,7 +90,10 @@ export class ProfilesService {
     });
 
     if (!profile) {
-      throw new NotFoundException('Profile not found');
+      throw AppException.NotFound(
+        ErrorCode.PROFILE_NOT_FOUND,
+        'Profile not found',
+      );
     }
 
     // Check if user is verified via subscription
@@ -204,7 +209,10 @@ export class ProfilesService {
     });
 
     if (!profile) {
-      throw new NotFoundException('Profile not found');
+      throw AppException.NotFound(
+        ErrorCode.PROFILE_NOT_FOUND,
+        'Profile not found',
+      );
     }
 
     const { accountType, isPrivate, ...profileData } = dto;
@@ -322,7 +330,7 @@ export class ProfilesService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
     }
 
     return {
@@ -363,7 +371,10 @@ export class ProfilesService {
     });
 
     if (!profile) {
-      throw new NotFoundException('Profile not found');
+      throw AppException.NotFound(
+        ErrorCode.PROFILE_NOT_FOUND,
+        'Profile not found',
+      );
     }
 
     // Check if user is verified via subscription

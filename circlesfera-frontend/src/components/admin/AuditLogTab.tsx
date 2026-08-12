@@ -242,7 +242,7 @@ export default function AuditLogTab() {
                   <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
                     {t('admin.audit.col_details', 'Detalles')}
                   </p>
-                  <pre className="text-xs text-gray-300 whitespace-pre-wrap break-all bg-white/[0.03] border border-white/5 rounded-lg p-3 font-mono leading-relaxed">
+                  <pre className="text-xs text-gray-300 whitespace-pre-wrap break-all bg-white/3 border border-white/5 rounded-lg p-3 font-mono leading-relaxed">
                     {selected.details}
                   </pre>
                 </div>

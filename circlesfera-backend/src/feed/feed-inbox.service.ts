@@ -60,8 +60,8 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
 
       for (const followerId of followerIds) {
         const key = `user:${followerId}:inbox`;
-        pipeline.lpush(key, postId);
-        pipeline.ltrim(key, 0, this.INBOX_LIMIT - 1);
+        pipeline.zadd(key, Date.now(), postId);
+        pipeline.zremrangebyrank(key, 0, -(this.INBOX_LIMIT + 1));
       }
 
       await pipeline.exec();
@@ -86,9 +86,8 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
 
     const key = `user:${userId}:inbox`;
     try {
-      // Redis LRANGE is inclusive on both ends, so we subtract 1 from the end index
       const end = skip + limit - 1;
-      return await this.redisClient.lrange(key, skip, end);
+      return await this.redisClient.zrevrange(key, skip, end);
     } catch (error) {
       this.logger.error(`Error getting inbox for user ${userId}: ${error}`);
       return [];
@@ -150,7 +149,8 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
     if (!this.redisClient) return 0;
     const key = `user:${userId}:inbox`;
     try {
-      return await this.redisClient.llen(key);
+      const count = await this.redisClient.zcard(key);
+      return count;
     } catch (error) {
       this.logger.error(
         `Error getting inbox count for user ${userId}: ${error}`,

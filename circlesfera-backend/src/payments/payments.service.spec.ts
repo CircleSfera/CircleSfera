@@ -23,9 +23,10 @@ describe('PaymentsService', () => {
           provide: PrismaService,
           useValue: {
             webhookEvent: {
-              create: vi.fn().mockResolvedValue({ id: 'wh_1' }),
+              findUnique: vi.fn(),
+              create: vi.fn(),
               update: vi.fn(),
-              findUnique: vi.fn().mockResolvedValue(null),
+              updateMany: vi.fn().mockResolvedValue({ count: 1 }),
             },
             postUnlock: { upsert: vi.fn(), deleteMany: vi.fn() },
             storyUnlock: { upsert: vi.fn(), deleteMany: vi.fn() },

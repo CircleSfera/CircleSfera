@@ -274,7 +274,7 @@ export default function PromotionsTab({ onToast }: Props) {
                     <UserAvatar
                       src={selectedPromo.user.profile.avatar || undefined}
                       alt={selectedPromo.user.profile.username}
-                      size="sm"
+                      size="compact"
                     />
                     <div>
                       <h3 className="text-sm font-semibold text-white">
@@ -335,7 +335,7 @@ export default function PromotionsTab({ onToast }: Props) {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-3 sm:p-4 flex flex-col items-center">
-                  <div className="w-full max-w-2xl mb-4 grid grid-cols-2 sm:grid-cols-4 rounded-lg bg-white/[0.03] overflow-hidden divide-x divide-y sm:divide-y-0 divide-white/5">
+                  <div className="w-full max-w-2xl mb-4 grid grid-cols-2 sm:grid-cols-4 rounded-lg bg-white/3 overflow-hidden divide-x divide-y sm:divide-y-0 divide-white/5">
                     <div className="px-3 py-2.5">
                       <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide mb-0.5">
                         {t('admin.promotions.budget_label')}

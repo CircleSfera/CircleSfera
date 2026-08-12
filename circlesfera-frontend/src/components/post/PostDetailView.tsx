@@ -100,11 +100,12 @@ export default memo(function PostDetailView({
             menuButtonRef={menuButtonRef}
             onMenuToggle={() => setShowMenu(!showMenu)}
             size="default"
+            showBack
           />
         </div>
 
         {/* Media — full width on mobile, left column spanning rows on desktop */}
-        <div className="[grid-area:media] bg-black/60 flex justify-center items-center md:border-r md:border-white/8 relative min-h-75 md:min-h-112.5 overflow-hidden group">
+        <div className="[grid-area:media] bg-black/60 flex justify-center items-center md:border-r md:border-white/8 relative aspect-4/5 md:aspect-auto md:min-h-112.5 overflow-hidden group">
           {/* Blurred backdrop image to eliminate letterbox empty black space */}
           {post.media?.[0]?.url && (
             <img
@@ -116,8 +117,8 @@ export default memo(function PostDetailView({
 
           <PostMedia
             post={post}
-            aspectRatio="aspect-auto"
-            className="w-full h-full relative z-10"
+            aspectRatio="aspect-4/5"
+            className="w-full h-full relative z-10 bg-transparent"
             objectFit="contain"
             priority={priority}
           />

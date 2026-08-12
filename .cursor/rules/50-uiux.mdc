@@ -10,13 +10,16 @@ Improve usability without changing CircleSfera's visual identity.
 `tailwind.config.js`:
 
 ```text
---brand-primary #833ab4   --brand-secondary #fd1d1d   --brand-accent #fcb045   --brand-blue #405de6
+--brand-primary #8c52ff   --brand-secondary #ff5757   --brand-accent #ff7657   --brand-blue #5271ff
 --surface-base #030303    --surface-elevated #0a0a0a  --surface-raised #1c1c1c --surface-high #262626
 --glass-border / --glass-surface / --glass-highlight
+--nav-top-height 52px     --nav-bottom-height 60px
+--avatar-sm 32px / md 40px / lg 56px / profile 96px
 ```
 
 Use them as `bg-brand-primary`, `bg-surface-raised`, and so on. A raw hex or a stock Tailwind palette
-colour in a component is a finding.
+colour in a component is a finding. Prefer `UserAvatar` over the `ui/Avatar` re-export. New modals
+MUST use `ui/Dialog` (Confirm / Report / Followers already do).
 
 Rules:
 

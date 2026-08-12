@@ -118,9 +118,7 @@ export default function ExploreColdStart({
                   to={`/${user.username}`}
                   className="font-bold text-white mb-1 flex items-center justify-center gap-1 group-hover:text-brand-primary transition-colors"
                 >
-                  <span className="truncate max-w-[120px]">
-                    {user.username}
-                  </span>
+                  <span className="truncate max-w-30">{user.username}</span>
                   <VerificationBadge
                     level={user.verificationLevel as VerificationLevel}
                     size={14}

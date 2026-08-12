@@ -24,6 +24,8 @@ import { useCallStore } from '../../stores/useCallStore';
 import type { Conversation, Message, Participant } from '../../types';
 import { logger } from '../../utils/logger';
 import { VoiceRecorder } from '../audio/VoiceRecorder';
+import { EmptyState } from '../ErrorEmptyStates';
+import { LoadingSpinner } from '../LoadingStates';
 import UserAvatar from '../UserAvatar';
 import GroupDetailsModal from './GroupDetailsModal';
 import MessageBubble from './MessageBubble';
@@ -41,7 +43,7 @@ export default function ChatWindow() {
     stopTyping,
     markRead,
   } = useSocketStore();
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -705,11 +707,11 @@ export default function ChatWindow() {
   };
 
   return (
-    <div className="flex flex-col h-dvh bg-surface-elevated relative overflow-hidden">
+    <div className="flex flex-col h-full bg-surface-elevated relative overflow-hidden">
       {/* Background Accent Mesh */}
       <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[50%] bg-blue-500/15 blur-[120px] rounded-full mix-blend-screen" />
-        <div className="absolute bottom-[-10%] right-[-20%] w-[60%] h-[60%] bg-purple-500/15 blur-[130px] rounded-full mix-blend-screen" />
+        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[50%] bg-brand-blue/15 blur-[120px] rounded-full mix-blend-screen" />
+        <div className="absolute bottom-[-10%] right-[-20%] w-[60%] h-[60%] bg-brand-primary/15 blur-[130px] rounded-full mix-blend-screen" />
       </div>
 
       {/* Details Header */}
@@ -928,7 +930,7 @@ export default function ChatWindow() {
       >
         {isLoading && (
           <div className="flex flex-col items-center justify-center h-full gap-3">
-            <div className="w-8 h-8 rounded-full border-2 border-brand-primary/30 border-t-brand-primary animate-spin" />
+            <LoadingSpinner size="md" />
             <span className="text-sm font-medium text-white/50">
               {t('chat.loading_history')}
             </span>
@@ -936,10 +938,11 @@ export default function ChatWindow() {
         )}
 
         {!isLoading && messages.length === 0 && !isUploading && (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 opacity-50">
-            <p>{t('chat.no_messages')}</p>
-            <p className="text-xs">{t('chat.say_hello')}</p>
-          </div>
+          <EmptyState
+            icon="comments"
+            title={t('chat.no_messages')}
+            message={t('chat.say_hello')}
+          />
         )}
 
         <div className="flex flex-col justify-end min-h-full">
@@ -1084,7 +1087,7 @@ export default function ChatWindow() {
           ) : (
             <form
               onSubmit={sendMessage}
-              className={`flex items-end gap-1 glass-panel p-1 rounded-4xl border border-white/10 shadow-2xl shadow-black/50 focus-within:border-brand-primary/50 focus-within:shadow-[0_0_20px_rgba(131,58,180,0.2)] transition-all duration-300 ${replyTo ? 'rounded-t-[10px] border-t-0' : ''}`}
+              className={`flex items-end gap-1 glass-panel p-1 rounded-4xl border border-white/10 shadow-2xl shadow-black/50 focus-within:border-brand-primary/50 focus-within:shadow-[0_0_20px_rgba(140, 82, 255,0.2)] transition-all duration-300 ${replyTo ? 'rounded-t-[10px] border-t-0' : ''}`}
             >
               <input
                 type="file"
@@ -1097,7 +1100,7 @@ export default function ChatWindow() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors shrink-0 mb-0.5 ml-0.5"
+                className="p-3 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors shrink-0 mb-0.5 ml-0.5"
               >
                 <ImageIcon size={22} strokeWidth={1.5} />
               </button>
@@ -1137,13 +1140,13 @@ export default function ChatWindow() {
                   <button
                     type="button"
                     onClick={() => setIsRecording(true)}
-                    className="p-2.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                    className="p-3 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
                   >
                     <Mic size={22} strokeWidth={1.5} />
                   </button>
                   <button
                     type="button"
-                    className="p-2.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                    className="p-3 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
                   >
                     <Smile size={22} strokeWidth={1.5} />
                   </button>

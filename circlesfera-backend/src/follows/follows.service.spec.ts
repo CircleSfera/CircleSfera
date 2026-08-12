@@ -1,7 +1,7 @@
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppException } from '../common/errors/app.exception.js';
-import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FollowsService } from './follows.service.js';
 
@@ -35,8 +35,8 @@ describe('FollowsService', () => {
     },
   };
 
-  const mockNotificationsService = {
-    create: vi.fn(),
+  const mockEventEmitter = {
+    emit: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -44,7 +44,7 @@ describe('FollowsService', () => {
       providers: [
         FollowsService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: NotificationsService, useValue: mockNotificationsService },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();
 
@@ -72,7 +72,8 @@ describe('FollowsService', () => {
 
       expect(result.status).toBe('ACCEPTED');
       expect(mockPrismaService.follow.create).toHaveBeenCalled();
-      expect(mockNotificationsService.create).toHaveBeenCalledWith(
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'notification.create',
         expect.objectContaining({
           type: 'FOLLOW',
         }),
@@ -93,7 +94,8 @@ describe('FollowsService', () => {
       const result = await service.toggle(followingUsername, followerId);
 
       expect(result.status).toBe('PENDING');
-      expect(mockNotificationsService.create).toHaveBeenCalledWith(
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'notification.create',
         expect.objectContaining({
           type: 'FOLLOW_REQUEST',
         }),
@@ -260,7 +262,8 @@ describe('FollowsService', () => {
           data: { status: 'ACCEPTED' },
         }),
       );
-      expect(mockNotificationsService.create).toHaveBeenCalledWith(
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'notification.create',
         expect.objectContaining({
           type: 'FOLLOW_ACCEPTED',
         }),

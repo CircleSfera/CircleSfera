@@ -11,8 +11,8 @@ component sprawl.
   `@theme`)
 - `circlesfera-frontend/tailwind.config.js` — thin; brand colours only (and see `known-gaps.md` F1)
 - `circlesfera-frontend/src/components/ui/` — the 10 shared primitives
-- `circlesfera-documentation/09-design-system.md` — narrative, already flags divergences
-- [`../core/known-gaps.md`](../core/known-gaps.md) — F1, F7, F8
+- `circlesfera-documentation/09-design-system.md` — narrative
+- [`../core/known-gaps.md`](../core/known-gaps.md)
 
 ## The real tokens
 
@@ -20,17 +20,20 @@ Dark theme only. `:root` sets `color-scheme: dark`, `body` is black on white tex
 **no light theme and no theme toggle**. Do not add one without a product decision.
 
 ```text
-Brand      --brand-primary   #833ab4    --brand-secondary #fd1d1d
-           --brand-accent    #fcb045    --brand-blue      #405de6
+Brand      --brand-primary   #8c52ff    --brand-secondary #ff5757
+           --brand-accent    #ff7657    --brand-blue      #5271ff
+           --brand-primary-rgb 140, 82, 255
 Surfaces   --surface-base    #030303    --surface-elevated #0a0a0a
            --surface-raised  #1c1c1c    --surface-high     #262626
-Base       --background 0 0% 3.9%       --foreground 0 0% 98%
+Nav        --nav-top-height  52px       --nav-bottom-height 60px
+Avatars    --avatar-sm 32 / md 40 / lg 56 / profile 96
 Glass      --glass-border rgba(255,255,255,.08)
            --glass-surface rgba(255,255,255,.03)
            --glass-highlight rgba(255,255,255,.1)
 ```
 
 Exposed to Tailwind as `bg-brand-primary`, `text-brand-secondary`, `bg-surface-raised`, and so on.
+Product avatars: `UserAvatar` (`ui/Avatar` is a thin re-export). New overlays: `ui/Dialog`.
 
 **Utility classes that carry the visual language:** `.glass-panel`, `.glass-panel-post`,
 `.modal-glass`, `.gradient-text`, `.text-effect-outline`, `.text-effect-retro`, `.no-scrollbar`,

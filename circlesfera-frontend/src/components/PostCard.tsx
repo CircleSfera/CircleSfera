@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useDwellTime } from '../hooks/useDwellTime';
 import { usePostInteractions } from '../hooks/usePostInteractions';
 import type { Post } from '../types';
@@ -19,6 +20,7 @@ interface PostCardProps {
 
 export default memo(function PostCard({ post, priority }: PostCardProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [showWhy, setShowWhy] = useState(false);
   const interactions = usePostInteractions(post);
   useDwellTime(post.id, interactions.postRef);
@@ -39,19 +41,36 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
     handleTip,
   } = interactions;
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('button') ||
+      target.closest('a') ||
+      target.closest('svg') ||
+      target.closest('input')
+    ) {
+      return;
+    }
+    // Only navigate if text was not selected to allow copy/pasting
+    if (window.getSelection()?.toString().length) {
+      return;
+    }
+    navigate(`/p/${post.id}`);
+  };
+
   return (
     <>
       <motion.div
         ref={postRef}
-        className="glass-panel-post rounded-lg overflow-hidden mb-2 content-visibility-auto"
+        onClick={handleCardClick}
+        className="glass-panel-post rounded-lg overflow-hidden content-visibility-auto cursor-pointer"
         data-post-card="true"
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-        layout
+        transition={{ duration: 0.2, ease: 'easeOut' }}
       >
         {post.recommendationReason && (
-          <div className="px-3 py-1.5 text-xs border-b border-white/5 bg-white/2">
+          <div className="px-2.5 py-1 text-xs border-b border-white/5 bg-white/2">
             <div className="flex items-center gap-1.5 text-white/50">
               {post.recommendationReason === 'close_friend' && (
                 <>
@@ -127,13 +146,13 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
         />
 
         {(post.poll?.id || post.qnaBox?.id) && (
-          <div className="px-3 pb-2">
+          <div className="px-3 pb-2 md:px-4 md:pb-3">
             {post.poll?.id && <PollWidget pollId={post.poll.id} />}
             {post.qnaBox?.id && <QnaWidget qnaBoxId={post.qnaBox.id} />}
           </div>
         )}
 
-        <div className="p-3 pb-1">
+        <div className="p-3 md:p-4 pb-2 md:pb-3">
           <PostActions
             post={post}
             isBookmarked={isBookmarked}

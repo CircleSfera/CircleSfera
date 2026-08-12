@@ -37,6 +37,7 @@ export type AdminTab =
   | 'whitelist'
   | 'verification'
   | 'monetization'
+  | 'payouts'
   | 'promotions'
   | 'moderation'
   | 'firewall'
@@ -45,8 +46,10 @@ export type AdminTab =
   | 'system-health'
   | 'appeals'
   | 'support'
+  | 'roles'
   | 'trust'
-  | 'live';
+  | 'live'
+  | 'settings';
 
 export interface AdminNavItem {
   id: AdminTab;
@@ -62,6 +65,34 @@ export interface AdminNavGroup {
   icon: LucideIcon;
   items: AdminNavItem[];
 }
+
+export const ADMIN_TAB_ROLES: Record<AdminTab, string[] | undefined> = {
+  analytics: undefined, // ADMIN only
+  monetization: ['ADMIN', 'FINANCE'],
+  payouts: ['ADMIN', 'FINANCE'],
+  promotions: ['ADMIN', 'FINANCE'],
+  verification: ['ADMIN', 'SUPPORT'],
+  whitelist: undefined,
+  newsletter: undefined,
+  users: ['ADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE'],
+  moderation: ['ADMIN', 'MODERATOR'],
+  firewall: undefined,
+  posts: ['ADMIN', 'MODERATOR'],
+  stories: ['ADMIN', 'MODERATOR'],
+  live: ['ADMIN', 'MODERATOR'],
+  comments: ['ADMIN', 'MODERATOR'],
+  hashtags: ['ADMIN', 'MODERATOR'],
+  audio: ['ADMIN', 'MODERATOR'],
+  'system-health': undefined,
+  settings: ['ADMIN'], // Only ADMIN can change global settings
+  trust: ['ADMIN', 'MODERATOR', 'SUPPORT'],
+  experiments: undefined,
+  reports: ['ADMIN', 'MODERATOR'],
+  audit: ['ADMIN', 'MODERATOR'],
+  roles: ['ADMIN'], // Only ADMIN can manage roles
+  appeals: ['ADMIN', 'MODERATOR', 'SUPPORT'],
+  support: ['ADMIN', 'MODERATOR', 'SUPPORT'],
+};
 
 export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   {
@@ -79,6 +110,12 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         id: 'monetization',
         labelKey: 'admin.nav.monetization',
         labelFallback: 'Monetización',
+        icon: DollarSign,
+      },
+      {
+        id: 'payouts',
+        labelKey: 'admin.nav.payouts',
+        labelFallback: 'Retiros (Stripe)',
         icon: DollarSign,
       },
       {
@@ -186,6 +223,18 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         labelKey: 'admin.nav.system_health',
         labelFallback: 'Estado',
         icon: Activity,
+      },
+      {
+        id: 'settings',
+        labelKey: 'admin.nav.settings',
+        labelFallback: 'Configuración Global',
+        icon: Settings,
+      },
+      {
+        id: 'roles',
+        labelKey: 'admin.nav.roles',
+        labelFallback: 'Roles y Accesos',
+        icon: ShieldAlert,
       },
       {
         id: 'trust',

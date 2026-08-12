@@ -1,0 +1,62 @@
+import { AccountType, Role, User, VerificationLevel } from '@prisma/client';
+import { Exclude } from 'class-transformer';
+
+export class UserEntity implements User {
+  id!: string;
+  email!: string;
+
+  @Exclude()
+  password!: string;
+
+  createdAt!: Date;
+  updatedAt!: Date;
+  isActive!: boolean;
+  strikeCount!: number;
+  deletedAt!: Date | null;
+  scheduledDeletionAt!: Date | null;
+  suspendedUntil!: Date | null;
+
+  inviteCode!: string | null;
+  referredById!: string | null;
+  role!: Role;
+  identityVerifiedAt!: Date | null;
+  dateOfBirth!: Date | null;
+
+  @Exclude()
+  stripeIdentitySessionId!: string | null;
+
+  emailVerified!: Date | null;
+
+  @Exclude()
+  verificationToken!: string | null;
+
+  isTwoFactorEnabled!: boolean;
+
+  @Exclude()
+  twoFactorSecret!: string | null;
+
+  @Exclude()
+  resetToken!: string | null;
+
+  @Exclude()
+  resetTokenExpires!: Date | null;
+
+  verificationLevel!: VerificationLevel;
+  accountType!: AccountType;
+
+  @Exclude()
+  currentChallenge!: string | null;
+
+  isOnline!: boolean;
+  lastSeenAt!: Date | null;
+
+  @Exclude()
+  stripeCustomerId!: string | null;
+
+  @Exclude()
+  stripeConnectAccountId!: string | null;
+
+  constructor(partial: Partial<UserEntity>) {
+    Object.assign(this, partial);
+  }
+}

@@ -14,13 +14,17 @@ vi.mock('../../utils/logger', () => ({
 
 describe('AdminGuard', () => {
   it('renders children for ADMIN role', () => {
-    vi.mocked(useAuthStore).mockReturnValue({
-      isAuthenticated: true,
-      profile: {
-        username: 'admin',
-        user: { role: 'ADMIN' },
-      },
-    } as unknown as ReturnType<typeof useAuthStore>);
+    vi.mocked(useAuthStore).mockImplementation(((selector: any) => {
+      const state = {
+        isAuthenticated: true,
+        isSessionChecked: true,
+        profile: {
+          username: 'admin',
+          user: { role: 'ADMIN' },
+        },
+      };
+      return selector ? selector(state) : state;
+    }) as any);
 
     render(
       <MemoryRouter>
@@ -34,13 +38,17 @@ describe('AdminGuard', () => {
   });
 
   it('renders children for MODERATOR role', () => {
-    vi.mocked(useAuthStore).mockReturnValue({
-      isAuthenticated: true,
-      profile: {
-        username: 'mod',
-        user: { role: 'MODERATOR' },
-      },
-    } as unknown as ReturnType<typeof useAuthStore>);
+    vi.mocked(useAuthStore).mockImplementation(((selector: any) => {
+      const state = {
+        isAuthenticated: true,
+        isSessionChecked: true,
+        profile: {
+          username: 'mod',
+          user: { role: 'MODERATOR' },
+        },
+      };
+      return selector ? selector(state) : state;
+    }) as any);
 
     render(
       <MemoryRouter>
@@ -54,13 +62,17 @@ describe('AdminGuard', () => {
   });
 
   it('blocks non-staff authenticated users', () => {
-    vi.mocked(useAuthStore).mockReturnValue({
-      isAuthenticated: true,
-      profile: {
-        username: 'user',
-        user: { role: 'USER' },
-      },
-    } as unknown as ReturnType<typeof useAuthStore>);
+    vi.mocked(useAuthStore).mockImplementation(((selector: any) => {
+      const state = {
+        isAuthenticated: true,
+        isSessionChecked: true,
+        profile: {
+          username: 'user',
+          user: { role: 'USER' },
+        },
+      };
+      return selector ? selector(state) : state;
+    }) as any);
 
     render(
       <MemoryRouter>

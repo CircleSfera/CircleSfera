@@ -234,7 +234,7 @@ export default function ReportsTab({ onToast }: Props) {
             initial={{ opacity: 0, height: 0, marginBottom: 0 }}
             animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
             exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-            className="flex flex-wrap items-center gap-2 px-3 py-2 border border-white/5 bg-white/[0.02] rounded-lg shrink-0"
+            className="flex flex-wrap items-center gap-2 px-3 py-2 border border-white/5 bg-white/2 rounded-lg shrink-0"
           >
             <span className="px-2 sm:px-3 text-sm font-semibold text-white">
               {t('admin.shared.selected_count', { count: selectedIds.size })}
@@ -615,7 +615,7 @@ export default function ReportsTab({ onToast }: Props) {
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 flex flex-col lg:flex-row gap-5">
                   <div className="w-full lg:w-1/2 flex flex-col gap-4">
                     {isUserOrMessageTarget(selectedReport.targetType) ? (
-                      <div className="flex flex-col gap-4 min-h-[200px]">
+                      <div className="flex flex-col gap-4 min-h-50">
                         {selectedReport.targetContent?.thumbnail && (
                           <div className="w-16 h-16 rounded-full overflow-hidden mx-auto">
                             <img
@@ -645,7 +645,7 @@ export default function ReportsTab({ onToast }: Props) {
                       </div>
                     ) : (
                       <>
-                        <div className="bg-black/40 rounded-lg flex-1 min-h-[240px] sm:min-h-[280px] flex items-center justify-center overflow-hidden">
+                        <div className="bg-black/40 rounded-lg flex-1 min-h-60 sm:min-h-70 flex items-center justify-center overflow-hidden">
                           {selectedReport.targetContent?.thumbnail ? (
                             <img
                               src={selectedReport.targetContent.thumbnail}
@@ -770,7 +770,7 @@ export default function ReportsTab({ onToast }: Props) {
                             placeholder={t(
                               'admin.reports.internal_notes_placeholder',
                             )}
-                            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-brand-primary/50 resize-y min-h-[5rem]"
+                            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-brand-primary/50 resize-y min-h-20"
                           />
                           <Button
                             onClick={() =>

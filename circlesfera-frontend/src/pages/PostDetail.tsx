@@ -1,9 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 import PostDetailView from '../components/post/PostDetailView';
 import { commentsApi, postsApi } from '../services';
@@ -58,14 +57,14 @@ export default function PostDetail() {
 
   if (isLoading || !post) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-dvh flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen py-3 md:py-6 relative">
+    <div className="min-h-dvh py-3 md:py-6 relative">
       <SEO
         title={`Post de @${post.data.user?.profile?.username || 'Usuario'}`}
         description={
@@ -75,31 +74,6 @@ export default function PostDetail() {
         ogType="article"
       />
       <div className="w-full mx-auto px-2 md:px-4 relative z-10">
-        {/* Sticky Header (Mobile Only) */}
-        <div className="md:hidden sticky top-0 z-50 glass-panel border-b border-white/8 flex items-center justify-between p-3.5 pt-[calc(0.75rem+env(safe-area-inset-top))]">
-          <Link
-            to="/"
-            className="p-1 -ml-1 text-white hover:bg-white/10 rounded-full transition-colors"
-          >
-            <ArrowLeft size={20} />
-          </Link>
-          <h1 className="text-xs font-bold text-white uppercase tracking-wider">
-            {t('post.detail.title', 'Publicación')}
-          </h1>
-          <div className="w-5" />
-        </div>
-
-        {/* Back Button (Desktop) */}
-        <div className="max-w-4xl mx-auto mb-3 hidden md:block">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 text-white/70 hover:text-white transition-colors text-xs font-bold px-3 py-1.5 rounded-full glass-panel border border-white/8 hover:bg-white/10"
-          >
-            <ArrowLeft size={15} />
-            <span>{t('post.detail.back_to_feed', 'Volver al inicio')}</span>
-          </Link>
-        </div>
-
         <PostDetailView
           post={post.data}
           comments={comments?.data.data || []}

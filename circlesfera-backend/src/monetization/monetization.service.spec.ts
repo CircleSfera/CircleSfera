@@ -19,6 +19,8 @@ describe('MonetizationService', () => {
     transaction: {
       findMany: vi.fn(),
       count: vi.fn(),
+      aggregate: vi.fn(),
+      groupBy: vi.fn(),
     },
     post: {
       findUnique: vi.fn(),
@@ -80,6 +82,31 @@ describe('MonetizationService', () => {
         data: { userId: 'user-2' },
       });
       expect(result).toHaveProperty('hasStripeAccount', false);
+    });
+  });
+
+  describe('getFinancialSummary', () => {
+    it('should return financial summary with revenue breakdown by category', async () => {
+      mockPrismaService.transaction.aggregate
+        .mockResolvedValueOnce({ _sum: { amount: 1500 } })
+        .mockResolvedValueOnce({ _sum: { amount: 500 } });
+
+      mockPrismaService.transaction.groupBy.mockResolvedValue([
+        { type: 'DIRECT_POST_UNLOCK', _sum: { amount: 1000 } },
+        { type: 'DIRECT_TIP', _sum: { amount: 500 } },
+      ]);
+
+      const summary = await service.getFinancialSummary('user-1');
+
+      expect(summary.currentMonthIncome).toBe(1500);
+      expect(summary.totalTips).toBe(500);
+      expect(summary.breakdown).toEqual({
+        postUnlocks: 1000,
+        storyUnlocks: 0,
+        messageUnlocks: 0,
+        tips: 500,
+        liveGifts: 0,
+      });
     });
   });
 

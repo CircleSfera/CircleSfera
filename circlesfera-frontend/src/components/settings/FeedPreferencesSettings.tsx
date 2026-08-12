@@ -150,7 +150,7 @@ export default function FeedPreferencesSettings() {
                 </span>
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="compact"
                   onClick={() => unhideAuthor.mutate(a.authorId)}
                 >
                   {t('feedPrefs.show_again', 'Show again')}
@@ -183,7 +183,7 @@ export default function FeedPreferencesSettings() {
                 </span>
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="compact"
                   onClick={() => unhidePost.mutate(p.postId)}
                 >
                   {t('feedPrefs.show_again', 'Show again')}

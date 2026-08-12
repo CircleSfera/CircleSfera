@@ -1,10 +1,6 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ErrorCode } from '@circlesfera/shared';
+import { Inject, Injectable } from '@nestjs/common';
+import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreatePollDto } from './dto/create-poll.dto.js';
 import type { CreateQnaBoxDto } from './dto/create-qna.dto.js';
@@ -19,17 +15,22 @@ export class InteractiveService {
    */
   async createPoll(userId: string, dto: CreatePollDto) {
     if (!dto.postId && !dto.storyId) {
-      throw new BadRequestException('Either postId or storyId is required');
+      throw AppException.BadRequest(
+        ErrorCode.MISSING_POST_OR_STORY_ID,
+        'Either postId or storyId is required',
+      );
     }
     if (dto.postId && dto.storyId) {
-      throw new BadRequestException(
+      throw AppException.BadRequest(
+        ErrorCode.INVALID_INPUT,
         'Provide either postId or storyId, not both',
       );
     }
 
     const options = dto.options.map((o) => o.trim()).filter(Boolean);
     if (options.length < 2) {
-      throw new BadRequestException(
+      throw AppException.BadRequest(
+        ErrorCode.INVALID_INPUT,
         'At least 2 non-empty options are required',
       );
     }
@@ -38,25 +39,45 @@ export class InteractiveService {
       const post = await this.prisma.post.findUnique({
         where: { id: dto.postId },
       });
-      if (!post) throw new NotFoundException('Post not found');
-      if (post.userId !== userId) throw new ForbiddenException('Not your post');
+      if (!post)
+        throw AppException.NotFound(ErrorCode.POST_NOT_FOUND, 'Post not found');
+      if (post.userId !== userId)
+        throw AppException.Forbidden(
+          ErrorCode.FORBIDDEN_ACCESS,
+          'Not your post',
+        );
       const existing = await this.prisma.poll.findUnique({
         where: { postId: dto.postId },
       });
-      if (existing) throw new BadRequestException('Post already has a poll');
+      if (existing)
+        throw AppException.BadRequest(
+          ErrorCode.POLL_ALREADY_EXISTS,
+          'Post already has a poll',
+        );
     }
 
     if (dto.storyId) {
       const story = await this.prisma.story.findUnique({
         where: { id: dto.storyId },
       });
-      if (!story) throw new NotFoundException('Story not found');
+      if (!story)
+        throw AppException.NotFound(
+          ErrorCode.STORY_NOT_FOUND,
+          'Story not found',
+        );
       if (story.userId !== userId)
-        throw new ForbiddenException('Not your story');
+        throw AppException.Forbidden(
+          ErrorCode.FORBIDDEN_ACCESS,
+          'Not your story',
+        );
       const existing = await this.prisma.poll.findUnique({
         where: { storyId: dto.storyId },
       });
-      if (existing) throw new BadRequestException('Story already has a poll');
+      if (existing)
+        throw AppException.BadRequest(
+          ErrorCode.POLL_ALREADY_EXISTS,
+          'Story already has a poll',
+        );
     }
 
     return this.prisma.poll.create({
@@ -74,10 +95,14 @@ export class InteractiveService {
    */
   async createQnaBox(userId: string, dto: CreateQnaBoxDto) {
     if (!dto.postId && !dto.storyId) {
-      throw new BadRequestException('Either postId or storyId is required');
+      throw AppException.BadRequest(
+        ErrorCode.MISSING_POST_OR_STORY_ID,
+        'Either postId or storyId is required',
+      );
     }
     if (dto.postId && dto.storyId) {
-      throw new BadRequestException(
+      throw AppException.BadRequest(
+        ErrorCode.INVALID_INPUT,
         'Provide either postId or storyId, not both',
       );
     }
@@ -86,26 +111,45 @@ export class InteractiveService {
       const post = await this.prisma.post.findUnique({
         where: { id: dto.postId },
       });
-      if (!post) throw new NotFoundException('Post not found');
-      if (post.userId !== userId) throw new ForbiddenException('Not your post');
+      if (!post)
+        throw AppException.NotFound(ErrorCode.POST_NOT_FOUND, 'Post not found');
+      if (post.userId !== userId)
+        throw AppException.Forbidden(
+          ErrorCode.FORBIDDEN_ACCESS,
+          'Not your post',
+        );
       const existing = await this.prisma.qnaBox.findUnique({
         where: { postId: dto.postId },
       });
-      if (existing) throw new BadRequestException('Post already has a Q&A box');
+      if (existing)
+        throw AppException.BadRequest(
+          ErrorCode.QNA_ALREADY_EXISTS,
+          'Post already has a Q&A box',
+        );
     }
 
     if (dto.storyId) {
       const story = await this.prisma.story.findUnique({
         where: { id: dto.storyId },
       });
-      if (!story) throw new NotFoundException('Story not found');
+      if (!story)
+        throw AppException.NotFound(
+          ErrorCode.STORY_NOT_FOUND,
+          'Story not found',
+        );
       if (story.userId !== userId)
-        throw new ForbiddenException('Not your story');
+        throw AppException.Forbidden(
+          ErrorCode.FORBIDDEN_ACCESS,
+          'Not your story',
+        );
       const existing = await this.prisma.qnaBox.findUnique({
         where: { storyId: dto.storyId },
       });
       if (existing)
-        throw new BadRequestException('Story already has a Q&A box');
+        throw AppException.BadRequest(
+          ErrorCode.QNA_ALREADY_EXISTS,
+          'Story already has a Q&A box',
+        );
     }
 
     return this.prisma.qnaBox.create({
@@ -126,11 +170,17 @@ export class InteractiveService {
     });
 
     if (!poll) {
-      throw new NotFoundException('Poll not found');
+      throw AppException.NotFound(
+        ErrorCode.INTERACTIVE_NOT_FOUND,
+        'Poll not found',
+      );
     }
 
     if (optionIndex < 0 || optionIndex >= poll.options.length) {
-      throw new BadRequestException('Invalid poll option index');
+      throw AppException.BadRequest(
+        ErrorCode.INVALID_POLL_OPTION,
+        'Invalid poll option index',
+      );
     }
 
     // Upsert vote (allow changing vote)
@@ -163,7 +213,10 @@ export class InteractiveService {
     });
 
     if (!poll) {
-      throw new NotFoundException('Poll not found');
+      throw AppException.NotFound(
+        ErrorCode.INTERACTIVE_NOT_FOUND,
+        'Poll not found',
+      );
     }
 
     const totalVotes = poll.votes.length;
@@ -208,7 +261,10 @@ export class InteractiveService {
    */
   async answerQna(userId: string, qnaBoxId: string, answerText: string) {
     if (!answerText || answerText.trim().length === 0) {
-      throw new BadRequestException('Answer text cannot be empty');
+      throw AppException.BadRequest(
+        ErrorCode.EMPTY_ANSWER_TEXT,
+        'Answer text cannot be empty',
+      );
     }
 
     const qnaBox = await this.prisma.qnaBox.findUnique({
@@ -216,7 +272,10 @@ export class InteractiveService {
     });
 
     if (!qnaBox) {
-      throw new NotFoundException('Q&A box not found');
+      throw AppException.NotFound(
+        ErrorCode.INTERACTIVE_NOT_FOUND,
+        'Q&A box not found',
+      );
     }
 
     const answer = await this.prisma.qnaAnswer.create({
@@ -259,7 +318,10 @@ export class InteractiveService {
     });
 
     if (!qnaBox) {
-      throw new NotFoundException('Q&A box not found');
+      throw AppException.NotFound(
+        ErrorCode.INTERACTIVE_NOT_FOUND,
+        'Q&A box not found',
+      );
     }
 
     return {

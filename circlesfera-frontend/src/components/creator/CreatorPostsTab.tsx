@@ -15,6 +15,7 @@ import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import { useAuthStore } from '../../stores/authStore';
 import type { PaginatedResponse } from '../../types';
+import { EmptyState } from '../ErrorEmptyStates';
 import PostInsightsModal from '../modals/PostInsightsModal';
 import { Button } from '../ui';
 
@@ -24,7 +25,7 @@ interface Props {
 
 export default function CreatorPostsTab({ onPromote }: Props) {
   const { t } = useTranslation();
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
   const verificationLevel =
     profile?.user?.verificationLevel || profile?.verificationLevel;
   const canPromote = verificationLevel === 'ELITE';
@@ -48,7 +49,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
           <Button
             key={filter || 'all'}
             variant={typeFilter === filter ? 'primary' : 'ghost'}
-            size="sm"
+            size="compact"
             className="w-full sm:w-auto min-h-11"
             onClick={() => {
               setTypeFilter(filter);
@@ -200,12 +201,15 @@ export default function CreatorPostsTab({ onPromote }: Props) {
         </div>
       )}
 
-      {/* Empty state */}
       {!isLoading && !data?.data?.length && (
-        <div className="text-center py-16 text-gray-600">
-          <ImageIcon size={48} className="mx-auto mb-3 opacity-50" />
-          <p>No tienes publicaciones aún</p>
-        </div>
+        <EmptyState
+          icon="posts"
+          title={t('creator.posts.empty_title', 'No posts yet')}
+          message={t(
+            'creator.posts.empty_desc',
+            'Publish your first post to see it here.',
+          )}
+        />
       )}
 
       {/* Pagination */}
@@ -213,7 +217,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
         <div className="flex items-center justify-center gap-2 flex-wrap">
           <Button
             variant="ghost"
-            size="sm"
+            size="compact"
             className="min-h-11"
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -225,7 +229,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
           </span>
           <Button
             variant="ghost"
-            size="sm"
+            size="compact"
             className="min-h-11"
             disabled={page >= data.meta.totalPages}
             onClick={() =>

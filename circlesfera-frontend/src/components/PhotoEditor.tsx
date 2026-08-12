@@ -156,7 +156,7 @@ const AdjustmentSlider = ({
           max={max}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full appearance-none bg-transparent cursor-pointer outline-none [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(131,58,180,0.5)] [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
+          className="w-full appearance-none bg-transparent cursor-pointer outline-none [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(140, 82, 255,0.5)] [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
         />
       </div>
     </motion.div>
@@ -504,7 +504,7 @@ export default function PhotoEditor({
                     <div
                       className={`w-[56px] h-[56px] rounded-lg overflow-hidden border-2 transition-all duration-200 ${
                         selectedFilter.name === filter.name
-                          ? 'border-brand-primary/50 scale-105 shadow-[0_0_15px_rgba(131,58,180,0.3)]'
+                          ? 'border-brand-primary/50 scale-105 shadow-[0_0_15px_rgba(140, 82, 255,0.3)]'
                           : 'border-transparent opacity-60 group-hover:opacity-100'
                       }`}
                     >
@@ -699,7 +699,7 @@ export default function PhotoEditor({
                     onClick={() => setDrawMode(!drawMode)}
                     className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${
                       drawMode
-                        ? 'bg-brand-primary text-white shadow-[0_0_15px_rgba(131,58,180,0.3)]'
+                        ? 'bg-brand-primary text-white shadow-[0_0_15px_rgba(140, 82, 255,0.3)]'
                         : 'bg-white/5 text-white/60 hover:text-white'
                     }`}
                   >

@@ -199,7 +199,7 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
         </MetaRow>
       </dl>
 
-      <div className="grid grid-cols-3 rounded-lg bg-white/[0.03] overflow-hidden">
+      <div className="grid grid-cols-3 rounded-lg bg-white/3 overflow-hidden">
         {(
           [
             ['stat_posts', user._count.posts],

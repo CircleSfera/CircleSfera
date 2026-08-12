@@ -21,7 +21,7 @@ export default function SharedPost({ post }: SharedPostProps) {
           thumbnailUrl={post.user.profile?.thumbnailUrl || ''}
           standardUrl={post.user.profile?.standardUrl || ''}
           alt={post.user.profile?.username || ''}
-          size="sm"
+          size="compact"
           className="w-8 h-8 rounded-full object-cover border border-white/10"
         />
         <span className="text-xs font-semibold text-white/90">

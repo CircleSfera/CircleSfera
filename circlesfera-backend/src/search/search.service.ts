@@ -36,7 +36,7 @@ export class SearchService {
   ): Promise<any[]> {
     if (!query || query.length < 3) return [];
 
-    const cacheKey = `search:semantic:${query.toLowerCase().replace(/\s/g, '_')}:${limit}`;
+    const cacheKey = `search:semantic:${query.toLowerCase().replace(/\s/g, '_')}:${limit}:${userId || 'guest'}`;
     const cached = await this.cacheManager.get<any[]>(cacheKey);
     if (cached) return cached;
 
@@ -112,7 +112,7 @@ export class SearchService {
   ): Promise<any[]> {
     if (!query || query.length < 3) return [];
 
-    const cacheKey = `search:semantic_profiles:${query.toLowerCase().replace(/\s/g, '_')}:${limit}`;
+    const cacheKey = `search:semantic_profiles:${query.toLowerCase().replace(/\s/g, '_')}:${limit}:${userId || 'guest'}`;
     const cached = await this.cacheManager.get<any[]>(cacheKey);
     if (cached) return cached;
 

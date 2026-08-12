@@ -1,21 +1,13 @@
-import {
-  BadRequestException,
-  ConflictException,
-  forwardRef,
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-  Optional,
-} from '@nestjs/common';
+import { ErrorCode } from '@circlesfera/shared';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SubscriptionStatus } from '@prisma/client';
 import * as Sentry from '@sentry/nestjs';
 import type Stripe from 'stripe';
 import { CREATOR_SHARE_DECIMAL } from '../common/constants/monetization.constants.js';
+import { AppException } from '../common/errors/app.exception.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
-import { LiveService } from '../live/live.service.js';
-import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SlackService } from '../slack/slack.service.js';
 import { UsersService } from '../users/users.service.js';
@@ -31,11 +23,7 @@ export class PaymentsService {
     @Inject(EmailService) private readonly emailService: EmailService,
     @Inject(UsersService) private readonly usersService: UsersService,
     @Optional()
-    @Inject(forwardRef(() => NotificationsService))
-    private readonly notificationsService?: NotificationsService,
-    @Optional()
-    @Inject(forwardRef(() => LiveService))
-    private readonly liveService?: LiveService,
+    private readonly eventEmitter?: EventEmitter2,
   ) {}
 
   /** Map Stripe status to our SubscriptionStatus enum. */
@@ -108,7 +96,8 @@ export class PaymentsService {
       include: { platformSubscriptions: true },
     });
 
-    if (!user) throw new NotFoundException('User not found');
+    if (!user)
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
     const plan = await this.prisma.platformPlan.findFirst({
       where: {
@@ -116,7 +105,8 @@ export class PaymentsService {
       },
     });
 
-    if (!plan) throw new NotFoundException('Plan not found');
+    if (!plan)
+      throw AppException.NotFound(ErrorCode.PLAN_NOT_FOUND, 'Plan not found');
 
     const activeStatuses: SubscriptionStatus[] = [
       SubscriptionStatus.ACTIVE,
@@ -127,13 +117,15 @@ export class PaymentsService {
     );
 
     if (activeSubs.some((s) => s.planId === plan.id)) {
-      throw new BadRequestException(
+      throw AppException.BadRequest(
+        ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
         'You already have an active subscription to this plan. Manage it in the billing portal.',
       );
     }
 
     if (activeSubs.length > 0) {
-      throw new ConflictException(
+      throw AppException.Conflict(
+        ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
         'You already have an active platform plan. Cancel or change it via the billing portal before starting another.',
       );
     }
@@ -158,7 +150,11 @@ export class PaymentsService {
       });
     }
 
-    if (!customerId) throw new Error('Stripe customer ID is missing');
+    if (!customerId)
+      throw AppException.BadRequest(
+        ErrorCode.STRIPE_CUSTOMER_MISSING,
+        'Stripe customer ID is missing',
+      );
 
     return this.stripeService.createCheckoutSession({
       customer: customerId as string,
@@ -236,6 +232,8 @@ export class PaymentsService {
     });
 
     for (const other of others) {
+      let stripeCancelled = true;
+
       if (other.stripeSubscriptionId) {
         try {
           await this.stripeService.cancelSubscription(
@@ -247,15 +245,19 @@ export class PaymentsService {
             `Failed to cancel Stripe sub ${other.stripeSubscriptionId}`,
             err,
           );
+          stripeCancelled = false;
         }
       }
-      await this.prisma.platformSubscription.update({
-        where: { id: other.id },
-        data: {
-          status: SubscriptionStatus.CANCELLED,
-          cancelAtPeriodEnd: false,
-        },
-      });
+
+      if (stripeCancelled) {
+        await this.prisma.platformSubscription.update({
+          where: { id: other.id },
+          data: {
+            status: SubscriptionStatus.CANCELLED,
+            cancelAtPeriodEnd: false,
+          },
+        });
+      }
     }
   }
 
@@ -267,7 +269,7 @@ export class PaymentsService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
     }
 
     let customerId = user.stripeCustomerId;
@@ -327,13 +329,25 @@ export class PaymentsService {
           const raced = await this.prisma.webhookEvent.findUnique({
             where: { externalId: event.id },
           });
-          if (!raced || raced.status === 'PROCESSED') {
+          if (
+            !raced ||
+            raced.status === 'PROCESSED' ||
+            raced.status === 'PENDING'
+          ) {
             return;
           }
         } else {
           throw err;
         }
       }
+    } else if (existing.status === 'FAILED') {
+      const { count } = await this.prisma.webhookEvent.updateMany({
+        where: { externalId: event.id, status: 'FAILED' },
+        data: { status: 'PENDING' },
+      });
+      if (count === 0) return;
+    } else if (existing.status === 'PENDING') {
+      return; // Already being processed by another worker
     }
 
     try {
@@ -342,7 +356,18 @@ export class PaymentsService {
         where: { externalId: event.id },
         data: { status: 'PROCESSED', processedAt: new Date() },
       });
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        this.logger.warn(
+          `Idempotency hit (P2002) for event ${event.id}, marking PROCESSED.`,
+        );
+        await this.prisma.webhookEvent.update({
+          where: { externalId: event.id },
+          data: { status: 'PROCESSED', processedAt: new Date() },
+        });
+        return;
+      }
+
       await this.prisma.webhookEvent
         .update({
           where: { externalId: event.id },
@@ -379,30 +404,40 @@ export class PaymentsService {
         if (metadata?.type === 'PROMOTION') {
           const promotionId = metadata.promotionId;
           if (!promotionId) {
-            throw new Error('PROMOTION checkout missing promotionId');
+            throw AppException.BadRequest(
+              ErrorCode.PROMOTION_ID_MISSING,
+              'PROMOTION checkout missing promotionId',
+            );
           }
-
-          await this.prisma.promotion.update({
-            where: { id: promotionId },
-            data: {
-              status: 'ACTIVE',
-              chargedAt: new Date(),
-            },
-          });
 
           const amount = session.amount_total || 0;
           const currency = (session.currency || 'eur').toUpperCase();
-          await this.prisma.transaction.create({
-            data: {
-              type: 'PROMOTION_PAYMENT',
-              amount,
-              currency,
-              status: 'COMPLETED',
-              senderId: metadata.userId || null,
-              receiverId: null,
-              promotionId,
-              description: `Promotion checkout ${session.id}`,
-            },
+
+          await this.prisma.$transaction(async (tx) => {
+            await tx.promotion.update({
+              where: { id: promotionId },
+              data: {
+                status: 'ACTIVE',
+                chargedAt: new Date(),
+              },
+            });
+
+            await tx.transaction.create({
+              data: {
+                type: 'PROMOTION_PAYMENT',
+                amount,
+                currency,
+                status: 'COMPLETED',
+                senderId: metadata.userId || null,
+                receiverId: null,
+                promotionId,
+                stripePaymentIntentId:
+                  typeof session.payment_intent === 'string'
+                    ? session.payment_intent
+                    : session.payment_intent?.id || session.id,
+                description: `Promotion checkout ${session.id}`,
+              },
+            });
           });
 
           this.logger.log(
@@ -449,7 +484,7 @@ export class PaymentsService {
                   stripePaymentIntentId:
                     typeof session.payment_intent === 'string'
                       ? session.payment_intent
-                      : session.payment_intent?.id || null,
+                      : session.payment_intent?.id || session.id,
                   status: 'COMPLETED',
                   description: `Direct Post Unlock (Intent: ${paymentIntentId})`,
                 },
@@ -517,7 +552,7 @@ export class PaymentsService {
                   stripePaymentIntentId:
                     typeof session.payment_intent === 'string'
                       ? session.payment_intent
-                      : session.payment_intent?.id || null,
+                      : session.payment_intent?.id || session.id,
                   status: 'COMPLETED',
                   description: `Direct Story Unlock (Intent: ${paymentIntentId})`,
                 },
@@ -573,7 +608,7 @@ export class PaymentsService {
                   stripePaymentIntentId:
                     typeof session.payment_intent === 'string'
                       ? session.payment_intent
-                      : session.payment_intent?.id || null,
+                      : session.payment_intent?.id || session.id,
                   status: 'COMPLETED',
                   description: `Direct Message Unlock (Intent: ${paymentIntentId})`,
                 },
@@ -596,12 +631,12 @@ export class PaymentsService {
             });
 
             // Emit Real-time Notification
-            if (this.notificationsService) {
+            if (this.eventEmitter) {
               const amountFormatted = (amount / 100).toLocaleString('en-US', {
                 style: 'currency',
                 currency: session.currency || 'eur',
               });
-              await this.notificationsService.create({
+              this.eventEmitter.emit('notification.create', {
                 recipientId: creatorId,
                 senderId: clientReferenceId,
                 type: 'PAYMENT' as any,
@@ -632,7 +667,7 @@ export class PaymentsService {
                   stripePaymentIntentId:
                     typeof session.payment_intent === 'string'
                       ? session.payment_intent
-                      : session.payment_intent?.id || null,
+                      : session.payment_intent?.id || session.id,
                   status: 'COMPLETED',
                   description: `Creator Tip (Intent: ${paymentIntentId})`,
                 },
@@ -667,12 +702,12 @@ export class PaymentsService {
               .catch((e) => this.logger.error(e));
 
             // Emit Real-time Notification
-            if (this.notificationsService) {
+            if (this.eventEmitter) {
               const amountFormatted = (amount / 100).toLocaleString('en-US', {
                 style: 'currency',
                 currency: session.currency || 'eur',
               });
-              await this.notificationsService.create({
+              this.eventEmitter.emit('notification.create', {
                 recipientId: creatorId,
                 senderId: clientReferenceId,
                 type: 'PAYMENT' as any,
@@ -688,26 +723,21 @@ export class PaymentsService {
           const paymentIntentId =
             typeof session.payment_intent === 'string'
               ? session.payment_intent
-              : session.payment_intent?.id || null;
+              : session.payment_intent?.id || session.id;
 
-          if (
-            clientReferenceId &&
-            liveGiftId &&
-            streamId &&
-            giftId &&
-            creatorId &&
-            this.liveService
-          ) {
-            await this.liveService.completeGiftPayment({
-              liveGiftId,
-              senderId: clientReferenceId,
-              streamId,
-              giftId,
-              creatorId,
-              amountCents: amount,
-              currency: session.currency || 'eur',
-              paymentIntentId,
-            });
+          if (clientReferenceId && liveGiftId && streamId && creatorId) {
+            if (this.eventEmitter) {
+              this.eventEmitter.emit('payment.live_gift_completed', {
+                liveGiftId,
+                senderId: clientReferenceId,
+                streamId,
+                giftId,
+                creatorId,
+                amountCents: amount,
+                currency: session.currency || 'eur',
+                paymentIntentId,
+              });
+            }
             this.logger.log(
               `Successfully processed Live Gift ${liveGiftId} from ${clientReferenceId}`,
             );
@@ -720,9 +750,9 @@ export class PaymentsService {
                 userId: clientReferenceId,
               })
               .catch((e) => this.logger.error(e));
-          } else if (!this.liveService) {
+          } else if (!this.eventEmitter) {
             this.logger.error(
-              'LiveService not available to complete DIRECT_LIVE_GIFT',
+              'EventEmitter not available to complete DIRECT_LIVE_GIFT',
             );
           }
         } else if (metadata?.type === 'STRIPE_SUBSCRIPTION') {

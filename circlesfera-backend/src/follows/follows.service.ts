@@ -1,5 +1,6 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   $Enums,
   type FollowStatus,
@@ -7,7 +8,6 @@ import {
   type User,
 } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
-import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 type NotificationType = $Enums.NotificationType;
@@ -26,8 +26,7 @@ type UserWithProfile = User & { profile: Profile | null };
 export class FollowsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(NotificationsService)
-    private readonly notificationsService: NotificationsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -113,7 +112,7 @@ export class FollowsService {
         ? 'requested to follow you'
         : 'started following you';
 
-      await this.notificationsService.create({
+      this.eventEmitter.emit('notification.create', {
         recipientId: followingId,
         senderId: followerId,
         type: notificationType,
@@ -446,7 +445,7 @@ export class FollowsService {
     });
 
     // Create notification for acceptance
-    await this.notificationsService.create({
+    this.eventEmitter.emit('notification.create', {
       recipientId: requesterProfile.userId,
       senderId: userId,
       type: NotificationType.FOLLOW_ACCEPTED,

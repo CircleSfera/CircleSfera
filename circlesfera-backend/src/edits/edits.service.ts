@@ -1,10 +1,11 @@
+import { ErrorCode } from '@circlesfera/shared';
 import {
   Inject,
   Injectable,
   Logger,
   HttpException as NestHttpException,
-  NotFoundException,
 } from '@nestjs/common';
+import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { CreateEditDto } from './dto/create-edit.dto.js';
@@ -56,7 +57,10 @@ export class EditsService {
     });
 
     if (!edit) {
-      throw new NotFoundException('Edit project not found');
+      throw AppException.NotFound(
+        ErrorCode.EDIT_PROJECT_NOT_FOUND,
+        'Edit project not found',
+      );
     }
 
     return edit;

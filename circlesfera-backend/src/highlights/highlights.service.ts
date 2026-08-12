@@ -1,4 +1,6 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ErrorCode } from '@circlesfera/shared';
+import { Inject, Injectable } from '@nestjs/common';
+import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateHighlightDto } from './dto/create-highlight.dto.js';
 import type { UpdateHighlightDto } from './dto/update-highlight.dto.js';
@@ -81,7 +83,10 @@ export class HighlightsService {
     });
 
     if (!highlight) {
-      throw new NotFoundException('Highlight not found');
+      throw AppException.NotFound(
+        ErrorCode.HIGHLIGHT_NOT_FOUND,
+        'Highlight not found',
+      );
     }
 
     return highlight;
@@ -106,7 +111,8 @@ export class HighlightsService {
     });
 
     if (!existing) {
-      throw new NotFoundException(
+      throw AppException.NotFound(
+        ErrorCode.HIGHLIGHT_NOT_FOUND,
         'Highlight not found or you do not have permission',
       );
     }
@@ -147,7 +153,8 @@ export class HighlightsService {
     });
 
     if (!highlight) {
-      throw new NotFoundException(
+      throw AppException.NotFound(
+        ErrorCode.HIGHLIGHT_NOT_FOUND,
         'Highlight not found or you do not have permission',
       );
     }

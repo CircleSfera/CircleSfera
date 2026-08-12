@@ -1,11 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Bookmark,
-  Clapperboard,
-  Plus,
-  Shield,
-  UserSquare2,
-} from 'lucide-react';
+import { Bookmark, Clapperboard, Plus, UserSquare2 } from 'lucide-react';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -13,6 +7,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import CollectionCard from '../components/collections/CollectionCard';
 import SEO from '../components/common/SEO';
+import { EmptyState } from '../components/ErrorEmptyStates';
 import HighlightBubble from '../components/HighlightBubble';
 import { ProfileSkeleton, Skeleton } from '../components/LoadingStates';
 import PostGrid from '../components/profile/PostGrid';
@@ -64,7 +59,10 @@ export default function Profile() {
   const handledCheckoutReturn = useRef(false);
 
   const openCreateMenu = useUIStore((state) => state.openCreateMenu);
-  const { isCreatorModeActive, setCreatorMode } = useAuthStore();
+  const isCreatorModeActive = useAuthStore(
+    (state) => state.isCreatorModeActive,
+  );
+  const setCreatorMode = useAuthStore((state) => state.setCreatorMode);
 
   const { data: profile, isLoading: isLoadingProfile } = useQuery({
     queryKey: ['profile', username],
@@ -222,13 +220,6 @@ export default function Profile() {
     enabled: !!isMe && activeTab === 'saved',
   });
 
-  /* Highlights - Unused for now as UI is missing, but keeping query if needed later or commenting out to fix build */
-  // const { data: highlights } = useQuery({
-  //     queryKey: ['userHighlights', username],
-  //     queryFn: () => highlightsApi.getUserHighlights(profile?.data.id ?? ''),
-  //     enabled: !!username && !!profile?.data?.id && !!canView && !isBlocked,
-  // });
-
   /* Unused queries/mutations due to missing Profile Header UI */
   // const { data: followers } = useQuery({ ... });
   // const { data: following } = useQuery({ ... });
@@ -236,7 +227,7 @@ export default function Profile() {
 
   if (isLoadingProfile || !profile) {
     return (
-      <div className="min-h-screen pt-8">
+      <div className="min-h-dvh pt-8">
         <ProfileSkeleton />
         <div className="max-w-4xl mx-auto px-4 mt-8">
           <div className="grid grid-cols-3 gap-1">
@@ -258,7 +249,7 @@ export default function Profile() {
 
   if (isBlocked) {
     return (
-      <div className="min-h-screen pt-20 text-center">
+      <div className="min-h-dvh pt-20 text-center">
         <div className="glass-panel inline-block p-8 rounded-lg">
           <h2 className="text-2xl font-bold text-white">
             {t('profile.blocked.title')}
@@ -349,7 +340,7 @@ export default function Profile() {
             icon={<Bookmark size={32} className="text-white/40" />}
           />
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-1">
             <button
               type="button"
               onClick={() => setIsCreateCollectionModalOpen(true)}
@@ -393,7 +384,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen pt-2 md:pt-4 pb-32">
+    <div className="min-h-dvh pt-2 md:pt-4 pb-32">
       <SEO
         title={`${profile.data.fullName} (@${profile.data.username})`}
         description={
@@ -402,7 +393,7 @@ export default function Profile() {
         }
         ogImage={profile.data.avatar || undefined}
       />
-      <div className="max-w-3xl mx-auto px-3 md:px-4">
+      <div className="max-w-3xl mx-auto px-4 md:px-5">
         {/* Profile Card */}
         <ProfileHeader
           profile={profile}
@@ -424,8 +415,8 @@ export default function Profile() {
 
         {/* Story Highlights */}
         {((highlights?.data && highlights.data.length > 0) || isMe) && (
-          <div className="px-2 md:px-4 mb-6 overflow-hidden">
-            <div className="flex items-center gap-4 overflow-x-auto pb-4 no-scrollbar scroll-smooth">
+          <div className="px-2 md:px-4 mb-6">
+            <div className="flex items-center gap-4 overflow-x-auto pb-4 pt-2 px-2 -mx-2 no-scrollbar scroll-smooth">
               {isMe && (
                 <HighlightBubble
                   id="new"
@@ -490,7 +481,7 @@ export default function Profile() {
         </div>
 
         {/* Content Area Grid */}
-        <div className="px-0.5 md:px-0">
+        <div className="px-1 md:px-0">
           {canView ? (
             <>
               {activeTab === 'posts' && (
@@ -559,17 +550,11 @@ export default function Profile() {
             </>
           ) : (
             /* Private Account View */
-            <div className="bg-white/5 border border-white/5 rounded-[40px] p-16 text-center animate-in fade-in slide-in-from-bottom-8 duration-700">
-              <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl">
-                <Shield size={40} className="text-zinc-600" />
-              </div>
-              <h3 className="text-xl font-black text-white mb-4 tracking-tight">
-                {t('profile.private.title')}
-              </h3>
-              <p className="text-zinc-400 max-w-xs mx-auto leading-relaxed font-medium">
-                {t('profile.private.subtitle')}
-              </p>
-            </div>
+            <EmptyState
+              icon="followers"
+              title={t('profile.private.title')}
+              message={t('profile.private.subtitle')}
+            />
           )}
         </div>
       </div>

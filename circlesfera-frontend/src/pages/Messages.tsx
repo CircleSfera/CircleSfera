@@ -17,7 +17,7 @@ export default function Messages() {
   }, [connect]);
 
   return (
-    <div className="h-full md:h-[calc(100vh-80px)] md:mt-8 px-0 md:px-4 max-w-6xl mx-auto overflow-hidden bg-transparent">
+    <div className="h-full md:h-[calc(100dvh-var(--nav-top-height))] md:mt-0 px-0 md:px-4 max-w-6xl mx-auto overflow-hidden bg-transparent">
       <SEO title={t('chat.messages')} />
       <div className="flex h-full md:glass-panel bg-transparent md:rounded-lg overflow-hidden border-b md:border border-white/5 md:border-white/10">
         {/* Conversation List - Smart visibility on mobile */}

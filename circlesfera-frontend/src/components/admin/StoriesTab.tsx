@@ -274,7 +274,7 @@ export default function StoriesTab({ onToast }: Props) {
                   </div>
                 </td>
                 <td className="px-2 py-1">
-                  <span className="text-white font-medium text-sm truncate block max-w-[6rem]">
+                  <span className="text-white font-medium text-sm truncate block max-w-24">
                     @
                     {story.user?.profile?.username || t('admin.shared.unknown')}
                   </span>

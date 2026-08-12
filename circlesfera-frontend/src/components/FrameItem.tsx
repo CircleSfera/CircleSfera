@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { bookmarksApi, followsApi, postsApi } from '../services';
 import { creatorApi } from '../services/creator.service';
@@ -30,10 +31,9 @@ import ReportModal from './modals/ReportModal';
 import SharePostModal from './modals/SharePostModal';
 import PaywallOverlay from './monetization/PaywallOverlay';
 import PostMenu from './post/PostMenu';
+import RichText from './RichText';
 
 const PromoteModal = lazy(() => import('./creator/PromoteModal'));
-
-import RichText from './RichText';
 
 interface FrameItemProps {
   post: Post;
@@ -42,13 +42,14 @@ interface FrameItemProps {
 }
 
 export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const watchTimeRef = useRef(0);
   const lastUpdateRef = useRef(Date.now());
   const lastTimeRef = useRef(0);
   const [showHeartAnim, setShowHeartAnim] = useState(false);
   const [likesCount, setLikesCount] = useState(post._count?.likes || 0);
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
   const verificationLevel =
     profile?.user?.verificationLevel || profile?.verificationLevel;
   const canPromote = verificationLevel === 'ELITE';
@@ -365,7 +366,8 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
             e.stopPropagation();
             toggleMute();
           }}
-          className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+          aria-label={isMuted ? 'Activar sonido' : 'Silenciar'}
+          className="w-11 h-11 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors"
         >
           {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button>
@@ -438,27 +440,32 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
         )}
 
         {/* Audio Track Marquee */}
-        <div className="flex items-center gap-2 pointer-events-auto text-white drop-shadow-md">
+        <Link
+          to={post.audioId ? `/audio/${post.audioId}` : '#'}
+          className="flex items-center gap-2 pointer-events-auto text-white drop-shadow-md hover:opacity-80 transition"
+        >
           <Music size={14} className="shrink-0" />
           <div className="overflow-hidden whitespace-nowrap w-48 relative mask-[linear-gradient(to_right,white_80%,transparent)]">
             <div className="animate-marquee inline-block text-[13px] font-medium">
-              {post.user.profile?.username} • Audio original
+              {post.audio
+                ? `${post.audio.title} - ${post.audio.artist || 'Artista'}`
+                : `${post.user.profile?.username} • Audio original`}
             </div>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Right Sidebar Actions */}
-      <div className="absolute bottom-6 right-2 w-15 py-5 flex flex-col items-center justify-end gap-6 z-20 pointer-events-auto bg-black/30 backdrop-blur-xl border border-white/10 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+      <div className="absolute bottom-4 md:bottom-6 right-2 w-13 md:w-15 py-2.5 md:py-3 flex flex-col items-center justify-end gap-2.5 md:gap-3 z-20 pointer-events-auto bg-black/40 backdrop-blur-xl border border-white/10 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
         <div className="flex flex-col items-center gap-1 group">
           <LikeButton
             postId={post.id}
-            iconClassName="w-9 h-9 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] transition-transform hover:scale-110 active:scale-90"
+            iconClassName="w-7 h-7 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] transition-transform hover:scale-110 active:scale-90"
             onToggle={(newLiked) => {
               setLikesCount((prev) => (newLiked ? prev + 1 : prev - 1));
             }}
           />
-          <span className="text-white font-semibold text-[13px] drop-shadow-md">
+          <span className="text-white font-semibold text-[12px] drop-shadow-md">
             {likesCount}
           </span>
         </div>
@@ -466,13 +473,14 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
         <button
           type="button"
           onClick={() => setIsCommentsOpen(true)}
-          className="flex flex-col items-center gap-1 group transition-transform active:scale-90 hover:scale-110"
+          aria-label={t('frames.comments', 'Ver comentarios')}
+          className="flex flex-col items-center justify-center min-w-11 min-h-11 gap-1 group transition-transform active:scale-90 hover:scale-110"
         >
           <MessageCircle
-            size={32}
+            size={26}
             className="text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] fill-white/20"
           />
-          <span className="text-white font-semibold text-[13px] drop-shadow-md">
+          <span className="text-white font-semibold text-[12px] drop-shadow-md">
             {post._count?.comments || 0}
           </span>
         </button>
@@ -480,10 +488,11 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
         <button
           type="button"
           onClick={() => setShowShareModal(true)}
-          className="flex flex-col items-center gap-1 transition-transform active:scale-90 hover:scale-110"
+          aria-label={t('frames.share', 'Compartir frame')}
+          className="flex flex-col items-center justify-center min-w-11 min-h-11 gap-1 transition-transform active:scale-90 hover:scale-110"
         >
           <Share2
-            size={30}
+            size={26}
             className="text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
           />
         </button>
@@ -491,7 +500,12 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
         <button
           type="button"
           onClick={() => setShowAddToCollectionModal(true)}
-          className="flex flex-col items-center gap-1 transition-transform active:scale-90 hover:scale-110"
+          aria-label={
+            isBookmarked
+              ? t('post.actions.remove_bookmark', 'Quitar de guardados')
+              : t('post.actions.add_bookmark', 'Guardar frame')
+          }
+          className="flex flex-col items-center justify-center min-w-11 min-h-11 gap-1 transition-transform active:scale-90 hover:scale-110"
         >
           <Bookmark
             size={28}
@@ -503,7 +517,8 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
           type="button"
           ref={menuButtonRef}
           onClick={() => setShowMenu(!showMenu)}
-          className="flex flex-col items-center gap-1 transition-transform active:scale-90 hover:scale-110 relative"
+          aria-label={t('post.header.more_options', 'Más opciones')}
+          className="flex flex-col items-center justify-center min-w-11 min-h-11 gap-1 transition-transform active:scale-90 hover:scale-110 relative"
         >
           <MoreHorizontal
             size={26}

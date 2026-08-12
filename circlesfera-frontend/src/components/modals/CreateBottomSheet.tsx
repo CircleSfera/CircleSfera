@@ -121,7 +121,7 @@ export default function CreateBottomSheet() {
                 closeCreateMenu();
               }
             }}
-            className="fixed bottom-0 left-0 right-0 z-101 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-t-[32px] md:top-0 md:bottom-0 md:h-fit md:m-auto md:max-w-md md:rounded-[32px] shadow-[0_0_40px_rgba(131,58,180,0.2)] overflow-hidden flex flex-col max-h-[85vh]"
+            className="fixed bottom-0 left-0 right-0 z-101 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-t-4xl md:top-0 md:bottom-0 md:h-fit md:m-auto md:max-w-md md:rounded-4xl shadow-[0_0_40px_rgba(140, 82, 255,0.2)] overflow-hidden flex flex-col max-h-[85vh]"
           >
             {/* Drag Handle Area */}
             <div
@@ -139,8 +139,8 @@ export default function CreateBottomSheet() {
             </div>
 
             {/* Menu Items (Action Cards Grid) */}
-            <div className="overflow-y-auto overscroll-contain px-4 pt-6 pb-8 md:pb-10">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="overflow-y-auto overscroll-contain px-3.5 pt-4 pb-6 md:pb-10">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-3">
                 {menuItems.map((item) => {
                   // Determine specific card styling based on item.id
                   let bgGlow = 'bg-white/5';
@@ -178,20 +178,20 @@ export default function CreateBottomSheet() {
                       type="button"
                       key={item.id}
                       onClick={item.action}
-                      className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border border-white/5 transition-all duration-300 group hover:bg-white/10 active:scale-95 ${bgGlow} ${borderHover}`}
+                      className={`relative flex flex-col items-center gap-2 p-3.5 md:p-5 rounded-xl md:rounded-2xl border border-white/5 transition-all duration-300 group hover:bg-white/10 active:scale-95 ${bgGlow} ${borderHover}`}
                     >
                       <div className="relative">
                         <div
                           className={`absolute -inset-2 bg-current opacity-20 blur-xl rounded-full transition-opacity group-hover:opacity-40 ${iconColor}`}
                         />
                         <item.icon
-                          size={32}
-                          className={`relative z-10 transition-transform group-hover:scale-110 ${iconColor}`}
+                          size={26}
+                          className={`relative z-10 transition-transform group-hover:scale-110 md:w-8 md:h-8 ${iconColor}`}
                           strokeWidth={1.5}
                         />
                       </div>
 
-                      <span className="text-[15px] font-semibold text-white mt-1">
+                      <span className="text-xs md:text-[15px] font-semibold text-white mt-0.5">
                         {item.label}
                       </span>
 

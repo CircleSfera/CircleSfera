@@ -98,7 +98,7 @@ export default function NewsletterTab({
         }
       />
 
-      <div className="p-3 sm:p-5 rounded-lg border border-white/5 bg-white/[0.02]">
+      <div className="p-3 sm:p-5 rounded-lg border border-white/5 bg-white/2">
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
           {!showPreview && (
             <div className="flex-1 space-y-3 order-1">
@@ -153,7 +153,7 @@ export default function NewsletterTab({
                   onChange={(e) =>
                     setFormData({ ...formData, content: e.target.value })
                   }
-                  className="min-h-[160px] sm:min-h-[200px] resize-none leading-relaxed"
+                  className="min-h-40 sm:min-h-50 resize-none leading-relaxed"
                 />
               </div>
 

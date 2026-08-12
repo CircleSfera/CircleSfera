@@ -92,7 +92,7 @@ function MenuDivider() {
         className="h-px"
         style={{
           background:
-            'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.07) 40%, rgba(131,58,180,0.12) 60%, transparent 100%)',
+            'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.07) 40%, rgba(140, 82, 255,0.12) 60%, transparent 100%)',
         }}
       />
     </div>
@@ -136,7 +136,7 @@ export default function PostMenu({
         border: '1px solid rgba(255,255,255,0.09)',
         borderRadius: '16px',
         boxShadow:
-          '0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(131,58,180,0.08), inset 0 1px 0 rgba(255,255,255,0.06)',
+          '0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(140, 82, 255,0.08), inset 0 1px 0 rgba(255,255,255,0.06)',
         overflow: 'hidden',
       }}
       className="py-2"

@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import type { Report, ReportStatus } from '@prisma/client';
@@ -20,6 +21,7 @@ import {
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { CreateReportDto } from './dto/create-report.dto.js';
 import { ReportsService } from './reports.service.js';
 
@@ -43,16 +45,19 @@ export class ReportsController {
 
   /** List reports filed by the current user. */
   @Get('me')
-  async findMyReports(@CurrentUser() user: CurrentUserData) {
-    return this.reportsService.findMyReports(user.userId);
+  async findMyReports(
+    @CurrentUser() user: CurrentUserData,
+    @Query() pagination: PaginationDto,
+  ) {
+    return this.reportsService.findMyReports(user.userId, pagination);
   }
 
   /** List all reports (admin only). */
   @Get()
   @UseGuards(AdminGuard)
   @RequireStaffPermissions('reports')
-  async findAll(): Promise<any[]> {
-    return this.reportsService.findAll();
+  async findAll(@Query() pagination: PaginationDto): Promise<any> {
+    return this.reportsService.findAll(pagination);
   }
 
   /** Update a report's status (admin only). */

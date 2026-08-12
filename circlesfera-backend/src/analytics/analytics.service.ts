@@ -1,7 +1,9 @@
+import { ErrorCode } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { format, startOfDay, subDays } from 'date-fns';
+import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateEventBatchDto, CreateEventDto } from './dto/create-event.dto.js';
 
@@ -406,7 +408,8 @@ export class AnalyticsService {
       },
     });
 
-    if (!post) throw new Error('Post not found');
+    if (!post)
+      throw AppException.NotFound(ErrorCode.POST_NOT_FOUND, 'Post not found');
 
     // Get daily views for this post from detailed PostView records
     const dailyViews = await this.prisma.postView.findMany({

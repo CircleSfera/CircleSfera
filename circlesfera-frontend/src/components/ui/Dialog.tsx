@@ -61,7 +61,7 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'dialog-title' : undefined}
-        className={`w-full ${maxWidthClasses[maxWidth]} bg-surface-elevated border border-white/10 rounded-xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 ${className}`}
+        className={`w-full ${maxWidthClasses[maxWidth]} relative bg-surface-elevated border border-white/10 rounded-xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 ${className}`}
       >
         {title && (
           <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
@@ -74,7 +74,8 @@ export function Dialog({
             <button
               type="button"
               onClick={onClose}
-              className="p-1 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+              aria-label="Close dialog"
+              className="p-2 min-h-11 min-w-11 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
             >
               <X size={20} />
             </button>
@@ -84,7 +85,8 @@ export function Dialog({
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 p-1 text-gray-300 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+            aria-label="Close dialog"
+            className="absolute top-4 right-4 z-10 p-2 min-h-11 min-w-11 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
           >
             <X size={20} />
           </button>

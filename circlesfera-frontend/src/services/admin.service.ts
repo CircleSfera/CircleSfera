@@ -186,6 +186,16 @@ export interface AdminHashtag {
   createdAt: string;
 }
 
+export interface AdminModerationRule {
+  id: string;
+  keyword: string;
+  action: 'BLOCK' | 'FLAG' | 'MUTE';
+  isActive: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AdminComment {
   id: string;
   content: string;
@@ -248,6 +258,28 @@ export interface AdminUserDetail {
   }[];
   reports: { id: string; reason: string; status: string; createdAt: string }[];
   _count: { posts: number; followers: number; following: number };
+}
+
+export interface AdminStripePayoutLog {
+  id: string;
+  stripePayoutId: string;
+  userId: string;
+  amountCents: number;
+  currency: string;
+  status: string; // 'paid', 'pending', 'failed', 'canceled'
+  arrivalDate: string;
+  failureReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    email: string;
+    profile: {
+      username: string;
+      fullName: string | null;
+      avatar: string | null;
+    } | null;
+  };
 }
 
 export interface AdminAudio {
@@ -390,10 +422,27 @@ export interface AdminLiveStream {
   viewerCount: number;
   startedAt: string;
   endedAt: string | null;
+  hlsUrl: string | null;
+  replayUrl: string | null;
   host?: {
     id: string;
     profile?: { username: string; avatar: string | null } | null;
   } | null;
+  coHost?: {
+    id: string;
+    profile?: { username: string; avatar: string | null } | null;
+  } | null;
+  _count?: {
+    gifts: number;
+  };
+}
+
+export interface AdminSystemSetting {
+  key: string;
+  value: string;
+  description: string | null;
+  updatedAt: string;
+  updatedBy: string;
 }
 
 export const adminApi = {
@@ -414,16 +463,33 @@ export const adminApi = {
     return data;
   },
 
-  getActivityChart: () =>
-    apiClient.get<ActivityChartDay[]>('admin/stats/activity-chart'),
+  getActivityChart: (days = 14) =>
+    apiClient.get<ActivityChartDay[]>('admin/stats/activity-chart', {
+      params: { days },
+    }),
 
   getTopUsers: () => apiClient.get<TopUser[]>('admin/stats/top-users'),
 
   // Users
-  getUsers: (page = 1, limit = 50, search = '', status?: string) =>
-    apiClient.get<PaginatedResponse<AdminUser>>('admin/users', {
-      params: { page, limit, search, status },
+  getUsers: (
+    page = 1,
+    limit = 50,
+    search = '',
+    status?: string,
+    role?: string,
+    kycStatus?: string,
+  ) =>
+    apiClient.get<PaginatedResponse<AdminUser>>('/admin/users', {
+      params: { page, limit, search, status, role, kycStatus },
     }),
+
+  getKycStats: () =>
+    apiClient.get<{
+      verified: number;
+      pending: number;
+      notStarted: number;
+      total: number;
+    }>('/admin/users/kyc/stats'),
 
   updateUserStatus: (
     userId: string,
@@ -450,9 +516,8 @@ export const adminApi = {
 
   restoreUser: (id: string) => apiClient.patch(`admin/users/${id}/restore`),
 
-  promoteUser: (id: string) => apiClient.patch(`admin/users/${id}/promote`),
-
-  demoteUser: (id: string) => apiClient.patch(`admin/users/${id}/demote`),
+  updateUserRole: (id: string, role: string) =>
+    apiClient.patch(`/admin/users/${id}/role`, { role }),
 
   revokeUserKYC: (id: string) => apiClient.post(`admin/users/${id}/revoke-kyc`),
 
@@ -470,6 +535,20 @@ export const adminApi = {
 
   exportUsersCSV: () =>
     apiClient.get('admin/users/export', { responseType: 'blob' }),
+
+  // Payouts
+  getPayoutStats: () =>
+    apiClient.get<{
+      paid: number;
+      pending: number;
+      failed: number;
+      total: number;
+    }>('/admin/payouts/stats'),
+
+  getPayouts: (page = 1, limit = 20, status?: string, search?: string) =>
+    apiClient.get<PaginatedResponse<AdminStripePayoutLog>>('admin/payouts', {
+      params: { page, limit, status, search },
+    }),
 
   // Posts
   getPosts: (page = 1, limit = 10, search?: string, type?: string) =>
@@ -629,6 +708,28 @@ export const adminApi = {
   ) => apiClient.patch(`admin/moderation/${type}/${id}`, { status, note }),
 
   // Firewall
+  getFirewallRules: (page = 1, limit = 20, search?: string) =>
+    apiClient.get<PaginatedResponse<AdminModerationRule>>(
+      'admin/firewall/rules',
+      {
+        params: { page, limit, search },
+      },
+    ),
+
+  createFirewallRule: (data: {
+    keyword: string;
+    action: string;
+    isActive?: boolean;
+  }) => apiClient.post<AdminModerationRule>('admin/firewall/rules', data),
+
+  updateFirewallRule: (
+    id: string,
+    data: { action?: string; isActive?: boolean },
+  ) => apiClient.patch<AdminModerationRule>(`admin/firewall/rules/${id}`, data),
+
+  deleteFirewallRule: (id: string) =>
+    apiClient.delete(`admin/firewall/rules/${id}`),
+
   getFirewallSignatures: (page = 1, limit = 20) =>
     apiClient.get<PaginatedResponse<FirewallSignature>>('admin/firewall', {
       params: { page, limit },
@@ -689,6 +790,9 @@ export const adminApi = {
     },
   ) => apiClient.put<AdminFeatureFlag>(`admin/feature-flags/${key}`, data),
 
+  deleteFeatureFlag: (key: string) =>
+    apiClient.delete(`admin/feature-flags/${key}`),
+
   // Webhook events
   getWebhookEvents: (page = 1, limit = 20, status?: string) =>
     apiClient.get<PaginatedResponse<AdminWebhookEvent>>('admin/webhooks', {
@@ -713,4 +817,14 @@ export const adminApi = {
 
   endLiveStream: (id: string) =>
     apiClient.post<AdminLiveStream>(`admin/live/${id}/end`),
+
+  // System Settings
+  getSystemSettings: () =>
+    apiClient
+      .get<AdminSystemSetting[]>('admin/settings')
+      .then((res) => res.data),
+
+  updateSystemSettings: (
+    updates: { key: string; value: string; description?: string }[],
+  ) => apiClient.patch('admin/settings', { updates }).then((res) => res.data),
 };

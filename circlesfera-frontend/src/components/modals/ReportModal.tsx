@@ -1,10 +1,10 @@
-import { AnimatePresence, motion, useDragControls } from 'framer-motion';
-import { AlertCircle, CheckCircle2, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { reportsApi } from '../../services';
 import { logger } from '../../utils/logger';
 import { Button, Textarea } from '../ui';
+import { Dialog } from '../ui/Dialog';
 
 export type ReportTargetType =
   | 'USER'
@@ -71,17 +71,13 @@ export default function ReportModal({
   const [details, setDetails] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const dragControls = useDragControls();
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
+    if (!isOpen) {
+      setReason('');
+      setDetails('');
+      setIsSuccess(false);
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
   }, [isOpen]);
 
   const handleSubmit = async () => {
@@ -109,128 +105,65 @@ export default function ReportModal({
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t('report.title', 'Report')}
+      maxWidth="md"
+      className="max-h-[90vh]"
+    >
+      {isSuccess ? (
+        <div className="flex flex-col items-center gap-3 py-8 text-center">
+          <CheckCircle2 className="text-emerald-400" size={40} />
+          <p className="text-white font-semibold">
+            {t('report.success', 'Thanks for your report')}
+          </p>
+        </div>
+      ) : (
         <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-100 bg-black/60 backdrop-blur-sm"
-            onClick={onClose}
-          />
-
-          <div className="fixed inset-0 z-101 pointer-events-none flex flex-col justify-end md:justify-center md:items-center">
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              drag="y"
-              dragControls={dragControls}
-              dragListener={false}
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={0.2}
-              onDragEnd={(_e, info) => {
-                if (info.offset.y > 100 || info.velocity.y > 500) {
-                  onClose();
-                }
-              }}
-              className="pointer-events-auto w-full bg-black/80 backdrop-blur-2xl border border-white/10 rounded-t-4xl md:max-w-md md:rounded-4xl shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]"
-              onPointerDown={(e) => e.stopPropagation()}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="report-modal-title"
-            >
-              <div
-                className="w-full flex md:hidden justify-center pt-4 pb-2 cursor-grab active:cursor-grabbing touch-none"
-                onPointerDown={(e) => dragControls.start(e)}
-              >
-                <div className="w-10 h-1.5 bg-white/20 rounded-full" />
-              </div>
-
-              <div className="relative pt-4 md:pt-8 pb-1 px-6 text-center">
-                <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-[#ff5757] to-[#8c52ff] opacity-80" />
-
-                <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/5">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle size={20} className="text-red-500" />
-                    <h2
-                      id="report-modal-title"
-                      className="text-white font-bold text-lg"
-                    >
-                      {t('report.title', 'Report')}
-                    </h2>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="p-2 rounded-full hover:bg-white/10 text-white/60"
-                    aria-label={t('common.close', 'Close')}
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="px-6 pb-8 overflow-y-auto flex-1">
-                {isSuccess ? (
-                  <div className="flex flex-col items-center gap-3 py-10 text-center">
-                    <CheckCircle2 className="text-green-400" size={40} />
-                    <p className="text-white font-semibold">
-                      {t('report.success', 'Thanks for your report')}
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <p className="text-white/50 text-sm mb-4">
-                      {t(
-                        'report.subtitle',
-                        'Why are you reporting this {{type}}?',
-                        { type: targetType.toLowerCase() },
-                      )}
-                    </p>
-                    <div className="space-y-2 mb-4">
-                      {REPORT_REASONS.map((r) => (
-                        <button
-                          key={r.id}
-                          type="button"
-                          onClick={() => setReason(r.id)}
-                          className={`w-full text-left px-4 py-3 rounded-xl border transition ${
-                            reason === r.id
-                              ? 'border-brand-primary bg-brand-primary/20 text-white'
-                              : 'border-white/10 text-white/80 hover:bg-white/5'
-                          }`}
-                        >
-                          {t(r.labelKey, r.fallback)}
-                        </button>
-                      ))}
-                    </div>
-                    <Textarea
-                      value={details}
-                      onChange={(e) => setDetails(e.target.value)}
-                      placeholder={t(
-                        'report.details_placeholder',
-                        'Additional details (optional)',
-                      )}
-                      className="mb-4"
-                    />
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={!reason || isSubmitting}
-                      isLoading={isSubmitting}
-                      className="w-full"
-                    >
-                      {t('report.submit', 'Submit report')}
-                    </Button>
-                  </>
-                )}
-              </div>
-            </motion.div>
+          <div className="flex items-center gap-2 mb-3 text-brand-secondary">
+            <AlertCircle size={18} aria-hidden />
+            <p className="text-white/50 text-sm">
+              {t('report.subtitle', 'Why are you reporting this {{type}}?', {
+                type: targetType.toLowerCase(),
+              })}
+            </p>
           </div>
+          <div className="space-y-2 mb-4">
+            {REPORT_REASONS.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => setReason(r.id)}
+                className={`w-full text-left px-4 py-3 min-h-11 rounded-xl border transition ${
+                  reason === r.id
+                    ? 'border-brand-primary bg-brand-primary/20 text-white'
+                    : 'border-white/10 text-white/80 hover:bg-white/5'
+                }`}
+              >
+                {t(r.labelKey, r.fallback)}
+              </button>
+            ))}
+          </div>
+          <Textarea
+            value={details}
+            onChange={(e) => setDetails(e.target.value)}
+            placeholder={t(
+              'report.details_placeholder',
+              'Additional details (optional)',
+            )}
+            className="mb-4"
+          />
+          <Button
+            onClick={handleSubmit}
+            disabled={!reason || isSubmitting}
+            isLoading={isSubmitting}
+            className="w-full"
+          >
+            {t('report.submit', 'Submit report')}
+          </Button>
         </>
       )}
-    </AnimatePresence>
+    </Dialog>
   );
 }

@@ -129,15 +129,19 @@ export default function MonetizationTab() {
     `${(tx.amount / 100).toFixed(2)} ${tx.currency}`;
 
   const txStatusBadge = (status: AdminTransaction['status']) => {
+    const normalized = (status || '').toUpperCase();
     const styles: Record<string, string> = {
-      COMPLETED: 'text-green-400 bg-green-400/10',
-      PENDING: 'text-yellow-400 bg-yellow-400/10',
-      FAILED: 'text-red-400 bg-red-400/10',
-      REFUNDED: 'text-purple-400 bg-purple-400/10',
+      COMPLETED: 'text-green-400 bg-green-400/10 border border-green-400/20',
+      PENDING: 'text-yellow-400 bg-yellow-400/10 border border-yellow-400/20',
+      FAILED: 'text-red-400 bg-red-400/10 border border-red-400/20',
+      REFUNDED: 'text-purple-400 bg-purple-400/10 border border-purple-400/20',
     };
+    const badgeStyle =
+      styles[normalized] ||
+      'text-gray-400 bg-gray-400/10 border border-gray-400/20';
     return (
       <span
-        className={`px-2 py-0.5 rounded text-xs font-semibold uppercase ${styles[status]}`}
+        className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase ${badgeStyle}`}
       >
         {status}
       </span>
@@ -183,7 +187,7 @@ export default function MonetizationTab() {
 
       {/* Stripe Integration Status */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="p-4 sm:p-5 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col justify-between min-h-[100px]">
+        <div className="p-4 sm:p-5 rounded-xl border border-white/5 bg-white/2 flex flex-col justify-between min-h-25">
           <div className="flex justify-between items-start mb-3">
             <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0">
               <Zap size={20} />
@@ -202,7 +206,7 @@ export default function MonetizationTab() {
           </div>
         </div>
 
-        <div className="p-4 sm:p-5 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col justify-between min-h-[100px]">
+        <div className="p-4 sm:p-5 rounded-xl border border-white/5 bg-white/2 flex flex-col justify-between min-h-25">
           <div className="flex justify-between items-start mb-3">
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
               <Users size={20} />
@@ -224,7 +228,7 @@ export default function MonetizationTab() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         {/* Tier Distribution Chart (Linear) */}
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 sm:p-5">
+        <div className="rounded-xl border border-white/5 bg-white/2 p-4 sm:p-5">
           <div className="flex items-center gap-3 mb-4 sm:mb-5">
             <div className="w-10 h-10 rounded-lg bg-brand-secondary/10 flex items-center justify-center border border-brand-secondary/20 shrink-0">
               <PieChart size={20} className="text-brand-secondary" />
@@ -255,19 +259,19 @@ export default function MonetizationTab() {
                   animate={{
                     width: `${(distribution.PREMIUM / total) * 100}%`,
                   }}
-                  className="h-full bg-brand-blue rounded-full"
+                  className="h-full bg-blue-400 rounded-full"
                 />
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${(distribution.ELITE / total) * 100}%` }}
-                  className="h-full bg-brand-primary rounded-full ml-0.5"
+                  className="h-full bg-red-500 rounded-full ml-0.5"
                 />
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{
                     width: `${(distribution.BUSINESS / total) * 100}%`,
                   }}
-                  className="h-full bg-brand-accent rounded-full ml-0.5"
+                  className="h-full bg-yellow-400 rounded-full ml-0.5"
                 />
               </div>
             </div>
@@ -277,19 +281,19 @@ export default function MonetizationTab() {
                 {
                   label: t('admin.monetization.tier_verified'),
                   count: distribution.PREMIUM,
-                  color: 'bg-brand-blue',
+                  color: 'bg-blue-400',
                   percent: Math.round((distribution.PREMIUM / total) * 100),
                 },
                 {
                   label: t('admin.monetization.tier_elite'),
                   count: distribution.ELITE,
-                  color: 'bg-brand-primary',
+                  color: 'bg-red-500',
                   percent: Math.round((distribution.ELITE / total) * 100),
                 },
                 {
                   label: t('admin.monetization.tier_business'),
                   count: distribution.BUSINESS,
-                  color: 'bg-brand-accent',
+                  color: 'bg-yellow-400',
                   percent: Math.round((distribution.BUSINESS / total) * 100),
                 },
               ].map((tier) => (
@@ -322,7 +326,7 @@ export default function MonetizationTab() {
         </div>
 
         <div className="flex flex-col gap-3">
-          <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 sm:p-5 flex flex-col justify-center">
+          <div className="rounded-xl border border-white/5 bg-white/2 p-4 sm:p-5 flex flex-col justify-center">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-lg bg-brand-primary/10 flex items-center justify-center shrink-0">
                 <TrendingUp size={20} className="text-brand-primary" />
@@ -446,7 +450,7 @@ export default function MonetizationTab() {
                     </span>
                   </td>
                   <td className="px-2 py-1">
-                    <span className="text-sm text-gray-300 truncate block max-w-[14rem]">
+                    <span className="text-sm text-gray-300 truncate block max-w-56">
                       {tx.sender?.profile?.username
                         ? `@${tx.sender.profile.username} → @${tx.receiver?.profile?.username || '—'}`
                         : tx.description || '—'}

@@ -12,9 +12,12 @@ import {
   ModerationTab,
   MonetizationTab,
   NewsletterTab,
+  PayoutsTab,
   PostsTab,
   PromotionsTab,
   ReportsTab,
+  RolesTab,
+  SettingsTab,
   StatsTab,
   StoriesTab,
   SupportTicketsTab,
@@ -56,11 +59,12 @@ export default function Admin() {
         {activeTab === 'analytics' && <StatsTab />}
         {activeTab === 'reports' && <ReportsTab onToast={addToast} />}
         {activeTab === 'users' && <UsersTab onToast={addToast} />}
+        {activeTab === 'roles' && <RolesTab onToast={addToast} />}
         {activeTab === 'posts' && <PostsTab onToast={addToast} />}
         {activeTab === 'comments' && <CommentsTab onToast={addToast} />}
         {activeTab === 'hashtags' && <HashtagsTab />}
         {activeTab === 'stories' && <StoriesTab onToast={addToast} />}
-        {activeTab === 'live' && <LiveStreamsTab onToast={addToast} />}
+        {activeTab === 'live' && <LiveStreamsTab />}
         {activeTab === 'audio' && <AudioTab onToast={addToast} />}
         {activeTab === 'whitelist' && <WhitelistTab />}
         {activeTab === 'audit' && <AuditLogTab />}
@@ -69,6 +73,7 @@ export default function Admin() {
         {activeTab === 'moderation' && <ModerationTab onToast={addToast} />}
         {activeTab === 'firewall' && <FirewallTab onToast={addToast} />}
         {activeTab === 'monetization' && <MonetizationTab />}
+        {activeTab === 'payouts' && <PayoutsTab />}
         {activeTab === 'promotions' && <PromotionsTab onToast={addToast} />}
         {activeTab === 'verification' && (
           <UserVerificationTab onToast={addToast} />
@@ -76,6 +81,7 @@ export default function Admin() {
         {activeTab === 'experiments' && <ExperimentsTab />}
         {activeTab === 'newsletter' && <NewsletterTab onToast={addToast} />}
         {activeTab === 'system-health' && <SystemHealthTab />}
+        {activeTab === 'settings' && <SettingsTab onToast={addToast} />}
         {activeTab === 'trust' && <TrustTab />}
       </div>
     </AdminShell>

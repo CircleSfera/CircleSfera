@@ -99,7 +99,7 @@ export default function AudioRecorder({
     }));
   }, []);
   return (
-    <div className="flex items-center gap-4 glass-panel p-2 rounded-[32px] w-full border border-white/10 shadow-2xl shadow-brand-primary/20 animate-in fade-in slide-in-from-bottom-2 duration-200">
+    <div className="flex items-center gap-4 glass-panel p-2 rounded-4xl w-full border border-white/10 shadow-2xl shadow-brand-primary/20 animate-in fade-in slide-in-from-bottom-2 duration-200">
       <div className="flex-1 flex items-center gap-3 px-4">
         {isRecording ? (
           <div className="flex items-center gap-2">

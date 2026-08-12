@@ -4,7 +4,7 @@ import type { Job } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { PushService } from '../../push/push.service.js';
 
-@Processor('notifications-processing')
+@Processor('notifications-processing', { concurrency: 10 })
 export class NotificationsProcessor extends WorkerHost {
   private readonly logger = new Logger(NotificationsProcessor.name);
 

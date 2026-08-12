@@ -8,7 +8,7 @@ import { telemetry } from '../utils/telemetry';
 
 export function usePostInteractions(post: Post) {
   const queryClient = useQueryClient();
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
   const verificationLevel =
     profile?.user?.verificationLevel || profile?.verificationLevel;
   const canPromote = verificationLevel === 'ELITE';

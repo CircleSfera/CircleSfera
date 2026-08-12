@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Ban, Download, UserCheck, Users } from 'lucide-react';
+import { Ban, Download, ShieldCheck, UserCheck, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminUser } from '../../services/admin.service';
-import { adminApi } from '../../services/admin.service';
+import { adminApi, type EnhancedStats } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { UserAvatar } from '../index';
 import ConfirmModal from '../modals/ConfirmModal';
@@ -15,13 +15,14 @@ import VerificationBadge, {
 } from '../VerificationBadge';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
+import { AdminKpiWidget } from './AdminKpiWidget';
 import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
+import { AdminSegmentedControl } from './AdminSegmentedControl';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import {
   ActionButton,
-  FilterDropdown,
   Pagination,
   SearchInput,
   StatusBadge,
@@ -55,12 +56,12 @@ function isSuspended(user: AdminUser) {
   return new Date(user.suspendedUntil).getTime() > Date.now();
 }
 
-export default function UsersTab({ onToast }: Props) {
+export default function Dashboard({ onToast }: Props) {
   const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [segment, setSegment] = useState('ALL');
   const debouncedSearch = useDebouncedValue(search, 400);
   const queryClient = useQueryClient();
   const dateLocale = i18n.language?.startsWith('en') ? 'en-US' : 'es-ES';
@@ -89,15 +90,31 @@ export default function UsersTab({ onToast }: Props) {
     }
   }, [searchParams, setSearchParams]);
 
+  const statusFilter = segment === 'BANNED' ? 'banned' : undefined;
+  const roleFilter = segment === 'ADMINS' ? 'ADMIN' : undefined;
+
+  const { data: statsData } = useQuery<EnhancedStats>({
+    queryKey: ['admin', 'stats', 'enhanced'],
+    queryFn: () => adminApi.getEnhancedStats(),
+  });
+
   const { data, isLoading } = useQuery<PaginatedResponse<AdminUser>>({
-    queryKey: ['admin', 'users', page, debouncedSearch, statusFilter],
+    queryKey: [
+      'admin',
+      'users',
+      page,
+      debouncedSearch,
+      statusFilter,
+      roleFilter,
+    ],
     queryFn: () =>
       adminApi
         .getUsers(
           page,
           10,
           debouncedSearch || undefined,
-          statusFilter || undefined,
+          statusFilter,
+          roleFilter,
         )
         .then((res) => res.data as PaginatedResponse<AdminUser>),
   });
@@ -159,9 +176,9 @@ export default function UsersTab({ onToast }: Props) {
         case 'unban':
           return adminApi.unbanUser(id);
         case 'promote':
-          return adminApi.promoteUser(id);
+          return adminApi.updateUserRole(id, 'ADMIN');
         case 'demote':
-          return adminApi.demoteUser(id);
+          return adminApi.updateUserRole(id, 'USER');
         case 'delete':
           return adminApi.deleteUser(id);
         case 'warn':
@@ -300,15 +317,8 @@ export default function UsersTab({ onToast }: Props) {
     ? confirmConfig[confirmAction.type]
     : null;
 
-  const isFiltered = debouncedSearch.length > 0 || statusFilter.length > 0;
   const isPending = actionMutation.isPending;
   const users = data?.data ?? [];
-
-  const clearFilters = () => {
-    setSearch('');
-    setStatusFilter('');
-    setPage(1);
-  };
 
   const openProfile = (user: AdminUser) => {
     const handle = usernameOf(user);
@@ -334,8 +344,51 @@ export default function UsersTab({ onToast }: Props) {
         }
       />
 
+      {/* KPI Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <AdminKpiWidget
+          title={t('admin.users.kpi_registered')}
+          value={statsData?.users.toLocaleString() || '0'}
+          icon={<Users size={20} />}
+          trend={{
+            value: statsData?.userGrowth || 0,
+            label: t('admin.shared.this_month'),
+          }}
+        />
+        <AdminKpiWidget
+          title={t('admin.users.kpi_new_week')}
+          value={statsData?.newUsersThisWeek.toLocaleString() || '0'}
+          icon={<UserCheck size={20} />}
+          iconColorClass="text-green-400 bg-green-400/10"
+        />
+        <AdminKpiWidget
+          title={t('admin.users.kpi_active_today')}
+          value={statsData?.activeUsersToday.toLocaleString() || '0'}
+          icon={<ShieldCheck size={20} />}
+          iconColorClass="text-brand-accent bg-brand-accent/10"
+        />
+        <AdminKpiWidget
+          title={t('admin.users.kpi_pending_reports')}
+          value={statsData?.pendingReports.toLocaleString() || '0'}
+          icon={<Ban size={20} />}
+          iconColorClass="text-red-400 bg-red-400/10"
+        />
+      </div>
+
       <AdminFilterBar>
-        <div className="flex-1 min-w-0">
+        <AdminSegmentedControl
+          value={segment}
+          onChange={(v) => {
+            setSegment(v);
+            setPage(1);
+          }}
+          options={[
+            { value: 'ALL', label: t('admin.shared.filter_all_recent') },
+            { value: 'BANNED', label: t('admin.users.segment_banned') },
+            { value: 'ADMINS', label: t('admin.users.segment_admins') },
+          ]}
+        />
+        <div className="flex-1 min-w-0 md:max-w-xs">
           <SearchInput
             value={search}
             onChange={(v) => {
@@ -345,19 +398,6 @@ export default function UsersTab({ onToast }: Props) {
             placeholder={t('admin.users.search_placeholder')}
           />
         </div>
-        <FilterDropdown
-          label={t('admin.users.filter_status')}
-          value={statusFilter}
-          onChange={(v) => {
-            setStatusFilter(v);
-            setPage(1);
-          }}
-          options={[
-            { value: '', label: t('admin.users.status_all') },
-            { value: 'active', label: t('admin.users.status_active') },
-            { value: 'banned', label: t('admin.users.status_banned') },
-          ]}
-        />
       </AdminFilterBar>
 
       <AdminSplitView
@@ -374,19 +414,22 @@ export default function UsersTab({ onToast }: Props) {
                 <AdminEmptyState
                   icon={Users}
                   title={
-                    isFiltered
+                    search.length > 0
                       ? t('admin.users.empty_filtered_title')
                       : t('admin.users.empty_title')
                   }
                   description={
-                    isFiltered
+                    search.length > 0
                       ? t('admin.users.empty_filtered_description')
                       : t('admin.users.empty_description')
                   }
                   action={
-                    isFiltered ? (
+                    search.length > 0 ? (
                       <Button
-                        onClick={clearFilters}
+                        onClick={() => {
+                          setSearch('');
+                          setPage(1);
+                        }}
                         variant="secondary"
                         className="min-h-11"
                       >

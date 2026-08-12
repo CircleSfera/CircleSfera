@@ -208,8 +208,6 @@ export default function CreatePostModal() {
           nextLabel={nextLabel}
           isPending={isPending}
           canNext={mediaFiles.length > 0}
-          step={step}
-          mode={mode}
         />
 
         <AnimatePresence>

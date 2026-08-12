@@ -61,12 +61,13 @@ export default function CreatorMoneyTab({ onToast }: Props) {
   );
 
   return (
-    <div className="space-y-5">
-      <div className="sticky top-[calc(env(safe-area-inset-top)+4.5rem)] sm:top-2 z-20 -mx-1 px-1 py-1 bg-black/70 backdrop-blur-xl rounded-xl border border-white/10">
+    <div className="space-y-4">
+      {/* Sticky Tab Navigation Bar */}
+      <div className="sticky top-[calc(env(safe-area-inset-top)+4.25rem)] sm:top-2 z-20 bg-zinc-950/90 backdrop-blur-xl p-1 rounded-xl border border-white/8 shadow-lg">
         <div
           role="tablist"
           aria-label={t('creator.money.sections', 'Secciones de monetización')}
-          className="flex gap-1 p-1 overflow-x-auto no-scrollbar"
+          className="flex gap-1 overflow-x-auto no-scrollbar"
         >
           {SECTIONS.map((item) => {
             const active = section === item.id;
@@ -78,10 +79,10 @@ export default function CreatorMoneyTab({ onToast }: Props) {
                 aria-selected={active}
                 onClick={() => setSection(item.id)}
                 className={clsx(
-                  'shrink-0 min-h-11 px-4 rounded-lg text-sm font-semibold transition-colors',
+                  'flex-1 min-h-10 px-4 rounded-lg text-xs font-bold transition-all uppercase tracking-wider',
                   active
-                    ? 'bg-brand-primary/20 text-white border border-brand-primary/40'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent',
+                    ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/20'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5',
                 )}
               >
                 {t(item.labelKey, item.labelFallback)}
@@ -93,13 +94,13 @@ export default function CreatorMoneyTab({ onToast }: Props) {
 
       <Suspense
         fallback={
-          <div className="flex justify-center py-16 opacity-50">
-            <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin" />
+          <div className="flex justify-center py-12 opacity-50">
+            <div className="w-6 h-6 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
           </div>
         }
       >
         {section === 'wallet' && (
-          <div className="rounded-xl border border-white/10 bg-white/5 p-3 sm:p-4">
+          <div className="rounded-2xl border border-white/8 bg-zinc-950/80 p-3 sm:p-4 backdrop-blur-xl">
             <MonetizationDashboard />
           </div>
         )}

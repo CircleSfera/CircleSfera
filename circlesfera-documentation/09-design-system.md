@@ -1,459 +1,1290 @@
 # CircleSfera Design System
-## Professional Design Guide - Meta Level
-
-### Overview
-A unified design system that establishes principles, patterns, and reusable components to create consistent, accessible, and beautiful experiences across the CircleSfera platform.
+> **Fuente canónica**: [Notion — CircleSfera Design System](https://app.notion.com/p/CircleSfera-Design-System-3b2dfa08f2f580e6a802ecea1eef9685)
+> **Sincronizado**: Agosto 2026 | **Versión Notion**: 2.0.0 | **Status**: Official
 
 ---
 
-## 1. Design Philosophy
-
-### Core Principles
-
-#### 1.1 Clarity and Simplicity
-- **Eliminate friction**: Every element must have a clear purpose
-- **Visual hierarchy**: Use size, color, and spacing to guide attention
-- **Progressive disclosure**: Show the essentials first, expand when needed
-
-#### 1.2 Consistency
-- **Unified patterns**: Consistent components and behaviors throughout the app
-- **Coherent visual language**: Standardized colors, typography, and spacing
-- **Familiar experiences**: Users should feel comfortable navigating
-
-#### 1.3 Modern Elegance
-- **Minimalist aesthetic**: Less is more — remove unnecessary elements
-- **Micro-interactions**: Subtle animations that bring the interface to life
-- **Refined glassmorphism**: Frosted-glass effects used with good taste
-
-#### 1.4 Accessibility
-- **Adequate contrast**: WCAG AA minimum, AAA where possible
-- **Keyboard navigation**: Everything must be accessible without a mouse
-- **Visible focus**: Clear focus indicators for navigation
-
-#### 1.5 Visual Performance
-- **Smooth transitions**: 60fps on all animations
-- **Progressive loading**: Elegant loading states
-- **Render optimization**: Efficient components
-
+Version: 2.0.0
+Status: Official
+Last Updated: August 2026
 ---
-
-## 2. Color Palette
-
-> **Implementation note (Jul 2026):** Brand CSS tokens in `circlesfera-frontend/src/index.css` are `--brand-primary: #833ab4`, `--brand-secondary: #fd1d1d`, `--brand-accent: #fcb045`, `--brand-blue: #405de6`. The shared `Button` primary variant currently uses Tailwind `blue-600` / `blue-500` (not brand-primary). Prefer those live tokens/classes over the palette scales below when matching shipped UI; the purple/pink scales remain a design reference, not a guarantee of current component usage.
-
-### 2.1 Primary Colors (Warm Purple)
-```
-Primary Purple (Main Purple)
-- 50:  #faf5ff  (Very light backgrounds)
-- 400: #c084fc  (Secondary actions)
-- 500: #a855f7  (Primary brand)
-- 600: #9333ea  (Hovers and active states)
-- 700: #7e22ce  (Strong emphasis)
-- 950: #3b0764  (Darkest)
-```
-
-### 2.2 Accent Colors (Warm Pink)
-```
-Accent Pink (Complementary Pink)
-- 50:  #fdf2f8  (Very light backgrounds)
-- 400: #f472b6  (Soft accents)
-- 500: #ec4899  (Primary accent)
-- 600: #db2777  (Hovers and active states)
-- 700: #be185d  (Strong emphasis)
-- 950: #500724  (Darkest)
-```
-
-### 2.3 Neutral Colors
-```
-Slate (Gray scale)
-- 50:  #f8fafc  (Text on dark)
-- 400: #94a3b8  (Secondary text)
-- 500: #64748b  (Tertiary text)
-- 800: #1e293b  (Dark backgrounds)
-- 900: #0f172a  (Darker backgrounds)
-- 950: #020617  (Near-black base)
-```
-
-### 2.4 Semantic Colors
-- **Success (Green)**: Confirmations, successful actions
-- **Warning (Yellow)**: Warnings, attention required
-- **Danger (Red)**: Errors, destructive actions
-
-### 2.5 Primary Gradients
-```
-Primary Gradient: from-primary-600 via-primary-500 to-accent-500
-Text Gradient: from-primary-400 via-primary-500 to-accent-500
-Hover Gradient: from-primary-500 via-accent-500 to-primary-600
-```
-
-### 2.6 Dark Mode
-CircleSfera is **dark-first with no light-theme toggle** — this is the app's only theme, not an alternate mode (confirmed against `circlesfera-frontend/src/index.css`, `--background: 0 0% 3.9%`).
-- **Base Background**: `#000000` (Pure black)
-- **Elevated Background**: `rgba(15, 23, 42, 0.4)` (Slate-900 with transparency)
-- **Borders**: `rgba(51, 65, 85, 0.3)` (Slate-700 with transparency)
-- **Primary Text**: `#ffffff` (Pure white)
-- **Secondary Text**: `rgba(148, 163, 184, 1)` (Slate-400)
-
+# 1. Introduction
+## 1.1 Purpose
+The CircleSfera Design System defines the visual language, interaction principles, layout rules, reusable patterns, accessibility requirements, and engineering standards used across the entire CircleSfera ecosystem.
+Its purpose is to ensure every interface delivers a consistent, scalable and high-quality user experience regardless of platform or feature.
+This document serves as the single source of truth for product design.
+Every application, service, website and internal tool MUST follow the rules defined in this specification.
 ---
-
-## 3. Typography
-
-### 3.1 Primary Font
-**Inter** - Variable font for maximum flexibility
-- **Weights**: 400 (Regular), 500 (Medium), 600 (Semibold), 700 (Bold)
-- **Features**: cv02, cv03, cv04, cv11 (OpenType features)
-
-### 3.2 Type Scale
-```
-Display: 3rem-8rem   (Heroes, main titles)
-Heading: 1.5rem-3rem (Section titles)
-Body:    0.875rem-1rem (Content, paragraphs)
-Small:   0.75rem-0.875rem (Metadata, labels)
-Tiny:    0.625rem (Badges, tags)
-```
-
-### 3.3 Text Hierarchy
-- **Headings**: Semibold (600) or Bold (700)
-- **Body**: Regular (400) or Medium (500)
-- **Labels**: Medium (500)
-- **Captions**: Regular (400)
-
+## 1.2 Scope
+This specification applies to every product within the CircleSfera ecosystem, including but not limited to:
+- CircleSfera Mobile
+- CircleSfera Web
+- CircleSfera Creator Dashboard
+- CircleSfera Studio
+- CircleSfera Admin Panel
+- Authentication
+- Landing Pages
+- Internal Backoffice Tools
+- Future CircleSfera Applications
+No product is exempt from this Design System unless explicitly documented.
 ---
-
-## 4. Spacing
-
-### 4.1 Spacing System (8px base)
-```
-0.5:  4px   (Minimum spacing)
-1:    8px   (Base)
-1.5:  12px  (Compact)
-2:    16px  (Standard)
-3:    24px  (Comfortable)
-4:    32px  (Spacious)
-6:    48px  (Sections)
-8:    64px  (Large margins)
-12:   96px  (Large separators)
-```
-
-### 4.2 Padding by Component
-- **Buttons**: `px-4 py-2.5` (md), `px-6 py-3` (lg)
-- **Cards**: `p-4` (compact), `p-6` (standard), `p-8` (spacious)
-- **Inputs**: `px-4 py-3`
-- **Sidebar**: `px-4 py-3` (items)
-
+## 1.3 Audience
+This document is intended for:
+- Product Designers
+- UI Designers
+- UX Designers
+- Frontend Engineers
+- Full Stack Engineers
+- Design Engineers
+- AI Coding Agents
+- QA Engineers
+- Product Managers
+Every contributor is expected to understand and apply these standards.
 ---
-
-## 5. Borders and Radius
-
-### 5.1 Border Radius
-```
-sm:   8px   (Small buttons, badges)
-md:   12px  (Buttons, inputs)
-lg:   16px  (Cards, modals)
-xl:   20px  (Large containers)
-2xl:  24px  (Extra-large containers)
-full: 9999px (Circular buttons, avatars)
-```
-
-### 5.2 Border Width
-- **Default**: `1px`
-- **Emphasis**: `2px`
-- **Separators**: `1px` with reduced opacity
-
+## 1.4 Goals
+The Design System exists to achieve the following objectives.
+### Consistency
+Every interface should immediately feel like CircleSfera.
+Users should never experience visual inconsistencies between different sections of the platform.
 ---
-
-## 6. Shadows
-
-### 6.1 Elevation System
-```
-Elevation 1 (Soft):      0 2px 8px rgba(0, 0, 0, 0.15)
-Elevation 2 (Standard):  0 4px 16px rgba(0, 0, 0, 0.2)
-Elevation 3 (Moderate):  0 10px 30px rgba(0, 0, 0, 0.25)
-Elevation 4 (High):      0 20px 50px rgba(0, 0, 0, 0.3)
-```
-
-### 6.2 Colored Shadows (Glow Effects)
-```
-Glow Primary: 0 0 20px rgba(168, 85, 247, 0.4)
-Glow Accent: 0 0 20px rgba(236, 72, 153, 0.4)
-Glow Combined: 0 0 30px rgba(168, 85, 247, 0.4), 0 0 60px rgba(236, 72, 153, 0.2)
-Glow Success: 0 0 20px rgba(34, 197, 94, 0.4)
-Glow Danger:  0 0 20px rgba(239, 68, 68, 0.4)
-```
-
+### Scalability
+The system must support thousands of components and hundreds of future features without becoming inconsistent.
+Every new component should naturally integrate into the existing design language.
 ---
-
-## 7. Base Components
-
-### 7.1 Buttons
-
-#### Variants
-- **Primary**: Purple/pink gradient (`from-primary-600 via-primary-500 to-accent-500`), white text, purple glow shadow
-- **Secondary**: Dark glassmorphism (`glass-dark`), brighter hover
-- **Ghost**: Transparent, hover with `white/5` background and backdrop-blur
-- **Danger**: Red gradient, for destructive actions
-- **Success**: Green gradient, for confirmations
-- **Outline**: Purple border, transparent background, hover with `primary-500/10` background
-
-#### States
-- **Default**: Normal state
-- **Hover**: Scale 1.02, increased shadow
-- **Active**: Scale 0.98, tactile feedback
-- **Disabled**: 50% opacity, cursor not-allowed
-- **Loading**: Spinner, opaque text
-
-### 7.2 Cards
-- **Background**: `bg-slate-900/40` with `backdrop-blur-sm`
-- **Border**: `border border-slate-800/50`
-- **Radius**: `rounded-2xl`
-- **Shadow**: `shadow-elegant`
-- **Hover**: Subtle scale, more visible border
-
-### 7.3 Inputs
-- **Background**: `bg-slate-900/30`
-- **Border**: `border border-slate-800/50`
-- **Focus**: Blue ring, blue border, more opaque background
-- **Placeholder**: Slate-500 color
-
-### 7.4 Badges
-- **Sizes**: sm, md, lg
-- **Variants**: Primary, Success, Warning, Danger, Neutral
-- **Shape**: Pill (full rounded)
-
+### Maintainability
+Design decisions should be centralized.
+Updating a design token should automatically improve every interface that depends on it.
 ---
-
-## 8. Visual Effects
-
-### 8.1 Glassmorphism (VisionOS Style)
-
-#### CSS Utilities
-- **glass-light**: `bg-white/5 backdrop-blur-2xl border-white/10`
-- **glass-dark**: `bg-black/20 backdrop-blur-2xl border-white/5`
-- **glass-elevated**: `bg-white/8 backdrop-blur-2xl border-white/15`
-- **glass-primary**: `bg-primary-500/10 backdrop-blur-2xl border-primary-500/20`
-- **glass-accent**: `bg-accent-500/10 backdrop-blur-2xl border-accent-500/20`
-- **glass-sidebar**: `bg-black/30 backdrop-blur-2xl border-white/5`
-- **glass-card**: `bg-slate-900/40 backdrop-blur-xl border-slate-800/50`
-- **glass-modal**: `bg-black/40 backdrop-blur-3xl border-white/10`
-- **glass-bottom-nav**: `bg-black/40 backdrop-blur-2xl border-white/10`
-
-### 8.2 Gradients
-- **Primary Gradient**: `from-primary-600 via-primary-500 to-accent-500`
-- **Text Gradient**: `from-primary-400 via-primary-500 to-accent-500` (`.text-gradient-primary`)
-- **Hover Gradient**: `from-primary-500 via-accent-500 to-primary-600`
-
-### 8.3 Animations
-
-#### Standard Duration
-- **Instant**: 0ms (Immediate states)
-- **Fast**: 150ms (Hovers, micro-interactions)
-- **Normal**: 300ms (Standard transitions)
-- **Slow**: 500ms (Important transitions)
-
-#### Easing
-- **Ease Out**: For entrances (smooth landing)
-- **Ease In**: For exits (acceleration)
-- **Ease In Out**: For bidirectional transitions
-
-#### Main Keyframes
-- **fade-in**: Opacity and translateY
-- **slide-up**: TranslateY from below
-- **scale-in**: Scale from 0.95
-- **shimmer**: Elegant loading effect
-
+### Accessibility
+Accessibility is a fundamental requirement.
+It is not an optional enhancement.
+Every interface MUST be usable by the widest possible range of users.
 ---
-
-## 9. Layout and Grid
-
-### 9.1 Containers
-- **Max Width**: 935px (Main feed)
-- **Sidebar**: 280px (Navigation)
-- **Padding**: 24px (px-6) on mobile, 32px on desktop
-
-### 9.2 Grid System
-- **Columns**: 12 columns on desktop
-- **Gap**: 16px standard, 24px spacious
-
+### Performance
+Beautiful interfaces should never compromise performance.
+Visual quality and rendering performance must coexist.
 ---
-
-## 10. Interaction States
-
-### 10.1 Hover
-- Subtle scale (1.01-1.02)
-- Increased shadow
-- More visible border
-- Brighter color
-
-### 10.2 Active
-- Scale down (0.97-0.98)
-- Immediate visual feedback
-
-### 10.3 Focus
-- Visible ring (2px primary-500)
-- Outline offset
-- Focus shadow
-
-### 10.4 Loading
-- Elegant skeleton screens
-- Subtle spinners
-- Shimmer effects for content
-
+## 1.5 RFC Terminology
+The following keywords define the strength of every requirement.
+### MUST
+Absolute requirement.
+Cannot be ignored.
 ---
-
-## 11. Responsive Design
-
-### Breakpoints
-```
-sm:  640px  (Large mobile)
-md:  768px  (Tablet)
-lg:  1024px (Small desktop)
-xl:  1280px (Desktop)
-2xl: 1536px (Large desktop)
-```
-
-### Strategy
-- **Mobile First**: Design for mobile first
-- **Progressive Enhancement**: Add functionality on desktop
-- **Touch Targets**: Minimum 44x44px
-
+### MUST NOT
+Absolute prohibition.
+Never allowed.
 ---
-
-## 12. Accessibility
-
-### 12.1 Contrast
-- **Text on dark background**: Minimum 4.5:1
-- **Text on light background**: Minimum 4.5:1
-- **Large text**: Minimum 3:1
-
-### 12.2 Navigation
-- **Tab Order**: Logical and predictable
-- **Skip Links**: To skip navigation
-- **ARIA Labels**: Where necessary
-
-### 12.3 Feedback
-- **Focus Visible**: Always visible
-- **Error States**: Clear and descriptive
-- **Success States**: Visual confirmation
-
+### SHOULD
+Strong recommendation.
+Deviations require valid justification.
 ---
-
-## 13. Performance
-
-### 13.1 Visual Optimizations
-- **Lazy Loading**: For images and components
-- **Will-change**: Only where necessary
-- **Transform/Opacity**: For animations (GPU accelerated)
-
-### 13.2 Best Practices
-- Avoid heavy scroll animations
-- Use `requestAnimationFrame` for animations
-- Debounce on resize and scroll
-
+### SHOULD NOT
+Generally discouraged.
+Only acceptable under exceptional circumstances.
 ---
-
-## 14. Technical Implementation
-
-### 14.1 Tailwind CSS
-- **Config**: `tailwind.config.ts`
-- **Custom Utilities**: `globals.css`
-- **JIT Mode**: Enabled
-
-### 14.2 Components
-- **CVA**: For component variants
-- **TypeScript**: Strict typing
-- **Composition**: Compound components
-
+### MAY
+Optional implementation.
+Used when multiple valid solutions exist.
 ---
+# 2. Design Philosophy
+CircleSfera is a content platform.
+The interface exists to support content, not compete with it.
+Every design decision should maximize usability, clarity and efficiency while maintaining a refined visual identity.
+The experience should feel modern without relying on unnecessary decoration.
+Elegant without becoming minimal to the point of reducing usability.
+Rich without becoming visually overwhelming.
+---
+## 2.1 Mobile First
+CircleSfera is designed for mobile devices first.
+Every feature MUST begin with a mobile implementation before being adapted for tablet or desktop.
+Desktop is an adaptation.
+Mobile is the source.
+Designing desktop first is prohibited.
+---
+## 2.2 Content First
+Content is always the highest priority.
+The interface exists only to organize and present content.
+Whenever there is a conflict between decorative UI and content visibility, content wins.
+Users should always see more content than interface.
+---
+## 2.3 Simplicity
+Complexity should remain invisible.
+Interfaces should feel intuitive without requiring explanation.
+Every additional visual element must justify its existence.
+If an element does not improve usability, it should be removed.
+---
+## 2.4 Consistency
+Identical actions should always produce identical visual results.
+Components must behave consistently across the entire platform.
+Users should never need to relearn an interaction.
+---
+## 2.5 Predictability
+Interfaces should behave exactly as users expect.
+Animations, gestures, navigation and interactions should reinforce familiarity.
+Unexpected behavior increases cognitive load.
+---
+## 2.6 Progressive Disclosure
+Only essential information should be presented initially.
+Advanced functionality should appear progressively.
+Avoid overwhelming users with unnecessary controls.
+---
+## 2.7 Visual Balance
+Interfaces should maintain an appropriate balance between information density and whitespace.
+Whitespace is a tool.
+Whitespace is never decoration.
+Empty space should improve readability, not reduce information density.
+---
+## 2.8 Human-Centered Design
+Interfaces are built for people.
+Not for screenshots.
+Not for portfolios.
+Not for awards.
+Every design decision should improve real-world usability.
+---
+# 3. Core Principles
+## Principle 1 — Mobile Before Desktop
+Every screen MUST be designed for a reference viewport of **390 × 844 px** before any larger breakpoint.
+Desktop implementations MUST preserve the same interaction model while adapting layout to available space.
+Desktop MUST NOT increase component sizes without a functional reason.
+---
+## Principle 2 — Content Over Decoration
+Content is the product.
+Decorative elements are secondary.
+Animations, gradients, glass effects and visual treatments MUST never distract from the primary content.
+---
+## Principle 3 — High Information Density
+CircleSfera is a social platform.
+Users open the application to consume content.
+Interfaces MUST maximize useful information visible on screen.
+Oversized cards, excessive padding and large empty areas are prohibited.
+Target visual density should be comparable to leading social platforms such as Instagram, Threads and X while preserving readability.
+---
+## Principle 4 — One Design Language
+Every component should appear to belong to the same family.
+Differences between components should communicate meaning rather than stylistic variation.
+---
+## Principle 5 — Design Through Systems
+Individual screens should never define their own rules.
+Every interface should emerge naturally from reusable tokens, components and layout rules.
+If a new rule is required, the Design System should evolve instead of creating exceptions.
+---
+## Principle 6 — Accessibility by Default
+Accessibility is the default implementation.
+It is never an optional enhancement performed later.
+Every component must remain accessible from the moment it is created.
+---
+## Principle 7 — Performance is Part of Design
+Smooth interactions are a design feature.
+Animations should feel effortless.
+Rendering should remain responsive.
+Interfaces should communicate quality through speed and fluidity.
+---
+## Principle 8 — Quality Over Quantity
+Shipping fewer polished features is preferable to shipping many inconsistent ones.
+Every screen should satisfy the quality checklist before being considered complete.
+---
+## Principle 9 — Long-Term Consistency
+Design decisions should prioritize maintainability over short-term convenience.
+Temporary visual solutions tend to become permanent technical debt.
+Avoid exceptions whenever possible.
+---
+## Principle 10 — Every Pixel Has a Purpose
+Every pixel on screen should contribute to:
+- usability
+- clarity
+- hierarchy
+- interaction
+- accessibility
+- communication
+Pixels without purpose should not exist.
 
-## 15. Usage Guidelines
-
-### 15.1 When to Use Glassmorphism
-- Elevated cards
-- Modals and overlays
-- Sidebar and navigation
-- NOT on small or low-importance elements
-
-### 15.2 When to Use Gradients
+# 4. Design Language
+## 4.1 Design Identity
+CircleSfera combines modern minimalism with high information density.
+The visual language should communicate:
+- Confidence
+- Professionalism
+- Speed
+- Precision
+- Creativity
+- Trust
+The interface should feel premium without becoming visually heavy.
+Users should immediately focus on content rather than interface elements.
+---
+## 4.2 Design Characteristics
+The CircleSfera interface SHOULD be:
+- Clean
+- Compact
+- Predictable
+- Elegant
+- Responsive
+- Highly readable
+The interface MUST NOT be:
+- Oversized
+- Empty
+- Decorative
+- Noisy
+- Over-animated
+- Difficult to scan
+---
+## 4.3 Content Density
+CircleSfera is a content platform.
+Interfaces MUST maximize the amount of useful information visible on screen.
+Whitespace should improve readability but MUST NOT reduce content visibility.
+The amount of visible information should be comparable to:
+- Instagram
+- Threads
+- X
+If a layout displays significantly less content than these references, it SHOULD be redesigned.
+---
+## 4.4 Visual Hierarchy
+Every screen MUST establish a clear hierarchy.
+Priority order:
+1. Primary Content
+2. User Actions
+3. Secondary Information
+4. Metadata
+5. Decorative Elements
+Decorative elements must never compete with primary content.
+---
+## 4.5 Rhythm
+Interfaces should establish a consistent visual rhythm through spacing, typography and alignment.
+Avoid irregular spacing.
+Avoid random positioning.
+Use the spacing scale consistently.
+---
+## 4.6 Alignment
+Elements SHOULD align to a common grid.
+Misalignment creates unnecessary visual noise.
+Horizontal alignment should always take priority over decorative positioning.
+---
+## 4.7 Balance
+Every screen should balance:
+- Information
+- Whitespace
+- Contrast
+- Interaction
+- Motion
+Avoid visual extremes.
+---
+# 5. Color System
+## 5.1 Philosophy
+Color communicates meaning.
+Color is not decoration.
+Every color MUST have a semantic purpose.
+---
+## 5.2 Brand Colors
+CircleSfera uses a warm gradient identity.
+Primary Brand
+Purple
+Secondary Brand
+Pink
+Accent
+Orange
+Support
+Blue
+These colors represent the visual identity of CircleSfera.
+---
+## 5.3 Semantic Colors
+Semantic colors communicate interface state.
+Success
+Completed actions.
+Warning
+Attention required.
+Danger
+Errors.
+Information
+Neutral system messages.
+Semantic colors MUST never be used purely for decoration.
+---
+## 5.4 Dark Theme
+CircleSfera is permanently dark.
+No light theme exists.
+All interfaces MUST be designed assuming a dark environment.
+---
+## 5.5 Background Hierarchy
+Backgrounds should follow these levels.
+Level 0
+Pure application background.
+Level 1
+Main containers.
+Level 2
+Cards.
+Level 3
+Floating surfaces.
+Level 4
+Dialogs.
+Level 5
+Critical overlays.
+Higher levels should appear progressively elevated.
+---
+## 5.6 Contrast
+Important actions should achieve contrast through:
+- Color
+- Size
+- Position
+- Weight
+Avoid relying on color alone.
+---
+## 5.7 Gradients
+Gradients communicate branding.
+Gradients SHOULD appear on:
 - Primary CTAs
-- Titles and headers
-- Emphasis elements
-- NOT on long text or content backgrounds
-
-### 15.3 When to Use Animations
-- Interaction feedback (hover, click)
-- State transitions
-- Content loading
-- NOT on static or low-importance elements
-
+- Branding
+- Hero Elements
+Gradients SHOULD NOT appear on:
+- Paragraphs
+- Cards
+- Inputs
+- Long text
+- Content backgrounds
 ---
-
-## 16. Tools and Resources
-
-### Design Tokens
-- Defined in `tailwind.config.ts`
-- Accessible via Tailwind classes
-- Documented in this system
-
-### Component Library
-- Location: `components/ui/`
-- Documented variants
-- Usage examples
-
+## 5.8 Glassmorphism
+Glass effects provide depth.
+Glass MUST be used sparingly.
+Recommended locations:
+- Navigation
+- Floating Cards
+- Bottom Sheets
+- Dialogs
+Avoid applying glass to every component.
+Too much blur reduces readability.
 ---
-
-## 17. Framer Motion
-
-### 17.1 Centralized Configuration
-**File**: `lib/motion-config.ts`
-
-#### Standard Transitions
-- **smooth**: Tween 300ms easeOut
-- **gentle**: Tween 400ms easeOut
-- **quick**: Tween 200ms easeOut
-- **spring**: Natural spring (stiffness: 300, damping: 30)
-- **springGentle**: Soft spring (stiffness: 200, damping: 25)
-
-#### Reusable Variants
-- **fadeVariants**: Simple fade in/out
-- **fadeUpVariants**: Fade in with vertical movement
-- **scaleVariants**: Scale in/out
-- **staggerContainer**: Container with stagger children
-- **staggerItem**: Individual item for stagger
-- **hoverScale**: Hover with scale
-- **hoverLift**: Hover with elevation
-- **buttonVariants**: Button states (rest, hover, tap)
-- **modalVariants**: Modal animations
-- **cardVariants**: Card states (rest, hover)
-
-### 17.2 Animation Principles
-- **Duration**: 200-400ms for normal transitions
-- **Spring**: Use for natural interactions
-- **Stagger**: 80ms delay between items in lists
-- **Subtlety**: Discrete animations, not distracting
-
+## 5.9 Borders
+Borders should define separation rather than decoration.
+Prefer subtle borders.
+Avoid high contrast borders unless indicating interaction.
 ---
-
-## 18. Responsive Navigation
-
-### 18.1 Desktop (≥768px)
-- **Sidebar**: Fixed left, 260px wide
-- **Glassmorphism**: `glass-sidebar` with deep blur
-- **Transitions**: Hover with smooth horizontal movement
-
-### 18.2 Mobile (<768px)
-- **Sidebar**: Hidden
-- **Bottom Nav**: Fixed at the bottom
-- **Glassmorphism**: `glass-bottom-nav` with blur and top border
-- **Indicators**: Animation with `layoutId` for smooth transition
-
+## 5.10 Shadows
+Shadows communicate elevation.
+Every shadow should correspond to a logical elevation level.
+Do not create custom shadows per component.
 ---
-
-## Changelog
-- **v2.1** (Jul 2026): Confirmed dark-first theme still matches the live frontend (`--background: 0 0% 3.9%`, black base in `index.css`); no light-mode toggle exists. No palette/token changes in this pass.
-- **v2.0** (December 2024): Full redesign with purple/pink palette, VisionOS-style glassmorphism, and Framer Motion
-- **v1.0** (2024): Initial system established
-
+# 6. Typography
+## 6.1 Philosophy
+Typography is the primary communication tool.
+It should maximize readability before personality.
 ---
+## 6.2 Typeface
+Primary Typeface
+Inter Variable
+No secondary interface font should be introduced without approval.
+---
+## 6.3 Font Weight
+400
+Body text
+500
+Labels
+600
+Section headings
+700
+Important headings
+Avoid heavier weights unless necessary.
+---
+## 6.4 Type Scale
+Display XL
+48px
+Display
+40px
+Heading 1
+32px
+Heading 2
+28px
+Heading 3
+24px
+Heading 4
+20px
+Body
+16px
+Body Small
+14px
+Caption
+12px
+Badge
+11px
+Do not introduce arbitrary font sizes.
+---
+## 6.5 Line Height
+Display
+110%
+Headings
+120%
+Body
+150%
+Captions
+140%
+Maintain comfortable reading rhythm.
+---
+## 6.6 Paragraph Width
+Long paragraphs SHOULD NOT exceed approximately 70 characters per line.
+Readable text is preferable to extremely wide layouts.
+---
+## 6.7 Text Hierarchy
+Every screen should contain one clear primary heading.
+Avoid multiple competing headings.
+Use typography instead of excessive colors to establish hierarchy.
+---
+## 6.8 Text Alignment
+Left aligned by default.
+Centered text should be reserved for:
+- Empty states
+- Landing pages
+- Dialogs
+- Success screens
+Avoid centered body text.
+---
+## 6.9 Text Truncation
+Text should truncate gracefully.
+Never allow overflowing text.
+Use ellipsis only when expansion is available.
+---
+## 6.10 Numbers
+Tabular numbers SHOULD be used whenever values change dynamically.
+Examples:
+- Counters
+- Statistics
+- Financial values
+- Analytics
+- Timers
+---
+## 6.11 Readability Rules
+Avoid:
+- Low contrast text
+- Long uppercase paragraphs
+- Extremely small fonts
+- Excessively bold interfaces
+Typography should remain comfortable during prolonged use.
+---
+## 6.12 Accessibility
+Text MUST satisfy WCAG AA contrast requirements.
+Critical interface text SHOULD satisfy AAA whenever possible.
+Never reduce readability for visual style.
 
-**Last updated**: Jul 2026
-**Maintained by**: CircleSfera Design Team
+# 7. Spacing System
+## 7.1 Philosophy
+Spacing is a structural element.
+Whitespace improves readability, defines hierarchy and separates content.
+Whitespace MUST NOT exist for decorative purposes alone.
+Every spacing value MUST communicate structure.
+---
+## 7.2 Base Unit
+The entire interface is built upon a **4px base unit**.
+All spacing MUST be a multiple of 4px.
+Arbitrary spacing values are prohibited.
+---
+## 7.3 Spacing Scale
+The following spacing scale MUST be used throughout the product.
+
+| Token 
+| Value 
+| Usage 
+
+| xs 
+| 4px 
+| Tight spacing 
+
+| sm 
+| 8px 
+| Related elements 
+
+| md 
+| 12px 
+| Compact groups 
+
+| lg 
+| 16px 
+| Default spacing 
+
+| xl 
+| 24px 
+| Sections 
+
+| 2xl 
+| 32px 
+| Large groups 
+
+| 3xl 
+| 48px 
+| Major sections 
+
+| 4xl 
+| 64px 
+| Exceptional separation 
+
+No additional spacing values should be introduced without updating the Design System.
+---
+## 7.4 Screen Padding
+Default horizontal padding:
+Mobile
+16px
+Tablet
+20px
+Desktop
+24px
+Padding SHOULD remain visually consistent across screens.
+Avoid excessive horizontal whitespace.
+---
+## 7.5 Vertical Rhythm
+The interface SHOULD establish a consistent vertical rhythm.
+Component spacing:
+8–16px
+Section spacing:
+24–32px
+Major layout separation:
+48–64px
+---
+## 7.6 Dense Interfaces
+CircleSfera prioritizes information density.
+Interfaces SHOULD prefer compact spacing whenever readability is preserved.
+Large empty areas are discouraged.
+---
+# 8. Layout Rules
+## 8.1 Mobile First
+Every new interface MUST begin with the following viewport.
+390 × 844
+No desktop layout should be created before the mobile implementation is complete.
+---
+## 8.2 Responsive Order
+The required implementation order is:
+1. Mobile
+2. Small Mobile
+3. Large Mobile
+4. Tablet
+5. Desktop
+Skipping this order is prohibited.
+---
+## 8.3 Content Width
+Layouts should maximize readable content.
+Avoid unnecessarily narrow layouts.
+Avoid extremely wide reading areas.
+Feed width should remain comfortable regardless of monitor size.
+---
+## 8.4 Content Priority
+Every screen MUST organize information using this priority.
+Primary Content
+↓
+Primary Actions
+↓
+Secondary Content
+↓
+Metadata
+↓
+Decorative Elements
+Decoration should never interrupt content.
+---
+## 8.5 Information Density
+CircleSfera is designed to maximize useful information.
+Every screen SHOULD expose as much content as possible without reducing readability.
+If unnecessary whitespace reduces visible content, the layout should be redesigned.
+---
+## 8.6 Component Scaling
+Responsive design adapts layouts.
+Responsive design DOES NOT enlarge components.
+Desktop implementations MUST increase available content instead of increasing component size.
+Incorrect:
+Bigger cards
+Bigger buttons
+Bigger avatars
+Bigger typography
+Correct:
+Additional columns
+Sidebar content
+More visible information
+Multi-column layouts
+---
+## 8.7 Grid System
+Mobile
+Single column.
+Tablet
+One or two columns depending on content.
+Desktop
+Multi-column layouts when appropriate.
+Grid changes should improve information visibility.
+Never increase component scale simply because additional width exists.
+---
+## 8.8 Alignment
+Components MUST align to the design grid.
+Random alignment creates unnecessary visual noise.
+---
+## 8.9 Viewport Utilization
+Approximately 80–90% of the available viewport should contain useful information.
+Avoid layouts dominated by empty space.
+---
+# 9. Component Sizing
+## 9.1 General Principle
+Components should remain human-sized.
+They should never become larger merely because more screen space is available.
+---
+## 9.2 Buttons
+Primary
+48px
+Secondary
+44px
+Compact
+36px
+Icon Button
+40px
+Large buttons should only appear in onboarding or authentication flows.
+---
+## 9.3 Inputs
+Standard Height
+48px
+Compact
+44px
+Search
+44px
+Multi-line inputs should grow vertically according to content.
+---
+## 9.4 Navigation
+Top Navigation
+52px (`--nav-top-height` in `circlesfera-frontend/src/index.css`)
+Bottom Navigation
+60px (`--nav-bottom-height`) plus `safe-area-inset-bottom`
+Sidebar Width
+260–280px (`--nav-sidebar-width`: 260px)
+These values MUST match the CSS tokens. Do not hardcode alternate heights in components.
+---
+## 9.5 Avatars
+Extra Small
+24px
+Small
+32px
+Medium
+40px
+Large
+56px (`--avatar-lg`; use `UserAvatar` size `lg`)
+Profile
+96px (`--avatar-profile`)
+Large decorative avatars should be avoided.
+---
+## 9.6 Icons
+Small
+16px
+Default
+20px
+Navigation
+24px
+Large
+28px
+Hero
+32px
+Icons larger than 32px should be exceptional.
+---
+## 9.7 Cards
+Cards should grow according to content.
+Avoid fixed heights.
+Avoid decorative vertical padding.
+Cards should contain only the space required by their contents.
+---
+## 9.8 Images
+Images MUST preserve aspect ratio.
+Supported ratios include:
+1:1
+4:5
+16:9
+9:16
+Images should never stretch.
+---
+## 9.9 Lists
+Lists SHOULD prioritize density.
+Avoid excessive separation between rows.
+Scrolling should reveal meaningful content quickly.
+---
+# 10. Responsive Behaviour
+## 10.1 Mobile
+The reference experience.
+Everything is designed here first.
+---
+## 10.2 Tablet
+Introduce additional layout flexibility.
+Do not increase UI scale.
+---
+## 10.3 Desktop
+Desktop should expose more information.
+Examples:
+Persistent sidebar
+Secondary panels
+Multiple columns
+Additional analytics
+Desktop MUST preserve the visual proportions established on mobile.
+---
+## 10.4 Large Displays
+Large monitors should increase available content.
+They MUST NOT produce oversized interfaces.
+Avoid large empty margins.
+---
+## 10.5 Foldables
+Foldable devices should behave as tablets when unfolded.
+Maintain component proportions.
+---
+# 11. Layout Validation
+Every screen MUST satisfy the following questions before implementation is considered complete.
+✓ Was the screen designed for mobile first?
+✓ Does it maximize visible content?
+✓ Are component sizes consistent?
+✓ Does it avoid oversized elements?
+✓ Does it avoid unnecessary whitespace?
+✓ Does it preserve visual hierarchy?
+✓ Does it follow the spacing scale?
+✓ Does it remain accessible?
+✓ Does desktop adapt the layout instead of scaling the UI?
+✓ Does the interface feel comparable to Instagram, Threads or X?
+If any answer is NO,
+the screen is not ready for production.
+
+# 12. Component Principles
+## 12.1 Component Philosophy
+Every component MUST solve a specific problem.
+Components exist to provide consistency, predictability and reusability.
+Creating one-off components is strongly discouraged.
+Whenever a new visual pattern appears repeatedly, it MUST become part of the Design System.
+---
+## 12.2 Composition
+Components SHOULD be composed from smaller reusable primitives.
+Avoid deeply coupled implementations.
+Favor composition over duplication.
+---
+## 12.3 Consistency
+Components performing the same action MUST behave identically across the platform.
+Users should never need to relearn interactions.
+---
+## 12.4 States
+Interactive components SHOULD define every possible state.
+Required states include:
+- Default
+- Hover
+- Active
+- Focus
+- Disabled
+- Loading
+- Success (when applicable)
+- Error (when applicable)
+No interactive component should exist without defined states.
+---
+## 12.5 Feedback
+Every user action SHOULD produce immediate feedback.
+Feedback may be:
+- Visual
+- Motion
+- Haptic (mobile)
+- Audio (optional)
+Users should never wonder whether an interaction succeeded.
+---
+# 13. Component Standards
+## 13.1 Buttons
+Buttons represent the primary interaction method.
+Primary buttons MUST be visually unique.
+Only one primary action should exist within the same visual group.
+Avoid multiple competing CTAs.
+---
+### Primary Button
+Reserved for:
+- Save
+- Publish
+- Continue
+- Confirm
+- Create
+Should use the brand gradient.
+---
+### Secondary Button
+Used for secondary actions.
+Should remain visually quieter than the primary button.
+---
+### Ghost Button
+Used inside dense interfaces.
+Ideal for toolbars and contextual actions.
+Should not compete with primary actions.
+---
+### Danger Button
+Reserved exclusively for destructive actions.
+Never use danger colors for emphasis.
+---
+### Icon Buttons
+Should always include an accessible label.
+Icons must remain visually centered.
+Touch target MUST remain at least 44×44.
+---
+## 13.2 Inputs
+Inputs should prioritize readability.
+Avoid decorative borders.
+Validation should appear immediately after user interaction.
+Placeholder text should never replace labels.
+---
+## 13.3 Cards
+Cards group related information.
+Cards should never exist simply for decoration.
+Avoid excessive nesting.
+Recommended:
+One level of card hierarchy.
+Maximum:
+Two.
+---
+## 13.4 Lists
+Lists should remain visually compact.
+Related items should remain grouped.
+Scrolling should expose meaningful information quickly.
+---
+## 13.5 Dialogs
+Dialogs interrupt the current workflow.
+Only use them when necessary.
+Avoid confirmation dialogs for reversible actions.
+---
+## 13.6 Bottom Sheets
+Bottom Sheets are the preferred modal interaction on mobile.
+Use them for:
+- Menus
+- Quick actions
+- Filters
+- Selection
+Avoid fullscreen dialogs whenever possible.
+---
+## 13.7 Navigation
+Navigation should always communicate:
+Current location
+Available destinations
+Back navigation
+Users should never feel lost.
+---
+## 13.8 Tabs
+Tabs organize related content.
+Avoid more than five primary tabs.
+Additional destinations should move into secondary navigation.
+---
+## 13.9 Toolbars
+Toolbars should expose frequently used actions.
+Avoid overcrowding.
+Less important actions belong inside overflow menus.
+---
+## 13.10 Empty States
+Every empty state should explain:
+Why nothing is displayed.
+How to solve it.
+What action can be taken.
+Avoid generic illustrations without context.
+---
+## 13.11 Loading States
+Every asynchronous operation SHOULD provide feedback.
+Prefer Skeletons over spinners whenever content structure is known.
+Avoid blocking the interface unnecessarily.
+---
+## 13.12 Error States
+Errors should:
+Explain the problem.
+Suggest a solution.
+Allow recovery.
+Never blame the user.
+---
+# 14. Motion System
+## 14.1 Philosophy
+Motion communicates change.
+Motion is not decoration.
+Animations should improve understanding.
+Never distract users.
+---
+## 14.2 Duration
+Instant
+0ms
+Fast
+150ms
+Standard
+250ms
+Slow
+350ms
+Exceptional
+500ms
+Animations longer than 500ms require justification.
+---
+## 14.3 Easing
+Default
+Ease Out
+Entering
+Ease Out
+Leaving
+Ease In
+Continuous
+Linear
+Spring interactions should be reserved for tactile interfaces.
+---
+## 14.4 Principles
+Animations should be:
+Smooth
+Predictable
+Interruptible
+Responsive
+Avoid theatrical animations.
+---
+## 14.5 Reduced Motion
+The interface MUST respect operating system reduced-motion preferences.
+Users requesting reduced motion should receive simplified transitions.
+---
+# 15. Interaction
+## 15.1 Hover
+Hover communicates availability.
+Hover should never be required to understand the interface.
+Touch devices do not support hover.
+---
+## 15.2 Focus
+Every interactive element MUST expose a visible focus state.
+Focus indicators should never be removed.
+---
+## 15.3 Active
+Active states should provide immediate tactile feedback.
+Scale reduction should remain subtle.
+Avoid dramatic movement.
+---
+## 15.4 Selection
+Selected items should remain visually obvious.
+Selection should never rely exclusively on color.
+---
+## 15.5 Gestures
+Supported gestures should remain consistent throughout the platform.
+Avoid hidden gestures without visible alternatives.
+---
+## 15.6 Drag and Drop
+Drag interactions should expose clear affordances.
+Users should always understand what can be moved.
+---
+## 15.7 Swipe Actions
+Swipe gestures should remain optional.
+Every swipe action MUST also be accessible through visible controls.
+---
+## 15.8 Scrolling
+Scrolling should feel natural.
+Avoid unnecessary scroll locking.
+Sticky elements should be used only when they improve usability.
+---
+# 16. Visual Effects
+## 16.1 Philosophy
+Visual effects create hierarchy.
+They should never dominate the interface.
+---
+## 16.2 Glassmorphism
+Glass surfaces should communicate elevation.
+Recommended:
+Navigation
+Floating Panels
+Bottom Navigation
+Dialogs
+Bottom Sheets
+Avoid applying glass to every card.
+Interfaces should not resemble frosted glass everywhere.
+---
+## 16.3 Blur
+Blur should separate foreground from background.
+Do not blur large areas unnecessarily.
+Avoid stacking multiple blur layers.
+---
+## 16.4 Shadows
+Shadows represent elevation.
+Shadow intensity should increase gradually.
+Avoid dramatic floating effects.
+---
+## 16.5 Gradients
+Gradients communicate brand identity.
+Use gradients primarily for:
+Primary actions
+Branding
+Highlighted metrics
+Avoid gradient overload.
+---
+## 16.6 Borders
+Borders define separation.
+Prefer subtle borders over heavy outlines.
+High-contrast borders should communicate interaction.
+---
+## 16.7 Transparency
+Transparency should improve depth.
+Never reduce readability.
+Text should always remain fully legible regardless of transparency.
+---
+## 16.8 Visual Noise
+Before adding any visual effect ask:
+Does this improve usability?
+If the answer is no,
+remove it.
+
+# 17. Accessibility
+## 17.1 Philosophy
+Accessibility is a fundamental product requirement.
+It MUST be considered during design, development and testing.
+Accessibility is never a post-release improvement.
+---
+## 17.2 WCAG Compliance
+All interfaces MUST satisfy WCAG 2.2 AA.
+Whenever technically possible, AAA should be preferred.
+Accessibility requirements cannot be sacrificed for visual aesthetics.
+---
+## 17.3 Contrast
+Text MUST maintain sufficient contrast against its background.
+Do not rely on transparency to reduce emphasis.
+Use typography, spacing and hierarchy before reducing contrast.
+---
+## 17.4 Keyboard Navigation
+Every interactive element MUST be accessible using only the keyboard.
+Keyboard users should never become trapped within an interface.
+Focus order MUST follow the visual reading order.
+---
+## 17.5 Focus Indicators
+Visible focus indicators are mandatory.
+Do not remove browser focus styles unless replaced by an equivalent or better implementation.
+---
+## 17.6 Screen Readers
+Interactive components MUST expose meaningful labels.
+Icons MUST include accessible names.
+Decorative elements SHOULD be hidden from assistive technologies.
+---
+## 17.7 Touch Targets
+Minimum touch area:
+44 × 44px
+Preferred touch area:
+48 × 48px
+Visual size may be smaller than touch size.
+---
+## 17.8 Motion Accessibility
+Respect operating system preferences for reduced motion.
+Animations should degrade gracefully.
+---
+# 18. Performance
+## 18.1 Philosophy
+Performance is a feature.
+A visually attractive interface that performs poorly is considered incomplete.
+---
+## 18.2 Rendering
+Interfaces SHOULD minimize unnecessary re-renders.
+Prefer lightweight visual effects.
+Avoid expensive layout recalculations.
+---
+## 18.3 Animations
+Animate only:
+Opacity
+Transform
+Avoid animating:
+Width
+Height
+Top
+Left
+Margin
+Box Shadow
+Filter
+unless strictly necessary.
+---
+## 18.4 Lazy Loading
+Load content progressively.
+Avoid blocking rendering with non-essential resources.
+Images, videos and heavy components SHOULD load lazily whenever appropriate.
+---
+## 18.5 Perceived Performance
+Users should receive immediate feedback.
+Skeletons are preferred over indefinite loading indicators.
+Avoid blank screens.
+---
+# 19. Engineering Standards
+## 19.1 Design Tokens
+Every visual property MUST originate from a design token.
+Avoid hardcoded values.
+Examples include:
+- Colors
+- Spacing
+- Typography
+- Radius
+- Elevation
+- Motion
+- Blur
+- Z-index
+---
+## 19.2 Reusability
+Before creating a new component ask:
+Can an existing component solve this problem?
+Prefer extending existing components over creating new ones.
+---
+## 19.3 Variants
+Component variations SHOULD use variants rather than duplicated implementations.
+Visual consistency is more important than individual customization.
+---
+## 19.4 Exceptions
+Exceptions are discouraged.
+If an exception becomes recurring, the Design System MUST evolve instead.
+---
+## 19.5 Documentation
+Every reusable component SHOULD include:
+Purpose
+Variants
+States
+Accessibility notes
+Usage examples
+Implementation notes
+---
+# 20. Design Review Process
+Every new screen MUST pass the following review.
+---
+## Step 1
+Validate layout.
+Questions:
+Is the hierarchy correct?
+Is content prioritized?
+Is whitespace intentional?
+---
+## Step 2
+Validate responsiveness.
+Questions:
+Was the screen designed for mobile first?
+Does desktop add information rather than scaling components?
+---
+## Step 3
+Validate accessibility.
+Questions:
+Is contrast sufficient?
+Can every interaction be reached?
+Are focus states visible?
+---
+## Step 4
+Validate consistency.
+Questions:
+Does every component follow the Design System?
+Are design tokens respected?
+Were unnecessary exceptions introduced?
+---
+## Step 5
+Validate performance.
+Questions:
+Are animations lightweight?
+Are unnecessary effects avoided?
+Can rendering remain smooth?
+---
+Only after passing every review step should implementation be considered complete.
+---
+# 21. Quality Checklist
+Every production-ready interface MUST satisfy the following checklist.
+## Layout
+☐ Mobile First
+☐ Proper hierarchy
+☐ Balanced whitespace
+☐ High information density
+☐ Responsive
+☐ Grid aligned
+---
+## Components
+☐ Design tokens used
+☐ Consistent sizing
+☐ Proper states
+☐ Accessible interactions
+☐ No duplicated patterns
+---
+## Visual
+☐ Typography hierarchy
+☐ Semantic colors
+☐ Proper elevation
+☐ Appropriate motion
+☐ Consistent branding
+---
+## Accessibility
+☐ WCAG compliant
+☐ Keyboard accessible
+☐ Visible focus
+☐ Screen reader friendly
+☐ Proper touch targets
+---
+## Performance
+☐ Optimized rendering
+☐ Efficient animations
+☐ Lazy loading where appropriate
+☐ No unnecessary visual effects
+---
+If any item remains unchecked,
+the interface MUST NOT be considered production-ready.
+---
+# 22. AI Agent Implementation Rules
+These rules apply to AI-assisted development tools including Antigravity, Cursor and future coding agents.
+---
+## 22.1 Before Writing Code
+The AI MUST determine:
+Which existing components already solve the problem.
+Whether new variants are required.
+Whether new design tokens are necessary.
+Whether existing layout patterns can be reused.
+---
+## 22.2 Before Creating UI
+The AI MUST verify:
+Mobile implementation exists.
+Spacing follows the spacing scale.
+Typography follows the typography scale.
+Component sizing follows the Design System.
+Layout maximizes useful content.
+No oversized UI exists.
+---
+## 22.3 Before Finishing
+The AI MUST compare the implementation against:
+Instagram
+Threads
+X
+Questions:
+Does the layout expose enough information?
+Are components visually oversized?
+Is unnecessary whitespace present?
+Does the interface feel native?
+If any answer indicates a poorer experience,
+the implementation MUST be revised.
+---
+## 22.4 Forbidden Behaviors
+The AI MUST NOT:
+Invent spacing values.
+Invent typography scales.
+Invent colors.
+Invent shadows.
+Invent border radii.
+Invent animations.
+Scale UI because additional screen space exists.
+Create inconsistent components.
+Ignore accessibility.
+Duplicate existing patterns.
+---
+## 22.5 Required Behaviors
+The AI MUST:
+Reuse components.
+Respect design tokens.
+Prioritize content.
+Prefer simplicity.
+Keep interfaces compact.
+Maximize information density.
+Design mobile first.
+Maintain consistency.
+Optimize performance.
+Validate accessibility.
+---
+# 23. Golden Rules
+These principles override every other recommendation.
+1.
+Content is the product.
+The interface exists to support content.
+---
+1.
+Design mobile first.
+Desktop is an adaptation.
+Never the opposite.
+---
+1.
+Every pixel must have a purpose.
+---
+1.
+Prefer systems over exceptions.
+---
+1.
+Consistency is more valuable than novelty.
+---
+1.
+Performance is part of the user experience.
+---
+1.
+Accessibility is mandatory.
+---
+1.
+Responsive design adapts layouts.
+It does not enlarge interfaces.
+---
+1.
+Users should always see more content than interface.
+---
+1.
+If a design decision requires explanation,
+it is probably too complex.
+Simplify it.

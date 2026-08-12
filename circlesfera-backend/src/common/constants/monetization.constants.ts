@@ -1,3 +1,6 @@
 export const PLATFORM_FEE_DECIMAL = 0.2;
 export const PLATFORM_FEE_PERCENT = 20.0;
 export const CREATOR_SHARE_DECIMAL = 1.0 - PLATFORM_FEE_DECIMAL; // 0.8
+
+export const MIN_PPV_PRICE_CENTS = 100; // €1.00
+export const MAX_PPV_PRICE_CENTS = 50000; // €500.00

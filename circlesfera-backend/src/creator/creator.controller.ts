@@ -16,10 +16,27 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { AnalyticsService } from '../analytics/analytics.service.js';
 import { RequiresPlan } from '../auth/decorators/requires-plan.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { SubscriptionGuard } from '../auth/guards/subscription.guard.js';
-import { CreatorService } from './creator.service.js';
+
+// Analytics
+import { ExportAnalyticsCsvUseCase } from './use-cases/analytics/commands/export-analytics-csv.use-case.js';
+import { GetAudienceRetentionQuery } from './use-cases/analytics/queries/get-audience-retention.query.js';
+import { GetCreatorStatsQuery } from './use-cases/analytics/queries/get-creator-stats.query.js';
+import { GetRevenueAnalyticsQuery } from './use-cases/analytics/queries/get-revenue-analytics.query.js';
+import { GetTopContentQuery } from './use-cases/analytics/queries/get-top-content.query.js';
+
+// Content
+import { GetCreatorPostsQuery } from './use-cases/content/queries/get-creator-posts.query.js';
+import { GetCreatorStoriesQuery } from './use-cases/content/queries/get-creator-stories.query.js';
+
+// Promotions
+import { CreatePromotionUseCase } from './use-cases/promotions/commands/create-promotion.use-case.js';
+import { ManagePromotionUseCase } from './use-cases/promotions/commands/manage-promotion.use-case.js';
+import { RecordPromotionInteractionUseCase } from './use-cases/promotions/commands/record-promotion-interaction.use-case.js';
+import { GetPromotionsQuery } from './use-cases/promotions/queries/get-promotions.query.js';
 
 interface AuthRequest extends Request {
   user: { userId: string; email: string; role: string };
@@ -31,29 +48,55 @@ const ElitePlan = () => RequiresPlan('Elite Creator');
 @UseGuards(JwtAuthGuard)
 export class CreatorController {
   constructor(
-    @Inject(CreatorService)
-    private readonly creatorService: CreatorService,
+    @Inject(AnalyticsService)
+    private readonly analyticsService: AnalyticsService,
+    // Analytics
+    @Inject(GetCreatorStatsQuery)
+    private readonly getCreatorStatsQ: GetCreatorStatsQuery,
+    @Inject(GetRevenueAnalyticsQuery)
+    private readonly getRevenueAnalyticsQ: GetRevenueAnalyticsQuery,
+    @Inject(GetAudienceRetentionQuery)
+    private readonly getAudienceRetentionQ: GetAudienceRetentionQuery,
+    @Inject(GetTopContentQuery)
+    private readonly getTopContentQ: GetTopContentQuery,
+    @Inject(ExportAnalyticsCsvUseCase)
+    private readonly exportAnalyticsCsvUC: ExportAnalyticsCsvUseCase,
+    // Content
+    @Inject(GetCreatorPostsQuery)
+    private readonly getCreatorPostsQ: GetCreatorPostsQuery,
+    @Inject(GetCreatorStoriesQuery)
+    private readonly getCreatorStoriesQ: GetCreatorStoriesQuery,
+    // Promotions
+    @Inject(GetPromotionsQuery)
+    private readonly getPromotionsQ: GetPromotionsQuery,
+    @Inject(CreatePromotionUseCase)
+    private readonly createPromotionUC: CreatePromotionUseCase,
+    @Inject(ManagePromotionUseCase)
+    private readonly managePromotionUC: ManagePromotionUseCase,
+    @Inject(RecordPromotionInteractionUseCase)
+    private readonly recordPromotionInteractionUC: RecordPromotionInteractionUseCase,
   ) {}
 
-  /** Creator stats for authenticated user. */
   @Get('stats')
   @UseGuards(SubscriptionGuard)
   @ElitePlan()
   @HttpCode(HttpStatus.OK)
   async getStats(@Req() req: AuthRequest) {
-    return this.creatorService.getStats(req.user.userId);
+    return this.getCreatorStatsQ.execute(req.user.userId);
   }
 
-  /** Activity chart (likes, comments, views per day for 14 days). */
   @Get('activity-chart')
   @UseGuards(SubscriptionGuard)
   @ElitePlan()
   @HttpCode(HttpStatus.OK)
   async getActivityChart(@Req() req: AuthRequest) {
-    return this.creatorService.getActivityChart(req.user.userId);
+    const dashboard = await this.analyticsService.getCreatorDashboard(
+      req.user.userId,
+      14,
+    );
+    return dashboard.charts.dailyMetrics;
   }
 
-  /** Paginated posts/frames with metrics. */
   @Get('posts')
   @UseGuards(SubscriptionGuard)
   @ElitePlan()
@@ -63,7 +106,7 @@ export class CreatorController {
     @Query('limit') limit?: string,
     @Query('type') type?: string,
   ) {
-    return this.creatorService.getPosts(
+    return this.getCreatorPostsQ.execute(
       req.user.userId,
       page ? Number.parseInt(page, 10) : 1,
       limit ? Number.parseInt(limit, 10) : 10,
@@ -71,7 +114,6 @@ export class CreatorController {
     );
   }
 
-  /** Paginated stories with metrics. */
   @Get('stories')
   @UseGuards(SubscriptionGuard)
   @ElitePlan()
@@ -80,14 +122,13 @@ export class CreatorController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.creatorService.getStories(
+    return this.getCreatorStoriesQ.execute(
       req.user.userId,
       page ? Number.parseInt(page, 10) : 1,
       limit ? Number.parseInt(limit, 10) : 10,
     );
   }
 
-  /** Get my promotions. */
   @Get('promotions')
   @UseGuards(SubscriptionGuard)
   @ElitePlan()
@@ -96,14 +137,13 @@ export class CreatorController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.creatorService.getPromotions(
+    return this.getPromotionsQ.execute(
       req.user.userId,
       page ? Number.parseInt(page, 10) : 1,
       limit ? Number.parseInt(limit, 10) : 10,
     );
   }
 
-  /** Create a promotion (simulated payment). */
   @Post('promotions')
   @UseGuards(SubscriptionGuard)
   @ElitePlan()
@@ -113,7 +153,7 @@ export class CreatorController {
     body: {
       targetType: string;
       targetId: string;
-      budget?: number; // Optional if dailyBudget is provided
+      budget?: number;
       dailyBudget?: number;
       durationDays: number;
       currency?: string;
@@ -130,7 +170,7 @@ export class CreatorController {
     ) {
       throw new BadRequestException('Missing required fields');
     }
-    return this.creatorService.createPromotion(
+    return this.createPromotionUC.execute(
       req.user.userId,
       body.targetType,
       body.targetId,
@@ -144,52 +184,46 @@ export class CreatorController {
     ) as Promise<unknown>;
   }
 
-  /** Record a view for a promotion to deduct budget and increase reach. */
   @Post('promotions/:id/view')
   async recordPromotionView(@Req() req: AuthRequest, @Param('id') id: string) {
-    return this.creatorService.recordPromotionView(id, req.user.userId);
+    return this.recordPromotionInteractionUC.recordView(id, req.user.userId);
   }
 
-  /** Cancel a promotion (proportional Stripe refund of unused budget when applicable). */
   @Delete('promotions/:id')
   @UseGuards(SubscriptionGuard)
   @ElitePlan()
   async cancelPromotion(@Req() req: AuthRequest, @Param('id') id: string) {
-    return this.creatorService.cancelPromotion(
+    return this.managePromotionUC.cancelPromotion(
       req.user.userId,
       id,
     ) as Promise<unknown>;
   }
 
-  /** Pause delivery for an active promotion (no refund). */
   @Post('promotions/:id/pause')
   @UseGuards(SubscriptionGuard)
   @ElitePlan()
   async pausePromotion(@Req() req: AuthRequest, @Param('id') id: string) {
-    return this.creatorService.pausePromotion(
+    return this.managePromotionUC.pausePromotion(
       req.user.userId,
       id,
     ) as Promise<unknown>;
   }
 
-  /** Resume a paused promotion. */
   @Post('promotions/:id/resume')
   @UseGuards(SubscriptionGuard)
   @ElitePlan()
   async resumePromotion(@Req() req: AuthRequest, @Param('id') id: string) {
-    return this.creatorService.resumePromotion(
+    return this.managePromotionUC.resumePromotion(
       req.user.userId,
       id,
     ) as Promise<unknown>;
   }
 
-  /** Track clicks on a promotion. */
   @Post('promotions/:id/click')
   async recordPromotionClick(@Req() req: AuthRequest, @Param('id') id: string) {
-    return this.creatorService.recordPromotionClick(id, req.user?.userId);
+    return this.recordPromotionInteractionUC.recordClick(id, req.user?.userId);
   }
 
-  /** Edit targeting / schedule for an active, paused, or pending promotion. */
   @Patch('promotions/:id')
   @UseGuards(SubscriptionGuard)
   @ElitePlan()
@@ -205,14 +239,12 @@ export class CreatorController {
       dailyBudget?: number;
     },
   ) {
-    return this.creatorService.updatePromotion(
+    return this.managePromotionUC.updatePromotion(
       req.user.userId,
       id,
       body,
     ) as Promise<unknown>;
   }
-
-  // --- Advanced Analytics ---
 
   @Get('analytics/revenue')
   @UseGuards(SubscriptionGuard)
@@ -221,14 +253,14 @@ export class CreatorController {
     @Req() req: AuthRequest,
     @Query('period') period?: '7d' | '30d' | '90d' | '1y',
   ) {
-    return this.creatorService.getRevenueAnalytics(req.user.userId, period);
+    return this.getRevenueAnalyticsQ.execute(req.user.userId, period);
   }
 
   @Get('analytics/retention')
   @UseGuards(SubscriptionGuard)
   @ElitePlan()
   async getAudienceRetentionAnalytics(@Req() req: AuthRequest) {
-    return this.creatorService.getAudienceRetentionAnalytics(req.user.userId);
+    return this.getAudienceRetentionQ.execute(req.user.userId);
   }
 
   @Get('analytics/top-posts')
@@ -238,7 +270,7 @@ export class CreatorController {
     @Req() req: AuthRequest,
     @Query('limit') limit?: string,
   ) {
-    return this.creatorService.getTopPerformingContent(
+    return this.getTopContentQ.execute(
       req.user.userId,
       limit ? Number.parseInt(limit, 10) : 5,
     );
@@ -256,9 +288,6 @@ export class CreatorController {
     @Req() req: AuthRequest,
     @Query('period') period?: string,
   ) {
-    return this.creatorService.exportAnalyticsCsv(
-      req.user.userId,
-      period || '30d',
-    );
+    return this.exportAnalyticsCsvUC.execute(req.user.userId, period || '30d');
   }
 }

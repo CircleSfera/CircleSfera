@@ -26,7 +26,7 @@ export default function ExportModal({
         <div className="flex flex-col items-center">
           <div className="w-64 bg-zinc-900/50 rounded-full h-2 overflow-hidden border border-white/10 shadow-inner">
             <div
-              className="h-full bg-brand-primary transition-all duration-300 shadow-[0_0_10px_rgba(131,58,180,0.8)]"
+              className="h-full bg-brand-primary transition-all duration-300 shadow-[0_0_10px_rgba(140, 82, 255,0.8)]"
               style={{ width: `${exportProgress}%` }}
             />
           </div>

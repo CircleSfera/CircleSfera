@@ -1,11 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Loader2,
-  XCircle,
-} from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +9,8 @@ import {
   createAppeal,
   getMyAppeals,
 } from '../../services/appeals.service';
+import { EmptyState } from '../ErrorEmptyStates';
+import { LoadingSpinner } from '../LoadingStates';
 import { Button, Input, Textarea } from '../ui';
 
 export default function AppealsSettings() {
@@ -103,7 +99,7 @@ export default function AppealsSettings() {
         onSubmit={handleSubmit}
         className="bg-white/2 p-4 rounded-xl border border-white/5 space-y-4"
       >
-        <h3 className="text-xs font-black uppercase tracking-wider text-blue-400/80">
+        <h3 className="text-xs font-black uppercase tracking-wider text-brand-primary/80">
           {t('settings.appeals.create_new', 'Submit New Appeal')}
         </h3>
 
@@ -121,7 +117,7 @@ export default function AppealsSettings() {
               onChange={(e) =>
                 setTargetType(e.target.value as AppealTargetType)
               }
-              className="w-full bg-zinc-900/50 border border-white/10 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="w-full bg-surface-elevated border border-white/10 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
             >
               <option value="POST_REMOVAL">Post Removal</option>
               <option value="ACCOUNT_BAN">Account Ban</option>
@@ -191,7 +187,7 @@ export default function AppealsSettings() {
 
         {isLoading ? (
           <div className="flex justify-center py-8">
-            <Loader2 size={32} className="text-blue-400 animate-spin" />
+            <LoadingSpinner size="md" />
           </div>
         ) : appeals && appeals.length > 0 ? (
           <div className="space-y-3">
@@ -216,8 +212,8 @@ export default function AppealsSettings() {
                       {appeal.reason}
                     </p>
                     {appeal.adminNotes && (
-                      <div className="mt-2 p-2 bg-blue-500/5 border border-blue-500/10 rounded-lg">
-                        <span className="text-xs font-bold text-blue-400 uppercase block mb-1">
+                      <div className="mt-2 p-2 bg-brand-primary/5 border border-brand-primary/10 rounded-lg">
+                        <span className="text-xs font-bold text-brand-primary uppercase block mb-1">
                           {t('settings.appeals.admin_notes', 'Admin Response')}:
                         </span>
                         <p className="text-xs text-gray-400">
@@ -240,12 +236,10 @@ export default function AppealsSettings() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-16 bg-white/1 rounded-xl border border-white/5 border-dashed">
-            <AlertTriangle size={48} className="mx-auto mb-4 text-gray-700" />
-            <p className="text-gray-500 font-bold tracking-tight uppercase text-xs">
-              {t('settings.appeals.no_appeals', 'No appeals submitted yet')}
-            </p>
-          </div>
+          <EmptyState
+            icon="notifications"
+            title={t('settings.appeals.no_appeals', 'No appeals submitted yet')}
+          />
         )}
       </div>
     </div>

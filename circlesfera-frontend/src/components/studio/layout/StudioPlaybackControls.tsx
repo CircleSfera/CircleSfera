@@ -21,7 +21,7 @@ export default function StudioPlaybackControls() {
     <div className="h-16 bg-[#0a0a0c]/80 backdrop-blur-md border-t border-white/5 shrink-0 flex items-center justify-between px-3 sm:px-6 z-20">
       {/* Left: Timecode */}
       <div className="w-24 sm:w-32">
-        <span className="font-mono text-xs sm:text-sm text-brand-primary drop-shadow-[0_0_8px_rgba(131,58,180,0.5)] bg-brand-primary/10 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded">
+        <span className="font-mono text-xs sm:text-sm text-brand-primary drop-shadow-[0_0_8px_rgba(140, 82, 255,0.5)] bg-brand-primary/10 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded">
           {formatTimecode(playhead)}
         </span>
         <span className="font-mono text-xs text-white/30 ml-2 hidden sm:inline">
@@ -34,7 +34,7 @@ export default function StudioPlaybackControls() {
         <button
           type="button"
           onClick={() => setPlayhead(0)}
-          className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          className="w-11 h-11 md:w-8 md:h-8 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
           title="Ir al inicio"
         >
           <SkipBack size={18} />
@@ -43,7 +43,7 @@ export default function StudioPlaybackControls() {
         <button
           type="button"
           onClick={() => skipFrames(-1)}
-          className="hidden sm:block p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          className="hidden sm:flex w-11 h-11 md:w-8 md:h-8 items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
           title="Frame anterior"
         >
           <svg
@@ -77,7 +77,7 @@ export default function StudioPlaybackControls() {
         <button
           type="button"
           onClick={() => skipFrames(1)}
-          className="hidden sm:block p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          className="hidden sm:flex w-11 h-11 md:w-8 md:h-8 items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
           title="Siguiente frame"
         >
           <svg
@@ -99,7 +99,7 @@ export default function StudioPlaybackControls() {
         <button
           type="button"
           onClick={() => project && setPlayhead(project.duration)}
-          className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          className="w-11 h-11 md:w-8 md:h-8 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
           title="Ir al final"
         >
           <SkipForward size={18} />
@@ -110,7 +110,7 @@ export default function StudioPlaybackControls() {
       <div className="w-24 sm:w-32 flex justify-end gap-2">
         <button
           type="button"
-          className="p-1.5 text-white/30 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          className="w-11 h-11 md:w-8 md:h-8 flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
         >
           <Maximize size={16} />
         </button>

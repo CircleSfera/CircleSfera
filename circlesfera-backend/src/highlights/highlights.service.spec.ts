@@ -1,6 +1,6 @@
-import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { HighlightsService } from './highlights.service.js';
 
@@ -69,9 +69,7 @@ describe('HighlightsService', () => {
     it('should throw NotFoundException if highlight does not exist', async () => {
       mockPrismaService.highlight.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne('invalid-id')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne('invalid-id')).rejects.toThrow(AppException);
     });
 
     it('should return highlight if exists', async () => {
@@ -90,7 +88,7 @@ describe('HighlightsService', () => {
       mockPrismaService.highlight.findFirst.mockResolvedValue(null);
 
       await expect(service.remove('hl-1', 'other-user')).rejects.toThrow(
-        NotFoundException,
+        AppException,
       );
     });
 

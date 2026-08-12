@@ -1,6 +1,7 @@
 import { Clapperboard, Heart, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Post } from '../../types';
+import { EmptyState } from '../ErrorEmptyStates';
 
 interface PostGridProps {
   items: Post[];
@@ -13,17 +14,10 @@ export default function PostGrid({
   items,
   emptyMessage,
   emptySubtext,
-  icon,
 }: PostGridProps) {
   if (!items || items.length === 0) {
     return (
-      <div className="text-center py-14">
-        <div className="w-14 h-14 border-2 border-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-          {icon}
-        </div>
-        <h3 className="text-lg font-bold text-white mb-2">{emptyMessage}</h3>
-        <p className="text-gray-300 text-sm">{emptySubtext}</p>
-      </div>
+      <EmptyState icon="posts" title={emptyMessage} message={emptySubtext} />
     );
   }
 

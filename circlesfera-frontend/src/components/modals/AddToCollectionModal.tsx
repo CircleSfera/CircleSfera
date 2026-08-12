@@ -102,7 +102,7 @@ export default function AddToCollectionModal({
                   onClose();
                 }
               }}
-              className="pointer-events-auto w-full bg-black/80 backdrop-blur-2xl border border-white/10 rounded-t-[32px] md:max-w-sm md:rounded-[32px] shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]"
+              className="pointer-events-auto w-full bg-black/80 backdrop-blur-2xl border border-white/10 rounded-t-4xl md:max-w-sm md:rounded-4xl shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[90vh]"
             >
               {/* Drag Handle Area */}
               <div

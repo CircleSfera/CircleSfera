@@ -125,7 +125,7 @@ describe('AIService', () => {
       ).rejects.toThrow(/OPENAI_API_KEY is required in production/);
     });
 
-    it('should fallback to mock embedding if OpenAI errors', async () => {
+    it('should throw error if OpenAI errors', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'OPENAI_API_KEY') return 'test_key';
         if (key === 'NODE_ENV') return 'production';
@@ -142,8 +142,9 @@ describe('AIService', () => {
       }).compile();
       const updatedService = module.get<AIService>(AIService);
 
-      const result = await updatedService.generateEmbedding('test');
-      expect(result).toHaveLength(1536);
+      await expect(updatedService.generateEmbedding('hello')).rejects.toThrow(
+        'API Down',
+      );
     });
   });
 
@@ -169,7 +170,7 @@ describe('AIService', () => {
       expect(result.category_scores.hate).toBe(0.99);
     });
 
-    it('should fallback to empty moderation if OpenAI errors', async () => {
+    it('should throw error if OpenAI errors', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
         if (key === 'OPENAI_API_KEY') return 'test_key';
         if (key === 'NODE_ENV') return 'production';
@@ -188,9 +189,9 @@ describe('AIService', () => {
       }).compile();
       const devService = module.get<AIService>(AIService);
 
-      const result = await devService.moderateContent('some bad text');
-      expect(result.flagged).toBe(false);
-      expect(result.categories).toEqual({});
+      await expect(devService.moderateContent('some bad text')).rejects.toThrow(
+        'API Down',
+      );
     });
 
     it('should fail-fast constructing AIService in production without key', async () => {

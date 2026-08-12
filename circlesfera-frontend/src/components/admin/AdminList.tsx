@@ -116,9 +116,8 @@ export function AdminListRow({
     // biome-ignore lint/a11y/noStaticElementInteractions: role=button set when onClick provided
     <div
       className={clsx(
-        'relative flex items-start gap-3 p-3 rounded-lg border border-white/5 bg-white/[0.02]',
-        onClick &&
-          'cursor-pointer hover:bg-white/[0.04] active:bg-white/[0.06]',
+        'relative flex items-start gap-3 p-3 rounded-lg border border-white/5 bg-white/2',
+        onClick && 'cursor-pointer hover:bg-white/4 active:bg-white/6',
         className,
       )}
       onClick={onClick}
@@ -145,7 +144,7 @@ export function AdminListRow({
               {title}
             </div>
             {subtitle && (
-              <div className="text-xs text-gray-400 mt-0.5 truncate">
+              <div className="text-xs text-white/50 mt-0.5 truncate">
                 {subtitle}
               </div>
             )}
@@ -153,7 +152,7 @@ export function AdminListRow({
           {badge && <div className="shrink-0">{badge}</div>}
         </div>
         {meta && (
-          <div className="mt-2 text-xs text-gray-500 flex flex-wrap gap-x-3 gap-y-1">
+          <div className="mt-2 text-xs text-white/40 flex flex-wrap gap-x-3 gap-y-1">
             {meta}
           </div>
         )}
@@ -174,8 +173,8 @@ export function AdminListRow({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="w-11 h-11 text-gray-400 hover:text-white"
-                  aria-label="Más acciones"
+                  className="w-11 h-11 text-white/50 hover:text-white"
+                  aria-label={t('admin.shared.more_actions')}
                   aria-expanded={menuOpen}
                   aria-haspopup="menu"
                   onClick={() => setMenuOpen((o) => !o)}

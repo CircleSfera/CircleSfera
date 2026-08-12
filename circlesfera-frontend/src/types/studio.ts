@@ -1,5 +1,9 @@
 export type MediaType = 'video' | 'image' | 'audio' | 'text' | 'overlay';
 
+export type AspectRatioType = '9:16' | '16:9' | '1:1' | '4:5';
+
+export type StudioTab = 'media' | 'text' | 'audio' | 'filters' | 'subtitles';
+
 export interface BaseClip {
   id: string;
   type: MediaType;
@@ -24,6 +28,9 @@ export interface MediaClip extends BaseClip {
 
   // Visuals
   filter?: string; // CSS filter string
+  opacity?: number; // 0 to 1
+  flipX?: boolean;
+  flipY?: boolean;
   transform: {
     scale: number;
     rotation: number;
@@ -32,16 +39,25 @@ export interface MediaClip extends BaseClip {
   };
 }
 
+export interface TextStyle {
+  fontFamily: string;
+  fontSize: number;
+  color: string;
+  backgroundColor: string;
+  padding?: number;
+  borderRadius?: number;
+  textAlign: 'left' | 'center' | 'right';
+  strokeColor?: string;
+  strokeWidth?: number;
+  shadowColor?: string;
+  shadowBlur?: number;
+  opacity?: number;
+}
+
 export interface TextClip extends BaseClip {
   type: 'text';
   content: string;
-  style: {
-    fontFamily: string;
-    fontSize: number;
-    color: string;
-    backgroundColor: string;
-    textAlign: 'left' | 'center' | 'right';
-  };
+  style: TextStyle;
   transform: {
     scale: number;
     rotation: number;
@@ -68,6 +84,7 @@ export interface StudioProject {
   tracks: Track[];
   duration: number; // Total duration of the project
   fps: number;
+  aspectRatio: AspectRatioType;
   resolution: {
     width: number;
     height: number;

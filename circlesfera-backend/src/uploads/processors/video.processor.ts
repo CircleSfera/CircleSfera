@@ -6,7 +6,7 @@ import { Job } from 'bullmq';
 import ffmpeg from 'fluent-ffmpeg';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
-@Processor('video-transcoding')
+@Processor('video-transcoding', { concurrency: 3 })
 export class VideoProcessor extends WorkerHost {
   private readonly logger = new Logger(VideoProcessor.name);
 

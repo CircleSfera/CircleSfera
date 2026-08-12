@@ -1,25 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, ImageIcon, Trash2 } from 'lucide-react';
+import { Download, Flag, ImageIcon, Trash2, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminPost } from '../../services/admin.service';
-import { adminApi } from '../../services/admin.service';
+import { adminApi, type EnhancedStats } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
+import { AdminKpiWidget } from './AdminKpiWidget';
 import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
+import { AdminSegmentedControl } from './AdminSegmentedControl';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
-import {
-  ActionButton,
-  FilterDropdown,
-  Pagination,
-  SearchInput,
-} from './AdminTable';
+import { ActionButton, Pagination, SearchInput } from './AdminTable';
 import PostDetailPanel from './PostDetailPanel';
 
 interface Props {
@@ -30,23 +27,26 @@ export default function PostsTab({ onToast }: Props) {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
+  const [segment, setSegment] = useState('ALL');
   const debouncedSearch = useDebouncedValue(search, 400);
   const queryClient = useQueryClient();
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
+  const typeFilter =
+    segment === 'FRAME' ? 'FRAME' : segment === 'POST' ? 'POST' : undefined;
+
+  const { data: statsData } = useQuery<EnhancedStats>({
+    queryKey: ['admin', 'stats', 'enhanced'],
+    queryFn: () => adminApi.getEnhancedStats(),
+  });
+
   const { data, isLoading } = useQuery<PaginatedResponse<AdminPost>>({
-    queryKey: ['admin', 'posts', page, debouncedSearch, typeFilter],
+    queryKey: ['admin', 'posts', page, debouncedSearch, typeFilter, segment],
     queryFn: () =>
       adminApi
-        .getPosts(
-          page,
-          10,
-          debouncedSearch || undefined,
-          typeFilter || undefined,
-        )
+        .getPosts(page, 10, debouncedSearch || undefined, typeFilter)
         .then((res) => res.data as PaginatedResponse<AdminPost>),
   });
 
@@ -101,8 +101,45 @@ export default function PostsTab({ onToast }: Props) {
         }
       />
 
+      {/* KPI Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <AdminKpiWidget
+          title={t('admin.posts.kpi_total')}
+          value={statsData?.posts.toLocaleString() || '0'}
+          icon={<ImageIcon size={20} />}
+          trend={{
+            value: statsData?.postGrowth || 0,
+            label: t('admin.shared.this_month'),
+          }}
+        />
+        <AdminKpiWidget
+          title={t('admin.posts.kpi_new_week')}
+          value={statsData?.newPostsThisWeek.toLocaleString() || '0'}
+          icon={<TrendingUp size={20} />}
+          iconColorClass="text-green-400 bg-green-400/10"
+        />
+        <AdminKpiWidget
+          title={t('admin.posts.kpi_reported_pct')}
+          value={`${statsData?.reportedContentPercent || 0}%`}
+          icon={<Flag size={20} />}
+          iconColorClass="text-amber-400 bg-amber-400/10"
+        />
+      </div>
+
       <AdminFilterBar>
-        <div className="flex-1 min-w-0">
+        <AdminSegmentedControl
+          value={segment}
+          onChange={(v) => {
+            setSegment(v);
+            setPage(1);
+          }}
+          options={[
+            { value: 'ALL', label: t('admin.shared.filter_all_recent') },
+            { value: 'POST', label: t('admin.posts.segment_type_post') },
+            { value: 'FRAME', label: t('admin.posts.segment_type_frame') },
+          ]}
+        />
+        <div className="flex-1 min-w-0 md:max-w-xs">
           <SearchInput
             value={search}
             onChange={(v) => {
@@ -112,19 +149,6 @@ export default function PostsTab({ onToast }: Props) {
             placeholder={t('admin.posts.search_placeholder')}
           />
         </div>
-        <FilterDropdown
-          label={t('admin.posts.filter_type')}
-          value={typeFilter}
-          onChange={(v) => {
-            setTypeFilter(v);
-            setPage(1);
-          }}
-          options={[
-            { value: '', label: t('admin.posts.type_all') },
-            { value: 'POST', label: t('admin.posts.type_post') },
-            { value: 'FRAME', label: t('admin.posts.type_frame') },
-          ]}
-        />
       </AdminFilterBar>
 
       <AdminSplitView
@@ -140,8 +164,30 @@ export default function PostsTab({ onToast }: Props) {
               ) : posts.length === 0 ? (
                 <AdminEmptyState
                   icon={ImageIcon}
-                  title={t('admin.posts.empty_title')}
-                  description={t('admin.posts.empty_description')}
+                  title={
+                    search.length > 0
+                      ? t('admin.posts.empty_title')
+                      : t('admin.posts.empty_title')
+                  }
+                  description={
+                    search.length > 0
+                      ? t('admin.posts.empty_description')
+                      : t('admin.posts.empty_description')
+                  }
+                  action={
+                    search.length > 0 ? (
+                      <Button
+                        onClick={() => {
+                          setSearch('');
+                          setPage(1);
+                        }}
+                        variant="secondary"
+                        className="min-h-11 mt-2"
+                      >
+                        {t('admin.shared.clear_filters')}
+                      </Button>
+                    ) : undefined
+                  }
                   compact
                 />
               ) : (

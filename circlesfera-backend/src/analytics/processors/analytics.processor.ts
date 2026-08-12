@@ -1,7 +1,9 @@
+import { ErrorCode } from '@circlesfera/shared';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, Inject, Logger } from '@nestjs/common';
 import { UserEventType } from '@prisma/client';
 import type { Job } from 'bullmq';
+import { AppException } from '../../common/errors/app.exception.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AnalyticsService } from '../analytics.service.js';
 
@@ -25,7 +27,10 @@ export class AnalyticsProcessor extends WorkerHost {
         return this.analyticsService.handleDailyAggregation();
       case 'aggregate-creator':
         if (!job.data.userId) {
-          throw new Error('aggregate-creator job requires a userId');
+          throw AppException.BadRequest(
+            ErrorCode.INVALID_INPUT,
+            'aggregate-creator job requires a userId',
+          );
         }
         return this.analyticsService.performDailyAggregation(job.data.userId);
       default:

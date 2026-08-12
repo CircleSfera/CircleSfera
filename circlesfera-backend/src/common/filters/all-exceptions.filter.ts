@@ -89,7 +89,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
             ? exception
             : JSON.stringify(exception);
 
-      responseBody.details = errorStack;
+      responseBody.details =
+        process.env.NODE_ENV === 'production' ? null : errorStack;
 
       this.logger.error(
         `Unhandled exception [${method}] ${path}: ${errorStack}`,

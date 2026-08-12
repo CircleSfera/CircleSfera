@@ -1,5 +1,11 @@
 import { create } from 'zustand';
-import type { Clip, StudioProject, Track } from '../types/studio';
+import type {
+  AspectRatioType,
+  Clip,
+  StudioProject,
+  StudioTab,
+  Track,
+} from '../types/studio';
 
 interface StudioState {
   project: StudioProject | null;
@@ -8,8 +14,13 @@ interface StudioState {
   isPlaying: boolean;
   selectedClipId: string | null;
   zoom: number; // Pixels per second
+  activeTab: StudioTab;
 
-  // Actions
+  // History stack for Undo / Redo
+  past: StudioProject[];
+  future: StudioProject[];
+
+  // Core Actions
   setProject: (project: StudioProject) => void;
   setCloudProjectId: (id: string | null) => void;
   setPlayhead: (time: number) => void;
@@ -17,18 +28,39 @@ interface StudioState {
   setPlaying: (playing: boolean) => void;
   setZoom: (zoom: number) => void;
   selectClip: (clipId: string | null) => void;
+  setActiveTab: (tab: StudioTab) => void;
+  setAspectRatio: (aspectRatio: AspectRatioType) => void;
+
+  // Undo / Redo
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 
   // Track & Clip mutations
   addTrack: (track: Track) => void;
   removeTrack: (trackId: string) => void;
+  toggleTrackMute: (trackId: string) => void;
+  toggleTrackHidden: (trackId: string) => void;
+  toggleTrackLock: (trackId: string) => void;
   addClip: (trackId: string, clip: Clip) => void;
   updateClip: (clipId: string, updates: Partial<Clip>) => void;
   removeClip: (clipId: string) => void;
   splitClip: () => void;
 
-  // Computed helpers (these are normally getters, but we'll use actions to trigger re-renders if needed)
   calculateDuration: () => void;
 }
+
+const pushHistory = (state: StudioState, newProject: StudioProject) => {
+  if (!state.project) return { project: newProject };
+  return {
+    past: [...state.past.slice(-20), state.project],
+    future: [],
+    project: newProject,
+    canUndo: true,
+    canRedo: false,
+  };
+};
 
 export const useStudioStore = create<StudioState>((set) => ({
   project: null,
@@ -36,9 +68,22 @@ export const useStudioStore = create<StudioState>((set) => ({
   playhead: 0,
   isPlaying: false,
   selectedClipId: null,
-  zoom: 50, // 50px = 1 second by default
+  zoom: 50, // 50px = 1 second default
+  activeTab: 'media',
 
-  setProject: (project) => set({ project }),
+  past: [],
+  future: [],
+  canUndo: false,
+  canRedo: false,
+
+  setProject: (project) =>
+    set({
+      project,
+      past: [],
+      future: [],
+      canUndo: false,
+      canRedo: false,
+    }),
 
   setCloudProjectId: (id) => set({ cloudProjectId: id }),
 
@@ -52,26 +97,88 @@ export const useStudioStore = create<StudioState>((set) => ({
 
   selectClip: (clipId) => set({ selectedClipId: clipId }),
 
+  setActiveTab: (tab) => set({ activeTab: tab }),
+
+  setAspectRatio: (aspectRatio) =>
+    set((state) => {
+      if (!state.project) return state;
+      const updated = { ...state.project, aspectRatio };
+      return pushHistory(state, updated);
+    }),
+
+  undo: () =>
+    set((state) => {
+      if (state.past.length === 0 || !state.project) return state;
+      const previous = state.past[state.past.length - 1];
+      const newPast = state.past.slice(0, state.past.length - 1);
+      return {
+        past: newPast,
+        future: [state.project, ...state.future],
+        project: previous,
+        canUndo: newPast.length > 0,
+        canRedo: true,
+      };
+    }),
+
+  redo: () =>
+    set((state) => {
+      if (state.future.length === 0 || !state.project) return state;
+      const next = state.future[0];
+      const newFuture = state.future.slice(1);
+      return {
+        past: [...state.past, state.project],
+        future: newFuture,
+        project: next,
+        canUndo: true,
+        canRedo: newFuture.length > 0,
+      };
+    }),
+
   addTrack: (track) =>
     set((state) => {
       if (!state.project) return state;
-      return {
-        project: {
-          ...state.project,
-          tracks: [...state.project.tracks, track],
-        },
+      const updated = {
+        ...state.project,
+        tracks: [...state.project.tracks, track],
       };
+      return pushHistory(state, updated);
     }),
 
   removeTrack: (trackId) =>
     set((state) => {
       if (!state.project) return state;
-      return {
-        project: {
-          ...state.project,
-          tracks: state.project.tracks.filter((t) => t.id !== trackId),
-        },
+      const updated = {
+        ...state.project,
+        tracks: state.project.tracks.filter((t) => t.id !== trackId),
       };
+      return pushHistory(state, updated);
+    }),
+
+  toggleTrackMute: (trackId) =>
+    set((state) => {
+      if (!state.project) return state;
+      const tracks = state.project.tracks.map((t) =>
+        t.id === trackId ? { ...t, muted: !t.muted } : t,
+      );
+      return { project: { ...state.project, tracks } };
+    }),
+
+  toggleTrackHidden: (trackId) =>
+    set((state) => {
+      if (!state.project) return state;
+      const tracks = state.project.tracks.map((t) =>
+        t.id === trackId ? { ...t, hidden: !t.hidden } : t,
+      );
+      return { project: { ...state.project, tracks } };
+    }),
+
+  toggleTrackLock: (trackId) =>
+    set((state) => {
+      if (!state.project) return state;
+      const tracks = state.project.tracks.map((t) =>
+        t.id === trackId ? { ...t, locked: !t.locked } : t,
+      );
+      return { project: { ...state.project, tracks } };
     }),
 
   addClip: (trackId, clip) =>
@@ -84,15 +191,13 @@ export const useStudioStore = create<StudioState>((set) => ({
         return t;
       });
 
-      // Auto-calculate new duration
       const maxEnd = Math.max(
         ...tracks.flatMap((t) => t.clips.map((c) => c.startAt + c.duration)),
         state.project.duration,
       );
 
-      return {
-        project: { ...state.project, tracks, duration: maxEnd },
-      };
+      const updated = { ...state.project, tracks, duration: maxEnd };
+      return pushHistory(state, updated);
     }),
 
   updateClip: (clipId, updates) =>
@@ -114,8 +219,10 @@ export const useStudioStore = create<StudioState>((set) => ({
         ...t,
         clips: t.clips.filter((c) => c.id !== clipId),
       }));
+      const updated = { ...state.project, tracks };
+      const historyResult = pushHistory(state, updated);
       return {
-        project: { ...state.project, tracks },
+        ...historyResult,
         selectedClipId:
           state.selectedClipId === clipId ? null : state.selectedClipId,
       };
@@ -127,7 +234,6 @@ export const useStudioStore = create<StudioState>((set) => ({
 
       const { playhead, selectedClipId } = state;
 
-      // Find the clip and its track
       let targetTrack: Track | undefined;
       let targetClip: Clip | undefined;
 
@@ -142,15 +248,13 @@ export const useStudioStore = create<StudioState>((set) => ({
 
       if (!targetTrack || !targetClip) return state;
 
-      // Check if playhead is strictly inside the clip
       const clipEnd = targetClip.startAt + targetClip.duration;
       if (playhead <= targetClip.startAt || playhead >= clipEnd) {
-        return state; // Playhead is not inside the clip, cannot split
+        return state;
       }
 
       const relativeSplit = playhead - targetClip.startAt;
 
-      // We need a generateId fallback here since uuid is not imported
       const generateId = () =>
         typeof crypto !== 'undefined' && crypto.randomUUID
           ? crypto.randomUUID()
@@ -175,14 +279,14 @@ export const useStudioStore = create<StudioState>((set) => ({
             }
             return c;
           });
-          // Add the new clip
           updatedClips.push(newClip);
           return { ...t, clips: updatedClips };
         }
         return t;
       });
 
-      return { project: { ...state.project, tracks: updatedTracks } };
+      const updatedProject = { ...state.project, tracks: updatedTracks };
+      return pushHistory(state, updatedProject);
     }),
 
   calculateDuration: () =>
@@ -195,7 +299,7 @@ export const useStudioStore = create<StudioState>((set) => ({
         0,
       );
       return {
-        project: { ...state.project, duration: Math.max(5, maxEnd) }, // minimum 5 sec duration
+        project: { ...state.project, duration: Math.max(5, maxEnd) },
       };
     }),
 }));

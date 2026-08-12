@@ -14,8 +14,15 @@ interface GroupedStories {
   stories: Story[];
 }
 
+/**
+ * StoryList — Layout Guidelines §20 & Design System §9.5
+ * Story avatars: md (40px) inside a ring, total visual ~52px
+ * Container: compact horizontal scroll strip
+ * Spacing: gap-3 (12px) between items
+ * Label: 11px (--text-badge)
+ */
 export default function StoryList() {
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
   const openStories = useStoryStore((state) => state.openStories);
 
   const { data: storiesResponse } = useQuery({
@@ -28,12 +35,9 @@ export default function StoryList() {
     queryFn: () => liveApi.getActiveStreams(),
   });
 
-  // Group stories by user
   const groupedStories = useMemo(() => {
     if (!storiesResponse?.data) return [];
-
     const groups: Map<string, GroupedStories> = new Map();
-
     (storiesResponse.data as Story[]).forEach((story: Story) => {
       const userId = story.user.id;
       if (groups.has(userId)) {
@@ -42,20 +46,17 @@ export default function StoryList() {
         groups.set(userId, { user: story.user, stories: [story] });
       }
     });
-
     const result = Array.from(groups.values());
-    // Reverse stories within each group to show chronologically (oldest first)
     result.forEach((group) => {
       group.stories.reverse();
     });
-
     return result;
   }, [storiesResponse]);
 
-  // Flatten all stories for the viewer
-  const allStories = useMemo(() => {
-    return groupedStories.flatMap((group) => group.stories);
-  }, [groupedStories]);
+  const allStories = useMemo(
+    () => groupedStories.flatMap((group) => group.stories),
+    [groupedStories],
+  );
 
   const handleStoryClick = (userIndex: number) => {
     let storyIndex = 0;
@@ -66,30 +67,41 @@ export default function StoryList() {
   };
 
   return (
-    <div className="glass-panel rounded-lg p-3 mb-4 overflow-hidden">
-      <div className="flex gap-3 overflow-x-auto no-scrollbar py-1">
+    <div className="my-1.5 md:my-3 rounded-xl md:rounded-2xl p-2 md:p-3.5 border border-white/10 bg-white/3 backdrop-blur-xl overflow-hidden">
+      <div className="flex items-center gap-2.5 md:gap-3 overflow-x-auto no-scrollbar">
         {/* Active Live Streams */}
         {liveStreamsResponse?.map((stream: any) => (
           <Link
             key={stream.id}
             to={`/live/${stream.id}`}
-            className="flex flex-col items-center gap-2 shrink-0 group focus:outline-none w-16"
+            className="flex flex-col items-center gap-1 shrink-0 group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
+            style={{ width: 52 }}
           >
-            <div className="w-12 h-12 p-0.5 rounded-full bg-red-600 flex items-center justify-center transform transition-transform duration-300 group-hover:scale-105 animate-pulse">
-              <div className="w-full h-full bg-black rounded-full p-0.5 relative group-hover:opacity-90 transition-opacity flex items-center justify-center">
+            {/* Ring 52px total, avatar 40px (md) inside */}
+            <div
+              className="w-13 h-13 p-[2.5px] rounded-full flex items-center justify-center animate-pulse"
+              style={{ background: '#dc2626', width: 52, height: 52 }}
+            >
+              <div className="w-full h-full bg-black rounded-full p-0.5 flex items-center justify-center">
                 <UserAvatar
                   src={stream.host.profile?.avatar}
                   alt={stream.host.profile?.username}
-                  size="full"
+                  size="md"
                   hasStory={false}
                 />
               </div>
             </div>
             <div className="text-center w-full">
-              <span className="text-xs truncate block w-full opacity-80 font-medium">
+              <span
+                className="truncate block w-full text-gray-300 font-medium"
+                style={{ fontSize: 'var(--text-badge, 11px)' }}
+              >
                 {stream.host.profile?.username}
               </span>
-              <span className="text-[9px] uppercase font-bold text-red-500 bg-red-500/10 px-1 rounded block truncate w-full">
+              <span
+                className="uppercase font-bold text-red-500 block truncate w-full"
+                style={{ fontSize: '9px', letterSpacing: '0.04em' }}
+              >
                 En vivo
               </span>
             </div>
@@ -103,29 +115,46 @@ export default function StoryList() {
           );
           const hasStory = myStoriesIndex !== -1;
 
+          const ringStyle = (
+            viewed: boolean,
+            closeFriend?: boolean,
+          ): React.CSSProperties => ({
+            width: 52,
+            height: 52,
+            padding: '2.5px',
+            borderRadius: '9999px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: viewed
+              ? 'rgba(60,60,70,1)'
+              : closeFriend
+                ? '#22c55e'
+                : 'linear-gradient(135deg, #ff5757, #8c52ff)',
+            border: viewed ? '1px solid rgba(255,255,255,0.12)' : 'none',
+          });
+
           if (hasStory) {
             const myGroup = groupedStories[myStoriesIndex];
             const allViewed = myGroup.stories.every((s) => s.isViewed);
-            const ringColorClass = allViewed
-              ? 'bg-zinc-800 border border-white/10'
-              : 'bg-linear-to-r from-[#ff5757] to-[#8c52ff]';
-
             return (
               <button
                 type="button"
                 onClick={() => handleStoryClick(myStoriesIndex)}
-                className="flex flex-col items-center gap-2 shrink-0 group focus:outline-none w-16"
+                className="flex flex-col items-center gap-1 shrink-0 group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
+                style={{ width: 52 }}
               >
                 <div
-                  className={`w-12 h-12 p-0.5 rounded-full ${ringColorClass} flex items-center justify-center transform transition-transform duration-300 group-hover:scale-105`}
+                  style={ringStyle(allViewed)}
+                  className="transition-transform duration-200 group-hover:scale-105"
                 >
-                  <div className="w-full h-full bg-black rounded-full p-0.5 relative group-hover:opacity-90 transition-opacity flex items-center justify-center">
+                  <div className="w-full h-full bg-black rounded-full p-0.5 flex items-center justify-center">
                     <UserAvatar
                       src={profile?.avatar}
                       thumbnailUrl={profile?.thumbnailUrl}
                       standardUrl={profile?.standardUrl}
-                      alt="Your story"
-                      size="full"
+                      alt="Tu story"
+                      size="md"
                       hasStory={false}
                       verificationLevel={
                         profile?.verificationLevel as VerificationLevel
@@ -134,9 +163,10 @@ export default function StoryList() {
                   </div>
                 </div>
                 <span
-                  className={`text-xs ${allViewed ? 'text-gray-500' : 'text-gray-300'} group-hover:text-white transition-colors`}
+                  className={`truncate w-full text-center ${allViewed ? 'text-gray-500' : 'text-gray-300'}`}
+                  style={{ fontSize: 'var(--text-badge, 11px)' }}
                 >
-                  Your story
+                  Tú
                 </span>
               </button>
             );
@@ -145,49 +175,62 @@ export default function StoryList() {
           return (
             <Link
               to="/create?mode=story"
-              className="flex flex-col items-center gap-2 shrink-0 group w-16"
+              className="flex flex-col items-center gap-1 shrink-0 group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
+              style={{ width: 52 }}
             >
-              <div className="relative transform transition-transform duration-300 group-hover:scale-105">
-                <div className="w-12 h-12 rounded-full p-0.5 bg-transparent flex items-center justify-center">
-                  {profile?.avatar ? (
-                    <div className="relative w-full h-full">
-                      <UserAvatar
-                        src={profile.avatar}
-                        thumbnailUrl={profile.thumbnailUrl}
-                        standardUrl={profile.standardUrl}
-                        alt="Your story"
-                        size="full"
-                        verificationLevel={
-                          profile?.verificationLevel as VerificationLevel
-                        }
-                        className="border border-white/10"
-                      />
-                      <div className="absolute bottom-0 right-0">
-                        <div className="w-5 h-5 rounded-full bg-blue-500 drop-shadow-sm flex items-center justify-center">
-                          <Plus
-                            size={12}
-                            className="text-white"
-                            strokeWidth={3}
-                          />
-                        </div>
-                      </div>
+              <div
+                className="relative transition-transform duration-200 group-hover:scale-105"
+                style={{ width: 52, height: 52 }}
+              >
+                {profile?.avatar ? (
+                  <div className="w-full h-full rounded-full border border-white/12 overflow-hidden flex items-center justify-center">
+                    <UserAvatar
+                      src={profile.avatar}
+                      thumbnailUrl={profile.thumbnailUrl}
+                      standardUrl={profile.standardUrl}
+                      alt="Tu story"
+                      size="md"
+                      verificationLevel={
+                        profile?.verificationLevel as VerificationLevel
+                      }
+                    />
+                    <div
+                      className="absolute bottom-0 right-0 w-5 h-5 rounded-full flex items-center justify-center"
+                      style={{
+                        background: '#3b82f6',
+                        boxShadow: '0 2px 6px rgba(59,130,246,0.5)',
+                      }}
+                    >
+                      <Plus size={12} className="text-white" strokeWidth={3} />
                     </div>
-                  ) : (
-                    <div className="w-full h-full rounded-full bg-zinc-800 border-[1.5px] border-dashed border-zinc-600 flex items-center justify-center group-hover:border-purple-500 transition-colors">
-                      <Plus
-                        size={24}
-                        className="text-zinc-400 group-hover:text-purple-400 transition-colors"
-                      />
-                    </div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div
+                    className="w-full h-full rounded-full flex items-center justify-center group-hover:border-brand-primary transition-colors"
+                    style={{
+                      border: '1.5px dashed rgba(100,100,120,0.6)',
+                      background: 'rgba(30,30,40,0.6)',
+                    }}
+                  >
+                    <Plus
+                      size={20}
+                      className="text-gray-500 group-hover:text-brand-primary transition-colors"
+                    />
+                  </div>
+                )}
               </div>
-              <span className="text-xs text-gray-300 group-hover:text-purple-400 transition-colors">
-                Your story
+              <span
+                className="text-gray-400 group-hover:text-white transition-colors text-center w-full truncate"
+                style={{ fontSize: 'var(--text-badge, 11px)' }}
+              >
+                Tu story
               </span>
             </Link>
           );
         })()}
+
+        {/* Vertical Divider */}
+        <div className="h-8 w-px mx-1 shrink-0 bg-white/10" />
 
         {/* Other users' stories */}
         {groupedStories
@@ -199,29 +242,43 @@ export default function StoryList() {
               (s) => s.isCloseFriendsOnly,
             );
 
-            const ringColorClass = allViewed
-              ? 'bg-zinc-800 border border-white/10'
-              : hasCloseFriendStory
-                ? 'bg-green-500'
-                : 'bg-linear-to-r from-[#ff5757] to-[#8c52ff]';
-
             return (
               <button
                 type="button"
                 key={group.user.id}
                 onClick={() => handleStoryClick(group.originalIndex)}
-                className="flex flex-col items-center gap-2 shrink-0 group focus:outline-none w-16"
+                aria-label={`Ver historias de ${group.user.profile?.username || ''}`}
+                className="flex flex-col items-center gap-1 shrink-0 group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
+                style={{ width: 52 }}
               >
                 <div
-                  className={`w-12 h-12 p-0.5 rounded-full ${ringColorClass} flex items-center justify-center transform transition-transform duration-300 group-hover:scale-105`}
+                  style={{
+                    width: 52,
+                    height: 52,
+                    padding: '2.5px',
+                    borderRadius: '9999px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: allViewed
+                      ? 'rgba(60,60,70,1)'
+                      : hasCloseFriendStory
+                        ? '#22c55e'
+                        : 'linear-gradient(135deg, #ff5757, #8c52ff)',
+                    border: allViewed
+                      ? '1px solid rgba(255,255,255,0.1)'
+                      : 'none',
+                    transition: 'transform 0.2s',
+                  }}
+                  className="group-hover:scale-105"
                 >
-                  <div className="w-full h-full bg-black rounded-full p-0.5 group-hover:opacity-90 transition-opacity flex items-center justify-center">
+                  <div className="w-full h-full bg-black rounded-full p-0.5 flex items-center justify-center">
                     <UserAvatar
                       src={group.user.profile?.avatar}
                       thumbnailUrl={group.user.profile?.thumbnailUrl}
                       standardUrl={group.user.profile?.standardUrl}
                       alt={group.user.profile?.username || ''}
-                      size="full"
+                      size="md"
                       hasStory={false}
                       verificationLevel={
                         group.user.verificationLevel as VerificationLevel
@@ -230,7 +287,8 @@ export default function StoryList() {
                   </div>
                 </div>
                 <span
-                  className={`text-xs ${allViewed ? 'text-gray-500' : 'text-gray-300'} max-w-16 truncate group-hover:text-white transition-colors`}
+                  className={`truncate w-full text-center ${allViewed ? 'text-gray-600' : 'text-gray-300'}`}
+                  style={{ fontSize: 'var(--text-badge, 11px)' }}
                 >
                   {group.user.profile?.username}
                 </span>
@@ -238,42 +296,39 @@ export default function StoryList() {
             );
           })}
 
-        {/* Placeholder bubbles when no other users have stories */}
+        {/* Dim placeholders if no extra stories */}
         {groupedStories.filter((g) => g.user.id !== profile?.id).length ===
           0 && (
-          <div className="flex gap-3 items-center">
-            {/* Divider */}
-            <div className="h-8 w-px bg-white/10 mx-1 shrink-0" />
-
-            {/* Placeholder 1 */}
-            <div className="flex flex-col items-center gap-2 opacity-25 shrink-0 select-none w-16">
-              <div className="w-12 h-12 rounded-full border border-dashed border-white/40 flex items-center justify-center p-0.5">
-                <div className="w-full h-full bg-zinc-900/50 rounded-full flex items-center justify-center">
-                  <div className="w-4 h-4 rounded-full bg-white/20" />
+          <div className="flex gap-3 items-center select-none">
+            {[
+              { id: 'sk-story-1', opacity: 0.22, width: 28 },
+              { id: 'sk-story-2', opacity: 0.12, width: 34 },
+              { id: 'sk-story-3', opacity: 0.06, width: 40 },
+            ].map((item) => (
+              <div
+                key={item.id}
+                className="flex flex-col items-center gap-1 shrink-0"
+                style={{ opacity: item.opacity, width: 52 }}
+              >
+                <div
+                  className="rounded-full flex items-center justify-center p-0.5"
+                  style={{
+                    width: 52,
+                    height: 52,
+                    border: '1px dashed rgba(255,255,255,0.3)',
+                    background: 'rgba(30,30,40,0.4)',
+                  }}
+                >
+                  <div className="w-full h-full rounded-full flex items-center justify-center bg-zinc-900/50">
+                    <div className="w-3 h-3 rounded-full bg-white/20" />
+                  </div>
                 </div>
+                <div
+                  className="h-2 rounded-full bg-white/20"
+                  style={{ width: item.width }}
+                />
               </div>
-              <div className="h-2 w-10 bg-white/20 rounded-full" />
-            </div>
-
-            {/* Placeholder 2 */}
-            <div className="flex flex-col items-center gap-2 opacity-15 shrink-0 select-none w-16">
-              <div className="w-12 h-12 rounded-full border border-dashed border-white/40 flex items-center justify-center p-0.5">
-                <div className="w-full h-full bg-zinc-900/50 rounded-full flex items-center justify-center">
-                  <div className="w-4 h-4 rounded-full bg-white/20" />
-                </div>
-              </div>
-              <div className="h-2 w-8 bg-white/20 rounded-full" />
-            </div>
-
-            {/* Placeholder 3 */}
-            <div className="hidden sm:flex flex-col items-center gap-2 opacity-5 shrink-0 select-none w-16">
-              <div className="w-12 h-12 rounded-full border border-dashed border-white/40 flex items-center justify-center p-0.5">
-                <div className="w-full h-full bg-zinc-900/50 rounded-full flex items-center justify-center">
-                  <div className="w-4 h-4 rounded-full bg-white/20" />
-                </div>
-              </div>
-              <div className="h-2 w-12 bg-white/20 rounded-full" />
-            </div>
+            ))}
           </div>
         )}
       </div>

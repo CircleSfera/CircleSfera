@@ -1,7 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { LikesService } from './likes.service.js';
 
@@ -20,8 +20,8 @@ describe('LikesService', () => {
     },
   };
 
-  const mockNotificationsService = {
-    create: vi.fn(),
+  const mockEventEmitter = {
+    emit: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -29,10 +29,10 @@ describe('LikesService', () => {
       providers: [
         LikesService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: NotificationsService, useValue: mockNotificationsService },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
         {
           provide: 'BullQueue_analytics-processing',
-          useValue: { add: vi.fn() },
+          useValue: { add: vi.fn().mockResolvedValue({}) },
         },
       ],
     }).compile();
@@ -63,7 +63,8 @@ describe('LikesService', () => {
       expect(mockPrismaService.like.create).toHaveBeenCalledWith({
         data: { postId, userId },
       });
-      expect(mockNotificationsService.create).toHaveBeenCalledWith(
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'notification.create',
         expect.objectContaining({
           recipientId: 'owner-1',
           senderId: userId,
@@ -82,7 +83,7 @@ describe('LikesService', () => {
       const result = await service.toggle(postId, userId);
 
       expect(result).toEqual({ liked: true });
-      expect(mockNotificationsService.create).not.toHaveBeenCalled();
+      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
     });
 
     it('should unlike a post if already liked', async () => {
@@ -98,7 +99,7 @@ describe('LikesService', () => {
       expect(mockPrismaService.like.delete).toHaveBeenCalledWith({
         where: { id: 'like-1' },
       });
-      expect(mockNotificationsService.create).not.toHaveBeenCalled();
+      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException if post not found', async () => {

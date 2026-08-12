@@ -22,7 +22,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
   const [groupName, setGroupName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
-  const { profile: currentUser } = useAuthStore();
+  const currentUser = useAuthStore((state) => state.profile);
   const { t } = useTranslation();
 
   // Debounce search input
@@ -109,10 +109,10 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="glass-panel w-full max-w-2xl rounded-[32px] overflow-hidden shadow-2xl shadow-black/80 border border-white/10 flex flex-col h-[75vh] max-h-[800px] relative z-10"
+        className="glass-panel w-full max-w-2xl rounded-4xl overflow-hidden shadow-2xl shadow-black/80 border border-white/10 flex flex-col h-[75vh] max-h-200 relative z-10"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-black/20 backdrop-blur-xl shrink-0 rounded-t-[32px]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-black/20 backdrop-blur-xl shrink-0 rounded-t-4xl">
           <button
             type="button"
             onClick={onClose}
@@ -135,7 +135,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
 
         {/* Search & Selection Area */}
         <div className="px-6 py-4 border-b border-white/5 shrink-0 bg-black/10">
-          <div className="flex flex-wrap gap-2 items-center min-h-[48px] bg-black/20 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 focus-within:border-brand-primary/50 focus-within:shadow-[0_0_15px_rgba(131,58,180,0.15)] transition-all">
+          <div className="flex flex-wrap gap-2 items-center min-h-12 bg-black/20 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 focus-within:border-brand-primary/50 focus-within:shadow-[0_0_15px_rgba(140, 82, 255,0.15)] transition-all">
             <span className="text-white/60 font-medium text-[15px] mr-1">
               {t('chat.to')}
             </span>
@@ -158,7 +158,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
               ))}
             </AnimatePresence>
 
-            <div className="flex-1 min-w-[100px]">
+            <div className="flex-1 min-w-25">
               <input
                 type="text"
                 className="w-full bg-transparent border-none text-white placeholder-gray-500 focus:ring-0 text-[14px] p-0 leading-relaxed"
@@ -179,7 +179,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
               exit={{ height: 0, opacity: 0 }}
               className="px-6 py-2 border-b border-white/5 shrink-0 overflow-hidden"
             >
-              <div className="flex items-center bg-black/20 backdrop-blur-md rounded-lg px-2 py-1 border border-white/10 focus-within:border-brand-primary/50 focus-within:shadow-[0_0_15px_rgba(131,58,180,0.15)] transition-all">
+              <div className="flex items-center bg-black/20 backdrop-blur-md rounded-lg px-2 py-1 border border-white/10 focus-within:border-brand-primary/50 focus-within:shadow-[0_0_15px_rgba(140, 82, 255,0.15)] transition-all">
                 <div className="bg-white/10 p-2 rounded-xl mr-3">
                   <Users size={16} className="text-white/70" />
                 </div>
@@ -196,7 +196,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
         </AnimatePresence>
 
         {/* Results List */}
-        <div className="flex-1 overflow-y-auto p-2 custom-scrollbar min-h-[300px]">
+        <div className="flex-1 overflow-y-auto p-2 custom-scrollbar min-h-75">
           {isLoading ? (
             <div className="flex justify-center items-center h-full text-white/20">
               <div className="w-6 h-6 border-2 border-currentColor border-t-transparent rounded-full animate-spin" />

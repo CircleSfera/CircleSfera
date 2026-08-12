@@ -148,7 +148,7 @@ export default function UploadStep({
       {/* biome-ignore lint/a11y/noStaticElementInteractions: Main drop zone container */}
       <div
         ref={dropRef}
-        className="flex-1 flex flex-col items-center justify-center px-6 pb-28 pt-4 gap-4 relative z-10"
+        className="flex-1 flex flex-col items-center justify-center px-6 pb-6 pt-4 gap-4 relative z-10"
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
@@ -247,7 +247,7 @@ export default function UploadStep({
               e.stopPropagation();
               fileInputRef.current?.click();
             }}
-            className="px-7 py-2.5 bg-linear-to-r from-brand-primary to-brand-blue text-white rounded-xl font-bold text-sm
+            className="px-6 py-3 bg-linear-to-r from-brand-primary to-brand-blue text-white rounded-xl font-bold text-sm
                        shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/30
                        transition-all duration-300 active:scale-95"
             whileHover={{ scale: 1.03 }}
@@ -346,7 +346,7 @@ export default function UploadStep({
                   type="button"
                   key={m}
                   onClick={() => setMode(m)}
-                  className="relative px-5 py-2.5 rounded-xl flex items-center gap-2 transition-all duration-300"
+                  className="relative px-5 py-3 rounded-xl flex items-center gap-2 transition-all duration-300"
                 >
                   {isActive && (
                     <motion.div

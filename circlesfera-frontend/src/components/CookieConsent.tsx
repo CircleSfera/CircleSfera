@@ -45,9 +45,9 @@ export default function CookieConsent() {
                 'linear-gradient(160deg, rgba(16,10,28,0.95) 0%, rgba(10,7,18,0.97) 100%)',
               backdropFilter: 'blur(24px) saturate(180%)',
               WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-              border: '1px solid rgba(131,58,180,0.18)',
+              border: '1px solid rgba(140, 82, 255,0.18)',
               boxShadow:
-                '0 -4px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(131,58,180,0.06), inset 0 1px 0 rgba(255,255,255,0.06)',
+                '0 -4px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(140, 82, 255,0.06), inset 0 1px 0 rgba(255,255,255,0.06)',
             }}
           >
             {/* Brand accent top bar */}
@@ -66,8 +66,8 @@ export default function CookieConsent() {
                 className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center mt-0.5"
                 style={{
                   background:
-                    'linear-gradient(135deg, rgba(131,58,180,0.2), rgba(64,93,230,0.12))',
-                  border: '1px solid rgba(131,58,180,0.25)',
+                    'linear-gradient(135deg, rgba(140, 82, 255,0.2), rgba(64,93,230,0.12))',
+                  border: '1px solid rgba(140, 82, 255,0.25)',
                 }}
               >
                 <Cookie size={16} className="text-purple-300" />

@@ -17,7 +17,7 @@ export default function CreateHighlightModal({
   onClose,
 }: CreateHighlightModalProps) {
   const { t } = useTranslation();
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
   const queryClient = useQueryClient();
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedStoryIds, setSelectedStoryIds] = useState<string[]>([]);

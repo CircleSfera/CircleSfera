@@ -1,4 +1,5 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { $Enums, Prisma } from '@prisma/client';
 import type { PaginationDto } from '../common/dto/pagination.dto.js';
 import { createPaginatedResult } from '../common/dto/pagination.dto.js';
@@ -19,6 +20,8 @@ export class NotificationsService {
     @Inject(AppGateway) private readonly appGateway: AppGateway,
     @Inject(PushService) private readonly pushService: PushService,
   ) {}
+
+  private readonly logger = new Logger(NotificationsService.name);
 
   /**
    * List all notifications for a user, paginated, newest first.
@@ -99,6 +102,7 @@ export class NotificationsService {
    * and skips immediate push notifications to prevent push fatigue.
    * @param data - Notification payload
    */
+  @OnEvent('notification.create', { async: true })
   async create(data: {
     recipientId: string;
     senderId: string;
@@ -106,119 +110,127 @@ export class NotificationsService {
     content: string;
     postId?: string;
   }) {
-    // Option A: In-Line Aggregation for engagement metrics
-    const isBatchableType = ['LIKE', 'COMMENT_LIKE'].includes(data.type);
+    try {
+      // Option A: In-Line Aggregation for engagement metrics
+      const isBatchableType = ['LIKE', 'COMMENT_LIKE'].includes(data.type);
 
-    if (isBatchableType && data.postId) {
-      // Find an existing unread notification for this exact post and type
-      const existingUnread = await this.prisma.notification.findFirst({
-        where: {
-          recipientId: data.recipientId,
-          type: data.type,
-          postId: data.postId,
-          read: false,
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      if (existingUnread) {
-        // Prevent exact duplicates from the same sender
-        if (existingUnread.senderId === data.senderId) {
-          return existingUnread;
-        }
-
-        // Aggregate text logic. "User A liked your post" -> "A User B y otras personas les gustó..."
-        const senderName = data.content.split(' ')[0];
-        const newContent =
-          data.type === 'LIKE'
-            ? `A ${senderName} y a otras personas les gustó tu publicación`
-            : `A ${senderName} y a otras personas les gustó tu comentario`;
-
-        const updated = await this.prisma.notification.update({
-          where: { id: existingUnread.id },
-          data: {
-            senderId: data.senderId, // Update to the latest sender
-            content: newContent,
-            createdAt: new Date(), // bump to top
-          },
-          include: {
-            sender: {
-              include: {
-                profile: true,
-              },
-            },
-          },
-        });
-
-        // Emit real-time notification update via Socket.io
-        this.appGateway.sendNotification(data.recipientId, updated);
-
-        // We DO NOT send an immediate push here. The Cron job handles it.
-        return updated;
-      }
-    }
-
-    // Default flow for non-batchable or first-time batchable
-    // Prevent duplicate notifications if created within a short window (e.g. 1 minute)
-    const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
-    const existing = await this.prisma.notification.findFirst({
-      where: {
-        recipientId: data.recipientId,
-        senderId: data.senderId,
-        type: data.type,
-        postId: data.postId,
-        createdAt: { gte: oneMinuteAgo },
-      },
-    });
-
-    if (existing) {
-      return existing;
-    }
-
-    const notification = await this.prisma.notification.create({
-      data: {
-        recipientId: data.recipientId,
-        senderId: data.senderId,
-        type: data.type,
-        content: data.content,
-        postId: data.postId,
-      } as Prisma.NotificationUncheckedCreateInput,
-      include: {
-        sender: {
-          include: {
-            profile: true,
-          },
-        },
-      },
-    });
-
-    // Emit real-time notification via Socket.io
-    this.appGateway.sendNotification(data.recipientId, notification);
-
-    // Skip immediate Push Notification for batchable events
-    // They will be handled by NotificationsCronService (Option B)
-    if (!isBatchableType) {
-      const settings = await this.prisma.userSettings.findUnique({
-        where: { userId: data.recipientId },
-        select: { pushNotifications: true },
-      });
-      if (settings?.pushNotifications === false) {
-        return notification;
-      }
-
-      this.pushService
-        .sendNotification(data.recipientId, {
-          title: notification.sender?.profile?.username || 'CircleSfera',
-          body: data.content,
-          data: {
+      if (isBatchableType && data.postId) {
+        // Find an existing unread notification for this exact post and type
+        const existingUnread = await this.prisma.notification.findFirst({
+          where: {
+            recipientId: data.recipientId,
             type: data.type,
             postId: data.postId,
-            url: `/${notification.sender?.profile?.username}`,
+            read: false,
           },
-        })
-        .catch((err) => console.error('Failed to send push notification', err));
-    }
+          orderBy: { createdAt: 'desc' },
+        });
 
-    return notification;
+        if (existingUnread) {
+          // Prevent exact duplicates from the same sender
+          if (existingUnread.senderId === data.senderId) {
+            return existingUnread;
+          }
+
+          // Aggregate text logic. "User A liked your post" -> "A User B y otras personas les gustó..."
+          const senderName = data.content.split(' ')[0];
+          const newContent =
+            data.type === 'LIKE'
+              ? `A ${senderName} y a otras personas les gustó tu publicación`
+              : `A ${senderName} y a otras personas les gustó tu comentario`;
+
+          const updated = await this.prisma.notification.update({
+            where: { id: existingUnread.id },
+            data: {
+              senderId: data.senderId, // Update to the latest sender
+              content: newContent,
+              createdAt: new Date(), // bump to top
+            },
+            include: {
+              sender: {
+                include: {
+                  profile: true,
+                },
+              },
+            },
+          });
+
+          // Emit real-time notification update via Socket.io
+          this.appGateway.sendNotification(data.recipientId, updated);
+
+          // We DO NOT send an immediate push here. The Cron job handles it.
+          return updated;
+        }
+      }
+
+      // Default flow for non-batchable or first-time batchable
+      // Prevent duplicate notifications if created within a short window (e.g. 1 minute)
+      const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+      const existing = await this.prisma.notification.findFirst({
+        where: {
+          recipientId: data.recipientId,
+          senderId: data.senderId,
+          type: data.type,
+          postId: data.postId,
+          createdAt: { gte: oneMinuteAgo },
+        },
+      });
+
+      if (existing) {
+        return existing;
+      }
+
+      const notification = await this.prisma.notification.create({
+        data: {
+          recipientId: data.recipientId,
+          senderId: data.senderId,
+          type: data.type,
+          content: data.content,
+          postId: data.postId,
+        } as Prisma.NotificationUncheckedCreateInput,
+        include: {
+          sender: {
+            include: {
+              profile: true,
+            },
+          },
+        },
+      });
+
+      // Emit real-time notification via Socket.io
+      this.appGateway.sendNotification(data.recipientId, notification);
+
+      // Skip immediate Push Notification for batchable events
+      // They will be handled by NotificationsCronService (Option B)
+      if (!isBatchableType) {
+        const settings = await this.prisma.userSettings.findUnique({
+          where: { userId: data.recipientId },
+          select: { pushNotifications: true },
+        });
+        if (settings?.pushNotifications === false) {
+          return notification;
+        }
+
+        this.pushService
+          .sendNotification(data.recipientId, {
+            title: notification.sender?.profile?.username || 'CircleSfera',
+            body: data.content,
+            data: {
+              type: data.type,
+              postId: data.postId,
+              url: `/${notification.sender?.profile?.username}`,
+            },
+          })
+          .catch((err) =>
+            console.error('Failed to send push notification', err),
+          );
+      }
+
+      return notification;
+    } catch (error) {
+      this.logger.error(
+        `Failed to create notification for ${data.recipientId}: ${error}`,
+      );
+    }
   }
 }

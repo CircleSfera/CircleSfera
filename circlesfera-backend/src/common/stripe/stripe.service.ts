@@ -4,7 +4,7 @@ import Stripe from 'stripe';
 
 @Injectable()
 export class StripeService implements OnModuleInit {
-  private readonly stripe: Stripe;
+  public readonly stripe: Stripe;
   private readonly logger = new Logger(StripeService.name);
 
   constructor(@Inject(ConfigService) private configService: ConfigService) {

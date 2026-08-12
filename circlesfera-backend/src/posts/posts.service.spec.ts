@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { getQueueToken } from '@nestjs/bullmq';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
-import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { UploadsService } from '../uploads/uploads.service.js';
 import type { CreatePostDto } from './dto/create-post.dto.js';
 import { PostsService } from './posts.service.js';
 
@@ -56,8 +56,8 @@ describe('PostsService', () => {
     },
   };
 
-  const mockNotificationsService = {
-    create: vi.fn(),
+  const mockEventEmitter = {
+    emit: vi.fn(),
   };
 
   const mockAIService = {
@@ -69,25 +69,26 @@ describe('PostsService', () => {
     }),
   };
 
-  const mockQueue = {
-    add: vi.fn(),
-  };
-
-  const mockUploadsService = {
-    deleteFile: vi.fn(),
-  };
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PostsService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: NotificationsService, useValue: mockNotificationsService },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
         { provide: AIService, useValue: mockAIService },
-        { provide: 'BullQueue_ai-processing', useValue: mockQueue },
         { provide: AnalyticsService, useValue: { trackEvent: vi.fn() } },
-        { provide: UploadsService, useValue: mockUploadsService },
-        { provide: 'BullQueue_feed-fanout', useValue: { add: vi.fn() } },
+        {
+          provide: getQueueToken('ai-processing'),
+          useValue: { add: vi.fn() },
+        },
+        {
+          provide: getQueueToken('posts-processing'),
+          useValue: { add: vi.fn() },
+        },
+        {
+          provide: getQueueToken('feed-fanout'),
+          useValue: { add: vi.fn() },
+        },
       ],
     }).compile();
 
@@ -140,18 +141,19 @@ describe('PostsService', () => {
       const _result = await service.create(userId, dto);
 
       expect(mockTx.post.create).toHaveBeenCalled();
-      expect(mockPrismaService.hashtag.upsert).toHaveBeenCalledWith(
+      expect(mockTx.hashtag.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { tag: 'world' },
         }),
       );
-      expect(mockPrismaService.postHashtag.create).toHaveBeenCalledWith(
+      expect(mockTx.postHashtag.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: { postId: 'post-1', hashtagId: 'hash-1' },
+          data: { postId: 'post-1', hashtagId: 'tag-1' },
         }),
       );
 
-      expect(mockNotificationsService.create).toHaveBeenCalledWith(
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'notification.create',
         expect.objectContaining({
           recipientId: 'user-2',
           type: 'MENTION',

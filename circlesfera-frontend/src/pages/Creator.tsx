@@ -122,7 +122,7 @@ export default function Creator() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.18 }}
-          className="bg-black/30 backdrop-blur-2xl border border-white/10 rounded-2xl p-4 sm:p-6 shadow-2xl min-h-150"
+          className="bg-zinc-950/60 backdrop-blur-xl border border-white/8 rounded-2xl p-4 md:p-6 shadow-xl min-h-150"
         >
           <Suspense
             fallback={

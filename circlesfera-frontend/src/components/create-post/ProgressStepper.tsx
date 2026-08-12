@@ -40,11 +40,11 @@ export default function ProgressStepper({
   return (
     <div className="flex items-center gap-0 px-6 py-2.5 relative">
       {/* Progress Line Background */}
-      <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-[2px] bg-white/6 rounded-full z-0" />
+      <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-0.5 bg-white/6 rounded-full z-0" />
 
       {/* Progress Line Fill */}
       <motion.div
-        className="absolute left-6 top-1/2 -translate-y-1/2 h-[2px] rounded-full z-1"
+        className="absolute left-6 top-1/2 -translate-y-1/2 h-0.5 rounded-full z-1"
         style={{
           background:
             'linear-gradient(90deg, var(--brand-primary), var(--brand-blue))',

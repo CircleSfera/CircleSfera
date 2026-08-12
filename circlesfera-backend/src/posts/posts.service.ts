@@ -7,6 +7,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import {
   $Enums,
   ContentRating,
@@ -14,21 +15,22 @@ import {
   type Prisma,
   Visibility,
 } from '@prisma/client';
-import { NotificationsService } from '../notifications/notifications.service.js';
-import { PrismaService } from '../prisma/prisma.service.js';
-
-const NotificationType = $Enums.NotificationType;
-
 import { Queue } from 'bullmq';
 import { AIService } from '../ai/ai.service.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import {
+  MAX_PPV_PRICE_CENTS,
+  MIN_PPV_PRICE_CENTS,
+} from '../common/constants/monetization.constants.js';
+import {
   createPaginatedResult,
   type PaginationDto,
 } from '../common/dto/pagination.dto.js';
-import { UploadsService } from '../uploads/uploads.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
+
+const NotificationType = $Enums.NotificationType;
 
 /**
  * Core service for post CRUD, feed generation, pagination, and hashtag/mention extraction.
@@ -38,13 +40,11 @@ import { UpdatePostDto } from './dto/update-post.dto.js';
 export class PostsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(NotificationsService)
-    private readonly notificationsService: NotificationsService,
+    private readonly eventEmitter: EventEmitter2,
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
+    @InjectQueue('posts-processing') private readonly postsQueue: Queue,
     @Inject(AnalyticsService)
     private readonly analyticsService: AnalyticsService,
-    @Inject(UploadsService)
-    private readonly uploadsService: UploadsService,
     @InjectQueue('feed-fanout') private readonly feedFanoutQueue: Queue,
     @Inject(AIService) private readonly aiService: AIService,
   ) {}
@@ -77,6 +77,18 @@ export class PostsService {
       dto.caption || '',
       mediaUrls,
     );
+
+    if (dto.isPremium) {
+      if (
+        !dto.priceCents ||
+        dto.priceCents < MIN_PPV_PRICE_CENTS ||
+        dto.priceCents > MAX_PPV_PRICE_CENTS
+      ) {
+        throw new BadRequestException(
+          `El precio del contenido premium debe estar entre €${(MIN_PPV_PRICE_CENTS / 100).toFixed(2)} y €${(MAX_PPV_PRICE_CENTS / 100).toFixed(2)}.`,
+        );
+      }
+    }
 
     if (moderation.flagged) {
       throw new BadRequestException(
@@ -135,29 +147,27 @@ export class PostsService {
           });
         }
 
+        // Process hashtags inside the transaction (sorted to avoid deadlocks)
+        if (uniqueTags.length > 0) {
+          const sortedTags = [...uniqueTags].sort();
+          for (const tag of sortedTags) {
+            const hashtag = await tx.hashtag.upsert({
+              where: { tag },
+              create: { tag, postCount: 1 },
+              update: { postCount: { increment: 1 } },
+            });
+            await tx.postHashtag.create({
+              data: {
+                postId: post.id,
+                hashtagId: hashtag.id,
+              },
+            });
+          }
+        }
+
         return post;
       },
     );
-
-    // Process hashtags outside the critical transaction path to avoid locking
-    if (uniqueTags.length > 0) {
-      await Promise.all(
-        uniqueTags.map(async (tag) => {
-          const hashtag = await this.prisma.hashtag.upsert({
-            where: { tag },
-            create: { tag, postCount: 1 },
-            update: { postCount: { increment: 1 } },
-          });
-
-          await this.prisma.postHashtag.create({
-            data: {
-              postId: createdPost.id,
-              hashtagId: hashtag.id,
-            },
-          });
-        }),
-      );
-    }
 
     // Fetch complete post with relations before returning
     const post = await this.prisma.post.findUniqueOrThrow({
@@ -225,7 +235,7 @@ export class PostsService {
       // Create notifications
       await Promise.all(
         profiles.map((profile) =>
-          this.notificationsService.create({
+          this.eventEmitter.emit('notification.create', {
             recipientId: profile.userId,
             senderId: userId,
             type: NotificationType.MENTION,
@@ -245,8 +255,8 @@ export class PostsService {
    * @returns Paginated list of posts containing the given hashtag
    */
   async getByTag(tag: string, pagination: PaginationDto) {
-    const { page = 1, limit = 10 } = pagination;
-    const skip = (page - 1) * limit;
+    const { page = 1, limit = 10, cursor } = pagination;
+    const skip = cursor ? 1 : (page - 1) * limit;
 
     const [posts, total] = await Promise.all([
       this.prisma.post.findMany({
@@ -261,6 +271,7 @@ export class PostsService {
         },
         skip,
         take: limit,
+        ...(cursor && { cursor: { id: cursor } }),
         orderBy: { createdAt: 'desc' },
         include: {
           user: {
@@ -295,6 +306,7 @@ export class PostsService {
       total,
       page,
       limit,
+      posts.length > 0 ? posts[posts.length - 1].id : undefined,
     );
   }
 
@@ -310,8 +322,8 @@ export class PostsService {
     sort: 'latest' | 'trending' = 'latest',
     currentUserId?: string,
   ) {
-    const { page = 1, limit = 10 } = pagination;
-    const skip = (page - 1) * limit;
+    const { page = 1, limit = 10, cursor } = pagination;
+    const skip = cursor ? 1 : (page - 1) * limit;
 
     const orderBy: Prisma.PostOrderByWithRelationInput =
       sort === 'trending'
@@ -326,6 +338,7 @@ export class PostsService {
         },
         skip,
         take: limit,
+        ...(cursor && { cursor: { id: cursor } }),
         orderBy,
         include: {
           user: {
@@ -367,7 +380,15 @@ export class PostsService {
       formattedPosts,
       currentUserId,
     );
-    return createPaginatedResult(processedPosts, total, page, limit);
+    return createPaginatedResult(
+      processedPosts,
+      total,
+      page,
+      limit,
+      processedPosts.length > 0
+        ? processedPosts[processedPosts.length - 1].id
+        : undefined,
+    );
   }
 
   /**
@@ -376,8 +397,8 @@ export class PostsService {
    * @param currentUserId - Optional current user for engagement flags
    */
   async getFramesFeed(pagination: PaginationDto, currentUserId?: string) {
-    const { page = 1, limit = 10 } = pagination;
-    const skip = (page - 1) * limit;
+    const { page = 1, limit = 10, cursor } = pagination;
+    const skip = cursor ? 1 : (page - 1) * limit;
 
     // Frames are usually randomized or trending, for now we will just show latest frames globally
     const [posts, total] = await Promise.all([
@@ -388,6 +409,7 @@ export class PostsService {
         },
         skip,
         take: limit,
+        ...(cursor && { cursor: { id: cursor } }),
         orderBy: { createdAt: 'desc' },
         include: {
           user: {
@@ -532,8 +554,8 @@ export class PostsService {
     type?: PostType,
     currentUserId?: string,
   ) {
-    const { page = 1, limit = 10 } = pagination;
-    const skip = (page - 1) * limit;
+    const { page = 1, limit = 10, cursor } = pagination;
+    const skip = cursor ? 1 : (page - 1) * limit;
 
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
@@ -578,6 +600,7 @@ export class PostsService {
         where: whereClause,
         skip,
         take: limit,
+        ...(cursor && { cursor: { id: cursor } }),
         orderBy: { createdAt: 'desc' },
         include: {
           user: {
@@ -608,7 +631,15 @@ export class PostsService {
       currentUserId,
     );
 
-    return createPaginatedResult(processedPosts, total, page, limit);
+    return createPaginatedResult(
+      processedPosts,
+      total,
+      page,
+      limit,
+      processedPosts.length > 0
+        ? processedPosts[processedPosts.length - 1].id
+        : undefined,
+    );
   }
 
   /**
@@ -617,8 +648,8 @@ export class PostsService {
    * @param pagination - Page and limit parameters
    */
   async getTaggedPosts(username: string, pagination: PaginationDto) {
-    const { page = 1, limit = 10 } = pagination;
-    const skip = (page - 1) * limit;
+    const { page = 1, limit = 10, cursor } = pagination;
+    const skip = cursor ? 1 : (page - 1) * limit;
 
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
@@ -639,6 +670,7 @@ export class PostsService {
         },
         skip,
         take: limit,
+        ...(cursor && { cursor: { id: cursor } }),
         orderBy: { createdAt: 'desc' },
         include: {
           user: {
@@ -671,6 +703,7 @@ export class PostsService {
       total,
       page,
       limit,
+      posts.length > 0 ? posts[posts.length - 1].id : undefined,
     );
   }
 
@@ -733,25 +766,23 @@ export class PostsService {
 
     // Ownership check is handled by OwnershipGuard at the controller level
 
-    // Delete associated media files from cloud storage
+    // Enqueue background job to delete associated media files
+    const mediaUrls = new Set<string>();
     if (post.media && post.media.length > 0) {
       for (const m of post.media) {
-        if (m.url)
-          await this.uploadsService
-            .deleteFile(m.url)
-            .catch((e) => console.error(e));
-        if (m.standardUrl)
-          await this.uploadsService
-            .deleteFile(m.standardUrl)
-            .catch((e) => console.error(e));
-        if (m.thumbnailUrl)
-          await this.uploadsService
-            .deleteFile(m.thumbnailUrl)
-            .catch((e) => console.error(e));
+        if (m.url) mediaUrls.add(m.url);
+        if (m.standardUrl) mediaUrls.add(m.standardUrl);
+        if (m.thumbnailUrl) mediaUrls.add(m.thumbnailUrl);
       }
     }
 
     await this.prisma.post.delete({ where: { id } });
+
+    if (mediaUrls.size > 0) {
+      await this.postsQueue.add('delete-post-media', {
+        mediaUrls: Array.from(mediaUrls),
+      });
+    }
   }
 
   /**
@@ -768,25 +799,23 @@ export class PostsService {
       throw new NotFoundException('Post not found');
     }
 
-    // Delete associated media files from cloud storage
+    // Enqueue background job to delete associated media files
+    const mediaUrls = new Set<string>();
     if (post.media && post.media.length > 0) {
       for (const m of post.media) {
-        if (m.url)
-          await this.uploadsService
-            .deleteFile(m.url)
-            .catch((e) => console.error(e));
-        if (m.standardUrl)
-          await this.uploadsService
-            .deleteFile(m.standardUrl)
-            .catch((e) => console.error(e));
-        if (m.thumbnailUrl)
-          await this.uploadsService
-            .deleteFile(m.thumbnailUrl)
-            .catch((e) => console.error(e));
+        if (m.url) mediaUrls.add(m.url);
+        if (m.standardUrl) mediaUrls.add(m.standardUrl);
+        if (m.thumbnailUrl) mediaUrls.add(m.thumbnailUrl);
       }
     }
 
     await this.prisma.post.delete({ where: { id } });
+
+    if (mediaUrls.size > 0) {
+      await this.postsQueue.add('delete-post-media', {
+        mediaUrls: Array.from(mediaUrls),
+      });
+    }
   }
 
   /**
@@ -934,5 +963,28 @@ export class PostsService {
       }
       return post;
     });
+  }
+
+  @OnEvent('user.hard_deleted')
+  async handleUserDeleted(payload: { userId: string }) {
+    const userPosts = await this.prisma.post.findMany({
+      where: { userId: payload.userId },
+      include: { media: true },
+    });
+
+    const mediaUrls = new Set<string>();
+    for (const post of userPosts) {
+      for (const m of post.media) {
+        if (m.url) mediaUrls.add(m.url);
+        if (m.standardUrl) mediaUrls.add(m.standardUrl);
+        if (m.thumbnailUrl) mediaUrls.add(m.thumbnailUrl);
+      }
+    }
+
+    if (mediaUrls.size > 0) {
+      this.eventEmitter.emit('media.delete_batch', {
+        mediaUrls: Array.from(mediaUrls),
+      });
+    }
   }
 }

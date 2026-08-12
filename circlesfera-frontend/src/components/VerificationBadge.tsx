@@ -29,12 +29,12 @@ export default function VerificationBadge({
     },
     BUSINESS: {
       icon: ShieldCheck,
-      color: 'fill-gray-400',
+      color: 'fill-yellow-400',
       tooltip: 'Empresa Oficial',
     },
     ELITE: {
       icon: BadgeCheck,
-      color: 'fill-yellow-400',
+      color: 'fill-red-500',
       tooltip: 'Creador Elite',
     },
   };

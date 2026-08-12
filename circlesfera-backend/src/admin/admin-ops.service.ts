@@ -303,6 +303,11 @@ export class AdminOpsService {
       throw new BadRequestException('key is required');
     }
     const key = data.key.trim();
+    if (!/^[a-z][a-z0-9_]{1,79}$/.test(key)) {
+      throw new BadRequestException(
+        'key must be snake_case (lowercase letters, digits, underscores), 2–80 characters, starting with a letter',
+      );
+    }
     if (
       data.percentage !== undefined &&
       (data.percentage < 0 || data.percentage > 100)
@@ -341,6 +346,25 @@ export class AdminOpsService {
     );
 
     return flag;
+  }
+
+  async deleteFeatureFlag(adminId: string, key: string) {
+    const flag = await this.prisma.featureFlag.findUnique({ where: { key } });
+    if (!flag) {
+      throw new NotFoundException(`Feature flag '${key}' not found`);
+    }
+
+    await this.prisma.featureFlag.delete({ where: { key } });
+    await this.cacheManager.del(`feature_flag:${key}`);
+    await this.logAction(
+      adminId,
+      AdminAction.MANUAL_OVERRIDE,
+      'feature_flag',
+      flag.id,
+      `Deleted flag ${key}`,
+    );
+
+    return { success: true };
   }
 
   // ─── Webhook events ───────────────────────────────────────────────

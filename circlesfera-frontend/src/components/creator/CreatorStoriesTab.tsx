@@ -2,12 +2,15 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Clock, Eye, Heart, PlayCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { CreatorStory } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse } from '../../types';
+import { EmptyState } from '../ErrorEmptyStates';
 import { Button } from '../ui';
 
 export default function CreatorStoriesTab() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [now, setNow] = useState(() => Date.now());
 
@@ -134,27 +137,22 @@ export default function CreatorStoriesTab() {
         </div>
       )}
 
-      {/* Empty state & Pagination cleanup... */}
       {!isLoading && !data?.data?.length && (
-        <div className="text-center py-24 glass-panel rounded-xl border border-dashed border-white/5">
-          <div className="p-6 bg-white/5 rounded-full w-fit mx-auto mb-6">
-            <Clock size={48} className="text-zinc-700" />
-          </div>
-          <h4 className="text-white font-semibold text-xl mb-2">
-            No hay historias
-          </h4>
-          <p className="text-zinc-400 text-sm max-w-xs mx-auto">
-            Comparte momentos efímeros con tus seguidores para aumentar tu
-            alcance.
-          </p>
-        </div>
+        <EmptyState
+          icon="stories"
+          title={t('creator.stories.empty_title', 'No stories yet')}
+          message={t(
+            'creator.stories.empty_desc',
+            'Share ephemeral moments with your followers to grow your reach.',
+          )}
+        />
       )}
 
       {data?.meta && data.meta.totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 mt-8 flex-wrap">
           <Button
             variant="ghost"
-            size="sm"
+            size="compact"
             className="min-h-11"
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -166,7 +164,7 @@ export default function CreatorStoriesTab() {
           </span>
           <Button
             variant="ghost"
-            size="sm"
+            size="compact"
             className="min-h-11"
             disabled={page >= data.meta.totalPages}
             onClick={() =>

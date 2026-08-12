@@ -5,9 +5,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { $Enums } from '@prisma/client';
 import { Queue } from 'bullmq';
-import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const NotificationType = $Enums.NotificationType;
@@ -26,8 +26,7 @@ import { CreateCommentDto } from './dto/create-comment.dto.js';
 export class CommentsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(NotificationsService)
-    private readonly notificationsService: NotificationsService,
+    private readonly eventEmitter: EventEmitter2,
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
     @InjectQueue('analytics-processing') private readonly analyticsQueue: Queue,
   ) {}
@@ -82,7 +81,7 @@ export class CommentsService {
 
     // Create notification for post owner
     if (post.userId !== userId) {
-      await this.notificationsService.create({
+      this.eventEmitter.emit('notification.create', {
         recipientId: post.userId,
         senderId: userId,
         type: 'COMMENT',
@@ -114,7 +113,7 @@ export class CommentsService {
 
         await Promise.all(
           profiles.map((profile) =>
-            this.notificationsService.create({
+            this.eventEmitter.emit('notification.create', {
               recipientId: profile.userId,
               senderId: userId,
               type: NotificationType.MENTION,
@@ -136,7 +135,7 @@ export class CommentsService {
         // Only notify if not already notified by mention or post owner check
         // Simplicity: just notify. Users might get 2 notifications if they are also mentioned.
         // That is acceptable for now.
-        await this.notificationsService.create({
+        this.eventEmitter.emit('notification.create', {
           recipientId: parentComment.userId,
           senderId: userId,
           type: 'COMMENT',
@@ -251,7 +250,7 @@ export class CommentsService {
       });
 
       if (comment.userId !== userId) {
-        await this.notificationsService.create({
+        this.eventEmitter.emit('notification.create', {
           recipientId: comment.userId,
           senderId: userId,
           type: NotificationType.COMMENT_LIKE,

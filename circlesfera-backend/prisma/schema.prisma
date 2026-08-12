@@ -19,11 +19,11 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Account Status
-  isActive             Boolean   @default(true)
-  strikeCount          Int       @default(0)
-  deletedAt            DateTime? // Soft-delete / deactivation timestamp (when user left)
-  scheduledDeletionAt  DateTime? // Hard-delete due date (grace window); null = not scheduled
-  suspendedUntil       DateTime? // Temporary suspension; null = not suspended
+  isActive            Boolean   @default(true)
+  strikeCount         Int       @default(0)
+  deletedAt           DateTime? // Soft-delete / deactivation timestamp (when user left)
+  scheduledDeletionAt DateTime? // Hard-delete due date (grace window); null = not scheduled
+  suspendedUntil      DateTime? // Temporary suspension; null = not suspended
 
   profile           Profile?
   posts             Post[]
@@ -136,20 +136,20 @@ model User {
 
   // Virtual Economy & Monetization
   monetization         Monetization?
-  sentTransactions     Transaction[]         @relation("SentTransactions")
-  receivedTransactions Transaction[]         @relation("ReceivedTransactions")
+  sentTransactions     Transaction[] @relation("SentTransactions")
+  receivedTransactions Transaction[] @relation("ReceivedTransactions")
 
-  postUnlocks          PostUnlock[]
-  storyUnlocks         StoryUnlock[]
-  messageUnlocks       MessageUnlock[]
-  sentLiveGifts        LiveGift[]            @relation("LiveGiftSender")
-  receivedLiveGifts    LiveGift[]            @relation("LiveGiftReceiver")
+  postUnlocks       PostUnlock[]
+  storyUnlocks      StoryUnlock[]
+  messageUnlocks    MessageUnlock[]
+  sentLiveGifts     LiveGift[]      @relation("LiveGiftSender")
+  receivedLiveGifts LiveGift[]      @relation("LiveGiftReceiver")
 
   // Feed preferences (hide post/author, mute keywords)
-  feedHiddenPosts      FeedHiddenPost[]
-  feedHiddenAuthors    FeedHiddenAuthor[]    @relation("FeedHidingAuthor")
-  feedHiddenByAuthors  FeedHiddenAuthor[]    @relation("FeedHiddenAsAuthor")
-  feedMutedKeywords    FeedMutedKeyword[]
+  feedHiddenPosts     FeedHiddenPost[]
+  feedHiddenAuthors   FeedHiddenAuthor[] @relation("FeedHidingAuthor")
+  feedHiddenByAuthors FeedHiddenAuthor[] @relation("FeedHiddenAsAuthor")
+  feedMutedKeywords   FeedMutedKeyword[]
 
   // Support
   supportTickets SupportTicket[]
@@ -162,8 +162,9 @@ model User {
   userExperiments UserExperiment[]
 
   // Interactive Features
-  pollVotes  PollVote[]
-  qnaAnswers QnaAnswer[]
+  pollVotes        PollVote[]
+  qnaAnswers       QnaAnswer[]
+  stripePayoutLogs StripePayoutLog[]
 
   @@index([isOnline])
   @@index([verificationToken])
@@ -193,6 +194,8 @@ enum Role {
   USER
   ADMIN
   MODERATOR
+  SUPPORT
+  FINANCE
 }
 
 enum VerificationLevel {
@@ -236,9 +239,9 @@ model RefreshToken {
 }
 
 model Profile {
-  id                String   @id @default(uuid())
-  userId            String   @unique
-  username          String   @unique
+  id                String  @id @default(uuid())
+  userId            String  @unique
+  username          String  @unique
   fullName          String?
   bio               String?
   avatar            String?
@@ -250,10 +253,10 @@ model Profile {
   website           String?
   location          String?
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   embedding ProfileEmbedding?
 
   @@index([username])
@@ -429,8 +432,8 @@ model Story {
   notifications Notification[]
 
   // Premium Content
-  isPremium  Boolean @default(false)
-  priceCents Int     @default(0)
+  isPremium    Boolean       @default(false)
+  priceCents   Int           @default(0)
   storyUnlocks StoryUnlock[]
 
   // Scheduling & Interactive Features
@@ -833,6 +836,7 @@ model Participant {
   lastReadAt     DateTime  @default(now()) // For "Seen" status
   createdAt      DateTime  @default(now())
   deletedAt      DateTime? // Allows "Delete for me" functionality
+  clearedAt      DateTime? // Hides messages before this time
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -860,8 +864,8 @@ model Message {
   expiresAt DateTime?
 
   // Premium Content (PPV)
-  isLocked       Boolean @default(false)
-  priceCents     Int     @default(0)
+  isLocked       Boolean         @default(false)
+  priceCents     Int             @default(0)
   messageUnlocks MessageUnlock[]
 
   // New: Post Sharing
@@ -983,9 +987,9 @@ model Report {
   targetId   String
 
   // Queue workflow
-  assignedToId String?
-  assignedTo   User?     @relation("ReportAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
-  resolvedAt   DateTime?
+  assignedToId  String?
+  assignedTo    User?     @relation("ReportAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  resolvedAt    DateTime?
   internalNotes String?
 
   createdAt DateTime @default(now())
@@ -1136,6 +1140,16 @@ enum WhitelistStatus {
 
 // ─── Compliance & Settings ──────────────────────────────────────────
 
+model SystemSetting {
+  key         String   @id
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+  updatedBy   String
+
+  @@map("system_settings")
+}
+
 model UserSettings {
   id     String @id @default(uuid())
   userId String @unique
@@ -1205,13 +1219,16 @@ enum AdminAction {
   ACCOUNT_WARNED
   ACCOUNT_SUSPENDED
   ACCOUNT_RESTORED
+  STRIKE_ADDED
+  STRIKE_REMOVED
+  MANUAL_OVERRIDE
+  UPDATE_SETTINGS
   SUBSCRIPTION_ADJUSTED
   SUBSCRIPTION_CANCELLED
   PROMOTION_REJECTED
   CREATE_AUDIO
   UPDATE_AUDIO
   DELETE_AUDIO
-  MANUAL_OVERRIDE
 }
 
 enum SubscriptionStatus {
@@ -1250,10 +1267,10 @@ model Monetization {
   userId String @unique
 
   // Statistical ledger (platform fee share credited locally; funds settle in Connect)
-  lifetimeEarningsCents Int @default(0)
+  lifetimeEarningsCents Int     @default(0)
   // Cached from Stripe account.updated webhook
-  transfersEnabled Boolean @default(false)
-  chargesEnabled   Boolean @default(false)
+  transfersEnabled      Boolean @default(false)
+  chargesEnabled        Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1261,6 +1278,25 @@ model Monetization {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("monetization")
+}
+
+model StripePayoutLog {
+  id             String   @id @default(uuid())
+  stripePayoutId String   @unique
+  userId         String // Connected account owner
+  amountCents    Int
+  currency       String   @default("usd")
+  status         String // 'paid', 'pending', 'failed', 'canceled'
+  arrivalDate    DateTime
+  failureReason  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("stripe_payout_logs")
 }
 
 model PostUnlock {
@@ -1383,7 +1419,27 @@ enum TicketStatus {
   CLOSED
 }
 
-// AI Auto-Moderation Vector Firewall
+// AI Auto-Moderation Vector Firewall & Static Rules
+
+enum RuleAction {
+  BLOCK
+  FLAG
+  MUTE
+}
+
+model ModerationRule {
+  id        String     @id @default(uuid())
+  keyword   String     @unique
+  action    RuleAction @default(FLAG)
+  isActive  Boolean    @default(true)
+  createdBy String // ID del admin
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("moderation_rules")
+}
+
 model ModerationSignature {
   id          String                      @id @default(uuid())
   vector      Unsupported("vector(1536)")

@@ -26,7 +26,7 @@ export default function AdvancedSettingsSubScreen({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-neutral-900 border border-white/10 w-full max-w-md rounded-lg overflow-hidden shadow-2xl flex flex-col">
+      <div className="bg-surface-elevated border border-white/10 w-full max-w-md rounded-lg overflow-hidden shadow-2xl flex flex-col">
         <div className="p-4 border-b border-white/10 flex items-center gap-4">
           <button
             type="button"
@@ -59,7 +59,7 @@ export default function AdvancedSettingsSubScreen({
               <div className="font-medium text-white">
                 {t('createPost.caption.hide_like_view')}
               </div>
-              <div className="text-xs text-gray-300 mt-1 max-w-[280px]">
+              <div className="text-xs text-gray-300 mt-1 max-w-70">
                 {t('createPost.caption.hide_like_view_desc')}
               </div>
             </div>
@@ -82,7 +82,7 @@ export default function AdvancedSettingsSubScreen({
               <div className="font-medium text-white">
                 {t('createPost.caption.turn_off_comments')}
               </div>
-              <div className="text-xs text-gray-300 mt-1 max-w-[280px]">
+              <div className="text-xs text-gray-300 mt-1 max-w-70">
                 {t('createPost.caption.turn_off_comments_desc')}
               </div>
             </div>

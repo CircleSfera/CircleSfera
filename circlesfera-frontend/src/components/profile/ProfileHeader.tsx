@@ -103,27 +103,27 @@ export default function ProfileHeader({
   const { t } = useTranslation();
 
   return (
-    <div className="glass-panel rounded-xl md:rounded-3xl p-4 md:p-6 mb-3 md:mb-4 relative border border-white/5 shadow-2xl backdrop-blur-2xl">
+    <div className="glass-panel rounded-xl md:rounded-2xl p-3 md:p-4 mb-2 md:mb-3 relative border border-white/5 shadow-2xl backdrop-blur-2xl">
       {/* Background Accent Gradient (Parallax Effect) */}
-      <div className="absolute inset-0 overflow-hidden rounded-xl md:rounded-3xl pointer-events-none -z-10">
+      <div className="absolute inset-0 overflow-hidden rounded-xl md:rounded-2xl pointer-events-none -z-10">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.5, ease: 'easeOut' }}
-          className="absolute -top-20 -right-20 w-64 md:w-96 h-64 md:h-96 bg-linear-to-br from-[#ff5757]/15 to-[#8c52ff]/15 blur-[100px] rounded-full"
+          className="absolute -top-8 -right-8 md:-top-12 md:-right-12 w-32 md:w-56 h-32 md:h-56 bg-linear-to-br from-[#ff5757]/15 to-[#8c52ff]/15 blur-[48px] md:blur-[72px] rounded-full"
         />
       </div>
 
-      <div className="flex flex-col gap-3 md:gap-7">
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-3 md:gap-6">
-          {/* Avatar - Compact size */}
+      <div className="flex flex-col gap-3 md:gap-4">
+        <div className="flex flex-row md:flex-row items-center md:items-start gap-3 md:gap-4 w-full">
+          {/* Avatar — Design System §9.5: profile=96px */}
           <div className="relative shrink-0">
             <UserAvatar
               src={profile.data.avatar}
               thumbnailUrl={profile.data.thumbnailUrl}
               standardUrl={profile.data.standardUrl}
               alt={profile.data.username}
-              size="xl"
+              size="profile"
               hasStory={hasActiveStories}
               onClick={
                 hasActiveStories ? () => setIsStoryViewerOpen(true) : undefined
@@ -142,12 +142,12 @@ export default function ProfileHeader({
           </div>
 
           {/* Stats & Identity Group */}
-          <div className="flex-1 flex flex-col justify-center text-center md:text-left">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6 mb-1 md:mb-3">
-              {/* Identity */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-center md:justify-start gap-2">
-                  <h1 className="text-2xl md:text-xl font-black tracking-tight text-white">
+          <div className="flex-1 flex flex-col justify-center text-left min-w-0">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-1 md:gap-6 md:mb-3">
+              {/* Identity (Desktop only, mobile shows below) */}
+              <div className="hidden md:block space-y-1">
+                <div className="flex items-center justify-start gap-2">
+                  <h1 className="text-xl font-black tracking-tight text-white truncate">
                     {profile.data.fullName}
                   </h1>
                   <VerificationBadge
@@ -155,11 +155,11 @@ export default function ProfileHeader({
                     size={20}
                   />
                 </div>
-                <div className="flex items-center justify-center md:justify-start gap-2 text-zinc-400 font-semibold text-sm">
-                  <span>@{profile.data.username}</span>
+                <div className="flex items-center justify-start gap-2 text-zinc-400 font-semibold text-sm">
+                  <span className="truncate">@{profile.data.username}</span>
                   {profile.data.isPrivate && (
                     <span
-                      className="text-xs text-zinc-300 font-medium inline-flex items-center gap-1.5 bg-white/5 px-2.5 py-0.5 rounded-full border border-white/10 shadow-sm"
+                      className="text-xs text-zinc-300 font-medium inline-flex items-center gap-1.5 bg-white/5 px-2.5 py-0.5 rounded-full border border-white/10 shadow-sm shrink-0"
                       title={t('profile.private_account', 'Cuenta privada')}
                     >
                       <Lock size={12} className="text-brand-primary" />
@@ -170,7 +170,7 @@ export default function ProfileHeader({
               </div>
 
               {/* Stats */}
-              <div className="flex items-center justify-center md:justify-start gap-4 md:gap-6">
+              <div className="flex items-center justify-around md:justify-start gap-4 md:gap-6 w-full md:w-auto">
                 <AnimatedCounter
                   value={profile.data.user?._count?.posts || 0}
                   label={t('profile.stats.posts')}
@@ -204,7 +204,7 @@ export default function ProfileHeader({
                 <>
                   <Link
                     to="/accounts/edit"
-                    className="px-6 py-2 bg-white text-black hover:bg-zinc-200 rounded-lg font-black transition-all duration-300 flex items-center justify-center text-xs uppercase tracking-wide shadow-lg hover:shadow-white/20 hover:scale-105 active:scale-95"
+                    className="px-6 h-11 bg-white text-black hover:bg-zinc-200 rounded-lg font-black transition-all duration-300 flex items-center justify-center text-xs uppercase tracking-wide shadow-lg hover:shadow-white/20 hover:scale-105 active:scale-95"
                   >
                     {t('profile.actions.edit_profile')}
                   </Link>
@@ -221,7 +221,7 @@ export default function ProfileHeader({
                   <button
                     type="button"
                     onClick={() => setCreatorMode(!isCreatorModeActive)}
-                    className={`px-2 py-1 rounded-lg border transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1 text-xs uppercase font-black tracking-wide
+                    className={`px-3 h-11 rounded-lg border transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1 text-xs uppercase font-black tracking-wide
                       ${
                         isCreatorModeActive
                           ? 'bg-brand-primary text-white border-brand-primary/50 shadow-brand-primary/20'
@@ -264,7 +264,7 @@ export default function ProfileHeader({
                     type="button"
                     onClick={handleMessageClick}
                     disabled={isCreatingChat}
-                    className="px-6 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 font-black text-xs uppercase tracking-wide transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] disabled:opacity-50"
+                    className="px-6 h-11 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 font-black text-xs uppercase tracking-wide transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] disabled:opacity-50 flex items-center justify-center"
                   >
                     {isCreatingChat
                       ? t('profile.actions.opening')
@@ -342,11 +342,30 @@ export default function ProfileHeader({
           </div>
         </div>
 
+        {/* Identity (Mobile only) */}
+        <div className="block md:hidden space-y-0.5">
+          <div className="flex items-center justify-start gap-1.5">
+            <h1 className="text-base font-black tracking-tight text-white leading-tight">
+              {profile.data.fullName}
+            </h1>
+            <VerificationBadge
+              level={profile.data.verificationLevel as VerificationLevel}
+              size={16}
+            />
+          </div>
+          <div className="flex items-center justify-start gap-1.5 text-zinc-400 font-semibold text-[13px]">
+            <span>@{profile.data.username}</span>
+            {profile.data.isPrivate && (
+              <Lock size={10} className="text-brand-primary" />
+            )}
+          </div>
+        </div>
+
         {/* Bio & Details Section */}
-        <div className="space-y-4">
-          <div className="max-w-xl text-center md:text-left mx-auto md:mx-0">
+        <div className="md:px-0 text-left space-y-2">
+          <div className="max-w-xl text-left mx-0">
             {profile.data.bio && (
-              <p className="text-zinc-400 text-sm md:text-base leading-relaxed whitespace-pre-wrap">
+              <p className="text-zinc-400 text-[13px] md:text-base leading-relaxed whitespace-pre-wrap">
                 {profile.data.bio}
               </p>
             )}
@@ -422,14 +441,14 @@ export default function ProfileHeader({
               <>
                 <Link
                   to="/accounts/edit"
-                  className="flex-1 px-2 py-1 bg-white text-black hover:bg-zinc-200 rounded-xl font-black transition-all flex items-center justify-center text-xs uppercase tracking-wide shadow-lg shadow-white/5"
+                  className="flex-1 px-2 h-11 bg-white text-black hover:bg-zinc-200 rounded-xl font-black transition-all flex items-center justify-center text-xs uppercase tracking-wide shadow-lg shadow-white/5"
                 >
                   {t('profile.actions.edit_profile')}
                 </Link>
                 <button
                   type="button"
                   onClick={() => setCreatorMode(!isCreatorModeActive)}
-                  className={`flex-1 px-2 py-1 rounded-xl border transition-all flex items-center justify-center gap-1 text-xs uppercase font-black tracking-wide shadow-lg
+                  className={`flex-1 px-2 h-11 rounded-xl border transition-all flex items-center justify-center gap-1 text-xs uppercase font-black tracking-wide shadow-lg
                     ${
                       isCreatorModeActive
                         ? 'bg-brand-primary text-white border-brand-primary/50 shadow-brand-primary/20'
@@ -447,7 +466,7 @@ export default function ProfileHeader({
                   type="button"
                   onClick={handleMessageClick}
                   disabled={isCreatingChat}
-                  className="flex-1 px-5 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 font-black text-xs uppercase tracking-wide transition-all disabled:opacity-50"
+                  className="flex-1 px-3 h-11 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 font-black text-xs uppercase tracking-wide transition-all flex items-center justify-center disabled:opacity-50"
                 >
                   {isCreatingChat
                     ? t('profile.actions.opening')

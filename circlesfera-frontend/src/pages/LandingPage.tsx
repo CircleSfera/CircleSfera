@@ -27,7 +27,7 @@ const LandingPage = () => {
       <div className="w-full flex-1 block relative z-10 pb-16">
         {/* Navigation */}
         <nav className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5 px-5 py-2 flex justify-between items-center backdrop-blur-xl bg-transparent">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <img
               src={logoSrc}
               alt="CircleSfera"
@@ -55,7 +55,7 @@ const LandingPage = () => {
 
         {/* Hero Section */}
         <main className="max-w-3xl mx-auto px-6 pt-16 pb-8 md:pt-18 md:pb-8 flex flex-col items-center text-center relative z-10">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full glass-panel border border-white/10 mb-3 shadow-sm">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full glass-panel border border-white/10 mb-3 shadow-sm">
             <span className="relative flex h-1.5 w-1.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-secondary opacity-75"></span>
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-secondary"></span>
@@ -81,7 +81,7 @@ const LandingPage = () => {
               to="/accounts/emailsignup"
               className="group relative px-4 py-2 bg-white text-black font-bold text-[11px] rounded-full transition-all hover:shadow-[0_0_20px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95"
             >
-              <span className="flex items-center justify-center gap-1.5">
+              <span className="flex items-center justify-center gap-2">
                 {t('landing.hero.get_started')}
                 <Zap className="w-3 h-3 fill-black group-hover:rotate-12 transition-transform" />
               </span>
@@ -100,7 +100,7 @@ const LandingPage = () => {
 
             {/* Animated Grid simulating feed */}
             <div className="absolute inset-0 flex items-center justify-center opacity-30 group-hover:opacity-100 transition-opacity duration-1000">
-              <div className="grid grid-cols-4 gap-2.5 p-3 w-full h-full transform group-hover:scale-105 transition-transform duration-1000 ease-out">
+              <div className="grid grid-cols-4 gap-3 p-3 w-full h-full transform group-hover:scale-105 transition-transform duration-1000 ease-out">
                 <div className="col-span-1 space-y-2 pt-4">
                   <div className="glass-panel h-24 rounded-md w-full bg-white/5 border-white/10 shadow-lg"></div>
                   <div className="glass-panel h-32 rounded-md w-full bg-white/5 border-white/10 shadow-lg"></div>
@@ -170,7 +170,7 @@ const LandingPage = () => {
           <div className="max-w-3xl mx-auto px-6">
             <div className="text-center mb-6">
               <div
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full mb-2 text-[9px] font-bold uppercase tracking-wider"
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-2 text-[9px] font-bold uppercase tracking-wider"
                 style={{
                   background: 'rgba(140,82,255,0.12)',
                   border: '1px solid rgba(140,82,255,0.2)',
@@ -184,7 +184,7 @@ const LandingPage = () => {
                 {t('landing.features.subtitle')}
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <FeatureCard
                 icon={<Camera className="w-4 h-4" />}
                 iconGradient="linear-gradient(135deg, #ff5757, #8c52ff)"
@@ -212,7 +212,7 @@ const LandingPage = () => {
           <div className="max-w-xl mx-auto px-6">
             <div className="text-center mb-6">
               <div
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full mb-2 text-[9px] font-bold uppercase tracking-wider"
+                className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-2 text-[9px] font-bold uppercase tracking-wider"
                 style={{
                   background: 'rgba(255,87,87,0.1)',
                   border: '1px solid rgba(255,87,87,0.2)',
@@ -275,7 +275,7 @@ const LandingPage = () => {
             </p>
             <Link
               to="/accounts/emailsignup"
-              className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 text-white font-black text-[11px] rounded-full transition-all duration-300 hover:scale-105 active:scale-95"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 text-white font-black text-[11px] rounded-full transition-all duration-300 hover:scale-105 active:scale-95"
               style={{
                 background: 'linear-gradient(90deg, #ff5757 0%, #8c52ff 100%)',
                 boxShadow:
@@ -293,7 +293,7 @@ const LandingPage = () => {
       <footer className="py-14 border-t border-white/5 bg-black text-sm relative mt-auto">
         <div className="max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 text-white/40 mb-12">
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center gap-2.5 mb-5">
+            <div className="flex items-center gap-3 mb-5">
               <div className="w-7 h-7 flex items-center justify-center">
                 <img
                   src={logoSrc}

@@ -34,7 +34,7 @@ export const IncomingCallModal: React.FC = () => {
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="glass-panel border border-white/10 rounded-[32px] p-8 w-full max-w-sm shadow-2xl shadow-black/80 flex flex-col items-center text-center relative overflow-hidden"
+          className="glass-panel border border-white/10 rounded-4xl p-8 w-full max-w-sm shadow-2xl shadow-black/80 flex flex-col items-center text-center relative overflow-hidden"
         >
           {/* Subtle background glow */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-brand-primary/10 blur-[60px] -z-10 rounded-full pointer-events-none" />

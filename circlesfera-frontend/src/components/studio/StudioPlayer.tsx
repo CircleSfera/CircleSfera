@@ -1,31 +1,49 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStudioStore } from '../../stores/studioStore';
-import type { MediaClip, TextClip } from '../../types/studio';
+import type { AspectRatioType, MediaClip, TextClip } from '../../types/studio';
 
 export default function StudioPlayer() {
   const { project, playhead, isPlaying, setPlayhead } = useStudioStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [activeVideo, setActiveVideo] = useState<HTMLVideoElement | null>(null);
+  const [activeImage, setActiveImage] = useState<HTMLImageElement | null>(null);
   const audioElementsRef = useRef<Record<string, HTMLAudioElement>>({});
+  const imageCacheRef = useRef<Record<string, HTMLImageElement>>({});
+
+  const aspect: AspectRatioType = project?.aspectRatio || '9:16';
+
+  const getCanvasDimensions = () => {
+    switch (aspect) {
+      case '16:9':
+        return { width: 1920, height: 1080, aspectClass: 'aspect-[16/9]' };
+      case '1:1':
+        return { width: 1080, height: 1080, aspectClass: 'aspect-square' };
+      case '4:5':
+        return { width: 1080, height: 1350, aspectClass: 'aspect-[4/5]' };
+      case '9:16':
+        return { width: 1080, height: 1920, aspectClass: 'aspect-[9/16]' };
+      default:
+        return { width: 1080, height: 1920, aspectClass: 'aspect-[9/16]' };
+    }
+  };
+
+  const {
+    width: canvasWidth,
+    height: canvasHeight,
+    aspectClass,
+  } = getCanvasDimensions();
 
   useEffect(() => {
     if (!project) return;
 
-    // Find active media clip at current playhead
-    const activeTrack = project.tracks.find((t) => t.type === 'video');
-    if (!activeTrack) return;
+    const videoTrack = project.tracks.find((t) => t.type === 'video');
+    if (!videoTrack) return;
 
-    const activeClip = activeTrack.clips.find(
-      (c) =>
-        c.type === 'video' &&
-        playhead >= c.startAt &&
-        playhead < c.startAt + c.duration,
+    const activeClip = videoTrack.clips.find(
+      (c) => playhead >= c.startAt && playhead < c.startAt + c.duration,
     ) as MediaClip | undefined;
 
-    // This is a naive implementation. In a real studio, we'd have a pool of video elements
-    // or decode frames using WebCodecs.
     if (activeClip && activeClip.type === 'video') {
-      // Find or create a video element for this clip
       let videoEl = document.getElementById(
         `studio-video-${activeClip.id}`,
       ) as HTMLVideoElement;
@@ -47,13 +65,24 @@ export default function StudioPlayer() {
       videoEl.volume = Math.max(0, Math.min(1, activeClip.volume ?? 1));
 
       setActiveVideo(videoEl);
+      setActiveImage(null);
+    } else if (activeClip && activeClip.type === 'image') {
+      setActiveVideo(null);
+      let img = imageCacheRef.current[activeClip.fileUrl];
+      if (!img) {
+        img = new Image();
+        img.src = activeClip.fileUrl;
+        imageCacheRef.current[activeClip.fileUrl] = img;
+      }
+      setActiveImage(img);
     } else {
       setActiveVideo(null);
+      setActiveImage(null);
     }
 
-    // Handle Audio Tracks
+    // Audio elements handling
     const audioClips = project.tracks
-      .filter((t) => t.type === 'audio')
+      .filter((t) => t.type === 'audio' && !t.muted)
       .flatMap((t) => t.clips) as MediaClip[];
 
     audioClips.forEach((clip) => {
@@ -90,7 +119,7 @@ export default function StudioPlayer() {
     });
   }, [playhead, project, isPlaying]);
 
-  // Render loop
+  // Main Canvas Render Loop
   useEffect(() => {
     let animationId: number;
     const render = () => {
@@ -101,30 +130,58 @@ export default function StudioPlayer() {
 
         const { project, playhead } = useStudioStore.getState();
 
-        if (activeVideo && project) {
-          // Find the active video clip to get its filter
-          const activeTrack = project.tracks.find((t) => t.type === 'video');
-          const activeClip = activeTrack?.clips.find(
-            (c) =>
-              c.type === 'video' &&
-              playhead >= c.startAt &&
-              playhead < c.startAt + c.duration,
+        // Render Media (Video or Image)
+        if (project) {
+          const videoTrack = project.tracks.find((t) => t.type === 'video');
+          const activeClip = videoTrack?.clips.find(
+            (c) => playhead >= c.startAt && playhead < c.startAt + c.duration,
           ) as MediaClip | undefined;
 
-          if (activeClip?.filter) {
-            ctx.filter = activeClip.filter;
-          } else {
-            ctx.filter = 'none';
+          if (activeClip && !videoTrack?.hidden) {
+            ctx.save();
+
+            // Set filter & opacity
+            if (activeClip.filter) ctx.filter = activeClip.filter;
+            if (typeof activeClip.opacity === 'number')
+              ctx.globalAlpha = activeClip.opacity;
+
+            // Transform
+            const scale = activeClip.transform?.scale ?? 1;
+            const rot = ((activeClip.transform?.rotation ?? 0) * Math.PI) / 180;
+            const tx = activeClip.transform?.x ?? 0;
+            const ty = activeClip.transform?.y ?? 0;
+
+            ctx.translate(canvas.width / 2 + tx, canvas.height / 2 + ty);
+            ctx.rotate(rot);
+            ctx.scale(
+              (activeClip.flipX ? -1 : 1) * scale,
+              (activeClip.flipY ? -1 : 1) * scale,
+            );
+
+            if (activeClip.type === 'video' && activeVideo) {
+              ctx.drawImage(
+                activeVideo,
+                -canvas.width / 2,
+                -canvas.height / 2,
+                canvas.width,
+                canvas.height,
+              );
+            } else if (activeClip.type === 'image' && activeImage) {
+              ctx.drawImage(
+                activeImage,
+                -canvas.width / 2,
+                -canvas.height / 2,
+                canvas.width,
+                canvas.height,
+              );
+            }
+
+            ctx.restore();
           }
 
-          ctx.drawImage(activeVideo, 0, 0, canvas.width, canvas.height);
-          ctx.filter = 'none'; // reset for text
-        }
-
-        // Render text overlays
-        if (project) {
+          // Render Text Clips Overlays
           project.tracks
-            .filter((t) => t.type === 'text')
+            .filter((t) => t.type === 'text' && !t.hidden)
             .forEach((track) => {
               track.clips.forEach((clip) => {
                 if (
@@ -132,14 +189,56 @@ export default function StudioPlayer() {
                   playhead < clip.startAt + clip.duration
                 ) {
                   const textClip = clip as TextClip;
-                  ctx.font = `${textClip.style.fontSize}px ${textClip.style.fontFamily}`;
-                  ctx.fillStyle = textClip.style.color;
-                  ctx.textAlign = textClip.style.textAlign;
-                  ctx.fillText(
-                    textClip.content,
-                    canvas.width / 2 + textClip.transform.x,
-                    canvas.height / 2 + textClip.transform.y,
-                  );
+                  const style = textClip.style;
+                  const fontSize = style.fontSize || 40;
+                  const fontFamily = style.fontFamily || 'Inter';
+
+                  ctx.save();
+                  ctx.font = `bold ${fontSize}px ${fontFamily}, sans-serif`;
+                  ctx.textAlign = style.textAlign || 'center';
+
+                  const textMetrics = ctx.measureText(textClip.content);
+                  const textWidth = textMetrics.width;
+                  const padding = style.padding ?? 12;
+                  const textHeight = fontSize * 1.2;
+
+                  const x = canvas.width / 2 + (textClip.transform?.x ?? 0);
+                  const y = canvas.height / 2 + (textClip.transform?.y ?? 0);
+
+                  // Background Box
+                  if (
+                    style.backgroundColor &&
+                    style.backgroundColor !== 'transparent'
+                  ) {
+                    ctx.fillStyle = style.backgroundColor;
+                    const boxX = x - textWidth / 2 - padding;
+                    const boxY = y - fontSize + padding / 2;
+                    const boxW = textWidth + padding * 2;
+                    const boxH = textHeight + padding;
+                    const radius = style.borderRadius ?? 8;
+
+                    ctx.beginPath();
+                    ctx.roundRect(boxX, boxY, boxW, boxH, radius);
+                    ctx.fill();
+                  }
+
+                  // Shadow
+                  if (style.shadowColor) {
+                    ctx.shadowColor = style.shadowColor;
+                    ctx.shadowBlur = style.shadowBlur ?? 10;
+                  }
+
+                  // Stroke / Outline
+                  if (style.strokeColor && style.strokeWidth) {
+                    ctx.strokeStyle = style.strokeColor;
+                    ctx.lineWidth = style.strokeWidth;
+                    ctx.strokeText(textClip.content, x, y);
+                  }
+
+                  // Text Fill
+                  ctx.fillStyle = style.color || '#ffffff';
+                  ctx.fillText(textClip.content, x, y);
+                  ctx.restore();
                 }
               });
             });
@@ -149,16 +248,16 @@ export default function StudioPlayer() {
     };
     render();
     return () => cancelAnimationFrame(animationId);
-  }, [activeVideo]);
+  }, [activeVideo, activeImage]);
 
-  // Playback timer
+  // Playhead step loop during playback
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (isPlaying) {
       let lastTime = performance.now();
       interval = setInterval(() => {
         const now = performance.now();
-        const delta = (now - lastTime) / 1000; // in seconds
+        const delta = (now - lastTime) / 1000;
         lastTime = now;
 
         const currentPlayhead = useStudioStore.getState().playhead;
@@ -170,53 +269,35 @@ export default function StudioPlayer() {
         } else {
           setPlayhead(currentPlayhead + delta);
         }
-      }, 1000 / 60); // 60fps update
+      }, 1000 / 60);
     }
     return () => clearInterval(interval);
   }, [isPlaying, setPlayhead]);
 
-  if (!project) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-[#0a0a0c] text-white/40">
-        <div className="w-16 h-16 mb-4 rounded-full bg-white/5 flex items-center justify-center">
-          <svg
-            className="w-8 h-8 opacity-50"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-        </div>
-        <p className="text-sm font-medium">No hay proyecto cargado</p>
-      </div>
-    );
-  }
+  if (!project) return null;
 
-  // Comprobar si hay clips en el proyecto
   const hasClips = project.tracks.some((track) => track.clips.length > 0);
 
   return (
-    <div className="w-full h-full flex items-center justify-center bg-transparent relative p-4 md:p-8">
-      {/* 9:16 Aspect Ratio Canvas for mobile video */}
-      <div className="h-full w-auto aspect-9/16 rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/10 bg-checkerboard relative flex items-center justify-center">
+    <div className="w-full h-full flex items-center justify-center bg-transparent relative p-2 sm:p-6 overflow-hidden">
+      <div
+        className={`h-full max-h-full w-auto ${aspectClass} rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10 bg-[#000000] relative flex items-center justify-center`}
+      >
         {!hasClips && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-white/40 pointer-events-none z-10 bg-black/40 backdrop-blur-sm">
-            <p className="text-sm font-medium">
-              Arrastra contenido o usa [+ Agregar]
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-white/40 pointer-events-none z-10 bg-black/60 backdrop-blur-sm p-4 text-center">
+            <p className="text-sm font-semibold text-white/80">
+              Proyecto vacío
+            </p>
+            <p className="text-xs text-white/40 mt-1">
+              Añade vídeos, imágenes o texto desde el panel lateral
             </p>
           </div>
         )}
+
         <canvas
           ref={canvasRef}
-          width={1080}
-          height={1920}
+          width={canvasWidth}
+          height={canvasHeight}
           className="w-full h-full object-contain"
         />
       </div>

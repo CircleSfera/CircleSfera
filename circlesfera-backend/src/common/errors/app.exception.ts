@@ -36,6 +36,11 @@ export class AppException extends HttpException {
     return new AppException(errorCode, HttpStatus.FORBIDDEN, message, details);
   }
 
+  static Conflict(errorCode: ErrorCode, message?: string, details?: unknown) {
+    return new AppException(errorCode, HttpStatus.CONFLICT, message, details);
+  }
+
+  // Handle unauthorized explicitly
   static Unauthorized(
     errorCode: ErrorCode,
     message?: string,

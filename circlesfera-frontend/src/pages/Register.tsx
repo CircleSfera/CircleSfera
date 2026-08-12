@@ -75,7 +75,7 @@ export default function Register() {
 
   return (
     <LayoutWrapper showNavigation={false}>
-      <div className="min-h-screen flex items-center justify-center py-2.5">
+      <div className="min-h-dvh flex items-center justify-center py-3">
         <div className="modal-glass p-4 rounded-xl w-full max-w-sm relative overflow-hidden group">
           {/* Brand Accent Line */}
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-linear-to-r from-brand-primary via-brand-secondary to-brand-accent opacity-90" />
@@ -95,7 +95,7 @@ export default function Register() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
               >
                 {t('auth.register.email_label')}
               </label>
@@ -105,7 +105,8 @@ export default function Register() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-2 py-1 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
+                className="input-glass w-full px-4 text-white placeholder-gray-600 text-sm"
+                style={{ height: 'var(--input-height-standard, 48px)' }}
                 placeholder={t('auth.register.email_placeholder')}
                 autoComplete="email"
               />
@@ -115,7 +116,7 @@ export default function Register() {
               <div>
                 <label
                   htmlFor="username"
-                  className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
+                  className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
                 >
                   {t('auth.register.username_label')}
                 </label>
@@ -125,7 +126,8 @@ export default function Register() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
-                  className="w-full px-2 py-1 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
+                  className="input-glass w-full px-4 text-white placeholder-gray-600 text-sm"
+                  style={{ height: 'var(--input-height-standard, 48px)' }}
                   placeholder={t('auth.register.username_placeholder')}
                   autoComplete="username"
                 />
@@ -134,7 +136,7 @@ export default function Register() {
               <div>
                 <label
                   htmlFor="fullName"
-                  className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
+                  className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
                 >
                   {t('auth.register.fullname_label')}
                 </label>
@@ -143,7 +145,8 @@ export default function Register() {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-2 py-1 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
+                  className="input-glass w-full px-4 text-white placeholder-gray-600 text-sm"
+                  style={{ height: 'var(--input-height-standard, 48px)' }}
                   placeholder={t('auth.register.fullname_placeholder')}
                   autoComplete="name"
                 />
@@ -153,7 +156,7 @@ export default function Register() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
               >
                 {t('auth.register.password_label')}
               </label>
@@ -164,7 +167,8 @@ export default function Register() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
-                className="w-full px-2 py-1 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
+                className="input-glass w-full px-4 text-white placeholder-gray-600 text-sm"
+                style={{ height: 'var(--input-height-standard, 48px)' }}
                 placeholder={t('auth.register.password_placeholder')}
                 autoComplete="new-password"
               />
@@ -173,7 +177,7 @@ export default function Register() {
             <div>
               <label
                 htmlFor="dateOfBirth"
-                className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
               >
                 {t('auth.register.dob_label')}
               </label>
@@ -183,10 +187,11 @@ export default function Register() {
                 value={dateOfBirth}
                 onChange={(e) => setDateOfBirth(e.target.value)}
                 required
-                className="w-full px-2 py-1 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
+                className="input-glass w-full px-4 text-white placeholder-gray-600 text-sm"
+                style={{ height: 'var(--input-height-standard, 48px)' }}
                 autoComplete="bday"
               />
-              <p className="mt-1 px-1 text-[10px] text-gray-500">
+              <p className="mt-1 px-1 text-[10px] text-gray-500 font-medium">
                 {t('auth.register.dob_hint')}
               </p>
             </div>
@@ -194,7 +199,7 @@ export default function Register() {
             <div>
               <label
                 htmlFor="inviteCode"
-                className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
               >
                 {t('auth.register.invite_label')}{' '}
                 <span className="text-gray-600 font-normal lowercase tracking-normal">
@@ -206,13 +211,14 @@ export default function Register() {
                 type="text"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
-                className="w-full px-2 py-1 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder-gray-600 outline-none text-sm"
+                className="input-glass w-full px-4 text-white placeholder-gray-600 text-sm"
+                style={{ height: 'var(--input-height-standard, 48px)' }}
                 placeholder={t('auth.register.invite_placeholder')}
               />
             </div>
 
             {registerMutation.isError && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center font-medium">
                 {(
                   registerMutation.error as {
                     response?: { data?: { message?: string } };
@@ -224,8 +230,9 @@ export default function Register() {
             <Button
               type="submit"
               variant="white"
+              size="lg"
               isLoading={registerMutation.isPending}
-              className="w-full font-black text-xs tracking-wide uppercase mt-2 py-1.5"
+              className="w-full font-black text-sm tracking-wide mt-2"
             >
               {t('auth.register.sign_up')}
             </Button>

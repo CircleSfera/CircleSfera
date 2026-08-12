@@ -197,7 +197,7 @@ export const CreatorAnalyticsDashboard: React.FC = () => {
             </div>
 
             {/* Active Subscribers */}
-            <div className="p-4 bg-linear-to-br from-accent-blue/10 to-indigo-500/5 border border-accent-blue/20 rounded-2xl">
+            <div className="p-4 bg-linear-to-br from-brand-blue/10 to-brand-primary/5 border border-brand-blue/20 rounded-xl">
               <div className="flex items-center justify-between text-accent-blue mb-2">
                 <span className="text-xs font-bold uppercase tracking-wider">
                   Suscriptores de Pago
@@ -213,8 +213,8 @@ export const CreatorAnalyticsDashboard: React.FC = () => {
             </div>
 
             {/* Avg Dwell Time */}
-            <div className="p-4 bg-linear-to-br from-purple-500/10 to-pink-500/5 border border-purple-500/20 rounded-2xl">
-              <div className="flex items-center justify-between text-purple-400 mb-2">
+            <div className="p-4 bg-linear-to-br from-brand-primary/10 to-brand-accent/5 border border-brand-primary/20 rounded-xl">
+              <div className="flex items-center justify-between text-brand-primary mb-2">
                 <span className="text-xs font-bold uppercase tracking-wider">
                   Dwell Time Medio
                 </span>
@@ -223,7 +223,7 @@ export const CreatorAnalyticsDashboard: React.FC = () => {
               <p className="text-2xl font-black text-white">
                 {retention?.avgDwellSeconds || 0}s
               </p>
-              <p className="text-[11px] text-purple-400/80 mt-1 font-medium">
+              <p className="text-[11px] text-brand-primary/80 mt-1 font-medium">
                 Hora pico: {retention?.peakActivityHourUTC}:00 UTC
               </p>
             </div>
@@ -290,7 +290,7 @@ export const CreatorAnalyticsDashboard: React.FC = () => {
                   </div>
                   <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-purple-500 rounded-full"
+                      className="h-full bg-brand-primary rounded-full"
                       style={{
                         width: `${revenue?.grossRevenue ? (revenue.postUnlocksTotal / revenue.grossRevenue) * 100 : 0}%`,
                       }}
@@ -326,7 +326,7 @@ export const CreatorAnalyticsDashboard: React.FC = () => {
             {/* Audience Peak Activity Heatmap Preview */}
             <div className="p-5 bg-white/5 border border-white/5 rounded-2xl space-y-4">
               <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-                <Clock className="w-4 h-4 text-purple-400" />
+                <Clock className="w-4 h-4 text-brand-primary" />
                 <span>Distribución Horaria de Interacción (UTC)</span>
               </h3>
 

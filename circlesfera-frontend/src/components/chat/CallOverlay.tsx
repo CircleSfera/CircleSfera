@@ -166,7 +166,7 @@ export const CallOverlay: React.FC = () => {
           )}
 
           {/* Bottom Floating Controls */}
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-4 px-8 py-4 glass-panel rounded-[32px] border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.5)] z-20">
+          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-4 px-8 py-4 glass-panel rounded-4xl border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.5)] z-20">
             {/* Audio Toggle */}
             <button
               type="button"

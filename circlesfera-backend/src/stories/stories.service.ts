@@ -1,5 +1,11 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import {
   type Prisma,
   type Profile,
@@ -9,6 +15,10 @@ import {
   Visibility,
 } from '@prisma/client';
 import { Queue } from 'bullmq';
+import {
+  MAX_PPV_PRICE_CENTS,
+  MIN_PPV_PRICE_CENTS,
+} from '../common/constants/monetization.constants.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { CreateStoryDto } from './dto/create-story.dto.js';
@@ -31,6 +41,7 @@ export class StoriesService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
     @Inject(UploadsService) private readonly uploadsService: UploadsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
@@ -39,6 +50,17 @@ export class StoriesService {
    * @param dto - Story data (url, mediaType, isCloseFriendsOnly, audioId)
    */
   async create(userId: string, dto: CreateStoryDto) {
+    if (dto.isPremium) {
+      if (
+        !dto.priceCents ||
+        dto.priceCents < MIN_PPV_PRICE_CENTS ||
+        dto.priceCents > MAX_PPV_PRICE_CENTS
+      ) {
+        throw new BadRequestException(
+          `El precio de la historia premium debe estar entre €${(MIN_PPV_PRICE_CENTS / 100).toFixed(2)} y €${(MAX_PPV_PRICE_CENTS / 100).toFixed(2)}.`,
+        );
+      }
+    }
     const scheduledAt =
       dto.scheduledAt && new Date(dto.scheduledAt) > new Date()
         ? new Date(dto.scheduledAt)
@@ -502,6 +524,28 @@ export class StoriesService {
       }
     } catch (error) {
       this.logger.error('Failed to clean up expired stories', error);
+    }
+  }
+
+  @OnEvent('user.hard_deleted')
+  async handleUserDeleted(payload: { userId: string }) {
+    const userStories = await this.prisma.story.findMany({
+      where: { userId: payload.userId },
+    });
+
+    const mediaUrls = new Set<string>();
+    for (const story of userStories) {
+      if (story.url) mediaUrls.add(story.url);
+      if (story.thumbnailUrl) mediaUrls.add(story.thumbnailUrl);
+    }
+
+    if (mediaUrls.size > 0) {
+      this.logger.log(
+        `Emitting media.delete_batch for ${mediaUrls.size} files...`,
+      );
+      this.eventEmitter.emit('media.delete_batch', {
+        mediaUrls: Array.from(mediaUrls),
+      });
     }
   }
 }

@@ -78,7 +78,7 @@ export default function PostDetailPanel({ post }: Props) {
       )}
 
       {post._count && (
-        <div className="grid grid-cols-2 rounded-lg bg-white/[0.03] overflow-hidden">
+        <div className="grid grid-cols-2 rounded-lg bg-white/3 overflow-hidden">
           <div className="px-3 py-3 text-center">
             <p className="text-lg font-semibold text-white tabular-nums leading-none">
               {post._count.likes}

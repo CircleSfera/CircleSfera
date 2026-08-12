@@ -18,7 +18,7 @@ export default function Playhead() {
       className="absolute top-0 bottom-0 z-30 pointer-events-none"
       style={{ left: `calc(32px + ${xPos}px)` }} // Offset matches timeline paddingLeft
     >
-      <div className="w-px h-full bg-brand-primary relative shadow-[0_0_8px_rgba(131,58,180,0.8),0_0_2px_rgba(255,255,255,0.8)]">
+      <div className="w-px h-full bg-brand-primary relative shadow-[0_0_8px_rgba(140, 82, 255,0.8),0_0_2px_rgba(255,255,255,0.8)]">
         {/* Playhead Handle */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full pointer-events-auto cursor-grab active:cursor-grabbing group">
           <svg
