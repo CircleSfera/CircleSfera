@@ -110,7 +110,7 @@ jobs:
           echo "✅ Vite build args resolved (API + LiveKit URL + optional Sentry)."
 
       - name: Build and push Backend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./circlesfera-backend/Dockerfile
@@ -122,7 +122,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push Frontend
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./circlesfera-frontend/Dockerfile
