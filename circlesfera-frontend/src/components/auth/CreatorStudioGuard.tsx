@@ -16,7 +16,9 @@ interface CreatorStudioGuardProps {
 export default function CreatorStudioGuard({
   children,
 }: CreatorStudioGuardProps) {
-  const { isAuthenticated, profile } = useAuthStore();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const profile = useAuthStore((state) => state.profile);
+  const isSessionChecked = useAuthStore((state) => state.isSessionChecked);
   const location = useLocation();
 
   // Match Sidebar filter: profile.accountType (fallback user.accountType)
@@ -33,6 +35,14 @@ export default function CreatorStudioGuard({
       toast.error('Creator Studio is available for creator accounts.');
     }
   }, [isAuthenticated, isCreatorStudio, profile, accountType, location]);
+
+  if (!isSessionChecked) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-black">
+        <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/accounts/login" state={{ from: location }} replace />;

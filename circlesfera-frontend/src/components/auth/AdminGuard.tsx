@@ -14,11 +14,13 @@ interface AdminGuardProps {
  * If not, redirects to the home page.
  */
 export default function AdminGuard({ children }: AdminGuardProps) {
-  const { isAuthenticated, profile } = useAuthStore();
-  const location = useLocation();
-
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const profile = useAuthStore((state) => state.profile);
+  const isSessionChecked = useAuthStore((state) => state.isSessionChecked);
   const userRole = profile?.user?.role;
   const isStaff = userRole === 'ADMIN' || userRole === 'MODERATOR';
+
+  const location = useLocation();
 
   useEffect(() => {
     if (isAuthenticated && !isStaff) {
@@ -27,6 +29,14 @@ export default function AdminGuard({ children }: AdminGuardProps) {
       );
     }
   }, [isAuthenticated, isStaff, profile, location]);
+
+  if (!isSessionChecked) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-black">
+        <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/accounts/login" state={{ from: location }} replace />;

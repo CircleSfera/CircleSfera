@@ -42,6 +42,23 @@ const MODERATOR_PERMISSIONS: ReadonlySet<StaffPermission> = new Set([
   'content',
 ]);
 
+const SUPPORT_PERMISSIONS: ReadonlySet<StaffPermission> = new Set([
+  'support',
+  'appeals',
+  'users.read',
+]);
+
+const FINANCE_PERMISSIONS: ReadonlySet<StaffPermission> = new Set([
+  'payments',
+  'users.read',
+]);
+
+const ROLE_PERMISSIONS: Record<string, ReadonlySet<StaffPermission>> = {
+  MODERATOR: MODERATOR_PERMISSIONS,
+  SUPPORT: SUPPORT_PERMISSIONS,
+  FINANCE: FINANCE_PERMISSIONS,
+};
+
 @Injectable()
 export class AdminGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
@@ -50,7 +67,10 @@ export class AdminGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user as CurrentUserData | undefined;
 
-    if (!user || (user.role !== 'ADMIN' && user.role !== 'MODERATOR')) {
+    if (
+      !user ||
+      !['ADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE'].includes(user.role)
+    ) {
       throw new ForbiddenException('Staff access required');
     }
 
@@ -64,18 +84,21 @@ export class AdminGuard implements CanActivate {
         [context.getHandler(), context.getClass()],
       ) || [];
 
-    // No explicit permissions → ADMIN only (deny-by-default for moderators).
-    // Moderator-accessible routes must declare @RequireStaffPermissions(...).
     if (required.length === 0) {
       throw new ForbiddenException(
-        'Moderator access denied: route requires ADMIN',
+        'Explicit permissions required for non-admin',
       );
     }
 
-    const missing = required.filter((p) => !MODERATOR_PERMISSIONS.has(p));
+    const userPermissions = ROLE_PERMISSIONS[user.role];
+    if (!userPermissions) {
+      throw new ForbiddenException('Invalid staff role');
+    }
+
+    const missing = required.filter((p) => !userPermissions.has(p));
     if (missing.length > 0) {
       throw new ForbiddenException(
-        `Moderator access denied for: ${missing.join(', ')}`,
+        `${user.role} access denied for: ${missing.join(', ')}`,
       );
     }
 

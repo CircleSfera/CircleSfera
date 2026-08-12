@@ -130,7 +130,7 @@ export default function Login() {
 
   return (
     <LayoutWrapper showNavigation={false}>
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="min-h-dvh flex items-center justify-center p-4">
         <div className="modal-glass p-4 rounded-xl w-full max-w-sm relative overflow-hidden group border border-white/5 shadow-2xl backdrop-blur-2xl">
           {/* Brand Accent Line */}
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue opacity-90" />
@@ -150,7 +150,7 @@ export default function Login() {
             <div>
               <label
                 htmlFor="identifier"
-                className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
               >
                 {t('auth.login.identifier_label')}
               </label>
@@ -160,7 +160,8 @@ export default function Login() {
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 required
-                className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-brand-primary/50 transition-all text-white placeholder-gray-600 outline-none text-base shadow-[0_0_15px_rgba(255,255,255,0.02)]"
+                className="input-glass w-full px-4 rounded-xl text-white placeholder-gray-600 text-sm"
+                style={{ height: 'var(--input-height-standard, 48px)' }}
                 placeholder={t('auth.login.identifier_placeholder')}
                 autoComplete="username"
               />
@@ -169,7 +170,7 @@ export default function Login() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
+                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
               >
                 {t('auth.login.password_label')}
               </label>
@@ -179,17 +180,18 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-brand-primary/50 transition-all text-white placeholder-gray-600 outline-none text-base shadow-[0_0_15px_rgba(255,255,255,0.02)]"
+                className="input-glass w-full px-4 rounded-xl text-white placeholder-gray-600 text-sm"
+                style={{ height: 'var(--input-height-standard, 48px)' }}
                 placeholder={t('auth.login.password_placeholder')}
                 autoComplete="current-password"
               />
             </div>
 
-            <div className="flex justify-end pr-1">
+            <div className="flex justify-end">
               <Link
                 to="/forgot-password"
                 title="Forgot password"
-                className="text-xs font-bold text-gray-500 hover:text-white transition-colors"
+                className="text-xs font-semibold text-gray-500 hover:text-white transition-colors"
               >
                 {t('auth.login.forgot_password')}
               </Link>
@@ -221,7 +223,7 @@ export default function Login() {
                 <div>
                   <label
                     htmlFor="appealReason"
-                    className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
+                    className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 px-1"
                   >
                     {t('auth.login.appeal_reason_label', 'Reason for Appeal')}
                   </label>
@@ -268,7 +270,7 @@ export default function Login() {
                 <div>
                   <label
                     htmlFor="twoFactorCode"
-                    className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 px-1"
+                    className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 px-1"
                   >
                     {t('auth.login.2fa_code', 'Authentication Code')}
                   </label>
@@ -311,9 +313,10 @@ export default function Login() {
                   type="submit"
                   data-testid="login-submit-button"
                   variant="white"
+                  size="lg"
                   isLoading={loginMutation.isPending}
                   disabled={loginMutation.isPending || passkeyLoading}
-                  className="w-full font-black text-xs md:text-sm tracking-wide uppercase py-1.5"
+                  className="w-full font-black text-sm tracking-wide"
                 >
                   {t('auth.login.sign_in')}
                 </Button>
