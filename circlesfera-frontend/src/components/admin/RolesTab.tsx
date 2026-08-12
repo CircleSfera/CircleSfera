@@ -57,7 +57,7 @@ export default function RolesTab({ onToast }: Props) {
   const [isPromoteModalOpen, setIsPromoteModalOpen] = useState(false);
 
   // We fetch only staff members by passing 'ADMIN,MODERATOR,SUPPORT,FINANCE'
-  const { data, isLoading } = useQuery<PaginatedResponse<AdminUser>>({
+  const { data, isLoading, isError } = useQuery<PaginatedResponse<AdminUser>>({
     queryKey: ['admin', 'users', 'staff', page, debouncedSearch],
     queryFn: () =>
       adminApi
@@ -152,6 +152,18 @@ export default function RolesTab({ onToast }: Props) {
             <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
               {isLoading ? (
                 <AdminListSkeleton rows={10} />
+              ) : isError ? (
+                <AdminEmptyState
+                  icon={ShieldAlert}
+                  title={t(
+                    'admin.roles.load_error',
+                    'No se pudo cargar el equipo',
+                  )}
+                  description={t(
+                    'admin.roles.load_error_desc',
+                    'Revisa la conexión o inténtalo de nuevo.',
+                  )}
+                />
               ) : data?.data.length === 0 ? (
                 <AdminEmptyState
                   icon={Shield}
