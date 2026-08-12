@@ -1,12 +1,17 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const skipGlobalSetup = process.env.SKIP_GLOBAL_SETUP === 'true';
+
 export default defineConfig({
-  testDir: './e2e/tests',
+  testDir: './e2e',
+  testMatch: /.*\.spec\.ts$/,
   /* Maximum time one test can run for. */
   timeout: 30 * 1000,
   expect: {
     timeout: 5000,
   },
+  /* Authenticated suite seeds cookies via e2e/global-setup.ts */
+  globalSetup: skipGlobalSetup ? undefined : './e2e/global-setup.ts',
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -21,6 +26,7 @@ export default defineConfig({
   use: {
     actionTimeout: 0,
     baseURL: process.env.BASE_URL || 'http://localhost:5173',
+    storageState: skipGlobalSetup ? undefined : 'storageState.json',
     trace: 'on-first-retry',
     video: 'on-first-retry',
     screenshot: 'only-on-failure',

@@ -4,108 +4,27 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: pr-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   NODE_OPTIONS: "--no-deprecation"
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Run Lint and Unit Tests
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_USER: prisma
-          POSTGRES_PASSWORD: prisma
-          POSTGRES_DB: schema_check
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U prisma -d schema_check"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: 'npm'
-
-      - name: Install Monorepo Dependencies
-        run: npm install
-
-      - name: "Root: Biome CI (Format & Lint)"
-        run: npx biome ci .
-
-      - name: "Shared: Install and Build"
-        run: |
-          cd circlesfera-shared
-          npm install
-          npm run build
-
-      - name: "Backend: Install, Build, Lint and Test"
-        run: |
-          cd circlesfera-backend
-          npm install
-          npx prisma generate
-          npm run build
-          npm run test
-
-      - name: "Prisma: schema vs migrations"
-        env:
-          DATABASE_URL: postgresql://prisma:prisma@localhost:5432/schema_check
-        run: ./scripts/check-prisma-schema-migrations.sh
-
-      # Reuses the schema_check Postgres DB, which is now fully migrated by the
-      # step above. Redis is required by BullMQ / the cache module used across
-      # AppModule. Secrets below are non-production dummies; NODE_ENV=test
-      # bypasses the production-only secret-strength check in src/main.ts
-      # (e2e specs build AppModule directly and never call bootstrap()).
-      - name: "Backend: E2E Tests"
-        env:
-          DATABASE_URL: postgresql://prisma:prisma@localhost:5432/schema_check
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
-          NODE_ENV: test
-          JWT_SECRET: ci-e2e-jwt-secret-not-for-production-use-only-testing-1234567890
-          JWT_REFRESH_SECRET: ci-e2e-refresh-secret-not-for-production-use-only-testing-0987654321
-          CSRF_SECRET: ci-e2e-csrf-secret-not-for-production-use-only-testing-abcdefghijklmno
-          ENCRYPTION_KEY: test-encryption-key-32-characters!!
-          STRIPE_SECRET_KEY: sk_test_dummy
-          STRIPE_WEBHOOK_SECRET: whsec_dummy
-          CLOUDINARY_NAME: dummy
-          CLOUDINARY_API_KEY: dummy
-          CLOUDINARY_API_SECRET: dummy
-          CORS_ORIGIN: http://localhost:5173
-        run: |
-          cd circlesfera-backend
-          npm run test:e2e
-
-      - name: "Frontend: Install, Lint, Test and Build"
-        run: |
-          cd circlesfera-frontend
-          npm install
-          npm run test
-          npm run build
+    uses: ./.github/workflows/ci-quality.yml
 
   playwright-smoke:
     name: Playwright Smoke (unauthenticated)
     needs: test
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       postgres:
         image: pgvector/pgvector:pg16

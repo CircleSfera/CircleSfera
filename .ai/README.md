@@ -45,10 +45,10 @@ Add collaborative lists to collections.
 Review the appeal token flow in circlesfera-backend/src/appeals.
 ```
 
-**In Antigravity.** [`.agents/rules/`](../.agents/README.md) mirrors the Cursor routers and
-[`.agents/workflows/`](../.agents/workflows/) exposes the playbooks as slash commands (`/feature`,
-`/bug`, `/incident`, …). Activation modes are stored outside the repo, so set them once per clone —
-the table in `.agents/README.md` lists them.
+**In Antigravity.** [`.agents/workflows/`](../.agents/workflows/) exposes the playbooks as slash
+commands (`/feature`, `/bug`, `/incident`, …). Antigravity is zero-config via root `AGENTS.md`
+(there is no `.agents/rules/` folder). Activation modes are stored outside the repo — see
+`.agents/README.md`.
 
 **In other agent tools** (Claude Code, Codex, cloud agents): the same files work as plain markdown
 context. Point the tool at `.ai/core/` plus the relevant playbook.

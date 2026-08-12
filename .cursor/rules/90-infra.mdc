@@ -36,6 +36,6 @@ Rules:
 - A new service needs a health check; a new critical route belongs in the post-deploy smoke list.
 - Keep the `deploy-production` concurrency group with cancel-in-progress.
 - Verify a restore path, not just a dump. An untested backup is not a backup.
-- Never deploy `circlesfera-landing` — it is deprecated and its nginx listener was removed.
+- Never restore or deploy `circlesfera-landing/` — it was removed and its nginx listener is gone.
 
 Full checks: @.ai/agents/devops.md

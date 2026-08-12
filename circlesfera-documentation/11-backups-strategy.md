@@ -106,53 +106,15 @@ tar -czf "${ARCHIVE}" -C "$(dirname "${UPLOADS_DIR}")" "$(basename "${UPLOADS_DI
 
 ---
 
-## Backup Scripts (Example)
+## Backup Scripts (shipped)
 
-### Main Script: `scripts/backup.sh`
+There is **no** `scripts/backup.sh`. Use the real operators scripts documented at the top of this
+file:
 
-```bash
-#!/bin/bash
-set -euo pipefail
-
-# Configuration
-DATABASE_URL="${DATABASE_URL:-}"
-BACKUP_DIR="${BACKUP_DIR:-./backups}"
-S3_BACKUP_BUCKET="${S3_BACKUP_BUCKET:-circlesfera-backups}"
-
-log() { echo -e "\033[0;32m[$(date +'%Y-%m-%d %H:%M:%S')]\033[0m $1"; }
-error() { echo -e "\033[0;31m[ERROR]\033[0m $1" >&2; }
-
-# PostgreSQL backup
-backup_postgres() {
-    local timestamp=$(date +%Y%m%d_%H%M%S)
-    local backup_file="${BACKUP_DIR}/postgres/full/pg_backup_${timestamp}.dump"
-    
-    log "Starting PostgreSQL backup..."
-    mkdir -p "${BACKUP_DIR}/postgres/full"
-    
-    # Custom format (-Fc) is recommended for better compression and restore options
-    pg_dump --dbname="${DATABASE_URL}" -Fc --file="${backup_file}" || {
-        error "Error in full PostgreSQL backup"
-        return 1
-    }
-    
-    log "Uploading PostgreSQL backup to S3..."
-    aws s3 cp "${backup_file}" "s3://${S3_BACKUP_BUCKET}/postgres/full/pg_backup_${timestamp}.dump" || {
-        error "Error uploading backup to S3"
-        return 1
-    }
-    
-    log "Backup completed successfully."
-}
-
-# (For the restore script, use pg_restore -d "${DATABASE_URL}" "${backup_file}")
-
-main() {
-    backup_postgres
-}
-
-main "$@"
-```
+- [`scripts/backup-postgres.sh`](../scripts/backup-postgres.sh)
+- [`scripts/backup-uploads.sh`](../scripts/backup-uploads.sh)
+- [`scripts/restore-postgres.sh`](../scripts/restore-postgres.sh) (requires `CONFIRM=YES`)
+- [`scripts/install-backup-cron.sh`](../scripts/install-backup-cron.sh)
 
 ---
 
@@ -170,7 +132,7 @@ main "$@"
 ### Full Restore (Disaster Recovery)
 1. **Shutdown:** Stop containers and traffic to the backend (avoid concurrent transactions).
 2. **Recreation:** Drop and recreate an empty database.
-3. **Restore:**
+3. **Restore:** Prefer `scripts/restore-postgres.sh` with `CONFIRM=YES`, or:
    ```bash
    pg_restore --dbname="$DATABASE_URL" --jobs=4 --clean --if-exists /path/to/backup.dump
    ```
@@ -182,4 +144,4 @@ main "$@"
 
 ---
 
-**Last updated:** June 2026
+**Last updated:** August 2026

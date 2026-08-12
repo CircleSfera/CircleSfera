@@ -35,8 +35,8 @@ Infrastructure, deployment and secrets are on the `AGENTS.md` confirmation list.
   `limit_conn` directives** — rate limiting lives in the application throttler.
 - **Backups:** `scripts/backup-postgres.sh` and `backup-uploads.sh` with local retention and optional
   S3; `restore-postgres.sh` requires `CONFIRM=YES`; `install-backup-cron.sh` installs a daily cron.
-- **Landing:** `circlesfera-landing` is deprecated and its nginx listener was removed. Never deploy
-  it.
+- **Landing:** `circlesfera-landing/` was removed (Jul 2026); its nginx listener is gone. Never
+  restore or deploy it.
 
 ## Checks
 
@@ -68,7 +68,7 @@ Infrastructure, deployment and secrets are on the `AGENTS.md` confirmation list.
 - Never print a secret in workflow output.
 - Never ship a destructive migration through the automated deploy path without an approved plan and a
   fresh dump.
-- Never deploy `circlesfera-landing`.
+- Never restore or deploy `circlesfera-landing/` (removed Jul 2026).
 - Never run a destructive command on production data without the runbook and confirmation.
 
 ## Output

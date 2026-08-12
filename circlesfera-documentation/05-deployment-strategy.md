@@ -204,20 +204,21 @@ For CircleSfera, given social content and messages, **private bucket + controlle
 
 ### 9.1 Current pipeline (OVH)
 - Trigger: push to `main` (and optional `workflow_dispatch`).
-- Lint + unit tests (backend; frontend lint on deploy workflow).
-- Prisma schema ↔ migrations alignment check (shadow Postgres).
-- Build and push images to GHCR.
-- SSH deploy on the VPS: pull images, `compose up`, wait for healthy, API smoke (`/health`, feed, stories, live).
+- Quality gate (shared reusable workflow `ci-quality.yml`, same as PRs): root Biome, shared build, backend build/lint/unit/e2e, Prisma schema ↔ migrations check, frontend lint/test/build.
+- PR-only: Playwright smoke (`Playwright Smoke (unauthenticated)`) against a ephemeral Postgres/Redis/backend.
+- Build and push images to GHCR (Buildx GHA cache enabled).
+- SSH deploy on the VPS: pull images, `compose up`, wait for healthy, API smoke (`/health`, feed, stories, live). Deploy concurrency queues (does not cancel in-progress rollouts).
 - Slack webhook notifications when configured.
+- Required PR status checks to protect `main`: **`Run Lint and Unit Tests`**, **`Playwright Smoke (unauthenticated)`**.
 
 ### 9.2 Future enhancements (optional)
 - Dedicated staging environment and manual approval before production.
-- Broader Playwright suite in CI (today e2e is local / optional).
-- Image vulnerability scanning as a hard gate.
+- Promote `npm audit` / image scanning from informative to hard gates.
+- Broader authenticated Playwright nightly (requires `E2E_USER_EMAIL` / `E2E_USER_PASSWORD` secrets).
 
 ### 9.3 Branching (practical today)
 - `main`: production (direct pushes are the usual path for this repo).
-- Feature branches / PRs optional; `pr.yml` still runs lint/tests/build when used.
+- Feature branches / PRs: `pr.yml` runs the shared quality workflow + Playwright smoke.
 
 ### 9.4 Rollout policy (current)
 - Replace containers via Compose; rely on healthcheck + post-deploy smoke; roll back by redeploying a previous image/commit if smoke fails.

@@ -1,0 +1,88 @@
+name: Security
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  NODE_OPTIONS: '--no-deprecation'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  codeql:
+    name: CodeQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  npm-audit:
+    name: npm audit (informative)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Informative only — do not fail the workflow on known transitive CVEs.
+    continue-on-error: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm install --ignore-scripts
+
+      - name: Audit root
+        id: root
+        run: |
+          set +e
+          npm audit --omit=dev --json > /tmp/audit-root.json 2>/tmp/audit-root.err
+          code=$?
+          set -e
+          echo "exit=$code" >> "$GITHUB_OUTPUT"
+          if [ -s /tmp/audit-root.err ]; then cat /tmp/audit-root.err; fi
+          npm audit --omit=dev || true
+
+      - name: Audit backend
+        working-directory: circlesfera-backend
+        run: |
+          npm install --ignore-scripts
+          npm audit --omit=dev || true
+
+      - name: Audit frontend
+        working-directory: circlesfera-frontend
+        run: |
+          npm install --ignore-scripts
+          npm audit --omit=dev || true
+
+      - name: Summary
+        run: |
+          {
+            echo "## npm audit (informative)"
+            echo "Production dependency audit ran for root, backend, and frontend."
+            echo "This job uses continue-on-error; findings do not block merge."
+          } >> "$GITHUB_STEP_SUMMARY"

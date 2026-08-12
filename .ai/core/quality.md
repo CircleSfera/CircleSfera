@@ -44,8 +44,10 @@ npm run build                    # tsc -b && vite build -> the frontend typechec
 npm run test:e2e -- e2e/smoke.spec.ts
 ```
 
-Note the gap: the PR `test` job runs backend `lint` + `test` but **not** `nest build`, so a backend
-type error can pass that job. Run `npm run build` yourself when you touched backend types.
+PR and deploy share `.github/workflows/ci-quality.yml`, which runs root Biome, backend
+`build` + `lint` + unit + e2e, Prisma drift check, and frontend `lint` + `test` + `build`. PRs also
+run Playwright smoke. Prefer those gates over a weaker local subset when you touch CI-relevant
+code.
 
 ## Hard limits
 

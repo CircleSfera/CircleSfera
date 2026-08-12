@@ -5,10 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# Only one deploy at a time; cancel superseded runs to avoid racing the VPS.
+# Only one deploy at a time; queue instead of cancelling mid-SSH rollout.
 concurrency:
   group: deploy-production
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
@@ -16,100 +16,23 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   NODE_OPTIONS: "--no-deprecation"
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Run Lint and Unit Tests
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: pgvector/pgvector:pg16
-        env:
-          POSTGRES_USER: prisma
-          POSTGRES_PASSWORD: prisma
-          POSTGRES_DB: schema_check
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U prisma -d schema_check"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: "npm"
-
-      - name: Install Monorepo Dependencies
-        run: npm install
-
-      - name: "Shared: Install and Build"
-        run: |
-          cd circlesfera-shared
-          npm install
-          npm run build
-
-      - name: "Backend: Install, Lint and Test"
-        run: |
-          cd circlesfera-backend
-          npm install
-          npx prisma generate
-          npm run lint
-          npm run test
-
-      - name: "Prisma: schema vs migrations"
-        env:
-          DATABASE_URL: postgresql://prisma:prisma@localhost:5432/schema_check
-        run: ./scripts/check-prisma-schema-migrations.sh
-
-      - name: "Backend: E2E Tests"
-        env:
-          DATABASE_URL: postgresql://prisma:prisma@localhost:5432/schema_check
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
-          NODE_ENV: test
-          JWT_SECRET: ci-e2e-jwt-secret-not-for-production-use-only-testing-1234567890
-          JWT_REFRESH_SECRET: ci-e2e-refresh-secret-not-for-production-use-only-testing-0987654321
-          CSRF_SECRET: ci-e2e-csrf-secret-not-for-production-use-only-testing-abcdefghijklmno
-          ENCRYPTION_KEY: test-encryption-key-32-characters!!
-          STRIPE_SECRET_KEY: sk_test_dummy
-          STRIPE_WEBHOOK_SECRET: whsec_dummy
-          CLOUDINARY_NAME: dummy
-          CLOUDINARY_API_KEY: dummy
-          CLOUDINARY_API_SECRET: dummy
-          CORS_ORIGIN: http://localhost:5173
-        run: |
-          cd circlesfera-backend
-          npm run test:e2e
-
-      - name: "Frontend: Install, Lint, Test and Build"
-        run: |
-          cd circlesfera-frontend
-          npm install
-          npm run lint
-          npm run test
-          npm run build
+    uses: ./.github/workflows/ci-quality.yml
 
   build:
     name: Build and Push Docker Images
     needs: test
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
       packages: write
+      actions: write
 
     steps:
       - name: Checkout repository
@@ -195,8 +118,8 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }}
-          # cache-from: type=gha
-          # cache-to: type=gha,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build and push Frontend
         uses: docker/build-push-action@v6
@@ -211,13 +134,14 @@ jobs:
             VITE_API_URL=${{ steps.vite_args.outputs.api_url }}
             VITE_LIVEKIT_URL=${{ steps.vite_args.outputs.livekit_url }}
             VITE_SENTRY_DSN=${{ steps.vite_args.outputs.sentry_dsn }}
-          # cache-from: type=gha
-          # cache-to: type=gha,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy:
     name: Deploy to Production
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Execute Remote SSH Deployment

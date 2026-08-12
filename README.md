@@ -36,7 +36,6 @@ CircleSfera/
 │   ├── adr/                   # Architecture Decision Records (0001+)
 │   └── runbooks/              # Ops stubs (restore, rollback, incidents)
 ├── scripts/                   # Backup/restore, env upload, schema checks
-├── circlesfera-landing/       # DEPRECATED / unused — do not build on this
 ├── e2e/                       # Playwright end-to-end tests
 ├── nginx/                     # Reverse-proxy templates & config
 ├── LICENSE                    # MIT

@@ -22,7 +22,7 @@ Keep a versioned AI engineering framework in the repository at `.ai/`, with thin
 - `.ai/checklists/` — 9 gates that must hold before work is called done.
 - `.ai/templates/` — skeletons for ADRs, PRDs, API contracts, migrations, postmortems, and for new agents and playbooks.
 - `.cursor/rules/*.mdc` — Cursor rules that auto-attach the relevant `.ai/` files per file path.
-- `.agents/rules/` and `.agents/workflows/` — the Antigravity equivalent, with the playbooks exposed as slash commands. Adapters contain routing only, never facts.
+- `.agents/workflows/` — Antigravity slash-command routers into `.ai/playbooks/` (routing only, never facts). Antigravity also loads root `AGENTS.md`; there is no `.agents/rules/` folder.
 
 Precedence is explicit and unchanged: `AGENTS.md` outranks everything in `.ai/`, and `.ai/` is **not** a source of truth. `schema.prisma`, implemented code, API contracts and ADRs remain canonical in that order. Every `.ai/` file states what it derives from; when it disagrees with the code, the code wins and the file is corrected.
 

@@ -11,12 +11,11 @@ circlesfera-backend/     NestJS 11 API + Prisma + BullMQ workers + Socket.IO gat
 circlesfera-frontend/    React 19 SPA (Vite), PWA, TanStack Query + Zustand
 circlesfera-shared/      Small shared package: some enums, interfaces, DTOs
 circlesfera-documentation/  12 numbered docs + adr/ + runbooks/
-e2e/                     Playwright specs (root-level, 13 specs)
-circlesfera-landing/     DEPRECATED / unused — do not build on it
+e2e/                     Playwright specs (root-level under e2e/, including e2e/tests/)
 ```
 
-`circlesfera-landing` is not referenced by any workflow or compose file and its nginx listener was
-removed (`nginx/master.conf.template`). Never target it.
+`circlesfera-landing/` was removed from the tree (Jul 2026). Its nginx listener is gone
+(`nginx/master.conf.template`). Do not restore or deploy it.
 
 ## Backend — `circlesfera-backend`
 
