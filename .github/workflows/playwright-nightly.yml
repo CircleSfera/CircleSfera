@@ -102,7 +102,8 @@ jobs:
       - name: "Frontend: Install Dependencies"
         run: |
           cd circlesfera-frontend
-          npm install
+          # vite lives in devDependencies — never omit them under NODE_ENV=test
+          npm install --include=dev
 
       - name: Start backend in background
         run: |
@@ -119,6 +120,21 @@ jobs:
           cat /tmp/backend.log
           exit 1
 
+      - name: Start frontend in background
+        run: |
+          cd circlesfera-frontend
+          nohup npm run dev > /tmp/frontend.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sS -o /dev/null "http://localhost:5173"; then
+              echo "Frontend is up."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Frontend failed to start in time."
+          cat /tmp/frontend.log
+          exit 1
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
@@ -126,6 +142,7 @@ jobs:
         env:
           E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
           E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+          PLAYWRIGHT_SKIP_WEBSERVER: 'true'
         run: |
           export E2E_USER_USERNAME="${E2E_USER_USERNAME:-e2euser}"
           export E2E_USER_FULL_NAME="${E2E_USER_FULL_NAME:-E2E Test User}"
@@ -133,7 +150,11 @@ jobs:
 
       - name: Dump backend logs on failure
         if: failure()
-        run: cat /tmp/backend.log || true
+        run: |
+          echo "=== backend ==="
+          cat /tmp/backend.log || true
+          echo "=== frontend ==="
+          cat /tmp/frontend.log || true
 
       - name: Upload Playwright report
         if: failure()
