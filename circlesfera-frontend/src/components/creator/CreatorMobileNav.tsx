@@ -57,7 +57,7 @@ export function CreatorMobileDrawer({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white rounded-full hover:bg-white/10 bg-white/5"
+                className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-white rounded-full hover:bg-white/10 bg-white/5"
                 aria-label={t('common.close', 'Cerrar')}
               >
                 <X size={20} />
@@ -67,7 +67,7 @@ export function CreatorMobileDrawer({
             <Link
               to="/"
               onClick={onClose}
-              className="mx-5 mb-2 flex items-center gap-2 text-sm font-semibold text-gray-400 hover:text-white transition-colors"
+              className="mx-5 mb-2 flex items-center gap-2 text-sm font-semibold text-gray-400 hover:text-white transition-colors min-h-11"
             >
               <ArrowLeft size={14} className="text-brand-primary" />
               {t('creator.back_to_app', 'Volver a CircleSfera')}

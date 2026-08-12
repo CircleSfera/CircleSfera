@@ -52,7 +52,7 @@ export default function CreatorMonetizationTab({
   const showIncome = section === 'all' || section === 'income';
   const showPlans = section === 'all' || section === 'plans';
   const { t } = useTranslation();
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
   const user = profile?.user;
 
   const currentLevel = user?.verificationLevel || 'BASIC';
@@ -131,12 +131,13 @@ export default function CreatorMonetizationTab({
 
   const getTierIcon = (name: string) => {
     const lower = name.toLowerCase();
-    if (lower.includes('premium')) return <Star className="text-brand-blue" />;
+    if (lower.includes('premium'))
+      return <Star className="text-brand-blue" size={20} />;
     if (lower.includes('elite'))
-      return <Award className="text-brand-primary" />;
+      return <Award className="text-brand-primary" size={20} />;
     if (lower.includes('business'))
-      return <Shield className="text-brand-accent" />;
-    return <Zap className="text-brand-primary" />;
+      return <Shield className="text-brand-accent" size={20} />;
+    return <Zap className="text-brand-primary" size={20} />;
   };
 
   const isTierActive = (planName: string) => {
@@ -153,148 +154,147 @@ export default function CreatorMonetizationTab({
 
   const currentPlanLabel =
     billingStatus?.subscription?.planName ||
-    (currentLevel === 'BASIC' ? 'Free Experience' : currentLevel);
+    (currentLevel === 'BASIC' ? 'Experiencia Gratuita' : currentLevel);
 
   if (isLoadingPlans || isLoadingMonetization) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <Loader2 className="animate-spin text-brand-primary" size={40} />
-        <p className="text-zinc-400 font-bold uppercase tracking-wide text-xs">
-          {t('creator.monetization.loading_plans')}
+      <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <Loader2 className="animate-spin text-brand-primary" size={32} />
+        <p className="text-gray-400 font-semibold text-xs uppercase tracking-wider">
+          {t(
+            'creator.monetization.loading_plans',
+            'Cargando opciones de monetización...',
+          )}
         </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-12 pb-20">
-      {showIncome && (
-        <>
-          {/* 1. Direct Earnings (Stripe Connect) OR Creator Sandbox */}
-          {hasStripeAccount ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-8 glass-panel rounded-lg border border-white/5 bg-linear-to-br from-emerald-500/10 via-transparent to-transparent relative overflow-hidden"
-            >
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                    <Wallet size={20} className="text-emerald-400" />
-                  </div>
-                  <h3 className="text-sm font-black text-white uppercase tracking-wide italic">
-                    Ganancias Directas (Stripe)
-                  </h3>
-                </div>
-
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-                  <div>
-                    <p className="text-zinc-400 text-xs font-black uppercase tracking-wide mb-2">
-                      Ingresos Totales (Lifetime)
-                    </p>
-                    <h2 className="text-2xl font-bold text-white tracking-tight uppercase">
-                      $
-                      {(
-                        (monetization?.lifetimeEarningsCents || 0) / 100
-                      ).toFixed(2)}
-                    </h2>
-                    {connectStatus && (
-                      <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-wide mt-2">
-                        {connectStatus.transfersEnabled
-                          ? t(
-                              'creator.monetization.transfers_enabled',
-                              'Transfers enabled',
-                            )
-                          : t(
-                              'creator.monetization.transfers_pending',
-                              'Transfers pending setup',
-                            )}
-                      </p>
-                    )}
-                  </div>
-
-                  <Button
-                    variant="secondary"
-                    disabled={dashboardMutation.isPending}
-                    onClick={() => dashboardMutation.mutate()}
-                    isLoading={dashboardMutation.isPending}
-                    className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 hover:bg-emerald-500/30"
-                  >
-                    Ver Express Dashboard
-                    <ExternalLink size={14} className="ml-2" />
-                  </Button>
-                </div>
-              </div>
-
-              <div className="absolute top-0 right-0 p-10 opacity-5">
-                <Wallet size={200} className="text-emerald-400" />
-              </div>
-            </motion.div>
-          ) : (
-            <CreatorSandbox
-              isConnecting={connectMutation.isPending}
-              onConnect={() => connectMutation.mutate()}
-            />
-          )}
-        </>
-      )}
-
-      {showPlans && (
-        <>
-          {/* 2. Platform Subscriptions */}
+    <div className="space-y-6 pb-8">
+      {showIncome &&
+        (hasStripeAccount ? (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-8 glass-panel rounded-lg border border-white/5 bg-linear-to-br from-brand-primary/10 via-transparent to-transparent relative overflow-hidden"
+            className="p-5 sm:p-6 rounded-2xl border border-white/8 bg-zinc-950/80 backdrop-blur-xl shadow-xl relative overflow-hidden space-y-4"
           >
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-brand-primary/20 flex items-center justify-center">
-                  <Zap size={20} className="text-brand-primary" />
-                </div>
-                <h3 className="text-sm font-black text-white uppercase tracking-wide italic">
-                  {t('creator.monetization.subscription_status')}
-                </h3>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
+                <Wallet size={20} />
               </div>
-
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-                <div>
-                  <p className="text-zinc-400 text-xs font-black uppercase tracking-wide mb-2">
-                    {t('creator.monetization.current_plan')}
-                  </p>
-                  <h2 className="text-xl font-bold text-white tracking-tight uppercase">
-                    {currentPlanLabel}
-                  </h2>
-                </div>
-                <Button
-                  variant="primary"
-                  disabled={portalMutation.isPending}
-                  isLoading={portalMutation.isPending}
-                  onClick={() => {
-                    if (
-                      !billingStatus?.hasActiveSubscription &&
-                      currentLevel === 'BASIC'
-                    ) {
-                      onToast(
-                        t('creator.monetization.select_plan_start'),
-                        'success',
-                      );
-                    } else {
-                      portalMutation.mutate();
-                    }
-                  }}
-                  className="px-8 bg-white text-black hover:bg-white/90"
-                >
-                  {t('creator.monetization.manage_subscription')}
-                </Button>
+              <div>
+                <h3 className="text-base font-bold text-white tracking-tight">
+                  Cuenta Stripe Conectada
+                </h3>
+                <p className="text-xs text-gray-400">
+                  Tus pagos y transferencias directas se gestionan de forma
+                  segura.
+                </p>
               </div>
             </div>
 
-            <div className="absolute top-0 right-0 p-10 opacity-5">
-              <Zap size={200} className="text-brand-primary" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-white/3 border border-white/6">
+              <div>
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  Ingresos Totales (Lifetime)
+                </span>
+                <p className="text-2xl font-black text-white font-mono mt-0.5">
+                  $
+                  {((monetization?.lifetimeEarningsCents || 0) / 100).toFixed(
+                    2,
+                  )}{' '}
+                  <span className="text-xs font-bold text-gray-400">USD</span>
+                </p>
+                {connectStatus && (
+                  <span className="inline-block mt-1 text-[11px] font-medium text-emerald-400">
+                    {connectStatus.transfersEnabled
+                      ? t(
+                          'creator.monetization.transfers_enabled',
+                          'Transferencias activadas',
+                        )
+                      : t(
+                          'creator.monetization.transfers_pending',
+                          'Transferencias en configuración',
+                        )}
+                  </span>
+                )}
+              </div>
+
+              <Button
+                variant="secondary"
+                disabled={dashboardMutation.isPending}
+                onClick={() => dashboardMutation.mutate()}
+                isLoading={dashboardMutation.isPending}
+                className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25 text-xs font-bold min-h-11 px-4"
+              >
+                Dashboard Express
+                <ExternalLink size={14} className="ml-1.5" />
+              </Button>
             </div>
           </motion.div>
+        ) : (
+          <CreatorSandbox
+            isConnecting={connectMutation.isPending}
+            onConnect={() => connectMutation.mutate()}
+          />
+        ))}
 
+      {showPlans && (
+        <div className="space-y-6">
+          {/* Subscription Status Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-5 sm:p-6 rounded-2xl border border-white/8 bg-zinc-950/80 backdrop-blur-xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-brand-primary/15 border border-brand-primary/25 flex items-center justify-center text-brand-primary shrink-0">
+                <Zap size={20} />
+              </div>
+              <div>
+                <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                  {t(
+                    'creator.monetization.subscription_status',
+                    'Estatus de Suscripción',
+                  )}
+                </span>
+                <h3 className="text-lg font-extrabold text-white tracking-tight uppercase">
+                  Plan Actual: {currentPlanLabel}
+                </h3>
+              </div>
+            </div>
+
+            <Button
+              variant="primary"
+              disabled={portalMutation.isPending}
+              isLoading={portalMutation.isPending}
+              onClick={() => {
+                if (
+                  !billingStatus?.hasActiveSubscription &&
+                  currentLevel === 'BASIC'
+                ) {
+                  onToast(
+                    t(
+                      'creator.monetization.select_plan_start',
+                      'Selecciona un plan para comenzar',
+                    ),
+                    'success',
+                  );
+                } else {
+                  portalMutation.mutate();
+                }
+              }}
+              className="min-h-11 px-5 text-xs font-bold uppercase tracking-wider bg-white text-black hover:bg-gray-100 shrink-0"
+            >
+              {t(
+                'creator.monetization.manage_subscription',
+                'Gestionar Suscripción',
+              )}
+            </Button>
+          </motion.div>
+
+          {/* Pricing Tiers Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {plans?.map((plan) => {
               const displayName =
@@ -303,56 +303,57 @@ export default function CreatorMonetizationTab({
               return (
                 <motion.div
                   key={plan.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.97 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className={`p-6 glass-panel rounded-lg border ${
+                  className={`p-5 rounded-2xl border backdrop-blur-xl transition-all flex flex-col justify-between space-y-5 ${
                     active
-                      ? 'border-brand-primary/40 bg-brand-primary/5 shadow-xl shadow-brand-primary/10'
-                      : 'border-white/5 hover:border-white/20 hover:bg-white/5'
-                  } transition-all group flex flex-col`}
+                      ? 'border-brand-primary/50 bg-brand-primary/10 shadow-lg shadow-brand-primary/10'
+                      : 'border-white/8 bg-zinc-950/80 hover:border-white/20'
+                  }`}
                 >
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors">
-                      {getTierIcon(plan.name)}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+                        {getTierIcon(plan.name)}
+                      </div>
+                      {active && (
+                        <span className="px-2.5 py-0.5 rounded-full bg-brand-primary text-white text-[10px] font-bold uppercase tracking-wider shadow-md">
+                          {t('creator.monetization.active', 'Plan Activo')}
+                        </span>
+                      )}
                     </div>
-                    {active && (
-                      <span className="px-3 py-1 rounded-full bg-brand-primary text-xs font-black uppercase tracking-wide text-white shadow-lg shadow-brand-primary/20">
-                        {t('creator.monetization.active')}
-                      </span>
-                    )}
-                  </div>
 
-                  <div className="mb-6">
-                    <h4 className="text-lg font-bold text-white mb-1 tracking-tight">
+                    <h4 className="text-lg font-bold text-white tracking-tight mb-1">
                       {displayName}
                     </h4>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-black text-white tracking-tighter">
+
+                    <div className="flex items-baseline gap-1 mb-4">
+                      <span className="text-2xl font-black text-white font-mono tracking-tight">
                         {plan.price}
                         {plan.currency === 'EUR' ? '€' : plan.currency}
                       </span>
-                      <span className="text-xs font-bold text-zinc-400 uppercase tracking-wide">
+                      <span className="text-xs font-semibold text-gray-400 uppercase">
                         {plan.interval === 'month'
-                          ? t('creator.monetization.per_month')
-                          : t('creator.monetization.per_year')}
+                          ? t('creator.monetization.per_month', '/ mes')
+                          : t('creator.monetization.per_year', '/ año')}
                       </span>
                     </div>
-                  </div>
 
-                  <ul className="space-y-3 mb-8 flex-1">
-                    {plan.features.map((feature: string) => (
-                      <li
-                        key={feature}
-                        className="flex items-center gap-2.5 text-xs font-bold text-zinc-400 uppercase tracking-wide"
-                      >
-                        <CheckCircle2
-                          size={14}
-                          className="text-brand-primary"
-                        />
-                        {feature.replace(/_/g, ' ')}
-                      </li>
-                    ))}
-                  </ul>
+                    <ul className="space-y-2 pt-3 border-t border-white/6">
+                      {plan.features.map((feature: string) => (
+                        <li
+                          key={feature}
+                          className="flex items-center gap-2 text-xs text-gray-300 font-medium"
+                        >
+                          <CheckCircle2
+                            size={14}
+                            className="text-brand-primary shrink-0"
+                          />
+                          <span>{feature.replace(/_/g, ' ')}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
                   {!active && (
                     <Button
@@ -360,9 +361,9 @@ export default function CreatorMonetizationTab({
                       disabled={checkoutMutation.isPending}
                       isLoading={checkoutMutation.isPending}
                       onClick={() => checkoutMutation.mutate(plan.id)}
-                      className="w-full bg-white/5 border-white/10 hover:bg-white hover:text-black"
+                      className="w-full min-h-11 bg-white/6 border border-white/10 hover:bg-white hover:text-black text-xs font-bold uppercase tracking-wider transition-colors"
                     >
-                      {t('creator.monetization.upgrade_now')}
+                      {t('creator.monetization.upgrade_now', 'Mejorar Ahora')}
                     </Button>
                   )}
                 </motion.div>
@@ -370,36 +371,46 @@ export default function CreatorMonetizationTab({
             })}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="p-6 glass-panel rounded-lg border border-white/5 relative overflow-hidden group">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-                  <TrendingUp size={20} className="text-indigo-400" />
-                </div>
-                <h3 className="text-white font-black uppercase text-xs tracking-wide">
-                  {t('creator.monetization.growth_analytics')}
-                </h3>
+          {/* Additional Features Teaser */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-white/8 backdrop-blur-xl flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center text-indigo-400 shrink-0">
+                <TrendingUp size={18} />
               </div>
-              <p className="text-zinc-400 text-xs font-bold uppercase tracking-wide leading-relaxed italic">
-                {t('creator.monetization.growth_desc')}
-              </p>
+              <div>
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-1">
+                  {t(
+                    'creator.monetization.growth_analytics',
+                    'Analíticas de Crecimiento',
+                  )}
+                </h4>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  {t(
+                    'creator.monetization.growth_desc',
+                    'Accede a métricas avanzadas de conversión y retención de fans.',
+                  )}
+                </p>
+              </div>
             </div>
 
-            <div className="p-6 glass-panel rounded-lg border border-white/5 relative overflow-hidden group">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                  <Users size={20} className="text-emerald-400" />
-                </div>
-                <h3 className="text-white font-black uppercase text-xs tracking-wide">
-                  {t('creator.monetization.vip_community')}
-                </h3>
+            <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-white/8 backdrop-blur-xl flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-400 shrink-0">
+                <Users size={18} />
               </div>
-              <p className="text-zinc-400 text-xs font-bold uppercase tracking-wide leading-relaxed italic">
-                {t('creator.monetization.vip_desc')}
-              </p>
+              <div>
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-1">
+                  {t('creator.monetization.vip_community', 'Comunidad VIP')}
+                </h4>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  {t(
+                    'creator.monetization.vip_desc',
+                    'Crea canales directos y publicaciones exclusivas para tus fans VIP.',
+                  )}
+                </p>
+              </div>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

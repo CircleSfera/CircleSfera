@@ -29,7 +29,7 @@ function SectionHeader({
   title,
   icon: Icon,
   onSeeAll,
-  seeAllLabel = 'Ver todo',
+  seeAllLabel,
 }: {
   title: string;
   icon: React.ElementType;
@@ -38,12 +38,12 @@ function SectionHeader({
 }) {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center justify-between mb-5">
-      <div className="flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-xl bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20 text-brand-primary shadow-[0_0_15px_rgba(var(--brand-primary),0.15)]">
-          <Icon size={18} />
+    <div className="flex items-center justify-between mb-3 sm:mb-4">
+      <div className="flex items-center gap-2">
+        <div className="w-7 h-7 rounded-lg bg-brand-primary/15 flex items-center justify-center border border-brand-primary/25 text-brand-primary shrink-0">
+          <Icon size={15} />
         </div>
-        <h3 className="text-white font-semibold text-base tracking-wide">
+        <h3 className="text-white font-bold text-sm sm:text-base tracking-tight">
           {title}
         </h3>
       </div>
@@ -51,7 +51,7 @@ function SectionHeader({
         <button
           type="button"
           onClick={onSeeAll}
-          className="text-gray-400 hover:text-white transition-colors text-xs font-semibold uppercase tracking-wide flex items-center gap-1 group min-h-11"
+          className="text-gray-400 hover:text-white transition-colors text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1 group min-h-11 px-3"
         >
           {seeAllLabel || t('creator.dashboard.see_all', 'Ver todo')}
           <ChevronRight
@@ -76,7 +76,7 @@ export default function CreatorDashboard({
   chartData?: CreatorChartDay[];
 }) {
   const { t } = useTranslation();
-  const { profile } = useAuthStore();
+  const profile = useAuthStore((state) => state.profile);
   const verificationLevel =
     profile?.user?.verificationLevel || profile?.verificationLevel;
   const canPromote = verificationLevel === 'ELITE';
@@ -91,7 +91,7 @@ export default function CreatorDashboard({
   });
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-6 pb-8">
       {/* Post Insights Modal */}
       {insightsPostId && (
         <PostInsightsModal
@@ -100,7 +100,7 @@ export default function CreatorDashboard({
         />
       )}
 
-      {/* Hero Overview Card */}
+      {/* Hero Overview Banner */}
       <CreatorHeroCard stats={stats} chartData={chartData} />
 
       {/* Content Performance Section */}
@@ -112,73 +112,69 @@ export default function CreatorDashboard({
           )}
           icon={Zap}
           onSeeAll={() => onNavigate('content')}
-          seeAllLabel={t(
-            'creator.dashboard.see_all_content',
-            'Ver todo el contenido',
-          )}
+          seeAllLabel={t('creator.dashboard.see_all_content', 'Ver todo')}
         />
 
         {postsLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             {['sk-1', 'sk-2', 'sk-3', 'sk-4'].map((id) => (
               <div
                 key={id}
-                className="h-32 rounded-3xl bg-white/5 animate-pulse border border-white/5"
+                className="h-28 rounded-2xl bg-white/3 animate-pulse border border-white/6"
               />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             {recentPosts?.data.map((post) => (
               <motion.div
-                whileHover={{ y: -4, scale: 1.01 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                whileHover={{ y: -2 }}
+                transition={{ duration: 0.15 }}
                 key={post.id}
-                className="bg-black/60 backdrop-blur-2xl p-5 rounded-3xl border border-white/10 hover:border-brand-primary/30 flex items-center gap-5 transition-all cursor-pointer group/card shadow-[0_4px_24px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_32px_rgba(var(--brand-primary),0.2)]"
+                className="bg-zinc-950/80 backdrop-blur-xl p-3.5 sm:p-4 rounded-2xl border border-white/8 hover:border-brand-primary/30 flex items-center gap-3.5 transition-all cursor-pointer group shadow-lg"
                 onClick={() => setInsightsPostId(post.id)}
               >
-                <div className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 bg-white/5 border border-white/10 text-gray-400 flex items-center justify-center relative shadow-inner">
-                  <div className="absolute inset-0 bg-linear-to-tr from-brand-primary/20 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity z-10" />
+                <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-zinc-900 border border-white/10 text-gray-400 flex items-center justify-center relative">
                   {post.media?.[0] ? (
                     <img
                       src={post.media[0].url}
-                      className="w-full h-full object-cover relative z-0"
+                      className="w-full h-full object-cover"
                       alt=""
                     />
                   ) : post.type === 'FRAME' ? (
-                    <Film size={28} className="relative z-0 opacity-80" />
+                    <Film size={22} className="opacity-80" />
                   ) : (
-                    <ImageIcon size={28} className="relative z-0 opacity-80" />
+                    <ImageIcon size={22} className="opacity-80" />
                   )}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <p className="text-white font-bold text-[15px] truncate drop-shadow-sm">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <p className="text-white font-bold text-xs sm:text-sm truncate">
                       {post.caption ||
                         t('creator.dashboard.untitled_post', 'Sin título')}
                     </p>
-                    <span className="text-brand-primary text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-brand-primary/10 border border-brand-primary/20 rounded-lg shrink-0">
+                    <span className="text-brand-primary text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-brand-primary/10 border border-brand-primary/20 rounded-md shrink-0">
                       {post.type}
                     </span>
                   </div>
 
-                  {/* Performance Bar */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                      <span>Rendimiento</span>
-                      <span className="text-brand-primary drop-shadow-[0_0_8px_rgba(var(--brand-primary),0.6)]">
-                        {post.performanceScore || 0}% vs prom.
+                  {/* Performance score bar */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                      <span>Score</span>
+                      <span className="text-brand-primary font-mono font-bold">
+                        {post.performanceScore || 0}%
                       </span>
                     </div>
-                    <div className="h-2.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 shadow-inner">
+                    <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{
                           width: `${Math.min(post.performanceScore || 0, 100)}%`,
                         }}
-                        transition={{ duration: 1.2, ease: 'easeOut' }}
-                        className="h-full bg-linear-to-r from-brand-primary via-purple-400 to-brand-secondary rounded-full shadow-[0_0_12px_rgba(var(--brand-primary),0.8)]"
+                        transition={{ duration: 0.8, ease: 'easeOut' }}
+                        className="h-full bg-linear-to-r from-brand-primary to-brand-secondary rounded-full"
                       />
                     </div>
                   </div>
@@ -199,20 +195,9 @@ export default function CreatorDashboard({
                       }
                       onPromote(post);
                     }}
-                    className="mt-3.5 inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 rounded-xl bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-xs font-bold hover:bg-brand-primary hover:text-white hover:border-brand-primary transition-all shadow-lg"
-                    title={
-                      canPromote
-                        ? t(
-                            'creator.dashboard.promote_post',
-                            'Promocionar publicación',
-                          )
-                        : t(
-                            'creator.promotions.elite_required',
-                            'Promotions are available on the Elite plan.',
-                          )
-                    }
+                    className="mt-2.5 inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[11px] font-bold hover:bg-brand-primary hover:text-white transition-all min-h-11"
                   >
-                    <Megaphone size={14} />
+                    <Megaphone size={12} />
                     {t('creator.dashboard.promote_post', 'Promocionar')}
                   </button>
                 </div>
@@ -222,10 +207,10 @@ export default function CreatorDashboard({
         )}
       </section>
 
-      {/* Quick Studio Tools & Audience */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        {/* Tool Cards */}
-        <section className="lg:col-span-2 space-y-5">
+      {/* Tools & Audience Insights Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Management Tools */}
+        <section className="lg:col-span-2 space-y-3">
           <SectionHeader
             title={t(
               'creator.dashboard.studio_management',
@@ -233,28 +218,27 @@ export default function CreatorDashboard({
             )}
             icon={BarChart3}
           />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => onNavigate('monetization')}
-              className="relative overflow-hidden bg-black/60 backdrop-blur-2xl p-6 rounded-3xl border border-white/10 hover:border-brand-primary/30 transition-all text-left group shadow-lg"
+              className="relative overflow-hidden bg-zinc-950/80 backdrop-blur-xl p-4 sm:p-5 rounded-2xl border border-white/8 hover:border-brand-primary/30 transition-all text-left group shadow-lg"
             >
-              <div className="absolute inset-0 bg-radial-[at_0%_0%] from-brand-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative z-10 flex flex-col gap-5">
-                <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-brand-primary/30 group-hover:bg-brand-primary/10 transition-all text-brand-primary shadow-inner">
-                  <DollarSign size={28} />
+              <div className="flex flex-col gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/4 flex items-center justify-center border border-white/10 group-hover:border-brand-primary/30 group-hover:bg-brand-primary/10 transition-all text-brand-primary shrink-0">
+                  <DollarSign size={20} />
                 </div>
                 <div>
-                  <h4 className="text-white font-bold text-lg mb-1.5 tracking-tight drop-shadow-sm">
+                  <h4 className="text-white font-bold text-sm mb-1 tracking-tight">
                     {t(
                       'creator.dashboard.finance_earnings',
                       'Gestión de Ingresos',
                     )}
                   </h4>
-                  <p className="text-gray-400 text-sm leading-relaxed">
+                  <p className="text-gray-400 text-xs leading-relaxed">
                     {t(
                       'creator.dashboard.finance_desc',
-                      'Consulta tus métricas de suscripciones, propinas y payouts.',
+                      'Suscripciones, propinas, contenido bloqueado y payouts.',
                     )}
                   </p>
                 </div>
@@ -264,24 +248,23 @@ export default function CreatorDashboard({
             <button
               type="button"
               onClick={() => onNavigate('ads')}
-              className="relative overflow-hidden bg-black/60 backdrop-blur-2xl p-6 rounded-3xl border border-white/10 hover:border-brand-secondary/30 transition-all text-left group shadow-lg"
+              className="relative overflow-hidden bg-zinc-950/80 backdrop-blur-xl p-4 sm:p-5 rounded-2xl border border-white/8 hover:border-brand-secondary/30 transition-all text-left group shadow-lg"
             >
-              <div className="absolute inset-0 bg-radial-[at_100%_0%] from-brand-secondary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative z-10 flex flex-col gap-5">
-                <div className="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-brand-secondary/30 group-hover:bg-brand-secondary/10 transition-all text-brand-secondary shadow-inner">
-                  <Megaphone size={28} />
+              <div className="flex flex-col gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/4 flex items-center justify-center border border-white/10 group-hover:border-brand-secondary/30 group-hover:bg-brand-secondary/10 transition-all text-brand-secondary shrink-0">
+                  <Megaphone size={20} />
                 </div>
                 <div>
-                  <h4 className="text-white font-bold text-lg mb-1.5 tracking-tight drop-shadow-sm">
+                  <h4 className="text-white font-bold text-sm mb-1 tracking-tight">
                     {t(
                       'creator.dashboard.ads_promotions',
                       'Promoción y Campañas',
                     )}
                   </h4>
-                  <p className="text-gray-400 text-sm leading-relaxed">
+                  <p className="text-gray-400 text-xs leading-relaxed">
                     {t(
                       'creator.dashboard.ads_desc',
-                      'Impulsa tus publicaciones para llegar a más audiencia.',
+                      'Campañas y publicaciones patrocinadas para expandir tu alcance.',
                     )}
                   </p>
                 </div>
@@ -291,90 +274,67 @@ export default function CreatorDashboard({
         </section>
 
         {/* Audience Retention Gauge */}
-        <section className="space-y-5">
+        <section className="space-y-3">
           <SectionHeader
             title={t('creator.dashboard.audience', 'Audiencia')}
             icon={Users}
           />
-          <div className="bg-black/60 backdrop-blur-2xl p-6 rounded-3xl border border-white/10 flex flex-col items-center justify-center text-center shadow-lg h-[calc(100%-3rem)] relative overflow-hidden">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-[40%] bg-brand-primary/10 blur-[60px] rounded-full pointer-events-none" />
-
-            <div
-              className="relative w-36 h-36 mb-6 mt-2"
-              role="img"
-              aria-label={t('creator.dashboard.retention_chart_aria', {
-                rate: stats?.insights.retentionRate || 0,
-              })}
-            >
+          <div className="bg-zinc-950/80 backdrop-blur-xl p-4 sm:p-5 rounded-2xl border border-white/8 flex flex-col items-center justify-center text-center shadow-lg h-[calc(100%-2.5rem)] relative overflow-hidden">
+            <div className="relative w-28 h-28 mb-4" role="img">
               <svg
                 aria-hidden="true"
-                className="w-full h-full transform -rotate-90 drop-shadow-[0_0_15px_rgba(var(--brand-primary),0.3)]"
+                className="w-full h-full transform -rotate-90"
               >
-                <defs>
-                  <linearGradient
-                    id="ringGrad"
-                    x1="0%"
-                    y1="0%"
-                    x2="100%"
-                    y2="100%"
-                  >
-                    <stop offset="0%" stopColor="var(--color-brand-primary)" />
-                    <stop
-                      offset="100%"
-                      stopColor="var(--color-brand-secondary)"
-                    />
-                  </linearGradient>
-                </defs>
                 <circle
-                  cx="72"
-                  cy="72"
-                  r="62"
+                  cx="56"
+                  cy="56"
+                  r="48"
                   stroke="currentColor"
-                  strokeWidth="12"
+                  strokeWidth="8"
                   fill="transparent"
-                  className="text-white/5"
+                  className="text-zinc-800"
                 />
                 <motion.circle
-                  cx="72"
-                  cy="72"
-                  r="62"
-                  stroke="url(#ringGrad)"
-                  strokeWidth="12"
+                  cx="56"
+                  cy="56"
+                  r="48"
+                  stroke="var(--color-brand-primary)"
+                  strokeWidth="8"
                   fill="transparent"
                   strokeLinecap="round"
-                  strokeDasharray={389.5}
-                  initial={{ strokeDashoffset: 389.5 }}
+                  strokeDasharray={301.5}
+                  initial={{ strokeDashoffset: 301.5 }}
                   animate={{
                     strokeDashoffset:
-                      389.5 * (1 - (stats?.insights.retentionRate || 0) / 100),
+                      301.5 * (1 - (stats?.insights.retentionRate || 0) / 100),
                   }}
-                  transition={{ duration: 2, ease: 'easeOut', delay: 0.2 }}
+                  transition={{ duration: 1.5, ease: 'easeOut' }}
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-white font-black text-3xl leading-none tracking-tighter">
+                <span className="text-white font-black text-xl font-mono">
                   {stats?.insights.retentionRate || 0}%
                 </span>
-                <span className="text-brand-primary font-bold text-[10px] uppercase tracking-[0.2em] mt-1.5">
+                <span className="text-brand-primary font-bold text-[9px] uppercase tracking-wider">
                   Retención
                 </span>
               </div>
             </div>
 
-            <div className="w-full grid grid-cols-2 gap-3 mt-auto">
-              <div className="bg-white/5 p-3 rounded-xl border border-white/5 text-left">
-                <p className="text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-0.5">
+            <div className="w-full grid grid-cols-2 gap-2 mt-auto">
+              <div className="bg-white/3 p-2.5 rounded-xl border border-white/5 text-left">
+                <p className="text-gray-500 text-[10px] font-semibold uppercase tracking-wider mb-0.5">
                   Mejor día
                 </p>
-                <p className="text-white font-bold text-sm">
+                <p className="text-white font-bold text-xs">
                   {stats?.insights.bestDayToPost || 'Lunes'}
                 </p>
               </div>
-              <div className="bg-white/5 p-3 rounded-xl border border-white/5 text-left">
-                <p className="text-gray-500 text-[10px] font-bold uppercase tracking-wider mb-0.5">
+              <div className="bg-white/3 p-2.5 rounded-xl border border-white/5 text-left">
+                <p className="text-gray-500 text-[10px] font-semibold uppercase tracking-wider mb-0.5">
                   Hora pico
                 </p>
-                <p className="text-white font-bold text-sm">
+                <p className="text-white font-bold text-xs font-mono">
                   {stats?.insights.bestHourToPost || '20:00'}
                 </p>
               </div>
@@ -383,39 +343,35 @@ export default function CreatorDashboard({
         </section>
       </div>
 
-      {/* Analytics teaser — deep link to analytics tab */}
-      <section className="pt-8">
+      {/* Analytics Teaser */}
+      <section className="pt-2">
         <button
           type="button"
           onClick={() => onNavigate('analytics')}
-          className="relative w-full overflow-hidden bg-black/60 backdrop-blur-3xl p-6 sm:p-8 rounded-3xl border border-white/10 flex flex-col sm:flex-row sm:items-center gap-6 hover:border-brand-primary/40 transition-all text-left group shadow-[0_8px_32px_rgba(0,0,0,0.4)]"
+          className="w-full overflow-hidden bg-zinc-950/80 backdrop-blur-xl p-4 sm:p-6 rounded-2xl border border-white/8 flex flex-col sm:flex-row sm:items-center gap-4 hover:border-brand-primary/30 transition-all text-left group shadow-xl"
         >
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-linear-to-l from-brand-primary/10 to-transparent opacity-50 group-hover:opacity-100 transition-opacity" />
+          <div className="w-12 h-12 rounded-xl bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20 text-brand-primary shrink-0">
+            <BarChart3 size={24} />
           </div>
-
-          <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:scale-110 group-hover:rotate-3 group-hover:border-brand-primary/30 group-hover:text-brand-primary group-hover:bg-brand-primary/10 transition-all text-gray-300 shrink-0 relative z-10 shadow-inner">
-            <BarChart3 size={32} />
-          </div>
-          <div className="flex-1 min-w-0 relative z-10">
-            <h4 className="text-white font-bold text-xl sm:text-2xl mb-2 tracking-tight">
+          <div className="flex-1 min-w-0">
+            <h4 className="text-white font-bold text-base sm:text-lg mb-1 tracking-tight">
               {t(
                 'creator.dashboard.analytics_teaser_title',
-                'Analíticas avanzadas',
+                'Analíticas Avanzadas',
               )}
             </h4>
-            <p className="text-gray-400 text-sm sm:text-base leading-relaxed max-w-2xl">
+            <p className="text-gray-400 text-xs sm:text-sm leading-relaxed max-w-xl">
               {t(
                 'creator.dashboard.analytics_teaser_desc',
-                'Explora evolución de audiencia, geografía, retención y horas pico.',
+                'Analiza demografía de audiencia, fuentes de tráfico y comportamiento de conversión.',
               )}
             </p>
           </div>
-          <span className="inline-flex items-center justify-center gap-2 bg-brand-primary text-white text-xs font-bold uppercase tracking-wider px-6 py-3 rounded-xl sm:min-h-0 relative z-10 hover:bg-brand-primary/90 transition-colors shadow-[0_0_20px_rgba(var(--brand-primary),0.4)]">
+          <span className="inline-flex items-center justify-center gap-1.5 bg-brand-primary text-white text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xl shrink-0 hover:bg-brand-primary/90 transition-colors shadow-md">
             {t('creator.dashboard.see_analytics', 'Ver analíticas')}
             <ChevronRight
-              size={16}
-              className="group-hover:translate-x-1 transition-transform"
+              size={14}
+              className="group-hover:translate-x-0.5 transition-transform"
             />
           </span>
         </button>
