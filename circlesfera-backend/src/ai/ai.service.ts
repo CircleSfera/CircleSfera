@@ -63,8 +63,7 @@ export class AIService {
       return response.data[0].embedding;
     } catch (error) {
       this.logger.error('Failed to generate embedding with OpenAI', error);
-      this.logger.warn('Falling back to mock embedding due to error');
-      return this.getMockEmbedding();
+      throw error;
     }
   }
 
@@ -127,7 +126,7 @@ export class AIService {
       };
     } catch (error) {
       this.logger.error('Failed to moderate content with OpenAI', error);
-      return { flagged: false, categories: {}, category_scores: {} };
+      throw error;
     }
   }
 

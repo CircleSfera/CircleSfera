@@ -1,8 +1,8 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ModerationStatus, NotificationType } from '@prisma/client';
 import type { Job } from 'bullmq';
-import { NotificationsService } from '../../notifications/notifications.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AIService } from '../ai.service.js';
 
@@ -13,8 +13,7 @@ export class AIProcessor extends WorkerHost {
   constructor(
     @Inject(AIService) private readonly aiService: AIService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(NotificationsService)
-    private readonly notificationsService: NotificationsService,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     super();
   }
@@ -159,17 +158,13 @@ export class AIProcessor extends WorkerHost {
 
     const content = `Your ${targetType.toLowerCase()} was ${statusLabel} by automated moderation. ${assessment} You can appeal from Settings → Appeals.`;
 
-    await this.notificationsService
-      .create({
-        recipientId: authorId,
-        senderId: adminId,
-        type: NotificationType.MODERATION,
-        content: content.slice(0, 500),
-        postId: targetType === 'POST' ? targetId : undefined,
-      })
-      .catch((err) =>
-        this.logger.error('Failed to notify author of moderation action', err),
-      );
+    this.eventEmitter.emit('notification.create', {
+      recipientId: authorId,
+      senderId: adminId,
+      type: NotificationType.MODERATION,
+      content: content.slice(0, 500),
+      postId: targetType === 'POST' ? targetId : undefined,
+    });
   }
 
   private async handleModerateContent(
