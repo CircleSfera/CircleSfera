@@ -649,43 +649,75 @@ export class MonetizationService {
     currentMonth.setDate(1);
     currentMonth.setHours(0, 0, 0, 0);
 
-    const [currentMonthTx, allTimeTipsTx] = await Promise.all([
-      this.prisma.transaction.aggregate({
-        where: {
-          receiverId: userId,
-          status: 'COMPLETED',
-          type: {
-            in: [
-              'DIRECT_POST_UNLOCK',
-              'DIRECT_STORY_UNLOCK',
-              'DIRECT_MESSAGE_UNLOCK',
-              'DIRECT_TIP',
-              'DIRECT_LIVE_GIFT',
-            ],
+    const [currentMonthTx, allTimeTipsTx, categoryBreakdown] =
+      await Promise.all([
+        this.prisma.transaction.aggregate({
+          where: {
+            receiverId: userId,
+            status: 'COMPLETED',
+            type: {
+              in: [
+                'DIRECT_POST_UNLOCK',
+                'DIRECT_STORY_UNLOCK',
+                'DIRECT_MESSAGE_UNLOCK',
+                'DIRECT_TIP',
+                'DIRECT_LIVE_GIFT',
+              ],
+            },
+            createdAt: {
+              gte: currentMonth,
+            },
           },
-          createdAt: {
-            gte: currentMonth,
+          _sum: {
+            amount: true,
           },
-        },
-        _sum: {
-          amount: true,
-        },
-      }),
-      this.prisma.transaction.aggregate({
-        where: {
-          receiverId: userId,
-          status: 'COMPLETED',
-          type: 'DIRECT_TIP',
-        },
-        _sum: {
-          amount: true,
-        },
-      }),
-    ]);
+        }),
+        this.prisma.transaction.aggregate({
+          where: {
+            receiverId: userId,
+            status: 'COMPLETED',
+            type: 'DIRECT_TIP',
+          },
+          _sum: {
+            amount: true,
+          },
+        }),
+        this.prisma.transaction.groupBy({
+          by: ['type'],
+          where: {
+            receiverId: userId,
+            status: 'COMPLETED',
+          },
+          _sum: {
+            amount: true,
+          },
+        }),
+      ]);
+
+    const breakdownMap: Record<string, number> = {
+      DIRECT_POST_UNLOCK: 0,
+      DIRECT_STORY_UNLOCK: 0,
+      DIRECT_MESSAGE_UNLOCK: 0,
+      DIRECT_TIP: 0,
+      DIRECT_LIVE_GIFT: 0,
+    };
+
+    for (const item of categoryBreakdown) {
+      if (item.type in breakdownMap) {
+        breakdownMap[item.type] = item._sum.amount || 0;
+      }
+    }
 
     return {
       currentMonthIncome: currentMonthTx._sum.amount || 0,
       totalTips: allTimeTipsTx._sum.amount || 0,
+      breakdown: {
+        postUnlocks: breakdownMap.DIRECT_POST_UNLOCK,
+        storyUnlocks: breakdownMap.DIRECT_STORY_UNLOCK,
+        messageUnlocks: breakdownMap.DIRECT_MESSAGE_UNLOCK,
+        tips: breakdownMap.DIRECT_TIP,
+        liveGifts: breakdownMap.DIRECT_LIVE_GIFT,
+      },
     };
   }
 }

@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
-import type { Profile } from '../../types';
+
 import MonetizationDashboard from './MonetizationDashboard';
 
 vi.mock('../../services', () => ({
@@ -36,7 +36,7 @@ describe('MonetizationDashboard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useAuthStore).mockReturnValue({
-      profile: { user: { stripeConnectAccountId: null } } as unknown as Profile,
+      user: { stripeConnectAccountId: null },
     } as unknown as ReturnType<typeof useAuthStore>);
   });
 
@@ -80,9 +80,7 @@ describe('MonetizationDashboard', () => {
 
   it('shows the Stripe dashboard link once a Stripe account is connected', async () => {
     vi.mocked(useAuthStore).mockReturnValue({
-      profile: {
-        user: { stripeConnectAccountId: 'acct_123' },
-      } as unknown as Profile,
+      user: { stripeConnectAccountId: 'acct_123' },
     } as unknown as ReturnType<typeof useAuthStore>);
     vi.mocked(api.get).mockImplementation((url: string) => {
       if (url === '/monetization/payouts') {
@@ -100,7 +98,7 @@ describe('MonetizationDashboard', () => {
     renderDashboard();
 
     expect(
-      await screen.findByText(/View Stripe Dashboard/i),
+      await screen.findByText(/View Stripe Dashboard|Ver Dashboard de Stripe/i),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Connect with Stripe/i)).not.toBeInTheDocument();
   });
@@ -153,7 +151,9 @@ describe('MonetizationDashboard', () => {
     renderDashboard();
 
     expect(
-      await screen.findByText(/No transactions found/i),
+      await screen.findByText(
+        /No transactions found|Sin transacciones registradas/i,
+      ),
     ).toBeInTheDocument();
   });
 });

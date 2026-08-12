@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { LoadingSpinner } from '../../components/LoadingStates';
 import { paymentsApi } from '../../services/payments.service';
 import { usersApi } from '../../services/users.service';
 import { useAuthStore } from '../../stores/authStore';
@@ -20,7 +21,8 @@ const planVerificationMap: Record<string, string> = {
 
 export default function Pricing() {
   const { t } = useTranslation();
-  const { isAuthenticated, profile: currentUser } = useAuthStore();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const currentUser = useAuthStore((state) => state.profile);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
@@ -181,11 +183,11 @@ export default function Pricing() {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
+          <div className="flex justify-center py-10">
+            <LoadingSpinner size="lg" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
             {(plans || []).map((plan, index) => {
               const isPopular =
                 plan.name.toLowerCase().includes('elite') ||
@@ -214,7 +216,7 @@ export default function Pricing() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 + index * 0.1 }}
                   key={plan.id}
-                  className={`glass-panel rounded-xl p-8 border transition-all duration-500 flex flex-col relative group hover:-translate-y-2 ${
+                  className={`glass-panel rounded-xl p-5 md:p-6 border transition-all duration-500 flex flex-col relative group hover:-translate-y-1 ${
                     isPopular
                       ? 'border-brand-primary/40 bg-white/5 ring-1 ring-brand-primary/20 scale-105 z-20'
                       : 'border-white/5 hover:border-white/10'
