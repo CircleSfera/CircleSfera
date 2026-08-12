@@ -1,6 +1,6 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { AdminAction, NotificationType, Prisma } from '@prisma/client';
+import { AdminAction, NotificationType, Prisma, Role } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
@@ -93,7 +93,17 @@ export class AdminUsersService {
     }
 
     if (role) {
-      where.role = role as any;
+      const roles = role
+        .split(',')
+        .map((r) => r.trim())
+        .filter((r): r is Role =>
+          (Object.values(Role) as string[]).includes(r),
+        );
+      if (roles.length === 1) {
+        where.role = roles[0];
+      } else if (roles.length > 1) {
+        where.role = { in: roles };
+      }
     }
 
     if (kycStatus) {
