@@ -9,7 +9,7 @@ interface FanoutJobData {
   authorId: string;
 }
 
-@Processor('feed-fanout')
+@Processor('feed-fanout', { concurrency: 5 })
 export class FeedFanoutProcessor extends WorkerHost {
   private readonly logger = new Logger(FeedFanoutProcessor.name);
   private readonly BATCH_SIZE = 1000;
@@ -26,31 +26,35 @@ export class FeedFanoutProcessor extends WorkerHost {
     this.logger.log(`Starting fan-out for post ${postId} by user ${authorId}`);
 
     try {
-      let skip = 0;
+      let cursor: string | undefined;
       let followersCount = 0;
       let hasMore = true;
 
       while (hasMore) {
-        // Fetch a batch of followers
-        const followers = await this.prisma.follow.findMany({
+        // Fetch a batch of followers using cursor pagination
+        const followers = (await this.prisma.follow.findMany({
           where: { followingId: authorId, status: 'ACCEPTED' },
-          select: { followerId: true },
-          skip,
+          select: { id: true, followerId: true },
           take: this.BATCH_SIZE,
-        });
+          skip: cursor ? 1 : 0,
+          cursor: cursor ? { id: cursor } : undefined,
+          orderBy: { id: 'asc' }, // Required for cursor pagination predictability
+        })) as { id: string; followerId: string }[];
 
         if (followers.length === 0) {
           hasMore = false;
           break;
         }
 
-        const followerIds = followers.map((f) => f.followerId);
+        const followerIds = followers.map(
+          (f: { id: string; followerId: string }) => f.followerId,
+        );
 
         // Push the post to the inboxes of this batch of followers
         await this.feedInbox.fanoutToFollowers(followerIds, postId);
 
         followersCount += followers.length;
-        skip += this.BATCH_SIZE;
+        cursor = followers[followers.length - 1].id;
 
         // If we fetched less than the batch size, we've reached the end
         if (followers.length < this.BATCH_SIZE) {
