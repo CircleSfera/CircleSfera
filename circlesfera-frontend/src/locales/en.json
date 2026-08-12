@@ -1955,7 +1955,17 @@
       "status_paid": "Paid",
       "status_failed": "Failed",
       "status_failed_cancelled": "Failed/Cancelled",
-      "search_placeholder": "Search by user or ID..."
+      "search_placeholder": "Search by user or ID...",
+      "title": "Payouts (Stripe)",
+      "description": "Audit of automatic withdrawals managed by Stripe Connect.",
+      "kpi_paid": "Paid",
+      "kpi_pending": "Pending",
+      "kpi_failed": "Failed",
+      "filter_status": "Status",
+      "filter_all": "All",
+      "filter_failed_cancelled": "Failed/Cancelled",
+      "empty_title": "No payouts recorded",
+      "empty_description": "Stripe Connect withdrawals will appear here."
     },
     "roles": {
       "search_placeholder": "Search administrators..."
