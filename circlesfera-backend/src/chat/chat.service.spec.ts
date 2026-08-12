@@ -1,11 +1,8 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AppException } from '../common/errors/app.exception.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PushService } from '../push/push.service.js';
@@ -16,6 +13,7 @@ describe('ChatService', () => {
   let service: ChatService;
 
   const mockPrismaService = {
+    $transaction: vi.fn(async (cb) => cb(mockPrismaService)),
     conversation: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
@@ -60,6 +58,7 @@ describe('ChatService', () => {
           server: {
             to: mockTo,
           },
+          addConversationToSocket: vi.fn(),
         };
       }
       return null;
@@ -78,6 +77,7 @@ describe('ChatService', () => {
         { provide: ModuleRef, useValue: mockModuleRef },
         { provide: CryptoService, useValue: mockCryptoService },
         { provide: PushService, useValue: mockPushService },
+        { provide: EventEmitter2, useValue: { emit: vi.fn() } },
       ],
     }).compile();
 
@@ -94,7 +94,7 @@ describe('ChatService', () => {
   describe('createGroup', () => {
     it('should throw BadRequestException if creating with only yourself', async () => {
       await expect(service.createGroup('userA', ['userA'])).rejects.toThrow(
-        BadRequestException,
+        AppException,
       );
     });
 
@@ -111,19 +111,27 @@ describe('ChatService', () => {
 
     it('should create new 1-on-1 conversation if none exists', async () => {
       mockPrismaService.conversation.findFirst.mockResolvedValueOnce(null);
-      mockPrismaService.conversation.create.mockResolvedValueOnce({
+      mockPrismaService.conversation.create.mockResolvedValue({
         id: 'conv-2',
+        type: 'DIRECT',
+        participants: [],
       });
       mockPrismaService.block.findMany.mockResolvedValueOnce([]);
 
       const result = await service.createGroup('userA', ['userA', 'userB']);
-      expect(result).toEqual({ id: 'conv-2' });
+      expect(result).toEqual({
+        id: 'conv-2',
+        type: 'DIRECT',
+        participants: [],
+      });
       expect(mockPrismaService.conversation.create).toHaveBeenCalled();
     });
 
     it('should create a true group conversation if multiple participants', async () => {
       mockPrismaService.conversation.create.mockResolvedValueOnce({
         id: 'conv-group',
+        type: 'GROUP',
+        participants: [],
       });
       mockPrismaService.block.findMany.mockResolvedValueOnce([]);
 
@@ -133,7 +141,11 @@ describe('ChatService', () => {
         'My Group',
       );
 
-      expect(result).toEqual({ id: 'conv-group' });
+      expect(result).toEqual({
+        id: 'conv-group',
+        type: 'GROUP',
+        participants: [],
+      });
       expect(mockPrismaService.conversation.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -157,7 +169,7 @@ describe('ChatService', () => {
           undefined,
           'conv-X',
         ),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(AppException);
     });
 
     it('should throw ForbiddenException if sender is not participant of existing conv', async () => {
@@ -174,13 +186,13 @@ describe('ChatService', () => {
           undefined,
           'conv-X',
         ),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow(AppException);
     });
 
     it('should throw BadRequestException if no convId and no recipientId', async () => {
       await expect(
         service.sendMessage('userA', undefined, 'Hello'),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(AppException);
     });
 
     it('should find or create DM conv and send message with Gateway broadcast', async () => {
@@ -280,7 +292,7 @@ describe('ChatService', () => {
     it('should throw ForbiddenException if userId provided but not a participant', async () => {
       mockPrismaService.participant.findFirst.mockResolvedValueOnce(null);
       await expect(service.getMessages('c1', 50, 'userA')).rejects.toThrow(
-        ForbiddenException,
+        AppException,
       );
     });
 
@@ -418,7 +430,7 @@ describe('ChatService', () => {
     it('should throw ForbiddenException if user is not participant before deletion', async () => {
       mockPrismaService.participant.findFirst.mockResolvedValueOnce(null);
       await expect(service.deleteConversation('c1', 'userA')).rejects.toThrow(
-        ForbiddenException,
+        AppException,
       );
     });
 

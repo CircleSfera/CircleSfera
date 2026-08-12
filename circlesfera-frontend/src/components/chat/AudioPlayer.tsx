@@ -67,7 +67,7 @@ export default function AudioPlayer({ src }: AudioPlayerProps) {
   };
 
   return (
-    <div className="flex items-center gap-3 bg-neutral-800/80 backdrop-blur-md p-2 rounded-full border border-white/10 min-w-[240px]">
+    <div className="flex items-center gap-3 bg-neutral-800/80 backdrop-blur-md p-2 rounded-full border border-white/10 min-w-60">
       <button
         type="button"
         onClick={togglePlay}

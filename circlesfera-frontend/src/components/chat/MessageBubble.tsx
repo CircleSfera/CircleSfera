@@ -71,7 +71,7 @@ export default memo(function MessageBubble({
       initial={{ opacity: 0, scale: 0.8, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-      className={`flex ${isMe ? 'justify-end' : 'justify-start'} group items-end mb-1 hover:z-50 ${!isSeq ? 'mt-8' : 'mt-3'}`}
+      className={`flex ${isMe ? 'justify-end' : 'justify-start'} group items-end mb-0.5 hover:z-50 ${!isSeq ? 'mt-4 md:mt-6' : 'mt-1 md:mt-2'}`}
     >
       {!isMe && (
         <div className="w-10 mr-2 shrink-0 flex justify-center">
@@ -95,7 +95,7 @@ export default memo(function MessageBubble({
         {/* Reply Context */}
         {msg.replyTo && (
           <div
-            className={`mb-1 text-xs text-gray-300/80 bg-white/5 border-l-2 border-purple-500 pl-3 py-1.5 pr-2 rounded-r-lg cursor-pointer hover:bg-white/10 transition-colors truncate backdrop-blur-sm self-stretch max-w-xs`}
+            className={`mb-1 text-xs text-gray-300/80 bg-white/5 border-l-2 border-purple-500 pl-3 py-2 pr-2 rounded-r-lg cursor-pointer hover:bg-white/10 transition-colors truncate backdrop-blur-sm self-stretch max-w-xs`}
           >
             <div className="font-semibold text-purple-400 text-xs mb-0.5">
               {t('chat.replying_to_user', {
