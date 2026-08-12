@@ -1,8 +1,8 @@
 import { getQueueToken } from '@nestjs/bullmq';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
 import { ProfilesService } from './profiles.service.js';
@@ -69,7 +69,7 @@ describe('ProfilesService', () => {
       mockPrismaService.profile.findFirst.mockResolvedValue(null);
 
       await expect(service.getProfile('nonexistent')).rejects.toThrow(
-        NotFoundException,
+        AppException,
       );
     });
   });
