@@ -13,7 +13,7 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import SEO from '../components/common/SEO';
-import { EmptyState } from '../components/ErrorEmptyStates';
+import { EmptyState, ErrorState } from '../components/ErrorEmptyStates';
 import { LoadingSpinner } from '../components/LoadingStates';
 import PendingFollowRequests from '../components/notifications/PendingFollowRequests';
 import UserAvatar from '../components/UserAvatar';
@@ -26,6 +26,7 @@ export default function Notifications() {
   const {
     data: notifications,
     isLoading,
+    isError,
     refetch,
   } = useQuery({
     queryKey: ['notifications'],
@@ -48,8 +49,23 @@ export default function Notifications() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-dvh flex items-center justify-center">
         <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-dvh flex items-center justify-center px-4">
+        <ErrorState
+          title={t('notifications.error_title', "Couldn't load notifications")}
+          message={t(
+            'notifications.error_message',
+            'Something went wrong. Please try again.',
+          )}
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }
@@ -187,17 +203,17 @@ export default function Notifications() {
   };
 
   return (
-    <div className="pb-24 min-h-screen md:max-w-2xl md:mx-auto">
+    <div className="pb-24 min-h-dvh md:max-w-2xl md:mx-auto">
       <SEO title={t('notifications.seo_title')} />
 
       {/* Page Header */}
-      <div className="px-4 pt-6 pb-3">
-        <h1 className="text-2xl font-black tracking-tight text-white">
+      <div className="px-4 pt-3 pb-2 md:pt-6 md:pb-3">
+        <h1 className="text-xl md:text-2xl font-black tracking-tight text-white">
           {t('notifications.title', 'Actividad')}
         </h1>
       </div>
 
-      <div className="flex flex-col px-2 pt-2">
+      <div className="flex flex-col px-2 pt-1">
         <PendingFollowRequests />
         {notifs.length === 0 ? (
           <div className="mt-10 px-4">
@@ -210,7 +226,7 @@ export default function Notifications() {
           notifs.map((notif) => (
             <article
               key={notif.id}
-              className="group relative flex items-center gap-3 transition-all duration-200 p-3 md:p-3.5 rounded-2xl"
+              className="group relative flex items-center gap-2.5 transition-all duration-200 min-h-[72px] py-3 px-3 rounded-xl"
               style={
                 !notif.read
                   ? {
@@ -248,7 +264,7 @@ export default function Notifications() {
                       notif.sender?.profile?.username ||
                       t('notifications.unknown_user')
                     }
-                    size="sm"
+                    size="compact"
                   />
                   <div
                     className="absolute -right-1 -bottom-1 w-5 h-5 rounded-full border-2 border-black flex items-center justify-center text-white"
@@ -314,7 +330,7 @@ export default function Notifications() {
                     className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center"
                     style={{
                       background:
-                        'linear-gradient(135deg, rgba(131,58,180,0.15), rgba(64,93,230,0.1))',
+                        'linear-gradient(135deg, rgba(140, 82, 255,0.15), rgba(64,93,230,0.1))',
                       border: '1px solid rgba(255,255,255,0.08)',
                     }}
                   >
