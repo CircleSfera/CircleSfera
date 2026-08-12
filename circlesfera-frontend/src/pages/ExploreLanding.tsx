@@ -54,9 +54,9 @@ export default function ExploreLanding() {
 
       {/* Background is now handled globally by LayoutWrapper */}
 
-      <main className="flex-1 max-w-4xl mx-auto px-6 w-full flex flex-col items-center pb-24">
+      <main className="flex-1 max-w-4xl mx-auto px-6 w-full flex flex-col items-center pb-20">
         {/* Hero Section */}
-        <section className="w-full pt-12 md:pt-20 pb-16 text-center relative z-10">
+        <section className="w-full pt-8 md:pt-20 pb-12 md:pb-16 text-center relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import { Clock, X as CloseIcon, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -134,42 +135,42 @@ export default function Explore() {
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-      <div className="pt-24 pb-20 px-4 min-h-screen max-w-6xl 2xl:max-w-[1440px] mx-auto">
+      <div className="pt-2 md:pt-6 pb-20 px-4 md:px-5 lg:px-6 min-h-dvh max-w-6xl 2xl:max-w-7xl mx-auto">
         <SEO
           title={t('explore.page_title')}
           description={t('explore.page_desc')}
         />
-        <h1 className="text-xl font-black mb-6">{t('explore.heading')}</h1>
 
-        {/* Search Input */}
-        <div className="relative mb-8 max-w-2xl mx-auto group">
-          {/* Brand Accent Line for Search */}
+        {/* Search Input — Design System §9.3: Search input 44–48px */}
+        <div className="relative mb-3 md:mb-6 max-w-2xl mx-auto group">
           <div className="absolute -top-px left-8 right-8 h-px bg-linear-to-r from-transparent via-brand-primary to-transparent opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
 
           <input
             type="text"
             placeholder={t(
               'explore.search_placeholder',
-              'Search people, tags, or describe what you want…',
+              'Buscar personas, etiquetas o describir lo que buscas…',
             )}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full px-8 py-5 bg-white/5 border border-white/10 rounded-[24px] text-white placeholder-gray-500 focus:outline-none focus:border-white/20 focus:bg-white/10 backdrop-blur-2xl shadow-2xl transition-all text-lg font-medium"
+            className="input-glass w-full pl-5 pr-12 rounded-xl text-white placeholder-gray-500 text-sm font-medium transition-all"
+            style={{ height: 'var(--input-height-search, 48px)' }}
           />
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2">
             {query && (
               <button
                 type="button"
                 onClick={() => setQuery('')}
-                className="p-1 text-gray-500 hover:text-white transition-colors"
+                className="p-1 text-gray-400 hover:text-white transition-colors"
+                aria-label="Limpiar búsqueda"
               >
-                <CloseIcon size={20} />
+                <CloseIcon size={18} />
               </button>
             )}
             <div className="text-gray-500">
               <svg
                 aria-hidden="true"
-                className="w-6 h-6"
+                className="w-5 h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -209,14 +210,14 @@ export default function Explore() {
                       </span>
                     </h2>
                     {isSearching ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
                         {[1, 2, 3].map((id) => (
                           <PostSkeleton key={id} />
                         ))}
                       </div>
                     ) : searchResults?.semanticPosts &&
                       searchResults.semanticPosts.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in slide-in-from-bottom-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 animate-in fade-in slide-in-from-bottom-4">
                         {searchResults.semanticPosts.map((post: Post) => (
                           <div key={post.id} className="relative group">
                             <PostCard post={post} />
@@ -251,7 +252,7 @@ export default function Explore() {
                           {t('explore.beta_ai')}
                         </span>
                       </h2>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
                         {searchResults.semanticProfiles.map((profile: any) => (
                           <Link
                             key={profile.id}
@@ -373,7 +374,7 @@ export default function Explore() {
                             <Link
                               key={tag.id}
                               to={`/explore/tags/${tag.tag}`}
-                              className="glass-panel px-5 py-2.5 rounded-full flex items-center gap-2 hover:bg-blue-500/20 hover:border-blue-500/50 transition-all group"
+                              className="glass-panel px-4 py-2 rounded-full flex items-center gap-2 hover:bg-blue-500/20 hover:border-blue-500/50 transition-all group"
                             >
                               <span className="text-blue-400 group-hover:text-blue-300 font-bold">
                                 #{tag.tag}
@@ -453,41 +454,44 @@ export default function Explore() {
         ) : (
           /* Explore Grid Mode (Personalized Discovery) */
           <div>
-            <div className="flex items-center justify-center gap-4 mb-10 border-b border-white/10 pb-4 max-w-lg mx-auto">
-              <button
-                type="button"
-                onClick={() => setActiveTab('foryou')}
-                className={`pb-4 px-4 font-bold text-sm uppercase tracking-wide transition-colors relative ${
-                  activeTab === 'foryou'
-                    ? 'text-white'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                {t('explore.for_you')}
-                {activeTab === 'foryou' && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('trending')}
-                className={`pb-4 px-4 font-bold text-sm uppercase tracking-wide transition-colors relative ${
-                  activeTab === 'trending'
-                    ? 'text-white'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                {t('explore.trending')}
-                {activeTab === 'trending' && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />
-                )}
-              </button>
+            <div className="flex justify-center mb-4 md:mb-8">
+              <div className="inline-flex items-center p-1 md:p-1.5 rounded-full bg-black/75 border border-white/12 shadow-2xl backdrop-blur-md gap-1">
+                {(['foryou', 'trending'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setActiveTab(tab)}
+                    className={`relative px-4 py-1.5 md:px-6 md:py-2 text-xs font-bold rounded-full transition-all duration-200 focus:outline-none ${
+                      activeTab === tab
+                        ? 'text-white'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {activeTab === tab && (
+                      <motion.div
+                        layoutId="exploreTabPill"
+                        className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-inner"
+                        transition={{
+                          type: 'spring',
+                          stiffness: 500,
+                          damping: 35,
+                        }}
+                      />
+                    )}
+                    <span className="relative z-10">
+                      {tab === 'foryou'
+                        ? t('explore.for_you', 'Para ti')
+                        : t('explore.trending', 'Tendencias')}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {isLoadingExplore ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 max-w-5xl 2xl:max-w-7xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-1 max-w-5xl 2xl:max-w-7xl mx-auto">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((id) => (
-                  <div key={id} className="break-inside-avoid mb-6">
+                  <div key={id} className="break-inside-avoid mb-2.5 md:mb-6">
                     <PostSkeleton />
                   </div>
                 ))}
@@ -504,9 +508,12 @@ export default function Explore() {
             ) : explorePostList.length > 0 ? (
               /* Masonry Grid using CSS columns */
               <>
-                <div className="columns-1 md:columns-2 lg:columns-3 2xl:columns-4 gap-4 space-y-4">
+                <div className="columns-1 md:columns-2 lg:columns-3 2xl:columns-4 gap-1 space-y-1">
                   {explorePostList.map((post: Post) => (
-                    <div key={post.id} className="break-inside-avoid mb-6">
+                    <div
+                      key={post.id}
+                      className="break-inside-avoid mb-2.5 md:mb-6"
+                    >
                       <PostCard post={post} />
                     </div>
                   ))}
