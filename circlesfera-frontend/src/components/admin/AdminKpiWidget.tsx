@@ -40,11 +40,11 @@ export function AdminKpiWidget({
         )}
       </div>
       <div>
-        <p className="text-sm font-semibold text-gray-400">{title}</p>
+        <p className="text-sm font-semibold text-white/50">{title}</p>
         <div className="flex items-baseline gap-2">
           <p className="text-2xl font-bold text-white">{value}</p>
           {trend && (
-            <span className="text-xs text-gray-500">{trend.label}</span>
+            <span className="text-xs text-white/40">{trend.label}</span>
           )}
         </div>
       </div>

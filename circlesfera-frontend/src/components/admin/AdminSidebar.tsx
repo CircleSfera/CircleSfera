@@ -55,7 +55,7 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
         </Link>
         <Link
           to="/"
-          className="flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-white transition-colors group"
+          className="flex items-center gap-2 text-xs font-semibold text-white/50 hover:text-white transition-colors group"
         >
           <ArrowLeft
             size={13}
@@ -77,7 +77,7 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
 
           return (
             <div key={group.labelKey} className="space-y-1">
-              <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-2 mb-1.5">
+              <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-white/40 flex items-center gap-2 mb-1.5">
                 <group.icon
                   size={12}
                   className="text-brand-primary opacity-80"
@@ -99,14 +99,14 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
                         'w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold border text-left min-h-10',
                         isSelected
                           ? 'bg-brand-primary/15 text-white border-brand-primary/30 border-l-2 border-l-brand-primary'
-                          : 'bg-transparent text-gray-400 border-transparent hover:bg-white/5 hover:text-white',
+                          : 'bg-transparent text-white/50 border-transparent hover:bg-white/5 hover:text-white',
                       )}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <ItemIcon
                           size={16}
                           className={
-                            isSelected ? 'text-brand-primary' : 'text-gray-400'
+                            isSelected ? 'text-brand-primary' : 'text-white/50'
                           }
                         />
                         <span className="truncate">

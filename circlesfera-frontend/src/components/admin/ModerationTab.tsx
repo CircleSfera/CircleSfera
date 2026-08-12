@@ -218,14 +218,14 @@ export default function ModerationTab({ onToast }: Props) {
             <button
               type="button"
               onClick={() => setViewMode('queue')}
-              className={`px-3 sm:px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors w-full xs:w-auto ${viewMode === 'queue' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`px-3 sm:px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors w-full xs:w-auto ${viewMode === 'queue' ? 'bg-brand-primary text-white' : 'text-white/50 hover:text-white'}`}
             >
               {t('admin.moderation.tab_queue')}
             </button>
             <button
               type="button"
               onClick={() => setViewMode('appeals')}
-              className={`px-3 sm:px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors w-full xs:w-auto ${viewMode === 'appeals' ? 'bg-brand-primary text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`px-3 sm:px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors w-full xs:w-auto ${viewMode === 'appeals' ? 'bg-brand-primary text-white' : 'text-white/50 hover:text-white'}`}
             >
               {t('admin.moderation.tab_appeals')}
             </button>
@@ -402,7 +402,7 @@ export default function ModerationTab({ onToast }: Props) {
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                                  <div className="w-full h-full flex items-center justify-center text-white/25">
                                     <Ghost size={16} />
                                   </div>
                                 )}
@@ -444,7 +444,7 @@ export default function ModerationTab({ onToast }: Props) {
                           <h3 className="text-sm font-semibold text-white">
                             @{selectedItem.user?.profile?.username}
                           </h3>
-                          <p className="text-xs text-gray-300">
+                          <p className="text-xs text-white/70">
                             {selectedItem.entityType} ·{' '}
                             {new Date(selectedItem.createdAt).toLocaleString()}
                           </p>
@@ -494,7 +494,7 @@ export default function ModerationTab({ onToast }: Props) {
                           <h4 className="text-red-400 font-semibold text-sm mb-0.5">
                             {t('admin.moderation.ai_detection_title')}
                           </h4>
-                          <p className="text-xs sm:text-sm text-gray-400">
+                          <p className="text-xs sm:text-sm text-white/50">
                             {selectedItem.moderationNote ||
                               t('admin.moderation.ai_detection_fallback')}
                           </p>
@@ -534,7 +534,7 @@ export default function ModerationTab({ onToast }: Props) {
                               {selectedItem.caption}
                             </p>
                           ) : (
-                            <p className="text-gray-500 text-sm italic">
+                            <p className="text-white/40 text-sm italic">
                               {t('admin.shared.no_text')}
                             </p>
                           )}

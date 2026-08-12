@@ -78,11 +78,11 @@ export default function AdminShell({
               type="button"
               onClick={() => setPaletteOpen(true)}
               className="w-11 h-11 md:w-auto md:h-auto md:px-4 md:py-3 flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white/70 text-xs font-semibold rounded-xl hover:bg-white/10 hover:border-white/20 transition-all"
-              aria-label={t('admin.search', 'Buscar')}
+              aria-label={t('admin.search')}
             >
               <Search size={16} />
               <span className="hidden md:inline text-white/50 font-normal">
-                {t('admin.search_placeholder', 'Buscar en el admin...')}
+                {t('admin.search_placeholder')}
               </span>
               <kbd className="hidden md:flex items-center gap-1 text-[10px] font-mono font-bold border border-white/10 bg-white/10 text-white/70 rounded px-1.5 py-0.5">
                 <Command size={10} /> K

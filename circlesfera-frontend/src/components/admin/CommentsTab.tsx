@@ -179,7 +179,7 @@ export default function CommentsTab({ onToast }: Props) {
                       t('admin.shared.unknown')
                     } • ${new Date(comment.createdAt).toLocaleDateString()}`}
                     avatar={
-                      <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
+                      <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/50">
                         {comment.user?.profile?.username
                           ?.charAt(0)
                           .toUpperCase() || '?'}
@@ -212,7 +212,7 @@ export default function CommentsTab({ onToast }: Props) {
               {comments.find((c) => c.id === selectedId) && (
                 <div className="space-y-4">
                   <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-                    <p className="text-gray-300">
+                    <p className="text-white/70">
                       {comments.find((c) => c.id === selectedId)?.content ||
                         noContent}
                     </p>

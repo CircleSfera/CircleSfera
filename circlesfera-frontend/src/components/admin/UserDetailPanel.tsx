@@ -25,7 +25,7 @@ interface UserDetailPanelProps {
 function MetaRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5 last:border-b-0">
-      <dt className="text-xs font-medium text-gray-500 shrink-0 pt-0.5">
+      <dt className="text-xs font-medium text-white/40 shrink-0 pt-0.5">
         {label}
       </dt>
       <dd className="text-sm text-white text-right min-w-0 break-all">
@@ -44,7 +44,7 @@ function SystemField({
 }) {
   return (
     <div className="min-w-0 space-y-0.5">
-      <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
+      <p className="text-[11px] font-medium text-white/40 uppercase tracking-wide">
         {label}
       </p>
       <div className="text-sm text-white">{children}</div>
@@ -60,7 +60,7 @@ function reportStatusClass(status: string) {
   if (s === 'RESOLVED') {
     return 'bg-green-500/15 text-green-400';
   }
-  return 'bg-white/10 text-gray-300';
+  return 'bg-white/10 text-white/70';
 }
 
 /** Compact user dossier for AdminSplitView detail pane (no overlay). */
@@ -99,7 +99,7 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
 
   if (isError || !user) {
     return (
-      <div className="py-16 text-center text-sm text-gray-400">
+      <div className="py-16 text-center text-sm text-white/50">
         {t('admin.user_preview.not_found')}
       </div>
     );
@@ -108,7 +108,7 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
   return (
     <div className="space-y-6 pb-6 px-0.5">
       <div>
-        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-3">
+        <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-3">
           {t('admin.user_preview.title')}
         </p>
         <div className="space-y-3">
@@ -149,7 +149,7 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
                 ? t('admin.user_preview.account_active')
                 : t('admin.user_preview.account_banned')}
             </span>
-            <span className="inline-flex px-2.5 py-1 rounded-md bg-white/5 text-gray-300 text-[11px] font-semibold uppercase tracking-wide">
+            <span className="inline-flex px-2.5 py-1 rounded-md bg-white/5 text-white/70 text-[11px] font-semibold uppercase tracking-wide">
               {t('admin.user_preview.role_label', { role: user.role })}
             </span>
             {profileHref && (
@@ -182,14 +182,14 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
         </MetaRow>
         <MetaRow label={t('admin.user_preview.uuid_label')}>
           <div className="inline-flex items-center gap-1 max-w-full">
-            <span className="font-mono text-xs text-gray-300 truncate">
+            <span className="font-mono text-xs text-white/70 truncate">
               {user.id}
             </span>
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              className="w-8 h-8 shrink-0 text-gray-400 hover:text-white"
+              className="w-8 h-8 shrink-0 text-white/50 hover:text-white"
               aria-label={t('admin.user_preview.copy_id')}
               onClick={() => copyId(user.id)}
             >
@@ -216,7 +216,7 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
             <p className="text-lg font-semibold text-white tabular-nums leading-none">
               {value}
             </p>
-            <p className="mt-1 text-[11px] font-medium text-gray-500 uppercase tracking-wide truncate">
+            <p className="mt-1 text-[11px] font-medium text-white/40 uppercase tracking-wide truncate">
               {t(`admin.user_preview.${key}`)}
             </p>
           </div>
@@ -225,17 +225,17 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
 
       {user.profile?.bio && (
         <div>
-          <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1.5">
+          <p className="text-[11px] font-medium text-white/40 uppercase tracking-wide mb-1.5">
             {t('admin.user_preview.bio_label')}
           </p>
-          <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">
+          <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
             {user.profile.bio}
           </p>
         </div>
       )}
 
       <section className="space-y-3">
-        <h4 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
+        <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide flex items-center gap-1.5">
           <Database size={12} />
           {t('admin.user_preview.system_data_title')}
         </h4>
@@ -262,7 +262,7 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
           {user.stripeIdentitySessionId && (
             <SystemField label={t('admin.user_preview.stripe_session_label')}>
               <span
-                className="font-mono text-xs text-gray-300 truncate block"
+                className="font-mono text-xs text-white/70 truncate block"
                 title={user.stripeIdentitySessionId}
               >
                 {user.stripeIdentitySessionId}
@@ -274,7 +274,7 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <section>
-          <h4 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+          <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-2 flex items-center gap-1.5">
             <MessageSquare size={12} className="text-brand-primary" />
             {t('admin.user_preview.recent_posts')}
           </h4>
@@ -287,26 +287,26 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
                   rel="noopener noreferrer"
                   className="py-2 flex justify-between items-center gap-2 text-xs group"
                 >
-                  <span className="text-gray-300 truncate min-w-0 group-hover:text-white transition-colors">
+                  <span className="text-white/70 truncate min-w-0 group-hover:text-white transition-colors">
                     {post.caption || t('admin.user_preview.no_caption')}
                   </span>
                   <ExternalLink
                     size={12}
-                    className="text-gray-500 shrink-0 group-hover:text-brand-primary"
+                    className="text-white/40 shrink-0 group-hover:text-brand-primary"
                   />
                 </a>
               </li>
             ))}
           </ul>
           {user.posts.length === 0 && (
-            <p className="text-xs text-gray-500 py-1">
+            <p className="text-xs text-white/40 py-1">
               {t('admin.user_preview.no_recent_activity')}
             </p>
           )}
         </section>
 
         <section>
-          <h4 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+          <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-2 flex items-center gap-1.5">
             <AlertCircle size={12} className="text-red-400" />
             {t('admin.user_preview.reports_title')}
           </h4>
@@ -316,7 +316,7 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
                 key={report.id}
                 className="py-2 flex justify-between items-center gap-2 text-xs"
               >
-                <span className="text-gray-300 truncate min-w-0">
+                <span className="text-white/70 truncate min-w-0">
                   {report.reason}
                 </span>
                 <span
@@ -331,7 +331,7 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
             ))}
           </ul>
           {user.reports.length === 0 && (
-            <p className="text-xs text-gray-500 py-1">
+            <p className="text-xs text-white/40 py-1">
               {t('admin.user_preview.no_pending_reports')}
             </p>
           )}

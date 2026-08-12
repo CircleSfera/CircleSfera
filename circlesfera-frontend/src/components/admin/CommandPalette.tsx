@@ -166,22 +166,19 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={t('admin.search', 'Buscar')}
+        aria-label={t('admin.search')}
         tabIndex={-1}
         className="relative w-full max-w-lg bg-[rgb(18,18,20)] border border-white/10 rounded-xl shadow-2xl overflow-hidden outline-none"
       >
         <div className="flex items-center px-4 py-3 border-b border-white/5">
-          <Search size={20} className="text-gray-300 mr-3 shrink-0" />
+          <Search size={20} className="text-white/70 mr-3 shrink-0" />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onListKeyDown}
-            placeholder={t(
-              'admin.cmd.placeholder',
-              'Buscar secciones o usuarios...',
-            )}
-            className="flex-1 min-w-0 bg-transparent border-none text-white focus:ring-0 outline-none placeholder-gray-500 text-base"
+            placeholder={t('admin.cmd.placeholder')}
+            className="flex-1 min-w-0 bg-transparent border-none text-white focus:ring-0 outline-none placeholder:text-white/40 text-base"
             aria-autocomplete="list"
             aria-controls="admin-cmd-listbox"
             aria-activedescendant={activeId}
@@ -191,7 +188,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           <button
             type="button"
             onClick={onClose}
-            className="px-2 py-1 text-xs font-bold text-gray-500 bg-white/5 rounded hover:bg-white/10 transition-colors shrink-0"
+            className="px-2 py-1 text-xs font-bold text-white/40 bg-white/5 rounded hover:bg-white/10 transition-colors shrink-0"
           >
             ESC
           </button>
@@ -203,7 +200,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           className="max-h-[60vh] overflow-y-auto p-2"
         >
           {query.length > 0 && results.length === 0 ? (
-            <div className="p-4 text-center text-gray-500 text-sm">
+            <div className="p-4 text-center text-white/40 text-sm">
               {t('admin.cmd.no_results', 'Sin resultados para "{{query}}"', {
                 query,
               })}
@@ -220,7 +217,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                   onClick={result.action}
                   onMouseEnter={() => setActiveIndex(index)}
                   className={clsx(
-                    'w-full flex items-center px-3 py-3 rounded-lg text-gray-300 text-left min-h-11',
+                    'w-full flex items-center px-3 py-3 rounded-lg text-white/70 text-left min-h-11',
                     index === activeIndex
                       ? 'bg-brand-primary/15 text-brand-primary'
                       : 'hover:bg-white/5',

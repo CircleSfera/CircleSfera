@@ -71,7 +71,7 @@ export default function NewsletterTab({
               type="button"
               variant="secondary"
               onClick={() => setShowPreview(!showPreview)}
-              className="min-h-11 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border border-white/10 hover:bg-white/5 text-gray-300 w-full xs:w-auto"
+              className="min-h-11 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border border-white/10 hover:bg-white/5 text-white/70 w-full xs:w-auto"
             >
               {showPreview
                 ? t('admin.newsletter.edit_content')
@@ -105,7 +105,7 @@ export default function NewsletterTab({
               <div className="space-y-2">
                 <label
                   htmlFor="subject"
-                  className="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1 flex items-center gap-2"
+                  className="text-xs font-semibold text-white/40 uppercase tracking-wide ml-1 flex items-center gap-2"
                 >
                   <Type size={12} /> {t('admin.newsletter.label_subject')}
                 </label>
@@ -123,7 +123,7 @@ export default function NewsletterTab({
               <div className="space-y-2">
                 <label
                   htmlFor="title"
-                  className="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1 flex items-center gap-2"
+                  className="text-xs font-semibold text-white/40 uppercase tracking-wide ml-1 flex items-center gap-2"
                 >
                   <Layout size={12} /> {t('admin.newsletter.label_title')}
                 </label>
@@ -142,7 +142,7 @@ export default function NewsletterTab({
               <div className="space-y-2">
                 <label
                   htmlFor="content"
-                  className="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1"
+                  className="text-xs font-semibold text-white/40 uppercase tracking-wide ml-1"
                 >
                   {t('admin.newsletter.label_content')}
                 </label>
@@ -161,7 +161,7 @@ export default function NewsletterTab({
                 <div className="space-y-2">
                   <label
                     htmlFor="buttonText"
-                    className="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1"
+                    className="text-xs font-semibold text-white/40 uppercase tracking-wide ml-1"
                   >
                     {t('admin.newsletter.label_button_text')}
                   </label>
@@ -178,14 +178,14 @@ export default function NewsletterTab({
                 <div className="space-y-2">
                   <label
                     htmlFor="buttonUrl"
-                    className="text-xs font-semibold text-gray-500 uppercase tracking-wide ml-1"
+                    className="text-xs font-semibold text-white/40 uppercase tracking-wide ml-1"
                   >
                     {t('admin.newsletter.label_button_url')}
                   </label>
                   <div className="relative">
                     <ExternalLink
                       size={14}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30"
                     />
                     <Input
                       id="buttonUrl"
@@ -216,7 +216,7 @@ export default function NewsletterTab({
                     <p className="text-white text-xs font-semibold">
                       {t('admin.newsletter.preview_from')}
                     </p>
-                    <p className="text-gray-500 text-xs truncate">
+                    <p className="text-white/40 text-xs truncate">
                       {t('admin.newsletter.preview_subject', {
                         subject:
                           formData.subject ||
@@ -231,7 +231,7 @@ export default function NewsletterTab({
                     {formData.title ||
                       t('admin.newsletter.preview_default_title')}
                   </h1>
-                  <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+                  <p className="text-white/70 text-sm leading-relaxed whitespace-pre-wrap">
                     {formData.content ||
                       t('admin.newsletter.preview_default_content')}
                   </p>
@@ -245,7 +245,7 @@ export default function NewsletterTab({
                   )}
 
                   <div className="pt-6 sm:pt-10 border-t border-white/5">
-                    <p className="text-xs text-gray-600 font-semibold uppercase tracking-wide">
+                    <p className="text-xs text-white/30 font-semibold uppercase tracking-wide">
                       {t('admin.newsletter.preview_footer')}
                     </p>
                   </div>
@@ -262,7 +262,7 @@ export default function NewsletterTab({
           <h4 className="text-orange-500 text-xs font-semibold uppercase tracking-wide mb-1">
             {t('admin.newsletter.security_title')}
           </h4>
-          <p className="text-gray-300 text-xs leading-relaxed">
+          <p className="text-white/70 text-xs leading-relaxed">
             {t('admin.newsletter.security_description')}
           </p>
         </div>

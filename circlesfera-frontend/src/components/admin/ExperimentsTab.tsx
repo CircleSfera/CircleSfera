@@ -120,7 +120,7 @@ function PercentageSlider({
         onChange={(e) => onChange(clamp(Number(e.target.value) || 0))}
         className="w-20 min-h-11 text-center"
       />
-      <span className="text-xs text-gray-400 shrink-0">%</span>
+      <span className="text-xs text-white/50 shrink-0">%</span>
     </div>
   );
 }
@@ -143,7 +143,7 @@ function SubTabToggle({
         className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
           activeTab === 'flags'
             ? 'bg-white/10 text-white shadow-sm'
-            : 'text-gray-400 hover:text-gray-200 hover:bg-white/3'
+            : 'text-white/50 hover:text-white/80 hover:bg-white/3'
         }`}
       >
         <Key size={14} className="inline-block mr-1.5 -mt-0.5" />
@@ -155,7 +155,7 @@ function SubTabToggle({
         className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
           activeTab === 'experiments'
             ? 'bg-white/10 text-white shadow-sm'
-            : 'text-gray-400 hover:text-gray-200 hover:bg-white/3'
+            : 'text-white/50 hover:text-white/80 hover:bg-white/3'
         }`}
       >
         <FlaskConical size={14} className="inline-block mr-1.5 -mt-0.5" />
@@ -230,11 +230,11 @@ function UserAutocomplete({
       {isOpen && debouncedSearch.length >= 2 && (
         <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-xl border border-white/10 bg-[rgb(22,22,24)] shadow-2xl max-h-64 overflow-y-auto">
           {isLoading ? (
-            <div className="p-3 text-xs text-gray-400">
+            <div className="p-3 text-xs text-white/50">
               {t('admin.experiments.searching_users')}
             </div>
           ) : users.length === 0 ? (
-            <div className="p-3 text-xs text-gray-400">
+            <div className="p-3 text-xs text-white/50">
               {t('admin.experiments.no_users_found')}
             </div>
           ) : (
@@ -263,14 +263,14 @@ function UserAutocomplete({
                   />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                    <User size={14} className="text-gray-400" />
+                    <User size={14} className="text-white/50" />
                   </div>
                 )}
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-white truncate">
                     @{user.profile?.username ?? '—'}
                   </p>
-                  <p className="text-xs text-gray-400 truncate">
+                  <p className="text-xs text-white/50 truncate">
                     {user.email} · {user.id.slice(0, 8)}…
                   </p>
                 </div>
@@ -489,11 +489,11 @@ export default function ExperimentsTab() {
                               <p className="text-sm font-semibold text-white truncate">
                                 {flag.name}
                               </p>
-                              <p className="text-xs font-mono text-gray-500 truncate">
+                              <p className="text-xs font-mono text-white/40 truncate">
                                 {flag.key}
                               </p>
                               {flag.description && (
-                                <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+                                <p className="text-xs text-white/50 mt-1 line-clamp-2">
                                   {flag.description}
                                 </p>
                               )}
@@ -504,7 +504,7 @@ export default function ExperimentsTab() {
                             />
                           </div>
 
-                          <div className="flex items-center gap-x-3 gap-y-1 text-xs text-gray-500 flex-wrap">
+                          <div className="flex items-center gap-x-3 gap-y-1 text-xs text-white/40 flex-wrap">
                             <span className="inline-flex items-center gap-1">
                               <Clock size={12} />
                               {t('admin.experiments.created_at')}{' '}
@@ -838,7 +838,7 @@ function FeatureFlagForm({
       <div>
         <label
           htmlFor="flagKey"
-          className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 block"
+          className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-2 block"
         >
           {t('admin.experiments.flag_key')}
         </label>
@@ -858,7 +858,7 @@ function FeatureFlagForm({
       <div>
         <label
           htmlFor="flagName"
-          className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 block"
+          className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-2 block"
         >
           {t('admin.experiments.flag_name')}
         </label>
@@ -872,7 +872,7 @@ function FeatureFlagForm({
       <div>
         <label
           htmlFor="flagDescription"
-          className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 block"
+          className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-2 block"
         >
           {t('admin.experiments.flag_description')}
         </label>
@@ -886,7 +886,7 @@ function FeatureFlagForm({
       <div>
         <label
           htmlFor="flagPercentage"
-          className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 block"
+          className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-2 block"
         >
           {t('admin.experiments.percentage')}
         </label>
@@ -906,7 +906,7 @@ function FeatureFlagForm({
           type="button"
           onClick={onCancel}
           variant="secondary"
-          className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-gray-300"
+          className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-white/70"
         >
           {t('admin.shared.cancel')}
         </Button>
@@ -958,7 +958,7 @@ function ExperimentForm({
       <div>
         <label
           htmlFor="userId"
-          className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 block"
+          className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-2 block"
         >
           {t('admin.experiments.form_user_id')}
         </label>
@@ -972,7 +972,7 @@ function ExperimentForm({
       <div>
         <label
           htmlFor="experimentKey"
-          className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 block"
+          className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-2 block"
         >
           {t('admin.experiments.form_experiment_key')}
         </label>
@@ -988,7 +988,7 @@ function ExperimentForm({
       <div>
         <label
           htmlFor="variant"
-          className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-2 block"
+          className="text-xs font-semibold text-white/70 uppercase tracking-wider mb-2 block"
         >
           {t('admin.experiments.form_variant')}
         </label>
@@ -1013,7 +1013,7 @@ function ExperimentForm({
           type="button"
           onClick={onCancel}
           variant="secondary"
-          className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-gray-300"
+          className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-white/70"
         >
           {t('admin.shared.cancel')}
         </Button>

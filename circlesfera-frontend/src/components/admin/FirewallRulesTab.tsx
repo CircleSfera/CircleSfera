@@ -223,7 +223,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
                   <div className="space-y-1.5">
                     <label
                       htmlFor="ruleKeyword"
-                      className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
+                      className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
                     >
                       Palabra Clave o Frase
                     </label>
@@ -239,7 +239,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
                   <div className="space-y-1.5">
                     <label
                       htmlFor="ruleAction"
-                      className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
+                      className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
                     >
                       Acción
                     </label>
@@ -265,7 +265,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
                       type="button"
                       onClick={clearSelection}
                       variant="secondary"
-                      className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-gray-300"
+                      className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-white/70"
                     >
                       {t('admin.shared.cancel')}
                     </Button>
@@ -285,7 +285,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
               ) : selectedItem ? (
                 <div className="space-y-8">
                   <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                    <h4 className="text-sm font-medium text-gray-400 mb-2">
+                    <h4 className="text-sm font-medium text-white/50 mb-2">
                       Palabra Clave Interceptada
                     </h4>
                     <p className="text-lg text-white font-mono bg-black/20 p-3 rounded-lg border border-white/5">
@@ -295,7 +295,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
-                      <p className="text-xs font-medium text-gray-400 mb-1">
+                      <p className="text-xs font-medium text-white/50 mb-1">
                         Acción Actual
                       </p>
                       <div className="mt-1">
@@ -303,10 +303,10 @@ export default function FirewallRulesTab({ onToast }: Props) {
                       </div>
                     </div>
                     <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
-                      <p className="text-xs font-medium text-gray-400 mb-1">
+                      <p className="text-xs font-medium text-white/50 mb-1">
                         Creado el
                       </p>
-                      <p className="text-sm text-gray-200">
+                      <p className="text-sm text-white/80">
                         {formatCreatedAt(selectedItem.createdAt)}
                       </p>
                     </div>
@@ -386,12 +386,12 @@ export default function FirewallRulesTab({ onToast }: Props) {
             <div className="h-full flex items-center justify-center p-6 text-center">
               <div className="max-w-xs space-y-4">
                 <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-6 ring-1 ring-white/10">
-                  <ShieldAlert className="w-6 h-6 text-gray-400" />
+                  <ShieldAlert className="w-6 h-6 text-white/50" />
                 </div>
                 <h3 className="text-lg font-semibold text-white">
                   Selecciona una Regla
                 </h3>
-                <p className="text-sm text-gray-400 leading-relaxed">
+                <p className="text-sm text-white/50 leading-relaxed">
                   Elige una regla de la lista para ver sus detalles o añade una
                   nueva para interceptar texto.
                 </p>

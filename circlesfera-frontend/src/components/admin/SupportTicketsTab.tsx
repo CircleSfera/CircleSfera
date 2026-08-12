@@ -29,7 +29,7 @@ function statusBadgeClass(status: TicketStatus) {
     case 'RESOLVED':
       return 'bg-green-500/20 text-green-500';
     case 'CLOSED':
-      return 'bg-zinc-500/20 text-zinc-400';
+      return 'bg-white/10 text-white/50';
   }
 }
 
@@ -200,7 +200,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                     <h3 className="text-base sm:text-lg font-semibold text-white truncate">
                       {selectedTicket.subject}
                     </h3>
-                    <p className="text-xs text-gray-400 truncate">
+                    <p className="text-xs text-white/50 truncate">
                       ID: {selectedTicket.id}
                     </p>
                   </div>
@@ -230,21 +230,21 @@ export default function SupportTicketsTab({ onToast }: Props) {
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-5 space-y-5">
                   <dl className="text-sm">
                     <div className="py-2.5 border-b border-white/5">
-                      <dt className="text-xs font-medium text-gray-500 mb-1">
+                      <dt className="text-xs font-medium text-white/40 mb-1">
                         {t('admin.support.email_label')}
                       </dt>
                       <dd className="text-white font-semibold flex items-center gap-2">
-                        <Mail size={14} className="text-gray-500 shrink-0" />
+                        <Mail size={14} className="text-white/40 shrink-0" />
                         {selectedTicket.email}
                       </dd>
                       {selectedTicket.user?.profile?.username && (
-                        <dd className="text-xs text-gray-400 mt-1">
+                        <dd className="text-xs text-white/50 mt-1">
                           @{selectedTicket.user.profile.username}
                         </dd>
                       )}
                     </div>
                     <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
-                      <dt className="text-xs font-medium text-gray-500">
+                      <dt className="text-xs font-medium text-white/40">
                         {t('admin.support.status_label')}
                       </dt>
                       <dd>
@@ -256,23 +256,23 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       </dd>
                     </div>
                   </dl>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-white/40">
                     {t('admin.support.created_at', {
                       date: new Date(selectedTicket.createdAt).toLocaleString(),
                     })}
                   </p>
 
                   <div>
-                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-2">
                       {t('admin.support.message_label')}
                     </p>
-                    <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
+                    <p className="text-sm text-white/70 whitespace-pre-wrap leading-relaxed">
                       {selectedTicket.message}
                     </p>
                   </div>
 
                   <div className="space-y-3 pt-1 border-t border-white/5">
-                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                    <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide">
                       {t('admin.support.reply_label')}
                     </p>
                     <Textarea
@@ -294,7 +294,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                     )}
                     {selectedTicket.reply &&
                       selectedTicket.status === 'CLOSED' && (
-                        <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
+                        <p className="text-sm text-white/70 whitespace-pre-wrap leading-relaxed">
                           {selectedTicket.reply}
                         </p>
                       )}

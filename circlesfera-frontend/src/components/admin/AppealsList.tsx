@@ -103,7 +103,7 @@ export default function AppealsList({
             <>
               <span>{appeal.reason}</span>
               {appeal.adminNotes ? (
-                <span className="block text-xs text-gray-400 mt-1">
+                <span className="block text-xs text-white/50 mt-1">
                   {t('admin.appeals.admin_notes', 'Notes')}: {appeal.adminNotes}
                 </span>
               ) : null}

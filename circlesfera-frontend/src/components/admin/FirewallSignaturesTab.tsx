@@ -99,7 +99,7 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
   });
 
   const autoPreview = (
-    <span className="text-gray-500 italic font-normal">
+    <span className="text-white/40 italic font-normal">
       {t('admin.firewall.auto_vector_preview')}
     </span>
   );
@@ -182,7 +182,7 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
                 <h3 className="text-base font-semibold text-white">
                   {t('admin.firewall.drawer_title')}
                 </h3>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-sm text-white/50 mt-1">
                   {t('admin.firewall.drawer_subtitle')}
                 </p>
               </div>
@@ -196,7 +196,7 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="firewall-text"
-                    className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
+                    className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
                   >
                     {t('admin.firewall.label_text')}
                   </label>
@@ -212,7 +212,7 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="firewall-category"
-                    className="text-xs font-semibold uppercase tracking-wide text-gray-500 ml-1"
+                    className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
                   >
                     {t('admin.firewall.label_category')}
                   </label>
@@ -244,7 +244,7 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
                     type="button"
                     onClick={clearSelection}
                     variant="secondary"
-                    className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-gray-300"
+                    className="flex-1 min-h-11 font-semibold bg-white/5 border-transparent text-white/70"
                   >
                     {t('admin.shared.cancel')}
                   </Button>
@@ -265,9 +265,9 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
                 <h3 className="text-base font-semibold text-white">
                   {t('admin.firewall.col_preview')}
                 </h3>
-                <p className="text-sm text-gray-300 mt-2 wrap-break-word">
+                <p className="text-sm text-white/70 mt-2 wrap-break-word">
                   {getTextPreview(selectedItem) || (
-                    <span className="text-gray-500 italic">
+                    <span className="text-white/40 italic">
                       {t('admin.firewall.auto_vector_preview')}
                     </span>
                   )}
@@ -275,7 +275,7 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-white/40">
                     {t('admin.firewall.col_category')}
                   </p>
                   <div className="mt-2">
@@ -283,19 +283,19 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-white/40">
                     {t('admin.firewall.col_created')}
                   </p>
-                  <p className="text-sm text-gray-300 mt-2">
+                  <p className="text-sm text-white/70 mt-2">
                     {formatCreatedAt(selectedItem.createdAt)}
                   </p>
                 </div>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <p className="text-xs font-semibold uppercase tracking-wide text-white/40">
                   ID
                 </p>
-                <p className="text-xs text-gray-400 font-mono mt-2 break-all">
+                <p className="text-xs text-white/50 font-mono mt-2 break-all">
                   {selectedItem.id}
                 </p>
               </div>

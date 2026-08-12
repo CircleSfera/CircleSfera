@@ -278,7 +278,7 @@ export default function UserVerificationTab({
                               ? 'text-green-400 bg-green-400/10'
                               : isPending
                                 ? 'text-yellow-400 bg-yellow-400/10'
-                                : 'text-zinc-400 bg-zinc-400/10'
+                                : 'text-white/50 bg-white/10'
                           }`}
                         >
                           {isVerified
@@ -351,7 +351,7 @@ export default function UserVerificationTab({
                           size={18}
                         />
                       </h3>
-                      <p className="text-xs text-gray-400 truncate">
+                      <p className="text-xs text-white/50 truncate">
                         ID: {selectedUser.id}
                       </p>
                     </div>
@@ -373,7 +373,7 @@ export default function UserVerificationTab({
 
                 <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-6">
                   <section>
-                    <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                    <h4 className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-3">
                       {t('admin.verification.kyc_status_title')}
                     </h4>
 
@@ -385,7 +385,7 @@ export default function UserVerificationTab({
                               <CheckCircle2 size={13} />
                               {t('admin.verification.kyc_verified_title')}
                             </span>
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-white/50">
                               {t(
                                 'admin.verification.kyc_verified_description',
                                 {
@@ -402,17 +402,17 @@ export default function UserVerificationTab({
                               <Clock size={13} />
                               {t('admin.verification.kyc_session_title')}
                             </span>
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-white/50">
                               {t('admin.verification.kyc_session_description')}
                             </span>
                           </>
                         ) : (
                           <>
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/5 text-gray-300 text-[11px] font-semibold uppercase tracking-wide">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/5 text-white/70 text-[11px] font-semibold uppercase tracking-wide">
                               <UserX size={13} />
                               {t('admin.verification.kyc_not_started_title')}
                             </span>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-white/40">
                               {t(
                                 'admin.verification.kyc_not_started_description',
                               )}
@@ -423,7 +423,7 @@ export default function UserVerificationTab({
 
                       <dl className="text-sm">
                         <div className="py-2.5 border-b border-white/5">
-                          <dt className="text-xs font-medium text-gray-500 mb-1">
+                          <dt className="text-xs font-medium text-white/40 mb-1">
                             {t('admin.verification.session_id_label')}
                           </dt>
                           <dd className="text-white text-xs font-mono break-all">
@@ -460,7 +460,7 @@ export default function UserVerificationTab({
                             <RefreshCw size={16} className="mr-2" />{' '}
                             {t('admin.verification.revoke_kyc')}
                           </Button>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-white/40">
                             {t('admin.verification.revoke_hint')}
                           </p>
                         </div>
@@ -469,7 +469,7 @@ export default function UserVerificationTab({
                   </section>
 
                   <section>
-                    <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                    <h4 className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-3">
                       {t('admin.verification.level_controls_title')}
                     </h4>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -494,7 +494,7 @@ export default function UserVerificationTab({
                             {t('admin.verification.level_elite')}
                           </option>
                         </Select>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-white/40">
                           {t('admin.verification.level_hint')}
                         </p>
                       </div>
@@ -515,7 +515,7 @@ export default function UserVerificationTab({
                             {t('admin.verification.account_business')}
                           </option>
                         </Select>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-white/40">
                           {t('admin.verification.account_type_hint')}
                         </p>
                       </div>

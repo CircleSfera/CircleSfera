@@ -48,17 +48,17 @@ export default function LiveStreamDetailPanel({
                   LIVE
                 </span>
               ) : (
-                <span className="px-2 py-0.5 rounded-full bg-gray-500/10 text-gray-400 text-xs font-bold tracking-wider">
+                <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/50 text-xs font-bold tracking-wider">
                   ENDED
                 </span>
               )}
-              <span className="text-sm text-gray-400">{startedAtString}</span>
+              <span className="text-sm text-white/50">{startedAtString}</span>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
+            className="p-2 text-white/50 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
           >
             ✕
           </button>
@@ -118,7 +118,7 @@ export default function LiveStreamDetailPanel({
 
           {/* Hosts Info */}
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+            <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider">
               Participantes
             </h3>
 
@@ -134,7 +134,7 @@ export default function LiveStreamDetailPanel({
                   <div className="font-semibold text-white">
                     @{stream.host?.profile?.username}
                   </div>
-                  <div className="text-xs text-gray-400">Host Principal</div>
+                  <div className="text-xs text-white/50">Host Principal</div>
                 </div>
               </div>
             </div>
@@ -152,7 +152,7 @@ export default function LiveStreamDetailPanel({
                     <div className="font-semibold text-white">
                       @{stream.coHost?.profile?.username}
                     </div>
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-white/50">
                       Co-Host Invitado
                     </div>
                   </div>
@@ -164,7 +164,7 @@ export default function LiveStreamDetailPanel({
           {/* Actions */}
           {isLive && (
             <div className="pt-6 border-t border-white/5 space-y-3">
-              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">
+              <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4">
                 Acciones de Moderación
               </h3>
 

@@ -354,7 +354,7 @@ export default function ReportsTab({ onToast }: Props) {
                         <span className="flex flex-col items-end gap-0.5">
                           <span>{timeAgo(report.createdAt, t)}</span>
                           {report.resolvedAt && (
-                            <span className="text-[11px] text-gray-500">
+                            <span className="text-[11px] text-white/40">
                               {t('admin.reports.resolved_at', {
                                 date: new Date(
                                   report.resolvedAt,
@@ -381,7 +381,7 @@ export default function ReportsTab({ onToast }: Props) {
                                 alt=""
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                              <div className="w-full h-full flex items-center justify-center text-white/25">
                                 <Ghost size={16} />
                               </div>
                             )}
@@ -440,7 +440,7 @@ export default function ReportsTab({ onToast }: Props) {
                           </button>
                         )}
                       </h3>
-                      <p className="text-xs text-gray-400 truncate">
+                      <p className="text-xs text-white/50 truncate">
                         ID: {selectedReport.id}
                       </p>
                     </div>
@@ -626,7 +626,7 @@ export default function ReportsTab({ onToast }: Props) {
                           </div>
                         )}
                         <div className="text-center space-y-1">
-                          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                          <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide">
                             {selectedReport.targetType === 'USER'
                               ? t('admin.reports.target_user')
                               : t('admin.reports.target_message')}
@@ -638,7 +638,7 @@ export default function ReportsTab({ onToast }: Props) {
                           )}
                         </div>
                         {selectedReport.targetContent?.text && (
-                          <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
+                          <p className="text-sm text-white/70 whitespace-pre-wrap leading-relaxed">
                             {selectedReport.targetContent.text}
                           </p>
                         )}
@@ -653,7 +653,7 @@ export default function ReportsTab({ onToast }: Props) {
                               alt="Reported content"
                             />
                           ) : (
-                            <div className="text-gray-600 flex flex-col items-center">
+                            <div className="text-white/30 flex flex-col items-center">
                               <Ghost size={48} className="mb-4" />
                               <p className="text-sm font-semibold">
                                 {t('admin.reports.no_preview')}
@@ -662,7 +662,7 @@ export default function ReportsTab({ onToast }: Props) {
                           )}
                         </div>
                         {selectedReport.targetContent?.text && (
-                          <p className="text-sm text-gray-300 italic whitespace-pre-wrap leading-relaxed">
+                          <p className="text-sm text-white/70 italic whitespace-pre-wrap leading-relaxed">
                             &ldquo;{selectedReport.targetContent.text}&rdquo;
                           </p>
                         )}
@@ -673,7 +673,7 @@ export default function ReportsTab({ onToast }: Props) {
                   <div className="w-full lg:w-1/2">
                     <dl className="text-sm">
                       <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
-                        <dt className="text-xs font-medium text-gray-500 shrink-0 pt-0.5">
+                        <dt className="text-xs font-medium text-white/40 shrink-0 pt-0.5">
                           {t('admin.reports.reason_label')}
                         </dt>
                         <dd className="text-red-400 font-semibold text-right">
@@ -681,7 +681,7 @@ export default function ReportsTab({ onToast }: Props) {
                         </dd>
                       </div>
                       <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
-                        <dt className="text-xs font-medium text-gray-500 shrink-0 pt-0.5">
+                        <dt className="text-xs font-medium text-white/40 shrink-0 pt-0.5">
                           {t('admin.reports.reported_by_label')}
                         </dt>
                         <dd className="text-white font-semibold text-right">
@@ -702,10 +702,10 @@ export default function ReportsTab({ onToast }: Props) {
                       </div>
                       {selectedReport.details && (
                         <div className="py-2.5 border-b border-white/5">
-                          <dt className="text-xs font-medium text-gray-500 mb-1.5">
+                          <dt className="text-xs font-medium text-white/40 mb-1.5">
                             {t('admin.reports.details_label')}
                           </dt>
-                          <dd className="text-sm text-gray-300 whitespace-pre-wrap">
+                          <dd className="text-sm text-white/70 whitespace-pre-wrap">
                             {selectedReport.details.replace(
                               '[AI Automated Flag]: ',
                               '',
@@ -714,7 +714,7 @@ export default function ReportsTab({ onToast }: Props) {
                         </div>
                       )}
                       <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
-                        <dt className="text-xs font-medium text-gray-500">
+                        <dt className="text-xs font-medium text-white/40">
                           {t('admin.reports.status_label')}
                         </dt>
                         <dd>
@@ -726,7 +726,7 @@ export default function ReportsTab({ onToast }: Props) {
                                   ? 'bg-blue-500/15 text-blue-400'
                                   : selectedReport.status === 'RESOLVED'
                                     ? 'bg-green-500/15 text-green-400'
-                                    : 'bg-white/10 text-gray-300'
+                                    : 'bg-white/10 text-white/70'
                             }`}
                           >
                             {selectedReport.status}
@@ -736,7 +736,7 @@ export default function ReportsTab({ onToast }: Props) {
                       {(selectedReport.assignedTo?.profile?.username ||
                         selectedReport.assignedToId) && (
                         <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
-                          <dt className="text-xs font-medium text-gray-500 shrink-0 pt-0.5">
+                          <dt className="text-xs font-medium text-white/40 shrink-0 pt-0.5">
                             {t('admin.reports.assigned_label')}
                           </dt>
                           <dd className="text-white font-semibold text-right">
@@ -748,10 +748,10 @@ export default function ReportsTab({ onToast }: Props) {
                       )}
                       {selectedReport.resolvedAt && (
                         <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
-                          <dt className="text-xs font-medium text-gray-500 shrink-0 pt-0.5">
+                          <dt className="text-xs font-medium text-white/40 shrink-0 pt-0.5">
                             {t('admin.reports.resolved_label')}
                           </dt>
-                          <dd className="text-gray-300 text-right">
+                          <dd className="text-white/70 text-right">
                             {new Date(
                               selectedReport.resolvedAt,
                             ).toLocaleString()}
@@ -759,7 +759,7 @@ export default function ReportsTab({ onToast }: Props) {
                         </div>
                       )}
                       <div className="py-2.5">
-                        <dt className="text-xs font-medium text-gray-500 mb-1.5">
+                        <dt className="text-xs font-medium text-white/40 mb-1.5">
                           {t('admin.reports.internal_notes_label')}
                         </dt>
                         <dd>
@@ -770,7 +770,7 @@ export default function ReportsTab({ onToast }: Props) {
                             placeholder={t(
                               'admin.reports.internal_notes_placeholder',
                             )}
-                            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 placeholder:text-gray-600 focus:outline-none focus:ring-1 focus:ring-brand-primary/50 resize-y min-h-20"
+                            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-brand-primary/50 resize-y min-h-20"
                           />
                           <Button
                             onClick={() =>

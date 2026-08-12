@@ -137,8 +137,7 @@ export default function MonetizationTab() {
       REFUNDED: 'text-purple-400 bg-purple-400/10 border border-purple-400/20',
     };
     const badgeStyle =
-      styles[normalized] ||
-      'text-gray-400 bg-gray-400/10 border border-gray-400/20';
+      styles[normalized] || 'text-white/50 bg-white/10 border border-white/20';
     return (
       <span
         className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase ${badgeStyle}`}
@@ -159,7 +158,7 @@ export default function MonetizationTab() {
           <Button
             onClick={handleExportLedger}
             variant="outline"
-            className="text-sm font-semibold text-gray-300 hover:text-white border-white/10 px-4 min-h-11 w-full sm:w-auto"
+            className="text-sm font-semibold text-white/70 hover:text-white border-white/10 px-4 min-h-11 w-full sm:w-auto"
             aria-label={t('admin.monetization.export_ledger_aria')}
           >
             <Download size={16} className="mr-2" />
@@ -200,7 +199,7 @@ export default function MonetizationTab() {
             <h4 className="text-white font-semibold text-sm mb-1">
               {t('admin.monetization.stripe_api_title')}
             </h4>
-            <p className="text-gray-400 text-xs leading-relaxed">
+            <p className="text-white/50 text-xs leading-relaxed">
               {t('admin.monetization.stripe_api_desc')}
             </p>
           </div>
@@ -219,7 +218,7 @@ export default function MonetizationTab() {
             <h4 className="text-white font-semibold text-sm mb-1">
               {t('admin.monetization.stripe_connect_title')}
             </h4>
-            <p className="text-gray-400 text-xs leading-relaxed">
+            <p className="text-white/50 text-xs leading-relaxed">
               {t('admin.monetization.stripe_connect_desc')}
             </p>
           </div>
@@ -237,7 +236,7 @@ export default function MonetizationTab() {
               <h3 className="text-sm sm:text-base font-semibold text-white">
                 {t('admin.monetization.tier_distribution_title')}
               </h3>
-              <p className="text-zinc-400 text-xs">
+              <p className="text-white/50 text-xs">
                 {t('admin.monetization.tier_distribution_subtitle')}
               </p>
             </div>
@@ -246,7 +245,7 @@ export default function MonetizationTab() {
           <div className="space-y-5">
             <div className="space-y-3">
               <div className="flex items-center justify-between px-1">
-                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">
+                <span className="text-xs font-semibold text-white/50 uppercase tracking-wide">
                   {t('admin.monetization.tier_composition')}
                 </span>
                 <span className="text-xs font-semibold text-white">
@@ -309,7 +308,7 @@ export default function MonetizationTab() {
                       <span className="text-sm font-semibold text-white truncate">
                         {tier.label}
                       </span>
-                      <span className="text-xs text-zinc-400">
+                      <span className="text-xs text-white/50">
                         {t('admin.monetization.tier_members', {
                           count: tier.count,
                         })}
@@ -335,7 +334,7 @@ export default function MonetizationTab() {
                 {t('admin.monetization.growth_title')}
               </h4>
             </div>
-            <p className="text-zinc-400 text-sm leading-relaxed mb-3">
+            <p className="text-white/50 text-sm leading-relaxed mb-3">
               {t('admin.monetization.growth_description')}
             </p>
             <p className="text-3xl font-semibold text-white tabular-nums">
@@ -343,7 +342,7 @@ export default function MonetizationTab() {
                 ? `${analytics.subscriptionGrowth > 0 ? '+' : ''}${analytics.subscriptionGrowth}%`
                 : '—'}
             </p>
-            <p className="text-xs text-zinc-500 mt-1">
+            <p className="text-xs text-white/40 mt-1">
               {t('admin.monetization.growth_period')}
             </p>
           </div>
@@ -355,7 +354,7 @@ export default function MonetizationTab() {
           <h3 className="text-sm sm:text-base font-semibold text-white">
             {t('admin.monetization.transactions_title')}
           </h3>
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-white/50">
             {t('admin.monetization.transactions_subtitle')}
           </p>
         </div>
@@ -441,16 +440,16 @@ export default function MonetizationTab() {
                   key={tx.id}
                   className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
                 >
-                  <td className="px-2 py-1 text-gray-500 text-sm whitespace-nowrap hidden lg:table-cell">
+                  <td className="px-2 py-1 text-white/40 text-sm whitespace-nowrap hidden lg:table-cell">
                     {new Date(tx.createdAt).toLocaleString()}
                   </td>
                   <td className="px-2 py-1">
-                    <span className="text-xs font-semibold uppercase text-gray-300">
+                    <span className="text-xs font-semibold uppercase text-white/70">
                       {tx.type}
                     </span>
                   </td>
                   <td className="px-2 py-1">
-                    <span className="text-sm text-gray-300 truncate block max-w-56">
+                    <span className="text-sm text-white/70 truncate block max-w-56">
                       {tx.sender?.profile?.username
                         ? `@${tx.sender.profile.username} → @${tx.receiver?.profile?.username || '—'}`
                         : tx.description || '—'}

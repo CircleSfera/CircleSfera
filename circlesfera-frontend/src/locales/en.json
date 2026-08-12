@@ -1918,12 +1918,7 @@
       "not_found": "Could not find the user record"
     },
     "cmd": {
-      "go_to": "Go to: {{section}}",
-      "quick_action": "Quick action: {{section}}",
-      "placeholder": "Search sections or users...",
-      "no_results": "No results for \"{{query}}\"",
-      "user_result": "User: @{{username}} ({{name}})",
-      "no_username": "no_username"
+      "placeholder": "Search sections or users..."
     },
     "lives": {
       "title": "Live streams",
