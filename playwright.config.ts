@@ -5,6 +5,8 @@ const skipGlobalSetup = process.env.SKIP_GLOBAL_SETUP === 'true';
 export default defineConfig({
   testDir: './e2e',
   testMatch: /.*\.spec\.ts$/,
+  // Legacy mock specs under e2e/tests/ use stale routes (/login) and do not hit the real API.
+  testIgnore: ['**/e2e/tests/**'],
   /* Maximum time one test can run for. */
   timeout: 30 * 1000,
   expect: {
