@@ -100,7 +100,7 @@ jobs:
       - name: "Frontend: Install Dependencies"
         run: |
           cd circlesfera-frontend
-          npm install
+          npm install --include=dev
 
       - name: Start backend in background
         run: |
@@ -117,15 +117,36 @@ jobs:
           cat /tmp/backend.log
           exit 1
 
+      - name: Start frontend in background
+        run: |
+          cd circlesfera-frontend
+          nohup npm run dev > /tmp/frontend.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sS -o /dev/null "http://localhost:5173"; then
+              echo "Frontend is up."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Frontend failed to start in time."
+          cat /tmp/frontend.log
+          exit 1
+
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright smoke tests
+        env:
+          PLAYWRIGHT_SKIP_WEBSERVER: 'true'
         run: npm run test:e2e -- e2e/smoke.spec.ts
 
-      - name: Dump backend logs on failure
+      - name: Dump server logs on failure
         if: failure()
-        run: cat /tmp/backend.log || true
+        run: |
+          echo "=== backend ==="
+          cat /tmp/backend.log || true
+          echo "=== frontend ==="
+          cat /tmp/frontend.log || true
 
       - name: Upload Playwright report
         if: failure()
