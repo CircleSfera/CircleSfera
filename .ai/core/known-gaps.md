@@ -18,14 +18,17 @@ it deliberately with tests and remove the entry in the same PR. Do not batch unr
 *(No open known gaps — F1 nav height drift and F2 avatar `lg` drift closed in Wave 1 UI foundation, August 2026. See `14-uiux-improvement-roadmap.md`.)*
 
 ## Tooling and CI
-*(No known gaps)*
+
+*(No open known gaps — PR/deploy quality gates unified via `.github/workflows/ci-quality.yml`,
+Playwright nightly boots Postgres/Redis/backend and discovers `e2e/**/*.spec.ts`, Dependabot covers
+shared/Actions/Docker, and `security.yml` runs CodeQL + informative npm audit as of August 2026.)*
 
 ## Documentation
 
 | # | Finding | Evidence |
 | --- | --- | --- |
 | D1 | Docs `01`–`07` are Abr 2026 snapshots patched in Jul 2026; `00-status.md` states they may lag. Prefer schema + controllers. | `00-status.md` |
-| D2 | `11-backups-strategy.md` mixes shipped scripts with aspirational WAL/PITR and named S3 buckets. Do not treat the aspirational parts as existing infrastructure. | `11-backups-strategy.md` |
+| D2 | `11-backups-strategy.md` still documents aspirational WAL/PITR and named S3 buckets alongside shipped scripts. Do not treat the aspirational parts as existing infrastructure. (Phantom `scripts/backup.sh` example removed Aug 2026.) | `11-backups-strategy.md` |
 
 
 ## Maintenance

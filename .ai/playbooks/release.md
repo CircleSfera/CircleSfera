@@ -18,8 +18,10 @@ production. There is no staging environment in this repository. Readiness must b
 
 Every line true, or the exception stated:
 
-1. CI green: lint, backend unit, Prisma drift check, backend e2e, frontend lint/test/build, Playwright
-   smoke.
+1. CI green on the PR: required GitHub checks are **`Run Lint and Unit Tests`** (reusable
+   `.github/workflows/ci-quality.yml`: Biome, shared build, backend build/lint/unit/e2e, Prisma
+   drift, frontend lint/test/build) and **`Playwright Smoke (unauthenticated)`**. Deploy reuses the
+   same quality workflow before building images.
 2. Migrations backward compatible with the currently deployed image — `prisma migrate deploy` runs at
    container start and the two versions briefly coexist.
 3. Every new env var present in `.env.example`, in `ENV_PRODUCTION_B64`, and in the compose service
@@ -82,5 +84,5 @@ Close with [`../checklists/release.md`](../checklists/release.md).
 - Never ship red CI, and never weaken a gate to unblock a release.
 - Never ship a destructive migration without an approved plan and a verified dump.
 - Never claim a release is verified without reading the actual workflow result.
-- Never deploy `circlesfera-landing`.
+- Never restore or deploy `circlesfera-landing/` (removed Jul 2026).
 - Never do an unsupervised risky deploy.

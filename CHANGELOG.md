@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ### Added
 
+- Shared reusable CI quality workflow (`.github/workflows/ci-quality.yml`) used by PR and deploy; CodeQL + informative npm audit (`.github/workflows/security.yml`); Dependabot for `circlesfera-shared`, GitHub Actions, and Docker base images
 - **AI Engineering Framework** under `.ai/`: repo context (`core/`), task router (`orchestrator.md`), 24 specialist roles (`agents/`), 11 workflows (`playbooks/`), 9 done-gates (`checklists/`) and 7 document skeletons (`templates/`). Tool adapters: 11 `.cursor/rules/*.mdc` routers, and `.agents/` for Antigravity (11 workspace rules + 11 `/slash-command` workflows). Verified doc/code drift is recorded in `.ai/core/known-gaps.md`
 - ADR-0011: in-repository AI engineering framework under `.ai/` (precedence, alternatives, constraints)
 - **P0 security**: required `ENCRYPTION_KEY` (no hardcoded fallback); `src/scripts/reencrypt-messages.ts` (ships in prod image); optional `ENCRYPTION_KEY_LEGACY` decrypt fallback during rotation
@@ -39,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ### Changed
 
+- PR and deploy quality gates unified; deploy concurrency queues instead of cancelling mid-rollout; Docker Buildx GHA cache enabled; Playwright discovers all `e2e/**/*.spec.ts` and nightly boots Postgres/Redis/backend (requires `E2E_USER_*` secrets)
+- Removed one-off root/backend scratch scripts and committed compile artifacts; docs no longer present `circlesfera-landing/` as an in-tree package
 - Root `README.md` technology-stack versions and Node prerequisite corrected against `package.json` and the `node:24` Docker/CI pins
 - Empty/error states on Frames, Saved, and Notifications use shared `EmptyState` / `ErrorState`
 - Design-system doc notes real brand tokens vs `Button` `blue-600` usage

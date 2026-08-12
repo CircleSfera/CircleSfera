@@ -28,6 +28,6 @@ not the system.**
   silently rewrite documents you were not asked to touch.
 - Never document an endpoint, model, enum or flow that does not exist in code. Never mark a document
   final when it rests on assumptions.
-- `circlesfera-landing/` is deprecated and unreferenced by any pipeline. Do not document it as active.
+- `circlesfera-landing/` was removed from the tree (Jul 2026). Do not document it as active or restore it.
 
 Full process: @.ai/playbooks/docs-sync.md
