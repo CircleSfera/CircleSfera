@@ -38,7 +38,7 @@ export class AnalyticsController {
   }
 
   /** Log a batch of telemetry interaction events */
-  @Post('events/batch')
+  @Post(['events/batch', 'batch'])
   @UseGuards(JwtOptionalGuard)
   async logEventsBatch(
     @CurrentUser('id') userId: string | null,
