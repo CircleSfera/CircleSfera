@@ -32,10 +32,11 @@ async function globalSetup(config: FullConfig) {
   const page = await browser.newPage();
 
   console.log('Running Global Setup: Logging in test user...');
+  console.log(`baseURL=${baseURL} backendURL=${backendURL}`);
 
   try {
     // Seed the user via API to ensure it exists (ignore conflicts)
-    await page.request.post(`${backendURL}/auth/register`, {
+    const registerRes = await page.request.post(`${backendURL}/auth/register`, {
       data: {
         email,
         username,
@@ -44,13 +45,45 @@ async function globalSetup(config: FullConfig) {
         dateOfBirth: '1995-06-15',
       },
     });
+    console.log(
+      `register status=${registerRes.status()} body=${(await registerRes.text()).slice(0, 200)}`,
+    );
+
+    // Prove the backend accepts these credentials before driving the UI.
+    const loginApiRes = await page.request.post(`${backendURL}/auth/login`, {
+      data: { identifier: email, password },
+    });
+    if (!loginApiRes.ok()) {
+      throw new Error(
+        `API login failed before UI: status=${loginApiRes.status()} body=${(await loginApiRes.text()).slice(0, 300)}`,
+      );
+    }
+    console.log('API login ok — proceeding with UI login for auth-storage');
 
     await page.goto(`${baseURL}/accounts/login`);
     await page.waitForSelector('#identifier', { timeout: 30000 });
     await page.locator('#identifier').fill(email);
     await page.locator('#password').fill(password);
     await page.locator('button[type="submit"]').click();
-    await page.waitForURL('**/', { timeout: 15000 });
+
+    try {
+      await page.waitForURL(
+        (url) => {
+          const path = url.pathname.replace(/\/$/, '') || '/';
+          return path === '/' || path === '';
+        },
+        { timeout: 20000 },
+      );
+    } catch (navErr) {
+      const errorText = await page
+        .locator('.bg-red-500\\/10, [role="alert"]')
+        .first()
+        .textContent()
+        .catch(() => null);
+      throw new Error(
+        `UI login did not reach /. url=${page.url()} error=${errorText ?? 'none'} cause=${String(navErr)}`,
+      );
+    }
 
     // Login navigates before/while profile hydrate — wait until Zustand persist has profile
     await page.waitForFunction(

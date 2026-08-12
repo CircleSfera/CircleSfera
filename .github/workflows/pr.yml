@@ -68,8 +68,11 @@ jobs:
       # unauthenticated (empty storageState) and SKIP_GLOBAL_SETUP skips the
       # Playwright global-setup login flow that needs those credentials.
       SKIP_GLOBAL_SETUP: 'true'
+      PLAYWRIGHT_SKIP_WEBSERVER: 'true'
       BASE_URL: http://localhost:5173
       BACKEND_URL: http://localhost:3005/api/v1
+      VITE_API_URL: http://localhost:3005/api/v1
+      VITE_API_PROXY_TARGET: http://localhost:3005
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
