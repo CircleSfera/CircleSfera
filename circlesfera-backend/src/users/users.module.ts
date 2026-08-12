@@ -4,8 +4,10 @@ import type { Queue } from 'bullmq';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailModule } from '../email/email.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { UploadsModule } from '../uploads/uploads.module.js';
+import { AccountDeletionProcessor } from './account-deletion.processor.js';
+import { DataExportProcessor } from './data-export.processor.js';
 import { DataExportService } from './data-export.service.js';
-import { GdprProcessor } from './gdpr.processor.js';
 import { UsersController } from './users.controller.js';
 import { UsersService } from './users.service.js';
 
@@ -13,12 +15,19 @@ import { UsersService } from './users.service.js';
   imports: [
     PrismaModule,
     EmailModule,
+    UploadsModule,
     BullModule.registerQueue({
       name: 'users-processing',
     }),
   ],
   controllers: [UsersController],
-  providers: [UsersService, DataExportService, GdprProcessor, StripeService],
+  providers: [
+    UsersService,
+    DataExportService,
+    DataExportProcessor,
+    AccountDeletionProcessor,
+    StripeService,
+  ],
   exports: [UsersService],
 })
 export class UsersModule implements OnApplicationBootstrap {

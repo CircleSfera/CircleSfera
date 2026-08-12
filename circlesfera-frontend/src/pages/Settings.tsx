@@ -37,6 +37,8 @@ import {
   PasskeySettings,
   TwoFactorSettings,
 } from '../components';
+import { EmptyState } from '../components/ErrorEmptyStates';
+import { LoadingSpinner } from '../components/LoadingStates';
 import CloseFriendsModal from '../components/modals/CloseFriendsModal';
 import AppealsSettings from '../components/settings/AppealsSettings';
 import FeedPreferencesSettings from '../components/settings/FeedPreferencesSettings';
@@ -74,8 +76,8 @@ function BillingStatus({
 
   if (isLoading) {
     return (
-      <div className="glass-panel p-6 rounded-xl border border-white/5 bg-linear-to-br from-blue-500/5 via-transparent to-transparent flex items-center justify-center">
-        <Loader2 size={32} className="text-blue-400 animate-spin" />
+      <div className="glass-panel p-6 rounded-xl border border-white/5 bg-linear-to-br from-brand-primary/5 via-transparent to-transparent flex items-center justify-center">
+        <LoadingSpinner size="md" />
       </div>
     );
   }
@@ -84,9 +86,9 @@ function BillingStatus({
   const hasActiveSubscription = !!billingStatus?.hasActiveSubscription;
 
   return (
-    <div className="glass-panel p-6 rounded-xl border border-white/5 bg-linear-to-br from-blue-500/5 via-transparent to-transparent flex flex-col md:flex-row items-center justify-between gap-6">
+    <div className="glass-panel p-6 rounded-xl border border-white/5 bg-linear-to-br from-brand-primary/5 via-transparent to-transparent flex flex-col md:flex-row items-center justify-between gap-6">
       <div className="flex-1">
-        <span className="text-xs font-black uppercase tracking-wide text-blue-400/80 mb-2 block">
+        <span className="text-xs font-black uppercase tracking-wide text-brand-primary/80 mb-2 block">
           {t('settings.billing.current_plan', 'Current Plan')}
         </span>
         <h3 className="text-2xl font-black text-white tracking-tighter italic uppercase">
@@ -663,10 +665,10 @@ export default function Settings() {
     username === profile?.username || usernameStatus.available === true;
 
   return (
-    <div className="min-h-screen pb-32 pt-6">
+    <div className="min-h-dvh pb-16 md:pb-32 pt-2 md:pt-6">
       <div className="max-w-5xl mx-auto px-4 md:px-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-3">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-3 md:mb-6 gap-2 md:gap-3">
           <div>
             <h1 className="text-xl font-bold text-white tracking-tight">
               {t('settings.title')}
@@ -695,7 +697,7 @@ export default function Settings() {
           onSelectTab={(tab) => setActiveTab(tab as any)}
         />
 
-        <div className="glass-panel rounded-2xl overflow-hidden flex flex-col md:flex-row min-h-100 md:min-h-125 border-white/10 shadow-2xl relative bg-zinc-950/80 backdrop-blur-2xl">
+        <div className="glass-panel rounded-2xl overflow-hidden flex flex-col md:flex-row min-h-100 md:min-h-125 border-white/10 shadow-2xl relative bg-surface-elevated/80 backdrop-blur-2xl">
           {/* Desktop Sidebar Panel */}
           <div className="hidden md:block w-64 border-r border-white/10 bg-black/30 shrink-0 p-4 sticky top-24">
             <div className="flex flex-col gap-1.5">
@@ -760,7 +762,7 @@ export default function Settings() {
                     onClick={() => fileInputRef.current?.click()}
                     aria-label="Change profile picture"
                   >
-                    <div className="w-16 h-16 rounded-full overflow-hidden border-[3px] border-white/10 group-hover:border-blue-500/50 transition-all duration-300 relative bg-zinc-800">
+                    <div className="w-16 h-16 rounded-full overflow-hidden border-[3px] border-white/10 group-hover:border-brand-primary/50 transition-all duration-300 relative bg-zinc-800">
                       <UserAvatar
                         src={avatarPreview || profile?.avatar || undefined}
                         thumbnailUrl={
@@ -784,7 +786,7 @@ export default function Settings() {
                       <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full z-10">
                         <Loader2
                           size={24}
-                          className="text-blue-400 animate-spin"
+                          className="text-brand-primary animate-spin"
                         />
                       </div>
                     )}
@@ -817,7 +819,7 @@ export default function Settings() {
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="text-xs font-black uppercase tracking-wide text-blue-400 hover:text-blue-300 transition-colors bg-blue-400/5 hover:bg-blue-400/10 px-4 py-2 rounded-full border border-blue-400/10"
+                        className="text-xs font-black uppercase tracking-wide text-brand-primary hover:text-blue-300 transition-colors bg-blue-400/5 hover:bg-blue-400/10 px-4 py-2 rounded-full border border-blue-400/10"
                         disabled={avatarUploading}
                       >
                         {avatarUploading
@@ -830,7 +832,7 @@ export default function Settings() {
 
                 {/* Section 1: Public Identity */}
                 <div className="bg-white/2 p-4 rounded-xl border border-white/5 space-y-4">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-blue-400/80 mb-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-brand-primary/80 mb-2">
                     {t('settings.profile.public_identity')}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -853,7 +855,7 @@ export default function Settings() {
                           {usernameStatus.checking && (
                             <Loader2
                               size={18}
-                              className="text-blue-400 animate-spin"
+                              className="text-brand-primary animate-spin"
                             />
                           )}
                           {!usernameStatus.checking &&
@@ -888,7 +890,7 @@ export default function Settings() {
 
                 {/* Section 2: Presence & Links */}
                 <div className="bg-white/2 p-4 md:p-4 rounded-lg border border-white/5 space-y-4">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-blue-400/80 mb-2">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-brand-primary/80 mb-2">
                     {t('settings.profile.presence_links')}
                   </h3>
                   <div className="space-y-4">
@@ -933,10 +935,10 @@ export default function Settings() {
                 {/* Section 3: Professional Account (Already in cards) */}
                 <div className="bg-white/2 p-4 md:p-4 rounded-xl border border-white/5 space-y-4">
                   <div className="flex items-center justify-between ml-1">
-                    <span className="text-xs font-black uppercase tracking-wide text-blue-400/80">
+                    <span className="text-xs font-black uppercase tracking-wide text-brand-primary/80">
                       {t('settings.profile.account_type')}
                     </span>
-                    <span className="text-xs font-bold text-blue-400 capitalize bg-blue-400/10 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-bold text-brand-primary capitalize bg-blue-400/10 px-2 py-0.5 rounded-full">
                       {accountType.toLowerCase()}
                     </span>
                   </div>
@@ -974,18 +976,18 @@ export default function Settings() {
                         }}
                         className={`relative p-4 rounded-lg text-left transition-all duration-300 border group overflow-hidden ${
                           accountType === type.id
-                            ? 'bg-blue-500/10 border-blue-500/50 shadow-lg shadow-blue-500/10'
+                            ? 'bg-brand-primary/10 border-brand-primary/50 shadow-lg shadow-brand-primary/10'
                             : 'bg-zinc-900/40 border-white/5 hover:border-white/10'
                         }`}
                       >
                         {accountType === type.id && (
-                          <div className="absolute top-2 right-2 bg-blue-500 text-white p-1 rounded-full shadow-lg">
+                          <div className="absolute top-2 right-2 bg-brand-primary text-white p-1 rounded-full shadow-lg">
                             <Check size={8} strokeWidth={4} />
                           </div>
                         )}
                         <type.icon
                           size={18}
-                          className={`mb-2 ${accountType === type.id ? 'text-blue-400' : 'text-gray-500 group-hover:text-gray-300 transition-colors'}`}
+                          className={`mb-2 ${accountType === type.id ? 'text-brand-primary' : 'text-gray-500 group-hover:text-gray-300 transition-colors'}`}
                         />
                         <h4
                           className={`text-xs font-bold tracking-tight ${accountType === type.id ? 'text-white' : 'text-gray-300'}`}
@@ -995,7 +997,7 @@ export default function Settings() {
                           )}
                         </h4>
                         <p
-                          className={`text-xs font-bold uppercase tracking-wider mt-0.5 ${accountType === type.id ? 'text-blue-400/80' : 'text-gray-600'}`}
+                          className={`text-xs font-bold uppercase tracking-wider mt-0.5 ${accountType === type.id ? 'text-brand-primary/80' : 'text-gray-600'}`}
                         >
                           {t(
                             `settings.profile.types.${type.id.toLowerCase()}.desc`,
@@ -1024,7 +1026,7 @@ export default function Settings() {
                 </AnimatePresence>
 
                 {/* Sticky Guard Bar (Mobile Footer) */}
-                <div className="sticky bottom-0 md:static -mx-4 md:mx-0 p-4 md:p-0 mt-8 z-30 bg-zinc-950/80 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-t border-white/5 md:border-none">
+                <div className="sticky bottom-0 md:static -mx-4 md:mx-0 p-4 md:p-0 mt-8 z-30 bg-surface-elevated/80 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-t border-white/5 md:border-none">
                   <Button
                     type="submit"
                     variant="primary"
@@ -1135,15 +1137,10 @@ export default function Settings() {
                 </div>
 
                 {pendingRequests.length === 0 ? (
-                  <div className="text-center py-16 bg-white/1 rounded-xl border border-white/5 border-dashed">
-                    <UserPlus
-                      size={48}
-                      className="mx-auto mb-4 text-gray-700"
-                    />
-                    <p className="text-gray-500 font-bold tracking-tight uppercase text-xs">
-                      {t('settings.requests.empty')}
-                    </p>
-                  </div>
+                  <EmptyState
+                    icon="followers"
+                    title={t('settings.requests.empty')}
+                  />
                 ) : (
                   <div className="space-y-4">
                     {pendingRequests.map(
@@ -1169,7 +1166,7 @@ export default function Settings() {
                                   {user.profile?.fullName ||
                                     user.profile?.username}
                                 </p>
-                                <p className="text-xs font-medium text-blue-400/60 uppercase tracking-wider">
+                                <p className="text-xs font-medium text-brand-primary/60 uppercase tracking-wider">
                                   @{user.profile?.username}
                                 </p>
                               </div>
@@ -1342,8 +1339,8 @@ export default function Settings() {
                   </p>
                 </div>
 
-                <div className="bg-blue-500/5 p-4 rounded-xl border border-blue-500/10 hover:bg-blue-500/10 transition-colors group mb-8">
-                  <h3 className="font-bold text-blue-400 uppercase tracking-wide text-xs mb-2 flex items-center gap-2">
+                <div className="bg-brand-primary/5 p-4 rounded-xl border border-brand-primary/10 hover:bg-brand-primary/10 transition-colors group mb-8">
+                  <h3 className="font-bold text-brand-primary uppercase tracking-wide text-xs mb-2 flex items-center gap-2">
                     <LogOut size={14} className="rotate-90" />
                     {t('settings.account.export.title', 'Export Data')}
                   </h3>
@@ -1357,7 +1354,7 @@ export default function Settings() {
                     onClick={() => exportDataMutation.mutate()}
                     isLoading={exportDataMutation.isPending}
                     variant="outline"
-                    className="px-5 py-2 text-blue-400 border-blue-500/20 hover:bg-blue-500 hover:text-white font-black text-xs uppercase tracking-wide"
+                    className="px-5 py-2 text-brand-primary border-brand-primary/20 hover:bg-brand-primary hover:text-white font-black text-xs uppercase tracking-wide"
                   >
                     {t('settings.account.export.btn', 'Request Export')}
                   </Button>
@@ -1365,10 +1362,10 @@ export default function Settings() {
 
                 {/* KYC Verification */}
                 <div
-                  className={`p-4 rounded-xl border transition-colors group mb-8 ${profile?.identityVerifiedAt ? 'bg-green-500/5 border-green-500/10 hover:bg-green-500/10' : 'bg-purple-500/5 border-purple-500/10 hover:bg-purple-500/10'}`}
+                  className={`p-4 rounded-xl border transition-colors group mb-8 ${profile?.identityVerifiedAt ? 'bg-green-500/5 border-green-500/10 hover:bg-green-500/10' : 'bg-brand-primary/5 border-brand-primary/10 hover:bg-brand-primary/10'}`}
                 >
                   <h3
-                    className={`font-bold uppercase tracking-wide text-xs mb-2 flex items-center gap-2 ${profile?.identityVerifiedAt ? 'text-green-400' : 'text-purple-400'}`}
+                    className={`font-bold uppercase tracking-wide text-xs mb-2 flex items-center gap-2 ${profile?.identityVerifiedAt ? 'text-green-400' : 'text-brand-primary'}`}
                   >
                     <BadgeCheck size={16} />
                     {t(
@@ -1398,7 +1395,7 @@ export default function Settings() {
                       onClick={() => verifyIdentityMutation.mutate()}
                       isLoading={verifyIdentityMutation.isPending}
                       variant="outline"
-                      className="px-5 py-2 text-purple-400 border-purple-500/20 hover:bg-purple-500 hover:text-white font-black text-xs uppercase tracking-wide"
+                      className="px-5 py-2 text-brand-primary border-brand-primary/20 hover:bg-brand-primary hover:text-white font-black text-xs uppercase tracking-wide"
                     >
                       {t(
                         'settings.account.verification.btn',
@@ -1411,7 +1408,7 @@ export default function Settings() {
                 {/* Language Switcher */}
                 <div className="bg-white/2 p-4 rounded-xl border border-white/5 mb-8">
                   <h3 className="font-bold text-white tracking-wide text-xs uppercase mb-4 flex items-center gap-2">
-                    <Globe size={14} className="text-blue-400" />{' '}
+                    <Globe size={14} className="text-brand-primary" />{' '}
                     {t('settings.account.language')}
                   </h3>
                   <div className="flex gap-4">
@@ -1420,7 +1417,7 @@ export default function Settings() {
                       onClick={() => changeLanguage('en')}
                       className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                         i18n.language.startsWith('en')
-                          ? 'bg-blue-500 text-white'
+                          ? 'bg-brand-primary text-white'
                           : 'bg-white/5 text-gray-300 hover:bg-white/10'
                       }`}
                     >
@@ -1431,7 +1428,7 @@ export default function Settings() {
                       onClick={() => changeLanguage('es')}
                       className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                         i18n.language.startsWith('es')
-                          ? 'bg-blue-500 text-white'
+                          ? 'bg-brand-primary text-white'
                           : 'bg-white/5 text-gray-300 hover:bg-white/10'
                       }`}
                     >
@@ -1515,8 +1512,8 @@ export default function Settings() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-white/2 p-4 rounded-xl border border-white/5 flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                      <Shield size={20} className="text-blue-400" />
+                    <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center">
+                      <Shield size={20} className="text-brand-primary" />
                     </div>
                     <div>
                       <h4 className="text-white font-bold text-sm tracking-tight">
@@ -1529,7 +1526,7 @@ export default function Settings() {
                   </div>
                   <div className="bg-white/2 p-4 rounded-xl border border-white/5 flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                      <Star size={20} className="text-purple-400" />
+                      <Star size={20} className="text-brand-primary" />
                     </div>
                     <div>
                       <h4 className="text-white font-bold text-sm tracking-tight">

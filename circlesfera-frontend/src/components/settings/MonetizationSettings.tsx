@@ -101,7 +101,7 @@ export function MonetizationSettings() {
             {isConnected ? (
               <Button
                 variant="outline"
-                size="sm"
+                size="compact"
                 onClick={() => dashboardMutation.mutate()}
                 disabled={dashboardMutation.isPending}
                 className="flex items-center gap-2"

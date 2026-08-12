@@ -4,7 +4,6 @@ import * as path from 'node:path';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Prisma } from '@prisma/client';
 import type { Job } from 'bullmq';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -14,8 +13,8 @@ const require = createRequire(import.meta.url);
 const archiver = require('archiver');
 
 @Processor('users-processing')
-export class GdprProcessor extends WorkerHost {
-  private readonly logger = new Logger(GdprProcessor.name);
+export class DataExportProcessor extends WorkerHost {
+  private readonly logger = new Logger(DataExportProcessor.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -30,32 +29,10 @@ export class GdprProcessor extends WorkerHost {
     switch (job.name) {
       case 'export-data':
         return this.processDataExport(job.data.requestId, job.data.userId);
-      case 'clean-expired-search-history':
-        return this.cleanExpiredSearchHistory();
       case 'clean-expired-data-exports':
         return this.cleanExpiredDataExports();
-      case 'clean-expired-accounts':
-        return this.cleanExpiredAccounts();
-      case 'hard-delete-user':
-        return this.hardDeleteUser(job.data.userId);
       default:
-        this.logger.warn(`Unknown job name: ${job.name}`);
-    }
-  }
-
-  async cleanExpiredSearchHistory() {
-    this.logger.log('Starting daily purge of expired SearchHistory...');
-    try {
-      const result = await this.prisma.searchHistory.deleteMany({
-        where: {
-          expiresAt: {
-            lt: new Date(),
-          },
-        },
-      });
-      this.logger.log(`Purged ${result.count} expired search history records.`);
-    } catch (error) {
-      this.logger.error('Failed to purge expired search history', error);
+        return undefined;
     }
   }
 
@@ -74,8 +51,6 @@ export class GdprProcessor extends WorkerHost {
       let deletedFiles = 0;
       for (const req of expiredRequests) {
         if (req.url) {
-          // url format is usually /uploads/exports/filename.zip
-          // We need to extract the filename to delete it locally
           const filename = req.url.split('/').pop();
           if (filename) {
             const filePath = path.join(
@@ -109,49 +84,6 @@ export class GdprProcessor extends WorkerHost {
     }
   }
 
-  async cleanExpiredAccounts() {
-    this.logger.log('Starting daily purge of expired Accounts...');
-    try {
-      const now = new Date();
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const expiredUsers = await this.prisma.user.findMany({
-        where: {
-          OR: [
-            { scheduledDeletionAt: { not: null, lte: now } },
-            {
-              scheduledDeletionAt: null,
-              deletedAt: { not: null, lt: thirtyDaysAgo },
-            },
-          ],
-        } satisfies Prisma.UserWhereInput,
-        select: { id: true },
-      });
-
-      let deletedCount = 0;
-      for (const user of expiredUsers) {
-        await this.prisma.user.delete({
-          where: { id: user.id },
-        });
-        deletedCount++;
-      }
-
-      this.logger.log(`Purged ${deletedCount} expired user accounts.`);
-    } catch (error) {
-      this.logger.error('Failed to purge expired accounts', error);
-    }
-  }
-
-  async hardDeleteUser(userId: string) {
-    this.logger.log(`Executing hard delete for user ${userId}`);
-    try {
-      await this.usersService.deleteUser(userId);
-      this.logger.log(`Successfully hard deleted user ${userId}`);
-    } catch (error) {
-      this.logger.error(`Failed to hard delete user ${userId}`, error);
-      throw error;
-    }
-  }
-
   private async processDataExport(requestId: string, userId: string) {
     await this.prisma.dataExportRequest.update({
       where: { id: requestId },
@@ -171,7 +103,6 @@ export class GdprProcessor extends WorkerHost {
 
       if (!user) throw new Error('User not found');
 
-      // Ensure uploads/exports directory exists
       const exportsDir = path.join(process.cwd(), 'uploads', 'exports');
       if (!fs.existsSync(exportsDir)) {
         fs.mkdirSync(exportsDir, { recursive: true });
@@ -190,7 +121,6 @@ export class GdprProcessor extends WorkerHost {
               this.configService.get('BACKEND_URL') || 'http://localhost:3000';
             const downloadUrl = `${backendUrl}/uploads/exports/${fileName}`;
 
-            // Update request status
             await this.prisma.dataExportRequest.update({
               where: { id: requestId },
               data: {
@@ -200,7 +130,6 @@ export class GdprProcessor extends WorkerHost {
               },
             });
 
-            // Send email
             const name =
               user.profile?.fullName || user.profile?.username || 'User';
             await this.emailService.sendBroadcastEmail(
@@ -227,12 +156,10 @@ export class GdprProcessor extends WorkerHost {
 
         archive.pipe(output);
 
-        // Add user data JSON
         archive.append(JSON.stringify(userData, null, 2), {
           name: 'user_data.json',
         });
 
-        // Add some instructions
         archive.append(
           'This archive contains all your personal data as per GDPR compliance.\n\n- user_data.json: Your profile, posts, comments, likes, and settings.',
           { name: 'README.txt' },

@@ -113,9 +113,9 @@ export default function NotificationsSettings() {
             type="button"
             onClick={isSubscribed ? unsubscribeUser : requestPermission}
             disabled={loading || permission === 'denied'}
-            className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-all duration-300 focus:outline-none ring-offset-2 ring-offset-zinc-900 focus:ring-2 focus:ring-purple-500/50 ${
+            className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-all duration-300 focus:outline-none ring-offset-2 ring-offset-surface-base focus:ring-2 focus:ring-brand-primary/50 ${
               isSubscribed
-                ? 'bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.5)]'
+                ? 'bg-brand-primary shadow-[0_0_15px_rgba(var(--brand-primary-rgb),0.5)]'
                 : 'bg-white/10'
             } disabled:opacity-30 disabled:grayscale`}
           >
@@ -218,9 +218,9 @@ export default function NotificationsSettings() {
                 <button
                   type="button"
                   onClick={() => handleBlurToggle(!blurSensitiveContent)}
-                  className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-all duration-300 focus:outline-none ring-offset-2 ring-offset-zinc-900 focus:ring-2 focus:ring-blue-500/50 ${
+                  className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-all duration-300 focus:outline-none ring-offset-2 ring-offset-surface-base focus:ring-2 focus:ring-brand-primary/50 ${
                     blurSensitiveContent
-                      ? 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]'
+                      ? 'bg-brand-primary shadow-[0_0_15px_rgba(var(--brand-primary-rgb),0.5)]'
                       : 'bg-white/10'
                   }`}
                 >
