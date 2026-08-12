@@ -4,6 +4,7 @@ Operational stubs for CircleSfera. Prefer the real scripts under [`scripts/`](..
 
 | Runbook | Purpose | Primary artifact |
 | --- | --- | --- |
+| [admin-panel-cutover](./admin-panel-cutover.md) | Bootstrap AdminIdentity + MFA after Admin Panel deploy | `scripts/bootstrap-admin.ts`, nginx `admin.circlesfera.com` |
 | [restore-postgres](./restore-postgres.md) | Restore PostgreSQL from a backup | `scripts/restore-postgres.sh`, `scripts/backup-postgres.sh` |
 | [rollback-deploy](./rollback-deploy.md) | Roll back a bad production deploy | GitHub Actions deploy workflow, previous image/tag |
 | [incident-response](./incident-response.md) | First response checklist for production incidents | Logs, health endpoints, backups |

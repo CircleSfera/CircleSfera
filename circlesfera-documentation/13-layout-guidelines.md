@@ -1967,15 +1967,17 @@ Lazy-load advanced modules.
 ---
 # 34. Admin Panel
 ## 34.1 Purpose
-The Admin Panel is the operational control center for CircleSfera.
-It enables administrators and internal teams to monitor, moderate and manage the platform efficiently.
-The interface prioritizes productivity over visual decoration.
+The Admin Panel is CircleSfera’s **platform control plane** for internal Trust & Safety and operations staff.
+It is not a creator or business analytics product (that belongs in Creator Studio).
+Operators use it to triage reports, appeals, support, moderation, monetization controls, and system settings.
+The interface prioritizes productivity and queue throughput over visual decoration.
 ---
 ## 34.2 Design Principles
 Information density is acceptable.
 Data should remain readable.
 Actions should be efficient.
 Consistency with the main Design System must be preserved.
+Default mental model: **needs attention first**, vanity metrics second.
 ---
 ## 34.3 Layout Structure
 Sidebar
@@ -1987,20 +1989,9 @@ Workspace
 Context Panel (optional)
 ---
 ## 34.4 Sidebar
-Contains:
-Dashboard
-Users
-Posts
-Frames
-Stories
-Reports
-Moderation
-Monetization
-Subscriptions
-Analytics
-Infrastructure
-System
-Settings
+Contains operational groups (Dashboard, Moderation, Content, System).
+**Trust** is the first Dashboard item and the post-login home when the operator has `reports` permission.
+Analytics is secondary monitoring, not the entry workspace.
 Collapse on smaller screens.
 ---
 ## 34.5 Top Bar
@@ -2014,6 +2005,7 @@ Keep the Top Bar compact.
 ---
 ## 34.6 Workspace
 The workspace displays one operational module at a time.
+**Default workspace = Trust** (needs-attention hub over reports, appeals, and support).
 Avoid multiple competing layouts.
 Maintain consistent spacing.
 ---
@@ -2036,11 +2028,11 @@ Dedicated Page
 Choose the interaction that minimizes context switching.
 ---
 ## 34.9 Dashboards
-Dashboard cards should answer:
+The Trust home and any KPI strips should answer:
 What requires attention?
 What changed?
 What action is recommended?
-Avoid vanity metrics.
+Avoid vanity metrics as the primary landing view.
 ---
 ## 34.10 Search
 Global search should locate:

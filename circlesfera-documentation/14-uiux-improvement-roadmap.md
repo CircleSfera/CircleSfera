@@ -277,7 +277,7 @@ Benchmarking allowed only as **principles** (content-first, predictable structur
 | Creator Studio | `/creator/:tab` | 3 |
 | Pricing / monetization UI | `/pricing`, settings/creator tabs | 3 |
 | Create / Edits | `/create`, `/edits` | 3 |
-| Admin | `/admin/:tab` | 4 |
+| Admin Panel host | `/:tab` (home `/trust`) | 4 |
 | Auth / legal / support | `/accounts/*`, `/terms`, … | Opportunistic with Wave 1 tokens; full polish only if blocking |
 
 ---
@@ -380,3 +380,5 @@ Qualitative: users should never feel they left CircleSfera when moving between F
 | Tables / KPIs | AdminTable empty → compact `AdminEmptyState`; StatusBadge + StatCard brand tokens |
 | Live detail | `admin.lives.no_video_source`; muted chrome → white/opacity |
 | Follow-up polish | Stock `text-gray-*` / `zinc-*` purged across deep admin tabs (≈250 class replacements → `text-white/…`); chart hex → brand `#8c52ff` / `#5271ff`; CommandPalette + AdminShell search keys without Spanish fallbacks |
+| Mobile density (Aug 2026) | 2-col KPI grids from base width; denser StatCard/detail panes; responsive analytics chart height; dead `xs:` → `sm:`; ≥44px touch on segmented control, user-filter clear, firewall sub-tabs |
+| Trust as T&S entry (Aug 2026) | Post-login / index home → `/trust` (permission-aware); Trust first under Dashboard; attention summary + KPI links + clickable queue rows |
