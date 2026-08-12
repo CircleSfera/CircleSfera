@@ -1,16 +1,13 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { ErrorCode } from '@circlesfera/shared';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { OnEvent } from '@nestjs/event-emitter';
 import { AccessToken } from 'livekit-server-sdk';
 import {
   CREATOR_SHARE_DECIMAL,
   PLATFORM_FEE_DECIMAL,
 } from '../common/constants/monetization.constants.js';
+import { AppException } from '../common/errors/app.exception.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
@@ -56,7 +53,10 @@ export class LiveService {
     });
 
     if (stream?.status !== 'LIVE') {
-      throw new NotFoundException('Stream not found or ended');
+      throw AppException.NotFound(
+        ErrorCode.STREAM_NOT_FOUND,
+        'Stream not found or ended',
+      );
     }
 
     const token = await this.createToken(stream.id, userId, false);
@@ -150,7 +150,11 @@ export class LiveService {
       },
     });
 
-    if (!stream) throw new NotFoundException('Stream not found');
+    if (!stream)
+      throw AppException.NotFound(
+        ErrorCode.STREAM_NOT_FOUND,
+        'Stream not found',
+      );
     return stream;
   }
 
@@ -159,13 +163,26 @@ export class LiveService {
       where: { id: streamId },
     });
 
-    if (!stream) throw new NotFoundException('Stream not found');
+    if (!stream)
+      throw AppException.NotFound(
+        ErrorCode.STREAM_NOT_FOUND,
+        'Stream not found',
+      );
     if (stream.hostId !== hostId)
-      throw new ForbiddenException('Only the host can invite a co-host');
+      throw AppException.Forbidden(
+        ErrorCode.ONLY_HOST_CAN_INVITE,
+        'Only the host can invite a co-host',
+      );
     if (stream.status !== 'LIVE')
-      throw new NotFoundException('Stream is not active');
+      throw AppException.NotFound(
+        ErrorCode.STREAM_NOT_ACTIVE,
+        'Stream is not active',
+      );
     if (coHostUserId === hostId)
-      throw new ForbiddenException('Cannot invite yourself as co-host');
+      throw AppException.Forbidden(
+        ErrorCode.CANNOT_INVITE_SELF,
+        'Cannot invite yourself as co-host',
+      );
 
     const [invitee, host] = await Promise.all([
       this.prisma.user.findUnique({
@@ -181,7 +198,11 @@ export class LiveService {
       }),
     ]);
 
-    if (!invitee) throw new NotFoundException('Invited user not found');
+    if (!invitee)
+      throw AppException.NotFound(
+        ErrorCode.USER_NOT_FOUND,
+        'Invited user not found',
+      );
 
     await this.prisma.liveStream.update({
       where: { id: streamId },
@@ -215,11 +236,19 @@ export class LiveService {
       where: { id: streamId },
     });
 
-    if (!stream) throw new NotFoundException('Stream not found');
+    if (!stream)
+      throw AppException.NotFound(
+        ErrorCode.STREAM_NOT_FOUND,
+        'Stream not found',
+      );
     if (stream.status !== 'LIVE')
-      throw new NotFoundException('Stream is not active');
+      throw AppException.NotFound(
+        ErrorCode.STREAM_NOT_ACTIVE,
+        'Stream is not active',
+      );
     if (stream.coHostId !== userId)
-      throw new ForbiddenException(
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
         'You are not the invited co-host for this stream',
       );
 
@@ -237,9 +266,16 @@ export class LiveService {
       where: { id: streamId },
     });
 
-    if (!stream) throw new NotFoundException('Stream not found');
+    if (!stream)
+      throw AppException.NotFound(
+        ErrorCode.STREAM_NOT_FOUND,
+        'Stream not found',
+      );
     if (stream.hostId !== hostId)
-      throw new ForbiddenException('Only the host can remove a co-host');
+      throw AppException.Forbidden(
+        ErrorCode.ONLY_HOST_CAN_REMOVE,
+        'Only the host can remove a co-host',
+      );
 
     const removedCoHostId = stream.coHostId;
 
@@ -294,11 +330,17 @@ export class LiveService {
     });
 
     if (stream?.status !== 'LIVE') {
-      throw new NotFoundException('Live stream not active');
+      throw AppException.NotFound(
+        ErrorCode.STREAM_NOT_ACTIVE,
+        'Live stream not active',
+      );
     }
 
     if (stream.hostId === senderId) {
-      throw new BadRequestException('You cannot gift yourself');
+      throw AppException.BadRequest(
+        ErrorCode.CANNOT_GIFT_SELF,
+        'You cannot gift yourself',
+      );
     }
 
     if (!stream.host.stripeConnectAccountId) {
@@ -315,7 +357,8 @@ export class LiveService {
         profile: { select: { username: true } },
       },
     });
-    if (!sender) throw new NotFoundException('User not found');
+    if (!sender)
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
     const platformFee = Math.floor(amountCents * PLATFORM_FEE_DECIMAL);
     const giftName = LIVE_GIFT_CATALOG[giftId].name;
@@ -390,6 +433,23 @@ export class LiveService {
    * Called from Stripe webhook after successful payment.
    * Persists ledger rows, updates earnings, broadcasts to the live room.
    */
+  @OnEvent('payment.live_gift_completed')
+  async handleLiveGiftPayment(payload: {
+    liveGiftId: string;
+    senderId: string;
+    streamId: string;
+    giftId: string;
+    creatorId: string;
+    amountCents: number;
+    currency: string;
+    paymentIntentId: string;
+  }) {
+    this.logger.log(
+      `Received payment.live_gift_completed for ${payload.liveGiftId}`,
+    );
+    await this.completeGiftPayment(payload);
+  }
+
   async completeGiftPayment(params: {
     liveGiftId: string;
     senderId: string;
@@ -483,9 +543,13 @@ export class LiveService {
     participantName: string,
     isHost: boolean,
   ) {
-    const apiKey = this.configService.get<string>('LIVEKIT_API_KEY');
-    const apiSecret = this.configService.get<string>('LIVEKIT_API_SECRET');
     const isProd = this.configService.get('NODE_ENV') === 'production';
+    const apiKey =
+      this.configService.get<string>('LIVEKIT_API_KEY') ||
+      (isProd ? '' : 'devkey');
+    const apiSecret =
+      this.configService.get<string>('LIVEKIT_API_SECRET') ||
+      (isProd ? '' : 'secret');
 
     if (!apiKey || !apiSecret) {
       if (isProd) {
@@ -493,12 +557,6 @@ export class LiveService {
           'SECURITY ALERT: LIVEKIT_API_KEY and LIVEKIT_API_SECRET are required in production.',
         );
       }
-      this.logger.warn(
-        'LIVEKIT_API_KEY/SECRET missing — using ephemeral unsigned-unsafe tokens only allowed outside production',
-      );
-      throw new BadRequestException(
-        'Live streaming is not configured (missing LiveKit credentials)',
-      );
     }
 
     const at = new AccessToken(apiKey, apiSecret, {

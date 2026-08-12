@@ -1,7 +1,7 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AppException } from '../common/errors/app.exception.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
@@ -106,7 +106,7 @@ describe('LiveService', () => {
 
       await expect(
         service.getViewerToken('stream-invalid', 'user-2'),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(AppException);
     });
 
     it('should return viewer token for an active live stream', async () => {
@@ -164,7 +164,7 @@ describe('LiveService', () => {
 
       await expect(
         service.inviteCoHost('stream-1', 'attacker-99', 'user-2'),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow(AppException);
     });
 
     it('should throw NotFoundException if invitee does not exist', async () => {
@@ -179,7 +179,7 @@ describe('LiveService', () => {
 
       await expect(
         service.inviteCoHost('stream-1', 'host-1', 'ghost-user'),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(AppException);
     });
 
     it('should update coHostId and emit socket events on success', async () => {
@@ -228,7 +228,7 @@ describe('LiveService', () => {
 
       await expect(
         service.acceptCoHostInvite('stream-1', 'wrong-user'),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow(AppException);
     });
 
     it('should return a LiveKit publisher token for the co-host', async () => {
@@ -255,7 +255,7 @@ describe('LiveService', () => {
 
       await expect(
         service.removeCoHost('stream-1', 'attacker'),
-      ).rejects.toThrow(ForbiddenException);
+      ).rejects.toThrow(AppException);
     });
 
     it('should clear coHostId and emit removal events', async () => {
