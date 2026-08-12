@@ -136,7 +136,10 @@ describe('Content Flows (e2e)', () => {
     const hashtag = await prisma.hashtag.findUnique({
       where: { tag: 'testflow' },
     });
-    expect(hashtag).toBeDefined();
+    expect(hashtag).not.toBeNull();
+
+    // Give the async event emitter a moment to create the notification
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     // 2. Verify Mention notification
     const notification = await prisma.notification.findFirst({
@@ -145,8 +148,8 @@ describe('Content Flows (e2e)', () => {
         type: 'MENTION',
       },
     });
-    expect(notification).toBeDefined();
-    expect(notification?.senderId).toBeDefined();
+    expect(notification).not.toBeNull();
+    expect(notification?.senderId).not.toBeNull();
   });
 
   it('Flow: Story and Highlights', async () => {
