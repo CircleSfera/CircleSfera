@@ -41,12 +41,13 @@ test.describe('Authentication Flow', () => {
     await page.locator('#username').fill(`testuser${randomSuffix}`);
     await page.locator('#email').fill(testEmail);
     await page.locator('#password').fill('password123');
+    await page.locator('#dateOfBirth').fill('1995-06-15');
 
     await page.locator('button[type="submit"]').click();
 
-    // Should redirect to Home or Verification
-    await expect(page).toHaveURL(/.*\/|.*\/auth\/verify-email/, {
-      timeout: 10000,
+    // Successful register lands on onboarding (age-gated signup).
+    await expect(page).toHaveURL(/.*\/onboarding/, {
+      timeout: 15000,
     });
   });
 });

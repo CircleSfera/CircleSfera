@@ -7,14 +7,13 @@ test.describe('End-to-End Encrypted Chat', () => {
 
   test('should load the messages interface', async ({ page }) => {
     await expect(page).toHaveURL(/.*\/direct\/inbox/);
-    await expect(page).toHaveTitle(/Mensajes/i);
+    await expect(page).toHaveTitle(/Messages|Mensajes/i);
   });
 
   test('should be able to search for a user and send a message', async ({
     page,
   }) => {
-    // Assuming there is a "Nuevo Mensaje" or search button
-    const searchInput = page.getByPlaceholder(/Buscar/i).first();
+    const searchInput = page.getByPlaceholder(/Search|Buscar/i).first();
 
     if (await searchInput.isVisible()) {
       await searchInput.fill('admin'); // searching for admin seeded user
@@ -27,7 +26,9 @@ test.describe('End-to-End Encrypted Chat', () => {
       await firstResult.click();
 
       // Ensure the chat panel is open
-      const chatComposer = page.getByPlaceholder(/Escribe un mensaje/i);
+      const chatComposer = page.getByPlaceholder(
+        /Write a message|Escribe un mensaje/i,
+      );
       await expect(chatComposer).toBeVisible();
 
       // Type and send a message
