@@ -17,17 +17,27 @@ updates:
       interval: weekly
     open-pull-requests-limit: 3
     groups:
-      # First match wins. Keep vitest peers in lockstep across major/minor/patch.
+      # First match wins. Keep peer-locked packages in lockstep across major/minor/patch.
       vitest:
         patterns:
           - "vitest"
           - "@vitest/*"
+      bullmq:
+        patterns:
+          - "bullmq"
+          - "@nestjs/bullmq"
       backend-deps:
         patterns: ["*"]
         exclude-patterns:
           - "vitest"
           - "@vitest/*"
+          - "bullmq"
+          - "@nestjs/bullmq"
         update-types: ["minor", "patch"]
+    # BullMQ 6 needs @nestjs/bullmq >= 11.0.5; do not bump majors alone.
+    ignore:
+      - dependency-name: "bullmq"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /circlesfera-frontend
