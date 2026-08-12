@@ -72,10 +72,10 @@ CircleSfera already has a solid social core (feed, profiles, posts, frames, stor
 
 **Key Features:**
 *   Identity (Passkeys), Multiformat (Posts/Stories/Frames), and Interaction (1-to-1 Chat, `lastReadAt`, `Bookmarks`).
-*   **UI/UX consistency (planned):** close design-token and primitive drift across the SPA — foundation first, then consumer surfaces, Creator tools, and Admin — without changing brand identity. Tracked in [14-uiux-improvement-roadmap.md](./14-uiux-improvement-roadmap.md). This is consolidation of shipped Design System / Layout Guidelines ([09](./09-design-system.md), [13](./13-layout-guidelines.md)), not a new product surface.
+*   **UI/UX consistency (shipped Phase 1):** close design-token and primitive drift across the SPA — foundation, consumer surfaces, Creator tools, and Admin — without changing brand identity. Tracked in [14-uiux-improvement-roadmap.md](./14-uiux-improvement-roadmap.md). This is consolidation of shipped Design System / Layout Guidelines ([09](./09-design-system.md), [13](./13-layout-guidelines.md)), not a new product surface.
 **Success Metrics (KPIs):**
 *   Uptime > 99.9%, latency (p95) < 200ms. Sustained DAU/MAU.
-*   UI/UX: Wave 1 token freeze complete; consumer core routes pass mobile density and four-state checks (see doc 14).
+*   UI/UX: Waves 0–4 shipped (token freeze, consumer, tools, admin i18n/density — see doc 14).
 
 ### Phase 2: Discovery Engine, Ranking, and Analytics
 *Horizon: **NEXT** (Medium Term)*
