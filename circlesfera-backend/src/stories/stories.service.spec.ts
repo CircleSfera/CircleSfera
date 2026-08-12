@@ -1,3 +1,4 @@
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Story } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -52,6 +53,7 @@ describe('StoriesService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: 'BullQueue_ai-processing', useValue: { add: vi.fn() } },
         { provide: UploadsService, useValue: { deleteFile: vi.fn() } },
+        { provide: EventEmitter2, useValue: { emit: vi.fn() } },
       ],
     }).compile();
 
@@ -81,6 +83,18 @@ describe('StoriesService', () => {
             url: 'test.jpg',
           }) as unknown as Record<string, unknown>,
         }),
+      );
+    });
+
+    it('should throw BadRequestException if isPremium is true but price is invalid', async () => {
+      const dto: CreateStoryDto = {
+        url: 'test.jpg',
+        isPremium: true,
+        priceCents: 50,
+      };
+
+      await expect(service.create('user-1', dto)).rejects.toThrow(
+        'El precio de la historia premium debe estar entre €1.00 y €500.00.',
       );
     });
   });
