@@ -72,11 +72,11 @@ This means security and privacy risks are greater than in a reduced documentary 
 
 ### 4.3 Authorization
 
-The current schema only shows `Role` at the user level and does not model complex per-table RBAC. The official policy must state that:
+**Platform users:** `User.role` is effectively `USER` for product authorization; plan/verification gates live in application code (`SubscriptionGuard`, etc.).
 
-- There is at least a `USER` and `ADMIN` role.
-- Any additional permission by plan or verification must be resolved in the application, not assumed as complete persisted RBAC.
-- Fine-grained permission systems must not be documented as if they already exist in persistence if they are not actually implemented.
+**Admin Panel:** operators use a separate `AdminIdentity` with persisted RBAC (`AdminRole` / `AdminPermission`). Staff APIs require an admin JWT (`aud=circlesfera-admin`), not a platform session. MFA is mandatory for operators. ABAC scopes are not implemented in v1.
+
+Do not document `User.role = ADMIN` as the admin-panel entry path.
 
 ---
 

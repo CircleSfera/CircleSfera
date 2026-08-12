@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ### Added
 
+- **Admin Panel:** separate `AdminIdentity` + RBAC in Postgres, mandatory MFA, admin JWT (`aud=circlesfera-admin`, cookies `admin_access_*`), hosted at `admin.circlesfera.com`; platform `User.role` no longer grants staff API access
+- Global system settings catalog (`maintenance_mode`, `registration_open`, `require_invite_code`, `content_posting_enabled`, `live_streams_enabled`) with admin UI, seed defaults, and runtime enforcement
+- Runbook: `circlesfera-documentation/runbooks/admin-panel-cutover.md`; bootstrap script `circlesfera-backend/scripts/bootstrap-admin.ts`
 - Shared reusable CI quality workflow (`.github/workflows/ci-quality.yml`) used by PR and deploy; CodeQL + informative npm audit (`.github/workflows/security.yml`); Dependabot for `circlesfera-shared`, GitHub Actions, and Docker base images
 - **AI Engineering Framework** under `.ai/`: repo context (`core/`), task router (`orchestrator.md`), 24 specialist roles (`agents/`), 11 workflows (`playbooks/`), 9 done-gates (`checklists/`) and 7 document skeletons (`templates/`). Tool adapters: 11 `.cursor/rules/*.mdc` routers, and `.agents/` for Antigravity (11 workspace rules + 11 `/slash-command` workflows). Verified doc/code drift is recorded in `.ai/core/known-gaps.md`
 - ADR-0011: in-repository AI engineering framework under `.ai/` (precedence, alternatives, constraints)
@@ -40,6 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ### Changed
 
+- Admin Panel home is **Trust** (`/trust`) for T&S ops entry (permission-aware fallback); Trust hub hardened with attention summary and queue deep-links; framing documented as internal control plane (not creator dashboard)
+- Admin Panel mobile density: 2-col KPI grids, denser StatCards, responsive analytics chart, tighter detail/filter chrome; dead `xs:` utilities replaced with `sm:`; touch targets ≥44px on segmented controls, filter chips, and firewall sub-tabs
+- Apex `/admin` redirects to Admin Panel host; staff notifications resolve via linked `AdminIdentity` instead of `User.role`
 - PR and deploy quality gates unified; deploy concurrency queues instead of cancelling mid-rollout; Docker Buildx GHA cache enabled; Playwright discovers all `e2e/**/*.spec.ts` and nightly boots Postgres/Redis/backend (requires `E2E_USER_*` secrets)
 - Removed one-off root/backend scratch scripts and committed compile artifacts; docs no longer present `circlesfera-landing/` as an in-tree package
 - Root `README.md` technology-stack versions and Node prerequisite corrected against `package.json` and the `node:24` Docker/CI pins

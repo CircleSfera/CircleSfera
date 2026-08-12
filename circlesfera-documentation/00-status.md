@@ -1,6 +1,13 @@
 # Documentation status
 
-**Last status note:** Jul 2026 — Production gap-closure closed (blockers + T&S wiring + deploy readiness)
+**Last status note:** Aug 2026 — Admin Panel Trust home (T&S entry)
+
+## Aug 2026 Admin Panel
+
+- Separate `AdminIdentity` + DB RBAC; MFA mandatory; admin session cookies on `admin.circlesfera.com`
+- Platform `User.role` staff values deprecated for admin-panel access
+- Framing: Admin Panel = internal control plane / Trust & Safety ops (not creator analytics); post-login home = **Trust** (`/trust`) when permitted
+- Runbook: [admin-panel-cutover](./runbooks/admin-panel-cutover.md)
 
 ## Jul 2026 production closure (verified)
 
