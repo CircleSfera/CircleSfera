@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ### Added
 
+- Admin Panel report workflow: my-queue filter, unclaim, claim conflict handling, bulk assignee/`resolvedAt`, Trust assignee preview
+- Admin whitelist create API/UI; comments hide via moderation status; Live HLS detail panel wired
 - **Admin Panel:** separate `AdminIdentity` + RBAC in Postgres, mandatory MFA, admin JWT (`aud=circlesfera-admin`, cookies `admin_access_*`), hosted at `admin.circlesfera.com`; platform `User.role` no longer grants staff API access
 - Global system settings catalog (`maintenance_mode`, `registration_open`, `require_invite_code`, `content_posting_enabled`, `live_streams_enabled`) with admin UI, seed defaults, and runtime enforcement
 - Runbook: `circlesfera-documentation/runbooks/admin-panel-cutover.md`; bootstrap script `circlesfera-backend/scripts/bootstrap-admin.ts`
@@ -32,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ### Fixed
 
+- Admin moderation notifications no longer use `AdminIdentity` id as `Notification.senderId` (FK to User); prefer `linkedUserId`
+- Appeals admin update uses `@CurrentAdmin` / AdminIdentity audit actor
+- Admin deep-links and Cmd+K respect tab permissions; promotions tab permission aligned with API (`content`)
+- Report claim/assignee stores `AdminIdentity` (`assignedAdminId`) instead of platform `User` after Admin Panel cutover
 - Documentation false negatives: live gifts are billed; feed preferences are implemented
 - `08-schema-prisma.md` reduced to a pointer at the live Prisma schema
 - Report status audit logged `DISMISSED` for non-RESOLVED (including REVIEWING)

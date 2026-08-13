@@ -14,13 +14,21 @@ export interface Appeal {
   adminNotes: string | null;
   createdAt: string;
   updatedAt: string;
+  targetPreview?: {
+    text?: string | null;
+    moderationStatus?: string | null;
+    type?: string;
+  } | null;
   user?: {
     id: string;
     email: string;
+    isActive?: boolean;
+    suspendedUntil?: string | null;
+    strikeCount?: number;
     profile: {
       username: string;
       fullName: string | null;
-      avatarUrl: string | null;
+      avatar: string | null;
     } | null;
   };
 }

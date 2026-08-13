@@ -6,7 +6,6 @@ import type { AdminLiveStream } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import ConfirmModal from '../modals/ConfirmModal';
-import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminKpiWidget } from './AdminKpiWidget';
@@ -20,6 +19,7 @@ import {
   AdminUserFilterChip,
   useAdminQueueUserFilter,
 } from './AdminUserFilterChip';
+import LiveStreamDetailPanel from './LiveStreamDetailPanel';
 
 export default function LiveStreamsTab() {
   const { t } = useTranslation();
@@ -190,97 +190,21 @@ export default function LiveStreamsTab() {
           </div>
         }
         detail={
-          selectedStream ? (
-            <div className="p-3 sm:p-4">
-              <div className="aspect-video bg-black rounded-xl border border-white/10 mb-6 flex items-center justify-center relative overflow-hidden group">
-                {selectedStream.status === 'LIVE' ? (
-                  <>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Radio className="w-16 h-16 text-white/20 animate-pulse" />
-                    </div>
-                    <div className="absolute top-4 left-4 flex items-center space-x-2">
-                      <span className="px-3 py-1 bg-red-500 text-white text-sm font-bold rounded-full animate-pulse">
-                        LIVE
-                      </span>
-                      <span className="px-3 py-1 bg-black/50 backdrop-blur text-white text-sm font-medium rounded-full flex items-center">
-                        <Users size={14} className="mr-2" />
-                        {selectedStream.viewerCount || 0}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-white/40 flex flex-col items-center">
-                    <StopCircle size={40} className="mb-2 opacity-50" />
-                    <span className="text-sm font-medium">
-                      {t('admin.lives.status_ended', 'Transmisión finalizada')}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <h2 className="text-xl font-bold text-white mb-1">
-                {selectedStream.title ||
-                  t('admin.shared.unknown', 'Desconocido')}
-              </h2>
-              <div className="flex items-center space-x-3 mb-4 pb-4 border-b border-white/5">
-                <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                  {selectedStream.host?.profile?.username
-                    ?.charAt(0)
-                    .toUpperCase() || '?'}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-white truncate text-sm">
-                    @
-                    {selectedStream.host?.profile?.username ||
-                      t('admin.shared.unknown', 'Desconocido')}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3">
-                <div className="p-3 rounded-lg bg-white/5 border border-white/5">
-                  <p className="text-xs text-white/50 mb-0.5">
-                    {t('admin.lives.started_at', 'Iniciado')}
-                  </p>
-                  <p className="text-white text-sm font-medium">
-                    {selectedStream.startedAt
-                      ? new Date(selectedStream.startedAt).toLocaleString()
-                      : t('admin.shared.unknown', 'Desconocido')}
-                  </p>
-                </div>
-                {selectedStream.endedAt && (
-                  <div className="p-3 rounded-lg bg-white/5 border border-white/5">
-                    <p className="text-xs text-white/50 mb-0.5">
-                      {t('admin.lives.ended_at', 'Finalizado')}
-                    </p>
-                    <p className="text-white text-sm font-medium">
-                      {new Date(selectedStream.endedAt).toLocaleString()}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {selectedStream.status === 'LIVE' && (
-                <Button
-                  onClick={() => setConfirmEndId(selectedStream.id)}
-                  variant="danger"
-                  className="w-full h-11"
-                  disabled={endStreamMutation.isPending}
-                >
-                  <StopCircle size={18} className="mr-2" />
-                  {t('admin.lives.action_end', 'Finalizar')}
-                </Button>
-              )}
-            </div>
-          ) : (
-            <AdminEmptyState
-              icon={Eye}
-              title={t('admin.shared.select_item_title')}
-              description={t('admin.shared.select_item_description')}
-            />
-          )
+          <AdminEmptyState
+            icon={Eye}
+            title={t('admin.shared.select_item_title')}
+            description={t('admin.shared.select_item_description')}
+          />
         }
       />
+
+      {selectedStream && (
+        <LiveStreamDetailPanel
+          stream={selectedStream}
+          onClose={() => setSelectedStream(null)}
+          onEndStream={(id) => setConfirmEndId(id)}
+        />
+      )}
 
       <ConfirmModal
         isOpen={confirmEndId !== null}

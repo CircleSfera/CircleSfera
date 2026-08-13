@@ -6,8 +6,10 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { adminApi } from '../../services';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import {
   ADMIN_NAV_ITEMS,
+  ADMIN_TAB_PERMISSIONS,
   type AdminTab,
   adminTabPath,
   findAdminNavItem,
@@ -40,6 +42,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const hasPermission = useAdminAuthStore((s) => s.hasPermission);
 
   useFocusTrap(isOpen, panelRef, { onEscape: onClose });
 
@@ -54,14 +57,19 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   const { data: usersData } = useQuery({
     queryKey: ['adminSearchUsers', query],
     queryFn: () => adminApi.getUsers(1, 5, query).then((res) => res.data.data),
-    enabled: isOpen && query.trim().length > 1,
+    enabled: isOpen && query.trim().length > 1 && hasPermission('users.read'),
   });
+
+  const canOpenTab = useCallback(
+    (tabId: AdminTab) => hasPermission(ADMIN_TAB_PERMISSIONS[tabId]),
+    [hasPermission],
+  );
 
   const quickActionResults = useMemo(
     () =>
       QUICK_ACTION_TABS.map((tabId) => {
         const item = findAdminNavItem(tabId);
-        if (!item) return null;
+        if (!item || !canOpenTab(tabId)) return null;
         return {
           id: `quick-${item.id}`,
           title: t('admin.cmd.quick_action', {
@@ -75,13 +83,13 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           searchable: `${item.labelFallback} ${item.id} quick`,
         };
       }).filter(Boolean) as PaletteResult[],
-    [navigate, onClose, t],
+    [canOpenTab, navigate, onClose, t],
   );
 
   const navResults = useMemo(
     () =>
       ADMIN_NAV_ITEMS.filter(
-        (item) => !QUICK_ACTION_TABS.includes(item.id),
+        (item) => !QUICK_ACTION_TABS.includes(item.id) && canOpenTab(item.id),
       ).map((item) => ({
         id: `nav-${item.id}`,
         title: t('admin.cmd.go_to', {
@@ -94,7 +102,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         },
         searchable: `${item.labelFallback} ${item.id}`,
       })),
-    [navigate, onClose, t],
+    [canOpenTab, navigate, onClose, t],
   );
 
   const userResults = useMemo(
@@ -107,7 +115,9 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         }),
         icon: <User size={16} className="text-brand-primary" />,
         action: () => {
-          navigate(adminTabPath('users', `?user=${encodeURIComponent(u.id)}`));
+          navigate(
+            adminTabPath('users', `?userId=${encodeURIComponent(u.id)}`),
+          );
           onClose();
         },
         searchable: `${u.profile?.username || ''} ${u.email}`,
@@ -130,7 +140,6 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     );
   }, [query, quickActionResults, navResults, userResults]);
 
-  // Reset keyboard highlight when the result set changes
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional reset on query/result size change
   useEffect(() => {
     setActiveIndex(0);

@@ -30,6 +30,7 @@ import {
 import AdminShell from '../components/admin/AdminShell';
 import type { AdminTab } from '../components/admin/adminNav';
 import {
+  ADMIN_TAB_PERMISSIONS,
   adminTabPath,
   getAdminHomeTab,
   isAdminTab,
@@ -44,6 +45,7 @@ export default function Admin() {
   const homeTab = getAdminHomeTab(hasPermission);
   const isInvalidTab = !!tab && !isAdminTab(tab);
   const activeTab: AdminTab = isAdminTab(tab) ? tab : homeTab;
+  const canOpenActiveTab = hasPermission(ADMIN_TAB_PERMISSIONS[activeTab]);
 
   const handleTabChange = useCallback(
     (newTab: AdminTab) => {
@@ -56,7 +58,7 @@ export default function Admin() {
     adminToast(message, type);
   }, []);
 
-  if (isInvalidTab) {
+  if (isInvalidTab || (isAdminTab(tab) && !canOpenActiveTab)) {
     return <Navigate to={adminTabPath(homeTab)} replace />;
   }
 

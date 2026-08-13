@@ -8,18 +8,22 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
 import { type PromotionStatus, type ReportStatus } from '@prisma/client';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
+import {
+  CurrentAdmin,
+  type CurrentAdminData,
+} from '../auth/decorators/current-admin.decorator.js';
 import {
   AdminGuard,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
+import { ReassignReportDto } from './dto/reassign-report.dto.js';
 import { DeleteCommentUseCase } from './use-cases/content/commands/delete-comment.use-case.js';
 import { DeletePostUseCase } from './use-cases/content/commands/delete-post.use-case.js';
 import { DeleteStoryUseCase } from './use-cases/content/commands/delete-story.use-case.js';
@@ -33,10 +37,6 @@ import { GetModerationQueueQuery } from './use-cases/content/queries/get-moderat
 import { GetPostsQuery } from './use-cases/content/queries/get-posts.query.js';
 import { GetPromotionsQuery } from './use-cases/content/queries/get-promotions.query.js';
 import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.js';
-
-interface AuthRequest extends Request {
-  user: { userId: string; email: string; role: string };
-}
 
 @Controller('admin')
 @UseGuards(AdminJwtAuthGuard, AdminGuard)
@@ -94,8 +94,11 @@ export class AdminContentController {
 
   @RequireStaffPermissions('content')
   @Delete('posts/:id')
-  async deletePost(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.deletePostUseCase.execute(req.user.userId, id);
+  async deletePost(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.deletePostUseCase.execute(admin.adminId, id);
   }
 
   @RequireStaffPermissions('reports')
@@ -107,6 +110,7 @@ export class AdminContentController {
       query.search,
       query.status,
       query.userId,
+      query.assignedAdminId,
     );
   }
 
@@ -116,10 +120,10 @@ export class AdminContentController {
     @Param('id') id: string,
     @Body('status') status: ReportStatus,
     @Body('internalNotes') internalNotes: string | undefined,
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.reviewReportUseCase.updateStatus(
-      req.user.userId,
+      admin.adminId,
       id,
       status,
       internalNotes,
@@ -128,8 +132,30 @@ export class AdminContentController {
 
   @Post('reports/:id/claim')
   @RequireStaffPermissions('reports')
-  async claimReport(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.reviewReportUseCase.claim(req.user.userId, id);
+  async claimReport(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.reviewReportUseCase.claim(admin.adminId, id);
+  }
+
+  @Post('reports/:id/unclaim')
+  @RequireStaffPermissions('reports')
+  async unclaimReport(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.reviewReportUseCase.unclaim(admin.adminId, id);
+  }
+
+  @Post('reports/:id/reassign')
+  @RequireStaffPermissions('reports')
+  async reassignReport(
+    @Param('id') id: string,
+    @Body() body: ReassignReportDto,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.reviewReportUseCase.reassign(admin.adminId, id, body.toAdminId);
   }
 
   @Post('reports/:id/resolve-penalty')
@@ -137,10 +163,10 @@ export class AdminContentController {
   async resolveReportWithPenalty(
     @Param('id') id: string,
     @Body('action') action: 'IGNORE' | 'STRIKE' | 'BAN',
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.reviewReportUseCase.resolveWithPenalty(
-      req.user.userId,
+      admin.adminId,
       id,
       action,
     );
@@ -150,10 +176,10 @@ export class AdminContentController {
   @RequireStaffPermissions('reports')
   async bulkUpdateReports(
     @Body() body: { ids: string[]; status: ReportStatus },
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.reviewReportUseCase.bulkUpdate(
-      req.user.userId,
+      admin.adminId,
       body.ids ?? [],
       body.status,
     );
@@ -183,8 +209,11 @@ export class AdminContentController {
 
   @RequireStaffPermissions('content')
   @Delete('comments/:id')
-  async deleteComment(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.deleteCommentUseCase.execute(req.user.userId, id);
+  async deleteComment(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.deleteCommentUseCase.execute(admin.adminId, id);
   }
 
   @RequireStaffPermissions('content')
@@ -199,8 +228,11 @@ export class AdminContentController {
 
   @RequireStaffPermissions('content')
   @Delete('stories/:id')
-  async deleteStory(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.deleteStoryUseCase.execute(req.user.userId, id);
+  async deleteStory(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.deleteStoryUseCase.execute(admin.adminId, id);
   }
 
   @RequireStaffPermissions('content')
@@ -220,14 +252,9 @@ export class AdminContentController {
     @Param('id') id: string,
     @Body('status') status: PromotionStatus,
     @Body('note') note: string,
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
-    return this.reviewPromotionUseCase.execute(
-      req.user.userId,
-      id,
-      status,
-      note,
-    );
+    return this.reviewPromotionUseCase.execute(admin.adminId, id, status, note);
   }
 
   @RequireStaffPermissions('moderation')
@@ -248,10 +275,10 @@ export class AdminContentController {
     @Param('id') id: string,
     @Body('status') status: 'VISIBLE' | 'HIDDEN' | 'REMOVED',
     @Body('note') note: string,
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.moderateContentUseCase.execute(
-      req.user.userId,
+      admin.adminId,
       type,
       id,
       status,
@@ -278,7 +305,10 @@ export class AdminContentController {
 
   @Post('live/:id/end')
   @RequireStaffPermissions('live')
-  async endLiveStream(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.endLiveStreamUseCase.execute(req.user.userId, id);
+  async endLiveStream(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.endLiveStreamUseCase.execute(admin.adminId, id);
   }
 }

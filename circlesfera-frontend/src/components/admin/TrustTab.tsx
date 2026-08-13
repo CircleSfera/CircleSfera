@@ -231,7 +231,11 @@ export default function TrustTab() {
               <AdminListRow
                 key={item.id}
                 title={item.reason}
-                subtitle={item.targetType}
+                subtitle={
+                  item.assignedAdmin?.displayName || item.assignedAdmin?.email
+                    ? `${item.targetType} · ${item.assignedAdmin.displayName || item.assignedAdmin.email}`
+                    : item.targetType
+                }
                 meta={timeAgo(item.createdAt)}
                 onClick={() => navigate(adminTabPath('reports'))}
                 badge={

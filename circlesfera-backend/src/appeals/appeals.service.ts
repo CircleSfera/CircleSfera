@@ -1,5 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NotificationType, type Prisma } from '@prisma/client';
+import { resolveAdminNotificationSenderId } from '../admin/utils/resolve-admin-notification-sender.js';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -55,7 +56,7 @@ export class AppealsService {
       where.status = status as 'PENDING' | 'APPROVED' | 'REJECTED';
     }
 
-    const [data, total] = await Promise.all([
+    const [rows, total] = await Promise.all([
       this.prisma.appeal.findMany({
         where,
         skip,
@@ -65,6 +66,9 @@ export class AppealsService {
             select: {
               id: true,
               email: true,
+              isActive: true,
+              suspendedUntil: true,
+              strikeCount: true,
               profile: {
                 select: { username: true, fullName: true, avatar: true },
               },
@@ -75,6 +79,47 @@ export class AppealsService {
       }),
       this.prisma.appeal.count({ where }),
     ]);
+
+    const data = await Promise.all(
+      rows.map(async (appeal) => {
+        let targetPreview: {
+          text?: string | null;
+          moderationStatus?: string | null;
+          type?: string;
+        } | null = null;
+
+        if (appeal.targetType === 'POST_REMOVAL' && appeal.targetId) {
+          const post = await this.prisma.post.findUnique({
+            where: { id: appeal.targetId },
+            select: {
+              caption: true,
+              moderationStatus: true,
+              type: true,
+            },
+          });
+          if (post) {
+            targetPreview = {
+              text: post.caption?.slice(0, 160) ?? null,
+              moderationStatus: post.moderationStatus,
+              type: post.type,
+            };
+          }
+        } else if (appeal.targetType === 'ACCOUNT_BAN') {
+          targetPreview = {
+            text:
+              appeal.user?.isActive === false ? 'Account inactive' : 'Account',
+            moderationStatus: appeal.user?.suspendedUntil
+              ? 'SUSPENDED'
+              : appeal.user?.isActive === false
+                ? 'BANNED'
+                : 'ACTIVE',
+            type: 'ACCOUNT',
+          };
+        }
+
+        return { ...appeal, targetPreview };
+      }),
+    );
 
     return {
       data,
@@ -100,8 +145,7 @@ export class AppealsService {
     return appeal;
   }
 
-  async update(id: string, dto: UpdateAppealDto, adminId?: string) {
-    // Determine if we need to reactivate account or restore post based on approval
+  async update(id: string, dto: UpdateAppealDto, adminId: string) {
     const appeal = await this.findOne(id);
 
     const updatedAppeal = await this.prisma.$transaction(async (tx) => {
@@ -115,7 +159,6 @@ export class AppealsService {
 
       if (dto.status === 'APPROVED') {
         if (appeal.targetType === 'ACCOUNT_BAN') {
-          // Restore User Account
           await tx.user.update({
             where: { id: appeal.userId },
             data: {
@@ -124,7 +167,6 @@ export class AppealsService {
             } satisfies Prisma.UserUpdateInput,
           });
         }
-        // If targetType is POST_REMOVAL, restore post
         if (appeal.targetType === 'POST_REMOVAL' && appeal.targetId) {
           await tx.post.update({
             where: { id: appeal.targetId },
@@ -136,51 +178,18 @@ export class AppealsService {
       return res;
     });
 
-    const reviewerId =
-      adminId ||
-      (
-        await this.prisma.user.findFirst({
-          where: {
-            linkedAdminIdentities: {
-              some: {
-                status: 'ACTIVE',
-                roles: {
-                  some: {
-                    role: {
-                      name: {
-                        in: [
-                          'SUPER_ADMIN',
-                          'PLATFORM_ADMIN',
-                          'MODERATION_ADMIN',
-                          'SUPPORT_ADMIN',
-                        ],
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-          select: { id: true },
-        })
-      )?.id;
-
-    if (reviewerId) {
-      await this.prisma.adminAuditLog
-        .create({
-          data: {
-            adminId: reviewerId,
-            action:
-              dto.status === 'APPROVED'
-                ? 'ACCOUNT_RESTORED'
-                : 'REPORT_REVIEWED',
-            targetType: 'appeal',
-            targetId: appeal.id,
-            details: `Appeal ${dto.status}: ${dto.adminNotes || ''}`.trim(),
-          },
-        })
-        .catch((e) => console.error(e));
-    }
+    await this.prisma.adminAuditLog
+      .create({
+        data: {
+          adminId,
+          action:
+            dto.status === 'APPROVED' ? 'ACCOUNT_RESTORED' : 'REPORT_REVIEWED',
+          targetType: 'appeal',
+          targetId: appeal.id,
+          details: `Appeal ${dto.status}: ${dto.adminNotes || ''}`.trim(),
+        },
+      })
+      .catch((e) => console.error(e));
 
     this.slackService
       .sendModerationAlert({
@@ -198,38 +207,41 @@ export class AppealsService {
         : dto.status === 'REJECTED'
           ? 'rejected'
           : dto.status.toLowerCase();
-    if (reviewerId) {
-      await this.notificationsService
-        .create({
-          recipientId: appeal.userId,
-          senderId: reviewerId,
-          type: NotificationType.MODERATION,
-          content: `Your appeal was ${outcomeLabel}.${dto.adminNotes ? ` Notes: ${dto.adminNotes}` : ''}`,
-          postId:
-            appeal.targetType === 'POST_REMOVAL'
-              ? (appeal.targetId ?? undefined)
-              : undefined,
-        })
-        .catch((e) => console.error(e));
 
-      if (appeal.user?.email) {
-        const actionLabel =
-          dto.status === 'APPROVED'
-            ? 'Restaurado (Apelación Aprobada)'
-            : 'Rechazado (Decisión Mantenida)';
-        await this.emailService
-          .sendModerationEmail(
-            appeal.user.email,
-            appeal.user.profile?.fullName ||
-              appeal.user.profile?.username ||
-              'Usuario',
-            actionLabel,
-            appeal.targetType,
-            dto.adminNotes ||
-              'Se ha revisado tu apelación según nuestros términos de servicio.',
-          )
-          .catch((e) => console.error(e));
-      }
+    const senderId = await resolveAdminNotificationSenderId(
+      this.prisma,
+      adminId,
+    );
+    await this.notificationsService
+      .create({
+        recipientId: appeal.userId,
+        senderId,
+        type: NotificationType.MODERATION,
+        content: `Your appeal was ${outcomeLabel}.${dto.adminNotes ? ` Notes: ${dto.adminNotes}` : ''}`,
+        postId:
+          appeal.targetType === 'POST_REMOVAL'
+            ? (appeal.targetId ?? undefined)
+            : undefined,
+      })
+      .catch((e) => console.error(e));
+
+    if (appeal.user?.email) {
+      const actionLabel =
+        dto.status === 'APPROVED'
+          ? 'Restaurado (Apelación Aprobada)'
+          : 'Rechazado (Decisión Mantenida)';
+      await this.emailService
+        .sendModerationEmail(
+          appeal.user.email,
+          appeal.user.profile?.fullName ||
+            appeal.user.profile?.username ||
+            'Usuario',
+          actionLabel,
+          appeal.targetType,
+          dto.adminNotes ||
+            'Se ha revisado tu apelación según nuestros términos de servicio.',
+        )
+        .catch((e) => console.error(e));
     }
 
     return updatedAppeal;

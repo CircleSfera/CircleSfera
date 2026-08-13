@@ -1,16 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, User, XCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import {
   type AppealStatus,
   getAdminAppeals,
   updateAdminAppeal,
 } from '../../services/appeals.service';
+import ConfirmModal from '../modals/ConfirmModal';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminListRow } from './AdminList';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { ActionButton, Pagination } from './AdminTable';
+import { adminTabPath } from './adminNav';
 import { adminToast } from './adminToast';
 
 interface AppealsListProps {
@@ -29,9 +32,14 @@ export default function AppealsList({
   onPageChange,
 }: AppealsListProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [internalPage, setInternalPage] = useState(1);
   const page = controlledPage ?? internalPage;
+  const [reviewModal, setReviewModal] = useState<{
+    id: string;
+    status: 'APPROVED' | 'REJECTED';
+  } | null>(null);
 
   const handlePageChange = (nextPage: number) => {
     if (onPageChange) {
@@ -62,6 +70,7 @@ export default function AppealsList({
       adminToast(t('admin.appeals.toast_updated'), 'success');
       queryClient.invalidateQueries({ queryKey: ['admin', 'appeals'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'trust-queue'] });
+      setReviewModal(null);
     },
     onError: () => {
       adminToast(t('admin.appeals.toast_error'), 'error');
@@ -101,7 +110,18 @@ export default function AppealsList({
           })}
           subtitle={
             <>
-              <span>{appeal.reason}</span>
+              <span className="block">
+                @{appeal.user?.profile?.username || '—'} · {appeal.reason}
+              </span>
+              {appeal.targetPreview?.text ? (
+                <span className="block text-xs text-white/50 mt-1">
+                  {t('admin.appeals.target_preview')}:{' '}
+                  {appeal.targetPreview.text}
+                  {appeal.targetPreview.moderationStatus
+                    ? ` (${appeal.targetPreview.moderationStatus})`
+                    : ''}
+                </span>
+              ) : null}
               {appeal.adminNotes ? (
                 <span className="block text-xs text-white/50 mt-1">
                   {t('admin.appeals.admin_notes', 'Notes')}: {appeal.adminNotes}
@@ -128,50 +148,46 @@ export default function AppealsList({
             </span>
           }
           primaryAction={
-            appeal.status === 'PENDING' ? (
-              <div className="flex gap-1 sm:gap-2">
-                <ActionButton
-                  icon={CheckCircle}
-                  label={t('admin.appeals.approve')}
-                  variant="success"
-                  iconOnly
-                  onClick={() => {
-                    const note = window.prompt(
-                      t(
-                        'admin.appeals.notes_prompt',
-                        'Optional admin notes (leave empty to skip):',
-                      ),
-                    );
-                    updateMutation.mutate({
-                      id: appeal.id,
-                      status: 'APPROVED',
-                      adminNotes: note || undefined,
-                    });
-                  }}
-                  disabled={updateMutation.isPending}
-                />
-                <ActionButton
-                  icon={XCircle}
-                  label={t('admin.appeals.reject')}
-                  variant="danger"
-                  iconOnly
-                  onClick={() => {
-                    const note = window.prompt(
-                      t(
-                        'admin.appeals.notes_prompt_reject',
-                        'Reason for rejection (optional):',
-                      ),
-                    );
-                    updateMutation.mutate({
-                      id: appeal.id,
-                      status: 'REJECTED',
-                      adminNotes: note || undefined,
-                    });
-                  }}
-                  disabled={updateMutation.isPending}
-                />
-              </div>
-            ) : undefined
+            <div className="flex gap-1 sm:gap-2">
+              <ActionButton
+                icon={User}
+                label={t('admin.appeals.open_user')}
+                variant="ghost"
+                iconOnly
+                onClick={() =>
+                  navigate(
+                    adminTabPath(
+                      'users',
+                      `?userId=${encodeURIComponent(appeal.userId)}`,
+                    ),
+                  )
+                }
+              />
+              {appeal.status === 'PENDING' ? (
+                <>
+                  <ActionButton
+                    icon={CheckCircle}
+                    label={t('admin.appeals.approve')}
+                    variant="success"
+                    iconOnly
+                    onClick={() =>
+                      setReviewModal({ id: appeal.id, status: 'APPROVED' })
+                    }
+                    disabled={updateMutation.isPending}
+                  />
+                  <ActionButton
+                    icon={XCircle}
+                    label={t('admin.appeals.reject')}
+                    variant="danger"
+                    iconOnly
+                    onClick={() =>
+                      setReviewModal({ id: appeal.id, status: 'REJECTED' })
+                    }
+                    disabled={updateMutation.isPending}
+                  />
+                </>
+              ) : null}
+            </div>
           }
         />
       ))}
@@ -180,6 +196,40 @@ export default function AppealsList({
           <Pagination meta={data?.meta} onPageChange={handlePageChange} />
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={reviewModal !== null}
+        onClose={() => setReviewModal(null)}
+        onConfirm={(notes) => {
+          if (!reviewModal) return;
+          updateMutation.mutate({
+            id: reviewModal.id,
+            status: reviewModal.status,
+            adminNotes: notes || undefined,
+          });
+        }}
+        title={
+          reviewModal?.status === 'APPROVED'
+            ? t('admin.appeals.approve')
+            : t('admin.appeals.reject')
+        }
+        message={
+          reviewModal?.status === 'APPROVED'
+            ? t('admin.appeals.notes_prompt')
+            : t('admin.appeals.notes_prompt_reject')
+        }
+        confirmText={
+          reviewModal?.status === 'APPROVED'
+            ? t('admin.appeals.approve')
+            : t('admin.appeals.reject')
+        }
+        cancelText={t('admin.shared.cancel')}
+        isDestructive={reviewModal?.status === 'REJECTED'}
+        isLoading={updateMutation.isPending}
+        showInput
+        inputLabel={t('admin.appeals.admin_notes', 'Notes')}
+        inputRequired={false}
+      />
     </div>
   );
 }

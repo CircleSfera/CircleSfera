@@ -12,7 +12,7 @@ Executable checklist for moving staff onto `admin.circlesfera.com` + `AdminIdent
    - `JWT_ADMIN_SECRET` — **distinct** from `JWT_SECRET` (min ~64 chars). Required in production.
    - `CORS_ORIGIN` — include `https://admin.circlesfera.com` (and platform origins), comma-separated.
    - `FRONTEND_URL` / cookie-related settings as already used for the platform.
-5. **Deploy** — image that includes migration `20260812210000_admin_panel_admin_identity` (or later AdminIdentity migration present in the release).
+5. **Deploy** — image that includes migrations `20260812210000_admin_panel_admin_identity` and `20260813010000_report_assigned_admin` (or later).
 6. **Migrate** — `prisma migrate deploy` on backend start / release job. Irreversible without restore from backup.
 7. **Bootstrap first SUPER_ADMIN** — identities migrated from `User.role` have an **unusable password placeholder**; they cannot sign in until password is set:
 
@@ -36,6 +36,7 @@ docker compose exec backend npx ts-node scripts/bootstrap-admin.ts \
 | Admin cookies → `GET /api/v1/admin/stats` | 200 |
 | Audit | `ADMIN_LOGIN` (and later operator actions) |
 | Operators tab | Lists `AdminIdentity`, not legacy `User.role` staff |
+| Claim report | Sets `REVIEWING` + assignee shows operator `displayName` (`assignedAdminId`) |
 
 ## Nginx / compose notes
 

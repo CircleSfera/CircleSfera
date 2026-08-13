@@ -105,7 +105,8 @@ export class NotificationsService {
   @OnEvent('notification.create', { async: true })
   async create(data: {
     recipientId: string;
-    senderId: string;
+    /** Optional: omit for system / AdminIdentity-without-linked-user notices. */
+    senderId?: string;
     type: NotificationType;
     content: string;
     postId?: string;

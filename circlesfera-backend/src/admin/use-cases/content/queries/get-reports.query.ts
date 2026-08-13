@@ -16,6 +16,7 @@ export class GetReportsQuery {
     search?: string,
     status?: string,
     userId?: string,
+    assignedAdminId?: string,
   ) {
     const skip = (page - 1) * limit;
     const where: Prisma.ReportWhereInput = {};
@@ -30,6 +31,10 @@ export class GetReportsQuery {
     if (userId) {
       where.targetType = 'USER';
       where.targetId = userId;
+    }
+
+    if (assignedAdminId) {
+      where.assignedAdminId = assignedAdminId;
     }
 
     if (search) {
@@ -64,11 +69,11 @@ export class GetReportsQuery {
               },
             },
           },
-          assignedTo: {
-            include: {
-              profile: {
-                select: { username: true, avatar: true },
-              },
+          assignedAdmin: {
+            select: {
+              id: true,
+              email: true,
+              displayName: true,
             },
           },
         },

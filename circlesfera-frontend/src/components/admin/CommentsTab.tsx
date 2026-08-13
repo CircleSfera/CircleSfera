@@ -69,6 +69,8 @@ export default function CommentsTab({ onToast }: Props) {
     mutationFn: async (args: { id: string; action: 'delete' | 'hide' }) => {
       if (args.action === 'delete') {
         await adminApi.deleteComment(args.id);
+      } else {
+        await adminApi.updateModerationStatus('COMMENT', args.id, 'HIDDEN');
       }
     },
     onSuccess: (_, args) => {
@@ -110,7 +112,6 @@ export default function CommentsTab({ onToast }: Props) {
           title={t('admin.comments.kpi_engagement')}
           value={`${statsData?.engagement || 0}%`}
           icon={<MessageCircle size={16} />}
-          trend={{ value: 2.1, label: t('admin.shared.this_month') }}
         />
         <AdminKpiWidget
           title={t('admin.comments.kpi_pending_reports')}
@@ -209,13 +210,26 @@ export default function CommentsTab({ onToast }: Props) {
                       </div>
                     }
                     primaryAction={
-                      <ActionButton
-                        onClick={() => setConfirmDelete(comment.id)}
-                        label={t('admin.comments.action_delete')}
-                        variant="danger"
-                        icon={Trash2}
-                        disabled={mutation.isPending}
-                      />
+                      <div className="flex gap-1">
+                        <ActionButton
+                          onClick={() =>
+                            mutation.mutate({ id: comment.id, action: 'hide' })
+                          }
+                          label={t('admin.comments.action_hide')}
+                          variant="ghost"
+                          icon={Ban}
+                          disabled={mutation.isPending}
+                          iconOnly
+                        />
+                        <ActionButton
+                          onClick={() => setConfirmDelete(comment.id)}
+                          label={t('admin.comments.action_delete')}
+                          variant="danger"
+                          icon={Trash2}
+                          disabled={mutation.isPending}
+                          iconOnly
+                        />
+                      </div>
                     }
                   />
                 ))
@@ -240,7 +254,17 @@ export default function CommentsTab({ onToast }: Props) {
                         noContent}
                     </p>
                   </div>
-                  <div className="flex justify-end space-x-2">
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() =>
+                        mutation.mutate({ id: selectedId, action: 'hide' })
+                      }
+                      disabled={mutation.isPending}
+                    >
+                      <Ban size={16} className="mr-2" />
+                      {t('admin.comments.action_hide')}
+                    </Button>
                     <Button
                       variant="danger"
                       onClick={() => setConfirmDelete(selectedId)}

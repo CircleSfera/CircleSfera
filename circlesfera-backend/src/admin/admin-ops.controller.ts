@@ -11,10 +11,12 @@ import {
   Post,
   Put,
   Query,
-  Req,
   UseGuards,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import {
+  CurrentAdmin,
+  type CurrentAdminData,
+} from '../auth/decorators/current-admin.decorator.js';
 import {
   AdminGuard,
   RequireAdminStepUp,
@@ -23,10 +25,6 @@ import {
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminOpsService } from './admin-ops.service.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
-
-interface AuthRequest extends Request {
-  user: { userId: string; email: string; role: string };
-}
 
 @Controller('admin')
 @UseGuards(AdminJwtAuthGuard, AdminGuard)
@@ -49,10 +47,10 @@ export class AdminOpsController {
   @Post('firewall')
   async addFirewallSignature(
     @Body() body: { text: string; category: string },
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.adminOpsService.addFirewallSignature(
-      req.user.userId,
+      admin.adminId,
       body.text,
       body.category,
     );
@@ -63,9 +61,9 @@ export class AdminOpsController {
   @Delete('firewall/:id')
   async deleteFirewallSignature(
     @Param('id') id: string,
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
-    return this.adminOpsService.deleteFirewallSignature(req.user.userId, id);
+    return this.adminOpsService.deleteFirewallSignature(admin.adminId, id);
   }
 
   @RequireStaffPermissions('experiments')
@@ -82,10 +80,10 @@ export class AdminOpsController {
   @Post('experiments/users')
   async assignUserExperiment(
     @Body() body: { userId: string; experimentKey: string; variant: string },
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.adminOpsService.assignUserExperiment(
-      req.user.userId,
+      admin.adminId,
       body.userId,
       body.experimentKey,
       body.variant,
@@ -94,8 +92,11 @@ export class AdminOpsController {
 
   @RequireStaffPermissions('experiments')
   @Delete('experiments/users/:id')
-  async removeUserExperiment(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.adminOpsService.removeUserExperiment(req.user.userId, id);
+  async removeUserExperiment(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminOpsService.removeUserExperiment(admin.adminId, id);
   }
 
   @RequireStaffPermissions('support')
@@ -113,9 +114,9 @@ export class AdminOpsController {
   async updateSupportTicket(
     @Param('id') id: string,
     @Body() body: { status?: 'OPEN' | 'RESOLVED' | 'CLOSED'; reply?: string },
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
-    return this.adminOpsService.updateSupportTicket(req.user.userId, id, body);
+    return this.adminOpsService.updateSupportTicket(admin.adminId, id, body);
   }
 
   @Get('feature-flags')
@@ -136,9 +137,9 @@ export class AdminOpsController {
       isEnabled?: boolean;
       percentage?: number;
     },
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
-    return this.adminOpsService.upsertFeatureFlag(req.user.userId, {
+    return this.adminOpsService.upsertFeatureFlag(admin.adminId, {
       key,
       ...body,
     });
@@ -148,8 +149,11 @@ export class AdminOpsController {
   @RequireStaffPermissions('experiments')
   @RequireAdminStepUp()
   @HttpCode(HttpStatus.OK)
-  async deleteFeatureFlag(@Param('key') key: string, @Req() req: AuthRequest) {
-    return this.adminOpsService.deleteFeatureFlag(req.user.userId, key);
+  async deleteFeatureFlag(
+    @Param('key') key: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminOpsService.deleteFeatureFlag(admin.adminId, key);
   }
 
   @Get('webhooks')
@@ -170,7 +174,10 @@ export class AdminOpsController {
 
   @Post('webhooks/:id/replay')
   @RequireStaffPermissions('payments')
-  async replayWebhookEvent(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.adminOpsService.replayWebhookEvent(req.user.userId, id);
+  async replayWebhookEvent(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminOpsService.replayWebhookEvent(admin.adminId, id);
   }
 }

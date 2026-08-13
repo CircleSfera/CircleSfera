@@ -8,13 +8,16 @@ import {
   Ghost,
   Hand,
   Trash2,
+  UserMinus,
   X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminReport } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import type { PaginatedResponse } from '../../types';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
@@ -34,6 +37,7 @@ import {
   AdminUserFilterChip,
   useAdminQueueUserFilter,
 } from './AdminUserFilterChip';
+import { adminTabPath } from './adminNav';
 
 function timeAgo(
   date: string | Date,
@@ -58,12 +62,15 @@ interface Props {
 
 export default function ReportsTab({ onToast }: Props) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { userId, username, clearUserFilter } = useAdminQueueUserFilter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState(() =>
     userId ? '' : 'PENDING',
   );
+  const [mineOnly, setMineOnly] = useState(false);
+  const adminId = useAdminAuthStore((s) => s.admin?.id);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [internalNotes, setInternalNotes] = useState('');
@@ -83,8 +90,18 @@ export default function ReportsTab({ onToast }: Props) {
     setSelectedIds(new Set());
   }, [userId]);
 
+  const assignedAdminId = mineOnly && adminId ? adminId : undefined;
+
   const { data, isLoading } = useQuery<PaginatedResponse<AdminReport>>({
-    queryKey: ['admin', 'reports', page, debouncedSearch, statusFilter, userId],
+    queryKey: [
+      'admin',
+      'reports',
+      page,
+      debouncedSearch,
+      statusFilter,
+      userId,
+      assignedAdminId,
+    ],
     queryFn: () =>
       adminApi
         .getReports(
@@ -93,6 +110,7 @@ export default function ReportsTab({ onToast }: Props) {
           debouncedSearch || undefined,
           statusFilter || undefined,
           userId,
+          assignedAdminId,
         )
         .then((res) => res.data as PaginatedResponse<AdminReport>),
   });
@@ -131,9 +149,49 @@ export default function ReportsTab({ onToast }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'reports'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'trust-queue'] });
       onToast(t('admin.reports.toast_claimed'), 'success');
     },
-    onError: () => onToast(t('admin.reports.toast_claim_error'), 'error'),
+    onError: (err: unknown) => {
+      const data = (err as { response?: { data?: Record<string, unknown> } })
+        ?.response?.data;
+      const nested = data?.message;
+      const code =
+        (typeof nested === 'object' &&
+          nested &&
+          'code' in nested &&
+          (nested as { code?: string }).code) ||
+        (typeof data?.code === 'string' ? data.code : undefined);
+      onToast(
+        code === 'REPORT_ALREADY_CLAIMED'
+          ? t('admin.reports.toast_claim_conflict')
+          : t('admin.reports.toast_claim_error'),
+        'error',
+      );
+    },
+  });
+
+  const unclaimMutation = useMutation({
+    mutationFn: (id: string) => adminApi.unclaimReport(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'reports'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'trust-queue'] });
+      onToast(t('admin.reports.toast_unclaimed'), 'success');
+    },
+    onError: () => onToast(t('admin.reports.toast_unclaim_error'), 'error'),
+  });
+
+  const reassignMutation = useMutation({
+    mutationFn: ({ id, toAdminId }: { id: string; toAdminId: string }) =>
+      adminApi.reassignReport(id, toAdminId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'reports'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'trust-queue'] });
+      onToast(t('admin.reports.toast_reassigned'), 'success');
+    },
+    onError: () => onToast(t('admin.reports.toast_reassign_error'), 'error'),
   });
 
   const penaltyMutation = useMutation({
@@ -179,11 +237,13 @@ export default function ReportsTab({ onToast }: Props) {
   const isFiltered =
     debouncedSearch.length > 0 ||
     Boolean(userId) ||
+    mineOnly ||
     (statusFilter !== '' && statusFilter !== (userId ? '' : 'PENDING'));
 
   const clearFilters = () => {
     setSearch('');
     setStatusFilter(userId ? '' : 'PENDING');
+    setMineOnly(false);
     setPage(1);
     setSelectedReportId(null);
     setSelectedIds(new Set());
@@ -246,6 +306,20 @@ export default function ReportsTab({ onToast }: Props) {
         {userId && (
           <AdminUserFilterChip username={username} onClear={clearUserFilter} />
         )}
+        <button
+          type="button"
+          onClick={() => {
+            setMineOnly((v) => !v);
+            setPage(1);
+          }}
+          className={`min-h-11 px-3 rounded-lg border text-xs font-semibold transition-colors ${
+            mineOnly
+              ? 'border-brand-primary/40 bg-brand-primary/15 text-brand-primary'
+              : 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
+          }`}
+        >
+          {t('admin.reports.filter_mine')}
+        </button>
       </AdminFilterBar>
 
       <AnimatePresence>
@@ -339,9 +413,10 @@ export default function ReportsTab({ onToast }: Props) {
               ) : (
                 reports.map((report) => {
                   const assignee =
-                    report.assignedTo?.profile?.username ||
-                    (report.assignedToId
-                      ? report.assignedToId.slice(0, 8)
+                    report.assignedAdmin?.displayName ||
+                    report.assignedAdmin?.email ||
+                    (report.assignedAdminId
+                      ? report.assignedAdminId.slice(0, 8)
                       : null);
                   return (
                     <AdminListRow
@@ -459,6 +534,22 @@ export default function ReportsTab({ onToast }: Props) {
                             {t('admin.reports.view_original')}
                           </button>
                         )}
+                        {selectedReport.targetType === 'USER' && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigate(
+                                adminTabPath(
+                                  'users',
+                                  `?userId=${encodeURIComponent(selectedReport.targetId)}`,
+                                ),
+                              )
+                            }
+                            className="text-xs font-semibold bg-white/10 text-white/80 hover:bg-white/15 px-2 py-1 rounded transition-colors min-h-6"
+                          >
+                            {t('admin.reports.open_user')}
+                          </button>
+                        )}
                       </h3>
                       <p className="text-xs text-white/50 truncate">
                         ID: {selectedReport.id}
@@ -479,6 +570,50 @@ export default function ReportsTab({ onToast }: Props) {
                       </Button>
                     </div>
                   )}
+                  {selectedReport.status === 'REVIEWING' &&
+                    selectedReport.assignedAdminId === adminId && (
+                      <div className="flex flex-wrap gap-1.5">
+                        <Button
+                          onClick={() =>
+                            unclaimMutation.mutate(selectedReport.id)
+                          }
+                          isLoading={unclaimMutation.isPending}
+                          variant="secondary"
+                          className="text-xs sm:text-sm font-semibold border-white/10 min-h-10 sm:min-h-11 px-2 sm:px-4"
+                        >
+                          <UserMinus
+                            size={16}
+                            className="mr-1 sm:mr-2 shrink-0"
+                          />
+                          <span className="truncate">
+                            {t('admin.reports.unclaim')}
+                          </span>
+                        </Button>
+                      </div>
+                    )}
+                  {selectedReport.status === 'REVIEWING' &&
+                    selectedReport.assignedAdminId &&
+                    selectedReport.assignedAdminId !== adminId &&
+                    adminId && (
+                      <div className="flex flex-wrap gap-1.5">
+                        <Button
+                          onClick={() =>
+                            reassignMutation.mutate({
+                              id: selectedReport.id,
+                              toAdminId: adminId,
+                            })
+                          }
+                          isLoading={reassignMutation.isPending}
+                          variant="secondary"
+                          className="text-xs sm:text-sm font-semibold border-brand-primary/30 min-h-10 sm:min-h-11 px-2 sm:px-4"
+                        >
+                          <Hand size={16} className="mr-1 sm:mr-2 shrink-0" />
+                          <span className="truncate">
+                            {t('admin.reports.take_over')}
+                          </span>
+                        </Button>
+                      </div>
+                    )}
                   {(selectedReport.status === 'PENDING' ||
                     selectedReport.status === 'REVIEWING') && (
                     <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-row sm:flex-wrap">
@@ -753,16 +888,17 @@ export default function ReportsTab({ onToast }: Props) {
                           </span>
                         </dd>
                       </div>
-                      {(selectedReport.assignedTo?.profile?.username ||
-                        selectedReport.assignedToId) && (
+                      {(selectedReport.assignedAdmin?.displayName ||
+                        selectedReport.assignedAdmin?.email ||
+                        selectedReport.assignedAdminId) && (
                         <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
                           <dt className="text-xs font-medium text-white/40 shrink-0 pt-0.5">
                             {t('admin.reports.assigned_label')}
                           </dt>
                           <dd className="text-white font-semibold text-right">
-                            @
-                            {selectedReport.assignedTo?.profile?.username ||
-                              selectedReport.assignedToId?.slice(0, 8)}
+                            {selectedReport.assignedAdmin?.displayName ||
+                              selectedReport.assignedAdmin?.email ||
+                              selectedReport.assignedAdminId?.slice(0, 8)}
                           </dd>
                         </div>
                       )}

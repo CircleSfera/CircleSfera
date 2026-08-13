@@ -1,11 +1,19 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { $Enums, AdminAction } from '@prisma/client';
 import { NotificationsService } from '../../../../notifications/notifications.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
+import { resolveAdminNotificationSenderId } from '../../../utils/resolve-admin-notification-sender.js';
 import { LogAdminActionUseCase } from './log-admin-action.use-case.js';
 
 @Injectable()
 export class ModerateContentUseCase {
+  private readonly logger = new Logger(ModerateContentUseCase.name);
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(NotificationsService)
@@ -33,7 +41,11 @@ export class ModerateContentUseCase {
       moderationNote: note,
     };
 
-    let result: any;
+    let result: {
+      id: string;
+      userId: string;
+      moderationStatus: $Enums.ModerationStatus;
+    };
     let authorId: string | undefined;
     if (targetType === 'POST') {
       result = await this.prisma.post.update({
@@ -49,7 +61,7 @@ export class ModerateContentUseCase {
         select: { id: true, userId: true, moderationStatus: true },
       });
       authorId = result.userId;
-    } else if (targetType === 'COMMENT') {
+    } else {
       result = await this.prisma.comment.update({
         where: { id: targetId },
         data,
@@ -60,7 +72,7 @@ export class ModerateContentUseCase {
 
     const action =
       status === 'VISIBLE'
-        ? ('CONTENT_RESTORED' as any as AdminAction)
+        ? ('CONTENT_RESTORED' as AdminAction)
         : status === 'HIDDEN'
           ? AdminAction.CONTENT_RESTRICTED
           : AdminAction.CONTENT_REMOVED;
@@ -80,15 +92,19 @@ export class ModerateContentUseCase {
           : status === 'HIDDEN'
             ? 'hidden'
             : 'removed';
+      const senderId = await resolveAdminNotificationSenderId(
+        this.prisma,
+        adminId,
+      );
       await this.notificationsService
         .create({
           recipientId: authorId,
-          senderId: adminId,
+          senderId,
           type: $Enums.NotificationType.MODERATION,
           content: `Your ${targetType.toLowerCase()} was ${statusLabel} by moderation.${note ? ` Note: ${note}` : ''} You can appeal from Settings → Appeals.`,
           postId: targetType === 'POST' ? targetId : undefined,
         })
-        .catch((e) => console.error(e));
+        .catch((e) => this.logger.error(e));
     }
 
     return result;

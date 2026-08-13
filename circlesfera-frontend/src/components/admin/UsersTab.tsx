@@ -87,14 +87,20 @@ export default function Dashboard({ onToast }: Props) {
     reason?: string;
   }>({ type: null, id: null, username: '' });
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [suspendDraft, setSuspendDraft] = useState<{
+    user: AdminUser;
+    days: string;
+    reason: string;
+  } | null>(null);
 
   useEffect(() => {
-    const fromQuery = searchParams.get('user');
+    const fromQuery = searchParams.get('userId') || searchParams.get('user');
     if (fromQuery) {
       setSelectedUserId(fromQuery);
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev);
+          next.delete('userId');
           next.delete('user');
           return next;
         },
@@ -156,15 +162,18 @@ export default function Dashboard({ onToast }: Props) {
   };
 
   const askSuspend = (user: AdminUser) => {
-    const daysRaw = window.prompt(t('admin.users.prompt_suspend_days'), '7');
-    if (daysRaw === null) return;
-    const days = Number.parseInt(daysRaw, 10);
+    setSuspendDraft({ user, days: '7', reason: '' });
+  };
+
+  const submitSuspendDraft = () => {
+    if (!suspendDraft) return;
+    const days = Number.parseInt(suspendDraft.days, 10);
     if (!Number.isFinite(days) || days < 1) {
       onToast(t('admin.users.toast_suspend_days_invalid'), 'error');
       return;
     }
-    const reason = window.prompt(t('admin.users.prompt_suspend_reason'));
-    if (reason === null) return;
+    const { user, reason } = suspendDraft;
+    setSuspendDraft(null);
     askConfirm('suspend', user, {
       days,
       reason: reason.trim() || undefined,
@@ -609,6 +618,49 @@ export default function Dashboard({ onToast }: Props) {
           selectedUserId ? <UserDetailPanel userId={selectedUserId} /> : null
         }
       />
+
+      <ConfirmModal
+        isOpen={suspendDraft !== null}
+        onClose={() => setSuspendDraft(null)}
+        onConfirm={submitSuspendDraft}
+        title={t('admin.users.suspend_form_title')}
+        message={t('admin.users.suspend_form_message', {
+          username: suspendDraft ? usernameOf(suspendDraft.user) : '',
+        })}
+        confirmText={t('admin.users.confirm_suspend_confirm')}
+        cancelText={t('admin.shared.cancel')}
+        isDestructive
+      >
+        <div className="space-y-3 mt-3">
+          <label className="block text-xs text-white/60">
+            {t('admin.users.prompt_suspend_days')}
+            <input
+              type="number"
+              min={1}
+              value={suspendDraft?.days ?? '7'}
+              onChange={(e) =>
+                setSuspendDraft((prev) =>
+                  prev ? { ...prev, days: e.target.value } : prev,
+                )
+              }
+              className="mt-1 w-full min-h-11 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white"
+            />
+          </label>
+          <label className="block text-xs text-white/60">
+            {t('admin.users.prompt_suspend_reason')}
+            <textarea
+              value={suspendDraft?.reason ?? ''}
+              onChange={(e) =>
+                setSuspendDraft((prev) =>
+                  prev ? { ...prev, reason: e.target.value } : prev,
+                )
+              }
+              rows={3}
+              className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white resize-y"
+            />
+          </label>
+        </div>
+      </ConfirmModal>
 
       <ConfirmModal
         isOpen={confirmAction.type !== null}

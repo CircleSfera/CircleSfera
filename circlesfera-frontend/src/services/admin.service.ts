@@ -156,11 +156,11 @@ export interface AdminReport {
   targetType: string;
   targetId: string;
   createdAt: string;
-  assignedToId?: string | null;
-  assignedTo?: {
-    profile?: {
-      username: string;
-    } | null;
+  assignedAdminId?: string | null;
+  assignedAdmin?: {
+    id: string;
+    email: string;
+    displayName: string;
   } | null;
   resolvedAt?: string | null;
   internalNotes?: string | null;
@@ -428,6 +428,12 @@ export interface TrustQueueReport {
   status: string;
   targetType: string;
   createdAt: string;
+  assignedAdminId?: string | null;
+  assignedAdmin?: {
+    id: string;
+    email: string;
+    displayName: string;
+  } | null;
   reporter?: {
     profile?: { username: string } | null;
   } | null;
@@ -604,9 +610,10 @@ export const adminApi = {
     search?: string,
     status?: string,
     userId?: string,
+    assignedAdminId?: string,
   ) =>
     apiClient.get<PaginatedResponse<AdminReport>>('admin/reports', {
-      params: { page, limit, search, status, userId },
+      params: { page, limit, search, status, userId, assignedAdminId },
     }),
 
   updateReport: (
@@ -615,6 +622,11 @@ export const adminApi = {
   ) => apiClient.patch(`admin/reports/${id}`, data),
 
   claimReport: (id: string) => apiClient.post(`admin/reports/${id}/claim`),
+
+  unclaimReport: (id: string) => apiClient.post(`admin/reports/${id}/unclaim`),
+
+  reassignReport: (id: string, toAdminId: string) =>
+    apiClient.post(`admin/reports/${id}/reassign`, { toAdminId }),
 
   bulkUpdateReports: (ids: string[], status: string) =>
     apiClient.post<{ updated: number }>('admin/reports/bulk', { ids, status }),
@@ -706,6 +718,9 @@ export const adminApi = {
     apiClient.get<PaginatedResponse<WhitelistEntry>>('admin/whitelist', {
       params: { page, limit, search },
     }),
+
+  createWhitelist: (data: { email: string; name?: string }) =>
+    apiClient.post<WhitelistEntry>('admin/whitelist', data),
 
   updateWhitelist: (id: string, data: Partial<WhitelistEntry>) =>
     apiClient.patch<WhitelistEntry>(`admin/whitelist/${id}`, data),
