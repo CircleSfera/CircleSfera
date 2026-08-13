@@ -10,10 +10,12 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   UseGuards,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import {
+  CurrentAdmin,
+  type CurrentAdminData,
+} from '../auth/decorators/current-admin.decorator.js';
 import {
   AdminGuard,
   RequireAdminStepUp,
@@ -22,10 +24,6 @@ import {
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminService } from './admin.service.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
-
-interface AuthRequest extends Request {
-  user: { userId: string; email: string; role: string };
-}
 
 @Controller('admin')
 @UseGuards(AdminJwtAuthGuard, AdminGuard)
@@ -63,9 +61,9 @@ export class AdminSystemController {
   @Post('firewall/rules')
   async addFirewallRule(
     @Body() body: { keyword: string; action: any; isActive?: boolean },
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
-    return this.adminService.createFirewallRule(req.user.userId, body);
+    return this.adminService.createFirewallRule(admin.adminId, body);
   }
 
   @RequireStaffPermissions('moderation')
@@ -73,16 +71,19 @@ export class AdminSystemController {
   async updateFirewallRule(
     @Param('id') id: string,
     @Body() body: { action?: any; isActive?: boolean },
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
-    return this.adminService.updateFirewallRule(req.user.userId, id, body);
+    return this.adminService.updateFirewallRule(admin.adminId, id, body);
   }
 
   @RequireStaffPermissions('moderation')
   @RequireAdminStepUp()
   @Delete('firewall/rules/:id')
-  async deleteFirewallRule(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.adminService.deleteFirewallRule(req.user.userId, id);
+  async deleteFirewallRule(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminService.deleteFirewallRule(admin.adminId, id);
   }
 
   @Get('settings')
@@ -97,11 +98,8 @@ export class AdminSystemController {
     @Body() body: {
       updates: { key: string; value: string; description?: string }[];
     },
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
-    return this.adminService.updateSystemSettings(
-      req.user.userId,
-      body.updates,
-    );
+    return this.adminService.updateSystemSettings(admin.adminId, body.updates);
   }
 }

@@ -1082,7 +1082,7 @@
       "confirm_unban_message": "The user will regain full access to their account.",
       "confirm_unban_confirm": "Unban User",
       "confirm_promote_title": "Create Admin Panel operator?",
-      "confirm_promote_message": "Creates an AdminIdentity for @{{username}}. Set the password in Operators (or bootstrap-admin).",
+      "confirm_promote_message": "Creates an AdminIdentity for @{{username}}. Set the password in Operators (or bootstrap-admin). Platform User.role ADMIN does not grant panel access.",
       "confirm_promote_confirm": "Create operator",
       "confirm_demote_title": "Disable Admin Panel operator?",
       "confirm_demote_message": "Disables the AdminIdentity linked to @{{username}}.",
@@ -1097,7 +1097,7 @@
       "col_posts": "Posts",
       "col_status": "Status",
       "col_actions": "Actions",
-      "role_admin": "Admin",
+      "role_admin": "Platform ADMIN role (≠ panel)",
       "role_user": "User",
       "action_ban": "Ban",
       "action_unban": "Unban",
@@ -1105,11 +1105,11 @@
       "action_suspend": "Suspend",
       "action_restore": "Restore",
       "action_promote": "Promote",
-      "action_demote": "Demote",
+      "action_demote": "Disable linked operator",
       "action_delete": "Delete",
       "action_view_detail": "View detail",
       "action_view_profile": "View profile",
-      "action_promote_admin": "Create AdminIdentity",
+      "action_promote_admin": "Create operator (AdminIdentity)",
       "posts_count": "{{count}} posts",
       "suspended_until": "Suspended until {{date}}",
       "prompt_warn_reason": "Warning reason (optional):",
@@ -1136,7 +1136,9 @@
       "kpi_active_today": "Active today",
       "kpi_pending_reports": "Pending reports",
       "segment_banned": "Banned",
-      "segment_admins": "Admins"
+      "segment_admins": "Platform ADMIN role",
+      "suspend_form_title": "Suspend user",
+      "suspend_form_message": "Set duration and reason for @{{username}}."
     },
     "moderation": {
       "title": "AI Moderation Queue",
@@ -1235,7 +1237,16 @@
       "toast_bulk_dismissed": "{{count}} reports dismissed",
       "toast_bulk_error": "Failed to bulk update reports",
       "target_user": "Reported user",
-      "target_message": "Reported message"
+      "target_message": "Reported message",
+      "filter_mine": "My queue",
+      "unclaim": "Unclaim",
+      "toast_unclaimed": "Report unclaimed",
+      "toast_unclaim_error": "Could not unclaim report",
+      "toast_claim_conflict": "Already claimed by another admin",
+      "take_over": "Take over",
+      "toast_reassigned": "Report reassigned",
+      "toast_reassign_error": "Could not reassign report",
+      "open_user": "Open in Users"
     },
     "monetization": {
       "title": "Monetization",
@@ -1292,7 +1303,11 @@
       "toast_error": "Failed to update appeal",
       "approve": "Approve",
       "reject": "Reject",
-      "user_label": "User: {{email}}"
+      "user_label": "User: {{email}}",
+      "target_preview": "Target",
+      "open_user": "Open user",
+      "notes_prompt": "Optional admin notes (leave empty to skip):",
+      "notes_prompt_reject": "Reason for rejection (optional):"
     },
     "trust": {
       "title": "Trust Queue",
@@ -1741,7 +1756,12 @@
       "save": "Save",
       "confirm_delete_title": "Delete entry?",
       "confirm_delete_message": "Are you sure you want to remove this entry from the whitelist?",
-      "confirm_delete": "Delete"
+      "confirm_delete": "Delete",
+      "action_add": "Add",
+      "create_title": "Add to whitelist",
+      "create_message": "Enter the invited email.",
+      "email_placeholder": "email@example.com",
+      "name_placeholder": "Name (optional)"
     },
     "verification": {
       "title": "KYC & Verification",

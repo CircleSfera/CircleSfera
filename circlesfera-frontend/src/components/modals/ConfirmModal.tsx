@@ -19,6 +19,7 @@ export interface ConfirmModalProps {
   inputLabel?: string;
   inputPlaceholder?: string;
   inputRequired?: boolean;
+  children?: React.ReactNode;
 }
 
 export default function ConfirmModal({
@@ -35,6 +36,7 @@ export default function ConfirmModal({
   inputLabel = 'Motivo',
   inputPlaceholder = '',
   inputRequired = false,
+  children,
 }: ConfirmModalProps) {
   const inputId = useId();
   const [inputValue, setInputValue] = useState('');
@@ -85,6 +87,8 @@ export default function ConfirmModal({
               />
             </label>
           )}
+
+          {children}
         </div>
       </div>
 

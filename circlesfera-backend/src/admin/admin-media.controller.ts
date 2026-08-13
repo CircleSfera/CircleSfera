@@ -8,23 +8,21 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { AdminAction } from '@prisma/client';
-import type { Request } from 'express';
 import { AudioService } from '../audio/audio.service.js';
 import { CreateAudioDto } from '../audio/dto/create-audio.dto.js';
+import {
+  CurrentAdmin,
+  type CurrentAdminData,
+} from '../auth/decorators/current-admin.decorator.js';
 import {
   AdminGuard,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminService } from './admin.service.js';
-
-interface AuthRequest extends Request {
-  user: { userId: string; email: string; role: string };
-}
 
 @Controller('admin')
 @UseGuards(AdminJwtAuthGuard, AdminGuard)
@@ -46,10 +44,13 @@ export class AdminMediaController {
 
   @RequireStaffPermissions('content')
   @Post('audio')
-  async createAudio(@Body() dto: CreateAudioDto, @Req() req: AuthRequest) {
+  async createAudio(
+    @Body() dto: CreateAudioDto,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
     const result = await this.audioService.create(dto);
     await this.adminService.logAction(
-      req.user.userId,
+      admin.adminId,
       AdminAction.CREATE_AUDIO,
       'audio',
       result.id,
@@ -63,11 +64,11 @@ export class AdminMediaController {
   async updateAudio(
     @Param('id') id: string,
     @Body() dto: CreateAudioDto,
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
     const result = await this.audioService.update(id, dto);
     await this.adminService.logAction(
-      req.user.userId,
+      admin.adminId,
       AdminAction.UPDATE_AUDIO,
       'audio',
       id,
@@ -78,10 +79,13 @@ export class AdminMediaController {
 
   @RequireStaffPermissions('content')
   @Delete('audio/:id')
-  async deleteAudio(@Param('id') id: string, @Req() req: AuthRequest) {
+  async deleteAudio(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
     const result = await this.audioService.delete(id);
     await this.adminService.logAction(
-      req.user.userId,
+      admin.adminId,
       AdminAction.DELETE_AUDIO,
       'audio',
       id,

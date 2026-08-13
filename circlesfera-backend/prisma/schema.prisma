@@ -74,8 +74,7 @@ model User {
   taggedPosts PostTag[]
 
   // Reports
-  reports         Report[] @relation("ReportReporter")
-  assignedReports Report[] @relation("ReportAssignee")
+  reports Report[] @relation("ReportReporter")
 
   // Search History
   searchHistory SearchHistory[]
@@ -986,11 +985,11 @@ model Report {
   targetType ReportTargetType
   targetId   String
 
-  // Queue workflow
-  assignedToId  String?
-  assignedTo    User?     @relation("ReportAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
-  resolvedAt    DateTime?
-  internalNotes String?
+  // Queue workflow (Admin Panel operator, not platform User)
+  assignedAdminId String?
+  assignedAdmin   AdminIdentity? @relation("ReportAssignedAdmin", fields: [assignedAdminId], references: [id], onDelete: SetNull)
+  resolvedAt      DateTime?
+  internalNotes   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1001,7 +1000,7 @@ model Report {
   @@index([reporterId])
   @@index([targetType, targetId])
   @@index([status, createdAt])
-  @@index([assignedToId])
+  @@index([assignedAdminId])
   @@index([resolvedAt])
   @@map("reports")
 }
@@ -1072,11 +1071,12 @@ model AdminIdentity {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
-  linkedUser    User?               @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
-  roles         AdminIdentityRole[]
-  refreshTokens AdminRefreshToken[]
-  passkeys      AdminPasskey[]
-  auditLogs     AdminAuditLog[]
+  linkedUser      User?               @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
+  roles           AdminIdentityRole[]
+  refreshTokens   AdminRefreshToken[]
+  passkeys        AdminPasskey[]
+  auditLogs       AdminAuditLog[]
+  assignedReports Report[]            @relation("ReportAssignedAdmin")
 
   @@index([linkedUserId])
   @@index([status])

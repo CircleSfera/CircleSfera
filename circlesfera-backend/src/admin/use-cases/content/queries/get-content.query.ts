@@ -139,6 +139,13 @@ export class GetContentQuery {
                 profile: { select: { username: true } },
               },
             },
+            assignedAdmin: {
+              select: {
+                id: true,
+                email: true,
+                displayName: true,
+              },
+            },
           },
         }),
         this.prisma.appeal.findMany({

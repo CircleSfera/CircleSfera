@@ -13,7 +13,9 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
 import type { BroadcastEmailDto } from './dto/broadcast-email.dto.js';
+import type { CreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
 import type { UpdateWhitelistEntryDto } from './dto/update-whitelist-entry.dto.js';
+import { resolveAdminNotificationSenderId } from './utils/resolve-admin-notification-sender.js';
 
 type VLevel = 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
 type AType = 'PERSONAL' | 'CREATOR' | 'BUSINESS';
@@ -453,7 +455,7 @@ export class AdminUsersService {
     await this.notificationsService
       .create({
         recipientId: userId,
-        senderId: adminId,
+        senderId: await resolveAdminNotificationSenderId(this.prisma, adminId),
         type: NotificationType.MODERATION,
         content:
           `Your account is suspended until ${until.toISOString().slice(0, 10)}. ${reason || ''}`.trim(),
@@ -488,7 +490,7 @@ export class AdminUsersService {
     await this.notificationsService
       .create({
         recipientId: userId,
-        senderId: adminId,
+        senderId: await resolveAdminNotificationSenderId(this.prisma, adminId),
         type: NotificationType.MODERATION,
         content:
           reason ||
@@ -573,6 +575,29 @@ export class AdminUsersService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  async createWhitelist(adminId: string, data: CreateWhitelistEntryDto) {
+    const existing = await this.prisma.whitelistEntry.findUnique({
+      where: { email: data.email.toLowerCase() },
+    });
+    if (existing) {
+      throw new BadRequestException('Email already on whitelist');
+    }
+    const result = await this.prisma.whitelistEntry.create({
+      data: {
+        email: data.email.toLowerCase(),
+        name: data.name,
+      },
+    });
+    await this.logAction(
+      adminId,
+      AdminAction.UPDATE_WHITELIST,
+      'whitelist',
+      result.id,
+      `Created: ${result.email}`,
+    );
+    return result;
   }
 
   async updateWhitelist(

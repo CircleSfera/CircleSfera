@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   Logger,
@@ -13,6 +15,7 @@ import {
 } from '@prisma/client';
 import { NotificationsService } from '../../../../notifications/notifications.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
+import { resolveAdminNotificationSenderId } from '../../../utils/resolve-admin-notification-sender.js';
 import { LogAdminActionUseCase } from './log-admin-action.use-case.js';
 
 @Injectable()
@@ -26,6 +29,27 @@ export class ReviewReportUseCase {
     @Inject(LogAdminActionUseCase)
     private readonly logAdminAction: LogAdminActionUseCase,
   ) {}
+
+  private async notifyModeration(params: {
+    adminId: string;
+    recipientId: string;
+    content: string;
+    postId?: string;
+  }) {
+    const senderId = await resolveAdminNotificationSenderId(
+      this.prisma,
+      params.adminId,
+    );
+    await this.notificationsService
+      .create({
+        recipientId: params.recipientId,
+        senderId,
+        type: NotificationType.MODERATION,
+        content: params.content,
+        postId: params.postId,
+      })
+      .catch((e) => this.logger.error(e));
+  }
 
   async updateStatus(
     adminId: string,
@@ -41,11 +65,15 @@ export class ReviewReportUseCase {
       resolvedAt:
         status === ReportStatus.RESOLVED || status === ReportStatus.REJECTED
           ? new Date()
-          : (existing?.resolvedAt ?? undefined),
-      assignedToId:
+          : status === ReportStatus.PENDING
+            ? null
+            : (existing?.resolvedAt ?? undefined),
+      assignedAdminId:
         status === ReportStatus.REVIEWING
           ? adminId
-          : (existing?.assignedToId ?? undefined),
+          : status === ReportStatus.PENDING
+            ? null
+            : (existing?.assignedAdminId ?? undefined),
       ...(internalNotes !== undefined ? { internalNotes } : {}),
     };
     const result = await this.prisma.report.update({
@@ -64,16 +92,12 @@ export class ReviewReportUseCase {
     await this.logAdminAction.execute(adminId, action, 'report', reportId);
 
     if (existing && existing.status !== status) {
-      await this.notificationsService
-        .create({
-          recipientId: existing.reporterId,
-          senderId: adminId,
-          type: NotificationType.MODERATION,
-          content: `Your report (${existing.targetType}) was updated to ${status}.`,
-          postId:
-            existing.targetType === 'POST' ? existing.targetId : undefined,
-        })
-        .catch((e) => this.logger.error(e));
+      await this.notifyModeration({
+        adminId,
+        recipientId: existing.reporterId,
+        content: `Your report (${existing.targetType}) was updated to ${status}.`,
+        postId: existing.targetType === 'POST' ? existing.targetId : undefined,
+      });
     }
 
     return result;
@@ -85,11 +109,24 @@ export class ReviewReportUseCase {
     });
     if (!report) throw new NotFoundException('Report not found');
 
+    if (
+      report.status === ReportStatus.REVIEWING &&
+      report.assignedAdminId &&
+      report.assignedAdminId !== adminId
+    ) {
+      throw new ConflictException({
+        code: 'REPORT_ALREADY_CLAIMED',
+        message: 'Report is already claimed by another admin',
+        assignedAdminId: report.assignedAdminId,
+      });
+    }
+
     const result = await this.prisma.report.update({
       where: { id: reportId },
       data: {
         status: ReportStatus.REVIEWING,
-        assignedToId: adminId,
+        assignedAdminId: adminId,
+        resolvedAt: null,
       },
     });
     await this.logAdminAction.execute(
@@ -98,6 +135,70 @@ export class ReviewReportUseCase {
       'report',
       reportId,
       'Claimed for review',
+    );
+    return result;
+  }
+
+  async unclaim(adminId: string, reportId: string) {
+    const report = await this.prisma.report.findUnique({
+      where: { id: reportId },
+    });
+    if (!report) throw new NotFoundException('Report not found');
+
+    if (report.assignedAdminId && report.assignedAdminId !== adminId) {
+      throw new ForbiddenException({
+        code: 'REPORT_CLAIMED_BY_OTHER',
+        message: 'Only the assignee can unclaim this report',
+        assignedAdminId: report.assignedAdminId,
+      });
+    }
+
+    const result = await this.prisma.report.update({
+      where: { id: reportId },
+      data: {
+        status: ReportStatus.PENDING,
+        assignedAdminId: null,
+        resolvedAt: null,
+      },
+    });
+    await this.logAdminAction.execute(
+      adminId,
+      AdminAction.REPORT_REVIEWED,
+      'report',
+      reportId,
+      'Unclaimed',
+    );
+    return result;
+  }
+
+  async reassign(adminId: string, reportId: string, toAdminId: string) {
+    const report = await this.prisma.report.findUnique({
+      where: { id: reportId },
+    });
+    if (!report) throw new NotFoundException('Report not found');
+
+    const target = await this.prisma.adminIdentity.findUnique({
+      where: { id: toAdminId },
+      select: { id: true, status: true },
+    });
+    if (!target || target.status !== 'ACTIVE') {
+      throw new BadRequestException('Target admin identity is not active');
+    }
+
+    const result = await this.prisma.report.update({
+      where: { id: reportId },
+      data: {
+        status: ReportStatus.REVIEWING,
+        assignedAdminId: toAdminId,
+        resolvedAt: null,
+      },
+    });
+    await this.logAdminAction.execute(
+      adminId,
+      AdminAction.REPORT_REVIEWED,
+      'report',
+      reportId,
+      `Reassigned to ${toAdminId}`,
     );
     return result;
   }
@@ -145,29 +246,23 @@ export class ReviewReportUseCase {
         where: { id: targetUserId },
         data: { strikeCount: { increment: 1 } },
       });
-      await this.notificationsService
-        .create({
-          recipientId: targetUserId,
-          senderId: adminId,
-          type: NotificationType.MODERATION,
-          content:
-            'A moderation strike was applied to your account after a report review.',
-        })
-        .catch((e) => this.logger.error(e));
+      await this.notifyModeration({
+        adminId,
+        recipientId: targetUserId,
+        content:
+          'A moderation strike was applied to your account after a report review.',
+      });
     } else if (penaltyAction === 'BAN' && targetUserId) {
       await this.prisma.user.update({
         where: { id: targetUserId },
         data: { isActive: false },
       });
-      await this.notificationsService
-        .create({
-          recipientId: targetUserId,
-          senderId: adminId,
-          type: NotificationType.MODERATION,
-          content:
-            'Your account was deactivated after a report review. You may appeal from the login screen.',
-        })
-        .catch((e) => this.logger.error(e));
+      await this.notifyModeration({
+        adminId,
+        recipientId: targetUserId,
+        content:
+          'Your account was deactivated after a report review. You may appeal from the login screen.',
+      });
     } else if (
       penaltyAction === 'IGNORE' &&
       targetUserId &&
@@ -197,6 +292,7 @@ export class ReviewReportUseCase {
       data: {
         status: ReportStatus.RESOLVED,
         resolvedAt: new Date(),
+        assignedAdminId: report.assignedAdminId ?? adminId,
       },
     });
   }
@@ -210,9 +306,21 @@ export class ReviewReportUseCase {
       throw new BadRequestException('Invalid status');
     }
 
+    const data: Prisma.ReportUncheckedUpdateManyInput = { status };
+
+    if (status === ReportStatus.RESOLVED || status === ReportStatus.REJECTED) {
+      data.resolvedAt = new Date();
+    } else if (status === ReportStatus.PENDING) {
+      data.resolvedAt = null;
+      data.assignedAdminId = null;
+    } else if (status === ReportStatus.REVIEWING) {
+      data.resolvedAt = null;
+      data.assignedAdminId = adminId;
+    }
+
     const result = await this.prisma.report.updateMany({
       where: { id: { in: uniqueIds } },
-      data: { status },
+      data,
     });
 
     await this.logAdminAction.execute(

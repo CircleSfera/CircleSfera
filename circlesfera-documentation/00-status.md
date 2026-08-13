@@ -1,12 +1,16 @@
 # Documentation status
 
-**Last status note:** Aug 2026 — Admin Panel Trust home (T&S entry)
+**Last status note:** Aug 2026 — Admin Panel T&S workflow hardening
 
 ## Aug 2026 Admin Panel
 
 - Separate `AdminIdentity` + DB RBAC; MFA mandatory; admin session cookies on `admin.circlesfera.com`
 - Platform `User.role` staff values deprecated for admin-panel access
 - Framing: Admin Panel = internal control plane / Trust & Safety ops (not creator analytics); post-login home = **Trust** (`/trust`) when permitted
+- Report claim/REVIEWING assignee is `Report.assignedAdminId` → `AdminIdentity` (migration `20260813010000_report_assigned_admin`)
+- Report queue: my-queue filter, unclaim, claim conflict, bulk assignee/`resolvedAt`; Trust previews include assignee
+- Moderation notifications use `AdminIdentity.linkedUserId` (never raw admin id as `Notification.senderId`)
+- Deep-links / command palette gated by `ADMIN_TAB_PERMISSIONS`; promotions tab permission aligned to `content`
 - Runbook: [admin-panel-cutover](./runbooks/admin-panel-cutover.md)
 
 ## Jul 2026 production closure (verified)

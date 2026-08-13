@@ -66,40 +66,12 @@ export interface AdminNavGroup {
   items: AdminNavItem[];
 }
 
-export const ADMIN_TAB_ROLES: Record<AdminTab, string[] | undefined> = {
-  analytics: undefined, // ADMIN only
-  monetization: ['ADMIN', 'FINANCE'],
-  payouts: ['ADMIN', 'FINANCE'],
-  promotions: ['ADMIN', 'FINANCE'],
-  verification: ['ADMIN', 'SUPPORT'],
-  whitelist: undefined,
-  newsletter: undefined,
-  users: ['ADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE'],
-  moderation: ['ADMIN', 'MODERATOR'],
-  firewall: undefined,
-  posts: ['ADMIN', 'MODERATOR'],
-  stories: ['ADMIN', 'MODERATOR'],
-  live: ['ADMIN', 'MODERATOR'],
-  comments: ['ADMIN', 'MODERATOR'],
-  hashtags: ['ADMIN', 'MODERATOR'],
-  audio: ['ADMIN', 'MODERATOR'],
-  'system-health': undefined,
-  settings: ['ADMIN'], // Only ADMIN can change global settings
-  trust: ['ADMIN', 'MODERATOR', 'SUPPORT'],
-  experiments: undefined,
-  reports: ['ADMIN', 'MODERATOR'],
-  audit: ['ADMIN', 'MODERATOR'],
-  roles: ['ADMIN'], // Only ADMIN can manage roles
-  appeals: ['ADMIN', 'MODERATOR', 'SUPPORT'],
-  support: ['ADMIN', 'MODERATOR', 'SUPPORT'],
-};
-
 /** Admin Panel permission required per tab. */
 export const ADMIN_TAB_PERMISSIONS: Record<AdminTab, string> = {
   analytics: 'users.read',
   monetization: 'payments',
   payouts: 'payments',
-  promotions: 'payments',
+  promotions: 'content',
   verification: 'users.read',
   whitelist: 'users.write',
   newsletter: 'system',

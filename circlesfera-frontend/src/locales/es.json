@@ -1082,7 +1082,7 @@
       "confirm_unban_message": "El usuario recuperará el acceso completo a su cuenta.",
       "confirm_unban_confirm": "Desbanear Usuario",
       "confirm_promote_title": "¿Crear operador del Admin Panel?",
-      "confirm_promote_message": "Crea una AdminIdentity para @{{username}}. Define la contraseña en Operadores (o bootstrap-admin).",
+      "confirm_promote_message": "Crea un AdminIdentity para @{{username}}. La contraseña se define en Operators (o bootstrap-admin). El rol User.role ADMIN no concede acceso al panel.",
       "confirm_promote_confirm": "Crear operador",
       "confirm_demote_title": "¿Desactivar operador del Admin Panel?",
       "confirm_demote_message": "Desactiva la AdminIdentity vinculada a @{{username}}.",
@@ -1097,7 +1097,7 @@
       "col_posts": "Posts",
       "col_status": "Estado",
       "col_actions": "Acciones",
-      "role_admin": "Admin",
+      "role_admin": "Rol plataforma ADMIN (≠ panel)",
       "role_user": "User",
       "action_ban": "Banear",
       "action_unban": "Desbanear",
@@ -1105,11 +1105,11 @@
       "action_suspend": "Suspender",
       "action_restore": "Restaurar",
       "action_promote": "Promover",
-      "action_demote": "Degradar",
+      "action_demote": "Quitar operador vinculado",
       "action_delete": "Eliminar",
       "action_view_detail": "Ver detalle",
       "action_view_profile": "Ver perfil",
-      "action_promote_admin": "Crear AdminIdentity",
+      "action_promote_admin": "Crear operador (AdminIdentity)",
       "posts_count": "{{count}} posts",
       "suspended_until": "Suspendido hasta {{date}}",
       "prompt_warn_reason": "Motivo de la advertencia (opcional):",
@@ -1136,7 +1136,9 @@
       "kpi_active_today": "Activos hoy",
       "kpi_pending_reports": "Reportes pendientes",
       "segment_banned": "Baneados",
-      "segment_admins": "Admins"
+      "segment_admins": "Rol plataforma ADMIN",
+      "suspend_form_title": "Suspender usuario",
+      "suspend_form_message": "Indica duración y motivo para @{{username}}."
     },
     "moderation": {
       "title": "Cola de Moderación AI",
@@ -1235,7 +1237,16 @@
       "toast_bulk_dismissed": "{{count}} reportes descartados",
       "toast_bulk_error": "Error al actualizar reportes en lote",
       "target_user": "Usuario reportado",
-      "target_message": "Mensaje reportado"
+      "target_message": "Mensaje reportado",
+      "filter_mine": "Mis reportes",
+      "unclaim": "Liberar",
+      "toast_unclaimed": "Reporte liberado",
+      "toast_unclaim_error": "No se pudo liberar el reporte",
+      "toast_claim_conflict": "Ya está reclamado por otro admin",
+      "take_over": "Tomar",
+      "toast_reassigned": "Reporte reasignado",
+      "toast_reassign_error": "No se pudo reasignar",
+      "open_user": "Abrir en Usuarios"
     },
     "monetization": {
       "title": "Monetización",
@@ -1292,7 +1303,11 @@
       "toast_error": "Error al actualizar apelación",
       "approve": "Aprobar",
       "reject": "Rechazar",
-      "user_label": "Usuario: {{email}}"
+      "user_label": "Usuario: {{email}}",
+      "target_preview": "Contexto",
+      "open_user": "Abrir usuario",
+      "notes_prompt": "Notas opcionales (vacío para omitir):",
+      "notes_prompt_reject": "Motivo del rechazo (opcional):"
     },
     "trust": {
       "title": "Cola de confianza",
@@ -1741,7 +1756,12 @@
       "save": "Guardar",
       "confirm_delete_title": "¿Eliminar registro?",
       "confirm_delete_message": "¿Estás seguro de que deseas eliminar este registro de la whitelist?",
-      "confirm_delete": "Eliminar"
+      "confirm_delete": "Eliminar",
+      "action_add": "Añadir",
+      "create_title": "Añadir a whitelist",
+      "create_message": "Introduce el email invitado.",
+      "email_placeholder": "email@ejemplo.com",
+      "name_placeholder": "Nombre (opcional)"
     },
     "verification": {
       "title": "KYC & Verificación",

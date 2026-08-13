@@ -8,11 +8,14 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
+import {
+  CurrentAdmin,
+  type CurrentAdminData,
+} from '../auth/decorators/current-admin.decorator.js';
 import {
   AdminGuard,
   RequireAdminStepUp,
@@ -22,12 +25,9 @@ import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminUsersService } from './admin-users.service.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
 import { BroadcastEmailDto } from './dto/broadcast-email.dto.js';
+import { CreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto.js';
 import { UpdateWhitelistEntryDto } from './dto/update-whitelist-entry.dto.js';
-
-interface AuthRequest extends Request {
-  user: { userId: string; email: string; role: string };
-}
 
 @Controller('admin')
 @UseGuards(AdminJwtAuthGuard, AdminGuard)
@@ -39,8 +39,11 @@ export class AdminUsersController {
 
   @Post('broadcast')
   @RequireStaffPermissions('system')
-  async sendBroadcast(@Body() dto: BroadcastEmailDto, @Req() req: AuthRequest) {
-    return this.adminUsersService.sendBroadcastEmail(req.user.userId, dto);
+  async sendBroadcast(
+    @Body() dto: BroadcastEmailDto,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminUsersService.sendBroadcastEmail(admin.adminId, dto);
   }
 
   @RequireStaffPermissions('users.read')
@@ -76,14 +79,20 @@ export class AdminUsersController {
 
   @Patch('users/:id/ban')
   @RequireStaffPermissions('users.ban')
-  async banUser(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.adminUsersService.banUser(req.user.userId, id);
+  async banUser(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminUsersService.banUser(admin.adminId, id);
   }
 
   @Patch('users/:id/unban')
   @RequireStaffPermissions('users.ban')
-  async unbanUser(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.adminUsersService.unbanUser(req.user.userId, id);
+  async unbanUser(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminUsersService.unbanUser(admin.adminId, id);
   }
 
   @Patch('users/:id/role')
@@ -91,10 +100,10 @@ export class AdminUsersController {
   async updateUserRole(
     @Param('id') id: string,
     @Body() data: { role: string },
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.adminUsersService.updateUserRole(
-      req.user.userId,
+      admin.adminId,
       id,
       data.role as any,
     );
@@ -106,28 +115,37 @@ export class AdminUsersController {
     @Param('id') id: string,
     @Body()
     data: UpdateUserStatusDto,
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
-    return this.adminUsersService.updateUserStatus(req.user.userId, id, data);
+    return this.adminUsersService.updateUserStatus(admin.adminId, id, data);
   }
 
   @RequireStaffPermissions('users.write')
   @Post('users/:id/revoke-kyc')
-  async revokeUserKYC(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.adminUsersService.revokeUserKYC(req.user.userId, id);
+  async revokeUserKYC(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminUsersService.revokeUserKYC(admin.adminId, id);
   }
 
   @RequireStaffPermissions('users.write')
   @Post('users/:id/sync-kyc')
-  async syncUserKYC(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.adminUsersService.syncUserKYC(req.user.userId, id);
+  async syncUserKYC(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminUsersService.syncUserKYC(admin.adminId, id);
   }
 
   @RequireStaffPermissions('users.ban')
   @RequireAdminStepUp()
   @Delete('users/:id')
-  async deleteUser(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.adminUsersService.deleteUser(req.user.userId, id);
+  async deleteUser(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminUsersService.deleteUser(admin.adminId, id);
   }
 
   @RequireStaffPermissions('users.read')
@@ -141,19 +159,31 @@ export class AdminUsersController {
   }
 
   @RequireStaffPermissions('users.write')
+  @Post('whitelist')
+  async createWhitelist(
+    @Body() data: CreateWhitelistEntryDto,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminUsersService.createWhitelist(admin.adminId, data);
+  }
+
+  @RequireStaffPermissions('users.write')
   @Patch('whitelist/:id')
   async updateWhitelist(
     @Param('id') id: string,
     @Body() data: UpdateWhitelistEntryDto,
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
-    return this.adminUsersService.updateWhitelist(req.user.userId, id, data);
+    return this.adminUsersService.updateWhitelist(admin.adminId, id, data);
   }
 
   @RequireStaffPermissions('users.write')
   @Delete('whitelist/:id')
-  async deleteWhitelist(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.adminUsersService.deleteWhitelist(req.user.userId, id);
+  async deleteWhitelist(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminUsersService.deleteWhitelist(admin.adminId, id);
   }
 
   @Patch('users/:id/warn')
@@ -161,9 +191,9 @@ export class AdminUsersController {
   async warnUser(
     @Param('id') id: string,
     @Body('reason') reason: string | undefined,
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
-    return this.adminUsersService.warnUser(req.user.userId, id, reason);
+    return this.adminUsersService.warnUser(admin.adminId, id, reason);
   }
 
   @Patch('users/:id/suspend')
@@ -171,10 +201,10 @@ export class AdminUsersController {
   async suspendUser(
     @Param('id') id: string,
     @Body() body: { days?: number; reason?: string },
-    @Req() req: AuthRequest,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.adminUsersService.suspendUser(
-      req.user.userId,
+      admin.adminId,
       id,
       body.days ?? 7,
       body.reason,
@@ -183,8 +213,11 @@ export class AdminUsersController {
 
   @Patch('users/:id/restore')
   @RequireStaffPermissions('users.ban')
-  async restoreSuspendedUser(@Param('id') id: string, @Req() req: AuthRequest) {
-    return this.adminUsersService.restoreUser(req.user.userId, id);
+  async restoreSuspendedUser(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminUsersService.restoreUser(admin.adminId, id);
   }
 
   @RequireStaffPermissions('users.read')

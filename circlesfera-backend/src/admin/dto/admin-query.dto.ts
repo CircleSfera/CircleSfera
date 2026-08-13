@@ -11,6 +11,11 @@ export class AdminQueryDto extends PaginationDto {
   @IsUUID()
   userId?: string;
 
+  /** Filter reports by AdminIdentity assignee. */
+  @IsOptional()
+  @IsUUID()
+  assignedAdminId?: string;
+
   @IsOptional()
   @IsString()
   status?: string;

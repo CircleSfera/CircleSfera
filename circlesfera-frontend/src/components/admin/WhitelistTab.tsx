@@ -28,6 +28,9 @@ export default function WhitelistTab() {
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createEmail, setCreateEmail] = useState('');
+  const [createName, setCreateName] = useState('');
   const debouncedSearch = useDebouncedValue(search, 400);
 
   const { data, isLoading } = useQuery<PaginatedResponse<WhitelistEntry>>({
@@ -41,6 +44,20 @@ export default function WhitelistTab() {
   const entries = data?.data ?? [];
   const selectedEntry =
     entries.find((entry) => entry.id === selectedId) ?? null;
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      adminApi.createWhitelist({
+        email: createEmail.trim(),
+        name: createName.trim() || undefined,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'whitelist'] });
+      setShowCreate(false);
+      setCreateEmail('');
+      setCreateName('');
+    },
+  });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<WhitelistEntry> }) =>
@@ -69,10 +86,15 @@ export default function WhitelistTab() {
         title={t('admin.whitelist.title')}
         subtitle={t('admin.whitelist.subtitle')}
         actions={
-          <div className="text-xs text-white/50 bg-white/5 px-3 py-2 rounded-lg border border-white/10 italic min-h-11 flex items-center">
-            {t('admin.whitelist.total_count', {
-              count: data?.meta.total || 0,
-            })}
+          <div className="flex items-center gap-2">
+            <div className="text-xs text-white/50 bg-white/5 px-3 py-2 rounded-lg border border-white/10 italic min-h-11 flex items-center">
+              {t('admin.whitelist.total_count', {
+                count: data?.meta.total || 0,
+              })}
+            </div>
+            <Button onClick={() => setShowCreate(true)} className="min-h-11">
+              {t('admin.whitelist.action_add')}
+            </Button>
           </div>
         }
       />
@@ -248,6 +270,36 @@ export default function WhitelistTab() {
           ) : null
         }
       />
+
+      <ConfirmModal
+        isOpen={showCreate}
+        onClose={() => setShowCreate(false)}
+        onConfirm={() => {
+          if (!createEmail.trim()) return;
+          createMutation.mutate();
+        }}
+        title={t('admin.whitelist.create_title')}
+        message={t('admin.whitelist.create_message')}
+        confirmText={t('admin.whitelist.action_add')}
+        cancelText={t('admin.shared.cancel')}
+        isLoading={createMutation.isPending}
+      >
+        <div className="space-y-3 mt-3">
+          <Input
+            type="email"
+            value={createEmail}
+            onChange={(e) => setCreateEmail(e.target.value)}
+            placeholder={t('admin.whitelist.email_placeholder')}
+            className="min-h-11"
+          />
+          <Input
+            value={createName}
+            onChange={(e) => setCreateName(e.target.value)}
+            placeholder={t('admin.whitelist.name_placeholder')}
+            className="min-h-11"
+          />
+        </div>
+      </ConfirmModal>
 
       <ConfirmModal
         isOpen={confirmDeleteId !== null}

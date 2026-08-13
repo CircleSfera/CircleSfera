@@ -14,6 +14,10 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { ApiTags } from '@nestjs/swagger';
 import {
+  CurrentAdmin,
+  type CurrentAdminData,
+} from '../auth/decorators/current-admin.decorator.js';
+import {
   CurrentUser,
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
@@ -42,11 +46,9 @@ export class AppealsController {
   create(@Req() req: any, @Body() createAppealDto: CreateAppealDto) {
     let userId: string | undefined;
 
-    // 1. Try to get userId from the JWT payload if they are fully authenticated (Post Removal)
     if (req.user?.userId) {
       userId = req.user.userId;
     } else {
-      // 2. Try to get userId from appealToken (Account Ban)
       const appealToken = req.headers['x-appeal-token'] || req.body.appealToken;
       if (appealToken) {
         try {
@@ -75,7 +77,6 @@ export class AppealsController {
     return this.appealsService.findMyUserAppeals(user.userId);
   }
 
-  // Admin Routes
   @Get('admin')
   @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('appeals')
@@ -97,8 +98,8 @@ export class AppealsController {
   update(
     @Param('id') id: string,
     @Body() updateAppealDto: UpdateAppealDto,
-    @CurrentUser() admin: CurrentUserData,
+    @CurrentAdmin() admin: CurrentAdminData,
   ) {
-    return this.appealsService.update(id, updateAppealDto, admin.userId);
+    return this.appealsService.update(id, updateAppealDto, admin.adminId);
   }
 }
