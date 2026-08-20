@@ -13,7 +13,23 @@ Thanks for helping improve CircleSfera. This project is a production social plat
 
 Follow the Quick Start in the root [README.md](./README.md). Backend and frontend each have their own README.
 
+## Branches
+
+Do not develop on `main`. Use:
+
+```text
+feature/<short-slug>
+fix/<short-slug>
+refactor/<short-slug>
+chore/<short-slug>
+docs/<short-slug>
+```
+
+`main` is protected: force-pushes and branch deletion are disabled (including for admins). Merging to `main` deploys production (`.github/workflows/deploy.yml`).
+
 ## Pull requests
+
+Open a PR for any meaningful change, even as a single developer. The PR should state objective, scope, architectural impact, tests, verification, risks, and migration notes when they apply.
 
 - Keep PRs focused; split schema, auth/payments, and large UI changes when possible.
 - Schema/API/auth/monetization changes need explicit rationale and migration notes.
@@ -33,7 +49,30 @@ AI agents are welcome, but they follow the same rules as humans:
 
 ## Commit style
 
-Prefer clear, imperative messages that explain **why** (e.g. Conventional Commits are welcome but not required).
+Husky runs [commitlint](https://commitlint.js.org/) on `commit-msg`. Format:
+
+```text
+<type>(<scope>): <imperative description>
+```
+
+Types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`, `ci`, `chore`, `style`, `revert`.
+
+Preferred scopes (from the as-built modules, not an exhaustive linter list): `auth`, `users`, `profiles`, `posts`, `stories`, `feed`, `search`, `media`, `messaging`, `notifications`, `live`, `creator`, `payments`, `admin`, `ai`, `ui`, `i18n`, `api`, `database`, `infra`, `ci`, `docs`, `e2e`, `deps`.
+
+One commit is one logical change. File count does not matter; mixing unrelated domains does.
+
+AI-assisted changes follow the same rule: identify logical units, separate unrelated diffs, then commit. Never land a generic “save all” changeset.
+
+Examples:
+
+```text
+feat(auth): implement session management
+fix(auth): preserve session after token refresh
+refactor(ui): extract responsive layout primitives
+test(publications): add publication validation coverage
+docs(architecture): document authentication boundaries
+ci: unify PR and deploy quality gates
+```
 
 ## Code of conduct
 
