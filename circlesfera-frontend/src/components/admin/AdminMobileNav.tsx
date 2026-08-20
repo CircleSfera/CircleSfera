@@ -1,7 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { clsx } from 'clsx';
 import { X } from 'lucide-react';
-import { useEffect, useMemo, useRef } from 'react';
+import {
+  type TransitionEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { adminApi } from '../../services/admin.service';
@@ -19,7 +25,7 @@ interface Props {
   onClose: () => void;
 }
 
-/** Bottom sheet navigation for mobile (< lg). CSS transforms — no blur/spring jank. */
+/** Bottom sheet navigation for mobile (< lg). Unmounts when closed so it cannot peek. */
 export function AdminMobileDrawer({
   activeTab,
   onTabChange,
@@ -29,6 +35,9 @@ export function AdminMobileDrawer({
   const { t } = useTranslation();
   const sheetRef = useRef<HTMLDivElement>(null);
   const hasPermission = useAdminAuthStore((s) => s.hasPermission);
+  /** Keep in DOM while open or exiting so translate can animate. */
+  const [mounted, setMounted] = useState(isOpen);
+  const [entered, setEntered] = useState(false);
 
   useFocusTrap(isOpen, sheetRef, { onEscape: onClose });
 
@@ -37,6 +46,7 @@ export function AdminMobileDrawer({
     queryFn: () => adminApi.getTrustQueue().then((r) => r.data),
     refetchInterval: 60_000,
     staleTime: 30_000,
+    enabled: mounted,
   });
 
   const trustBadgeTotal =
@@ -65,6 +75,20 @@ export function AdminMobileDrawer({
   }, [trustBadgeTotal, trustQueue]);
 
   useEffect(() => {
+    if (isOpen) {
+      setMounted(true);
+      const id = requestAnimationFrame(() => {
+        requestAnimationFrame(() => setEntered(true));
+      });
+      return () => cancelAnimationFrame(id);
+    }
+    setEntered(false);
+    // If transform transition is skipped (reduced motion / interrupted), still unmount.
+    const timeout = window.setTimeout(() => setMounted(false), 280);
+    return () => window.clearTimeout(timeout);
+  }, [isOpen]);
+
+  useEffect(() => {
     if (!isOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -78,6 +102,14 @@ export function AdminMobileDrawer({
     onClose();
   };
 
+  const handleSheetTransitionEnd = (e: TransitionEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.propertyName !== 'transform') return;
+    if (!isOpen) setMounted(false);
+  };
+
+  if (!mounted) return null;
+
   return (
     <div className="lg:hidden" aria-hidden={!isOpen}>
       <button
@@ -87,7 +119,7 @@ export function AdminMobileDrawer({
         onClick={onClose}
         className={clsx(
           'fixed inset-0 z-50 bg-black/70 transition-opacity duration-200 ease-out',
-          isOpen
+          entered
             ? 'opacity-100 pointer-events-auto'
             : 'opacity-0 pointer-events-none',
         )}
@@ -98,12 +130,17 @@ export function AdminMobileDrawer({
         aria-modal={isOpen}
         aria-labelledby="admin-mobile-nav-title"
         tabIndex={-1}
+        onTransitionEnd={handleSheetTransitionEnd}
         className={clsx(
           'fixed bottom-0 left-0 right-0 z-50 flex flex-col outline-none',
-          'max-h-[min(85vh,40rem)] glass-panel border-t border-white/10',
+          'max-h-[min(85vh,40rem)] border-t border-white/10',
           'rounded-t-2xl shadow-2xl pb-[env(safe-area-inset-bottom)]',
+          // Solid elevated surface — avoid glass backdrop-filter bleed under the fold on iOS.
+          'bg-surface-raised',
           'transition-transform duration-200 ease-out will-change-transform',
-          isOpen ? 'translate-y-0' : 'translate-y-full pointer-events-none',
+          entered
+            ? 'translate-y-0'
+            : 'translate-y-[calc(100%+1.5rem)] pointer-events-none',
         )}
       >
         <div className="flex justify-center pt-2.5 pb-1 shrink-0" aria-hidden>
