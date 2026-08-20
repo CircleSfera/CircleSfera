@@ -10,12 +10,10 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import SEO from '../components/common/SEO';
-import { PublicFooter } from '../components/landing/PublicFooter';
-import { useAuthStore } from '../stores/authStore';
+import { MarketingPage } from '../components/marketing';
 
 export default function ExploreLanding() {
   const { t } = useTranslation();
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const features = [
     {
@@ -45,16 +43,13 @@ export default function ExploreLanding() {
   ];
 
   return (
-    <div
-      className={`min-h-dvh flex flex-col relative overflow-hidden bg-[#030303] text-white font-sans selection:bg-brand-primary/30 ${!isAuthenticated ? 'pt-14 md:pt-16' : ''}`}
-    >
+    <MarketingPage atmosphere>
       <SEO
         title={t('explore.landing.title')}
         description={t('explore.landing.desc')}
       />
 
       <main className="flex-1 max-w-5xl mx-auto px-6 w-full flex flex-col items-center pb-20">
-        {/* Hero Section */}
         <section className="w-full pt-12 md:pt-20 pb-12 text-center relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -90,7 +85,6 @@ export default function ExploreLanding() {
           </motion.p>
         </section>
 
-        {/* Features Grid */}
         <section className="w-full py-12 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {features.map((feature, index) => (
@@ -118,7 +112,6 @@ export default function ExploreLanding() {
           </div>
         </section>
 
-        {/* Global Network Section */}
         <section className="w-full py-20 relative z-10 text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -158,8 +151,6 @@ export default function ExploreLanding() {
           </motion.div>
         </section>
       </main>
-
-      <PublicFooter />
-    </div>
+    </MarketingPage>
   );
 }
