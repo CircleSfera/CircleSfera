@@ -103,7 +103,7 @@ Also rejected under this roadmap:
 - Light theme
 - New UI kit or parallel design language
 - Merging Admin and Consumer into a single shell (share tokens; keep separate shells)
-- Landing marketing overhaul as part of Waves 1–2
+- Landing marketing overhaul as part of Waves 1–2 (reopened Aug 2026 as guest-surface redesign — product windows + glass cards on `/` and shared Guest chrome for Features/Explore/Pricing/Support/Legal; see CHANGELOG Unreleased)
 
 ---
 
@@ -289,7 +289,8 @@ Benchmarking allowed only as **principles** (content-first, predictable structur
 | First | Wave 0 inventory → Wave 1 foundation complete |
 | Next | Wave 2 in listed order (Feed → Profile → Chat → Stories/Frames → Explore/Activity/Saved) |
 | Later | — (Admin stock-palette follow-up closed) |
-| Defer | New micro-animations; landing marketing overhaul; single Admin+Consumer shell |
+| Defer | New micro-animations; single Admin+Consumer shell |
+| Done (Aug 2026) | Guest landing / marketing overhaul (product-led `/` + GuestSurfaceMedia, Features/Explore/Pricing chrome) |
 | Reject | Light theme; new UI kit; communities UI; B2B manager; badge-centric product; in-app payout start |
 
 ---

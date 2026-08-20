@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ## [Unreleased]
 
+### Changed
+
+- Guest marketing surface redesigned: `/` hero is product-led (headline + Home `GuestSurfaceMedia` window, brand lockup only in chrome); chapters/principles/FAQ use glass cards instead of document lists; GuestAppChrome has active `NavLink` states and 44px targets; GuestFooter adds signup CTA; Features / Feature detail / Explore / Support / Pricing / Legal share the same language (Stripe checkout and legal body copy unchanged)
+
 ### Added
 
 - Admin Panel report workflow: my-queue filter, unclaim, claim conflict handling, bulk assignee/`resolvedAt`, Trust assignee preview

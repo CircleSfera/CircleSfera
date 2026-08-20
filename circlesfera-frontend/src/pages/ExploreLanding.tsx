@@ -10,6 +10,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import SEO from '../components/common/SEO';
+import { PublicFooter } from '../components/landing/PublicFooter';
 import { useAuthStore } from '../stores/authStore';
 
 export default function ExploreLanding() {
@@ -45,25 +46,23 @@ export default function ExploreLanding() {
 
   return (
     <div
-      className={`min-h-dvh flex flex-col relative overflow-hidden bg-surface-base text-white font-sans selection:bg-brand-primary/30 ${!isAuthenticated ? 'pt-24' : ''}`}
+      className={`min-h-dvh flex flex-col relative overflow-hidden bg-[#030303] text-white font-sans selection:bg-brand-primary/30 ${!isAuthenticated ? 'pt-14 md:pt-16' : ''}`}
     >
       <SEO
         title={t('explore.landing.title')}
         description={t('explore.landing.desc')}
       />
 
-      {/* Background is now handled globally by LayoutWrapper */}
-
-      <main className="flex-1 max-w-4xl mx-auto px-6 w-full flex flex-col items-center pb-20">
+      <main className="flex-1 max-w-5xl mx-auto px-6 w-full flex flex-col items-center pb-20">
         {/* Hero Section */}
-        <section className="w-full pt-8 md:pt-20 pb-12 md:pb-16 text-center relative z-10">
+        <section className="w-full pt-12 md:pt-20 pb-12 text-center relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-panel border border-white/10 mb-8 shadow-lg"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 mb-8 backdrop-blur-md"
           >
-            <Compass size={16} className="text-brand-primary" />
-            <span className="text-xs font-bold uppercase tracking-wide text-white/80">
+            <Compass size={14} className="text-brand-primary" />
+            <span className="text-[11px] font-bold uppercase tracking-widest text-white/80">
               {t('explore.landing.the_platform')}
             </span>
           </motion.div>
@@ -72,11 +71,11 @@ export default function ExploreLanding() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-xl md:text-2xl lg:text-3xl font-black tracking-tighter mb-5 leading-tight"
+            className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter mb-6 leading-tight"
           >
             {t('explore.landing.discover_new')}{' '}
             <br className="hidden md:block" />
-            <span className="bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue">
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue">
               {t('explore.landing.dimension')}
             </span>
           </motion.h1>
@@ -92,8 +91,8 @@ export default function ExploreLanding() {
         </section>
 
         {/* Features Grid */}
-        <section className="w-full py-16 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <section className="w-full py-12 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {features.map((feature, index) => (
               <motion.div
                 key={feature.title}
@@ -101,24 +100,17 @@ export default function ExploreLanding() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-50px' }}
                 transition={{ delay: index * 0.1, duration: 0.5 }}
-                className="glass-panel p-4 md:p-6 rounded-lg border border-white/5 hover:border-white/10 transition-all duration-500 group relative overflow-hidden"
+                className="bg-white/5 p-6 md:p-8 rounded-3xl border border-white/10 hover:border-white/20 transition-all duration-500 group relative overflow-hidden backdrop-blur-3xl"
               >
-                {/* Subtle gradient hover effect */}
                 <div
-                  className={`absolute inset-0 bg-linear-to-br ${feature.color} opacity-0 group-hover:opacity-5 transition-opacity duration-500`}
-                ></div>
-
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 bg-linear-to-br ${feature.color} text-white shadow-lg shadow-black/20 group-hover:scale-110 transition-transform duration-500`}
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 bg-linear-to-br ${feature.color} text-white shadow-lg shadow-black/20 group-hover:scale-110 transition-transform duration-500`}
                 >
                   {feature.icon}
                 </div>
-
-                <h3 className="text-lg font-black tracking-tight mb-2 text-white">
+                <h3 className="text-xl font-bold tracking-tight mb-3 text-white">
                   {feature.title}
                 </h3>
-
-                <p className="text-white/40 text-sm font-light leading-relaxed">
+                <p className="text-white/50 text-sm md:text-base font-medium leading-relaxed">
                   {feature.description}
                 </p>
               </motion.div>
@@ -133,33 +125,31 @@ export default function ExploreLanding() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
-            className="glass-panel rounded-xl p-8 border border-white/10 relative overflow-hidden"
+            className="bg-white/5 rounded-3xl p-8 md:p-12 border border-white/10 relative overflow-hidden backdrop-blur-3xl"
           >
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] from-brand-primary/10 via-transparent to-transparent opacity-50"></div>
-
             <div className="relative z-10 max-w-2xl mx-auto">
-              <div className="w-14 h-14 mx-auto bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10 shadow-2xl">
-                <Users size={24} className="text-brand-secondary" />
+              <div className="w-16 h-16 mx-auto bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10">
+                <Users size={28} className="text-white/80" />
               </div>
 
-              <h2 className="text-2xl md:text-xl font-black tracking-tighter mb-4">
+              <h2 className="text-3xl md:text-4xl font-black tracking-tighter mb-4">
                 {t('explore.landing.join_title')}
               </h2>
 
-              <p className="text-white/40 mb-8 text-sm max-w-md mx-auto">
+              <p className="text-white/50 mb-10 text-sm md:text-base max-w-md mx-auto">
                 {t('explore.landing.join_desc')}
               </p>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
                   to="/accounts/emailsignup"
-                  className="px-5 py-2 bg-white text-black font-black text-xs uppercase tracking-wide rounded-full hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)]"
+                  className="flex items-center justify-center h-12 w-full sm:w-auto px-8 bg-white text-black font-black text-[13px] uppercase tracking-wide rounded-full hover:scale-105 active:scale-95 transition-all shadow-lg shadow-white/10"
                 >
                   {t('explore.landing.create_account')}
                 </Link>
                 <Link
                   to="/pricing"
-                  className="px-5 py-2 glass-panel text-white font-bold text-xs uppercase tracking-wide rounded-full hover:bg-white/10 transition-all border border-white/10"
+                  className="flex items-center justify-center h-12 w-full sm:w-auto px-8 bg-transparent text-white font-bold text-[13px] uppercase tracking-wide rounded-full hover:bg-white/10 transition-all border border-white/20"
                 >
                   {t('explore.landing.view_monetization')}
                 </Link>
@@ -169,96 +159,7 @@ export default function ExploreLanding() {
         </section>
       </main>
 
-      {/* Footer will be automatically handled by layout if we do this right, but for Landing/Privacy it has the standard footer. 
-          We'll add the standard footer manually since this acts as a landing page. */}
-      <footer className="py-14 border-t border-white/5 bg-black text-sm relative mt-auto z-10">
-        <div className="max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 text-white/40 mb-12">
-          <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center gap-2.5 mb-5">
-              <span className="font-black text-lg text-white/80 tracking-tight">
-                CircleSfera
-              </span>
-            </div>
-            <p className="max-w-xs leading-relaxed text-sm">
-              {t('common.footer.desc')}
-            </p>
-          </div>
-          <div>
-            <h4 className="text-white/80 font-bold uppercase tracking-wide text-xs mb-5">
-              {t('common.footer.platform')}
-            </h4>
-            <ul className="space-y-3">
-              <li>
-                <Link
-                  to="/explore"
-                  className="hover:text-white transition-colors"
-                >
-                  {t('common.footer.explore')}
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/pricing"
-                  className="hover:text-white transition-colors"
-                >
-                  {t('common.footer.pricing')}
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/accounts/login"
-                  className="hover:text-white transition-colors"
-                >
-                  {t('common.footer.login')}
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/accounts/emailsignup"
-                  className="hover:text-white transition-colors"
-                >
-                  {t('common.footer.signup')}
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-white/80 font-bold uppercase tracking-wide text-xs mb-5">
-              {t('common.footer.legal')}
-            </h4>
-            <ul className="space-y-3">
-              <li>
-                <Link
-                  to="/privacy"
-                  className="hover:text-white transition-colors"
-                >
-                  {t('common.footer.privacy')}
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/terms"
-                  className="hover:text-white transition-colors"
-                >
-                  {t('common.footer.terms')}
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/guidelines"
-                  className="hover:text-white transition-colors text-left"
-                >
-                  {t('common.footer.guidelines')}
-                </Link>
-              </li>
-            </ul>
-          </div>
-        </div>
-        <div className="max-w-5xl mx-auto px-6 pt-6 border-t border-white/5 flex flex-col md:flex-row justify-between items-center text-xs opacity-50">
-          <p>{t('common.footer.copyright')}</p>
-          <p className="mt-3 md:mt-0">{t('common.footer.designed_for')}</p>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

@@ -614,29 +614,14 @@ video {
   scrollbar-width: none;
 }
 
-/* App-wide subtle scrollbar */
+/* App-wide hidden scrollbar for an immersive experience */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(var(--brand-primary-rgb), 0.3);
-  border-radius: 9999px;
-  transition: background 0.2s;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--brand-primary-rgb), 0.55);
+  display: none;
 }
 
 * {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(var(--brand-primary-rgb), 0.3) transparent;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 
 /* ─── Animation Utilities ─── */

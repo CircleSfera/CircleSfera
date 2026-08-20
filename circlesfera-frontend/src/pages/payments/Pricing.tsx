@@ -1,11 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import { Check, Loader2, Sparkles } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { EmptyState, ErrorState } from '../../components/ErrorEmptyStates';
 import { LoadingSpinner } from '../../components/LoadingStates';
+import {
+  MarketingCTA,
+  MarketingPage,
+  MarketingPageHeader,
+} from '../../components/marketing';
 import { paymentsApi } from '../../services/payments.service';
 import { usersApi } from '../../services/users.service';
 import { useAuthStore } from '../../stores/authStore';
@@ -56,7 +61,12 @@ export default function Pricing() {
       .catch((err) => logger.error('Failed to sync identity session:', err));
   }, [isAuthenticated, currentUser, queryClient, t]);
 
-  const { data: plans, isLoading } = useQuery<PlatformPlanDto[]>({
+  const {
+    data: plans,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<PlatformPlanDto[]>({
     queryKey: ['platform-plans'],
     queryFn: paymentsApi.getPlans,
   });
@@ -93,10 +103,13 @@ export default function Pricing() {
         window.location.href = res.url;
       }
     },
-    onError: async (error: any) => {
-      const serverMessage = error?.response?.data?.message;
+    onError: async (error: unknown) => {
+      const axiosError = error as {
+        response?: { status?: number; data?: { message?: string } };
+      };
+      const serverMessage = axiosError?.response?.data?.message;
       if (
-        error?.response?.status === 403 &&
+        axiosError?.response?.status === 403 &&
         serverMessage?.includes('verificar')
       ) {
         toast(
@@ -110,7 +123,7 @@ export default function Pricing() {
               </span>
               <button
                 type="button"
-                className="bg-brand-primary text-white text-xs font-bold py-2 px-3 rounded-lg mt-1 hover:bg-brand-primary/95 transition-all active:scale-95"
+                className="bg-brand-primary text-white text-xs font-bold py-2.5 min-h-11 px-3 rounded-lg mt-1 hover:bg-brand-primary/95 transition-all"
                 onClick={async () => {
                   toast.dismiss(toastItem.id);
                   try {
@@ -151,47 +164,44 @@ export default function Pricing() {
     currentUser?.user?.verificationLevel || currentUser?.verificationLevel;
 
   return (
-    <div className="pt-16 md:pt-24 pb-24 relative overflow-hidden flex flex-col items-center">
-      <div className="w-full max-w-6xl px-4 md:px-6 relative z-10">
-        <div className="text-center mb-16">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-wide text-brand-primary mb-4"
-          >
-            <Sparkles size={14} />
-            {t('pricingPage.badge')}
-          </motion.div>
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-xl md:text-3xl font-black tracking-tighter mb-6 text-white"
-          >
-            {t('pricingPage.heading')}{' '}
-            <span className="bg-clip-text text-transparent bg-linear-to-r from-brand-secondary to-brand-primary">
-              {t('pricingPage.heading_highlight')}
-            </span>
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-white/40 max-w-lg mx-auto font-light"
-          >
-            {t('pricingPage.subtitle')}
-          </motion.p>
-        </div>
+    <MarketingPage atmosphere>
+      <div className="mx-auto max-w-6xl px-4 sm:px-5 py-8 sm:py-10 w-full">
+        <MarketingPageHeader
+          align="center"
+          className="mb-8 sm:mb-10"
+          eyebrow={t('pricingPage.badge')}
+          title={
+            <>
+              {t('pricingPage.heading')}{' '}
+              <span className="gradient-text bg-linear-to-r from-brand-secondary to-brand-primary">
+                {t('pricingPage.heading_highlight')}
+              </span>
+            </>
+          }
+          description={t('pricingPage.subtitle')}
+        />
 
         {isLoading ? (
-          <div className="flex justify-center py-10">
+          <div className="flex justify-center py-12">
             <LoadingSpinner size="lg" />
           </div>
+        ) : isError ? (
+          <ErrorState
+            title={t('pricingPage.checkout_error')}
+            message={t('pricingPage.subtitle')}
+            onRetry={() => refetch()}
+          />
+        ) : !plans?.length ? (
+          <EmptyState
+            title={t('pricingPage.badge')}
+            message={t('pricingPage.subtitle')}
+          />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
-            {(plans || []).map((plan, index) => {
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+            {plans.map((plan, index) => {
               const isPopular =
                 plan.name.toLowerCase().includes('elite') ||
-                index === Math.floor((plans?.length || 1) / 2);
+                index === Math.floor(plans.length / 2);
               const mappedLevel = planVerificationMap[plan.name];
               const isActiveByBilling =
                 !!billingStatus?.hasActiveSubscription &&
@@ -211,86 +221,78 @@ export default function Pricing() {
                 t('pricingPage.default_button', { plan: plan.name });
 
               return (
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + index * 0.1 }}
+                <article
                   key={plan.id}
-                  className={`glass-panel rounded-xl p-5 md:p-6 border transition-all duration-500 flex flex-col relative group hover:-translate-y-1 ${
+                  className={`rounded-xl border p-4 sm:p-5 flex flex-col glass-panel ${
                     isPopular
-                      ? 'border-brand-primary/40 bg-white/5 ring-1 ring-brand-primary/20 scale-105 z-20'
-                      : 'border-white/5 hover:border-white/10'
+                      ? 'border-brand-primary/40 bg-brand-primary/8'
+                      : 'border-white/10 bg-surface-raised/60'
                   }`}
                 >
                   {isPopular && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-brand-primary rounded-full text-xs font-black tracking-wide uppercase shadow-xl shadow-brand-primary/20 text-white">
+                    <span className="self-start mb-3 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md bg-brand-primary text-white">
                       {t('pricingPage.most_popular')}
-                    </div>
+                    </span>
                   )}
 
-                  <div className="mb-8">
-                    <h3 className="text-xl font-black tracking-tight mb-2 text-white">
-                      {plan.name}
-                    </h3>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-black text-white">
-                        {currencySymbol}
-                        {plan.price}
-                      </span>
-                      <span className="text-white/30 text-sm">
-                        /{plan.interval || 'month'}
-                      </span>
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                        {plan.name}
+                      </h2>
                       {isActive && (
-                        <span className="ml-auto text-xs px-2.5 py-1 bg-brand-primary/20 text-brand-primary border border-brand-primary/30 rounded-full font-bold uppercase tracking-wider">
+                        <span className="text-[10px] px-2 py-0.5 bg-brand-primary/20 text-brand-primary border border-brand-primary/30 rounded-md font-bold uppercase">
                           {t('pricingPage.current_plan')}
                         </span>
                       )}
                     </div>
-                    <p className="text-white/40 text-sm mt-4 font-light italic leading-relaxed">
-                      "{description}"
+                    <p className="flex items-baseline gap-1">
+                      <span className="text-2xl sm:text-3xl font-black text-white">
+                        {currencySymbol}
+                        {plan.price}
+                      </span>
+                      <span className="text-white/35 text-sm">
+                        /{plan.interval || 'month'}
+                      </span>
+                    </p>
+                    <p className="text-sm text-white/50 mt-2 leading-relaxed">
+                      {description}
                     </p>
                   </div>
 
-                  <div className="space-y-4 mb-10 grow">
+                  <ul className="space-y-2.5 mb-5 grow">
                     {(plan.features || []).map((feature) => (
-                      <div key={feature} className="flex items-start gap-3">
-                        <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-brand-primary/20 transition-colors">
+                      <li key={feature} className="flex items-start gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center shrink-0 mt-0.5">
                           <Check className="w-3 h-3 text-brand-primary" />
-                        </div>
-                        <span className="text-sm text-white/60 font-medium tracking-tight">
+                        </span>
+                        <span className="text-sm text-white/60">
                           {feature.replace(/_/g, ' ')}
                         </span>
-                      </div>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
 
-                  <button
-                    type="button"
-                    onClick={() => handleTierClick(plan)}
+                  <MarketingCTA
+                    variant={isPopular ? 'primary' : 'secondary'}
+                    className="w-full"
                     disabled={loadingPlanId !== null}
-                    className={`w-full py-4 rounded-lg font-black text-sm tracking-tighter transition-all duration-300 transform active:scale-95 flex items-center justify-center gap-2 ${
-                      isPopular
-                        ? 'bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue text-white shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40'
-                        : 'bg-white/5 text-white hover:bg-white/10 border border-white/10 hover:border-white/20'
-                    }`}
+                    onClick={() => handleTierClick(plan)}
                   >
                     {loadingPlanId === plan.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <Loader2 className="w-4 h-4 animate-spin" />
                     ) : isActive ? (
                       t('pricingPage.manage_subscription')
                     ) : (
                       buttonText
                     )}
-                  </button>
-                </motion.div>
+                  </MarketingCTA>
+                </article>
               );
             })}
           </div>
         )}
       </div>
-
-      {/* Background Accent */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-200 h-200 bg-brand-primary/5 rounded-full blur-[150px] pointer-events-none" />
-    </div>
+    </MarketingPage>
   );
 }
