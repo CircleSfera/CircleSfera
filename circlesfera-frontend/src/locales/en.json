@@ -384,6 +384,7 @@
         "s5_content": "CircleSfera is provided \"as is\" without warranties of any kind. We are not liable for indirect, incidental, or consequential damages arising from your use of the platform."
       }
     },
+    "toc_label": "Jump to section",
     "badges": {
       "privacy_hub": "Privacy Hub",
       "legal_center": "Legal Center",
@@ -447,24 +448,151 @@
       "no_suggestions": "No suggestions available right now."
     },
     "landing": {
-      "title": "Explore CircleSfera - The Next Generation Social Network",
-      "desc": "Discover the features, philosophy, and tools behind CircleSfera. Built for authentic connection and visual excellence.",
-      "the_platform": "The Platform",
-      "discover_new": "Discover a New",
-      "dimension": "Dimension of Social",
-      "intro_text": "CircleSfera is more than an app. It's a sanctuary for visual storytelling, authentic connections, and digital sovereignty. Step away from the noise and explore depth.",
-      "feat1_title": "Visual Depth & Clarity",
-      "feat1_desc": "Experience content without compressions that ruin your art. CircleSfera is built to honor the cinematic quality of your vision.",
-      "feat2_title": "AI-Powered Discovery",
-      "feat2_desc": "Our proprietary Semantic AI Engine understands the context and emotion behind your content, matching it with audiences who truly care.",
-      "feat3_title": "Privacy by Design",
-      "feat3_desc": "You control the narrative. Use Private Circles to share intimate moments, or broadcast to the entire network when you are ready.",
-      "feat4_title": "Built for Creators",
-      "feat4_desc": "Integrated monetization, elite analytics, and verified tiers. We provide the tools you need to build a sustainable digital career.",
-      "join_title": "Join thousands of creators shaping the future.",
-      "join_desc": "The next generation of the internet belongs to those who create. Claim your username and start building your legacy today.",
-      "create_account": "Create Your Account",
-      "view_monetization": "View Monetization"
+      "title": "Explore CircleSfera",
+      "desc": "How discovery works on CircleSfera — search, people, tags, and feed modes after you create an account.",
+      "the_platform": "Explore",
+      "discover_new": "Discover people",
+      "dimension": "and topics",
+      "intro_text": "Explore is where you find accounts, tags, and recommended content after signup. Product surfaces are documented under Features.",
+      "discovery_title": "How discovery works",
+      "discovery_subtitle": "These tools open in the real app once you have an account — no fake previews here.",
+      "blocks": {
+        "search": {
+          "title": "Search",
+          "desc": "Find people and posts by name or keyword. Search is available after you create an account."
+        },
+        "people": {
+          "title": "People",
+          "desc": "Follow real profiles in the graph. Suggestions and mutual context appear once you are signed in."
+        },
+        "tags": {
+          "title": "Tags and topics",
+          "desc": "Open topic feeds by tag inside the app. Guest marketing does not invent trending grids."
+        },
+        "feeds": {
+          "title": "For You and Following",
+          "desc": "Home ranking modes that shape what you see — explained in Features under Feed and Stories."
+        }
+      },
+      "outbound_title": "Related pages",
+      "outbound_subtitle": "Product catalog, principles, and community rules — without repeating the surface list here.",
+      "outbound": {
+        "features": "Features",
+        "principles": "Principles",
+        "guidelines": "Community guidelines"
+      }
+    },
+    "features": {
+      "common": {
+        "back": "Back to Features",
+        "secondary_cta": "All surfaces",
+        "more_title": "More surfaces"
+      },
+      "feed": {
+        "seo_title": "Feed and Stories — CircleSfera",
+        "seo_desc": "How Home works on CircleSfera: For You, Following, stories, and highlights with explicit control.",
+        "title": "Feed and Stories",
+        "lead": "Home is where CircleSfera starts after signup — dense posts, ephemeral stories, and lasting highlights, with preferences you can change.",
+        "points": {
+          "p1": {
+            "title": "For You and Following",
+            "body": "Two reading modes on the same Home. Following prioritizes people you chose. For You ranks discovery signals — explainable preferences, not silent suppression."
+          },
+          "p2": {
+            "title": "Stories and highlights",
+            "body": "Stories are short-lived by design. Highlights keep selected moments on your profile so you decide what stays in view."
+          },
+          "p3": {
+            "title": "Control stays with you",
+            "body": "Mute, hide, feed preferences, and appeals are first-class. When visibility is limited, CircleSfera tells you why — shadow bans are not a product tool."
+          }
+        },
+        "closing": "Create an account to open Home with the same surfaces described here — no separate demo product."
+      },
+      "frames": {
+        "seo_title": "Frames — CircleSfera",
+        "seo_desc": "Short vertical video inside CircleSfera — same account, same relationships, not a separate app.",
+        "title": "Frames",
+        "lead": "Frames is CircleSfera’s short-video surface: vertical viewing with the same identity, follows, and moderation rules as the rest of the product.",
+        "points": {
+          "p1": {
+            "title": "One account, one graph",
+            "body": "You do not rebuild followers for video. Frames sits beside Feed and Stories under the same profile and relationships."
+          },
+          "p2": {
+            "title": "Built for density",
+            "body": "The surface is optimized for short vertical clips — focused chrome, fast next/previous motion, and the same brand language as Home."
+          },
+          "p3": {
+            "title": "Same trust rules",
+            "body": "Reports, appeals, and visibility limits apply here too. Creator monetization paths stay explicit when they intersect Frames."
+          }
+        },
+        "closing": "Sign up to open Frames in the app. Guests can keep reading other surfaces from Explore."
+      },
+      "direct": {
+        "seo_title": "Direct — CircleSfera",
+        "seo_desc": "Private messaging on CircleSfera with the people you choose — same chrome, explicit control.",
+        "title": "Direct",
+        "lead": "Direct is private messaging inside CircleSfera: conversations stay with the people you choose, under the same account and safety model.",
+        "points": {
+          "p1": {
+            "title": "People you choose",
+            "body": "Threads are tied to your relationships and privacy choices — not a public comment stream dressed as chat."
+          },
+          "p2": {
+            "title": "Product chrome, not a bolt-on",
+            "body": "Inbox and threads use the same glass surfaces and navigation patterns as the rest of CircleSfera, including on mobile."
+          },
+          "p3": {
+            "title": "Safety is explicit",
+            "body": "Blocks, reports, and account limits apply to messaging too. Enforcement is communicated — not hidden as a silent mute of your reach."
+          }
+        },
+        "closing": "Create an account to open Direct. Until then, Explore explains every surface that ships today."
+      },
+      "live": {
+        "seo_title": "Live — CircleSfera",
+        "seo_desc": "Go live on CircleSfera: real-time chat, audience tools, and creator gifts in one product.",
+        "title": "Live",
+        "lead": "Live lets creators broadcast and audiences join in real time — chat, presence, and support tools in the same CircleSfera identity.",
+        "points": {
+          "p1": {
+            "title": "Broadcast and watch",
+            "body": "Creators go live from the product; viewers join a dedicated session with real-time updates — not a third-party embed glued on."
+          },
+          "p2": {
+            "title": "Chat in the moment",
+            "body": "Live chat sits with the stream so reactions stay in context. Moderation and reporting remain available during the session."
+          },
+          "p3": {
+            "title": "Support creators openly",
+            "body": "Gifts and related monetization paths are product features with visible pricing rules — not opaque boosts."
+          }
+        },
+        "closing": "Sign up to host or join Live. Pricing explains platform plans when you need paid capabilities."
+      },
+      "creator": {
+        "seo_title": "Creator tools — CircleSfera",
+        "seo_desc": "Subscriptions, unlocks, and Stripe-backed monetization with an explicit 20% platform fee.",
+        "title": "Creator tools",
+        "lead": "Creator Studio and monetization features help you earn on CircleSfera with prices and fees you can see before you pay or charge.",
+        "points": {
+          "p1": {
+            "title": "Subscriptions and unlocks",
+            "body": "Offer paid access and unlocks through flows backed by Stripe. Entitlements are server-side — the client never invents prices."
+          },
+          "p2": {
+            "title": "Transparent platform fee",
+            "body": "CircleSfera’s platform fee is explicit (20%). Pricing pages show plan costs before checkout; no silent add-ons in copy."
+          },
+          "p3": {
+            "title": "Trust and verification",
+            "body": "Some monetization paths require identity verification. Limits and requirements are stated up front — not discovered after a failed charge."
+          }
+        },
+        "closing": "Read Pricing for plan details, then create an account to open Creator Studio when you are eligible."
+      }
     }
   },
   "post": {
@@ -2079,6 +2207,7 @@
     "no_saved_desc": "Save posts to view them later by tapping the bookmark icon."
   },
   "supportPage": {
+    "badge": "Support",
     "title": "Support Center",
     "description": "Do you have an issue with your account or need help with a payment? Write to us and we'll reply by email.",
     "success_title": "Ticket sent!",
@@ -2093,10 +2222,10 @@
     "error_generic": "Failed to send the ticket. Please try again."
   },
   "pricingPage": {
-    "badge": "Pricing Plans",
+    "badge": "Pricing",
     "heading": "Choose your",
-    "heading_highlight": "Experience",
-    "subtitle": "Select the plan that fits your creative needs. From individual creators to global brands.",
+    "heading_highlight": "plan",
+    "subtitle": "Optional platform plans via Stripe. Core social features stay free. Prices and features are shown before you pay.",
     "most_popular": "Most Popular",
     "current_plan": "Current Plan",
     "manage_subscription": "Manage Subscription",
@@ -2163,6 +2292,7 @@
       "login": "Log In",
       "signup": "Sign Up",
       "pricing": "Pricing",
+      "support": "Support",
       "legal": "Legal",
       "privacy": "Privacy",
       "terms": "Terms",
@@ -2219,108 +2349,152 @@
   },
   "landing": {
     "seo": {
-      "title": "CircleSfera - Social Reimagined",
-      "description": "Experience the next generation of social media. An immersive visual storytelling platform for authentic connections and distinct creativity."
+      "title": "CircleSfera — Your feed, your control",
+      "description": "CircleSfera is a social platform for posts, stories, Frames, Direct, Live, and creator tools — with explicit control, transparent ranking, and no hidden suppression."
     },
     "nav": {
       "log_in": "Log In",
-      "sign_up": "Sign Up"
+      "sign_up": "Sign Up",
+      "primary": "Primary",
+      "open_menu": "Open menu",
+      "close_menu": "Close menu"
     },
     "hero": {
-      "badge": "Social Reimagined",
-      "title_part1": "Share Your",
-      "title_part2": "Universe",
-      "subtitle": "Connect with friends, share your moments, and explore a world of creativity. Experience a social platform designed for distinct visual storytelling.",
-      "get_started": "Get Started",
-      "explore_demo": "Explore Demo",
-      "mockup": {
-        "title": "Immersive Visuals",
-        "desc": "Experience a social interaction layer that prioritizes content depth."
-      }
-    },
-    "marquee": {
-      "community": "Community",
-      "creativity": "Creativity",
-      "connection": "Connection",
-      "innovation": "Innovation"
+      "badge": "Social platform",
+      "title_part1": "Your feed,",
+      "title_part2": "your control",
+      "subtitle": "Decide what you see, who you interact with, and what gets recommended. No silent suppression.",
+      "get_started": "Create account",
+      "log_in": "Log in",
+      "already": "Already have an account?",
+      "explore_demo": "Explore CircleSfera"
     },
     "features": {
-      "title": "Everything you need",
-      "subtitle": "Built for the next generation of visual storytellers.",
+      "badge": "Product",
+      "title": "Every surface that ships today",
+      "subtitle": "Feed, stories, Frames, Direct, Live, and creator tools — one identity, one design language, no bolted-on demos."
+    },
+    "preview": {
+      "home": "Home",
+      "explore": "Explore",
+      "frames": "Frames",
+      "direct": "Direct",
+      "live": "Live",
+      "creator": "Creator tools",
+      "following": "Following"
+    },
+    "chapters": {
+      "learn_more": "See how it works",
       "items": {
-        "capture": {
-          "title": "Capture",
-          "desc": "High definition sharing. Advanced filters and storytelling tools designed for visual depth."
+        "feed": {
+          "title": "Feed and Stories",
+          "desc": "For You and Following with dense posts. Ephemeral stories and lasting highlights on your profile — you decide what stays in view."
         },
-        "community": {
-          "title": "Community",
-          "desc": "Create your own Circles, join immersive groups, and connect with minds that inspire you."
+        "frames": {
+          "title": "Frames",
+          "desc": "Short video on a dedicated vertical surface inside CircleSfera — the same account, the same relationships, not a separate app."
         },
-        "realtime": {
-          "title": "Real-time",
-          "desc": "Stay in touch with secure, encrypted instant messaging that feels as smooth as the feed."
+        "direct": {
+          "title": "Direct",
+          "desc": "Private messaging with the same glass chrome as the rest of the product. Conversations stay with the people you choose."
+        },
+        "live": {
+          "title": "Live",
+          "desc": "Go live, chat in real time, and support creators with gifts. Broadcast and audience tools live in the same product surface."
+        },
+        "creator": {
+          "title": "Creator tools",
+          "desc": "Subscriptions, unlocks, and Stripe-backed monetization. Platform fee is explicit (20%). Pricing is visible before you pay."
+        }
+      }
+    },
+    "principles": {
+      "badge": "Principles",
+      "title": "Built for control you can explain",
+      "subtitle": "These are product rules, not slogans. Every change on CircleSfera has to answer them.",
+      "items": {
+        "control": {
+          "title": "User control first",
+          "desc": "You decide what you consume, who may interact, and what recommendations you get. Automation assists — it does not override your choices."
+        },
+        "transparency": {
+          "title": "Algorithmic transparency",
+          "desc": "Ranking and discovery use many signals, but they stay explainable: why this content, why this profile, which of your actions change it."
+        },
+        "no_suppression": {
+          "title": "No hidden suppression",
+          "desc": "Shadow bans are not a product tool. Visibility follows explicit criteria — preferences, privacy, relationships, or a justified safety obligation."
+        },
+        "moderation": {
+          "title": "Strict, explicit moderation",
+          "desc": "When something is limited, you are told what happened, why, under which rule, and how to appeal. Actions are auditable."
+        },
+        "data": {
+          "title": "Responsible data handling",
+          "desc": "Purpose limitation, proportionality, and minimization. We must be able to justify what we collect, why, and for how long."
         }
       }
     },
     "faq": {
-      "badge": "General Knowledge",
-      "title": "Questions",
+      "badge": "FAQ",
+      "title": "Straight answers",
+      "subtitle": "No native-app promises. No invented communities. Only what ships today.",
       "items": {
         "free": {
-          "q": "Is CircleSfera free to use?",
-          "a": "CircleSfera offers a comprehensive free tier for all users. For creators and businesses looking for advanced tools, verification badges, and deeper analytics, we offer specialized subscription tiers."
+          "q": "Is CircleSfera free?",
+          "a": "Yes. Core social features are free. Optional platform plans (Premium, Elite Creator, Business) and creator monetization run through Stripe — prices are shown on Pricing before you pay."
         },
         "verify": {
-          "q": "How do I verify my account?",
-          "a": "Verification is currently rolled out selectively to active creators and public figures to maintain authenticity across the platform."
+          "q": "How does identity verification work?",
+          "a": "Identity verification is available from Settings via Stripe Identity when you need it for monetization or trust features. Plan badges (Verified / Elite / Business) come from active platform subscriptions."
         },
-        "security": {
-          "q": "Is my data secure?",
-          "a": "Security is our foundation. We use state-of-the-art encryption and never sell your personal data. You have full ownership and control."
+        "control": {
+          "q": "Do I control what I see?",
+          "a": "Yes. Feed preferences, mute, hide, and appeals are first-class. Visibility limits are explicit — CircleSfera does not use shadow bans as a product tool."
         },
-        "app": {
-          "q": "Will there be a mobile app?",
-          "a": "We are building native iOS and Android experiences that will mirror the desktop's signature glassmorphic feel, launching later this year."
+        "mobile": {
+          "q": "Is there a mobile app?",
+          "a": "CircleSfera is a mobile-first web app (PWA). Use it in the browser on phone or desktop. Native store apps are not available yet."
+        },
+        "plans": {
+          "q": "What do platform plans unlock?",
+          "a": "Premium, Elite Creator, and Business are PlatformPlan subscriptions billed through Stripe. Features and prices are listed on Pricing. Creator Studio data endpoints are gated for Elite Creator today; other gates are product decisions, not silent entitlements."
         }
       }
     },
     "cta": {
-      "title": "Ready to join?",
-      "subtitle": "Thousands of creators are already shaping the next generation. Claim your space today.",
-      "button": "Create Account"
+      "title": "Start on CircleSfera",
+      "subtitle": "Create your account and land on Home — For You, Following, stories, and the rest of the product.",
+      "button": "Create account"
     },
-    "interactive": {
-      "badge": "The Platform",
-      "title": "Engineered for depth",
-      "tabs_header": "Navigation System",
-      "tabs": {
-        "connect": {
-          "label": "Connect",
-          "title": "Global Network",
-          "desc": "Instantly connect with creators from around the world without geographical borders or content silos."
-        },
-        "create": {
-          "label": "Create",
-          "title": "Artistic Expression",
-          "desc": "Our built-in engine favors depth and texture, giving your stories a unique cinematic quality."
-        },
-        "share": {
-          "label": "Share",
-          "title": "Private Spheres",
-          "desc": "Granular control over who sees your content, from specific Circles to the entire Universe."
-        }
+    "pages": {
+      "features": {
+        "seo_title": "Features — CircleSfera",
+        "seo_desc": "Feed, stories, Frames, Direct, Live, and creator tools — every surface that ships on CircleSfera today."
+      },
+      "principles": {
+        "seo_title": "Principles — CircleSfera",
+        "seo_desc": "User control, algorithmic transparency, no hidden suppression, explicit moderation, and responsible data handling."
+      },
+      "faq": {
+        "seo_title": "FAQ — CircleSfera",
+        "seo_desc": "Straight answers about CircleSfera: free tier, verification, feed control, mobile/PWA, and platform plans."
       }
     },
     "footer": {
-      "desc": "A refined social layer built for those who value visual depth and authentic connection.",
+      "desc": "A social platform for visual depth, explicit control, and creator tools — without hidden suppression.",
       "platform": "Platform",
+      "product": "Product",
+      "features": "Features",
+      "principles": "Principles",
+      "account": "Account",
       "explore": "Explore",
       "legal": "Legal",
       "privacy": "Privacy",
       "terms": "Terms",
       "guidelines": "Guidelines",
-      "rights": "© 2026 CircleSfera Social. All rights reserved.",
-      "tagline": "Designed for the next generation of creators."
+      "rights": "© 2026 CircleSfera. All rights reserved.",
+      "tagline": "One product. Every screen."
     }
   },
   "adminPanel": {

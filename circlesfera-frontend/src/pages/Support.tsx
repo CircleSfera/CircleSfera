@@ -1,10 +1,18 @@
 import axios from 'axios';
-import React, { useState } from 'react';
+import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
+import {
+  MarketingCTA,
+  MarketingPage,
+  MarketingPageHeader,
+} from '../components/marketing';
+import { Input } from '../components/ui/Input';
+import { Textarea } from '../components/ui/Textarea';
 import { apiClient } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 
-export const Support: React.FC = () => {
+export const Support = () => {
   const { t } = useTranslation();
   const profile = useAuthStore((state) => state.profile);
   const userEmail = profile?.user?.email || '';
@@ -16,7 +24,7 @@ export const Support: React.FC = () => {
   >('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setStatus('loading');
     setErrorMessage('');
@@ -44,87 +52,92 @@ export const Support: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 mt-10 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-      <div className="mb-8">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-          {t('supportPage.title')}
-        </h1>
-        <p className="text-gray-600 dark:text-gray-300">
-          {t('supportPage.description')}
-        </p>
-      </div>
+    <MarketingPage atmosphere>
+      <div className="mx-auto max-w-2xl px-4 sm:px-5 py-10 sm:py-14 w-full">
+        <MarketingPageHeader
+          className="mb-8 sm:mb-10"
+          eyebrow={t('supportPage.badge', 'Support')}
+          title={t('supportPage.title')}
+          description={t('supportPage.description')}
+        />
 
-      {status === 'success' ? (
-        <div
-          className="p-4 mb-6 text-sm text-green-800 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400"
-          role="alert"
-        >
-          <span className="font-medium">{t('supportPage.success_title')}</span>{' '}
-          {t('supportPage.success_body', { email: userEmail })}
+        <div className="glass-panel rounded-xl p-5 sm:p-7">
+          {status === 'success' ? (
+            <div
+              className="rounded-xl border border-brand-primary/30 bg-brand-primary/10 p-4 text-sm text-white/85"
+              role="status"
+            >
+              <p className="font-semibold mb-1 text-white">
+                {t('supportPage.success_title')}
+              </p>
+              <p className="text-white/60">
+                {t('supportPage.success_body', { email: userEmail })}
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {!userEmail && (
+                <div className="rounded-xl border border-brand-accent/30 bg-brand-accent/10 p-4 text-sm text-white/85 space-y-3">
+                  <p>{t('supportPage.login_required')}</p>
+                  <MarketingCTA to="/accounts/login" variant="secondary">
+                    {t('common.footer.login')}
+                  </MarketingCTA>
+                </div>
+              )}
+
+              <Input
+                id="subject"
+                label={t('supportPage.subject_label')}
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder={t('supportPage.subject_placeholder')}
+                required
+                disabled={!userEmail || status === 'loading'}
+              />
+
+              <Textarea
+                id="message"
+                label={t('supportPage.message_label')}
+                rows={6}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={t('supportPage.message_placeholder')}
+                required
+                disabled={!userEmail || status === 'loading'}
+                className="min-h-32"
+              />
+
+              {status === 'error' && (
+                <p className="text-sm text-brand-secondary" role="alert">
+                  {errorMessage}
+                </p>
+              )}
+
+              <MarketingCTA
+                type="submit"
+                variant="primary"
+                className="w-full"
+                disabled={!userEmail || status === 'loading'}
+              >
+                {status === 'loading'
+                  ? t('supportPage.submitting')
+                  : t('supportPage.submit')}
+              </MarketingCTA>
+
+              {!userEmail && (
+                <p className="text-xs text-white/40 text-center">
+                  <Link
+                    to="/accounts/emailsignup"
+                    className="text-brand-primary hover:underline"
+                  >
+                    {t('common.footer.signup')}
+                  </Link>
+                </p>
+              )}
+            </form>
+          )}
         </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!userEmail && (
-            <div className="p-4 mb-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 dark:bg-gray-800 dark:text-yellow-300">
-              {t('supportPage.login_required')}
-            </div>
-          )}
-
-          <div>
-            <label
-              htmlFor="subject"
-              className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-            >
-              {t('supportPage.subject_label')}
-            </label>
-            <input
-              type="text"
-              id="subject"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
-              placeholder={t('supportPage.subject_placeholder')}
-              required
-              disabled={!userEmail || status === 'loading'}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="message"
-              className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-            >
-              {t('supportPage.message_label')}
-            </label>
-            <textarea
-              id="message"
-              rows={6}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
-              placeholder={t('supportPage.message_placeholder')}
-              required
-              disabled={!userEmail || status === 'loading'}
-            />
-          </div>
-
-          {status === 'error' && (
-            <div className="text-sm text-red-600 dark:text-red-400">
-              {errorMessage}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={!userEmail || status === 'loading'}
-            className="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 disabled:opacity-50"
-          >
-            {status === 'loading'
-              ? t('supportPage.submitting')
-              : t('supportPage.submit')}
-          </button>
-        </form>
-      )}
-    </div>
+      </div>
+    </MarketingPage>
   );
 };

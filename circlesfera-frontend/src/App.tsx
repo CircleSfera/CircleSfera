@@ -23,6 +23,11 @@ import LayoutWrapper from './layouts/LayoutWrapper';
 import CommunityGuidelines from './pages/CommunityGuidelines';
 import Explore from './pages/Explore';
 import ExploreLanding from './pages/ExploreLanding';
+import FaqPage from './pages/FaqPage';
+import FeatureDetailPage, {
+  ExploreFeatureRedirect,
+} from './pages/FeatureDetailPage';
+import FeaturesPage from './pages/FeaturesPage';
 import ForgotPassword from './pages/ForgotPassword';
 import HighlightViewerPage from './pages/HighlightViewerPage';
 import Home from './pages/Home';
@@ -33,6 +38,7 @@ import Login from './pages/Login';
 import Messages from './pages/Messages';
 import Notifications from './pages/Notifications';
 import PostDetail from './pages/PostDetail';
+import PrinciplesPage from './pages/PrinciplesPage';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Register from './pages/Register';
 import ResetPassword from './pages/ResetPassword';
@@ -310,7 +316,7 @@ function App() {
             }
           />
 
-          {/* Tags */}
+          {/* Tags — before /explore/:feature so "tags" is not treated as a feature slug */}
           <Route
             path="/explore/tags/:tag"
             element={
@@ -323,6 +329,12 @@ function App() {
           <Route
             path="/tags/:tag"
             element={<Navigate to="/explore/tags/:tag" replace />}
+          />
+
+          {/* Legacy guest deep-dives → /features/:slug */}
+          <Route
+            path="/explore/:feature"
+            element={<ExploreFeatureRedirect />}
           />
 
           {/* Post detail - /p/:id */}
@@ -455,6 +467,10 @@ function App() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/guidelines" element={<CommunityGuidelines />} />
           <Route path="/support" element={<Support />} />
+          <Route path="/features" element={<FeaturesPage />} />
+          <Route path="/features/:slug" element={<FeatureDetailPage />} />
+          <Route path="/principles" element={<PrinciplesPage />} />
+          <Route path="/faq" element={<FaqPage />} />
 
           {/* User profile (after static routes to avoid conflicts) */}
           <Route
