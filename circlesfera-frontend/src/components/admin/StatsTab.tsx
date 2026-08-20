@@ -28,6 +28,7 @@ import type {
 } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import SafeResponsiveContainer from '../common/SafeResponsiveContainer';
+import UserAvatar from '../UserAvatar';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
@@ -261,19 +262,11 @@ export default function StatsTab() {
                     </>
                   }
                   avatar={
-                    <div className="w-9 h-9 rounded-full bg-white/10 overflow-hidden">
-                      {user.avatar ? (
-                        <img
-                          src={user.avatar}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-white/40 text-xs font-semibold">
-                          {user.username[0]?.toUpperCase()}
-                        </div>
-                      )}
-                    </div>
+                    <UserAvatar
+                      src={user.avatar}
+                      alt={user.username}
+                      size="sm"
+                    />
                   }
                   badge={
                     <span className="text-brand-primary font-semibold text-sm">

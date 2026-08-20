@@ -329,6 +329,13 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    # Same volume as apex — relative /uploads/* avatars & media must not fall through to the SPA.
+    location /uploads/ {
+        alias /usr/share/nginx/html/uploads/;
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
+    }
+
     location / {
         proxy_pass $frontend_upstream;
         proxy_http_version 1.1;

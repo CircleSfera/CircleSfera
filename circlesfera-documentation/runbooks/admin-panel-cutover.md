@@ -40,7 +40,7 @@ docker compose exec backend npx ts-node scripts/bootstrap-admin.ts \
 
 ## Nginx / compose notes
 
-- App nginx: `server_name admin.circlesfera.com` in `nginx/master.conf.template` proxies SPA + `/api/v1` + sockets (same pattern as platform).
+- App nginx: `server_name admin.circlesfera.com` in `nginx/master.conf.template` proxies SPA + `/api/v1` + sockets **and** serves `/uploads/` from `uploads_data` (relative avatar/media URLs must not fall through to the SPA HTML).
 - Host TLS: ensure SAN/`ssl_certificate` covers `admin.circlesfera.com` before flipping DNS traffic.
 - Dev: `docker-compose.dev.yml` passes `JWT_ADMIN_SECRET` (falls back to `JWT_SECRET` only for local convenience — **not** for prod).
 
