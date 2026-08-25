@@ -1,4 +1,4 @@
-import { Loader2, Sparkles, Trash2 } from 'lucide-react';
+import { ChevronLeft, Loader2, Sparkles, Trash2 } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { parseFilter } from '../../utils/styleUtils';
@@ -34,67 +34,54 @@ export default function AccessibilitySubScreen({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-2xl p-4 animate-in fade-in duration-300">
-      <div className="bg-surface-elevated border border-white/5 w-full max-w-lg rounded-xl overflow-hidden shadow-[0_32px_120px_-10px_rgba(0,0,0,0.9)] flex flex-col max-h-[85vh]">
-        <div className="p-6 border-b border-white/5 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/5 transition-colors"
-              aria-label="Go back"
-            >
-              <svg
-                aria-hidden="true"
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </button>
-            <div>
-              <h2 className="font-black text-xl tracking-tighter text-white italic uppercase">
-                {t('createPost.accessibility.title')}
-              </h2>
-              <p className="text-zinc-400 text-xs font-bold uppercase tracking-wide">
-                {t('createPost.accessibility.subtitle')}
-              </p>
-            </div>
-          </div>
+    <div className="absolute inset-0 z-50 bg-surface-base flex flex-col">
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-2 px-2 h-(--nav-top-height,52px) bg-surface-elevated border-b border-white/10 shrink-0">
+        <div className="flex items-center gap-1 min-w-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-2 rounded-full bg-white text-black font-black text-xs uppercase tracking-wide hover:scale-105 transition-transform"
+            className="min-h-11 min-w-11 flex items-center justify-center text-white hover:bg-white/8 rounded-xl transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+            aria-label={t('createPost.header.back')}
           >
-            {t('createPost.accessibility.done')}
+            <ChevronLeft size={22} strokeWidth={2} />
           </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-8 space-y-10">
-          <div className="p-4 rounded-lg bg-brand-primary/5 border border-brand-primary/10">
-            <p className="text-zinc-400 text-xs font-medium leading-relaxed italic">
-              {t('createPost.accessibility.info')}
+          <div className="min-w-0">
+            <h2 className="font-bold text-base text-white truncate">
+              {t('createPost.accessibility.title')}
+            </h2>
+            <p className="text-white/40 text-xs truncate">
+              {t('createPost.accessibility.subtitle')}
             </p>
           </div>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 h-11 rounded-full bg-white text-black font-bold text-sm shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+        >
+          {t('createPost.accessibility.done')}
+        </button>
+      </div>
 
-          <div className="space-y-4">
-            {mediaFiles.map((item, idx) => {
-              const { className, style } = parseFilter(item.filter);
-              const isGenerating = generatingIdx === idx;
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="p-3 rounded-xl bg-brand-primary/5 border border-brand-primary/10">
+          <p className="text-white/50 text-xs font-medium leading-relaxed">
+            {t('createPost.accessibility.info')}
+          </p>
+        </div>
 
-              return (
-                <div
-                  key={item.url}
-                  className="group flex flex-col sm:flex-row gap-4 p-4 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-all"
-                >
-                  <div className="w-full sm:w-24 h-24 rounded-lg overflow-hidden shrink-0 border border-white/10 relative shadow-2xl">
+        <div className="space-y-3">
+          {mediaFiles.map((item, idx) => {
+            const { className, style } = parseFilter(item.filter);
+            const isGenerating = generatingIdx === idx;
+
+            return (
+              <div
+                key={item.url}
+                className="flex flex-col gap-3 p-3 rounded-xl bg-white/5 border border-white/8"
+              >
+                <div className="flex gap-3">
+                  <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0 border border-white/10 relative">
                     {item.type === 'video' ? (
                       <video
                         src={item.url}
@@ -116,57 +103,55 @@ export default function AccessibilitySubScreen({
                     <button
                       type="button"
                       onClick={() => onRemoveFile(idx)}
-                      aria-label="Remove media"
-                      className="absolute top-2 right-2 w-8 h-8 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white/90 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/80 hover:scale-110 active:scale-95 z-10 border border-white/10"
+                      aria-label={t('createPost.edit.remove_media')}
+                      className="absolute top-1 right-1 w-8 h-8 min-w-8 min-h-8 bg-black/70 rounded-full flex items-center justify-center text-white border border-white/10 outline-none focus-visible:ring-2 focus-visible:ring-white/30"
                     >
                       <Trash2 size={14} strokeWidth={2.5} />
                     </button>
                   </div>
 
-                  <div className="flex-1 space-y-4">
-                    <div className="relative">
-                      <Textarea
-                        rows={3}
-                        value={altTextMap[idx] || ''}
-                        onChange={(e) =>
-                          setAltTextMap((prev) => ({
-                            ...prev,
-                            [idx]: e.target.value,
-                          }))
-                        }
-                        placeholder={t('createPost.accessibility.placeholder')}
-                        className="resize-none"
-                      />
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <Textarea
+                      rows={3}
+                      value={altTextMap[idx] || ''}
+                      onChange={(e) =>
+                        setAltTextMap((prev) => ({
+                          ...prev,
+                          [idx]: e.target.value,
+                        }))
+                      }
+                      placeholder={t('createPost.accessibility.placeholder')}
+                      className="resize-none text-base"
+                    />
 
-                      {item.type === 'image' && (
-                        <button
-                          type="button"
-                          disabled={isGenerating}
-                          onClick={() => handleAiGenerate(idx)}
-                          className={`absolute bottom-3 right-3 flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
-                            isGenerating
-                              ? 'bg-zinc-800 border-zinc-700 text-zinc-400'
-                              : 'bg-brand-primary/10 border-brand-primary/20 text-brand-primary hover:bg-brand-primary hover:text-white'
-                          }`}
-                        >
-                          {isGenerating ? (
-                            <Loader2 size={12} className="animate-spin" />
-                          ) : (
-                            <Sparkles size={12} />
-                          )}
-                          <span className="text-xs font-black uppercase tracking-wide">
-                            {isGenerating
-                              ? t('createPost.accessibility.generating')
-                              : t('createPost.accessibility.magic_ai')}
-                          </span>
-                        </button>
-                      )}
-                    </div>
+                    {item.type === 'image' && (
+                      <button
+                        type="button"
+                        disabled={isGenerating}
+                        onClick={() => handleAiGenerate(idx)}
+                        className={`inline-flex items-center gap-2 min-h-11 px-3 rounded-xl border transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
+                          isGenerating
+                            ? 'bg-surface-raised border-white/10 text-white/40'
+                            : 'bg-brand-primary/10 border-brand-primary/20 text-brand-primary hover:bg-brand-primary hover:text-white'
+                        }`}
+                      >
+                        {isGenerating ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Sparkles size={14} />
+                        )}
+                        <span className="text-xs font-bold uppercase tracking-wide">
+                          {isGenerating
+                            ? t('createPost.accessibility.generating')
+                            : t('createPost.accessibility.magic_ai')}
+                        </span>
+                      </button>
+                    )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

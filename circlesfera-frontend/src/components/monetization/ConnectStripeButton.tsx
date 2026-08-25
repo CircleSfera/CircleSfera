@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
+import axios from 'axios';
 import { ExternalLink, ShieldCheck } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -23,36 +24,39 @@ export default function ConnectStripeButton() {
         window.location.href = data.url;
       }
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message
+        : undefined;
       toast.error(
-        error.response?.data?.message ||
+        message ||
           t('monetization.connect_stripe_error', 'Failed to connect Stripe.'),
       );
     },
   });
 
   return (
-    <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-lg p-6 text-center">
-      <ShieldCheck className="w-12 h-12 text-brand-primary mx-auto mb-4" />
-      <h3 className="text-white font-bold text-lg mb-2">
+    <div className="text-center">
+      <ShieldCheck className="w-10 h-10 text-brand-primary mx-auto mb-3" />
+      <h3 className="text-white font-medium text-base mb-1">
         {t(
           'monetization.verify_identity',
-          'Verify Identity to Receive Payouts',
+          'Verify identity to receive payouts',
         )}
       </h3>
-      <p className="text-gray-300 text-sm mb-6">
+      <p className="text-white/50 text-sm mb-5">
         {t(
           'monetization.stripe_connect_desc',
-          'To withdraw your earnings, you must securely verify your identity and link a bank account through Stripe Connect.',
+          'To withdraw earnings, verify your identity and link a bank account with Stripe Connect.',
         )}
       </p>
       <Button
         onClick={() => connectMutation.mutate()}
         isLoading={connectMutation.isPending}
         variant="primary"
-        className="w-full bg-[#635BFF] hover:bg-[#5249ea] border-transparent px-5 py-2 font-bold shadow-none"
+        className="w-full min-h-11"
       >
-        <ExternalLink size={18} className="mr-2" />
+        <ExternalLink size={16} className="mr-2" aria-hidden />
         {t('monetization.connect_with_stripe', 'Connect with Stripe')}
       </Button>
     </div>

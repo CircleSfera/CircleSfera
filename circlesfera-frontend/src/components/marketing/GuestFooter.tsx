@@ -36,7 +36,7 @@ export function GuestFooter() {
       title: t('landing.footer.account'),
       links: [
         { to: '/accounts/login', label: t('common.footer.login') },
-        { to: '/accounts/emailsignup', label: t('common.footer.signup') },
+        { to: '/accounts/signup', label: t('common.footer.signup') },
       ],
     },
   ] as const;
@@ -53,14 +53,14 @@ export function GuestFooter() {
                 className="h-6 w-auto object-contain"
                 aria-hidden
               />
-              <span className="text-base font-black tracking-tight gradient-text bg-linear-to-r from-white via-white to-white/65">
+              <span className="brand-wordmark text-base font-black tracking-tight">
                 CircleSfera
               </span>
             </div>
             <p className="text-sm text-white/50 leading-relaxed mb-4">
               {t('landing.footer.desc')}
             </p>
-            <MarketingCTA to="/accounts/emailsignup" variant="primary">
+            <MarketingCTA to="/accounts/signup" variant="primary" size="md">
               {t('landing.nav.sign_up')}
             </MarketingCTA>
           </div>

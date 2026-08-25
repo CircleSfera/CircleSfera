@@ -14,6 +14,7 @@ import {
   CurrentUser,
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { CommentsService } from './comments.service.js';
@@ -26,7 +27,7 @@ export class CommentsController {
 
   /** Create a comment or reply on a post (requires auth). */
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async create(
     @Param('postId') postId: string,
     @CurrentUser() user: CurrentUserData,

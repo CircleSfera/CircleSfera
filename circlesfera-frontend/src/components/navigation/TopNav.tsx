@@ -43,16 +43,7 @@ export default function TopNav() {
           alt="CircleSfera"
           className="h-6 w-auto object-contain"
         />
-        <span
-          className="text-base font-black tracking-tight"
-          style={{
-            background:
-              'linear-gradient(90deg, #ffffff 0%, rgba(255,255,255,0.65) 100%)',
-            WebkitBackgroundClip: 'text',
-            backgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}
-        >
+        <span className="brand-wordmark text-base font-black tracking-tight">
           CircleSfera
         </span>
       </Link>

@@ -22,7 +22,7 @@ disciplined competitor benchmarking.
    matching learned conventions, Gestalt on grouping. Cite which one drives each recommendation
    rather than listing them all.
 3. **Progressive disclosure.** Primary action visible, secondary in a menu, destructive behind
-   confirmation. Settings (`/accounts/edit`) and the create flow are the usual offenders.
+   confirmation. Settings (`/accounts`) and the create flow are the usual offenders.
 4. **State coverage.** Every screen needs loading, empty, error and offline behaviour. The repo has
    `LoadingStates`, `EmptyState`/`ErrorState` — use them instead of inventing new ones.
 5. **Perceived speed.** Optimistic updates already exist for likes and follows; skeletons and

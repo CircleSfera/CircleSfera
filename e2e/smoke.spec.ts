@@ -16,7 +16,7 @@ test.describe('CircleSfera Smoke Tests', () => {
     await page.goto('/');
 
     const loginLink = page.locator('a[href="/accounts/login"]').first();
-    const signupLink = page.locator('a[href="/accounts/emailsignup"]').first();
+    const signupLink = page.locator('a[href="/accounts/signup"]').first();
 
     // Landing may hydrate client-side; wait for either link.
     await expect(loginLink.or(signupLink).first()).toBeVisible({

@@ -9,6 +9,10 @@ import {
 } from '@prisma/client';
 import type { Queue } from 'bullmq';
 import type { Cache } from 'cache-manager';
+import {
+  accountStanding,
+  lastActiveBucket,
+} from '../common/abuse/trust-score.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
@@ -67,9 +71,15 @@ export class ProfilesService {
         user: {
           select: {
             id: true,
-            email: true,
-            role: true,
             createdAt: true,
+            lastSeenAt: true,
+            isActive: true,
+            suspendedUntil: true,
+            strikeCount: true,
+            emailVerified: true,
+            identityVerifiedAt: true,
+            signupCountry: true,
+            botLabeledAt: true,
             verificationLevel: true,
             accountType: true,
             settings: {
@@ -106,18 +116,39 @@ export class ProfilesService {
       select: { id: true },
     });
 
-    // Explicitly add fields to the top level for frontend simplicity
+    const planVerified =
+      !!isVerifiedResult ||
+      profile.user?.verificationLevel === 'VERIFIED' ||
+      profile.user?.verificationLevel === 'ELITE' ||
+      profile.user?.verificationLevel === 'BUSINESS';
+
+    // Never expose email, role, or abuse hashes on the public profile.
+    const { user, ...profileRest } = profile;
     const profileWithFields = {
-      ...profile,
-      verificationLevel: profile.user?.verificationLevel,
-      accountType: profile.user?.accountType,
-      privacyLevel: profile.user?.settings?.privacyLevel || Visibility.PUBLIC,
-      isPrivate: profile.user?.settings?.privacyLevel === Visibility.PRIVATE, // Legacy field support for frontend
-      isVerified:
-        !!isVerifiedResult ||
-        profile.user?.verificationLevel === 'VERIFIED' ||
-        profile.user?.verificationLevel === 'ELITE' ||
-        profile.user?.verificationLevel === 'BUSINESS',
+      ...profileRest,
+      user: user
+        ? {
+            id: user.id,
+            createdAt: user.createdAt,
+            _count: user._count,
+          }
+        : undefined,
+      verificationLevel: user?.verificationLevel,
+      accountType: user?.accountType,
+      privacyLevel: user?.settings?.privacyLevel || Visibility.PUBLIC,
+      isPrivate: user?.settings?.privacyLevel === Visibility.PRIVATE,
+      isVerified: planVerified,
+      identityVerified: !!user?.identityVerifiedAt,
+      emailConfirmed: !!user?.emailVerified,
+      joinedAt: user?.createdAt?.toISOString?.() ?? user?.createdAt,
+      signupCountry: user?.signupCountry ?? null,
+      strikeCount: user?.strikeCount ?? 0,
+      botLabeled: !!user?.botLabeledAt,
+      lastActiveBucket: lastActiveBucket(user?.lastSeenAt),
+      accountStanding: accountStanding({
+        isActive: user?.isActive ?? true,
+        suspendedUntil: user?.suspendedUntil ?? null,
+      }),
     };
 
     await this.cacheManager.set(cacheKey, profileWithFields, 600000); // 10 minutes
@@ -351,11 +382,18 @@ export class ProfilesService {
             email: true,
             role: true,
             createdAt: true,
+            lastSeenAt: true,
+            isActive: true,
+            suspendedUntil: true,
+            strikeCount: true,
+            emailVerified: true,
             verificationLevel: true,
             accountType: true,
             inviteCode: true,
             referredById: true,
             identityVerifiedAt: true,
+            signupCountry: true,
+            botLabeledAt: true,
             settings: {
               select: { isOnboarded: true, privacyLevel: true },
             },
@@ -387,6 +425,12 @@ export class ProfilesService {
       select: { id: true },
     });
 
+    const planVerified =
+      !!isVerifiedResult ||
+      profile.user?.verificationLevel === 'VERIFIED' ||
+      profile.user?.verificationLevel === 'ELITE' ||
+      profile.user?.verificationLevel === 'BUSINESS';
+
     // Flatten for UI convenience
     return {
       ...profile,
@@ -395,12 +439,20 @@ export class ProfilesService {
       inviteCode: profile.user?.inviteCode,
       referredById: profile.user?.referredById,
       identityVerifiedAt: profile.user?.identityVerifiedAt,
+      identityVerified: !!profile.user?.identityVerifiedAt,
+      emailConfirmed: !!profile.user?.emailVerified,
+      emailVerified: profile.user?.emailVerified,
+      joinedAt: profile.user?.createdAt,
+      signupCountry: profile.user?.signupCountry ?? null,
+      strikeCount: profile.user?.strikeCount ?? 0,
+      botLabeled: !!profile.user?.botLabeledAt,
+      lastActiveBucket: lastActiveBucket(profile.user?.lastSeenAt),
+      accountStanding: accountStanding({
+        isActive: profile.user?.isActive ?? true,
+        suspendedUntil: profile.user?.suspendedUntil ?? null,
+      }),
       isPrivate: profile.user?.settings?.privacyLevel === 'PRIVATE',
-      isVerified:
-        !!isVerifiedResult ||
-        profile.user?.verificationLevel === 'VERIFIED' ||
-        profile.user?.verificationLevel === 'ELITE' ||
-        profile.user?.verificationLevel === 'BUSINESS',
+      isVerified: planVerified,
     };
   }
 

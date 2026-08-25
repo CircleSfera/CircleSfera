@@ -35,7 +35,7 @@ test.describe('Authentication Flow', () => {
     const randomSuffix = Math.floor(Math.random() * 100000);
     const testEmail = `newuser${randomSuffix}@circlesfera.com`;
 
-    await page.goto('/accounts/emailsignup');
+    await page.goto('/accounts/signup');
 
     await page.locator('#fullName').fill('Test User');
     await page.locator('#username').fill(`testuser${randomSuffix}`);

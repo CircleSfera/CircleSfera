@@ -56,6 +56,23 @@ export class UserEntity implements User {
   @Exclude()
   stripeConnectAccountId!: string | null;
 
+  @Exclude()
+  signupIpHash!: string | null;
+
+  @Exclude()
+  lastIpHash!: string | null;
+
+  /** Admin / GDPR only — never serialize to public profile APIs. */
+  @Exclude()
+  signupIp!: string | null;
+
+  @Exclude()
+  lastIp!: string | null;
+
+  signupCountry!: string | null;
+  botLabeledAt!: Date | null;
+  botLabelReason!: string | null;
+
   constructor(partial: Partial<UserEntity>) {
     Object.assign(this, partial);
   }

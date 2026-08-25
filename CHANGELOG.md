@@ -7,12 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ## [Unreleased]
 
+### Fixed
+
+- EditsStudio Later: export preview + schedule handoff to Create; Roboto Bold/Regular font parity; richer CSS→FFmpeg filters; keyboard J/K/L/E/Esc/zoom; constrained-device 720p encode; cancel e2e
+- EditsStudio polish: export cancel + encode preset picker; add/remove timeline tracks; text preset content i18n; AI captions cancel + prerequisite hints
+- EditsStudio production hardening: preview/export letterbox fit parity; text export align/box/stroke/shadow; self-hosted `@ffmpeg/core` via `/ffmpeg`; IndexedDB local draft + beforeunload; rename without wiping undo; export all video tracks; `splitClip` respects speed; draft delete cleans clip CDN URLs; export/captions i18n errors
+- EditsStudio export/preview fidelity: timeline `startAt` placement, image clips, optional video audio, mute/volume/transform/opacity/flip/filters in FFmpeg export; preview plays video audio and composites overlapping visual layers; AI captions map Whisper times onto trimmed clips; aspect ratio updates export resolution; playhead scrub + track mute/hide/lock; drafts delete; PropertiesPanel i18n; full-screen `/edits` (no app Sidebar); larger mobile timeline; frame-step + fullscreen; removed orphaned `StudioSidebar`
+- Creator Studio (`/creator/overview`) crashed with `useState is not defined`: `CreatorShell` used React hooks without importing them
+- Native Alerts subscribe no longer 400s with `property endpoint should not exist`: `PushController` type-only-imported the DTO so ValidationPipe had no whitelist. Duplicate toggle clicks, local-subscription rollback, and browser `expirationTime` handling are covered in the same fix
+- Settings hub index is centered in the main column after the section rail was hidden on that screen
+- Direct messages now appear as soon as they are sent: starting a new conversation no longer requires a page reload to see the first bubble
+
 ### Changed
 
+- **EditsStudio (`/edits`)** redesigned as a mobile-first CircleSfera Studio: vertical stack (topbar → preview → timeline strip → tool dock), immersive chrome (no BottomNav, same as `/create`), token-aligned UI, cloud draft autosave with uploaded media URLs, and real AI captions via Whisper (`POST /edits/:id/captions`) with manual cues as fallback
+- Creator Studio Ingresos is a single money-in surface: PPV copy + Stripe Connect, ledger, type breakdown, and Connect balances. Wallet tab removed (`?section=wallet` still opens Ingresos). Planes stays a separate tab (creator pays CircleSfera). Platform fee remains Stripe’s 20% application fee.
+- Creator Studio cards match Settings: glass panels, sentence-case labels, quiet empty states, and token colours across analytics, wallet, plans, ads, posts, and stories.
+- Stripe Checkout, Billing Portal, and KYC Identity return URLs land on `/accounts/billing` and `/accounts/account` (account hub; `/accounts/edit` removed)
+- Onboarding aligned with Home: shared brand wash (no opaque black overlay), logo lockup, glass step pills, coral-to-purple primary CTAs, and i18n copy
+- Onboarding empty-suggestions state no longer nests a second card; it lists Home/Explore as next places and offers a refresh action
+- Appeals, Reports, Monetization, and Invitations settings use the same section hierarchy as Privacy (sentence-case titles, no italic caps, token colours, Spanish copy)
 - Guest marketing surface redesigned: `/` hero is product-led (headline + Home `GuestSurfaceMedia` window, brand lockup only in chrome); chapters/principles/FAQ use glass cards instead of document lists; GuestAppChrome has active `NavLink` states and 44px targets; GuestFooter adds signup CTA; Features / Feature detail / Explore / Support / Pricing / Legal share the same language (Stripe checkout and legal body copy unchanged)
+- Create composer (`/create`) is an immersive full-viewport page on mobile: no TopNav/BottomNav, no card/modal chrome; gallery and camera are primary; edit/remove controls are always visible; caption uses a single options list; advanced sub-screens push full-screen
 
 ### Added
 
+- Account trust signals: Cloudflare Turnstile on register/login, email-verification gate on writes, first-party device hashes for T&S clustering, plaintext signup/last IP retained for account lifetime (admin + GDPR export; not public), public “About this account” facts (including strikes and staff bot labels with appeal), admin trust score and signup funnel metrics — see [ADR-0014](./circlesfera-documentation/adr/0014-account-trust-signals.md)
+- Create flow: posts and Frames can be marked **sensitive** (violence, strong language, artistic context) from Advanced settings. Stories have no rating field; explicit sexual content remains prohibited.
 - Admin Panel report workflow: my-queue filter, unclaim, claim conflict handling, bulk assignee/`resolvedAt`, Trust assignee preview
 - Admin whitelist create API/UI; comments hide via moderation status; Live HLS detail panel wired
 - **Admin Panel:** separate `AdminIdentity` + RBAC in Postgres, mandatory MFA, admin JWT (`aud=circlesfera-admin`, cookies `admin_access_*`), hosted at `admin.circlesfera.com`; platform `User.role` no longer grants staff API access

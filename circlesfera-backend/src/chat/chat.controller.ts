@@ -14,6 +14,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Conversation, Message } from '@prisma/client';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { CreateGroupDto } from './dto/create-group.dto.js';
 import { EditMessageDto } from './dto/edit-message.dto.js';
@@ -96,6 +97,7 @@ export class ChatController {
   }
 
   @Post('conversations')
+  @UseGuards(EmailVerifiedGuard)
   async createGroup(
     @Request() req: AuthenticatedRequest,
     @Body() dto: CreateGroupDto,
@@ -108,6 +110,7 @@ export class ChatController {
   }
 
   @Post('messages')
+  @UseGuards(EmailVerifiedGuard)
   async sendMessage(
     @Request() req: AuthenticatedRequest,
     @Body() dto: SendMessageDto,

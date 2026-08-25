@@ -202,29 +202,38 @@ export class SendMessageUseCase {
       },
     );
 
-    conversation.participants.forEach((p: any) => {
-      this.gateway.addConversationToSocket(p.userId, conversation.id);
+    const payload = { ...message, content, tempId };
 
-      this.gateway.server
-        .to(`user:${p.userId}`)
-        .emit('receiveMessage', { ...message, content, tempId });
+    try {
+      conversation.participants.forEach((p: any) => {
+        this.gateway.addConversationToSocket(p.userId, conversation.id);
 
-      if (p.userId !== senderId) {
-        this.pushService
-          .sendNotification(p.userId, {
-            title: `Nuevo mensaje cifrado`,
-            body: `Has recibido un mensaje de @${message.sender.profile?.username || 'Alguien'}`,
-            data: { url: `/chat/${conversation.id}`, type: 'chat' },
-          })
-          .catch((err) =>
-            this.logger.error(
-              'Failed sending push notification for chat message',
-              err,
-            ),
-          );
-      }
-    });
+        this.gateway.server
+          .to(`user:${p.userId}`)
+          .emit('receiveMessage', payload);
 
-    return message;
+        if (p.userId !== senderId) {
+          this.pushService
+            .sendNotification(p.userId, {
+              title: `Nuevo mensaje cifrado`,
+              body: `Has recibido un mensaje de @${message.sender.profile?.username || 'Alguien'}`,
+              data: { url: `/chat/${conversation.id}`, type: 'chat' },
+            })
+            .catch((err) =>
+              this.logger.error(
+                'Failed sending push notification for chat message',
+                err,
+              ),
+            );
+        }
+      });
+    } catch (err) {
+      this.logger.error(
+        'Failed to fan out chat message over sockets after persist',
+        err,
+      );
+    }
+
+    return payload;
   }
 }

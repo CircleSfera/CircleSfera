@@ -363,4 +363,20 @@ export class MaintenanceService {
       );
     }
   }
+
+  /** Drop stale first-party device signals (180 days without activity). */
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async purgeStaleDeviceSignals() {
+    const cutoff = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
+    try {
+      const result = await this.prisma.deviceSignal.deleteMany({
+        where: { lastSeenAt: { lt: cutoff } },
+      });
+      if (result.count > 0) {
+        this.logger.log(`Purged ${result.count} stale device signals.`);
+      }
+    } catch (error) {
+      this.logger.error('Error in purgeStaleDeviceSignals cron job', error);
+    }
+  }
 }

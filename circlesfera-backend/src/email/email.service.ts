@@ -30,10 +30,13 @@ export class EmailService {
    * @param name - The recipient's name
    */
   async sendWelcomeEmail(email: string, name: string) {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+
     await this.sendMail({
       to: email,
       subject: '¡Bienvenido a CircleSfera!',
-      html: EmailTemplates.welcome(name),
+      html: EmailTemplates.welcome(name, frontendUrl),
     });
   }
 
@@ -44,9 +47,13 @@ export class EmailService {
    */
   async sendVerificationEmail(email: string, token: string) {
     const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:8080';
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
 
     const url = `${frontendUrl}/verify-email?token=${token}`;
+
+    if (this.configService.get('NODE_ENV') !== 'production') {
+      this.logger.debug(`[DEV ONLY] Verification link for ${email}: ${url}`);
+    }
 
     await this.sendMail({
       to: email,
@@ -62,7 +69,7 @@ export class EmailService {
    */
   async sendPasswordResetEmail(email: string, token: string) {
     const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:8080';
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
 
     const url = `${frontendUrl}/reset-password?token=${token}`;
 
@@ -145,10 +152,13 @@ export class EmailService {
     planName: string,
     amount: string,
   ) {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+
     await this.sendMail({
       to: email,
       subject: `Recibo de Suscripción - ${planName}`,
-      html: EmailTemplates.subscriptionReceipt(planName, amount),
+      html: EmailTemplates.subscriptionReceipt(planName, amount, frontendUrl),
     });
   }
 

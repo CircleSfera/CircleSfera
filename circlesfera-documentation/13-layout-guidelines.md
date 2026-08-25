@@ -1776,45 +1776,47 @@ Editing tools should never obscure the content being edited.
 Advanced tools should remain progressively disclosed.
 ---
 ## 32.3 Layout Structure
-Navigation
+Shipped shell for `/edits` (mobile-first, CapCut-like):
+Topbar (exit, name, undo/redo, aspect, drafts/save/export)
 ↓
-Canvas
+Preview canvas
 ↓
-Editing Toolbar
+Playback controls (transport + frame step + fullscreen)
 ↓
-Timeline (when applicable)
+Timeline strip
 ↓
-Inspector Panel
+Tool dock (Media, Text, Audio, Filters, Captions)
 ↓
-Publishing Controls
+Tool sheet / Properties
+
+Chrome: no TopNav, BottomNav, or app Sidebar on `/edits` (true full-screen).
+`/create` remains immersive for TopNav/BottomNav but keeps the app Sidebar on `md+`.
 ---
 ## 32.4 Canvas
 The canvas is the primary workspace.
 It should occupy the largest available area.
 Maintain correct aspect ratios.
 Avoid decorative framing.
+Preview composites all overlapping visual clips on video tracks (multi-layer), then text tracks.
 ---
 ## 32.5 Toolbar
 Display only the most frequently used tools.
-Examples:
-Crop
-Trim
+Shipped tools (CircleSfera Studio `/edits`):
+Media
+Trim / Split
 Text
 Audio
 Filters
-Effects
-Stickers
-Transitions
-Additional tools belong in expandable sections.
+Captions (manual + AI transcription when enabled)
+Additional tools belong in expandable sections. Effects, stickers, and transitions are not shipped.
 ---
 ## 32.6 Timeline
 The timeline appears only when required.
+On mobile the scrub area is tall enough for trim handles (≈200px).
 Support:
 Video
 Audio
 Text Layers
-Overlays
-Transitions
 Timeline controls should remain compact.
 ---
 ## 32.7 Inspector Panel
@@ -1823,36 +1825,42 @@ Examples:
 Typography
 Color
 Opacity
-Animation
 Position
+Scale / rotation
+Volume / speed
 Properties should update dynamically based on the selected element.
 ---
 ## 32.8 Preview
 Preview should reflect the final published result.
 Support real-time updates whenever possible.
+Aspect ratio changes must update export resolution.
 ---
 ## 32.9 Publishing
-Creators should publish directly from Studio.
-Support:
-Publish Now
-Schedule
-Save Draft
-Preview Before Publishing
-Publishing should remain a separate final step.
+Creators publish from Studio by exporting, then handing off to Create:
+Download MP4
+Publish → `/create?mode=frame` (caption + post), optionally with `scheduledAt` chosen in the export preview step
+Save Draft (cloud autosave + local IndexedDB buffer)
+
+After encode, Studio shows a **Preview Before Publishing** surface (MP4 playback + optional schedule picker) before Publish or Download.
+Schedule-from-Studio is shipped as an enriched handoff (`editedMediaForPost` with optional `scheduledAt`); caption and visibility remain in Create.
 ---
 ## 32.10 Autosave
 Studio should save progress automatically.
+Local IndexedDB buffer runs even before remote uploads (blob: URLs).
+Cloud autosave runs after media is uploaded (remote URLs) once a draft id exists.
 Users should never lose edits due to unexpected interruptions.
 ---
 ## 32.11 Performance
 Editing should remain responsive.
 Avoid blocking operations.
 Background processing should be preferred for expensive tasks.
+Prefer client-side FFmpeg.wasm export for Studio projects; clean up DOM media on unmount.
 ---
 ## 32.12 Accessibility
 Keyboard shortcuts should remain consistent.
 Editing tools should expose accessible labels.
 Canvas controls should remain reachable without a mouse where possible.
+Touch targets ≥44px. Frame step and transport controls must have accessible names.
 ---
 ## 32.13 Validation
 ✓ Large working canvas
@@ -1862,6 +1870,8 @@ Canvas controls should remain reachable without a mouse where possible.
 ✓ Reliable autosave
 ✓ Accessible editing
 ✓ Smooth performance
+✓ Full-screen `/edits` (no app chrome Sidebar)
+✓ Mobile-first timeline scrub area
 
 # 33. Settings
 ## 33.1 Purpose

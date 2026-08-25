@@ -116,153 +116,199 @@ export class UsersService {
    * @param userId - The user ID to export
    */
   async exportUserData(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        profile: true,
-        settings: true,
-        refreshTokens: true,
-        posts: {
-          include: {
-            media: true,
-            _count: { select: { likes: true, comments: true } },
-          },
-        },
-        stories: {
-          select: {
-            id: true,
-            url: true,
-            mediaType: true,
-            createdAt: true,
-            expiresAt: true,
-            isCloseFriendsOnly: true,
-          },
-        },
-        likes: {
-          select: { id: true, postId: true, createdAt: true },
-        },
-        notifications: {
-          select: {
-            id: true,
-            type: true,
-            content: true,
-            read: true,
-            createdAt: true,
-            postId: true,
-            storyId: true,
-          },
-        },
-        appeals: true,
-        collections: {
-          select: {
-            id: true,
-            name: true,
-            coverUrl: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        },
-        sentTransactions: {
-          select: {
-            id: true,
-            type: true,
-            amount: true,
-            currency: true,
-            status: true,
-            createdAt: true,
-            receiverId: true,
-            postId: true,
-            storyId: true,
-          },
-        },
-        receivedTransactions: {
-          select: {
-            id: true,
-            type: true,
-            amount: true,
-            currency: true,
-            status: true,
-            createdAt: true,
-            senderId: true,
-            postId: true,
-            storyId: true,
-          },
-        },
-        followers: {
-          include: {
-            follower: {
-              select: { profile: { select: { username: true } } },
+    const [account, relations] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          createdAt: true,
+          updatedAt: true,
+          isActive: true,
+          role: true,
+          verificationLevel: true,
+          accountType: true,
+          dateOfBirth: true,
+          identityVerifiedAt: true,
+          emailVerified: true,
+          signupCountry: true,
+          signupIp: true,
+          lastIp: true,
+          botLabeledAt: true,
+          deviceSignals: {
+            select: {
+              firstSeenAt: true,
+              lastSeenAt: true,
             },
           },
         },
-        following: {
-          include: {
-            following: {
-              select: { profile: { select: { username: true } } },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          profile: true,
+          settings: true,
+          posts: {
+            include: {
+              media: true,
+              _count: { select: { likes: true, comments: true } },
             },
           },
-        },
-        comments: true,
-        bookmarks: { include: { post: { select: { caption: true } } } },
-        messages: {
-          select: {
-            id: true,
-            conversationId: true,
-            content: true,
-            url: true,
-            mediaType: true,
-            voiceUrl: true,
-            postId: true,
-            storyId: true,
-            createdAt: true,
-            updatedAt: true,
-            isEdited: true,
-            isDeleted: true,
-            expiresAt: true,
+          stories: {
+            select: {
+              id: true,
+              url: true,
+              mediaType: true,
+              createdAt: true,
+              expiresAt: true,
+              isCloseFriendsOnly: true,
+            },
           },
+          likes: {
+            select: { id: true, postId: true, createdAt: true },
+          },
+          notifications: {
+            select: {
+              id: true,
+              type: true,
+              content: true,
+              read: true,
+              createdAt: true,
+              postId: true,
+              storyId: true,
+            },
+          },
+          appeals: true,
+          collections: {
+            select: {
+              id: true,
+              name: true,
+              coverUrl: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+          sentTransactions: {
+            select: {
+              id: true,
+              type: true,
+              amount: true,
+              currency: true,
+              status: true,
+              createdAt: true,
+              receiverId: true,
+              postId: true,
+              storyId: true,
+            },
+          },
+          receivedTransactions: {
+            select: {
+              id: true,
+              type: true,
+              amount: true,
+              currency: true,
+              status: true,
+              createdAt: true,
+              senderId: true,
+              postId: true,
+              storyId: true,
+            },
+          },
+          followers: {
+            include: {
+              follower: {
+                select: { profile: { select: { username: true } } },
+              },
+            },
+          },
+          following: {
+            include: {
+              following: {
+                select: { profile: { select: { username: true } } },
+              },
+            },
+          },
+          comments: true,
+          bookmarks: { include: { post: { select: { caption: true } } } },
+          messages: {
+            select: {
+              id: true,
+              conversationId: true,
+              content: true,
+              url: true,
+              mediaType: true,
+              voiceUrl: true,
+              postId: true,
+              storyId: true,
+              createdAt: true,
+              updatedAt: true,
+              isEdited: true,
+              isDeleted: true,
+              expiresAt: true,
+            },
+          },
+          supportTickets: true,
+          reports: true,
         },
-        supportTickets: true,
-        reports: true,
-      },
-    });
+      }),
+    ]);
 
-    if (!user) throw new Error('User not found');
+    if (!account || !relations) throw new Error('User not found');
 
-    // Use an explicit allowlist approach for GDPR data export
-    // to prevent accidental leakage of sensitive fields (e2e keys, 2FA secrets, etc.)
+    // Explicit allowlist — scalars from `account` select; never dump secrets/hashes.
     // Message.content may be ciphertext; exported as stored (not decrypted).
     const safeData = {
-      id: user.id,
-      email: user.email,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      isActive: user.isActive,
-      role: user.role,
-      verificationLevel: user.verificationLevel,
-      accountType: user.accountType,
-      dateOfBirth: user.dateOfBirth,
-      profile: user.profile,
-      settings: user.settings,
-      posts: user.posts,
-      stories: user.stories,
-      likes: user.likes,
-      notifications: user.notifications,
-      appeals: user.appeals,
-      collections: user.collections,
-      transactions: {
-        sent: user.sentTransactions,
-        received: user.receivedTransactions,
+      id: account.id,
+      email: account.email,
+      createdAt: account.createdAt,
+      updatedAt: account.updatedAt,
+      isActive: account.isActive,
+      role: account.role,
+      verificationLevel: account.verificationLevel,
+      accountType: account.accountType,
+      dateOfBirth: account.dateOfBirth,
+      identityVerifiedAt: account.identityVerifiedAt,
+      emailVerified: account.emailVerified,
+      signupCountry: account.signupCountry,
+      signupIp: account.signupIp,
+      lastIp: account.lastIp,
+      botLabeledAt: account.botLabeledAt,
+      network: {
+        note: 'IP addresses are retained for the life of the account for security and abuse prevention, and are included here for transparency.',
+        signupIp: account.signupIp,
+        lastIp: account.lastIp,
+        signupCountry: account.signupCountry,
       },
-      followers: user.followers,
-      following: user.following,
-      comments: user.comments,
-      bookmarks: user.bookmarks,
+      devices: {
+        note: 'Device fingerprints are stored as hashes only; hashes are not exported.',
+        count: account.deviceSignals.length,
+        items: account.deviceSignals.map((d) => ({
+          firstSeenAt: d.firstSeenAt,
+          lastSeenAt: d.lastSeenAt,
+        })),
+      },
+      profile: relations.profile,
+      settings: relations.settings,
+      posts: relations.posts,
+      stories: relations.stories,
+      likes: relations.likes,
+      notifications: relations.notifications,
+      appeals: relations.appeals,
+      collections: relations.collections,
+      transactions: {
+        sent: relations.sentTransactions,
+        received: relations.receivedTransactions,
+      },
+      followers: relations.followers,
+      following: relations.following,
+      comments: relations.comments,
+      bookmarks: relations.bookmarks,
       messages: {
         note: 'Message content may be encrypted at rest; values are exported as stored ciphertext.',
-        items: user.messages,
+        items: relations.messages,
       },
-      supportTickets: user.supportTickets,
-      reportsFiled: user.reports,
+      supportTickets: relations.supportTickets,
+      reportsFiled: relations.reports,
     };
 
     return safeData as Record<string, unknown>;
@@ -445,7 +491,6 @@ export class UsersService {
     const dob = session.verified_outputs?.dob;
     let dateOfBirth: Date | null = null;
     let isActive = true;
-    const verificationLevel = 'VERIFIED';
 
     if (dob?.year && dob?.month && dob?.day) {
       dateOfBirth = new Date(dob.year, dob.month - 1, dob.day);
@@ -467,19 +512,12 @@ export class UsersService {
       }
     }
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { verificationLevel: true },
-    });
-
+    // KYC sets identityVerifiedAt only — plan badges stay on verificationLevel.
     await this.prisma.user.update({
       where: { id: userId },
       data: {
         identityVerifiedAt: new Date(),
         ...(dateOfBirth && { dateOfBirth }),
-        ...(user?.verificationLevel === 'BASIC' && {
-          verificationLevel: verificationLevel,
-        }),
         isActive: isActive,
       },
     });
@@ -590,22 +628,12 @@ export class UsersService {
       targetVerificationLevel = VerificationLevel.BUSINESS;
     } else if (hasElite) {
       targetAccountType = AccountType.CREATOR;
-      targetVerificationLevel = VerificationLevel.VERIFIED;
+      targetVerificationLevel = VerificationLevel.ELITE;
     } else if (hasPremium) {
       targetVerificationLevel = VerificationLevel.VERIFIED;
     }
+    // identityVerifiedAt is independent of verificationLevel (plan badge).
 
-    // 2. Evaluate KYC status (Overrides BASIC if verified but no active premium plan)
-    // If they have Elite/Premium, they are already 'VERIFIED'.
-    // If they have Business, they are 'BUSINESS' (highest).
-    if (
-      user.identityVerifiedAt &&
-      targetVerificationLevel === VerificationLevel.BASIC
-    ) {
-      targetVerificationLevel = VerificationLevel.VERIFIED;
-    }
-
-    // 3. Apply changes if there is a discrepancy
     if (
       user.accountType !== targetAccountType ||
       user.verificationLevel !== targetVerificationLevel

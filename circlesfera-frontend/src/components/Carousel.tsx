@@ -137,10 +137,13 @@ export default function Carousel({
     );
   };
 
+  const ratioClass =
+    aspectRatio && aspectRatio !== 'none' ? aspectRatio : 'h-full';
+
   if (media.length === 1) {
     return (
       <div
-        className={`relative w-full overflow-hidden ${aspectRatio} bg-black ${className}`}
+        className={`relative w-full overflow-hidden ${ratioClass} bg-black ${className}`}
       >
         {renderMediaItem(media[0], 0)}
       </div>
@@ -166,7 +169,7 @@ export default function Carousel({
 
   return (
     <section
-      className={`relative w-full overflow-hidden group ${aspectRatio} bg-black ${className}`}
+      className={`relative w-full overflow-hidden group ${ratioClass} bg-black ${className}`}
       onKeyDown={handleKeyDown}
       aria-label="Media carousel"
     >

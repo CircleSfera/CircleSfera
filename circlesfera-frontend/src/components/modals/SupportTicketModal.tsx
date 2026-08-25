@@ -13,6 +13,7 @@ import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiClient, uploadApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
+import { pickNativeImage } from '../../utils/nativeFilePicker';
 
 interface SupportTicketModalProps {
   isOpen: boolean;
@@ -245,7 +246,13 @@ export default function SupportTicketModal({
                 />
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    const handled = await pickNativeImage(fileInputRef);
+                    if (!handled) {
+                      fileInputRef.current?.click();
+                    }
+                  }}
                   disabled={isUploading}
                   className="flex items-center justify-center gap-2 px-3 h-10 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-gray-300 transition-colors"
                 >

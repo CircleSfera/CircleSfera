@@ -97,7 +97,7 @@ describe('UsersService', () => {
   });
 
   describe('syncUserTier', () => {
-    it('should promote user to CREATOR and VERIFIED if they have an elite plan', async () => {
+    it('should promote user to CREATOR and ELITE if they have an elite plan', async () => {
       mockPrismaService.user.findUnique = vi.fn().mockResolvedValue({
         id: 'u1',
         accountType: 'PERSONAL',
@@ -111,18 +111,18 @@ describe('UsersService', () => {
         where: { id: 'u1' },
         data: {
           accountType: 'CREATOR',
-          verificationLevel: 'VERIFIED',
+          verificationLevel: 'ELITE',
         },
       });
     });
 
-    it('should maintain VERIFIED level if KYC was passed but subscription is downgraded', async () => {
+    it('should downgrade plan badge to BASIC when KYC-only (identity is separate)', async () => {
       mockPrismaService.user.findUnique = vi.fn().mockResolvedValue({
         id: 'u2',
         accountType: 'CREATOR',
         verificationLevel: 'VERIFIED',
         identityVerifiedAt: new Date(),
-        platformSubscriptions: [], // No active subscriptions
+        platformSubscriptions: [],
       });
 
       await service.syncUserTier('u2');
@@ -131,7 +131,7 @@ describe('UsersService', () => {
         where: { id: 'u2' },
         data: {
           accountType: 'PERSONAL',
-          verificationLevel: 'VERIFIED', // Remains VERIFIED due to KYC
+          verificationLevel: 'BASIC',
         },
       });
     });
@@ -141,8 +141,8 @@ describe('UsersService', () => {
         id: 'u3',
         accountType: 'CREATOR',
         verificationLevel: 'VERIFIED',
-        identityVerifiedAt: null, // No KYC
-        platformSubscriptions: [], // No active subscriptions
+        identityVerifiedAt: null,
+        platformSubscriptions: [],
       });
 
       await service.syncUserTier('u3');

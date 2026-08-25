@@ -6,12 +6,16 @@ export interface RegisterDto {
   inviteCode?: string;
   /** ISO date string (YYYY-MM-DD). Required; must be 16+. */
   dateOfBirth: string;
+  captchaToken?: string;
+  visitorId?: string;
 }
 
 export interface LoginDto {
   identifier: string;
   password: string;
   twoFactorCode?: string;
+  captchaToken?: string;
+  visitorId?: string;
 }
 
 export interface UpdateProfileDto {

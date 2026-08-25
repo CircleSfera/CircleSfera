@@ -13,6 +13,7 @@
     "messages": "Messages",
     "notifications": "Notifications",
     "saved": "Saved",
+    "studio": "Studio",
     "creator_studio": "Creator Studio",
     "profile": "Profile",
     "premium": "Premium",
@@ -23,7 +24,29 @@
   "settings": {
     "title": "Settings",
     "subtitle": "Configure your CircleSfera experience",
-    "logout": "LOG OUT",
+    "logout": "Log out",
+    "hub": {
+      "title": "Your account",
+      "subtitle": "Manage your CircleSfera experience",
+      "filter": "Filter settings…",
+      "no_results": "No matching settings",
+      "edit_profile": "Edit",
+      "verified": "Verified",
+      "private": "Private",
+      "public": "Public",
+      "plan_a11y": "Subscription: {{plan}}",
+      "privacy_a11y": "Privacy: {{visibility}}",
+      "about": "About this account",
+      "about_hint": "Joined date, verification, and account status",
+      "back": "Back to account",
+      "nav_label": "Account settings"
+    },
+    "groups": {
+      "you": "Your account",
+      "control": "Privacy & control",
+      "trust": "Security & trust",
+      "money": "Plan & growth"
+    },
     "tabs": {
       "profile": {
         "label": "Profile",
@@ -120,11 +143,14 @@
     },
     "privacy": {
       "title": "Privacy",
-      "subtitle": "Visibility & Control",
-      "private_account": "Private Account",
+      "subtitle": "Visibility and control",
+      "private_account": "Private account",
       "private_desc": "When your account is private, only people you approve can see your posts and stories.",
-      "export_data": "Export Data (GDPR)",
-      "export_desc": "Download a copy of your personal data registered in CircleSfera."
+      "export_data": "Export data (GDPR)",
+      "export_desc": "Download a copy of your personal data registered in CircleSfera.",
+      "export_requested": "Export request created. We will notify you when it is ready.",
+      "export_link_hint": "Need a copy of your data?",
+      "export_link": "Export from Account"
     },
     "requests": {
       "title": "Follow Requests",
@@ -137,54 +163,74 @@
       "title": "Blocked accounts",
       "empty": "You haven't blocked anyone.",
       "unknown": "Unknown",
-      "unblock": "Unblock"
+      "unblock": "Unblock",
+      "unmute": "Unmute",
+      "blocked_title": "Blocked users",
+      "blocked_empty": "No blocked users",
+      "muted_title": "Muted users",
+      "muted_empty": "No muted users"
     },
     "account": {
-      "title": "Account Management",
-      "subtitle": "Control your account status",
-      "language": "Language / Idioma",
+      "title": "Account",
+      "subtitle": "Language, data, and account status",
+      "language": "Language",
       "disable": {
-        "title": "Temporary Disable",
+        "title": "Deactivate account",
         "desc": "Your profile and posts will be hidden until you log back in.",
-        "btn": "DISABLE ACCOUNT",
-        "btn_loading": "DISABLING..."
+        "btn": "Deactivate account",
+        "btn_loading": "Deactivating…",
+        "confirm": "Are you sure you want to deactivate your account? You can reactivate it by logging in again.",
+        "error": "Could not deactivate account"
       },
       "delete": {
-        "title": "Permanent Erasure",
-        "desc": "Permanently delete your account and all data. This is IRREVERSIBLE.",
-        "btn": "DELETE ACCOUNT",
-        "btn_loading": "DELETING...",
-        "cancel_btn": "CANCEL SCHEDULED DELETION"
+        "title": "Delete account",
+        "desc": "Schedules deletion with a 30-day grace period. Log in again within that window to restore your account.",
+        "btn": "Delete account",
+        "btn_loading": "Deleting…",
+        "cancel_btn": "Cancel scheduled deletion",
+        "confirm": "Schedule permanent deletion? You can restore by logging in within 30 days."
       },
       "export": {
-        "title": "Export Data",
-        "desc": "Download a copy of your data including your profile, posts, and messages. This process may take a few minutes.",
-        "btn": "REQUEST EXPORT"
+        "title": "Export data",
+        "desc": "Download a copy of your data including your profile, posts, and messages.",
+        "btn": "Request export",
+        "processing": "Processing your request…",
+        "download": "Download data",
+        "request_new": "Request a new export"
       },
       "export_success": "Data export started. You will receive an email when it is ready.",
       "export_error": "Failed to request data export.",
+      "delete_scheduled": "Account scheduled for deletion. Log in within 30 days to restore it.",
+      "delete_cancelled": "Account deletion cancelled. Your account is active again.",
+      "delete_cancel_error": "Could not cancel deletion. Try logging in again within the grace period.",
       "verification": {
-        "title": "Identity Verification",
+        "title": "Identity verification",
         "success": "Your identity has been verified!",
-        "verified_desc": "Your identity has been successfully verified. This badge adds trust to your profile and helps keep the community safe.",
-        "unverified_desc": "Verify your identity to get the verified badge and unlock additional security features for your account. You will need a valid ID or Passport.",
-        "btn": "Verify Identity"
+        "verified_desc": "Your identity has been successfully verified.",
+        "unverified_desc": "Verify your identity to get the verified badge. You will need a valid ID or Passport.",
+        "btn": "Verify identity",
+        "verified": "Verified",
+        "error": "Failed to initialize verification session"
       }
     },
     "billing": {
-      "title": "Subscription & Billing",
-      "subtitle": "Manage your platform tier",
-      "current_plan": "Current Plan",
-      "free": "Free Experience",
+      "title": "Subscription",
+      "subtitle": "Manage your platform plan",
+      "current_plan": "Current plan",
+      "free": "Free",
       "free_desc": "Basic level without advanced features",
       "active_desc": "Active subscription with full benefits",
       "loading": "Loading...",
-      "view_plans": "View Plans",
-      "manage": "Manage Subscription",
-      "verified_badge": "Verified Badge",
+      "view_plans": "View plans",
+      "manage": "Manage billing",
+      "portal_error": "Could not access billing portal.",
+      "no_subscription": "No active subscription",
+      "cancels_on": "Cancels on",
+      "renews_on": "Renews on",
+      "verified_badge": "Verified badge",
       "verified_desc": "Included in Verified",
-      "pro_insights": "Pro Insights",
-      "pro_desc": "Elite Creator Upgrade"
+      "pro_insights": "Pro insights",
+      "pro_desc": "Elite creator upgrade"
     },
     "security": {
       "title": "Security",
@@ -195,6 +241,54 @@
       "current_device": "This device",
       "loading_sessions": "Loading active sessions...",
       "no_other_sessions": "No additional active sessions at this time."
+    },
+    "appeals": {
+      "title": "Appeals",
+      "subtitle": "Submit and track reviews of moderation decisions.",
+      "create_title": "New appeal",
+      "type": "Appeal type",
+      "type_post": "Post removal",
+      "type_ban": "Account ban",
+      "target_id": "Content ID (optional)",
+      "target_id_placeholder": "ID of the post or content",
+      "reason": "Reason",
+      "reason_placeholder": "Explain why this decision should be reviewed…",
+      "reason_required": "Please provide a reason",
+      "submit": "Submit appeal",
+      "list_title": "Your appeals",
+      "empty": "You have not submitted any appeals yet.",
+      "created": "Appeal submitted",
+      "error": "Could not submit the appeal",
+      "admin_notes": "Response",
+      "status_pending": "Pending",
+      "status_approved": "Approved",
+      "status_rejected": "Rejected",
+      "type_bot_label": "Possible bot label"
+    },
+    "reports": {
+      "title": "Reports",
+      "subtitle": "Status of reports you have filed.",
+      "empty": "You have not filed any reports yet.",
+      "status_pending": "Pending",
+      "status_reviewing": "In review",
+      "status_resolved": "Resolved",
+      "status_rejected": "Dismissed"
+    },
+    "monetization": {
+      "title": "Monetization",
+      "desc": "Tips, payouts, and your Stripe Connect account.",
+      "stripeConnect": "Stripe Connect",
+      "status": {
+        "active": "Your account can receive payouts.",
+        "incomplete": "Add more details in Stripe to receive payouts.",
+        "unconnected": "Connect Stripe to receive tips."
+      },
+      "dashboard": "Stripe Dashboard",
+      "connect": "Connect Stripe",
+      "earnings": "Earnings",
+      "lifetime": "Lifetime earnings",
+      "error_connect": "Could not connect to Stripe",
+      "error_dashboard": "Could not open the Stripe Dashboard"
     },
     "back_to_profile": "← Back to profile",
     "notifications_tab": {
@@ -207,7 +301,14 @@
       "status": "Status",
       "pwa_support": "PWA Support",
       "enabled": "ENABLED",
-      "not_supported": "NOT SUPPORTED"
+      "not_supported": "NOT SUPPORTED",
+      "not_registered": "NOT REGISTERED",
+      "enabling": "Enabling native alerts…",
+      "disabling": "Disabling native alerts…",
+      "subscribe_success": "Native alerts enabled",
+      "unsubscribe_success": "Native alerts disabled",
+      "subscribe_error": "Couldn't enable native alerts. Try again.",
+      "unsubscribe_error": "Couldn't disable native alerts. Try again."
     },
     "close_friends_modal": {
       "title": "Close Friends",
@@ -273,7 +374,10 @@
       "errors": {
         "REGISTRATION_CLOSED": "Registration is temporarily closed.",
         "INVITE_CODE_REQUIRED": "An invite code is required to register.",
-        "MAINTENANCE_MODE": "CircleSfera is under maintenance. Please try again later."
+        "MAINTENANCE_MODE": "CircleSfera is under maintenance. Please try again later.",
+        "EMAIL_NOT_VERIFIED": "You must verify your email.",
+        "CAPTCHA_FAILED": "Security check failed.",
+        "CAPTCHA_REQUIRED": "Security check required."
       },
       "sign_up_loading": "Creating account...",
       "sign_up": "Sign Up",
@@ -288,9 +392,13 @@
       "loading_title": "Verifying Identity",
       "loading_desc": "Please wait while we validate your secure token...",
       "success_title": "Access Granted",
-      "success_desc": "You will be redirected to the login page momentarily...",
+      "success_desc": "You will be redirected momentarily...",
       "error_title": "Verification Failed",
-      "error_desc": "Please request a new verification link."
+      "error_desc": "Please request a new verification link.",
+      "banner": "Confirm your email to post, follow, message, and like.",
+      "resend": "Resend",
+      "resend_success": "Verification email sent.",
+      "resend_error": "Could not resend email."
     },
     "forgot_password": {
       "default_error": "Something went wrong. Please try again.",
@@ -320,7 +428,8 @@
       "submit_loading": "Updating...",
       "submit": "Change Password",
       "cancel": "Cancel and back to login"
-    }
+    },
+    "captcha_required": "Please complete the security check."
   },
   "legal": {
     "nav": {
@@ -415,6 +524,32 @@
     "error_title": "Couldn't load feed",
     "error_message": "Something went wrong while loading posts. Please try again."
   },
+  "feedPrefs": {
+    "content_title": "Content preferences",
+    "content_surface": "Following shows people you chose. For You and Explore respect this setting, muted keywords, and Not interested.",
+    "show_sensitive": "Show sensitive content in For You and Explore",
+    "show_sensitive_desc": "Graphic violence, strong language, or artistic context. Explicit sexual content is not allowed on CircleSfera and is removed, not filtered.",
+    "blur_sensitive": "Blur sensitive content",
+    "blur_desc": "Hide potentially sensitive images until you click.",
+    "updated": "Settings updated",
+    "update_error": "Failed to update settings",
+    "keywords_title": "Muted keywords",
+    "keywords_desc": "Posts whose caption contains these words will be hidden from your feed.",
+    "keyword_placeholder": "e.g. spoiler",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "keyword_muted": "Keyword muted",
+    "keyword_unmuted": "Keyword unmuted",
+    "no_keywords": "No muted keywords yet.",
+    "authors_title": "Hidden authors",
+    "no_authors": "No hidden authors.",
+    "posts_title": "Hidden posts",
+    "no_posts": "No hidden posts.",
+    "show_again": "Show again",
+    "author_shown": "Author visible again",
+    "post_shown": "Post visible again",
+    "error": "Could not update preference"
+  },
   "explore": {
     "page_title": "Explore the Universe",
     "page_desc": "Discover trending posts, local creators, and use our AI-powered search to find exactly what you're looking for on CircleSfera.",
@@ -451,11 +586,15 @@
       "title": "Explore CircleSfera",
       "desc": "How discovery works on CircleSfera — search, people, tags, and feed modes after you create an account.",
       "the_platform": "Explore",
-      "discover_new": "Discover people",
-      "dimension": "and topics",
-      "intro_text": "Explore is where you find accounts, tags, and recommended content after signup. Product surfaces are documented under Features.",
+      "discover_new": "Find people",
+      "dimension": "and tags",
+      "intro_text": "After you sign up, Explore is search, accounts, tags, and recommended posts. Feed, Frames, and Direct are under Features.",
+      "create_account": "Create account",
+      "see_features": "See features",
+      "join_title": "Open Explore with an account",
+      "join_desc": "Search, people, and tags open in the real app after signup.",
       "discovery_title": "How discovery works",
-      "discovery_subtitle": "These tools open in the real app once you have an account — no fake previews here.",
+      "discovery_subtitle": "These tools open in Explore once you have an account.",
       "blocks": {
         "search": {
           "title": "Search",
@@ -496,7 +635,7 @@
         "points": {
           "p1": {
             "title": "For You and Following",
-            "body": "Two reading modes on the same Home. Following prioritizes people you chose. For You ranks discovery signals — explainable preferences, not silent suppression."
+            "body": "Two reading modes on the same Home. Following prioritizes people you chose. For You ranks discovery from signals you can change."
           },
           "p2": {
             "title": "Stories and highlights",
@@ -504,10 +643,10 @@
           },
           "p3": {
             "title": "Control stays with you",
-            "body": "Mute, hide, feed preferences, and appeals are first-class. When visibility is limited, CircleSfera tells you why — shadow bans are not a product tool."
+            "body": "Mute, hide, feed preferences, and appeals live in Settings. You decide what stays in your feed."
           }
         },
-        "closing": "Create an account to open Home with the same surfaces described here — no separate demo product."
+        "closing": "Create an account to open Home with the same surfaces described here."
       },
       "frames": {
         "seo_title": "Frames — CircleSfera",
@@ -521,7 +660,7 @@
           },
           "p2": {
             "title": "Built for density",
-            "body": "The surface is optimized for short vertical clips — focused chrome, fast next/previous motion, and the same brand language as Home."
+            "body": "The surface is built for short vertical clips — a focused layout, fast next/previous, and the same look as Home."
           },
           "p3": {
             "title": "Same trust rules",
@@ -532,7 +671,7 @@
       },
       "direct": {
         "seo_title": "Direct — CircleSfera",
-        "seo_desc": "Private messaging on CircleSfera with the people you choose — same chrome, explicit control.",
+        "seo_desc": "Private messaging on CircleSfera with the people you choose — the same look as the rest of the product.",
         "title": "Direct",
         "lead": "Direct is private messaging inside CircleSfera: conversations stay with the people you choose, under the same account and safety model.",
         "points": {
@@ -541,8 +680,8 @@
             "body": "Threads are tied to your relationships and privacy choices — not a public comment stream dressed as chat."
           },
           "p2": {
-            "title": "Product chrome, not a bolt-on",
-            "body": "Inbox and threads use the same glass surfaces and navigation patterns as the rest of CircleSfera, including on mobile."
+            "title": "Same product, not an add-on",
+            "body": "Inbox and threads use the same look and navigation as the rest of CircleSfera, including on mobile."
           },
           "p3": {
             "title": "Safety is explicit",
@@ -730,6 +869,38 @@
       "subscribed_success": "Successfully subscribed!",
       "subscribe_error": "Error subscribing",
       "chat_error": "Could not open chat"
+    },
+    "badges": {
+      "premium": "Premium subscriber",
+      "elite": "Elite creator",
+      "business": "Official business",
+      "identity": "Identity verified",
+      "bot": "Possibly automated"
+    },
+    "about": {
+      "title": "About this account",
+      "joined": "Joined",
+      "email": "Email confirmed",
+      "identity": "Identity verified",
+      "account_type": "Account type",
+      "country": "Country",
+      "activity_label": "Recent activity",
+      "standing": "Account status",
+      "strikes": "Moderation strikes",
+      "yes": "Yes",
+      "no": "No",
+      "suspended": "Suspended",
+      "in_good_standing": "In good standing",
+      "bot_label": "Possibly automated",
+      "bot_label_hint": "Staff applied this label after review. The account owner can appeal in Settings.",
+      "identity_disclaimer": "Identity verified means government ID checked via Stripe Identity. It is separate from a paid plan badge.",
+      "activity": {
+        "today": "Today",
+        "week": "This week",
+        "month": "This month",
+        "older": "Longer ago",
+        "unknown": "Unknown"
+      }
     }
   },
   "suggestions": {
@@ -737,6 +908,42 @@
     "see_all": "See All",
     "suggested": "Suggested for you",
     "follow": "Follow"
+  },
+  "onboarding": {
+    "creator": "Creator",
+    "welcome": "Welcome, {{username}}!",
+    "steps_label": "Onboarding steps",
+    "step_profile": "Profile",
+    "step_circle": "Circle",
+    "step1_subtitle": "Set up your profile so people know who you are.",
+    "avatar_alt": "Your avatar",
+    "change_avatar": "Change photo",
+    "bio_label": "Bio",
+    "bio_placeholder": "Tell the world about you...",
+    "continue": "Continue",
+    "find_circle": "Find your circle",
+    "find_circle_subtitle": "Follow a few creators to start your feed.",
+    "find_circle_empty_subtitle": "No one to follow yet — you can skip this step.",
+    "curating": "Finding creators...",
+    "suggestions_error_title": "Couldn't load suggestions",
+    "suggestions_error_message": "Something went wrong. Try again, or continue to Home.",
+    "empty_places_label": "Where to find people",
+    "empty_message": "No creators to follow yet. Enter CircleSfera and find people from Home and Explore.",
+    "empty_home_desc": "Suggested creators appear next to your feed.",
+    "empty_explore_desc": "Trending posts from the community.",
+    "retry_suggestions": "Refresh suggestions",
+    "followers_count": "{{count}} followers",
+    "follow": "Follow",
+    "following": "Following",
+    "follow_user": "Follow {{username}}",
+    "following_user": "Following {{username}}",
+    "back": "Back",
+    "enter": "Enter CircleSfera",
+    "success": "Welcome to CircleSfera!",
+    "error": "Something went wrong.",
+    "reload_error": "Failed to reload profile",
+    "follow_error": "Couldn't follow this account.",
+    "followed": "Followed successfully"
   },
   "createPost": {
     "accessibility": {
@@ -754,17 +961,35 @@
       "accessibility": "Accessibility",
       "advanced_settings": "Advanced Settings",
       "add_music": "Add Music",
+      "clear_music": "Remove music",
       "write_caption": "Write a caption...",
       "you": "You",
+      "options": "Post options",
+      "monetization": "Monetization",
+      "monetization_active": "Paid content",
+      "premium_content": "Premium Content (Pay-Per-View)",
+      "premium_desc": "Require users to pay to unlock and view this post.",
+      "price_usd": "Price (EUR / USD)",
+      "min_price_warning": "Minimum price is $1.00",
+      "max_price_warning": "Maximum price is $500.00",
+      "creator_earning": "Your earnings (80%):",
+      "platform_fee": "Platform fee (20%):",
+      "schedule": "Schedule publish",
+      "schedule_desc": "Leave empty to publish immediately.",
+      "clear_schedule": "Clear schedule",
       "hide_like_view": "Hide like and view counts",
       "hide_like_view_desc": "Only you will see the total number of likes and views on this post.",
       "turn_off_comments": "Turn off commenting",
-      "turn_off_comments_desc": "You can change this later by going to the ... menu at the top of your post."
+      "turn_off_comments_desc": "You can change this later by going to the ... menu at the top of your post.",
+      "mark_sensitive": "Mark as sensitive content",
+      "mark_sensitive_desc": "Graphic violence, strong language, or artistic context. Explicit sexual content is not allowed on CircleSfera and is removed, not filtered."
     },
     "edit": {
       "edit_media": "Edit Media",
       "filters_adjustments": "Filters & Adjustments",
       "n_files": "{{count}} files",
+      "remove_media": "Remove media",
+      "add_more": "Add more media",
       "post": "Post",
       "story": "Story",
       "frame": "Frame"
@@ -774,7 +999,21 @@
       "new_frame": "New Frame",
       "new_post": "New Post",
       "share": "Share",
-      "next": "Next"
+      "next": "Next",
+      "back": "Back"
+    },
+    "interactive": {
+      "title": "Interactive",
+      "none": "None",
+      "poll": "Poll",
+      "qna": "Q&A",
+      "add": "Add poll or Q&A",
+      "poll_attached": "Poll attached",
+      "qna_attached": "Q&A attached",
+      "poll_question": "Ask a question…",
+      "option_a": "Option A",
+      "option_b": "Option B",
+      "qna_prompt": "Ask me anything…"
     },
     "stepper": {
       "upload": "Upload",
@@ -805,7 +1044,8 @@
       "select_device": "Select from device",
       "take_photo": "Take a photo",
       "create_text_story": "Create Text Story",
-      "create_text_story_desc": "Backgrounds, text & stickers"
+      "create_text_story_desc": "Backgrounds, text & stickers",
+      "mode_switcher": "Content type"
     },
     "tags": {
       "title": "Tag People",
@@ -921,7 +1161,8 @@
   "creator": {
     "title": "Creator Studio",
     "subtitle": "Manage your content, finances and audience",
-    "new_content": "New Content",
+    "new_content": "New content",
+    "nav_label": "Creator Studio",
     "monetization_label": "Monetization",
     "back_to_app": "Back to CircleSfera",
     "back_short": "App",
@@ -939,17 +1180,46 @@
     },
     "posts": {
       "empty_title": "No posts yet",
-      "empty_desc": "Publish your first post to see it here."
+      "empty_desc": "Publish your first post to see it here.",
+      "filter_all": "All",
+      "filter_posts": "Posts",
+      "filter_frames": "Frames",
+      "prev": "Previous",
+      "next": "Next"
     },
     "stories": {
       "empty_title": "No stories yet",
-      "empty_desc": "Share ephemeral moments with your followers to grow your reach."
+      "empty_desc": "Share ephemeral moments with your followers to grow your reach.",
+      "expired": "Expired",
+      "active": "Active"
     },
     "money": {
       "sections": "Monetization sections",
       "income": "Income",
-      "wallet": "Wallet",
       "plans": "Plans"
+    },
+    "ppv": {
+      "title": "Pay-per-view earnings",
+      "description": "You earn when someone optionally unlocks a post or story you marked as paid. This is not a monthly fan subscription.",
+      "lock_rule": "Set a price on a post or story when you publish. Fans who do not pay never see the locked media.",
+      "split": "Stripe splits each charge: 80% to you, 20% to CircleSfera. Payouts go to your bank through Stripe.",
+      "connect": "Connect Stripe"
+    },
+    "income": {
+      "connect_success": "Stripe account linked successfully.",
+      "breakdown": "Breakdown by type",
+      "breakdown_hint": "Amounts are the creator share after Stripe applies the 20% platform fee.",
+      "posts_ppv": "Post PPV",
+      "stories_ppv": "Story PPV",
+      "messages_ppv": "Locked DMs",
+      "tips": "Tips",
+      "live_gifts": "Live gifts",
+      "stripe_balances": "Stripe balances",
+      "stripe_balances_hint": "Read from Stripe Connect. CircleSfera does not hold a withdrawable wallet.",
+      "available": "Available",
+      "pending": "Pending",
+      "transactions": "Recent transactions",
+      "no_transactions": "No transactions yet."
     },
     "dashboard": {
       "see_all": "See all",
@@ -966,6 +1236,15 @@
       "ads_desc": "Create campaigns to promote your profile and reach more people.",
       "audience": "Audience",
       "retention": "Retention",
+      "best_day": "Best day",
+      "peak_hour": "Peak hour",
+      "live_performance": "Live performance",
+      "total_followers": "total followers",
+      "growth_this_month": "{{sign}}{{value}}% this month",
+      "engagement": "Engagement",
+      "total_reach": "Total reach",
+      "mrr_est": "Est. MRR",
+      "subscribers": "Subscribers",
       "most_active_day": "Your audience is most active on {{day}}",
       "most_active_hour": "At {{hour}}:00 (Local)",
       "retention_chart_aria": "Retention chart: {{rate}}%",
@@ -978,7 +1257,8 @@
       "views": "Views",
       "followers": "Followers",
       "not_enough_data": "Not enough data yet",
-      "upload_content": "Upload content to start measuring your audience."
+      "upload_content": "Upload content to start measuring your audience.",
+      "export_csv": "Export CSV"
     },
     "promotions": {
       "created": "Promotion created",
@@ -2208,18 +2488,22 @@
   },
   "supportPage": {
     "badge": "Support",
-    "title": "Support Center",
-    "description": "Do you have an issue with your account or need help with a payment? Write to us and we'll reply by email.",
-    "success_title": "Ticket sent!",
-    "success_body": "Our team will review it and contact you soon at: {{email}}",
-    "login_required": "You must be logged in so we can contact you.",
+    "seo_title": "Support — CircleSfera",
+    "seo_desc": "Real technical support. Write in, a person reads it, and we reply by email.",
+    "title": "Real technical support.",
+    "description": "Unlike most social networks, someone here reads what you write and replies. Log in and send a message — we answer to the email on your account.",
+    "write_title": "Write to us",
+    "write_desc": "A bug, a payment, your account. A person reviews it and replies by email.",
+    "success_title": "Message sent",
+    "success_body": "We will review it and reply to {{email}}.",
+    "login_required": "Log in so we can reply to the email on your account.",
     "subject_label": "Subject",
-    "subject_placeholder": "E.g: Issue with a subscription",
+    "subject_placeholder": "For example: a problem with a subscription",
     "message_label": "Message",
-    "message_placeholder": "Describe your issue in as much detail as possible...",
-    "submit": "Send Ticket",
-    "submitting": "Sending...",
-    "error_generic": "Failed to send the ticket. Please try again."
+    "message_placeholder": "What happened, which screen, and what you already tried.",
+    "submit": "Send message",
+    "submitting": "Sending…",
+    "error_generic": "Could not send the message. Try again."
   },
   "pricingPage": {
     "badge": "Pricing",
@@ -2245,29 +2529,197 @@
     "checkout_error": "Failed to start checkout. Please try again."
   },
   "studio": {
+    "seo_title": "Studio | CircleSfera",
     "default_project_name": "New Project",
     "default_track_name": "Main Track",
     "default_text": "New Text",
     "select_clip_hint": "Select a clip to view its properties",
-    "media": "Media",
-    "text": "Text",
-    "audio": "Audio",
     "split_title": "Split at playhead",
     "split": "Split",
     "delete": "Delete",
-    "export_error": "Error exporting the video. Please try again."
+    "export_error": "Error exporting the video. Please try again.",
+    "export": "Export",
+    "export_errors": {
+      "no_clips": "Add a video or image clip before exporting",
+      "load_failed": "Could not load the video encoder. Refresh and try again",
+      "encode_failed": "Video encoding failed. Try fewer clips or shorter media",
+      "cancelled": "Export cancelled"
+    },
+    "export_options_title": "Export settings",
+    "export_quality": "Encode quality",
+    "export_quality_hint": "Faster presets finish sooner; slower ones look a bit sharper.",
+    "export_mobile_hint": "On this device export uses a lighter 720p encode for speed.",
+    "export_long_duration_hint": "Long projects take longer to encode on-device. Prefer shorter cuts on mobile.",
+    "export_schedule_hint": "Optional. The date is carried into Create when you publish.",
+    "export_start": "Start export",
+    "export_cancel": "Cancel export",
+    "export_presets": {
+      "ultrafast": "Fastest (draft)",
+      "veryfast": "Balanced",
+      "fast": "Higher quality"
+    },
+    "exit": "Exit Studio",
+    "project_name": "Project name",
+    "undo": "Undo",
+    "redo": "Redo",
+    "open": "Open",
+    "open_drafts": "Open drafts",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "save_error": "Could not save draft",
+    "save_error_short": "Save failed",
+    "zoom": "Timeline zoom",
+    "mute": "Mute track",
+    "unmute": "Unmute track",
+    "hide": "Hide track",
+    "show": "Show track",
+    "lock": "Lock track",
+    "unlock": "Unlock track",
+    "tracks": {
+      "video": "Video",
+      "text": "Text",
+      "audio": "Audio",
+      "add_video": "Add video track",
+      "add_audio": "Add audio track",
+      "add_text": "Add text track",
+      "remove": "Remove track",
+      "removed": "Track removed",
+      "added": "{{type}} track added",
+      "keep_one_video": "Keep at least one video track",
+      "remove_confirm": "Remove this track and all of its clips?"
+    },
+    "tools": {
+      "dock_label": "Studio tools",
+      "media": "Media",
+      "text": "Text",
+      "audio": "Audio",
+      "filters": "Filters",
+      "captions": "Captions"
+    },
+    "properties": {
+      "title": "Properties",
+      "close": "Close properties",
+      "tabs": {
+        "transform": "Transform",
+        "text": "Text",
+        "filters": "Filters",
+        "audio": "Audio & speed"
+      },
+      "scale": "Scale",
+      "rotation": "Rotation",
+      "position_x": "Position X",
+      "position_y": "Position Y",
+      "opacity": "Opacity",
+      "flip": "Flip",
+      "flip_h": "Flip horizontal",
+      "flip_v": "Flip vertical",
+      "text_content": "Text content",
+      "text_placeholder": "Type here…",
+      "align": "Alignment",
+      "font_size": "Font size",
+      "text_color": "Text color",
+      "box_bg": "Box background",
+      "volume": "Volume",
+      "speed": "Speed"
+    },
+    "timeline": {
+      "empty": "Add media to start editing"
+    },
+    "media": {
+      "import": "Import video or image",
+      "formats": "MP4, MOV, WEBM, PNG, JPG (up to 4K)",
+      "samples": "Quick samples",
+      "sample_neon": "Neon abstraction",
+      "sample_gradient": "Studio gradient",
+      "sample_added": "{{name}} added",
+      "video_added": "Video added to timeline",
+      "image_added": "Image added to timeline",
+      "upload_error": "Could not upload media"
+    },
+    "text": {
+      "templates": "Text templates",
+      "added": "Text added to canvas",
+      "preset_title": "Bold title",
+      "preset_subtitle": "Highlighted subtitle",
+      "preset_badge": "Neon badge",
+      "preset_story": "Story-style box",
+      "preset_title_content": "BOLD TITLE",
+      "preset_subtitle_content": "Subscriptions & Pro Tiers",
+      "preset_badge_content": "★ CIRCLE STUDIO",
+      "preset_story_content": "@creator_handle"
+    },
+    "audio": {
+      "title": "Audio tracks & SFX",
+      "upload": "Upload audio from device",
+      "added": "Audio track added"
+    },
+    "filters": {
+      "title": "Visual filters",
+      "select_clip": "Select a clip to apply a filter",
+      "applied": "Filter \"{{name}}\" applied",
+      "normal": "Normal",
+      "bw": "Cinema B&W",
+      "sepia": "Vintage sepia",
+      "neon": "Cyber neon",
+      "drama": "Drama contrast",
+      "invert": "Inverted"
+    },
+    "captions": {
+      "title": "Captions",
+      "description": "Add manual cues or generate AI captions from uploaded audio or video.",
+      "add_manual": "Add caption at playhead",
+      "generate": "Generate AI captions",
+      "generating": "Transcribing…",
+      "generated": "{{count}} captions added",
+      "default_cue": "New caption",
+      "cue_added": "Caption added",
+      "need_save": "Save the project first so media is in the cloud",
+      "need_clip": "Select a video or audio clip first",
+      "need_upload": "Wait for the clip to finish uploading",
+      "error": "Could not generate captions",
+      "timeout": "Caption transcription timed out",
+      "cancelled": "Caption generation cancelled",
+      "cancel": "Cancel transcription",
+      "disabled": "AI captions are temporarily unavailable"
+    },
+    "drafts": {
+      "title": "My drafts",
+      "empty": "No saved drafts yet",
+      "error": "Could not load drafts",
+      "updated": "Updated: {{date}}",
+      "delete": "Delete draft",
+      "delete_confirm": "Delete this draft permanently?",
+      "deleted": "Draft deleted",
+      "delete_error": "Could not delete draft"
+    },
+    "export_rendering": "Rendering…",
+    "export_ready": "Video ready",
+    "export_progress": "Rendering… {{percent}}%",
+    "export_success": "Your project has been rendered successfully.",
+    "export_publish": "Publish to CircleSfera",
+    "export_download": "Download to device",
+    "playback": {
+      "start": "Go to start",
+      "end": "Go to end",
+      "play": "Play",
+      "pause": "Pause",
+      "fullscreen": "Fullscreen",
+      "frame_back": "Previous frame",
+      "frame_forward": "Next frame"
+    }
   },
   "referralsSettings": {
-    "title": "Beta Invites",
-    "subtitle": "Invite your friends to CircleSfera",
-    "your_invite_link": "Your Invite Link",
-    "used_count": "{{count}} / {{max}} Used",
+    "title": "Invitations",
+    "subtitle": "Invite friends to CircleSfera.",
+    "your_invite_link": "Your invite link",
+    "used_count": "{{count}} / {{max}} used",
     "copy": "Copy",
-    "copied": "Invite link copied!",
-    "max_reached": "You have reached the maximum number of invites for this beta phase.",
-    "users_invited": "Users you invited",
-    "no_invites": "You haven't invited anyone yet.",
-    "joined_on": "• Joined {{date}}"
+    "copied": "Invite link copied",
+    "max_reached": "You have used all invites for this beta.",
+    "users_invited": "People you invited",
+    "no_invites": "You have not invited anyone yet.",
+    "joined_on": "Joined {{date}}"
   },
   "live": {
     "connecting": "Connecting to live stream...",
@@ -2285,6 +2737,8 @@
     "start_button": "Start streaming"
   },
   "common": {
+    "cancel": "Cancel",
+    "loading": "Loading...",
     "footer": {
       "desc": "A refined social layer built for those who value visual depth and authentic connection.",
       "platform": "Platform",
@@ -2349,8 +2803,8 @@
   },
   "landing": {
     "seo": {
-      "title": "CircleSfera — Your feed, your control",
-      "description": "CircleSfera is a social platform for posts, stories, Frames, Direct, Live, and creator tools — with explicit control, transparent ranking, and no hidden suppression."
+      "title": "CircleSfera — Your feed. You decide.",
+      "description": "CircleSfera is a social network for posts, stories, Frames, Direct, and Live. You choose what you see and who can reach you."
     },
     "nav": {
       "log_in": "Log In",
@@ -2360,19 +2814,19 @@
       "close_menu": "Close menu"
     },
     "hero": {
-      "badge": "Social platform",
-      "title_part1": "Your feed,",
-      "title_part2": "your control",
-      "subtitle": "Decide what you see, who you interact with, and what gets recommended. No silent suppression.",
+      "badge": "Feed · Frames · Direct · Live",
+      "title_part1": "Your feed.",
+      "title_part2": "You decide.",
+      "subtitle": "Posts, stories, Frames, Direct, and Live. You choose what you see and who can reach you.",
       "get_started": "Create account",
       "log_in": "Log in",
       "already": "Already have an account?",
       "explore_demo": "Explore CircleSfera"
     },
     "features": {
-      "badge": "Product",
-      "title": "Every surface that ships today",
-      "subtitle": "Feed, stories, Frames, Direct, Live, and creator tools — one identity, one design language, no bolted-on demos."
+      "badge": "Features",
+      "title": "One account. Every format.",
+      "subtitle": "Posts, stories, short video, messages, live, and creator tools. Same look, same relationships."
     },
     "preview": {
       "home": "Home",
@@ -2396,7 +2850,7 @@
         },
         "direct": {
           "title": "Direct",
-          "desc": "Private messaging with the same glass chrome as the rest of the product. Conversations stay with the people you choose."
+          "desc": "Private messaging with the same look as the rest of the product. Conversations stay with the people you choose."
         },
         "live": {
           "title": "Live",
@@ -2410,55 +2864,59 @@
     },
     "principles": {
       "badge": "Principles",
-      "title": "Built for control you can explain",
-      "subtitle": "These are product rules, not slogans. Every change on CircleSfera has to answer them.",
+      "title": "Control you can use.",
+      "subtitle": "Five rules for what you see, who can reach you, and how your data is used.",
       "items": {
         "control": {
           "title": "User control first",
-          "desc": "You decide what you consume, who may interact, and what recommendations you get. Automation assists — it does not override your choices."
+          "desc": "You decide what you consume, who can interact, and what you get recommended. Automation helps — it does not override your choices."
         },
         "transparency": {
-          "title": "Algorithmic transparency",
-          "desc": "Ranking and discovery use many signals, but they stay explainable: why this content, why this profile, which of your actions change it."
+          "title": "Why you see this",
+          "desc": "What shows up in For You and Explore should make sense: this post, this profile, and what you did that changed it."
         },
         "no_suppression": {
-          "title": "No hidden suppression",
-          "desc": "Shadow bans are not a product tool. Visibility follows explicit criteria — preferences, privacy, relationships, or a justified safety obligation."
+          "title": "Visibility you control",
+          "desc": "Mute, hide, and feed preferences change what you see. Following is the people you chose. For You is a mix you can adjust in Settings."
         },
         "moderation": {
           "title": "Strict, explicit moderation",
-          "desc": "When something is limited, you are told what happened, why, under which rule, and how to appeal. Actions are auditable."
+          "desc": "Community rules are public. You can report content, and you can appeal a decision from Settings."
         },
         "data": {
           "title": "Responsible data handling",
-          "desc": "Purpose limitation, proportionality, and minimization. We must be able to justify what we collect, why, and for how long."
+          "desc": "We keep what the product needs, and we should be able to say why. Export and deletion are in Settings."
         }
       }
     },
     "faq": {
       "badge": "FAQ",
       "title": "Straight answers",
-      "subtitle": "No native-app promises. No invented communities. Only what ships today.",
+      "subtitle": "What CircleSfera is today — plans, the feed, and how to use it on your phone.",
       "items": {
         "free": {
           "q": "Is CircleSfera free?",
-          "a": "Yes. Core social features are free. Optional platform plans (Premium, Elite Creator, Business) and creator monetization run through Stripe — prices are shown on Pricing before you pay."
+          "a": "Yes. The main social features are free. Optional plans (Premium, Elite Creator, Business) and creator monetization go through Stripe — prices are on Pricing before you pay."
         },
         "verify": {
           "q": "How does identity verification work?",
-          "a": "Identity verification is available from Settings via Stripe Identity when you need it for monetization or trust features. Plan badges (Verified / Elite / Business) come from active platform subscriptions."
+          "a": "Identity verification is in Settings, via Stripe Identity, when you need it for monetization or trust. Plan badges (Verified / Elite / Business) come from an active subscription."
         },
         "control": {
           "q": "Do I control what I see?",
-          "a": "Yes. Feed preferences, mute, hide, and appeals are first-class. Visibility limits are explicit — CircleSfera does not use shadow bans as a product tool."
+          "a": "Yes. Feed preferences, mute, hide, and appeals are in Settings. You choose what you see and who can interact with you."
         },
         "mobile": {
           "q": "Is there a mobile app?",
-          "a": "CircleSfera is a mobile-first web app (PWA). Use it in the browser on phone or desktop. Native store apps are not available yet."
+          "a": "CircleSfera works in the browser on your phone and on desktop. You can add it to your home screen. There is no App Store or Google Play app yet."
         },
         "plans": {
-          "q": "What do platform plans unlock?",
-          "a": "Premium, Elite Creator, and Business are PlatformPlan subscriptions billed through Stripe. Features and prices are listed on Pricing. Creator Studio data endpoints are gated for Elite Creator today; other gates are product decisions, not silent entitlements."
+          "q": "What do the plans unlock?",
+          "a": "Premium, Elite Creator, and Business are optional subscriptions billed through Stripe. What they include and what they cost is on Pricing, before you pay."
+        },
+        "support": {
+          "q": "Is there real technical support?",
+          "a": "Yes. Log in, write from Support, and a person replies to the email on your account. It is not a help center with nobody behind it."
         }
       }
     },
@@ -2470,19 +2928,19 @@
     "pages": {
       "features": {
         "seo_title": "Features — CircleSfera",
-        "seo_desc": "Feed, stories, Frames, Direct, Live, and creator tools — every surface that ships on CircleSfera today."
+        "seo_desc": "Feed, stories, Frames, Direct, Live, and creator tools — one CircleSfera account."
       },
       "principles": {
         "seo_title": "Principles — CircleSfera",
-        "seo_desc": "User control, algorithmic transparency, no hidden suppression, explicit moderation, and responsible data handling."
+        "seo_desc": "User control, why you see what you see, clear moderation, and responsible data handling."
       },
       "faq": {
         "seo_title": "FAQ — CircleSfera",
-        "seo_desc": "Straight answers about CircleSfera: free tier, verification, feed control, mobile/PWA, and platform plans."
+        "seo_desc": "Straight answers about CircleSfera: free plan, verification, feed control, phone use, and optional subscriptions."
       }
     },
     "footer": {
-      "desc": "A social platform for visual depth, explicit control, and creator tools — without hidden suppression.",
+      "desc": "A social network for posts, Frames, Direct, Live, and creator tools.",
       "platform": "Platform",
       "product": "Product",
       "features": "Features",

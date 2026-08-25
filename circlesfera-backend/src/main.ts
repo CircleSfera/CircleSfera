@@ -165,6 +165,7 @@ async function bootstrap(): Promise<void> {
       'STRIPE_SECRET_KEY',
       'STRIPE_WEBHOOK_SECRET',
       'ENCRYPTION_KEY',
+      'ABUSE_HASH_PEPPER',
     ];
     for (const key of secrets) {
       const val = configService.get<string>(key);
@@ -208,6 +209,12 @@ async function bootstrap(): Promise<void> {
       if (!livekitKey || !livekitSecret) {
         throw new Error(
           'SECURITY ALERT: LIVEKIT_API_KEY and LIVEKIT_API_SECRET are required in production.',
+        );
+      }
+      const turnstile = configService.get<string>('TURNSTILE_SECRET_KEY');
+      if (!turnstile || turnstile.includes('CHANGE_ME')) {
+        throw new Error(
+          'SECURITY ALERT: TURNSTILE_SECRET_KEY is required in production.',
         );
       }
     }

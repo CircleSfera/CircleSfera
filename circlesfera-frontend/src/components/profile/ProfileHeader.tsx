@@ -1,15 +1,18 @@
 import { motion } from 'framer-motion';
 import {
   Ban,
+  Bot,
   ExternalLink,
   Flag,
   Gift,
+  Info,
   Link as LinkIcon,
   Lock,
   MapPin,
   MoreHorizontal,
   Plus,
   Settings,
+  ShieldCheck,
   VolumeX,
   Wand2,
 } from 'lucide-react';
@@ -25,6 +28,7 @@ import UserAvatar from '../UserAvatar';
 import VerificationBadge, {
   type VerificationLevel,
 } from '../VerificationBadge';
+import AboutAccountDialog from './AboutAccountDialog';
 
 function AnimatedCounter({ value, label }: { value: number; label: string }) {
   const [count, setCount] = useState(0);
@@ -51,11 +55,11 @@ function AnimatedCounter({ value, label }: { value: number; label: string }) {
   }, [value]);
 
   return (
-    <div className="text-center md:text-left group cursor-pointer">
+    <div className="text-center md:text-left group cursor-pointer min-w-0 flex-1">
       <span className="block text-white font-black text-base md:text-xl leading-none transition-all duration-300 origin-center md:origin-left group-hover:scale-110 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-[#ff5757] group-hover:to-[#8c52ff]">
         {count}
       </span>
-      <span className="text-zinc-400 text-[10px] md:text-xs font-bold uppercase tracking-wide mt-1 block transition-colors duration-300 group-hover:text-brand-primary/80">
+      <span className="text-zinc-400 text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-normal md:tracking-wide mt-1 block transition-colors duration-300 group-hover:text-brand-primary/80 truncate">
         {label}
       </span>
     </div>
@@ -101,9 +105,39 @@ export default function ProfileHeader({
   setShowMenu,
 }: ProfileHeaderProps) {
   const { t } = useTranslation();
+  const [showAbout, setShowAbout] = useState(false);
+  const data = profile.data as ProfileWithUser & {
+    identityVerified?: boolean;
+    emailConfirmed?: boolean;
+    joinedAt?: string;
+    signupCountry?: string | null;
+    strikeCount?: number;
+    botLabeled?: boolean;
+    lastActiveBucket?: 'today' | 'week' | 'month' | 'older' | 'unknown';
+    accountStanding?: 'ok' | 'suspended';
+  };
 
   return (
     <div className="glass-panel rounded-xl md:rounded-2xl p-3 md:p-4 mb-2 md:mb-3 relative border border-white/5 shadow-2xl backdrop-blur-2xl">
+      <AboutAccountDialog
+        isOpen={showAbout}
+        onClose={() => setShowAbout(false)}
+        account={{
+          username: data.username,
+          fullName: data.fullName ?? undefined,
+          avatar: data.avatar ?? undefined,
+          joinedAt: data.joinedAt ?? data.user?.createdAt,
+          emailConfirmed: data.emailConfirmed,
+          identityVerified: data.identityVerified,
+          accountType: data.accountType,
+          signupCountry: data.signupCountry,
+          strikeCount: data.strikeCount,
+          botLabeled: data.botLabeled,
+          lastActiveBucket: data.lastActiveBucket,
+          accountStanding: data.accountStanding,
+          verificationLevel: data.verificationLevel,
+        }}
+      />
       {/* Background Accent Gradient (Parallax Effect) */}
       <div className="absolute inset-0 overflow-hidden rounded-xl md:rounded-2xl pointer-events-none -z-10">
         <motion.div
@@ -132,7 +166,7 @@ export default function ProfileHeader({
             />
             {isMe && (
               <Link
-                to="/accounts/edit"
+                to="/accounts"
                 aria-label={t('profile.actions.edit_profile')}
                 className="absolute -bottom-0.5 -right-0.5 p-1 bg-zinc-900 border border-white/10 rounded-full text-white hover:bg-zinc-800 transition-colors shadow-xl opacity-0 hover:opacity-100 group-hover:opacity-100 duration-300 z-20"
               >
@@ -154,6 +188,26 @@ export default function ProfileHeader({
                     level={profile.data.verificationLevel as VerificationLevel}
                     size={20}
                   />
+                  {data.identityVerified && (
+                    <span
+                      title={t('profile.badges.identity', 'Identity verified')}
+                      className="inline-flex"
+                    >
+                      <ShieldCheck
+                        size={18}
+                        className="fill-emerald-400 text-white"
+                        aria-hidden
+                      />
+                    </span>
+                  )}
+                  {data.botLabeled && (
+                    <span
+                      title={t('profile.badges.bot', 'Possibly automated')}
+                      className="inline-flex"
+                    >
+                      <Bot size={16} className="text-amber-400" aria-hidden />
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center justify-start gap-2 text-zinc-400 font-semibold text-sm">
                   <span className="truncate">@{profile.data.username}</span>
@@ -170,7 +224,7 @@ export default function ProfileHeader({
               </div>
 
               {/* Stats */}
-              <div className="flex items-center justify-around md:justify-start gap-4 md:gap-6 w-full md:w-auto">
+              <div className="flex items-center justify-between md:justify-start gap-2 md:gap-6 w-full md:w-auto mt-2 md:mt-0">
                 <AnimatedCounter
                   value={profile.data.user?._count?.posts || 0}
                   label={t('profile.stats.posts')}
@@ -203,7 +257,7 @@ export default function ProfileHeader({
               {isMe ? (
                 <>
                   <Link
-                    to="/accounts/edit"
+                    to="/accounts"
                     className="px-6 h-11 bg-white text-black hover:bg-zinc-200 rounded-lg font-black transition-all duration-300 flex items-center justify-center text-xs uppercase tracking-wide shadow-lg hover:shadow-white/20 hover:scale-105 active:scale-95"
                   >
                     {t('profile.actions.edit_profile')}
@@ -244,6 +298,14 @@ export default function ProfileHeader({
                     className="p-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]"
                   >
                     <Settings size={18} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAbout(true)}
+                    aria-label={t('profile.about.title', 'About this account')}
+                    className="p-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95"
+                  >
+                    <Info size={18} aria-hidden="true" />
                   </button>
                 </>
               ) : (
@@ -289,6 +351,17 @@ export default function ProfileHeader({
                           type="button"
                           onClick={() => {
                             setShowMenu(false);
+                            setShowAbout(true);
+                          }}
+                          className="w-full text-left px-2 py-1 text-gray-300 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider"
+                        >
+                          {t('profile.about.title', 'About this account')}
+                          <Info size={14} aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowMenu(false);
                             followsApi
                               .mute(profile.data.username)
                               .then(() => {
@@ -306,7 +379,7 @@ export default function ProfileHeader({
                                 );
                               });
                           }}
-                          className="w-full text-left px-2 py-1 text-gray-300 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider"
+                          className="w-full text-left px-2 py-1 text-gray-300 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider border-t border-white/5"
                         >
                           {t('profile.actions.mute', { defaultValue: 'Mute' })}
                           <VolumeX size={14} aria-hidden="true" />
@@ -352,6 +425,16 @@ export default function ProfileHeader({
               level={profile.data.verificationLevel as VerificationLevel}
               size={16}
             />
+            {data.identityVerified && (
+              <ShieldCheck
+                size={14}
+                className="fill-emerald-400 text-white shrink-0"
+                aria-hidden
+              />
+            )}
+            {data.botLabeled && (
+              <Bot size={14} className="text-amber-400 shrink-0" aria-hidden />
+            )}
           </div>
           <div className="flex items-center justify-start gap-1.5 text-zinc-400 font-semibold text-[13px]">
             <span>@{profile.data.username}</span>
@@ -440,7 +523,7 @@ export default function ProfileHeader({
             {isMe ? (
               <>
                 <Link
-                  to="/accounts/edit"
+                  to="/accounts"
                   className="flex-1 px-2 h-11 bg-white text-black hover:bg-zinc-200 rounded-xl font-black transition-all flex items-center justify-center text-xs uppercase tracking-wide shadow-lg shadow-white/5"
                 >
                   {t('profile.actions.edit_profile')}

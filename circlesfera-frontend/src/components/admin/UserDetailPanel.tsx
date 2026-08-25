@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   Copy,
@@ -9,6 +9,7 @@ import {
   ImageIcon,
   MessageSquare,
   Radio,
+  ShieldAlert,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -98,6 +99,7 @@ function ActivityChip({
 export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const {
     data: user,
     isLoading,
@@ -108,9 +110,57 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
       adminApi.getUserDetail(userId).then((res) => res.data as AdminUserDetail),
   });
 
+  const { data: trust } = useQuery({
+    queryKey: ['admin', 'trust-score', userId],
+    queryFn: () => adminApi.getTrustScore(userId).then((r) => r.data),
+    enabled: !!userId,
+  });
+
+  const { data: linked } = useQuery({
+    queryKey: ['admin', 'linked-accounts', userId],
+    queryFn: () => adminApi.getLinkedAccounts(userId).then((r) => r.data),
+    enabled: !!userId,
+  });
+
+  const botLabelMutation = useMutation({
+    mutationFn: async (action: 'apply' | 'clear') => {
+      if (action === 'apply') {
+        const reason =
+          window.prompt(
+            t(
+              'admin.user_preview.bot_label_prompt',
+              'Reason for possible-bot label',
+            ),
+          ) || '';
+        if (!reason.trim()) throw new Error('cancelled');
+        return adminApi.applyBotLabel(userId, reason.trim());
+      }
+      return adminApi.clearBotLabel(userId);
+    },
+    onSuccess: () => {
+      adminToast(
+        t('admin.user_preview.bot_label_updated', 'Updated'),
+        'success',
+      );
+      queryClient.invalidateQueries({
+        queryKey: ['admin', 'user-detail', userId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['admin', 'trust-score', userId],
+      });
+    },
+    onError: (err: Error) => {
+      if (err.message === 'cancelled') return;
+      adminToast(t('admin.user_preview.bot_label_error', 'Failed'), 'error');
+    },
+  });
+
   const locale = i18n.language?.startsWith('en') ? 'en-US' : 'es-ES';
   const username = user?.profile?.username;
   const profileHref = username ? `${platformOrigin()}/${username}` : null;
+  const botLabeled = !!(
+    user as AdminUserDetail & { botLabeledAt?: string | null }
+  )?.botLabeledAt;
 
   const openQueue = (tab: AdminTab) => {
     navigate(`${adminTabPath(tab)}?userId=${encodeURIComponent(userId)}`);
@@ -216,6 +266,16 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
             year: 'numeric',
           })}
         </MetaRow>
+        <MetaRow label={t('admin.user_preview.signup_ip', 'Signup IP')}>
+          <span className="font-mono text-xs text-white/70">
+            {user.signupIp || '—'}
+          </span>
+        </MetaRow>
+        <MetaRow label={t('admin.user_preview.last_ip', 'Last IP')}>
+          <span className="font-mono text-xs text-white/70">
+            {user.lastIp || '—'}
+          </span>
+        </MetaRow>
         <MetaRow label={t('admin.user_preview.uuid_label')}>
           <div className="inline-flex items-center gap-1 max-w-full">
             <span className="font-mono text-xs text-white/70 truncate">
@@ -258,6 +318,69 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
           </div>
         ))}
       </div>
+
+      {(trust || linked) && (
+        <section className="space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide flex items-center gap-1.5">
+              <ShieldAlert size={12} aria-hidden />
+              {t('admin.user_preview.trust_title', 'Trust signals')}
+            </h4>
+            {trust && (
+              <span className="text-sm font-bold tabular-nums text-white">
+                {trust.score}/100
+              </span>
+            )}
+          </div>
+          {trust?.factors?.length ? (
+            <ul className="space-y-1">
+              {trust.factors.map((f) => (
+                <li
+                  key={f.key}
+                  className="flex justify-between text-[11px] text-white/60"
+                >
+                  <span>{f.label}</span>
+                  <span
+                    className={f.delta >= 0 ? 'text-green-400' : 'text-red-400'}
+                  >
+                    {f.delta > 0 ? `+${f.delta}` : f.delta}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {linked && (
+            <p className="text-[11px] text-white/50">
+              {t('admin.user_preview.cluster_size', {
+                defaultValue: 'Linked accounts in cluster: {{count}}',
+                count: linked.clusterSize,
+              })}
+            </p>
+          )}
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 text-xs"
+              disabled={botLabelMutation.isPending || botLabeled}
+              onClick={() => botLabelMutation.mutate('apply')}
+            >
+              {t('admin.user_preview.apply_bot_label', 'Label as possible bot')}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9 text-xs"
+              disabled={botLabelMutation.isPending || !botLabeled}
+              onClick={() => botLabelMutation.mutate('clear')}
+            >
+              {t('admin.user_preview.clear_bot_label', 'Clear bot label')}
+            </Button>
+          </div>
+        </section>
+      )}
 
       {user.profile?.bio && (
         <div>

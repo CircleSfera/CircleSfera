@@ -13,6 +13,7 @@ import {
   Settings,
   Sparkles,
   User,
+  Wand2,
 } from 'lucide-react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -98,6 +99,12 @@ export default function Sidebar() {
       badge: unreadCount,
     },
     { icon: Bookmark, label: t('nav.saved'), to: '/saved', badge: 0 },
+    {
+      icon: Wand2,
+      label: t('nav.studio', 'Studio'),
+      to: '/edits',
+      badge: 0,
+    },
     {
       icon: BarChart3,
       label: t('nav.creator_studio'),
@@ -292,7 +299,7 @@ export default function Sidebar() {
         </Link>
 
         <Link
-          to="/accounts/edit"
+          to="/accounts"
           aria-label="Settings"
           className="flex items-center gap-3 py-2.5 px-3 rounded-xl text-gray-400/80 hover:bg-white/5 hover:text-white/90 transition-all duration-200 active:scale-95"
           style={{ minHeight: 44 }}

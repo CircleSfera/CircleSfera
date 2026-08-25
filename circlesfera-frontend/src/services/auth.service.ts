@@ -13,6 +13,9 @@ export const authApi = {
   verifyEmail: (token: string) =>
     apiClient.post('/auth/verify-email', { token }),
 
+  resendVerification: () =>
+    apiClient.post<{ message: string }>('/auth/resend-verification'),
+
   requestReset: (email: string) =>
     apiClient.post('/auth/request-reset', { email }),
 

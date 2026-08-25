@@ -40,12 +40,12 @@ export function BentoCard({
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className={`group relative rounded-3xl overflow-hidden shadow-2xl transition-all duration-500 flex flex-col border border-white/10 hover:border-white/20 bg-white/1 backdrop-blur-3xl ${
+      className={`group relative rounded-2xl overflow-hidden flex flex-col border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/[0.07] transition-colors duration-300 ${
         size === 'large'
-          ? 'col-span-1 md:col-span-2 h-full'
+          ? 'col-span-1 md:col-span-2'
           : size === 'tall'
-            ? 'col-span-1 md:row-span-2 h-full'
-            : 'col-span-1 h-full'
+            ? 'col-span-1'
+            : 'col-span-1'
       } ${className}`}
       {...props}
     >
@@ -67,23 +67,19 @@ export function BentoCard({
       />
 
       {/* 3. Subtle inner glow on hover */}
-      <div className="absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/5 group-hover:ring-white/10 transition-colors pointer-events-none" />
+      <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/5 group-hover:ring-white/10 transition-colors pointer-events-none" />
 
       {/* Content */}
-      <div className="relative z-10 flex flex-col justify-between h-full p-6 md:p-8">
-        {/* Icon in Glass Capsule */}
-        <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shadow-inner text-white/80 group-hover:scale-110 group-hover:text-white group-hover:bg-white/10 transition-all duration-500 backdrop-blur-md">
-          <Icon size={20} strokeWidth={1.5} />
+      <div className="relative z-10 flex flex-col gap-4 p-4 md:p-5">
+        <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 group-hover:text-white group-hover:bg-white/10 transition-colors">
+          <Icon size={18} strokeWidth={1.5} />
         </div>
 
-        <div className="mt-8">
-          {/* Metallic Typography */}
-          <h3
-            className={`font-bold mb-3 tracking-tight wrap-break-word text-transparent bg-clip-text bg-linear-to-b from-white to-white/70 ${size === 'large' ? 'text-2xl md:text-3xl' : 'text-xl md:text-2xl'}`}
-          >
+        <div>
+          <h3 className="text-base md:text-lg font-bold mb-1.5 tracking-tight wrap-break-word text-transparent bg-clip-text bg-linear-to-b from-white to-white/80">
             {title}
           </h3>
-          <p className="text-sm md:text-base text-white/40 group-hover:text-white/60 transition-colors duration-500 leading-relaxed font-medium">
+          <p className="text-xs md:text-sm text-white/50 group-hover:text-white/70 transition-colors leading-relaxed">
             {description}
           </p>
         </div>

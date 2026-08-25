@@ -7,7 +7,6 @@ import App from './App';
 import {
   GuestAppChrome,
   GuestSurfaceMedia,
-  LandingFAQ,
   LandingHero,
   LandingPrinciples,
 } from './components/marketing';
@@ -35,11 +34,11 @@ describe('Landing product surface', () => {
   it('hero shows headline and links to signup, explore, and login', () => {
     renderWithProviders(<LandingHero />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      /your feed/i,
+      /your feed\.?\s*you decide/i,
     );
     expect(
       screen.getByRole('link', { name: /create account/i }),
-    ).toHaveAttribute('href', '/accounts/emailsignup');
+    ).toHaveAttribute('href', '/accounts/signup');
     expect(screen.getByRole('link', { name: /^log in$/i })).toHaveAttribute(
       'href',
       '/accounts/login',
@@ -58,12 +57,7 @@ describe('Landing product surface', () => {
   it('principles section exposes five product principles', () => {
     renderWithProviders(<LandingPrinciples />);
     expect(screen.getByText(/user control first/i)).toBeInTheDocument();
-    expect(screen.getByText(/no hidden suppression/i)).toBeInTheDocument();
-  });
-
-  it('faq includes honest mobile / PWA answer', () => {
-    renderWithProviders(<LandingFAQ />);
-    expect(screen.getByText(/is there a mobile app/i)).toBeInTheDocument();
+    expect(screen.getByText(/visibility you control/i)).toBeInTheDocument();
   });
 
   it('hero product window is labelled as Home', () => {
@@ -85,12 +79,18 @@ describe('Guest chrome', () => {
     );
     expect(screen.getByRole('link', { name: 'Sign Up' })).toHaveAttribute(
       'href',
-      '/accounts/emailsignup',
+      '/accounts/signup',
     );
   });
 
   it('renders a labelled product window for each surface', () => {
     renderWithProviders(<GuestSurfaceMedia surface="frames" />);
     expect(screen.getByRole('figure', { name: /frames/i })).toBeInTheDocument();
+  });
+
+  it('home mock shows For You / Following feed tabs', () => {
+    renderWithProviders(<GuestSurfaceMedia surface="home" />);
+    expect(screen.getByText(/for you/i)).toBeInTheDocument();
+    expect(screen.getByText(/following/i)).toBeInTheDocument();
   });
 });

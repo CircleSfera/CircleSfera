@@ -46,7 +46,7 @@ export default function BottomNav() {
 
   const creatorNavItems = [
     { icon: Home, label: t('nav.home'), to: '/', badge: 0 },
-    { icon: Wand2, label: 'Studio', to: '/edits', badge: 0 },
+    { icon: Wand2, label: t('nav.studio'), to: '/edits', badge: 0 },
     {
       icon: PlusSquare,
       label: t('nav.create'),
@@ -67,17 +67,17 @@ export default function BottomNav() {
   return (
     <nav
       aria-label="Mobile navigation"
-      className="flex md:hidden fixed bottom-0 left-0 right-0 z-50"
+      className="flex flex-col justify-start md:hidden fixed bottom-0 left-0 right-0 z-50"
       style={{
-        /* Design System §16.2 — glass for bottom navigation */
-        background: 'color-mix(in srgb, var(--surface-base) 88%, transparent)',
+        background: 'rgba(18, 18, 18, 0.85)',
         backdropFilter: 'blur(28px) saturate(200%)',
         WebkitBackdropFilter: 'blur(28px) saturate(200%)',
         borderTop: '1px solid rgba(255,255,255,0.1)',
         boxShadow:
           '0 -4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
-        /* Height from --nav-bottom-height + safe-area */
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        /* Explicit height to fix WebKit padding clip bugs */
+        height:
+          'calc(var(--nav-bottom-height, 60px) + env(safe-area-inset-bottom, 0px))',
       }}
     >
       <div

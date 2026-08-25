@@ -20,6 +20,7 @@ import {
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { DataExportService } from './data-export.service.js';
 
@@ -115,7 +116,7 @@ export class UsersController {
 
   /** Update user settings. */
   @Put('me/settings')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async updateSettings(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: UpdateSettingsDto,
@@ -134,7 +135,7 @@ export class UsersController {
     return this.usersService.createIdentitySession(
       user.userId,
       body.returnUrl ||
-        `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/edit`,
+        `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/account`,
     );
   }
 

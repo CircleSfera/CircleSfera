@@ -153,7 +153,7 @@ export default function Pricing() {
 
   const handleTierClick = async (plan: PlatformPlanDto) => {
     if (!isAuthenticated) {
-      navigate('/accounts/emailsignup');
+      navigate('/accounts/signup');
       return;
     }
     setLoadingPlanId(plan.id);
@@ -164,7 +164,7 @@ export default function Pricing() {
     currentUser?.user?.verificationLevel || currentUser?.verificationLevel;
 
   return (
-    <MarketingPage atmosphere>
+    <MarketingPage>
       <div className="mx-auto max-w-6xl px-4 sm:px-5 py-8 sm:py-10 w-full">
         <MarketingPageHeader
           align="center"

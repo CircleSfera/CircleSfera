@@ -106,4 +106,28 @@ export const editsService = {
   async deleteProject(id: string): Promise<void> {
     await apiClient.delete(`/edits/${id}`);
   },
+
+  async startCaptions(
+    projectId: string,
+    clipId: string,
+  ): Promise<{ jobId: string; status: string }> {
+    const { data } = await apiClient.post(`/edits/${projectId}/captions`, {
+      clipId,
+    });
+    return data;
+  },
+
+  async getCaptionsJob(
+    projectId: string,
+    jobId: string,
+  ): Promise<{
+    status: string;
+    segments?: { start: number; end: number; text: string }[];
+    error?: string;
+  }> {
+    const { data } = await apiClient.get(
+      `/edits/${projectId}/captions/${jobId}`,
+    );
+    return data;
+  },
 };

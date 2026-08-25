@@ -160,8 +160,8 @@ export class PaymentsService {
       customer: customerId as string,
       line_items: [{ price: stripePriceId, quantity: 1 }],
       mode: 'subscription',
-      success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/edit?session_id={CHECKOUT_SESSION_ID}&success=true`,
-      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/edit?success=false`,
+      success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/billing?session_id={CHECKOUT_SESSION_ID}&success=true`,
+      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/billing?success=false`,
       metadata: {
         userId,
         planId: plan.id,
@@ -284,7 +284,7 @@ export class PaymentsService {
 
     return this.stripeService.createPortalSession(
       customerId,
-      `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/edit`,
+      `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/billing`,
     );
   }
 

@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Bookmark,
@@ -14,7 +16,7 @@ import {
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { bookmarksApi, followsApi, postsApi } from '../services';
 import { creatorApi } from '../services/creator.service';
 import { monetizationApi } from '../services/monetization.service';
@@ -55,7 +57,6 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
   const canPromote = verificationLevel === 'ELITE';
   const { isMuted, toggleMute, setMuted } = useFrameStore();
   const queryClient = useQueryClient();
-  const { pathname } = useLocation();
 
   const [showPlayAnim, setShowPlayAnim] = useState<'play' | 'pause' | null>(
     null,
@@ -133,10 +134,7 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Scroll on route change
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
+  // Removed: window.scrollTo(0, 0) was causing massive scroll jumps in the entire document.
 
   useEffect(() => {
     if (isActive && videoRef.current) {
@@ -144,9 +142,12 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
       videoRef.current.muted = isMuted;
       videoRef.current.currentTime = 0;
       videoRef.current.play().catch(() => {
-        logger.log('Autoplay blocked');
-        // If autoplay is blocked because of audio, we could force mute it
+        logger.log('Autoplay blocked, falling back to muted');
         setMuted(true);
+        if (videoRef.current) {
+          videoRef.current.muted = true;
+          videoRef.current.play().catch(console.error);
+        }
       });
       lastUpdateRef.current = Date.now();
       lastTimeRef.current = 0;
@@ -276,23 +277,26 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
       clickTimeout = null;
       handleDoubleTap();
     } else {
-      // Single click
+      // Single click (reduced to 180ms to feel more native, like TikTok)
       clickTimeout = setTimeout(() => {
         clickTimeout = null;
         if (!videoRef.current) return;
         if (videoRef.current.paused) {
-          videoRef.current.play();
+          videoRef.current.play().catch(console.error);
           setShowPlayAnim('play');
         } else {
           videoRef.current.pause();
           setShowPlayAnim('pause');
         }
         setTimeout(() => setShowPlayAnim(null), 800);
-      }, 250);
+      }, 180);
     }
   };
 
-  const handleDoubleTap = () => {
+  const handleDoubleTap = async () => {
+    if (Capacitor.isNativePlatform()) {
+      await Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
+    }
     setShowHeartAnim(true);
     setTimeout(() => setShowHeartAnim(false), 1000);
     // Optionally trigger like API if not already liked

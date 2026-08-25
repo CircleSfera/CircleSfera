@@ -42,7 +42,7 @@ export function LegalDocumentLayout({
   };
 
   return (
-    <MarketingPage atmosphere>
+    <MarketingPage>
       <SEO title={seoTitle} />
       <div className="mx-auto max-w-6xl px-4 sm:px-5 py-16 sm:py-24 w-full">
         <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">

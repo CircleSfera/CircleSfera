@@ -12,6 +12,7 @@ import {
   CurrentUser,
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { CreateStoryDto } from './dto/create-story.dto.js';
@@ -28,7 +29,7 @@ export class StoriesController {
 
   /** Create a new 24-hour ephemeral story. */
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   create(
     @CurrentUser() user: CurrentUserData,
     @Body() createStoryDto: CreateStoryDto,
@@ -88,7 +89,7 @@ export class StoriesController {
 
   /** Add or update a reaction on a story. */
   @Post(':id/react')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async react(
     @CurrentUser() user: CurrentUserData,
     @Param('id') id: string,

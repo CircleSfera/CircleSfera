@@ -134,6 +134,7 @@ export default function Profile() {
       const res = await chatApi.createGroup({
         participantIds: [profile.data.user.id],
       });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
       navigate(`/direct/inbox/t/${res.data.id}`);
     } catch (err) {
       console.error(err);

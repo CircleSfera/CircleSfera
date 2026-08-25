@@ -125,7 +125,7 @@ index.html -> src/main.tsx (BrowserRouter, QueryClient, SW registration)
 - **Guards:** `src/components/auth/` — `AuthGuard`, `GuestGuard`, `AdminGuard`,
   `CreatorStudioGuard`.
 - **Routing:** every route is declared in `src/App.tsx`, including legacy redirects
-  (`/post/:id` → `/p/:id`, `/messages` → `/direct/inbox`, `/settings` → `/accounts/edit`). Admin and
+  (`/post/:id` → `/p/:id`, `/messages` → `/direct/inbox`, `/settings` → `/accounts`). Admin and
   Creator are single routes with a `:tab` param driven by `adminNav.ts` / `creatorNav.ts`.
 - **Performance:** `React.lazy` + Vite `manualChunks`, `ProgressiveImage`, `content-visibility`
   on `PostCard`, `IntersectionObserver` infinite scroll (`useInfiniteScroll`), media work offloaded

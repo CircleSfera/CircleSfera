@@ -30,9 +30,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     Sentry.captureException(error, {
       extra: { componentStack: info.componentStack },
     });
-    if (import.meta.env.DEV) {
-      console.error('[ErrorBoundary]', error, info.componentStack);
-    }
+    console.error('[ErrorBoundary]', error, info.componentStack);
   }
 
   handleReset = () => {
@@ -53,7 +51,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             <p className="text-sm text-white/60">
               An unexpected error occurred. Please try refreshing the page.
             </p>
-            {import.meta.env.DEV && this.state.error && (
+            {this.state.error && (
               <pre className="text-left text-xs text-red-400 bg-white/5 p-3 rounded-lg overflow-auto max-h-40">
                 {this.state.error.message}
               </pre>

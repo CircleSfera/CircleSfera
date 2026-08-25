@@ -34,26 +34,24 @@ export default function LocationSubScreen({
   );
 
   return (
-    <div className="absolute inset-0 z-50 bg-black flex flex-col">
+    <div className="absolute inset-0 z-50 bg-surface-base flex flex-col">
       <motion.div
         initial={{ opacity: 0, x: '100%' }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: '100%' }}
         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-        className="w-full h-full bg-black flex flex-col relative"
+        className="w-full h-full bg-surface-base flex flex-col relative"
       >
-        {/* Ambient glow */}
-        <div className="absolute inset-0 bg-radial-[at_50%_0%] from-brand-primary/10 via-transparent to-transparent pointer-events-none" />
-
-        <div className="sticky top-0 z-10 flex items-center px-4 h-14 bg-black border-b border-white/10">
+        <div className="sticky top-0 z-10 flex items-center gap-2 px-2 h-(--nav-top-height,52px) bg-surface-elevated border-b border-white/10 shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="p-2 -ml-2 text-white/90 hover:text-white transition-colors"
+            className="min-h-11 min-w-11 flex items-center justify-center text-white hover:bg-white/8 rounded-xl transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+            aria-label={t('createPost.header.back')}
           >
-            <X size={24} strokeWidth={2} />
+            <X size={22} strokeWidth={2} />
           </button>
-          <h2 className="flex-1 text-center font-bold text-[15px] tracking-tight text-white pr-6">
+          <h2 className="font-bold text-base tracking-tight text-white">
             {t('createPost.location.title')}
           </h2>
         </div>

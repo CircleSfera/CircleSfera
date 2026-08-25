@@ -105,6 +105,11 @@ Source: `admin/admin.controller.ts`
 | GET | `/admin/stories` |
 | DELETE | `/admin/stories/:id` |
 | GET | `/admin/users/:id/detail` |
+| GET | `/admin/users/:id/linked-accounts` |
+| GET | `/admin/users/:id/trust-score` |
+| POST | `/admin/users/:id/bot-label` |
+| DELETE | `/admin/users/:id/bot-label` |
+| GET | `/admin/trust/funnel` |
 | GET | `/admin/analytics/monetization` |
 | GET | `/admin/audio` |
 | POST | `/admin/audio` |
@@ -179,11 +184,14 @@ Source: `auth/auth.controller.ts`
 | POST | `/auth/refresh` |
 | POST | `/auth/logout` |
 | POST | `/auth/verify-email` |
+| POST | `/auth/resend-verification` |
 | POST | `/auth/request-reset` |
 | POST | `/auth/reset-password` |
 | GET | `/auth/sessions` |
 | DELETE | `/auth/sessions/other` |
 | DELETE | `/auth/sessions/:id` |
+
+Register/login accept optional `captchaToken` and `visitorId`. When system setting `turnstile_required` is on, Turnstile must succeed. Write actions (posts, stories, comments, follows/likes create, chat, live, profile/settings updates, uploads) require verified email when `email_verification_required` is on (`EMAIL_NOT_VERIFIED`).
 
 ### `/auth/passkey`
 
@@ -296,6 +304,10 @@ Source: `edits/edits.controller.ts`
 | GET | `/edits/:id` |
 | PUT | `/edits/:id` |
 | DELETE | `/edits/:id` |
+| POST | `/edits/:id/captions` |
+| GET | `/edits/:id/captions/:jobId` |
+
+`POST /edits/:id/captions` queues Whisper transcription for a clip already uploaded in the project state (`clipId`). Throttled (3/hour). Returns `{ jobId, status: 'queued' }`. Poll `GET .../captions/:jobId` for `{ status, segments? }`. Feature flag kill switch: `studio_ai_captions`. Returns 503 when OpenAI is not configured.
 
 ### `/experiments`
 

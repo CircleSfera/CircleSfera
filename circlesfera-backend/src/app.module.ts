@@ -31,6 +31,7 @@ import { ChatModule } from './chat/chat.module.js';
 import { CloseFriendsModule } from './close-friends/close-friends.module.js';
 import { CollectionsModule } from './collections/collections.module.js';
 import { CommentsModule } from './comments/comments.module.js';
+import { AbuseModule } from './common/abuse/abuse.module.js';
 import { RedisCacheModule } from './common/cache/cache.module.js';
 import { CsrfController } from './common/csrf/csrf.controller.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
@@ -93,6 +94,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     EventEmitterModule.forRoot(),
     RedisCacheModule,
     SystemSettingsModule,
+    AbuseModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

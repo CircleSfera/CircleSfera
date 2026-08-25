@@ -68,7 +68,7 @@ export function GuestAppChrome({ showLinks = true }: GuestAppChromeProps) {
             className="h-6 w-auto object-contain"
             aria-hidden
           />
-          <span className="text-sm sm:text-base font-black tracking-tight truncate bg-clip-text text-transparent bg-linear-to-b from-white to-white/70">
+          <span className="brand-wordmark text-sm sm:text-base font-black tracking-tight truncate">
             CircleSfera
           </span>
         </Link>
@@ -101,10 +101,10 @@ export function GuestAppChrome({ showLinks = true }: GuestAppChromeProps) {
           </Link>
 
           <MarketingCTA
-            to="/accounts/emailsignup"
-            variant="white"
+            to="/accounts/signup"
+            variant="primary"
             size="md"
-            className="px-5 h-9 text-[13px] rounded-full font-bold shadow-[0_0_15px_rgba(255,255,255,0.1)] hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all duration-300"
+            className="px-4! h-8! text-[12px] rounded-full font-bold shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40 transition-all duration-300"
           >
             {t('landing.nav.sign_up')}
           </MarketingCTA>

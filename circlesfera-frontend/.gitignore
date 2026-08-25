@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Studio encoder assets (copied by vite.studio-assets on build/dev)
+public/ffmpeg/
+public/fonts/Roboto-Regular.ttf
+public/fonts/Roboto-Bold.ttf
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

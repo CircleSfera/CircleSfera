@@ -15,7 +15,7 @@ export default function LandingPage() {
   const { t } = useTranslation();
 
   return (
-    <MarketingPage atmosphere>
+    <MarketingPage>
       <SEO
         title={t('landing.seo.title')}
         description={t('landing.seo.description')}

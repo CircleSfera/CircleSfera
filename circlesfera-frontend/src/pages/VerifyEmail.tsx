@@ -27,7 +27,7 @@ export default function VerifyEmail() {
         await authApi.verifyEmail(token);
         setStatus('success');
         setMessage(t('auth.verify.success'));
-        setTimeout(() => navigate('/accounts/login'), 3000);
+        setTimeout(() => navigate('/'), 3000);
       } catch (err: unknown) {
         setStatus('error');
         const errorMessage =
@@ -139,7 +139,7 @@ export default function VerifyEmail() {
                   </div>
 
                   <Link
-                    to="/accounts/emailsignup"
+                    to="/accounts/signup"
                     className="w-full block bg-white text-black py-4 rounded-lg font-black text-[15px] tracking-wide uppercase hover:bg-zinc-200 active:scale-[0.98] transition-all shadow-[0_8px_30px_rgb(255,255,255,0.1)]"
                   >
                     Return to Registration

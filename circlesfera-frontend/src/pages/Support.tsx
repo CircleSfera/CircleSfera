@@ -2,6 +2,7 @@ import axios from 'axios';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import SEO from '../components/common/SEO';
 import {
   MarketingCTA,
   MarketingPage,
@@ -52,13 +53,25 @@ export const Support = () => {
   };
 
   return (
-    <MarketingPage atmosphere>
-      <div className="mx-auto max-w-2xl px-4 sm:px-5 py-10 sm:py-14 w-full">
+    <MarketingPage>
+      <SEO
+        title={t('supportPage.seo_title')}
+        description={t('supportPage.seo_desc')}
+      />
+
+      <div className="mx-auto w-full max-w-2xl px-4 sm:px-5 pb-10 sm:pb-12">
         <MarketingPageHeader
-          className="mb-8 sm:mb-10"
-          eyebrow={t('supportPage.badge', 'Support')}
+          className="pt-8 sm:pt-10 pb-6 sm:pb-8"
+          eyebrow={t('supportPage.badge')}
           title={t('supportPage.title')}
           description={t('supportPage.description')}
+        />
+
+        <MarketingPageHeader
+          className="pb-5"
+          as="h2"
+          title={t('supportPage.write_title')}
+          description={t('supportPage.write_desc')}
         />
 
         <div className="glass-panel rounded-xl p-5 sm:p-7">
@@ -127,7 +140,7 @@ export const Support = () => {
               {!userEmail && (
                 <p className="text-xs text-white/40 text-center">
                   <Link
-                    to="/accounts/emailsignup"
+                    to="/accounts/signup"
                     className="text-brand-primary hover:underline"
                   >
                     {t('common.footer.signup')}

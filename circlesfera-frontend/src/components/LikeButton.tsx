@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
@@ -54,8 +56,10 @@ export default function LikeButton({
     },
   });
 
-  const handleLike = () => {
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+  const handleLike = async () => {
+    if (Capacitor.isNativePlatform()) {
+      await Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+    } else if (typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate(50);
     }
     likeMutation.mutate(postId);

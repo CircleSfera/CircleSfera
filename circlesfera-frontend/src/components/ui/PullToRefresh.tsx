@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import {
   motion,
   useAnimation,
@@ -58,7 +60,9 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
         // Animate to loading state position
         controls.start({ y: 50 });
 
-        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        if (Capacitor.isNativePlatform()) {
+          Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
+        } else if (typeof navigator !== 'undefined' && navigator.vibrate) {
           navigator.vibrate(50);
         }
 

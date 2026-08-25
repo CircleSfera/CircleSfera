@@ -3,7 +3,10 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { $Enums } from '@prisma/client';
 import { Queue } from 'bullmq';
+import { assertEmailVerifiedForWrite } from '../common/abuse/assert-email-verified.js';
+import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 
 const NotificationType = $Enums.NotificationType;
 
@@ -17,6 +20,9 @@ export class LikesService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
     @InjectQueue('analytics-processing') private readonly analyticsQueue: Queue,
+    @Inject(SystemSettingsService)
+    private readonly systemSettings: SystemSettingsService,
+    @Inject(TurnstileService) private readonly turnstile: TurnstileService,
   ) {}
 
   /**
@@ -50,6 +56,12 @@ export class LikesService {
         .catch((err) => console.error('Failed to enqueue analytics', err));
       return { liked: false };
     } else {
+      await assertEmailVerifiedForWrite(
+        this.prisma,
+        this.systemSettings,
+        this.turnstile,
+        userId,
+      );
       // Like
       await this.prisma.like.create({
         data: {

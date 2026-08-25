@@ -14,7 +14,7 @@ export default function FeaturesPage() {
   const { t } = useTranslation();
 
   return (
-    <MarketingPage atmosphere>
+    <MarketingPage>
       <SEO
         title={t('landing.pages.features.seo_title')}
         description={t('landing.pages.features.seo_desc')}
@@ -27,7 +27,7 @@ export default function FeaturesPage() {
           title={t('landing.features.title')}
           description={t('landing.features.subtitle')}
           actions={
-            <MarketingCTA to="/accounts/emailsignup" variant="primary">
+            <MarketingCTA to="/accounts/signup" variant="primary">
               {t('landing.hero.get_started')}
             </MarketingCTA>
           }

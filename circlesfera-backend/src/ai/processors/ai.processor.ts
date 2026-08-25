@@ -44,8 +44,45 @@ export class AIProcessor extends WorkerHost {
         return this.handleGenerateAltText(
           job as Job<{ postId: string }, any, string>,
         );
+      case 'transcribe-edit-clip':
+        return this.handleTranscribeEditClip(
+          job as Job<
+            {
+              userId: string;
+              editId: string;
+              clipId: string;
+              mediaUrl: string;
+            },
+            any,
+            string
+          >,
+        );
       default:
         this.logger.warn(`Unknown job name: ${job.name}`);
+    }
+  }
+
+  private async handleTranscribeEditClip(
+    job: Job<
+      {
+        userId: string;
+        editId: string;
+        clipId: string;
+        mediaUrl: string;
+      },
+      any,
+      string
+    >,
+  ) {
+    const { mediaUrl } = job.data;
+    this.logger.log(`Transcribing edit clip job ${job.id}`);
+    try {
+      const segments = await this.aiService.transcribeAudio(mediaUrl);
+      return { segments };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Transcription failed for job ${job.id}: ${message}`);
+      throw error;
     }
   }
 

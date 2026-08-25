@@ -2,10 +2,11 @@ import { ApiErrorCode } from '@circlesfera/shared';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { useMutation } from '@tanstack/react-query';
 import { AlertOctagon, Fingerprint } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
+import TurnstileWidget from '../components/auth/TurnstileWidget';
 import { Button } from '../components/ui';
 import LayoutWrapper from '../layouts/LayoutWrapper';
 import { authApi, passkeyApi, profileApi } from '../services';
@@ -13,6 +14,7 @@ import { apiClient } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import type { LoginDto } from '../types';
 import { logger } from '../utils/logger';
+import { getVisitorId } from '../utils/visitorId';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -23,10 +25,16 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
 
   // Appeal state
   const [appealToken, setAppealToken] = useState<string | null>(null);
   const [appealReason, setAppealReason] = useState('');
+
+  const onCaptchaToken = useCallback((token: string | null) => {
+    setCaptchaToken(token);
+  }, []);
 
   const appealMutation = useMutation({
     mutationFn: async () => {
@@ -53,7 +61,14 @@ export default function Login() {
   });
 
   const loginMutation = useMutation({
-    mutationFn: (data: LoginDto) => authApi.login(data),
+    mutationFn: async (data: LoginDto) => {
+      const visitorId = (await getVisitorId()) ?? undefined;
+      return authApi.login({
+        ...data,
+        captchaToken: captchaToken || undefined,
+        visitorId,
+      });
+    },
     onSuccess: async () => {
       handleLoginSuccess();
     },
@@ -113,6 +128,12 @@ export default function Login() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (siteKey && !captchaToken) {
+      setError(
+        t('auth.captcha_required', 'Please complete the security check.'),
+      );
+      return;
+    }
     loginMutation.mutate({ identifier, password });
   };
 
@@ -139,7 +160,7 @@ export default function Login() {
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-primary/20 rounded-full blur-3xl group-hover:bg-brand-primary/30 transition-colors duration-700"></div>
           <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-brand-secondary/20 rounded-full blur-3xl group-hover:bg-brand-secondary/30 transition-colors duration-700"></div>
 
-          <h1 className="text-xl md:text-2xl font-black text-center mb-2 tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue animate-gradient-x bg-size-[200%_auto]">
+          <h1 className="brand-wordmark text-xl md:text-2xl font-black text-center mb-2 tracking-tighter">
             {t('auth.login.title')}
           </h1>
           <p className="text-gray-500 text-center font-bold mb-6 tracking-wide uppercase text-xs">
@@ -164,6 +185,7 @@ export default function Login() {
                 style={{ height: 'var(--input-height-standard, 48px)' }}
                 placeholder={t('auth.login.identifier_placeholder')}
                 autoComplete="username"
+                autoCapitalize="none"
               />
             </div>
 
@@ -309,6 +331,7 @@ export default function Login() {
               </div>
             ) : (
               <div className="space-y-3 pt-2">
+                <TurnstileWidget onToken={onCaptchaToken} />
                 <Button
                   type="submit"
                   data-testid="login-submit-button"
@@ -349,7 +372,7 @@ export default function Login() {
           <p className="mt-10 text-center text-gray-600 text-sm font-medium">
             {t('auth.login.no_account')}{' '}
             <Link
-              to="/accounts/emailsignup"
+              to="/accounts/signup"
               className="text-white hover:text-brand-primary font-bold transition-colors ml-1"
             >
               {t('auth.login.sign_up_link')}

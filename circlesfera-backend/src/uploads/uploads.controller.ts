@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { UploadedFile } from './interfaces/uploaded-file.interface.js';
 import { UploadsService } from './uploads.service.js';
@@ -24,7 +25,7 @@ export class UploadsController {
 
   /** Upload a file (image or video, max 50 MB). Returns the public URL and type. */
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @Throttle({ short: { limit: 5, ttl: 60000 } })
   @UseInterceptors(
     FileInterceptor('file', {

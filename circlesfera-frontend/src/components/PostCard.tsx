@@ -123,8 +123,57 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
                     {t('post.recommendation.why', 'Why?')}
                   </button>
                   {showWhy && (
-                    <div className="mt-1 pl-2 text-gray-600">
-                      {post.recommendationSignals.join(', ')}
+                    <div className="mt-1.5 pl-2 space-y-1.5 border-l-2 border-white/10 ml-1">
+                      {post.recommendationSignals.map((signal) => {
+                        let explanation = '';
+                        switch (signal) {
+                          case 'ranked_for_you':
+                            explanation = t(
+                              'post.recommendation.signals_desc.ranked_for_you',
+                              'Nuestro algoritmo ha clasificado este contenido como altamente relevante para ti basándose en tus intereses y actividad.',
+                            );
+                            break;
+                          case 'popular':
+                            explanation = t(
+                              'post.recommendation.signals_desc.popular',
+                              'Esta publicación está recibiendo mucha interacción en la plataforma en este momento.',
+                            );
+                            break;
+                          case 'network':
+                          case 'popular_in_network':
+                            explanation = t(
+                              'post.recommendation.signals_desc.network',
+                              'Personas de tu red o a las que sigues están interactuando con esta publicación.',
+                            );
+                            break;
+                          case 'close_friend':
+                            explanation = t(
+                              'post.recommendation.signals_desc.close_friend',
+                              'El autor de esta publicación está en tu lista de Mejores Amigos.',
+                            );
+                            break;
+                          default: {
+                            const fallbackName = t(
+                              `post.recommendation.signals.${signal}`,
+                              signal.replace(/_/g, ' '),
+                            );
+                            explanation = t(
+                              `post.recommendation.signals_desc.generic`,
+                              `Te recomendamos esto por: ${fallbackName}`,
+                            );
+                            break;
+                          }
+                        }
+
+                        return (
+                          <p
+                            key={signal}
+                            className="text-[11px] text-gray-500 leading-relaxed"
+                          >
+                            {explanation}
+                          </p>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

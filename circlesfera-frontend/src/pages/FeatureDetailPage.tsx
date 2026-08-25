@@ -36,7 +36,7 @@ export function isFeatureSlug(value: string): value is FeatureSlug {
 }
 
 /**
- * Guest deep-dive under /features/:slug — preview + copy.
+ * Guest deep-dive under /features/:slug — copy, then product mock.
  * Authenticated users are sent to the real product surface.
  */
 export default function FeatureDetailPage() {
@@ -55,7 +55,7 @@ export default function FeatureDetailPage() {
   const others = FEATURE_SLUGS.filter((key) => key !== slug);
 
   return (
-    <MarketingPage atmosphere>
+    <MarketingPage>
       <SEO
         title={t(`explore.features.${slug}.seo_title`)}
         description={t(`explore.features.${slug}.seo_desc`)}
@@ -70,58 +70,62 @@ export default function FeatureDetailPage() {
           {t('explore.features.common.back')}
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] gap-6 lg:gap-10 items-start mb-8">
-          <div>
-            <MarketingPageHeader
-              className="mb-5"
-              eyebrow={t('landing.features.badge')}
-              title={t(`explore.features.${slug}.title`)}
-              description={t(`explore.features.${slug}.lead`)}
-              actions={
-                <MarketingCTA to="/accounts/emailsignup" variant="primary">
-                  {t('landing.hero.get_started')}
-                </MarketingCTA>
-              }
-            />
-          </div>
-          <div className="w-full max-w-sm mx-auto lg:max-w-none">
-            <GuestSurfaceMedia surface={chapterToSurface(slug)} />
-          </div>
-        </div>
+        <MarketingPageHeader
+          className="mb-6 sm:mb-8"
+          eyebrow={t('landing.features.badge')}
+          title={t(`explore.features.${slug}.title`)}
+          description={t(`explore.features.${slug}.lead`)}
+          actions={
+            <MarketingCTA to="/accounts/signup" variant="primary">
+              {t('landing.hero.get_started')}
+            </MarketingCTA>
+          }
+        />
 
-        <ol className="grid grid-cols-1 gap-3 sm:gap-4 mb-8 max-w-3xl">
+        <ol className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {POINT_KEYS.map((point, index) => (
-            <li key={point} className="glass-panel rounded-xl p-4 sm:p-5">
-              <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-primary mb-2 tabular-nums">
+            <li
+              key={point}
+              className="rounded-2xl border border-white/10 bg-white/5 p-4"
+            >
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-primary mb-2 tabular-nums">
                 {String(index + 1).padStart(2, '0')}
               </p>
-              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight mb-1.5">
+              <h2 className="text-base font-bold text-white tracking-tight mb-1.5">
                 {t(`explore.features.${slug}.points.${point}.title`)}
               </h2>
-              <p className="text-sm text-white/55 leading-relaxed max-w-2xl">
+              <p className="text-sm text-white/55 leading-relaxed">
                 {t(`explore.features.${slug}.points.${point}.body`)}
               </p>
             </li>
           ))}
         </ol>
 
+        <div className="relative mx-auto flex justify-center mt-32 sm:mt-48 lg:mt-64 pb-16 sm:pb-20">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-75 h-75 bg-brand-primary/20 blur-[100px] rounded-full pointer-events-none" />
+          <GuestSurfaceMedia
+            surface={chapterToSurface(slug)}
+            className="relative z-10 w-full shadow-[0_-20px_80px_rgba(var(--brand-primary-rgb),0.15)] ring-4 ring-white/5"
+          />
+        </div>
+
         <p className="text-sm text-white/55 leading-relaxed mb-8 max-w-2xl">
           {t(`explore.features.${slug}.closing`)}
         </p>
 
-        <section aria-labelledby="features-more-heading" className="max-w-3xl">
+        <section aria-labelledby="features-more-heading">
           <h2
             id="features-more-heading"
             className="text-base font-bold text-white mb-3"
           >
             {t('explore.features.common.more_title')}
           </h2>
-          <ul className="grid grid-cols-1 gap-2">
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {others.map((key) => (
               <li key={key}>
                 <Link
                   to={`/features/${key}`}
-                  className="group glass-panel rounded-xl flex items-center justify-between gap-4 px-4 py-3.5 min-h-12 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 hover:border-brand-primary/30 transition-colors"
+                  className="group rounded-xl border border-white/10 bg-white/5 flex items-center justify-between gap-4 px-4 py-3.5 min-h-12 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 hover:border-white/20 transition-colors"
                 >
                   <span className="text-sm font-semibold text-white/80 group-hover:text-white">
                     {t(`landing.chapters.items.${key}.title`)}

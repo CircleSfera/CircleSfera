@@ -96,6 +96,7 @@ export interface ProfileWithUser extends IProfile {
   inviteCode?: string;
   referredById?: string | null;
   identityVerifiedAt?: Date | string | null;
+  emailConfirmed?: boolean;
 }
 
 export interface PostMediaItem {
@@ -150,6 +151,7 @@ export type CreatePostDto = {
   isPremium?: boolean;
   priceCents?: number;
   scheduledAt?: string | Date;
+  contentRating?: 'GENERAL' | 'MATURE';
 };
 
 export type CreateStoryDto = {

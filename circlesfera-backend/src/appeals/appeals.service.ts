@@ -115,6 +115,12 @@ export class AppealsService {
                 : 'ACTIVE',
             type: 'ACCOUNT',
           };
+        } else if (appeal.targetType === 'BOT_LABEL') {
+          targetPreview = {
+            text: 'Possible bot label',
+            moderationStatus: 'LABELED',
+            type: 'ACCOUNT',
+          };
         }
 
         return { ...appeal, targetPreview };
@@ -164,6 +170,15 @@ export class AppealsService {
             data: {
               isActive: true,
               suspendedUntil: null,
+            } satisfies Prisma.UserUpdateInput,
+          });
+        }
+        if (appeal.targetType === 'BOT_LABEL') {
+          await tx.user.update({
+            where: { id: appeal.userId },
+            data: {
+              botLabeledAt: null,
+              botLabelReason: null,
             } satisfies Prisma.UserUpdateInput,
           });
         }

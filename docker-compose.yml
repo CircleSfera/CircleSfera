@@ -49,7 +49,7 @@ services:
     command: npm run dev
     # Backend port 3005 remains reachable for direct API work but unified via proxy
     ports:
-      - '3005:3000'
+      - '3000:3000'
     env_file: .env
     environment:
       - PORT=3000

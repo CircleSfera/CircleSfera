@@ -92,7 +92,7 @@ export default function Frames() {
       },
       {
         root: containerRef.current,
-        threshold: 0.6, // Trigger when 60% of the frame is visible
+        threshold: 0.5, // Trigger when exactly 50% of the frame is visible (more reliable for edge-to-edge scrolls)
       },
     );
 
@@ -128,6 +128,21 @@ export default function Frames() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeFrameIndex, frames.length]);
+
+  // Bloqueo de scroll global para replicar la app nativa
+  useEffect(() => {
+    // Al montar: ocultamos overflow del body y html
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+
+    return () => {
+      // Al desmontar: restauramos
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.overscrollBehavior = '';
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -187,12 +202,11 @@ export default function Frames() {
       {/* Mobile: Edge-to-edge, Desktop: Center-aligned player */}
       <div
         ref={containerRef}
-        className="h-[calc(100dvh-var(--nav-bottom-height,60px)-env(safe-area-inset-bottom,0px))] w-full md:h-[calc(100dvh-40px)] md:w-112.5 md:max-w-full md:rounded-[30px] mx-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide bg-black md:bg-black/20 md:backdrop-blur-3xl relative z-10 md:shadow-[0_0_50px_rgba(0,0,0,0.5)] md:border md:border-white/10"
-        style={{ scrollBehavior: 'smooth' }}
+        className="h-[calc(100dvh-var(--nav-bottom-height,60px)-env(safe-area-inset-bottom,0px))] w-full md:h-[calc(100dvh-40px)] md:w-112.5 md:max-w-full md:rounded-[30px] mx-auto overflow-y-scroll overscroll-y-none snap-y snap-mandatory scrollbar-hide bg-black md:bg-black/20 md:backdrop-blur-3xl relative z-10 md:shadow-[0_0_50px_rgba(0,0,0,0.5)] md:border md:border-white/10"
       >
         {frames.map((frame, index) => {
-          // Virtualization: Only render the active frame and its immediate neighbors
-          const isNear = Math.abs(activeFrameIndex - index) <= 1;
+          // Virtualization: Ampliada a ventana de 2 vecinos para precargar suavemente sin interrumpir el swipe
+          const isNear = Math.abs(activeFrameIndex - index) <= 2;
           const isNext = index === activeFrameIndex + 1;
 
           return (
@@ -202,7 +216,7 @@ export default function Frames() {
                 itemRefs.current[index] = el;
               }}
               data-index={index}
-              className="h-[calc(100dvh-var(--nav-bottom-height,60px)-env(safe-area-inset-bottom,0px))] md:h-full w-full snap-start relative bg-black md:bg-transparent flex flex-col justify-center"
+              className="h-full w-full snap-start snap-always relative bg-black md:bg-transparent flex flex-col justify-center"
             >
               {isNear ? (
                 <FrameItem

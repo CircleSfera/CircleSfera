@@ -1,10 +1,12 @@
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
+import { copyStudioMediaAssets } from './vite.studio-assets';
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    copyStudioMediaAssets(),
     react(),
     VitePWA({
       strategies: 'injectManifest',
@@ -41,10 +43,12 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Keep FFmpeg wasm out of the SW precache (large binary)
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+        globIgnores: ['**/ffmpeg/**', '**/fonts/Roboto-*.ttf'],
       },
       injectManifest: {
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        maximumFileSizeToCacheInBytes: 50 * 1024 * 1024,
       },
     }),
   ],

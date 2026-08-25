@@ -8,10 +8,11 @@ export const FAQ_KEYS = [
   'control',
   'mobile',
   'plans',
+  'support',
 ] as const;
 
 /**
- * Accordion FAQ — shared by landing section and /faq page.
+ * Accordion FAQ — used on /faq.
  */
 export function ProductFaqList() {
   const { t } = useTranslation();

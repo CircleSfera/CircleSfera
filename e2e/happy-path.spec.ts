@@ -31,7 +31,7 @@ test.describe('Happy Path', () => {
     await page.goto('/');
 
     // Directly navigate to the registration page to ensure we are there
-    await page.goto('/accounts/emailsignup');
+    await page.goto('/accounts/signup');
 
     const randomUser = `user_${Math.floor(Math.random() * 10000)}`;
     const email = `${randomUser}@example.com`;
@@ -124,8 +124,12 @@ test.describe('Happy Path', () => {
     await expect(page.getByText(captionText)).toBeVisible({ timeout: 20000 });
 
     // 7. Profile Editing
-    await page.goto('/accounts/edit');
-    await expect(page.getByText('Settings')).toBeVisible({ timeout: 15000 });
+    await page.goto('/accounts/profile');
+    await expect(
+      page.getByRole('heading', {
+        name: /Profile|Perfil|Your account|Tu cuenta/i,
+      }),
+    ).toBeVisible({ timeout: 15000 });
 
     // Wait for bio to be hydrated
     const bioField = page.locator('#bio');

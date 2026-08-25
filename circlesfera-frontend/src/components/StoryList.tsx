@@ -183,27 +183,31 @@ export default function StoryList() {
                 style={{ width: 52, height: 52 }}
               >
                 {profile?.avatar ? (
-                  <div className="w-full h-full rounded-full border border-white/12 overflow-hidden flex items-center justify-center">
-                    <UserAvatar
-                      src={profile.avatar}
-                      thumbnailUrl={profile.thumbnailUrl}
-                      standardUrl={profile.standardUrl}
-                      alt="Tu story"
-                      size="md"
-                      verificationLevel={
-                        profile?.verificationLevel as VerificationLevel
-                      }
-                    />
+                  <>
+                    <div className="w-full h-full rounded-full overflow-hidden">
+                      <UserAvatar
+                        src={profile.avatar}
+                        thumbnailUrl={profile.thumbnailUrl}
+                        standardUrl={profile.standardUrl}
+                        alt="Tu story"
+                        size="full"
+                        hasStory={false}
+                      />
+                    </div>
                     <div
-                      className="absolute bottom-0 right-0 w-5 h-5 rounded-full flex items-center justify-center"
+                      className="absolute bottom-0 right-0 w-4.5 h-4.5 rounded-full flex items-center justify-center z-10"
                       style={{
-                        background: '#3b82f6',
-                        boxShadow: '0 2px 6px rgba(59,130,246,0.5)',
+                        background: '#0095f6', // Instagram blue
+                        border: '2px solid #000000', // Cutout effect
                       }}
                     >
-                      <Plus size={12} className="text-white" strokeWidth={3} />
+                      <Plus
+                        size={12}
+                        className="text-white"
+                        strokeWidth={3.5}
+                      />
                     </div>
-                  </div>
+                  </>
                 ) : (
                   <div
                     className="w-full h-full rounded-full flex items-center justify-center group-hover:border-brand-primary transition-colors"

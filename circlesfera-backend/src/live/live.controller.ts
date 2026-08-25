@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { InviteCoHostDto } from './dto/invite-cohost.dto.js';
@@ -31,6 +32,7 @@ export class LiveController {
   constructor(private readonly liveService: LiveService) {}
 
   @Post('start')
+  @UseGuards(EmailVerifiedGuard)
   startStream(@Req() req: RequestWithUser, @Body() dto: StartStreamDto) {
     return this.liveService.startStream(req.user.userId, dto.title);
   }

@@ -38,6 +38,9 @@ interface SubScreenRouterProps {
   setHideLikes: (val: boolean) => void;
   turnOffComments: boolean;
   setTurnOffComments: (val: boolean) => void;
+  isSensitive: boolean;
+  setIsSensitive: (val: boolean) => void;
+  showSensitiveToggle: boolean;
   setLocation: (loc: string) => void;
   location: string;
   onGenerateAltText: (index: number) => Promise<void>;
@@ -64,6 +67,9 @@ export default function SubScreenRouter({
   setHideLikes,
   turnOffComments,
   setTurnOffComments,
+  isSensitive,
+  setIsSensitive,
+  showSensitiveToggle,
   setLocation,
   location,
   onGenerateAltText,
@@ -109,6 +115,9 @@ export default function SubScreenRouter({
         setHideLikes={setHideLikes}
         turnOffComments={turnOffComments}
         setTurnOffComments={setTurnOffComments}
+        isSensitive={isSensitive}
+        setIsSensitive={setIsSensitive}
+        showSensitiveToggle={showSensitiveToggle}
         scheduledAt={scheduledAt}
         setScheduledAt={setScheduledAt || (() => undefined)}
         onClose={() => setSubScreen('none')}

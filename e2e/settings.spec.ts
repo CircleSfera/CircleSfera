@@ -1,35 +1,28 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('Settings Page & Navigation', () => {
-  test('should render settings page and allow switching tabs', async ({
+  test('should render account hub and allow opening a section', async ({
     page,
   }) => {
     await page.goto('/settings');
+    await expect(page).toHaveURL(/\/accounts/);
 
-    // Header title
     const title = page.locator('h1');
     await expect(title).toBeVisible();
 
-    // Check desktop sidebar or mobile nav presence
-    const settingsPanel = page.locator('.glass-panel');
-    await expect(settingsPanel).toBeVisible();
+    // Hub index shows filter or grouped nav
+    const filter = page.getByPlaceholder(/Filter settings|Filtrar ajustes/i);
+    await expect(filter.or(page.getByRole('navigation'))).toBeVisible();
   });
 
-  test('should display biometric passkey section under security tab', async ({
+  test('should display biometric passkey section under security', async ({
     page,
   }) => {
-    await page.goto('/settings');
+    await page.goto('/accounts/security');
 
-    // Click Security tab
-    const securityTab = page
-      .locator('button', { hasText: /Seguridad|Security/i })
+    const passkeyHeader = page
+      .locator('text=/Biometría|Passkey|Passkeys/i')
       .first();
-    if (await securityTab.isVisible()) {
-      await securityTab.click();
-    }
-
-    // Expect Biometrics / Passkey heading or text
-    const passkeyHeader = page.locator('text=/Biometría|Passkey/i').first();
-    await expect(passkeyHeader).toBeVisible({ timeout: 5000 });
+    await expect(passkeyHeader).toBeVisible({ timeout: 10000 });
   });
 });

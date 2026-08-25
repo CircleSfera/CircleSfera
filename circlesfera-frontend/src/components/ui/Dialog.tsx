@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 export interface DialogProps {
@@ -10,6 +11,15 @@ export interface DialogProps {
   className?: string;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
 }
+
+/** Same brand wash as BrandAmbientBackground + dim — keeps Dialog in sync with Home / Account Center. */
+const DIALOG_OVERLAY_BACKGROUND = `
+  linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)),
+  radial-gradient(circle at 12% 12%, rgba(255, 87, 87, 0.10) 0%, transparent 50%),
+  radial-gradient(circle at 88% 88%, rgba(140, 82, 255, 0.16) 0%, transparent 55%),
+  linear-gradient(135deg, rgba(255, 87, 87, 0.06) 0%, rgba(140, 82, 255, 0.12) 100%),
+  var(--surface-base)
+`;
 
 export function Dialog({
   isOpen,
@@ -50,18 +60,19 @@ export function Dialog({
     full: 'max-w-[95%]',
   };
 
-  return (
+  return createPortal(
     // biome-ignore lint/a11y/noStaticElementInteractions: Backdrop click is mouse-only, keyboard handled globally via Escape
     <div
       ref={overlayRef}
       onMouseDown={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200"
+      style={{ background: DIALOG_OVERLAY_BACKGROUND }}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'dialog-title' : undefined}
-        className={`w-full ${maxWidthClasses[maxWidth]} relative bg-surface-elevated border border-white/10 rounded-xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 ${className}`}
+        className={`w-full ${maxWidthClasses[maxWidth]} relative modal-glass rounded-xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 ${className}`}
       >
         {title && (
           <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
@@ -93,6 +104,7 @@ export function Dialog({
         )}
         <div className="p-4 overflow-y-auto custom-scrollbar">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

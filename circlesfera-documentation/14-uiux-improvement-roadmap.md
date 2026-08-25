@@ -240,7 +240,7 @@ Benchmarking allowed only as **principles** (content-first, predictable structur
 | 3.1 | Settings | Monolithic page (~1.6k lines); high cognitive load | Progressive disclosure; section density; plan component split in implementation | `pages/Settings.tsx`, `components/settings/*` |
 | 3.2 | Creator Studio | Oversized empty states; KPI chrome weight | Dense empties; compact KPIs; token-aligned shell | `Creator.tsx`, `creator/*`, `CreatorShell.tsx` |
 | 3.3 | Monetization / Pricing | CTA hierarchy noise | Clear primary CTA; no in-app payout initiation | `payments/Pricing.tsx`, `monetization/*` |
-| 3.4 | Create Post / Edits | Overlay and control density | Dialog where overlays exist; denser control chrome | `CreatePostModal.tsx`, `create-post/*`, `EditsStudio.tsx`, `studio/*` |
+| 3.4 | Create Post / Edits | Overlay and control density | Dialog where overlays exist; denser control chrome. **EditsStudio**: mobile-first vertical shell (preview → timeline → tool dock), full-screen immersive chrome (no app Sidebar), AI captions via Whisper, draft media persistence, multi-layer preview | `CreatePostModal.tsx`, `create-post/*`, `EditsStudio.tsx`, `studio/*` |
 
 ---
 
@@ -273,7 +273,7 @@ Benchmarking allowed only as **principles** (content-first, predictable structur
 | Chat | `/direct/inbox` | 2 |
 | Stories / Frames | viewer, `/frames` | 2 |
 | Explore / Activity / Saved | `/explore`, `/activity`, `/saved` | 2 |
-| Settings | `/accounts/edit` | 3 |
+| Settings | `/accounts`, `/accounts/:section` | 3 |
 | Creator Studio | `/creator/:tab` | 3 |
 | Pricing / monetization UI | `/pricing`, settings/creator tabs | 3 |
 | Create / Edits | `/create`, `/edits` | 3 |

@@ -8,6 +8,7 @@ import {
 } from 'react-router-dom';
 import { adminTabPath, getAdminHomeTab } from './components/admin/adminNav';
 import AdminGuard from './components/auth/AdminGuard';
+import { AppLockScreen } from './components/auth/AppLockScreen';
 import AuthGuard from './components/auth/AuthGuard';
 import CreatorStudioGuard from './components/auth/CreatorStudioGuard';
 import GuestGuard from './components/auth/GuestGuard';
@@ -18,6 +19,8 @@ import ScrollToTop from './components/common/ScrollToTop';
 import CreateBottomSheet from './components/modals/CreateBottomSheet';
 import { GlobalCallContainer } from './components/navigation/GlobalCallContainer';
 import { useGlobalSocket } from './hooks/useGlobalSocket';
+import { useNativeApp } from './hooks/useNativeApp';
+import { usePushNotifications } from './hooks/usePushNotifications';
 import LayoutWrapper from './layouts/LayoutWrapper';
 // Page routes
 import CommunityGuidelines from './pages/CommunityGuidelines';
@@ -89,6 +92,17 @@ function CreatorRootRedirect() {
   return (
     <Navigate
       to={`/creator/overview${location.search}${location.hash}`}
+      replace
+    />
+  );
+}
+
+/** Legacy register URL — canonical path is /accounts/signup. */
+function SignupLegacyRedirect() {
+  const location = useLocation();
+  return (
+    <Navigate
+      to={`/accounts/signup${location.search}${location.hash}`}
       replace
     />
   );
@@ -174,6 +188,8 @@ function App() {
   const adminPanel = isAdminPanelHost();
 
   useGlobalSocket();
+  usePushNotifications();
+  useNativeApp();
 
   useEffect(() => {
     if (!adminPanel) {
@@ -207,6 +223,7 @@ function App() {
       <ScrollToTop />
       <GlobalCallContainer />
       <CookieConsent />
+      <AppLockScreen />
 
       <CreateBottomSheet />
       <Suspense
@@ -227,12 +244,16 @@ function App() {
             }
           />
           <Route
-            path="/accounts/emailsignup"
+            path="/accounts/signup"
             element={
               <GuestGuard>
                 <Register />
               </GuestGuard>
             }
+          />
+          <Route
+            path="/accounts/emailsignup"
+            element={<SignupLegacyRedirect />}
           />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -371,19 +392,26 @@ function App() {
             element={<Navigate to="/direct/inbox/t/:id" replace />}
           />
 
-          {/* Settings */}
+          {/* Account hub — reserved auth paths declared above */}
           <Route
-            path="/accounts/edit"
+            path="/accounts"
             element={
               <AuthGuard>
                 <Settings />
               </AuthGuard>
             }
           />
-          {/* Keep old route for compatibility */}
+          <Route
+            path="/accounts/:section"
+            element={
+              <AuthGuard>
+                <Settings />
+              </AuthGuard>
+            }
+          />
           <Route
             path="/settings"
-            element={<Navigate to="/accounts/edit" replace />}
+            element={<Navigate to="/accounts" replace />}
           />
 
           {/* Pricing & Subscriptions - Public for Stripe Compliance */}

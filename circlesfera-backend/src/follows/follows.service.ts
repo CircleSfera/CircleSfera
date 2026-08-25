@@ -7,8 +7,11 @@ import {
   type Profile,
   type User,
 } from '@prisma/client';
+import { assertEmailVerifiedForWrite } from '../common/abuse/assert-email-verified.js';
+import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 
 type NotificationType = $Enums.NotificationType;
 const NotificationType = $Enums.NotificationType;
@@ -27,6 +30,9 @@ export class FollowsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    @Inject(SystemSettingsService)
+    private readonly systemSettings: SystemSettingsService,
+    @Inject(TurnstileService) private readonly turnstile: TurnstileService,
   ) {}
 
   /**
@@ -86,6 +92,12 @@ export class FollowsService {
       await this.prisma.follow.delete({ where: { id: existingFollow.id } });
       return { following: false, status: 'NONE' };
     } else {
+      await assertEmailVerifiedForWrite(
+        this.prisma,
+        this.systemSettings,
+        this.turnstile,
+        followerId,
+      );
       // Follow
       // Check privacy level from settings
       const targetUser = await this.prisma.user.findUnique({

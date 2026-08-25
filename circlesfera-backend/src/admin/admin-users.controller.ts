@@ -225,4 +225,41 @@ export class AdminUsersController {
   async getUserDetail(@Param('id') id: string) {
     return this.adminUsersService.getUserDetail(id);
   }
+
+  @RequireStaffPermissions('users.read')
+  @Get('users/:id/linked-accounts')
+  async getLinkedAccounts(@Param('id') id: string) {
+    return this.adminUsersService.getLinkedAccounts(id);
+  }
+
+  @RequireStaffPermissions('users.read')
+  @Get('users/:id/trust-score')
+  async getTrustScore(@Param('id') id: string) {
+    return this.adminUsersService.getTrustScore(id);
+  }
+
+  @RequireStaffPermissions('users.ban')
+  @Post('users/:id/bot-label')
+  async applyBotLabel(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminUsersService.applyBotLabel(admin.adminId, id, reason);
+  }
+
+  @RequireStaffPermissions('users.ban')
+  @Delete('users/:id/bot-label')
+  async clearBotLabel(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminUsersService.clearBotLabel(admin.adminId, id);
+  }
+
+  @RequireStaffPermissions('users.read')
+  @Get('trust/funnel')
+  async getSignupFunnel() {
+    return this.adminUsersService.getSignupFunnelStats();
+  }
 }

@@ -375,16 +375,14 @@ export class FeedService {
   }
 
   /**
-   * Chronological feed from Followed users
-   * Refactored to use Feed Fan-out on Write (Inbox Pattern) via Redis
+   * Chronological feed from Followed users.
+   * Sensitive (`MATURE`) posts are not hidden here: Following is who the
+   * viewer chose. Blur still applies. Discovery feeds filter separately.
    */
   async getFollowingFeed(userId: string, pagination: PaginationDto) {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
     const viewerSettings = await this.getViewerContentSettings(userId);
-    const matureFilter = viewerSettings.allowMature
-      ? {}
-      : { contentRating: 'GENERAL' as const };
 
     let posts: any[] = [];
     let total = 0;
@@ -402,7 +400,6 @@ export class FeedService {
           id: { in: inboxPostIds },
           moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
           scheduledStatus: 'PUBLISHED',
-          ...matureFilter,
         },
         include: this.postHydrationInclude(userId),
       });
@@ -454,7 +451,6 @@ export class FeedService {
             moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
             scheduledStatus: 'PUBLISHED',
             ...preferenceFilter,
-            ...matureFilter,
             OR: [
               { visibility: Visibility.PUBLIC },
               { visibility: Visibility.FOLLOWERS },
@@ -473,7 +469,6 @@ export class FeedService {
             moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
             scheduledStatus: 'PUBLISHED',
             ...preferenceFilter,
-            ...matureFilter,
           },
         }),
       ]);

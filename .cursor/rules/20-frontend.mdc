@@ -21,7 +21,7 @@ Load-bearing facts:
 - Optimistic updates follow the local pattern: `onMutate` cancel + snapshot, `onError` rollback,
   `onSettled` invalidate. Copy `src/components/LikeButton.tsx`.
 - Routes are declared in `src/App.tsx`, heavy ones via `React.lazy`. Keep the legacy redirects working
-  (`/post/:id` → `/p/:id`, `/messages` → `/direct/inbox`, `/settings` → `/accounts/edit`).
+  (`/post/:id` → `/p/:id`, `/messages` → `/direct/inbox`, `/settings` → `/accounts`).
 - Handle all four states with the existing `LoadingStates`, `EmptyState`, `ErrorState`.
 - Every user-facing string goes through `useTranslation`, with the key added to **both**
   `src/locales/en.json` and `src/locales/es.json`.

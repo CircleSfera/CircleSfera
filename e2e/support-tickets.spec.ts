@@ -40,16 +40,18 @@ test.describe('Support Tickets & Help Center', () => {
     // If still disabled, assert the login warning instead of failing on fill
     if (await subject.isDisabled()) {
       await expect(
-        page.getByText(/Debes iniciar sesión|sign in|login/i),
+        page.getByText(/iniciar sesión|sign in|log in/i),
       ).toBeVisible();
       return;
     }
 
     await subject.fill('E2E support ticket');
     await page.locator('#message').fill('Automated Playwright support ticket.');
-    await page.getByRole('button', { name: /Enviar Ticket|Send/i }).click();
+    await page
+      .getByRole('button', { name: /Enviar mensaje|Send message/i })
+      .click();
     await expect(
-      page.getByText(/Ticket enviado|enviado|success/i).first(),
+      page.getByText(/Mensaje enviado|Message sent|enviado/i).first(),
     ).toBeVisible({ timeout: 10000 });
   });
 });

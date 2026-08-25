@@ -14,6 +14,7 @@ import { commentsApi, uploadApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { Comment, CreateCommentDto } from '../types';
 import { logger } from '../utils/logger';
+import { pickNativeImage } from '../utils/nativeFilePicker';
 import { VoicePlayer } from './audio/VoicePlayer';
 import { VoiceRecorder } from './audio/VoiceRecorder';
 import ConfirmModal from './modals/ConfirmModal';
@@ -382,7 +383,13 @@ export default function CommentList({
           type="button"
           disabled={commentMutation.isPending}
           isLoading={isUploading}
-          onClick={() => fileInputRef.current?.click()}
+          onClick={async (e) => {
+            e.preventDefault();
+            const handled = await pickNativeImage(fileInputRef);
+            if (!handled) {
+              fileInputRef.current?.click();
+            }
+          }}
           variant="ghost"
           size="icon"
           className="w-10 h-10 bg-white/5 border border-white/10 rounded-full text-gray-300 hover:text-white hover:bg-white/10 shrink-0"

@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import { GuestAppChrome } from './GuestAppChrome';
 import { GuestFooter } from './GuestFooter';
-import { MarketingAtmosphere } from './MarketingAtmosphere';
 
 interface MarketingPageProps {
   children: ReactNode;
@@ -11,8 +10,6 @@ interface MarketingPageProps {
   withNav?: boolean;
   withFooter?: boolean;
   navLinks?: boolean;
-  /** Soft brand glows behind content (landing / explore). */
-  atmosphere?: boolean;
 }
 
 /**
@@ -24,7 +21,6 @@ export function MarketingPage({
   withNav = true,
   withFooter = true,
   navLinks = true,
-  atmosphere = false,
 }: MarketingPageProps) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const showGuestNav = withNav && !isAuthenticated;
@@ -36,7 +32,6 @@ export function MarketingPage({
         className,
       )}
     >
-      {atmosphere && <MarketingAtmosphere />}
       {showGuestNav && <GuestAppChrome showLinks={navLinks} />}
       <div
         className={clsx(

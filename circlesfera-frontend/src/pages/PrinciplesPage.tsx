@@ -13,7 +13,7 @@ export default function PrinciplesPage() {
   const { t } = useTranslation();
 
   return (
-    <MarketingPage atmosphere>
+    <MarketingPage>
       <SEO
         title={t('landing.pages.principles.seo_title')}
         description={t('landing.pages.principles.seo_desc')}

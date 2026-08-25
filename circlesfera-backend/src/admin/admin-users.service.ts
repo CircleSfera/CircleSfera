@@ -8,6 +8,8 @@ import {
 } from '@nestjs/common';
 import { AdminAction, NotificationType, Prisma, Role } from '@prisma/client';
 import type { Cache } from 'cache-manager';
+import { computeTrustScore } from '../common/abuse/trust-score.js';
+import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -42,6 +44,7 @@ export class AdminUsersService {
     private readonly notificationsService: NotificationsService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     @Inject(UsersService) private readonly usersService: UsersService,
+    @Inject(TurnstileService) private readonly turnstile: TurnstileService,
   ) {}
 
   /** Log every admin action for accountability. */
@@ -383,9 +386,9 @@ export class AdminUsersService {
       data: {
         identityVerifiedAt: null,
         stripeIdentitySessionId: null,
-        verificationLevel: 'BASIC',
       },
     });
+    await this.usersService.syncUserTier(userId);
     await this.logAction(
       adminId,
       AdminAction.UPDATE_USER_STATUS,
@@ -542,6 +545,178 @@ export class AdminUsersService {
         ...user._count,
         reportsAgainst: reportsAgainstCount,
       },
+    };
+  }
+
+  /** Accounts sharing device or signup IP hash with this user (hashes never returned). */
+  async getLinkedAccounts(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        signupIpHash: true,
+        lastIpHash: true,
+        deviceSignals: { select: { visitorHash: true } },
+      },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const visitorHashes = user.deviceSignals.map((d) => d.visitorHash);
+    const ipHashes = [user.signupIpHash, user.lastIpHash].filter(
+      (h): h is string => !!h,
+    );
+
+    const linked = await this.prisma.user.findMany({
+      where: {
+        id: { not: userId },
+        OR: [
+          ...(ipHashes.length
+            ? [
+                { signupIpHash: { in: ipHashes } },
+                { lastIpHash: { in: ipHashes } },
+              ]
+            : []),
+          ...(visitorHashes.length
+            ? [
+                {
+                  deviceSignals: {
+                    some: { visitorHash: { in: visitorHashes } },
+                  },
+                },
+              ]
+            : []),
+        ],
+      },
+      select: {
+        id: true,
+        createdAt: true,
+        emailVerified: true,
+        identityVerifiedAt: true,
+        botLabeledAt: true,
+        strikeCount: true,
+        isActive: true,
+        profile: { select: { username: true, fullName: true, avatar: true } },
+      },
+      take: 50,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      clusterSize: linked.length + 1,
+      accounts: linked.map((a) => ({
+        id: a.id,
+        username: a.profile?.username,
+        fullName: a.profile?.fullName,
+        avatar: a.profile?.avatar,
+        createdAt: a.createdAt,
+        emailConfirmed: !!a.emailVerified,
+        identityVerified: !!a.identityVerifiedAt,
+        botLabeled: !!a.botLabeledAt,
+        strikeCount: a.strikeCount,
+        isActive: a.isActive,
+      })),
+    };
+  }
+
+  async getTrustScore(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        emailVerified: true,
+        identityVerifiedAt: true,
+        createdAt: true,
+        strikeCount: true,
+        botLabeledAt: true,
+        signupIpHash: true,
+        lastIpHash: true,
+        deviceSignals: { select: { visitorHash: true } },
+      },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const linked = await this.getLinkedAccounts(userId);
+    return computeTrustScore({
+      emailVerified: !!user.emailVerified,
+      identityVerified: !!user.identityVerifiedAt,
+      createdAt: user.createdAt,
+      strikeCount: user.strikeCount,
+      botLabeled: !!user.botLabeledAt,
+      clusterSize: linked.clusterSize,
+    });
+  }
+
+  async applyBotLabel(adminId: string, userId: string, reason: string) {
+    if (!reason?.trim()) {
+      throw new BadRequestException('A reason is required');
+    }
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        botLabeledAt: new Date(),
+        botLabelReason: reason.trim().slice(0, 500),
+      },
+    });
+    await this.logAction(
+      adminId,
+      AdminAction.ACCOUNT_BOT_LABELED,
+      'user',
+      userId,
+      reason.trim().slice(0, 500),
+    );
+    await this.notificationsService
+      .create({
+        recipientId: userId,
+        senderId: await resolveAdminNotificationSenderId(this.prisma, adminId),
+        type: NotificationType.MODERATION,
+        content:
+          'Your account was labeled as possibly automated after a staff review. You can appeal in Settings.',
+      })
+      .catch((e) => this.logger.error(e));
+    await this.invalidateProfileCache(userId);
+    return { success: true };
+  }
+
+  async clearBotLabel(adminId: string, userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { botLabeledAt: null, botLabelReason: null },
+    });
+    await this.logAction(
+      adminId,
+      AdminAction.ACCOUNT_BOT_LABEL_CLEARED,
+      'user',
+      userId,
+      'Cleared bot label',
+    );
+    await this.invalidateProfileCache(userId);
+    return { success: true };
+  }
+
+  async getSignupFunnelStats() {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [signups24h, verified24h, counters] = await Promise.all([
+      this.prisma.user.count({ where: { createdAt: { gte: since } } }),
+      this.prisma.user.count({
+        where: {
+          createdAt: { gte: since },
+          emailVerified: { not: null },
+        },
+      }),
+      this.turnstile.getFunnelCounters(),
+    ]);
+    return {
+      signups24h,
+      emailVerifiedAmongSignups24h: verified24h,
+      emailVerifiedRate24h:
+        signups24h === 0 ? 0 : Math.round((verified24h / signups24h) * 100),
+      turnstileFailures: counters.turnstileFailures,
+      emailForbidden: counters.emailForbidden,
     };
   }
 

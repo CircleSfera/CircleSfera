@@ -15,6 +15,7 @@ import {
   CurrentUser,
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { ProfilesService } from './profiles.service.js';
@@ -61,7 +62,7 @@ export class ProfilesController {
 
   /** Update the authenticated user's profile. */
   @Put('me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async updateProfile(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: UpdateProfileDto,

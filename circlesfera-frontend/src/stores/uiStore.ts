@@ -1,12 +1,25 @@
 import { create } from 'zustand';
 
+export type EditedMediaHandoff = {
+  file: File;
+  scheduledAt?: string;
+};
+
 interface UIState {
   isCreateMenuOpen: boolean;
-  editedMediaForPost: File | null;
+  editedMediaForPost: EditedMediaHandoff | null;
   openCreateMenu: () => void;
   closeCreateMenu: () => void;
   toggleCreateMenu: () => void;
-  setEditedMediaForPost: (file: File | null) => void;
+  setEditedMediaForPost: (payload: EditedMediaHandoff | File | null) => void;
+}
+
+function normalizeHandoff(
+  payload: EditedMediaHandoff | File | null,
+): EditedMediaHandoff | null {
+  if (!payload) return null;
+  if (payload instanceof File) return { file: payload };
+  return payload;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -16,5 +29,6 @@ export const useUIStore = create<UIState>((set) => ({
   closeCreateMenu: () => set({ isCreateMenuOpen: false }),
   toggleCreateMenu: () =>
     set((state) => ({ isCreateMenuOpen: !state.isCreateMenuOpen })),
-  setEditedMediaForPost: (file) => set({ editedMediaForPost: file }),
+  setEditedMediaForPost: (payload) =>
+    set({ editedMediaForPost: normalizeHandoff(payload) }),
 }));

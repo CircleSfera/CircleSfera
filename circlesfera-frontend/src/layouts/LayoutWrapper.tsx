@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import EmailVerificationBanner from '../components/auth/EmailVerificationBanner';
 import BrandAmbientBackground from '../components/common/BrandAmbientBackground';
 import { GlobalKeyboardShortcuts } from '../components/common/GlobalKeyboardShortcuts';
 import { OfflineIndicator } from '../components/common/OfflineIndicator';
@@ -26,22 +27,25 @@ export default function LayoutWrapper({
   const { connect, disconnect } = useSocketStore();
   const hideNavRoutes = [
     '/accounts/login',
+    '/accounts/signup',
     '/accounts/emailsignup',
     '/onboarding',
   ];
 
   const isAdminRoute = location.pathname.startsWith('/admin');
-  const isCreatorRoute = location.pathname.startsWith('/creator');
   const isFramesRoute = location.pathname.startsWith('/frames');
   const isEditsRoute = location.pathname.startsWith('/edits');
+  const isCreateRoute = location.pathname.startsWith('/create');
+  const isImmersiveRoute = isFramesRoute || isEditsRoute || isCreateRoute;
 
-  // Only show nav if authenticated AND not in hidden routes AND not in admin/creator
+  // Admin is a separate product shell. Creator Studio sits in the app chrome
+  // like Settings: global Sidebar + section rail.
+  // /create is immersive: no TopNav/BottomNav (Sidebar stays on md+).
   const shouldShowNav =
     showNavigation &&
     isAuthenticated &&
     !hideNavRoutes.includes(location.pathname) &&
-    !isAdminRoute &&
-    !isCreatorRoute;
+    !isAdminRoute;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -60,9 +64,14 @@ export default function LayoutWrapper({
 
   const { isOpen, stories, initialIndex, closeStories } = useStoryStore();
 
+  // /edits is full-screen CapCut-like (no Sidebar). /create keeps Sidebar on md+.
+  const isEditorRoute = isEditsRoute || isCreateRoute;
+  const showAppSidebar = shouldShowNav && !isEditsRoute;
+  const mainHasSidebarPad = showAppSidebar;
+
   return (
     <div
-      className={`relative text-white selection:bg-purple-500/30 ${isFramesRoute ? 'h-dvh overflow-hidden' : 'min-h-dvh overflow-x-hidden'}`}
+      className={`relative text-white selection:bg-purple-500/30 ${isFramesRoute || isEditorRoute ? 'h-dvh overflow-hidden' : 'min-h-dvh overflow-x-hidden'}`}
     >
       {/* Skip to Content Link */}
       <a
@@ -88,21 +97,22 @@ export default function LayoutWrapper({
       {/* ─── Global Brand Gradient Background (Refined & Balanced) ─── */}
       <BrandAmbientBackground />
 
+      {shouldShowNav && <EmailVerificationBanner />}
+
       {/* Navigation — Each handles its own visibility via media queries */}
       {shouldShowNav && (
         <>
           {!location.pathname.includes('/direct/inbox/t/') &&
-            !isFramesRoute &&
-            !isEditsRoute && <TopNav />}
-          <Sidebar />
-          <BottomNav />
+            !isImmersiveRoute && <TopNav />}
+          {showAppSidebar && <Sidebar />}
+          {!isEditorRoute && <BottomNav />}
         </>
       )}
 
       <main
         id="main-content"
         className={`flex-1 w-full transition-all duration-300 ${
-          shouldShowNav
+          mainHasSidebarPad
             ? /* Sidebar: 68px collapsed (md), 260px expanded (xl) */
               'md:pl-17 xl:pl-65'
             : ''
@@ -111,8 +121,7 @@ export default function LayoutWrapper({
         {/* Top spacing for mobile to account for TopNav height (52px + safe area) */}
         {shouldShowNav &&
           !location.pathname.includes('/direct/inbox/t/') &&
-          !isFramesRoute &&
-          !isEditsRoute && (
+          !isImmersiveRoute && (
             <div
               className="md:hidden shrink-0"
               style={{
@@ -128,22 +137,29 @@ export default function LayoutWrapper({
               ? location.pathname.includes('/t/')
                 ? 'h-[calc(100dvh-var(--nav-bottom-height,60px))] md:h-dvh'
                 : 'h-[calc(100dvh-var(--nav-top-height,52px)-var(--nav-bottom-height,60px))] md:h-dvh'
-              : isFramesRoute
+              : isFramesRoute || isEditorRoute
                 ? 'h-dvh md:h-dvh'
-                : isEditsRoute
-                  ? 'h-[calc(100dvh-var(--nav-top-height,52px))] md:h-dvh'
-                  : `min-h-dvh ${shouldShowNav ? 'pb-(--nav-bottom-height,60px) md:pb-8' : ''}`
+                : 'min-h-dvh md:pb-8'
           } overflow-x-hidden`}
+          style={
+            shouldShowNav &&
+            !isImmersiveRoute &&
+            !location.pathname.startsWith('/direct')
+              ? {
+                  paddingBottom:
+                    'calc(var(--nav-bottom-height, 60px) + env(safe-area-inset-bottom, 0px))',
+                }
+              : undefined
+          }
         >
           <div
             className={
               shouldShowNav &&
               !location.pathname.startsWith('/direct') &&
               !location.pathname.startsWith('/admin') &&
-              !isFramesRoute &&
-              !isEditsRoute
+              !isImmersiveRoute
                 ? 'mx-auto max-w-5xl 2xl:max-w-7xl px-4 md:px-5 lg:px-6'
-                : `w-full h-full ${shouldShowNav && !isFramesRoute && !isEditsRoute ? 'md:pb-10' : ''}`
+                : `w-full h-full ${shouldShowNav && !isImmersiveRoute ? 'md:pb-10' : ''}`
             }
           >
             {children}

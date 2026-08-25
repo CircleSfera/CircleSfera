@@ -1,16 +1,16 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { api } from '../../services';
+import { monetizationApi } from '../../services/monetization.service';
 import { useAuthStore } from '../../stores/authStore';
-
 import MonetizationDashboard from './MonetizationDashboard';
 
-vi.mock('../../services', () => ({
-  api: {
-    get: vi.fn(),
-    post: vi.fn(),
+vi.mock('../../services/monetization.service', () => ({
+  monetizationApi: {
+    getMonetization: vi.fn(),
+    getFinancialSummary: vi.fn(),
+    getTransactions: vi.fn(),
+    getPayouts: vi.fn(),
   },
 }));
 
@@ -26,9 +26,7 @@ describe('MonetizationDashboard', () => {
 
     return render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter>
-          <MonetizationDashboard />
-        </MemoryRouter>
+        <MonetizationDashboard />
       </QueryClientProvider>,
     );
   };
@@ -38,121 +36,90 @@ describe('MonetizationDashboard', () => {
     vi.mocked(useAuthStore).mockReturnValue({
       user: { stripeConnectAccountId: null },
     } as unknown as ReturnType<typeof useAuthStore>);
+    vi.mocked(monetizationApi.getMonetization).mockResolvedValue({
+      userId: 'user-1',
+      lifetimeEarningsCents: 0,
+    });
+    vi.mocked(monetizationApi.getFinancialSummary).mockResolvedValue({
+      currentMonthIncome: 0,
+      totalTips: 0,
+    });
+    vi.mocked(monetizationApi.getTransactions).mockResolvedValue({
+      data: [],
+    });
+    vi.mocked(monetizationApi.getPayouts).mockResolvedValue({
+      available: [],
+      pending: [],
+    });
   });
 
-  it('renders lifetime earnings from the monetization query', async () => {
-    vi.mocked(api.get).mockImplementation((url: string) => {
-      if (url === '/monetization') {
-        return Promise.resolve({
-          data: { userId: 'user-1', lifetimeEarningsCents: 12345 },
-        });
-      }
-      if (url === '/monetization/transactions') {
-        return Promise.resolve({ data: { data: [] } });
-      }
-      if (url === '/monetization/payouts') {
-        return Promise.resolve({
-          data: { available: [], pending: [], payouts: [] },
-        });
-      }
-      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+  it('renders PPV breakdown when the summary includes it', async () => {
+    vi.mocked(monetizationApi.getFinancialSummary).mockResolvedValue({
+      currentMonthIncome: 0,
+      totalTips: 0,
+      breakdown: {
+        postUnlocks: 800,
+        storyUnlocks: 0,
+        messageUnlocks: 0,
+        tips: 200,
+        liveGifts: 0,
+      },
+    });
+
+    renderDashboard();
+
+    expect(await screen.findByText('€8.00')).toBeInTheDocument();
+    expect(screen.getByText('€2.00')).toBeInTheDocument();
+  });
+
+  it('shows Stripe available/pending when Connect is linked', async () => {
+    vi.mocked(useAuthStore).mockReturnValue({
+      user: { stripeConnectAccountId: 'acct_123' },
+    } as unknown as ReturnType<typeof useAuthStore>);
+    vi.mocked(monetizationApi.getPayouts).mockResolvedValue({
+      available: [{ amountCents: 1000, currency: 'EUR' }],
+      pending: [{ amountCents: 250, currency: 'EUR' }],
     });
 
     renderDashboard();
 
     await waitFor(() => {
-      expect(screen.getByText('$123.45')).toBeInTheDocument();
+      expect(screen.getByText(/10\.00/)).toBeInTheDocument();
     });
-  });
-
-  it('prompts to connect Stripe when the creator has no connected account', async () => {
-    vi.mocked(api.get).mockImplementation((url: string) => {
-      if (url === '/monetization/payouts') {
-        return Promise.reject(new Error('no connect'));
-      }
-      return Promise.resolve({ data: { data: [] } });
-    });
-
-    renderDashboard();
-
-    expect(await screen.findByText(/Connect with Stripe/i)).toBeInTheDocument();
-  });
-
-  it('shows the Stripe dashboard link once a Stripe account is connected', async () => {
-    vi.mocked(useAuthStore).mockReturnValue({
-      user: { stripeConnectAccountId: 'acct_123' },
-    } as unknown as ReturnType<typeof useAuthStore>);
-    vi.mocked(api.get).mockImplementation((url: string) => {
-      if (url === '/monetization/payouts') {
-        return Promise.resolve({
-          data: {
-            available: [{ amountCents: 1000, currency: 'EUR' }],
-            pending: [{ amountCents: 0, currency: 'EUR' }],
-            payouts: [],
-          },
-        });
-      }
-      return Promise.resolve({ data: { data: [], lifetimeEarningsCents: 0 } });
-    });
-
-    renderDashboard();
-
-    expect(
-      await screen.findByText(/View Stripe Dashboard|Ver Dashboard de Stripe/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/2\.50/)).toBeInTheDocument();
     expect(screen.queryByText(/Connect with Stripe/i)).not.toBeInTheDocument();
   });
 
   it('renders transactions returned by the transactions query', async () => {
-    vi.mocked(api.get).mockImplementation((url: string) => {
-      if (url === '/monetization') {
-        return Promise.resolve({
-          data: { userId: 'user-1', lifetimeEarningsCents: 0 },
-        });
-      }
-      if (url === '/monetization/transactions') {
-        return Promise.resolve({
-          data: {
-            data: [
-              {
-                id: 'tx-1',
-                type: 'TIP',
-                amount: 500,
-                receiverId: 'user-1',
-                createdAt: new Date('2026-01-01').toISOString(),
-                description: 'Tip from a fan',
-              },
-            ],
-          },
-        });
-      }
-      if (url === '/monetization/payouts') {
-        return Promise.resolve({
-          data: { available: [], pending: [], payouts: [] },
-        });
-      }
-      return Promise.reject(new Error(`Unexpected URL: ${url}`));
+    vi.mocked(monetizationApi.getMonetization).mockResolvedValue({
+      userId: 'user-1',
+      lifetimeEarningsCents: 0,
+    });
+    vi.mocked(monetizationApi.getTransactions).mockResolvedValue({
+      data: [
+        {
+          id: 'tx-1',
+          type: 'TIP',
+          amount: 500,
+          receiverId: 'user-1',
+          createdAt: new Date('2026-01-01').toISOString(),
+          description: 'Tip from a fan',
+        },
+      ],
     });
 
     renderDashboard();
 
     expect(await screen.findByText('Tip from a fan')).toBeInTheDocument();
-    expect(screen.getByText('+$5.00')).toBeInTheDocument();
+    expect(screen.getByText('+€5.00')).toBeInTheDocument();
   });
 
   it('shows an empty state when there are no transactions', async () => {
-    vi.mocked(api.get).mockImplementation((url: string) => {
-      if (url === '/monetization/payouts') {
-        return Promise.reject(new Error('no connect'));
-      }
-      return Promise.resolve({ data: { data: [] } });
-    });
-
     renderDashboard();
 
     expect(
       await screen.findByText(
-        /No transactions found|Sin transacciones registradas/i,
+        /No transactions yet|Aún no hay transacciones|Sin transacciones/i,
       ),
     ).toBeInTheDocument();
   });

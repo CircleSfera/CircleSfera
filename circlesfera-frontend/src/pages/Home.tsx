@@ -98,16 +98,7 @@ export default function Home() {
                   alt="CircleSfera"
                   className="h-8 w-auto object-contain transition-transform duration-300 group-hover:scale-105 drop-shadow-[0_0_12px_rgba(140,82,255,0.4)]"
                 />
-                <span
-                  className="text-2xl sm:text-3xl font-black tracking-tight"
-                  style={{
-                    background:
-                      'linear-gradient(90deg, #ffffff 0%, rgba(255,255,255,0.75) 100%)',
-                    WebkitBackgroundClip: 'text',
-                    backgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                  }}
-                >
+                <span className="brand-wordmark text-2xl sm:text-3xl font-black tracking-tight">
                   CircleSfera
                 </span>
               </Link>

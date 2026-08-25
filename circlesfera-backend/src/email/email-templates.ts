@@ -27,7 +27,7 @@ function getBaseLayout({
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title}</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
     
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -47,20 +47,24 @@ function getBaseLayout({
     .container {
       max-width: 520px;
       margin: 0 auto;
-      padding: 40px;
-      background-color: #050505;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 48px 40px;
+      background-color: #0F0F13;
+      border: 1px solid rgba(140, 82, 255, 0.15);
       border-radius: 24px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 40px rgba(140, 82, 255, 0.08);
     }
     
     .logo {
       font-size: 28px;
       font-weight: 900;
-      color: #FFFFFF;
-      letter-spacing: -1.5px;
-      margin-bottom: 48px;
-      text-transform: none;
+      letter-spacing: -1px;
+      margin-bottom: 40px;
+      /* Silver metallic gradient with solid fallback */
+      color: #E5E5E5;
+      background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.72) 55%, rgba(255, 255, 255, 0.42) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
     
     .content-area {
@@ -68,56 +72,61 @@ function getBaseLayout({
     }
     
     h1 {
-      font-size: 32px;
-      font-weight: 900;
-      margin: 0 0 24px 0;
+      font-size: 28px;
+      font-weight: 800;
+      margin: 0 0 16px 0;
       color: #FFFFFF;
-      letter-spacing: -1px;
-      line-height: 1.2;
+      letter-spacing: -0.5px;
+      line-height: 1.3;
     }
     
     p {
       font-size: 16px;
       line-height: 1.6;
-      color: #A0A0A0;
+      color: #A0A0AA;
       margin: 0 0 32px 0;
     }
     
     .button {
       display: inline-block;
-      background-color: #FFFFFF;
-      color: #000000 !important;
+      background: linear-gradient(90deg, #ff5757 0%, #8c52ff 100%);
+      background-color: #8c52ff;
+      color: #FFFFFF !important;
       text-decoration: none;
-      padding: 18px 36px;
+      padding: 16px 36px;
       border-radius: 50px;
-      font-size: 14px;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      transition: transform 0.2s ease;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
       margin-bottom: 32px;
+      border: none;
     }
     
     .footer {
       margin-top: 48px;
       padding-top: 32px;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      font-size: 12px;
-      color: #404040;
-      line-height: 1.5;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 13px;
+      color: #707070;
+      line-height: 1.6;
     }
     
     .footer a {
-      color: #606060;
-      text-decoration: underline;
+      color: #8c52ff;
+      text-decoration: none;
+      font-weight: 600;
     }
 
     @media (max-width: 600px) {
       .container {
-        padding: 30px 20px;
+        padding: 40px 24px;
+        border-radius: 20px;
       }
       h1 {
-        font-size: 26px;
+        font-size: 24px;
+      }
+      p {
+        font-size: 15px;
       }
     }
   </style>
@@ -142,13 +151,13 @@ function getBaseLayout({
 }
 
 export const EmailTemplates = {
-  welcome: (name: string) =>
+  welcome: (name: string, frontendUrl: string) =>
     getBaseLayout({
       title: `¡Bienvenido, ${name}!`,
       content:
         'Tu acceso exclusivo a CircleSfera ha sido aprobado. Comienza a construir tus conexiones más significativas hoy mismo.',
       buttonText: 'Explorar Círculos',
-      buttonUrl: 'https://circlesfera.com',
+      buttonUrl: frontendUrl,
     }),
 
   verification: (url: string) =>
@@ -199,11 +208,15 @@ export const EmailTemplates = {
       buttonUrl: 'mailto:support@circlesfera.com',
     }),
 
-  subscriptionReceipt: (planName: string, amount: string) =>
+  subscriptionReceipt: (
+    planName: string,
+    amount: string,
+    frontendUrl: string,
+  ) =>
     getBaseLayout({
       title: 'Recibo de Suscripción',
       content: `Gracias por suscribirte a CircleSfera.<br><br>Has adquirido el plan <strong>${planName}</strong>.<br>El cargo de <strong>${amount}</strong> ha sido procesado con éxito y las funciones de tu plan ya están activas en tu cuenta.`,
       buttonText: 'Ir a mi Panel',
-      buttonUrl: 'https://circlesfera.com/settings/monetization',
+      buttonUrl: `${frontendUrl}/settings/monetization`,
     }),
 };

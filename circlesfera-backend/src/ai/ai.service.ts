@@ -9,8 +9,9 @@ export interface ContentModerationResult {
 }
 
 /**
- * Service for AI-powered features using OpenAI embeddings.
- * Falls back to mock embeddings in development when OPENAI_API_KEY is absent.
+ * Service for AI-powered features using the shared OPENAI_API_KEY:
+ * embeddings, moderation, alt-text, and Studio Whisper transcription.
+ * Falls back to mocks in development when OPENAI_API_KEY is absent.
  */
 @Injectable()
 export class AIService {
@@ -25,13 +26,18 @@ export class AIService {
       this.openai = new OpenAI({ apiKey });
     } else if (isProd) {
       throw new Error(
-        'SECURITY ALERT: OPENAI_API_KEY is required in production (embeddings, moderation, alt-text).',
+        'SECURITY ALERT: OPENAI_API_KEY is required in production (embeddings, moderation, alt-text, captions).',
       );
     } else {
       this.logger.warn(
         'OPENAI_API_KEY not found. AIService will operate in MOCK mode (non-production only).',
       );
     }
+  }
+
+  /** Whether a real OpenAI client is configured (not mock mode). */
+  isConfigured(): boolean {
+    return this.openai !== null;
   }
 
   /**
@@ -222,5 +228,59 @@ El mensaje debe tener menos de 100 palabras.`;
       this.logger.error('Failed to generate morning briefing', error);
       return `📊 Métricas crudas (Error AI):\nUsuarios: ${metrics.newUsers}\nPosts: ${metrics.newPosts}\nReportes: ${metrics.pendingReports}\nSuscripciones: ${metrics.newSubscriptions}`;
     }
+  }
+
+  /**
+   * Transcribe audio/video via OpenAI Whisper. Returns timed segments.
+   * Throws Error('AI_SERVICE_UNAVAILABLE') when API key is missing.
+   */
+  async transcribeAudio(
+    mediaUrl: string,
+  ): Promise<{ start: number; end: number; text: string }[]> {
+    if (!this.openai) {
+      throw new Error('AI_SERVICE_UNAVAILABLE');
+    }
+
+    this.logger.log(`Transcribing media (url length=${mediaUrl.length})`);
+
+    const response = await fetch(mediaUrl);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch media for transcription: ${response.status}`,
+      );
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType =
+      response.headers.get('content-type') || 'application/octet-stream';
+    const ext = contentType.includes('audio')
+      ? 'mp3'
+      : contentType.includes('webm')
+        ? 'webm'
+        : 'mp4';
+
+    const { toFile } = await import('openai');
+    const file = await toFile(buffer, `clip.${ext}`, { type: contentType });
+
+    const result = await this.openai.audio.transcriptions.create({
+      file,
+      model: 'whisper-1',
+      response_format: 'verbose_json',
+      timestamp_granularities: ['segment'],
+    });
+
+    const segments =
+      (
+        result as {
+          segments?: { start: number; end: number; text: string }[];
+        }
+      ).segments || [];
+
+    return segments.map((s) => ({
+      start: s.start,
+      end: s.end,
+      text: (s.text || '').trim(),
+    }));
   }
 }

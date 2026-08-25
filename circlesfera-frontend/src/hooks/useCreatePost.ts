@@ -45,6 +45,7 @@ export interface MediaFile {
   cropData?: CropData;
   overlayDataUrl?: string;
   videoData?: VideoData;
+  remoteUrl?: string;
 }
 
 export function useCreatePost() {
@@ -63,10 +64,12 @@ export function useCreatePost() {
 
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [currentEditIndex, setCurrentEditIndex] = useState<number | null>(null);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [caption, setCaption] = useState('');
   const [location, setLocation] = useState('');
   const [hideLikes, setHideLikes] = useState(false);
   const [turnOffComments, setTurnOffComments] = useState(false);
+  const [isSensitive, setIsSensitive] = useState(false);
   const [selectedAudio, setSelectedAudio] = useState<AudioTrack | null>(null);
   const [isCloseFriendsOnly, setIsCloseFriendsOnly] = useState(false);
   const [altTextMap, setAltTextMap] = useState<Record<number, string>>({});
@@ -82,13 +85,17 @@ export function useCreatePost() {
     import('../stores/uiStore').then(({ useUIStore }) => {
       const state = useUIStore.getState();
       if (state.editedMediaForPost) {
-        const file = state.editedMediaForPost;
+        const handoff = state.editedMediaForPost;
+        const file = handoff.file;
         const newFile: MediaFile = {
           file,
           url: URL.createObjectURL(file),
           type: file.type.startsWith('video') ? 'video' : 'image',
         };
         setMediaFiles([newFile]);
+        if (handoff.scheduledAt) {
+          setScheduledAt(handoff.scheduledAt);
+        }
         setStep('caption');
         state.setEditedMediaForPost(null);
       }
@@ -172,6 +179,7 @@ export function useCreatePost() {
         updated[currentEditIndex] = {
           ...updated[currentEditIndex],
           file, // Actualizamos la referencia del archivo por si cambia externamente
+          remoteUrl: undefined, // El archivo ha cambiado, invalida la URL remota
           filter: filterString,
           cropData,
           overlayDataUrl,
@@ -226,6 +234,12 @@ export function useCreatePost() {
       const uploaded = await uploadFiles([item], {});
       const publicUrl = uploaded[0].url;
 
+      setMediaFiles((prev) => {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], remoteUrl: publicUrl };
+        return updated;
+      });
+
       // 2. Call AI service
       const res = await api.post('/ai/alt-text', { imageUrl: publicUrl });
 
@@ -277,8 +291,10 @@ export function useCreatePost() {
             // Keep filter string for UI consistency or if needed later
           };
         } catch (e) {
-          console.error('Error exporting file, falling back to original', e);
-          return m;
+          logger.error('Error exporting file, failing submission', e);
+          throw new Error(
+            'No se pudo procesar la edición del archivo. Por favor, inténtalo de nuevo.',
+          );
         }
       });
 
@@ -329,6 +345,9 @@ export function useCreatePost() {
             }
           } catch (pollError) {
             logger.error('Failed to create story poll:', pollError);
+            toast.error(
+              'Se publicó la historia, pero falló la creación de la encuesta.',
+            );
           }
         }
       } else {
@@ -349,6 +368,7 @@ export function useCreatePost() {
             })),
           isPremium,
           priceCents: isPremium ? Math.round(price * 100) : 0,
+          contentRating: isSensitive ? 'MATURE' : 'GENERAL',
           scheduledAt: scheduledAt
             ? new Date(scheduledAt).toISOString()
             : undefined,
@@ -364,6 +384,9 @@ export function useCreatePost() {
             });
           } catch (pollError) {
             logger.error('Failed to create post poll:', pollError);
+            toast.error(
+              'Se publicó el post, pero falló la creación de la encuesta.',
+            );
           }
         }
         if (postId && interactiveDraft?.kind === 'qna') {
@@ -374,6 +397,9 @@ export function useCreatePost() {
             });
           } catch (qnaError) {
             logger.error('Failed to create post QnA:', qnaError);
+            toast.error(
+              'Se publicó el post, pero falló la creación de las preguntas.',
+            );
           }
         }
         navigate('/');
@@ -402,13 +428,16 @@ export function useCreatePost() {
       setStep('edit');
     } else {
       if (mediaFiles.length > 0 || caption.length > 0) {
-        if (window.confirm('Discard this post? Your changes will be lost.')) {
-          navigate(-1);
-        }
+        setShowDiscardConfirm(true);
       } else {
         navigate(-1);
       }
     }
+  };
+
+  const confirmDiscard = () => {
+    setShowDiscardConfirm(false);
+    navigate(-1);
   };
 
   return {
@@ -422,6 +451,9 @@ export function useCreatePost() {
     setMediaFiles,
     currentEditIndex,
     setCurrentEditIndex,
+    showDiscardConfirm,
+    setShowDiscardConfirm,
+    confirmDiscard,
     caption,
     setCaption,
     location,
@@ -430,6 +462,8 @@ export function useCreatePost() {
     setHideLikes,
     turnOffComments,
     setTurnOffComments,
+    isSensitive,
+    setIsSensitive,
     selectedAudio,
     setSelectedAudio,
     isCloseFriendsOnly,
@@ -465,7 +499,8 @@ export function useCreatePost() {
     isPending:
       createPostMutation.isPending ||
       createStoryMutation.isPending ||
-      isUploading,
+      isUploading ||
+      isProcessingEdit,
     isProcessingEdit,
   };
 }

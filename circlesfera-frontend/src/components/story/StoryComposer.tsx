@@ -36,6 +36,7 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import type { StoryElement } from '../../types';
 import { logger } from '../../utils/logger';
+import { pickNativeImage } from '../../utils/nativeFilePicker';
 import ColorPicker from './ColorPicker';
 import { StoryCanvas, type StoryCanvasRef } from './Editor/StoryCanvas';
 
@@ -1609,7 +1610,13 @@ export default function StoryComposer({
                 </span>
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    const handled = await pickNativeImage(fileInputRef);
+                    if (!handled) {
+                      fileInputRef.current?.click();
+                    }
+                  }}
                   className="text-xs bg-white/4 hover:bg-white/8 px-3 py-1.5 rounded-lg border border-white/6 flex items-center gap-1 transition-all font-bold text-white/50 hover:text-white/80"
                 >
                   <ImageIcon size={12} /> Upload

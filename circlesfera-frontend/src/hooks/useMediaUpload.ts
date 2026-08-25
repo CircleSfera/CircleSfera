@@ -15,13 +15,27 @@ export function useMediaUpload() {
   const [isUploading, setIsUploading] = useState(false);
 
   const uploadFiles = async (
-    mediaFiles: { file: File; filter?: string; type: string }[],
+    mediaFiles: {
+      file: File;
+      filter?: string;
+      type: string;
+      remoteUrl?: string;
+    }[],
     altTextMap: Record<number, string>,
   ): Promise<UploadResult[]> => {
     setIsUploading(true);
     try {
       const results = await Promise.all(
         mediaFiles.map(async (item, idx) => {
+          if (item.remoteUrl) {
+            return {
+              url: item.remoteUrl,
+              type: item.type,
+              filter: item.filter,
+              altText: altTextMap[idx] || '',
+            };
+          }
+
           const formData = new FormData();
           formData.append('file', item.file);
 

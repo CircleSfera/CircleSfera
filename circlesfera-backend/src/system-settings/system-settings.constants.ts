@@ -5,6 +5,8 @@ export const SYSTEM_SETTING_KEYS = {
   REQUIRE_INVITE_CODE: 'require_invite_code',
   CONTENT_POSTING_ENABLED: 'content_posting_enabled',
   LIVE_STREAMS_ENABLED: 'live_streams_enabled',
+  TURNSTILE_REQUIRED: 'turnstile_required',
+  EMAIL_VERIFICATION_REQUIRED: 'email_verification_required',
 } as const;
 
 export type SystemSettingKey =
@@ -42,6 +44,18 @@ export const SYSTEM_SETTING_DEFAULTS: readonly SystemSettingDefault[] = [
     key: SYSTEM_SETTING_KEYS.LIVE_STREAMS_ENABLED,
     value: 'true',
     description: 'Allow starting live streams.',
+  },
+  {
+    key: SYSTEM_SETTING_KEYS.TURNSTILE_REQUIRED,
+    value: 'true',
+    description:
+      'Require a Cloudflare Turnstile token on register and login. Skipped when the secret is unset outside production.',
+  },
+  {
+    key: SYSTEM_SETTING_KEYS.EMAIL_VERIFICATION_REQUIRED,
+    value: 'true',
+    description:
+      'Require a verified email before posts, follows, messages, likes, uploads and profile edits.',
   },
 ] as const;
 

@@ -1,5 +1,6 @@
-import { DollarSign } from 'lucide-react';
+import { ChevronLeft, DollarSign } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Switch } from '../ui';
 
 interface MonetizationSubScreenProps {
   isPremium: boolean;
@@ -19,134 +20,90 @@ export default function MonetizationSubScreen({
   const { t } = useTranslation();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-surface-elevated border border-white/10 w-full max-w-md rounded-lg overflow-hidden shadow-2xl flex flex-col">
-        <div className="p-4 border-b border-white/10 flex items-center gap-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-white hover:text-gray-300"
-            aria-label="Go back"
-          >
-            <svg
-              aria-hidden="true"
-              className="w-6 h-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-          </button>
-          <h2 className="font-bold text-lg">
-            {t('createPost.caption.monetization', 'Monetization')}
-          </h2>
-        </div>
-        <div className="p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-medium text-white flex items-center gap-2">
-                <DollarSign size={18} className="text-emerald-500" />
-                {t(
-                  'createPost.caption.premium_content',
-                  'Premium Content (Pay-Per-View)',
-                )}
-              </div>
-              <div className="text-xs text-gray-300 mt-1 max-w-70">
-                {t(
-                  'createPost.caption.premium_desc',
-                  'Require users to pay to unlock and view this post.',
-                )}
-              </div>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={isPremium}
-              onClick={() => setIsPremium(!isPremium)}
-              className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors shrink-0 ${isPremium ? 'bg-emerald-500' : 'bg-neutral-700'}`}
-              aria-label="Toggle premium content"
-            >
-              <div
-                className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${isPremium ? 'left-7' : 'left-1'}`}
-              />
-            </button>
+    <div className="absolute inset-0 z-50 bg-surface-base flex flex-col">
+      <div className="sticky top-0 z-10 flex items-center gap-2 px-2 h-(--nav-top-height,52px) bg-surface-elevated border-b border-white/10 shrink-0">
+        <button
+          type="button"
+          onClick={onClose}
+          className="min-h-11 min-w-11 flex items-center justify-center text-white hover:bg-white/8 rounded-xl transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+          aria-label={t('createPost.header.back')}
+        >
+          <ChevronLeft size={22} strokeWidth={2} />
+        </button>
+        <h2 className="font-bold text-base text-white">
+          {t('createPost.caption.monetization')}
+        </h2>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-5">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-brand-primary/15 border border-brand-primary/25 flex items-center justify-center shrink-0 mt-0.5">
+            <DollarSign size={18} className="text-brand-primary" />
           </div>
-
-          {isPremium && (
-            <div className="space-y-3 animate-in slide-in-from-top-2 fade-in duration-200">
-              <label
-                htmlFor="premium-price"
-                className="block text-sm font-medium text-white"
-              >
-                {t('createPost.caption.price_usd', 'Price (EUR / USD)')}
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <span className="text-gray-300 font-medium">$</span>
-                </div>
-                <input
-                  id="premium-price"
-                  type="number"
-                  min="1"
-                  max="500"
-                  step="0.50"
-                  value={price || ''}
-                  onChange={(e) =>
-                    setPrice(Number.parseFloat(e.target.value) || 0)
-                  }
-                  placeholder="5.00"
-                  className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-8 pr-4 text-white focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all"
-                />
-              </div>
-
-              {price > 0 && price < 1 && (
-                <p className="text-xs text-amber-400 font-medium">
-                  {t(
-                    'createPost.caption.min_price_warning',
-                    'Minimum price is $1.00',
-                  )}
-                </p>
-              )}
-              {price > 500 && (
-                <p className="text-xs text-amber-400 font-medium">
-                  {t(
-                    'createPost.caption.max_price_warning',
-                    'Maximum price is $500.00',
-                  )}
-                </p>
-              )}
-
-              {price >= 1 && price <= 500 && (
-                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 space-y-1">
-                  <div className="flex justify-between font-semibold">
-                    <span>
-                      {t(
-                        'createPost.caption.creator_earning',
-                        'Your earnings (80%):',
-                      )}
-                    </span>
-                    <span>${(price * 0.8).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-gray-400">
-                    <span>
-                      {t(
-                        'createPost.caption.platform_fee',
-                        'Platform fee (20%):',
-                      )}
-                    </span>
-                    <span>${(price * 0.2).toFixed(2)}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          <div className="flex-1 min-w-0">
+            <Switch
+              role="switch"
+              checked={isPremium}
+              onChange={(e) => setIsPremium(e.target.checked)}
+              label={t('createPost.caption.premium_content')}
+              description={t('createPost.caption.premium_desc')}
+              aria-label={t('createPost.caption.premium_content')}
+            />
+          </div>
         </div>
+
+        {isPremium && (
+          <div className="space-y-3">
+            <label
+              htmlFor="premium-price"
+              className="block text-sm font-medium text-white"
+            >
+              {t('createPost.caption.price_usd')}
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <span className="text-white/40 font-medium">$</span>
+              </div>
+              <input
+                id="premium-price"
+                type="number"
+                min="1"
+                max="500"
+                step="0.50"
+                value={price || ''}
+                onChange={(e) =>
+                  setPrice(Number.parseFloat(e.target.value) || 0)
+                }
+                placeholder="5.00"
+                className="w-full min-h-12 bg-surface-raised border border-white/10 rounded-xl py-3 pl-8 pr-4 text-white text-base focus:ring-2 focus:ring-brand-primary/40 outline-none"
+              />
+            </div>
+
+            {price > 0 && price < 1 && (
+              <p className="text-xs text-brand-accent font-medium">
+                {t('createPost.caption.min_price_warning')}
+              </p>
+            )}
+            {price > 500 && (
+              <p className="text-xs text-brand-accent font-medium">
+                {t('createPost.caption.max_price_warning')}
+              </p>
+            )}
+
+            {price >= 1 && price <= 500 && (
+              <div className="p-3 rounded-xl bg-brand-primary/10 border border-brand-primary/20 text-xs text-white/80 space-y-1">
+                <div className="flex justify-between font-semibold">
+                  <span>{t('createPost.caption.creator_earning')}</span>
+                  <span>${(price * 0.8).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-white/40">
+                  <span>{t('createPost.caption.platform_fee')}</span>
+                  <span>${(price * 0.2).toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

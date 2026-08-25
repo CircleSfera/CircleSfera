@@ -13,7 +13,7 @@ export default function FaqPage() {
   const { t } = useTranslation();
 
   return (
-    <MarketingPage atmosphere>
+    <MarketingPage>
       <SEO
         title={t('landing.pages.faq.seo_title')}
         description={t('landing.pages.faq.seo_desc')}
