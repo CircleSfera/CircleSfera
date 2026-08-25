@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Search, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -22,6 +22,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
   const [groupName, setGroupName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const currentUser = useAuthStore((state) => state.profile);
   const { t } = useTranslation();
 
@@ -83,6 +84,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
         name: selectedUsers.length > 1 ? groupName : undefined,
       });
 
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
       navigate(`/direct/inbox/t/${res.data.id}`);
       onClose();
     } catch (error) {

@@ -1,10 +1,29 @@
 import '@livekit/components-styles';
 import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
-import { Heart, Send, UserMinus, UserPlus, X } from 'lucide-react';
+import {
+  Eye,
+  Heart,
+  HelpCircle,
+  Pin,
+  Send,
+  Trash2,
+  UserMinus,
+  UserPlus,
+  X,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import CinematicStage from '../../components/live/CinematicStage';
+import LiveGoalBar, {
+  type LiveGoalData,
+} from '../../components/live/LiveGoalBar';
+import LivePinnedComment, {
+  type PinnedCommentData,
+} from '../../components/live/LivePinnedComment';
+import LiveQnAPanel, {
+  type LiveQuestion,
+} from '../../components/live/LiveQnAPanel';
 import { apiClient as api } from '../../services/api';
 import { liveApi } from '../../services/live';
 import { useSocketStore } from '../../stores/socketStore';
@@ -22,16 +41,47 @@ export default function LiveBroadcaster() {
   const [titleInput, setTitleInput] = useState('');
   const [hasStarted, setHasStarted] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [isEnded, setIsEnded] = useState(false);
+  const [viewerCount, setViewerCount] = useState(0);
+  const [likesCount, setLikesCount] = useState(0);
+  const [pinnedComment, setPinnedComment] = useState<PinnedCommentData | null>(
+    null,
+  );
+  const [selectedMessage, setSelectedMessage] = useState<any | null>(null);
+
+  // Phase 2 State
+  const [liveGoal, setLiveGoal] = useState<LiveGoalData | null>(null);
+  const [isQnAOpen, setIsQnAOpen] = useState(false);
+  const [questions, setQuestions] = useState<LiveQuestion[]>([]);
+  const [highlightedQuestion, setHighlightedQuestion] =
+    useState<LiveQuestion | null>(null);
+
   const navigate = useNavigate();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!hasStarted) return;
-
     return () => {
-      api.post('/live/end');
+      // Don't call end automatically on unmount if we explicitly ended it
+      if (!isEnded) {
+        api.post('/live/end').catch(() => {});
+      }
     };
-  }, [hasStarted]);
+  }, [hasStarted, isEnded]);
+
+  const handleEndLive = async () => {
+    try {
+      await api.post('/live/end');
+    } catch {
+      // Silently fail
+    } finally {
+      setIsEnded(true);
+      const socket = useSocketStore.getState().socket;
+      if (socket && streamId) {
+        socket.emit('live:leave', { streamId });
+      }
+    }
+  };
 
   const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,8 +113,51 @@ export default function LiveBroadcaster() {
       );
     });
 
+    socket.on('live:viewer_count_update', (data: { viewerCount: number }) => {
+      if (typeof data?.viewerCount === 'number') {
+        setViewerCount(Math.max(0, data.viewerCount - 1)); // Broadcaster doesn't count as viewer
+      }
+    });
+
+    socket.on('live:comment_pinned', (data: PinnedCommentData) => {
+      setPinnedComment(data);
+    });
+
+    socket.on('live:comment_unpinned', () => {
+      setPinnedComment(null);
+    });
+
+    // Phase 2 listeners
+    socket.on('live:goal_set', (data: LiveGoalData) => {
+      setLiveGoal(data);
+    });
+
+    socket.on('live:question_asked', (q: LiveQuestion) => {
+      setQuestions((prev) => [q, ...prev]);
+    });
+
+    socket.on('live:question_highlighted', (q: LiveQuestion) => {
+      setHighlightedQuestion(q);
+    });
+
+    socket.on('live:question_cleared', () => {
+      setHighlightedQuestion(null);
+    });
+
+    // Listen for gifts to update goal
+    socket.on('live:gift', (data: { amountCents?: number }) => {
+      if (data.amountCents) {
+        setLiveGoal((prev) => {
+          if (!prev) return prev;
+          // In this example, 1 cent = 1 unit for the goal
+          return { ...prev, current: prev.current + (data.amountCents || 0) };
+        });
+      }
+    });
+
     socket.on('live:heart_received', () => {
-      const id = Math.random().toString(36).substr(2, 9);
+      setLikesCount((prev) => prev + 1);
+      const id = Math.random().toString(36).substring(2, 9);
       const x = Math.random() * 40 - 20;
       setHearts((prev) => [...prev, { id, x }]);
       setTimeout(() => {
@@ -75,7 +168,15 @@ export default function LiveBroadcaster() {
     return () => {
       socket.emit('live:leave', { streamId });
       socket.off('live:chat_message');
+      socket.off('live:viewer_count_update');
+      socket.off('live:comment_pinned');
+      socket.off('live:comment_unpinned');
       socket.off('live:heart_received');
+      socket.off('live:goal_set');
+      socket.off('live:question_asked');
+      socket.off('live:question_highlighted');
+      socket.off('live:question_cleared');
+      socket.off('live:gift');
     };
   }, [streamId]);
 
@@ -126,6 +227,72 @@ export default function LiveBroadcaster() {
     socket.emit('live:heart', { streamId });
   };
 
+  const handlePinMessage = () => {
+    if (!selectedMessage || !streamId) return;
+    const socket = useSocketStore.getState().socket;
+    if (!socket) return;
+    socket.emit('live:pin_comment', {
+      streamId,
+      commentId: selectedMessage.id,
+      message: selectedMessage.message,
+      username: selectedMessage.user.username,
+      avatar: selectedMessage.user.avatar,
+    });
+    setSelectedMessage(null);
+  };
+
+  const handleUnpinMessage = () => {
+    if (!streamId) return;
+    const socket = useSocketStore.getState().socket;
+    if (!socket) return;
+    socket.emit('live:unpin_comment', { streamId });
+    setSelectedMessage(null);
+  };
+
+  const handleDeleteMessage = () => {
+    if (!selectedMessage) return;
+    setChatMessages((prev) => prev.filter((m) => m.id !== selectedMessage.id));
+    // Would ideally emit a socket event to delete it for everyone, but local hide works for Phase 1
+    setSelectedMessage(null);
+  };
+
+  const handleSetGoal = () => {
+    const target = prompt('Ingresa el monto objetivo (ej. 1000):', '1000');
+    const title = prompt('Ingresa el título del objetivo:', 'Meta del Directo');
+    if (!target || !title || !streamId) return;
+
+    const socket = useSocketStore.getState().socket;
+    if (socket) {
+      socket.emit('live:set_goal', {
+        streamId,
+        title,
+        target: parseInt(target, 10),
+      });
+    }
+  };
+
+  const handleHighlightQuestion = (q: LiveQuestion) => {
+    const socket = useSocketStore.getState().socket;
+    if (socket && streamId) {
+      socket.emit('live:highlight_question', {
+        streamId,
+        questionId: q.id,
+        question: q.question,
+        username: q.username,
+        avatar: q.avatar,
+      });
+    }
+    setIsQnAOpen(false);
+  };
+
+  const handleClearHighlightQuestion = () => {
+    const socket = useSocketStore.getState().socket;
+    if (socket && streamId) {
+      socket.emit('live:clear_question', { streamId });
+    }
+    setIsQnAOpen(false);
+  };
+
   if (!hasStarted || token === '') {
     return (
       <div className="flex h-screen flex-col items-center justify-center px-4 gap-6">
@@ -170,6 +337,47 @@ export default function LiveBroadcaster() {
     );
   }
 
+  if (isEnded) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center bg-neutral-950 px-4 text-white">
+        <div className="w-full max-w-sm bg-black/50 p-8 rounded-3xl border border-white/10 flex flex-col items-center gap-6 shadow-2xl backdrop-blur-xl">
+          <div className="p-4 bg-brand-primary/20 rounded-full">
+            <Heart className="w-12 h-12 text-brand-primary" />
+          </div>
+          <div className="text-center">
+            <h1 className="text-3xl font-bold mb-2">Live Finalizado</h1>
+            <p className="text-neutral-400 text-sm">
+              Resumen de tu transmisión
+            </p>
+          </div>
+          <div className="w-full flex gap-4 text-center mt-2">
+            <div className="flex-1 bg-white/5 rounded-2xl p-4 border border-white/5">
+              <span className="block text-2xl font-bold">{viewerCount}</span>
+              <span className="text-xs text-neutral-400 uppercase tracking-wider">
+                Espectadores
+              </span>
+            </div>
+            <div className="flex-1 bg-white/5 rounded-2xl p-4 border border-white/5">
+              <span className="block text-2xl font-bold text-pink-400">
+                {likesCount}
+              </span>
+              <span className="text-xs text-neutral-400 uppercase tracking-wider">
+                Me Gustas
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="w-full mt-4 rounded-full bg-white/10 hover:bg-white/20 px-6 py-3 font-semibold transition-all"
+          >
+            Cerrar Resumen
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const serverUrl =
     import.meta.env.VITE_LIVEKIT_URL ||
     'wss://circlesfera-6sxa79qt.livekit.cloud';
@@ -188,11 +396,17 @@ export default function LiveBroadcaster() {
         <div className="absolute top-3 left-3 z-50 flex items-center gap-2">
           <button
             type="button"
-            onClick={() => navigate(-1)}
-            className="p-1.5 bg-black/60 hover:bg-black/80 rounded-full text-white backdrop-blur-md transition-all shadow-md"
+            onClick={handleEndLive}
+            className="p-1.5 bg-black/60 hover:bg-red-500/80 rounded-full text-white backdrop-blur-md transition-colors shadow-md"
+            title="Terminar transmisión"
           >
             <X className="w-5 h-5" />
           </button>
+
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-black/40 border border-white/15 rounded-full backdrop-blur-xl text-xs font-bold text-white shadow-xl">
+            <Eye className="w-4 h-4 text-pink-400" />
+            <span>{viewerCount}</span>
+          </div>
         </div>
 
         {/* Co-Host panel — top right */}
@@ -241,6 +455,11 @@ export default function LiveBroadcaster() {
           )}
         </div>
 
+        {/* Live Goal Bar (Top Center/Left below header) */}
+        <div className="absolute top-16 left-3 z-50 pointer-events-auto">
+          <LiveGoalBar goal={liveGoal} isHost={true} onClick={handleSetGoal} />
+        </div>
+
         <div className="flex-1 overflow-hidden relative">
           <LiveKitRoom
             video={true}
@@ -254,6 +473,35 @@ export default function LiveBroadcaster() {
             <CinematicStage isBroadcaster={true} />
             <RoomAudioRenderer />
           </LiveKitRoom>
+
+          {/* Projected Question Overlay */}
+          {highlightedQuestion && (
+            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 w-[80%] max-w-sm pointer-events-none">
+              <div className="bg-white p-4 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] border border-neutral-100 animate-in zoom-in duration-300">
+                <div className="flex items-center gap-2 mb-2">
+                  <img
+                    src={
+                      highlightedQuestion.avatar ||
+                      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=50'
+                    }
+                    alt={highlightedQuestion.username}
+                    className="w-8 h-8 rounded-full"
+                  />
+                  <div>
+                    <span className="block text-xs font-bold text-neutral-800">
+                      {highlightedQuestion.username}
+                    </span>
+                    <span className="block text-[10px] text-pink-500 font-bold uppercase tracking-widest">
+                      Pregunta
+                    </span>
+                  </div>
+                </div>
+                <p className="text-black font-semibold text-lg">
+                  {highlightedQuestion.question}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Floating Hearts */}
@@ -270,23 +518,73 @@ export default function LiveBroadcaster() {
         </div>
 
         {/* Chat & Bottom Controls */}
-        <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/90 via-black/50 to-transparent p-3 flex flex-col justify-end z-40">
-          <div className="overflow-y-auto max-h-40 mb-2 space-y-1.5 no-scrollbar">
+        <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/90 via-black/50 to-transparent p-3 flex flex-col justify-end z-40 pointer-events-auto">
+          <LivePinnedComment
+            pinnedComment={pinnedComment}
+            onUnpin={handleUnpinMessage}
+          />
+
+          <div className="overflow-y-auto max-h-40 mb-2 space-y-1.5 no-scrollbar relative mask-[linear-gradient(to_bottom,transparent,black_20%)] pt-6">
             {chatMessages.map((msg) => (
-              <div
+              <button
+                type="button"
                 key={msg.id}
-                className="text-white text-xs bg-black/40 border border-white/10 backdrop-blur-md px-2.5 py-1 rounded-full w-fit max-w-[85%] shadow-sm flex items-center gap-1"
+                onClick={() =>
+                  setSelectedMessage(
+                    selectedMessage?.id === msg.id ? null : msg,
+                  )
+                }
+                className={`text-left text-white text-xs bg-black/40 border border-white/10 backdrop-blur-md px-2.5 py-1 rounded-full w-fit max-w-[85%] shadow-sm flex items-center gap-1 hover:bg-black/60 transition-colors ${selectedMessage?.id === msg.id ? 'border-pink-500/50 bg-black/80' : ''}`}
               >
                 <span className="font-extrabold text-purple-300">
                   {msg.user.username}:{' '}
                 </span>
                 <span className="text-neutral-100">{msg.message}</span>
-              </div>
+              </button>
             ))}
             <div ref={chatEndRef} />
           </div>
 
+          {/* Chat Context Menu */}
+          {selectedMessage && (
+            <div className="mb-2 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex gap-2 shadow-xl animate-in slide-in-from-bottom-2 fade-in duration-200">
+              <button
+                type="button"
+                onClick={handlePinMessage}
+                className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold text-white transition-colors"
+              >
+                <Pin size={14} /> Fijar
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteMessage}
+                className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-red-500/20 hover:bg-red-500/40 text-red-300 rounded-xl text-xs font-semibold transition-colors"
+              >
+                <Trash2 size={14} /> Eliminar
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedMessage(null)}
+                className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-neutral-400 transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
           <form onSubmit={handleSend} className="flex gap-2 items-center">
+            <button
+              type="button"
+              onClick={() => setIsQnAOpen(true)}
+              className="p-2 bg-white/15 hover:bg-white/25 rounded-full text-white transition-colors relative"
+            >
+              <HelpCircle size={18} />
+              {questions.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-pink-500 text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">
+                  {questions.length}
+                </span>
+              )}
+            </button>
             <input
               type="text"
               placeholder={t('live.chat_placeholder')}
@@ -302,6 +600,15 @@ export default function LiveBroadcaster() {
             </button>
           </form>
         </div>
+
+        <LiveQnAPanel
+          isOpen={isQnAOpen}
+          onClose={() => setIsQnAOpen(false)}
+          isHost={true}
+          questions={questions}
+          onHighlightQuestion={handleHighlightQuestion}
+          onClearHighlight={handleClearHighlightQuestion}
+        />
       </div>
 
       <style>{`

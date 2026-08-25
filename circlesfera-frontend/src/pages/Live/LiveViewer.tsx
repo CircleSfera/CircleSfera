@@ -1,7 +1,7 @@
 import '@livekit/components-styles';
 import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Eye, Gift, Heart, Send, X } from 'lucide-react';
+import { Eye, Gift, Heart, HelpCircle, Send, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
@@ -10,9 +10,15 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import CinematicStage from '../../components/live/CinematicStage';
 import CoHostInviteBanner from '../../components/live/CoHostInviteBanner';
 import LiveGiftModal from '../../components/live/LiveGiftModal';
+import LiveGoalBar, {
+  type LiveGoalData,
+} from '../../components/live/LiveGoalBar';
 import LivePinnedComment, {
   type PinnedCommentData,
 } from '../../components/live/LivePinnedComment';
+import LiveQnAPanel, {
+  type LiveQuestion,
+} from '../../components/live/LiveQnAPanel';
 import { apiClient as api } from '../../services/api';
 import { useSocketStore } from '../../stores/socketStore';
 
@@ -44,6 +50,14 @@ export default function LiveViewer() {
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const [reactions, setReactions] = useState<FloatingReaction[]>([]);
+
+  // Phase 2 State
+  const [liveGoal, setLiveGoal] = useState<LiveGoalData | null>(null);
+  const [isQnAOpen, setIsQnAOpen] = useState(false);
+  const [questions, setQuestions] = useState<LiveQuestion[]>([]);
+  const [highlightedQuestion, setHighlightedQuestion] =
+    useState<LiveQuestion | null>(null);
+
   const navigate = useNavigate();
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -148,6 +162,23 @@ export default function LiveViewer() {
       setPendingInvite(data);
     });
 
+    // Phase 2 listeners
+    socket.on('live:goal_set', (data: LiveGoalData) => {
+      setLiveGoal(data);
+    });
+
+    socket.on('live:question_asked', (q: LiveQuestion) => {
+      setQuestions((prev) => [q, ...prev]);
+    });
+
+    socket.on('live:question_highlighted', (q: LiveQuestion) => {
+      setHighlightedQuestion(q);
+    });
+
+    socket.on('live:question_cleared', () => {
+      setHighlightedQuestion(null);
+    });
+
     return () => {
       socket.emit('live:leave', { streamId });
       socket.off('live:viewer_count_update');
@@ -158,6 +189,10 @@ export default function LiveViewer() {
       socket.off('live:heart_received');
       socket.off('live:reaction_received');
       socket.off('live:cohost_invite');
+      socket.off('live:goal_set');
+      socket.off('live:question_asked');
+      socket.off('live:question_highlighted');
+      socket.off('live:question_cleared');
     };
   }, [streamId, navigate, t]);
 
@@ -189,6 +224,18 @@ export default function LiveViewer() {
 
   const handleDoubleTap = () => {
     sendQuickReaction('❤️');
+  };
+
+  const handleAskQuestion = (question: string) => {
+    const socket = useSocketStore.getState().socket;
+    // We can just pass a placeholder 'Espectador' for now.
+    if (!socket || !activeStreamId) return;
+    socket.emit('live:ask_question', {
+      streamId: activeStreamId,
+      question,
+      username: 'Espectador',
+    });
+    setIsQnAOpen(false);
   };
 
   if (activeToken === '') {
@@ -262,6 +309,10 @@ export default function LiveViewer() {
             </button>
           </div>
         </div>
+        {/* Live Goal Bar (Top Center/Left below header) */}
+        <div className="absolute top-16 left-4 z-50 pointer-events-auto">
+          <LiveGoalBar goal={liveGoal} isHost={false} />
+        </div>
         {/* Co-Host Invite Banner */}
         <CoHostInviteBanner
           invite={pendingInvite}
@@ -285,6 +336,35 @@ export default function LiveViewer() {
             <CinematicStage />
             <RoomAudioRenderer />
           </LiveKitRoom>
+
+          {/* Projected Question Overlay */}
+          {highlightedQuestion && (
+            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 w-[80%] max-w-sm pointer-events-none">
+              <div className="bg-white p-4 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] border border-neutral-100 animate-in zoom-in duration-300">
+                <div className="flex items-center gap-2 mb-2">
+                  <img
+                    src={
+                      highlightedQuestion.avatar ||
+                      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=50'
+                    }
+                    alt={highlightedQuestion.username}
+                    className="w-8 h-8 rounded-full"
+                  />
+                  <div>
+                    <span className="block text-xs font-bold text-neutral-800">
+                      {highlightedQuestion.username}
+                    </span>
+                    <span className="block text-[10px] text-pink-500 font-bold uppercase tracking-widest">
+                      Pregunta
+                    </span>
+                  </div>
+                </div>
+                <p className="text-black font-semibold text-lg">
+                  {highlightedQuestion.question}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
         {/* Floating Reactions Overlay */}
         <div className="pointer-events-none absolute bottom-36 right-8 top-16 flex w-20 flex-col-reverse items-center justify-start overflow-hidden pb-4 z-40">
@@ -314,7 +394,7 @@ export default function LiveViewer() {
           <LivePinnedComment pinnedComment={pinnedComment} />
 
           {/* Live Chat Messages (Instagram Style: Stream of semi-transparent text lines) */}
-          <div className="overflow-y-auto max-h-52 mb-4 space-y-1.5 no-scrollbar">
+          <div className="overflow-y-auto max-h-52 mb-4 space-y-1.5 no-scrollbar relative mask-[linear-gradient(to_bottom,transparent,black_20%)] pt-6">
             <AnimatePresence initial={false}>
               {chatMessages.map((msg) => (
                 <motion.div
@@ -338,11 +418,18 @@ export default function LiveViewer() {
           </div>
 
           {/* Instagram Bottom Action Bar */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 pointer-events-auto">
             <form
               onSubmit={handleSend}
               className="flex-1 flex gap-2 items-center"
             >
+              <button
+                type="button"
+                onClick={() => setIsQnAOpen(true)}
+                className="p-2.5 bg-white/15 hover:bg-white/25 rounded-full text-white transition-colors relative"
+              >
+                <HelpCircle size={20} />
+              </button>
               <input
                 type="text"
                 placeholder={t('live.chat_placeholder', 'Comentar...')}
@@ -391,6 +478,13 @@ export default function LiveViewer() {
             streamId={streamId}
           />
         ) : null}
+        <LiveQnAPanel
+          isOpen={isQnAOpen}
+          onClose={() => setIsQnAOpen(false)}
+          isHost={false}
+          questions={questions}
+          onAskQuestion={handleAskQuestion}
+        />
         <style>{`
         .animate-float-up {
           animation: floatUp 2s ease-in forwards;

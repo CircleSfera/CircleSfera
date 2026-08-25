@@ -23,12 +23,17 @@ import { useSocketStore } from '../../stores/socketStore';
 import { useCallStore } from '../../stores/useCallStore';
 import type { Conversation, Message, Participant } from '../../types';
 import { logger } from '../../utils/logger';
+import { pickNativeImage } from '../../utils/nativeFilePicker';
 import { VoiceRecorder } from '../audio/VoiceRecorder';
 import { EmptyState } from '../ErrorEmptyStates';
 import { LoadingSpinner } from '../LoadingStates';
 import UserAvatar from '../UserAvatar';
 import GroupDetailsModal from './GroupDetailsModal';
 import MessageBubble from './MessageBubble';
+import {
+  mergeServerMessagesWithOptimistic,
+  upsertSentMessage,
+} from './mergeChatMessages';
 
 export default function ChatWindow() {
   const { t } = useTranslation();
@@ -83,19 +88,33 @@ export default function ChatWindow() {
       voiceDuration: voiceData.voiceDuration,
       voiceWaveform: voiceData.voiceWaveform,
       reactions: [],
+      tempId,
     };
     setMessages((prev) => [...prev, tempMsg]);
 
     try {
-      await chatApi.sendMessage({
+      const res = await chatApi.sendMessage({
         conversationId: id,
         content: '🎤 Nota de Voz',
         voiceUrl: voiceData.voiceUrl,
         voiceDuration: voiceData.voiceDuration,
         voiceWaveform: voiceData.voiceWaveform,
+        tempId,
       });
+      setMessages((prev) =>
+        upsertSentMessage(prev, {
+          ...res.data,
+          tempId,
+          content: '🎤 Nota de Voz',
+          voiceUrl: voiceData.voiceUrl,
+          voiceDuration: voiceData.voiceDuration,
+          voiceWaveform: voiceData.voiceWaveform,
+        }),
+      );
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
     } catch (err) {
       logger.error('Failed to send voice message:', err);
+      setMessages((prev) => prev.filter((m) => m.tempId !== tempId));
     }
   };
 
@@ -170,24 +189,35 @@ export default function ChatWindow() {
     }
   }, [messages, scrollToBottom]);
 
-  useEffect(() => {
-    if (!id || !profile) return;
+  const currentUserId =
+    profile?.userId || profile?.user?.id || profile?.id || '';
 
-    // Fetch conversation details and messages
-    apiClient
-      .get<Message[]>(`/chat/conversations/${id}/messages`)
+  useEffect(() => {
+    if (!id || !currentUserId) return;
+    let cancelled = false;
+    setMessages([]);
+    setConversation(null);
+    setIsLoading(true);
+
+    chatApi
+      .getMessages(id)
       .then((res) => {
-        setMessages(res.data);
+        if (cancelled) return;
+        setMessages((prev) =>
+          mergeServerMessagesWithOptimistic(res.data, prev),
+        );
       })
       .catch((err) => logger.error('Failed to load messages', err))
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
 
-    apiClient.get<Conversation[]>('/chat/conversations').then((res) => {
+    chatApi.getConversations().then((res) => {
+      if (cancelled) return;
       const conv = res.data.find((c: Conversation) => c.id === id);
       if (conv) {
         setConversation(conv);
 
-        // Use the chatApi to persist the read status in the database
         chatApi
           .markAsRead(id)
           .then(() => {
@@ -197,10 +227,9 @@ export default function ChatWindow() {
             logger.error('Failed to mark conversation as read', err);
           });
 
-        // Try to emit socket event if possible, but the API is the source of truth
         if (!conv.isGroup && conv.participants) {
           const other = conv.participants.find(
-            (p: Participant) => p.userId !== profile?.id,
+            (p: Participant) => p.userId !== currentUserId,
           );
           if (other) {
             markRead(id, other.userId);
@@ -208,7 +237,11 @@ export default function ChatWindow() {
         }
       }
     });
-  }, [id, profile, markRead, queryClient]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, currentUserId, markRead, queryClient]);
 
   useEffect(() => {
     if (!socket || !id) return;
@@ -417,6 +450,16 @@ export default function ChatWindow() {
     }
   };
 
+  // Cleanup typing status when unmounting or changing chat
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (isTyping && id && chatInfo.userId && !chatInfo.isGroup) {
+        stopTyping(id, chatInfo.userId);
+      }
+    };
+  }, [id, chatInfo.userId, chatInfo.isGroup, isTyping, stopTyping]);
+
   const handleReply = (msg: Message) => {
     setReplyTo(msg);
     inputRef.current?.focus();
@@ -427,10 +470,10 @@ export default function ChatWindow() {
   };
 
   const sendReaction = (messageId: string, emoji: string) => {
-    if (!socket || !chatInfo.userId) return;
+    if (!socket || !id) return;
     socket.emit('send_reaction', {
       messageId,
-      recipientId: chatInfo.userId,
+      conversationId: id,
       reaction: emoji,
     });
 
@@ -487,6 +530,8 @@ export default function ChatWindow() {
     }
 
     setIsUploading(true);
+    const tempId =
+      Date.now().toString() + Math.random().toString(36).substring(2, 9);
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -500,9 +545,6 @@ export default function ChatWindow() {
 
       const finalContent = JSON.stringify(mediaPayload);
 
-      const tempId =
-        Date.now().toString() + Math.random().toString(36).substring(2, 9);
-
       const tempMsg: Message = {
         id: tempId,
         content: JSON.stringify(mediaPayload), // plaintext locally
@@ -513,18 +555,30 @@ export default function ChatWindow() {
         url: uploadRes.data.url,
         mediaType: 'image', // UI fallback
         reactions: [],
+        tempId,
       };
       setMessages((prev) => [...prev, tempMsg]);
 
-      await apiClient.post('/chat/messages', {
+      const res = await chatApi.sendMessage({
         conversationId: id,
         content: finalContent,
         mediaUrl: uploadRes.data.url,
         mediaType: 'image',
         tempId,
       });
+      setMessages((prev) =>
+        upsertSentMessage(prev, {
+          ...res.data,
+          tempId,
+          content: finalContent,
+          url: uploadRes.data.url,
+          mediaType: 'image',
+        }),
+      );
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
     } catch (err) {
       logger.error('Upload failed', err);
+      setMessages((prev) => prev.filter((m) => m.tempId !== tempId));
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -533,17 +587,14 @@ export default function ChatWindow() {
 
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !socket || !id || !profile) return;
+    if (!input.trim() || !id || !profile) return;
 
     const tempId =
       Date.now().toString() + Math.random().toString(36).substring(2, 9);
 
-    const currentUserId =
-      profile?.userId || profile?.user?.id || profile?.id || '';
-
     const tempMsg: Message = {
       id: tempId,
-      content: input, // We keep plaintext locally for immediate display
+      content: input,
       conversationId: id,
       senderId: currentUserId,
       createdAt: new Date().toISOString(),
@@ -564,6 +615,8 @@ export default function ChatWindow() {
       tempId,
     };
 
+    const plaintext = input;
+
     if (!editingMessage) {
       setMessages((prev) => [...prev, tempMsg]);
     }
@@ -571,18 +624,26 @@ export default function ChatWindow() {
     const doSend = async () => {
       try {
         if (editingMessage) {
-          await chatApi.editMessage(editingMessage.id, input);
+          await chatApi.editMessage(editingMessage.id, plaintext);
         } else {
-          await apiClient.post('/chat/messages', {
+          const res = await chatApi.sendMessage({
             conversationId: id,
-            content: input,
+            content: plaintext,
             replyToId: replyTo?.id,
             tempId,
           });
+          setMessages((prev) =>
+            upsertSentMessage(prev, {
+              ...res.data,
+              tempId,
+              content: plaintext,
+              replyTo: tempMsg.replyTo,
+            }),
+          );
+          queryClient.invalidateQueries({ queryKey: ['conversations'] });
         }
       } catch (err) {
         logger.error('Failed to send E2E message', err);
-        // Remove temp message on error
         setMessages((prev) => prev.filter((m) => m.tempId !== tempId));
       }
     };
@@ -1099,7 +1160,13 @@ export default function ChatWindow() {
 
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={async (e) => {
+                  e.preventDefault();
+                  const handled = await pickNativeImage(fileInputRef);
+                  if (!handled) {
+                    fileInputRef.current?.click();
+                  }
+                }}
                 className="p-3 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors shrink-0 mb-0.5 ml-0.5"
               >
                 <ImageIcon size={22} strokeWidth={1.5} />

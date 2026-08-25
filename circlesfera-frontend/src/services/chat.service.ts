@@ -13,7 +13,7 @@ export const chatApi = {
   sendMessage: (data: {
     recipientId?: string;
     content: string;
-    url?: string;
+    mediaUrl?: string;
     mediaType?: string;
     conversationId?: string;
     tempId?: string;

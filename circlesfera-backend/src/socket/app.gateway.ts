@@ -178,13 +178,28 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   /**
+   * Connected sockets for this gateway.
+   *
+   * Nest injects the `/events` Namespace into `@WebSocketServer()`, so
+   * `server.sockets` is already a `Map<id, Socket>`. Treating it as the
+   * root `Server` (`server.sockets.sockets`) throws and 500s after a
+   * message has already been persisted.
+   */
+  private connectedSockets(): Iterable<SocketWithAuth> {
+    const sockets = this.server?.sockets as
+      | Map<string, SocketWithAuth>
+      | { sockets?: Map<string, SocketWithAuth> }
+      | undefined;
+    if (!sockets) return [];
+    if (sockets instanceof Map) return sockets.values();
+    return sockets.sockets?.values() ?? [];
+  }
+
+  /**
    * Helper to dynamically grant a user in-memory access to a new conversation room.
    */
   addConversationToSocket(userId: string, conversationId: string) {
-    if (!this.server?.sockets) return;
-
-    for (const [_, socket] of this.server.sockets.sockets) {
-      const client = socket as SocketWithAuth;
+    for (const client of this.connectedSockets()) {
       if (client.data?.user?.sub === userId) {
         if (!client.data.conversationIds) {
           client.data.conversationIds = new Set();
@@ -225,7 +240,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody()
     payload: {
       messageId: string;
-      recipientId: string;
+      conversationId: string;
       reaction: string;
     },
     @ConnectedSocket() client: SocketWithAuth,
@@ -243,15 +258,19 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       id: reactionRecord.id,
     };
 
-    // Notify recipient
-    this.server
-      .to(`user:${payload.recipientId}`)
-      .emit('message_reaction', eventPayload);
+    // Get all participants of this conversation to notify them
+    const conv = await this.prisma.conversation.findUnique({
+      where: { id: payload.conversationId },
+      select: { participants: { select: { userId: true } } },
+    });
 
-    // Notify sender back
-    this.server
-      .to(`user:${client.data.user.sub}`)
-      .emit('message_reaction', eventPayload);
+    if (conv) {
+      conv.participants.forEach((p) => {
+        this.server
+          .to(`user:${p.userId}`)
+          .emit('message_reaction', eventPayload);
+      });
+    }
   }
 
   @SubscribeMessage('mark_read')
@@ -508,6 +527,62 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(`live:${payload.streamId}`).emit('live:reaction_received', {
       userId: client.data.user.sub,
       reaction: payload.reaction || '🔥',
+    });
+  }
+
+  // --- Phase 2: Q&A and Live Goals ---
+
+  @SubscribeMessage('live:ask_question')
+  async handleLiveAskQuestion(
+    @MessageBody() payload: {
+      streamId: string;
+      question: string;
+      username: string;
+      avatar?: string;
+    },
+  ) {
+    this.server.to(`live:${payload.streamId}`).emit('live:question_asked', {
+      id: crypto.randomUUID(),
+      question: payload.question,
+      username: payload.username,
+      avatar: payload.avatar,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  @SubscribeMessage('live:highlight_question')
+  async handleLiveHighlightQuestion(
+    @MessageBody() payload: {
+      streamId: string;
+      questionId: string;
+      question: string;
+      username: string;
+      avatar?: string;
+    },
+  ) {
+    this.server
+      .to(`live:${payload.streamId}`)
+      .emit('live:question_highlighted', {
+        id: payload.questionId,
+        question: payload.question,
+        username: payload.username,
+        avatar: payload.avatar,
+      });
+  }
+
+  @SubscribeMessage('live:clear_question')
+  async handleLiveClearQuestion(@MessageBody() payload: { streamId: string }) {
+    this.server.to(`live:${payload.streamId}`).emit('live:question_cleared');
+  }
+
+  @SubscribeMessage('live:set_goal')
+  async handleLiveSetGoal(
+    @MessageBody() payload: { streamId: string; title: string; target: number },
+  ) {
+    this.server.to(`live:${payload.streamId}`).emit('live:goal_set', {
+      title: payload.title,
+      target: payload.target,
+      current: 0, // Goals start at 0
     });
   }
 
