@@ -1,8 +1,10 @@
+import type { PushSubscribePayload } from '../utils/pushServiceWorker';
 import { apiClient } from './api';
 
 export const pushApi = {
-  getPublicKey: () => apiClient.get('/push/public-key'),
-  subscribe: (subscription: any) =>
+  getPublicKey: () =>
+    apiClient.get<{ publicKey?: string | null }>('/push/public-key'),
+  subscribe: (subscription: PushSubscribePayload) =>
     apiClient.post('/push/subscribe', subscription),
   unsubscribe: (endpoint: string) =>
     apiClient.delete(

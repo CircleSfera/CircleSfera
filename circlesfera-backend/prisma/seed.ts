@@ -223,13 +223,14 @@ async function main() {
     console.log('👤 Creando Cuentas Administradoras...');
     const adminUser = await prisma.user.upsert({
       where: { email: 'admin@circlesfera.com' },
-      update: { role: 'USER' },
+      update: { role: 'USER', emailVerified: new Date() },
       create: {
         email: 'admin@circlesfera.com',
         password: hashedPassword,
         role: 'USER',
         accountType: 'BUSINESS',
         verificationLevel: 'BUSINESS',
+        emailVerified: new Date(),
         profile: {
           create: {
             username: 'CircleSfera',
@@ -247,13 +248,14 @@ async function main() {
 
     const feliuUser = await prisma.user.upsert({
       where: { email: 'easyfeliu@gmail.com' },
-      update: { role: 'USER' },
+      update: { role: 'USER', emailVerified: new Date() },
       create: {
         email: 'easyfeliu@gmail.com',
         password: hashedPassword,
         role: 'USER',
         accountType: 'CREATOR',
         verificationLevel: 'VERIFIED',
+        emailVerified: new Date(),
         profile: {
           create: {
             username: 'EasyFeliu',
@@ -340,13 +342,14 @@ async function main() {
     for (const u of SEED_USERS) {
       const user = await prisma.user.upsert({
         where: { email: u.email },
-        update: {},
+        update: { emailVerified: new Date() },
         create: {
           email: u.email,
           password: hashedPassword,
           role: 'USER',
           accountType: u.accountType as any,
           verificationLevel: u.verificationLevel as any,
+          emailVerified: new Date(),
           profile: {
             create: {
               username: u.username,

@@ -1,8 +1,10 @@
 import type { LoginDto as ILoginDto } from '@circlesfera/shared';
+import { Transform } from 'class-transformer';
 import { IsOptional, IsString, MinLength } from 'class-validator';
 
 export class LoginDto implements ILoginDto {
   @IsString()
+  @Transform(({ value }) => value?.trim().toLowerCase())
   identifier!: string;
 
   @IsString()
@@ -12,4 +14,12 @@ export class LoginDto implements ILoginDto {
   @IsOptional()
   @IsString()
   twoFactorCode?: string;
+
+  @IsOptional()
+  @IsString()
+  captchaToken?: string;
+
+  @IsOptional()
+  @IsString()
+  visitorId?: string;
 }

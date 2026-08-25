@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsObject, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  Allow,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 
 export class PushSubscriptionKeysDto {
   @IsNotEmpty()
@@ -16,6 +23,12 @@ export class SubscribePushDto {
   endpoint!: string;
 
   @IsNotEmpty()
-  @IsObject()
+  @ValidateNested()
+  @Type(() => PushSubscriptionKeysDto)
   keys!: PushSubscriptionKeysDto;
+
+  /** Present on `PushSubscription.toJSON()`; ignored by persistence. */
+  @IsOptional()
+  @Allow()
+  expirationTime?: number | null;
 }

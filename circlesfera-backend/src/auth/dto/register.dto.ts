@@ -30,4 +30,12 @@ export class RegisterDto implements IRegisterDto {
   /** ISO date (YYYY-MM-DD). Must be 16+ (enforced in AuthService). */
   @IsDateString()
   dateOfBirth!: string;
+
+  @IsOptional()
+  @IsString()
+  captchaToken?: string;
+
+  @IsOptional()
+  @IsString()
+  visitorId?: string;
 }

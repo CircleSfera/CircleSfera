@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { ApiErrorCode } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   BadRequestException,
   ConflictException,
@@ -13,6 +14,12 @@ import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import * as bcrypt from 'bcrypt';
 import type { Queue } from 'bullmq';
+import type { Cache } from 'cache-manager';
+import {
+  type AbuseRequestMeta,
+  DeviceSignalService,
+} from '../common/abuse/device-signal.service.js';
+import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
@@ -42,6 +49,10 @@ export class AuthService {
     @InjectQueue('users-processing') private readonly usersQueue: Queue,
     @Inject(SystemSettingsService)
     private readonly systemSettings: SystemSettingsService,
+    @Inject(TurnstileService) private readonly turnstile: TurnstileService,
+    @Inject(DeviceSignalService)
+    private readonly deviceSignals: DeviceSignalService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
   /**
@@ -54,7 +65,9 @@ export class AuthService {
    */
   async register(
     dto: RegisterDto,
+    meta: AbuseRequestMeta = {},
   ): Promise<{ accessToken: string; refreshToken: string }> {
+    await this.turnstile.assertValid(dto.captchaToken, meta.ip);
     const registrationOpen = await this.systemSettings.isEnabled(
       SYSTEM_SETTING_KEYS.REGISTRATION_OPEN,
     );
@@ -148,8 +161,18 @@ export class AuthService {
       verificationToken,
     );
 
+    await this.deviceSignals.recordSignup(user.id, {
+      ...meta,
+      visitorId: dto.visitorId,
+    });
+
     // Generate tokens
-    return this.generateTokens(user.id, user.email);
+    return this.generateTokens(
+      user.id,
+      user.email,
+      meta.userAgent || undefined,
+      meta.ip || undefined,
+    );
   }
 
   /**
@@ -175,7 +198,38 @@ export class AuthService {
       },
     });
 
+    const profile = await this.prisma.profile.findUnique({
+      where: { userId: user.id },
+      select: { username: true },
+    });
+    if (profile?.username) {
+      await this.cacheManager.del(`profile:${profile.username}`);
+    }
+
     return { message: 'Email verified successfully' };
+  }
+
+  async resendVerification(userId: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, emailVerified: true },
+    });
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    if (user.emailVerified) {
+      return { message: 'Email already verified' };
+    }
+    const verificationToken = randomUUID();
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { verificationToken },
+    });
+    await this.emailService.sendVerificationEmail(
+      user.email,
+      verificationToken,
+    );
+    return { message: 'Verification email sent' };
   }
 
   /**
@@ -258,7 +312,9 @@ export class AuthService {
    */
   async login(
     dto: LoginDto,
+    meta: AbuseRequestMeta = {},
   ): Promise<{ accessToken: string; refreshToken: string }> {
+    await this.turnstile.assertValid(dto.captchaToken, meta.ip);
     // Find user by email or username
     let user = await this.prisma.user.findUnique({
       where: { email: dto.identifier },
@@ -397,8 +453,17 @@ export class AuthService {
       }
     }
 
-    // Generate tokens
-    return this.generateTokens(user.id, user.email);
+    await this.deviceSignals.recordLogin(user.id, {
+      ...meta,
+      visitorId: dto.visitorId,
+    });
+
+    return this.generateTokens(
+      user.id,
+      user.email,
+      meta.userAgent || undefined,
+      meta.ip || undefined,
+    );
   }
 
   /**
@@ -409,6 +474,7 @@ export class AuthService {
    */
   async loginById(
     userId: string,
+    meta: AbuseRequestMeta = {},
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -458,7 +524,12 @@ export class AuthService {
       });
     }
 
-    return this.generateTokens(user.id, user.email);
+    return this.generateTokens(
+      user.id,
+      user.email,
+      meta.userAgent || undefined,
+      meta.ip || undefined,
+    );
   }
 
   /**
@@ -469,6 +540,7 @@ export class AuthService {
    */
   async refreshToken(
     dto: RefreshTokenDto,
+    meta: AbuseRequestMeta = {},
   ): Promise<{ accessToken: string; refreshToken: string }> {
     if (!dto.refreshToken) {
       throw new UnauthorizedException('Refresh token required');
@@ -505,7 +577,12 @@ export class AuthService {
       await this.prisma.refreshToken.delete({ where: { id: storedToken.id } });
 
       // Generate new tokens
-      return this.generateTokens(payload.sub, payload.email);
+      return this.generateTokens(
+        payload.sub,
+        payload.email,
+        meta.userAgent || undefined,
+        meta.ip || undefined,
+      );
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }

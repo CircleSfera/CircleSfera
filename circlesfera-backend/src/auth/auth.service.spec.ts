@@ -1,4 +1,5 @@
 import { getQueueToken } from '@nestjs/bullmq';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   BadRequestException,
   ConflictException,
@@ -10,6 +11,8 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import * as argon2 from 'argon2';
 import * as bcrypt from 'bcrypt';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { DeviceSignalService } from '../common/abuse/device-signal.service.js';
+import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
@@ -88,6 +91,24 @@ describe('AuthService', () => {
           useValue: mockUsersQueue,
         },
         { provide: SystemSettingsService, useValue: mockSystemSettings },
+        {
+          provide: TurnstileService,
+          useValue: {
+            assertValid: vi.fn().mockResolvedValue(undefined),
+            incrementEmailForbidden: vi.fn(),
+          },
+        },
+        {
+          provide: DeviceSignalService,
+          useValue: {
+            recordSignup: vi.fn().mockResolvedValue(undefined),
+            recordLogin: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: CACHE_MANAGER,
+          useValue: { get: vi.fn(), set: vi.fn(), del: vi.fn() },
+        },
       ],
     }).compile();
 

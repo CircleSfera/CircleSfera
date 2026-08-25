@@ -1,6 +1,7 @@
 import { BullModule } from '@nestjs/bullmq';
 import { forwardRef, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { AbuseModule } from '../common/abuse/abuse.module.js';
 import { EmailModule } from '../email/email.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { AuthController } from './auth.controller.js';
@@ -14,6 +15,7 @@ import { TwoFactorModule } from './two-factor/two-factor.module.js';
     PrismaModule,
     JwtModule.register({}),
     EmailModule,
+    AbuseModule,
     forwardRef(() => PasskeyModule),
     TwoFactorModule,
     BullModule.registerQueue({

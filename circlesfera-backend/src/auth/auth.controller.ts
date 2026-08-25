@@ -16,6 +16,10 @@ import { ApiTags } from '@nestjs/swagger';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import {
+  clientIpFromHeaders,
+  countryFromHeaders,
+} from '../common/abuse/device-signal.service.js';
+import {
   ACCESS_TOKEN_COOKIE,
   accessTokenCookieOptions,
   clearCookieOptions,
@@ -68,9 +72,10 @@ export class AuthController {
   })
   async register(
     @Body() dto: RegisterDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string }> {
-    const tokens = await this.authService.register(dto);
+    const tokens = await this.authService.register(dto, this.abuseMeta(req));
     res.cookie(
       ACCESS_TOKEN_COOKIE,
       tokens.accessToken,
@@ -97,9 +102,10 @@ export class AuthController {
   })
   async login(
     @Body() dto: LoginDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string }> {
-    const tokens = await this.authService.login(dto);
+    const tokens = await this.authService.login(dto, this.abuseMeta(req));
     res.cookie(
       ACCESS_TOKEN_COOKIE,
       tokens.accessToken,
@@ -130,7 +136,10 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string }> {
     const refreshToken = this.getRefreshToken(req, body);
-    const tokens = await this.authService.refreshToken({ refreshToken });
+    const tokens = await this.authService.refreshToken(
+      { refreshToken },
+      this.abuseMeta(req),
+    );
     res.cookie(
       ACCESS_TOKEN_COOKIE,
       tokens.accessToken,
@@ -165,6 +174,20 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async verifyEmail(@Body() dto: VerifyEmailDto) {
     return this.authService.verifyEmail(dto);
+  }
+
+  /** Resend the email verification link (authenticated). */
+  @Post('resend-verification')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Throttle({
+    short: {
+      limit: process.env.NODE_ENV !== 'production' ? 100 : 3,
+      ttl: 60000,
+    },
+  })
+  async resendVerification(@CurrentUser() user: CurrentUserData) {
+    return this.authService.resendVerification(user.userId);
   }
 
   /** Request a password reset email. */
@@ -203,5 +226,20 @@ export class AuthController {
     @CurrentUser() user: CurrentUserData,
   ) {
     return this.authService.revokeSession(user.userId, sessionId);
+  }
+
+  private abuseMeta(req: Request) {
+    const headers = req.headers as Record<
+      string,
+      string | string[] | undefined
+    >;
+    return {
+      ip: clientIpFromHeaders(headers, req.ip),
+      userAgent:
+        typeof req.headers['user-agent'] === 'string'
+          ? req.headers['user-agent']
+          : null,
+      country: countryFromHeaders(headers),
+    };
   }
 }

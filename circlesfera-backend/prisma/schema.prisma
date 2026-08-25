@@ -92,6 +92,17 @@ model User {
   isOnline   Boolean   @default(false)
   lastSeenAt DateTime?
 
+  // Abuse / trust signals — raw IP retained for account lifetime; hashes for clustering indexes.
+  // Public APIs never expose raw IP; GDPR export and admin do (transparency).
+  signupIp        String?
+  lastIp          String?
+  signupIpHash    String?
+  lastIpHash      String?
+  signupCountry   String?
+  botLabeledAt    DateTime?
+  botLabelReason  String?
+  deviceSignals   DeviceSignal[]
+
   // Platform Subscriptions & Connect
   stripeCustomerId       String?                @unique
   stripeConnectAccountId String?                @unique
@@ -170,7 +181,28 @@ model User {
   @@index([resetToken])
   @@index([scheduledDeletionAt])
   @@index([suspendedUntil])
+  @@index([signupIp])
+  @@index([lastIp])
+  @@index([signupIpHash])
+  @@index([lastIpHash])
+  @@index([botLabeledAt])
   @@map("users")
+}
+
+/// First-party device hash for T&S clustering. visitorHash is HMAC(visitorId).
+model DeviceSignal {
+  id            String   @id @default(uuid())
+  userId        String
+  visitorHash   String
+  userAgentHash String?
+  firstSeenAt   DateTime @default(now())
+  lastSeenAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, visitorHash])
+  @@index([visitorHash])
+  @@map("device_signals")
 }
 
 model EditProject {
@@ -1333,6 +1365,8 @@ enum AdminAction {
   ACCOUNT_WARNED
   ACCOUNT_SUSPENDED
   ACCOUNT_RESTORED
+  ACCOUNT_BOT_LABELED
+  ACCOUNT_BOT_LABEL_CLEARED
   STRIKE_ADDED
   STRIKE_REMOVED
   MANUAL_OVERRIDE
@@ -1663,6 +1697,7 @@ model Appeal {
 enum AppealTargetType {
   ACCOUNT_BAN
   POST_REMOVAL
+  BOT_LABEL
 }
 
 enum AppealStatus {

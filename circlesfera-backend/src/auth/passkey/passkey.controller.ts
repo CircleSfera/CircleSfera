@@ -7,11 +7,16 @@ import {
   HttpStatus,
   Param,
   Post,
+  Req,
   Res,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
+import {
+  clientIpFromHeaders,
+  countryFromHeaders,
+} from '../../common/abuse/device-signal.service.js';
 import {
   ACCESS_TOKEN_COOKIE,
   accessTokenCookieOptions,
@@ -76,6 +81,7 @@ export class PasskeyController {
   @Post('login-verify')
   @HttpCode(HttpStatus.OK)
   async verifyAuthentication(
+    @Req() req: Request,
     @Body() body: AuthenticatePasskeyDto,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string }> {
@@ -85,7 +91,10 @@ export class PasskeyController {
     );
 
     if (result.verified && result.userId) {
-      const tokens = await this.authService.loginById(result.userId);
+      const tokens = await this.authService.loginById(
+        result.userId,
+        this.abuseMeta(req),
+      );
       res.cookie(
         ACCESS_TOKEN_COOKIE,
         tokens.accessToken,
@@ -107,8 +116,23 @@ export class PasskeyController {
   @Delete(':id')
   async deletePasskey(
     @CurrentUser() user: CurrentUserData,
-    @Param('id') id: string,
+    @Param('id') passkeyId: string,
   ) {
-    return this.passkeyService.deletePasskey(user.userId, id);
+    return this.passkeyService.deletePasskey(user.userId, passkeyId);
+  }
+
+  private abuseMeta(req: Request) {
+    const headers = req.headers as Record<
+      string,
+      string | string[] | undefined
+    >;
+    return {
+      ip: clientIpFromHeaders(headers, req.ip),
+      userAgent:
+        typeof req.headers['user-agent'] === 'string'
+          ? req.headers['user-agent']
+          : null,
+      country: countryFromHeaders(headers),
+    };
   }
 }

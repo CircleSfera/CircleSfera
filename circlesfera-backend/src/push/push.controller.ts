@@ -12,7 +12,7 @@ import { ConfigService } from '@nestjs/config';
 import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import type { SubscribePushDto } from './dto/subscribe.dto.js';
+import { SubscribePushDto } from './dto/subscribe.dto.js';
 import { PushService } from './push.service.js';
 
 @Controller('push')
