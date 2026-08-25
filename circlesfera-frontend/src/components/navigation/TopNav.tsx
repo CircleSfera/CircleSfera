@@ -1,3 +1,4 @@
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { Bell, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import logoSrc from '../../assets/logo.png';
@@ -14,6 +15,14 @@ export default function TopNav() {
     (state) => state.unreadMessagesCount,
   );
   const unreadCount = useNotificationsStore((state) => state.unreadCount);
+
+  const triggerHaptic = () => {
+    try {
+      Haptics.impact({ style: ImpactStyle.Light });
+    } catch {
+      // Ignored
+    }
+  };
 
   return (
     <div
@@ -35,6 +44,7 @@ export default function TopNav() {
       {/* Center: Logo */}
       <Link
         to="/"
+        onClick={triggerHaptic}
         className="flex items-center justify-center gap-1.5 flex-none focus:outline-none"
         aria-label="CircleSfera inicio"
       >
@@ -53,6 +63,7 @@ export default function TopNav() {
         {/* Notifications */}
         <Link
           to="/activity"
+          onClick={triggerHaptic}
           className="relative flex items-center justify-center rounded-xl text-white/80 hover:text-white hover:bg-white/8 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60"
           aria-label="Notificaciones"
           style={{ width: 44, height: 44 }}
@@ -76,6 +87,7 @@ export default function TopNav() {
         {/* Messages */}
         <Link
           to="/direct/inbox"
+          onClick={triggerHaptic}
           className="relative flex items-center justify-center rounded-xl text-white/80 hover:text-white hover:bg-white/8 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60"
           aria-label="Mensajes directos"
           style={{ width: 44, height: 44 }}

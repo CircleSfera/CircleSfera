@@ -1,8 +1,10 @@
 import { Capacitor } from '@capacitor/core';
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { NativeBiometric } from '@capgo/capacitor-native-biometric';
 import { LockKeyhole } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuthStore } from '../../stores/authStore';
 import { useSecurityStore } from '../../stores/securityStore';
 
 export const AppLockScreen: React.FC = () => {
@@ -12,6 +14,7 @@ export const AppLockScreen: React.FC = () => {
   const isBiometricEnabled = useSecurityStore(
     (state) => state.isBiometricEnabled,
   );
+  const logout = useAuthStore((state) => state.logout);
   const [error, setError] = useState<string | null>(null);
 
   const attemptUnlock = useCallback(async () => {
@@ -40,10 +43,21 @@ export const AppLockScreen: React.FC = () => {
         ),
       });
 
+      try {
+        await Haptics.impact({ style: ImpactStyle.Light });
+      } catch {
+        // Ignore
+      }
+
       setLocked(false);
       setError(null);
     } catch (err: any) {
       console.error('Biometric auth failed', err);
+      try {
+        await Haptics.notification({ type: NotificationType.Error });
+      } catch {
+        // Ignore
+      }
       // Don't unlock
       setError(
         t(
@@ -88,10 +102,21 @@ export const AppLockScreen: React.FC = () => {
       <button
         type="button"
         onClick={attemptUnlock}
-        className="w-full max-w-xs bg-brand-primary text-white font-medium py-4 px-6 rounded-2xl shadow-xl shadow-brand-primary/20 active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+        className="w-full max-w-xs bg-brand-primary text-white font-medium py-4 px-6 rounded-2xl shadow-xl shadow-brand-primary/20 active:scale-[0.98] transition-transform flex items-center justify-center gap-2 mb-4"
       >
         <LockKeyhole className="w-5 h-5" />
         {t('settings.security.unlock_button', 'Desbloquear')}
+      </button>
+
+      <button
+        type="button"
+        onClick={async () => {
+          await logout();
+          setLocked(false);
+        }}
+        className="text-white/60 hover:text-white transition-colors text-sm font-medium py-2"
+      >
+        {t('settings.logout', 'Cerrar sesión')}
       </button>
     </div>
   );

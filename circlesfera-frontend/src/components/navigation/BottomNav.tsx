@@ -1,3 +1,4 @@
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   BarChart3,
@@ -27,6 +28,14 @@ export default function BottomNav() {
   );
   const openCreateMenu = useUIStore((state) => state.openCreateMenu);
   const { t } = useTranslation();
+
+  const triggerHaptic = () => {
+    try {
+      Haptics.impact({ style: ImpactStyle.Light });
+    } catch {
+      // Ignored
+    }
+  };
 
   const profileUrl = profile?.username ? `/${profile.username}` : '/';
   const isProfileActive = profile?.username && path === `/${profile.username}`;
@@ -160,7 +169,10 @@ export default function BottomNav() {
               <button
                 type="button"
                 key={item.label}
-                onClick={item.onClick}
+                onClick={() => {
+                  triggerHaptic();
+                  item.onClick?.();
+                }}
                 className="relative focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
                 aria-label={item.label}
               >
@@ -173,6 +185,7 @@ export default function BottomNav() {
             <Link
               key={item.label}
               to={item.to!}
+              onClick={triggerHaptic}
               className="relative focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
