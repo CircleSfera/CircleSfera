@@ -114,7 +114,7 @@ export default function Creator() {
   }
 
   return (
-    <CreatorShell activeTab={activeTab} onTabChange={handleTabChange}>
+    <CreatorShell activeTab={activeTab}>
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}
@@ -122,15 +122,15 @@ export default function Creator() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.18 }}
-          className="bg-zinc-950/60 backdrop-blur-xl border border-white/8 rounded-2xl p-4 md:p-6 shadow-xl min-h-150"
+          className="min-h-0"
         >
           <Suspense
             fallback={
-              <div className="flex flex-col items-center justify-center p-20 opacity-50">
-                <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin mb-4" />
-                <div className="text-sm font-semibold text-gray-300">
-                  {t('creator.loading_module', 'Cargando módulo...')}
-                </div>
+              <div className="flex flex-col items-center justify-center py-16 text-white/50">
+                <div className="w-6 h-6 border-2 border-brand-primary border-t-transparent rounded-full animate-spin mb-3" />
+                <p className="text-sm">
+                  {t('creator.loading_module', 'Loading…')}
+                </p>
               </div>
             }
           >

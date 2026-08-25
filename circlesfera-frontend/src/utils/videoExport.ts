@@ -11,8 +11,8 @@ export async function initFFmpeg(): Promise<FFmpeg> {
   // By default it uses unpkg CDN for core and wasm, which is fine for modern browsers.
   // If we wanted to self-host, we would pass coreURL and wasmURL here.
   await ffmpeg.load({
-    coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
-    wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm',
+    coreURL: '/ffmpeg/ffmpeg-core.js',
+    wasmURL: '/ffmpeg/ffmpeg-core.wasm',
   });
 
   return ffmpeg;

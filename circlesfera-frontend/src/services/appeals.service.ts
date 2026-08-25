@@ -1,7 +1,7 @@
 import type { PaginatedResponse } from '../types';
 import { apiClient } from './api';
 
-export type AppealTargetType = 'ACCOUNT_BAN' | 'POST_REMOVAL';
+export type AppealTargetType = 'ACCOUNT_BAN' | 'POST_REMOVAL' | 'BOT_LABEL';
 export type AppealStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface Appeal {

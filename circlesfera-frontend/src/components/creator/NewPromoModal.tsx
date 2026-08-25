@@ -83,7 +83,7 @@ export default function NewPromoModal({
       maxWidth="xl"
       className="max-h-[90vh]"
     >
-      <p className="text-white/50 text-xs font-semibold uppercase tracking-wide -mt-1 mb-4">
+      <p className="text-white/50 text-xs mb-4">
         {t('creator.promotions.boost_best')}
       </p>
 
@@ -168,7 +168,7 @@ export default function NewPromoModal({
 
             {/* Budget */}
             <fieldset className="space-y-3 border-none p-0 m-0">
-              <legend className="block text-xs font-bold uppercase tracking-wide text-white/50 mb-3">
+              <legend className="block text-xs text-white/50 mb-3">
                 {t('creator.promotions.daily_budget', { currency: 'EUR' })}
               </legend>
               <div className="grid grid-cols-4 gap-2">
@@ -190,7 +190,7 @@ export default function NewPromoModal({
             </fieldset>
 
             <fieldset className="space-y-3 border-none p-0 m-0">
-              <legend className="block text-xs font-black uppercase tracking-wide text-zinc-400 mb-2">
+              <legend className="block text-xs text-white/50 mb-2">
                 {t('creator.promotions.objective', 'Objective')}
               </legend>
               <select
@@ -235,7 +235,7 @@ export default function NewPromoModal({
 
             {/* Duration */}
             <fieldset className="space-y-3 border-none p-0 m-0">
-              <legend className="block text-xs font-bold uppercase tracking-wide text-white/50 mb-3">
+              <legend className="block text-xs text-white/50 mb-3">
                 {t('creator.promotions.campaign_duration')}
               </legend>
               <div className="grid grid-cols-4 gap-2">
@@ -274,7 +274,7 @@ export default function NewPromoModal({
           <Button
             variant="primary"
             size="lg"
-            className="w-full font-bold uppercase tracking-wide"
+            className="w-full min-h-11"
             onClick={() => createMutation.mutate()}
             isLoading={createMutation.isPending}
           >

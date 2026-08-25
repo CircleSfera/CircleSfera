@@ -46,7 +46,17 @@ export const monetizationApi = {
     return data;
   },
   getTransactions: async (page = 1, limit = 20) => {
-    const { data } = await api.get('/monetization/transactions', {
+    const { data } = await api.get<{
+      data: Array<{
+        id: string;
+        type: string;
+        amountCents?: number;
+        amount?: number;
+        receiverId: string;
+        createdAt: string;
+        description?: string;
+      }>;
+    }>('/monetization/transactions', {
       params: { page, limit },
     });
     return data;
@@ -65,7 +75,21 @@ export const monetizationApi = {
     const { data } = await api.get<{
       currentMonthIncome: number;
       totalTips: number;
+      breakdown?: {
+        postUnlocks: number;
+        storyUnlocks: number;
+        messageUnlocks: number;
+        tips: number;
+        liveGifts: number;
+      };
     }>('/monetization/analytics/summary');
+    return data;
+  },
+  getPayouts: async () => {
+    const { data } = await api.get<{
+      available?: { amountCents: number; currency: string }[];
+      pending?: { amountCents: number; currency: string }[];
+    }>('/monetization/payouts');
     return data;
   },
 };

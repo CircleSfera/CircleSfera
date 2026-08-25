@@ -117,7 +117,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
       <div className="space-y-5">
         {/* Objective Selection */}
         <div>
-          <h3 className="text-white/60 text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-1">
+          <h3 className="text-xs text-white/50 mb-3 flex items-center gap-1">
             <Target size={14} />{' '}
             {t('creator.promotions.campaign_objective', 'Campaign Objective')}
           </h3>
@@ -144,7 +144,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
           <div>
             <label
               htmlFor="dailyBudgetInput"
-              className="text-gray-300 text-xs font-bold uppercase tracking-wider mb-2 block"
+              className="text-white/50 text-xs mb-2 block"
             >
               {t('creator.promotions.daily_budget', {
                 currency: 'EUR',
@@ -163,7 +163,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
           <div>
             <label
               htmlFor="durationDaysInput"
-              className="text-gray-300 text-xs font-bold uppercase tracking-wider mb-2 block"
+              className="text-white/50 text-xs mb-2 block"
             >
               {t('creator.promotions.campaign_duration')}
             </label>
@@ -184,7 +184,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
           <div>
             <label
               htmlFor="countriesInput"
-              className="text-gray-300 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1"
+              className="text-white/50 text-xs mb-2 flex items-center gap-1"
             >
               <Globe size={14} />{' '}
               {t(
@@ -207,7 +207,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
           <div>
             <label
               htmlFor="interestsInput"
-              className="text-gray-300 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1"
+              className="text-white/50 text-xs mb-2 flex items-center gap-1"
             >
               <Hash size={14} />{' '}
               {t(
@@ -237,7 +237,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
             <span className="flex items-center gap-1 text-brand-primary/80">
               <DollarSign size={14} /> {t('creator.promotions.investment')}
             </span>
-            <span className="text-white font-black text-lg">
+            <span className="text-white font-semibold text-lg tabular-nums">
               €{totalBudget}
             </span>
           </div>
@@ -254,7 +254,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
             <Sparkles size={16} className="text-brand-accent" />
             {t('creator.promotions.estimated_reach', 'Alcance estimado')}
           </span>
-          <span className="text-white font-black text-sm">
+          <span className="text-white font-medium text-sm tabular-nums">
             {minReach.toLocaleString()} - {maxReach.toLocaleString()}
           </span>
         </div>

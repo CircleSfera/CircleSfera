@@ -1,104 +1,159 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../stores/studioStore';
 import type { AspectRatioType, MediaClip, TextClip } from '../../types/studio';
+import {
+  containRect,
+  resolutionForAspect,
+} from '../../utils/studioExportHelpers';
+
+function isVisualClip(clip: { type: string }): clip is MediaClip {
+  return clip.type === 'video' || clip.type === 'image';
+}
+
+function drawMediaClip(
+  ctx: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+  clip: MediaClip,
+  videoEl: HTMLVideoElement | undefined,
+  imageEl: HTMLImageElement | undefined,
+) {
+  const source =
+    clip.type === 'video' ? videoEl : clip.type === 'image' ? imageEl : null;
+  if (!source) return;
+
+  const srcW =
+    source instanceof HTMLVideoElement
+      ? source.videoWidth
+      : source.naturalWidth;
+  const srcH =
+    source instanceof HTMLVideoElement
+      ? source.videoHeight
+      : source.naturalHeight;
+  if (!srcW || !srcH) return;
+
+  const fit = containRect(srcW, srcH, canvas.width, canvas.height);
+
+  ctx.save();
+  if (clip.filter) ctx.filter = clip.filter;
+  if (typeof clip.opacity === 'number') ctx.globalAlpha = clip.opacity;
+
+  const scale = clip.transform?.scale ?? 1;
+  const rot = ((clip.transform?.rotation ?? 0) * Math.PI) / 180;
+  const tx = clip.transform?.x ?? 0;
+  const ty = clip.transform?.y ?? 0;
+
+  ctx.translate(canvas.width / 2 + tx, canvas.height / 2 + ty);
+  ctx.rotate(rot);
+  ctx.scale((clip.flipX ? -1 : 1) * scale, (clip.flipY ? -1 : 1) * scale);
+  ctx.drawImage(source, -fit.w / 2, -fit.h / 2, fit.w, fit.h);
+  ctx.restore();
+}
 
 export default function StudioPlayer() {
+  const { t } = useTranslation();
   const { project, playhead, isPlaying, setPlayhead } = useStudioStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [activeVideo, setActiveVideo] = useState<HTMLVideoElement | null>(null);
-  const [activeImage, setActiveImage] = useState<HTMLImageElement | null>(null);
   const audioElementsRef = useRef<Record<string, HTMLAudioElement>>({});
+  const videoElementsRef = useRef<Record<string, HTMLVideoElement>>({});
   const imageCacheRef = useRef<Record<string, HTMLImageElement>>({});
 
   const aspect: AspectRatioType = project?.aspectRatio || '9:16';
+  const dims = resolutionForAspect(aspect);
+  const aspectClass =
+    aspect === '16:9'
+      ? 'aspect-[16/9]'
+      : aspect === '1:1'
+        ? 'aspect-square'
+        : aspect === '4:5'
+          ? 'aspect-[4/5]'
+          : 'aspect-[9/16]';
 
-  const getCanvasDimensions = () => {
-    switch (aspect) {
-      case '16:9':
-        return { width: 1920, height: 1080, aspectClass: 'aspect-[16/9]' };
-      case '1:1':
-        return { width: 1080, height: 1080, aspectClass: 'aspect-square' };
-      case '4:5':
-        return { width: 1080, height: 1350, aspectClass: 'aspect-[4/5]' };
-      case '9:16':
-        return { width: 1080, height: 1920, aspectClass: 'aspect-[9/16]' };
-      default:
-        return { width: 1080, height: 1920, aspectClass: 'aspect-[9/16]' };
-    }
-  };
-
-  const {
-    width: canvasWidth,
-    height: canvasHeight,
-    aspectClass,
-  } = getCanvasDimensions();
-
+  // Sync all overlapping visual + audio layers to the playhead
   useEffect(() => {
     if (!project) return;
 
-    const videoTrack = project.tracks.find((t) => t.type === 'video');
-    if (!videoTrack) return;
-
-    const activeClip = videoTrack.clips.find(
-      (c) => playhead >= c.startAt && playhead < c.startAt + c.duration,
-    ) as MediaClip | undefined;
-
-    if (activeClip && activeClip.type === 'video') {
-      let videoEl = document.getElementById(
-        `studio-video-${activeClip.id}`,
-      ) as HTMLVideoElement;
-      if (!videoEl) {
-        videoEl = document.createElement('video');
-        videoEl.id = `studio-video-${activeClip.id}`;
-        videoEl.src = activeClip.fileUrl;
-        videoEl.muted = activeClip.muted;
-        videoEl.style.display = 'none';
-        document.body.appendChild(videoEl);
+    const videoTracks = project.tracks.filter(
+      (tr) => tr.type === 'video' && !tr.hidden,
+    );
+    const overlapping: MediaClip[] = [];
+    for (const track of videoTracks) {
+      for (const clip of track.clips) {
+        if (
+          isVisualClip(clip) &&
+          playhead >= clip.startAt &&
+          playhead < clip.startAt + clip.duration
+        ) {
+          overlapping.push(clip);
+        }
       }
-
-      const targetTime =
-        activeClip.mediaStart +
-        (playhead - activeClip.startAt) * (activeClip.speed ?? 1);
-      if (Math.abs(videoEl.currentTime - targetTime) > 0.1) {
-        videoEl.currentTime = targetTime;
-      }
-      videoEl.volume = Math.max(0, Math.min(1, activeClip.volume ?? 1));
-
-      setActiveVideo(videoEl);
-      setActiveImage(null);
-    } else if (activeClip && activeClip.type === 'image') {
-      setActiveVideo(null);
-      let img = imageCacheRef.current[activeClip.fileUrl];
-      if (!img) {
-        img = new Image();
-        img.src = activeClip.fileUrl;
-        imageCacheRef.current[activeClip.fileUrl] = img;
-      }
-      setActiveImage(img);
-    } else {
-      setActiveVideo(null);
-      setActiveImage(null);
     }
 
-    // Audio elements handling
+    const activeVideoIds = new Set<string>();
+
+    for (const clip of overlapping) {
+      if (clip.type === 'video') {
+        activeVideoIds.add(clip.id);
+        let videoEl = videoElementsRef.current[clip.id];
+        if (!videoEl) {
+          videoEl = document.createElement('video');
+          videoEl.playsInline = true;
+          videoEl.preload = 'auto';
+          videoEl.src = clip.fileUrl;
+          videoEl.style.display = 'none';
+          document.body.appendChild(videoEl);
+          videoElementsRef.current[clip.id] = videoEl;
+        }
+
+        const parentTrack = videoTracks.find((tr) =>
+          tr.clips.some((c) => c.id === clip.id),
+        );
+        videoEl.muted = Boolean(clip.muted) || Boolean(parentTrack?.muted);
+        videoEl.volume = Math.max(0, Math.min(1, clip.volume ?? 1));
+        videoEl.playbackRate = clip.speed ?? 1;
+
+        const targetTime =
+          clip.mediaStart + (playhead - clip.startAt) * (clip.speed ?? 1);
+        if (Math.abs(videoEl.currentTime - targetTime) > 0.15) {
+          videoEl.currentTime = targetTime;
+        }
+
+        if (isPlaying && videoEl.paused) {
+          videoEl.play().catch(() => {});
+        } else if (!isPlaying && !videoEl.paused) {
+          videoEl.pause();
+        }
+      } else if (clip.type === 'image') {
+        if (!imageCacheRef.current[clip.fileUrl]) {
+          const img = new Image();
+          img.src = clip.fileUrl;
+          imageCacheRef.current[clip.fileUrl] = img;
+        }
+      }
+    }
+
+    Object.entries(videoElementsRef.current).forEach(([id, el]) => {
+      if (!activeVideoIds.has(id) && !el.paused) el.pause();
+    });
+
     const audioClips = project.tracks
-      .filter((t) => t.type === 'audio' && !t.muted)
-      .flatMap((t) => t.clips) as MediaClip[];
+      .filter((tr) => tr.type === 'audio' && !tr.muted)
+      .flatMap((tr) => tr.clips) as MediaClip[];
 
     audioClips.forEach((clip) => {
       let audioEl = audioElementsRef.current[clip.id];
       if (!audioEl) {
         audioEl = document.createElement('audio');
+        audioEl.preload = 'auto';
         audioEl.src = clip.fileUrl;
-        audioEl.volume = clip.volume;
         document.body.appendChild(audioEl);
         audioElementsRef.current[clip.id] = audioEl;
       }
 
-      const isOverlapping =
+      const overlappingAudio =
         playhead >= clip.startAt && playhead < clip.startAt + clip.duration;
 
-      if (isOverlapping) {
+      if (overlappingAudio && !clip.muted) {
         const targetTime =
           clip.mediaStart + (playhead - clip.startAt) * (clip.speed ?? 1);
         if (Math.abs(audioEl.currentTime - targetTime) > 0.2) {
@@ -111,15 +166,32 @@ export default function StudioPlayer() {
         } else if (!isPlaying && !audioEl.paused) {
           audioEl.pause();
         }
-      } else {
-        if (!audioEl.paused) {
-          audioEl.pause();
-        }
+      } else if (!audioEl.paused) {
+        audioEl.pause();
       }
     });
   }, [playhead, project, isPlaying]);
 
-  // Main Canvas Render Loop
+  useEffect(() => {
+    const videos = videoElementsRef.current;
+    const audios = audioElementsRef.current;
+    return () => {
+      Object.values(videos).forEach((el) => {
+        el.pause();
+        el.removeAttribute('src');
+        el.load();
+        el.remove();
+      });
+      Object.values(audios).forEach((el) => {
+        el.pause();
+        el.removeAttribute('src');
+        el.load();
+        el.remove();
+      });
+    };
+  }, []);
+
+  // Canvas render loop — composites all overlapping visual layers (track order)
   useEffect(() => {
     let animationId: number;
     const render = () => {
@@ -127,119 +199,89 @@ export default function StudioPlayer() {
       const ctx = canvas?.getContext('2d');
       if (canvas && ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const { project: proj, playhead: ph } = useStudioStore.getState();
 
-        const { project, playhead } = useStudioStore.getState();
+        if (proj) {
+          const videoTracks = proj.tracks.filter(
+            (tr) => tr.type === 'video' && !tr.hidden,
+          );
 
-        // Render Media (Video or Image)
-        if (project) {
-          const videoTrack = project.tracks.find((t) => t.type === 'video');
-          const activeClip = videoTrack?.clips.find(
-            (c) => playhead >= c.startAt && playhead < c.startAt + c.duration,
-          ) as MediaClip | undefined;
+          for (const track of videoTracks) {
+            const layers = track.clips
+              .filter(
+                (c): c is MediaClip =>
+                  isVisualClip(c) &&
+                  ph >= c.startAt &&
+                  ph < c.startAt + c.duration,
+              )
+              .slice()
+              .sort((a, b) => a.startAt - b.startAt);
 
-          if (activeClip && !videoTrack?.hidden) {
-            ctx.save();
-
-            // Set filter & opacity
-            if (activeClip.filter) ctx.filter = activeClip.filter;
-            if (typeof activeClip.opacity === 'number')
-              ctx.globalAlpha = activeClip.opacity;
-
-            // Transform
-            const scale = activeClip.transform?.scale ?? 1;
-            const rot = ((activeClip.transform?.rotation ?? 0) * Math.PI) / 180;
-            const tx = activeClip.transform?.x ?? 0;
-            const ty = activeClip.transform?.y ?? 0;
-
-            ctx.translate(canvas.width / 2 + tx, canvas.height / 2 + ty);
-            ctx.rotate(rot);
-            ctx.scale(
-              (activeClip.flipX ? -1 : 1) * scale,
-              (activeClip.flipY ? -1 : 1) * scale,
-            );
-
-            if (activeClip.type === 'video' && activeVideo) {
-              ctx.drawImage(
-                activeVideo,
-                -canvas.width / 2,
-                -canvas.height / 2,
-                canvas.width,
-                canvas.height,
-              );
-            } else if (activeClip.type === 'image' && activeImage) {
-              ctx.drawImage(
-                activeImage,
-                -canvas.width / 2,
-                -canvas.height / 2,
-                canvas.width,
-                canvas.height,
+            for (const clip of layers) {
+              drawMediaClip(
+                ctx,
+                canvas,
+                clip,
+                videoElementsRef.current[clip.id],
+                imageCacheRef.current[clip.fileUrl],
               );
             }
-
-            ctx.restore();
           }
 
-          // Render Text Clips Overlays
-          project.tracks
-            .filter((t) => t.type === 'text' && !t.hidden)
+          proj.tracks
+            .filter((tr) => tr.type === 'text' && !tr.hidden)
             .forEach((track) => {
               track.clips.forEach((clip) => {
-                if (
-                  playhead >= clip.startAt &&
-                  playhead < clip.startAt + clip.duration
-                ) {
-                  const textClip = clip as TextClip;
-                  const style = textClip.style;
-                  const fontSize = style.fontSize || 40;
-                  const fontFamily = style.fontFamily || 'Inter';
-
-                  ctx.save();
-                  ctx.font = `bold ${fontSize}px ${fontFamily}, sans-serif`;
-                  ctx.textAlign = style.textAlign || 'center';
-
-                  const textMetrics = ctx.measureText(textClip.content);
-                  const textWidth = textMetrics.width;
-                  const padding = style.padding ?? 12;
-                  const textHeight = fontSize * 1.2;
-
-                  const x = canvas.width / 2 + (textClip.transform?.x ?? 0);
-                  const y = canvas.height / 2 + (textClip.transform?.y ?? 0);
-
-                  // Background Box
-                  if (
-                    style.backgroundColor &&
-                    style.backgroundColor !== 'transparent'
-                  ) {
-                    ctx.fillStyle = style.backgroundColor;
-                    const boxX = x - textWidth / 2 - padding;
-                    const boxY = y - fontSize + padding / 2;
-                    const boxW = textWidth + padding * 2;
-                    const boxH = textHeight + padding;
-                    const radius = style.borderRadius ?? 8;
-
-                    ctx.beginPath();
-                    ctx.roundRect(boxX, boxY, boxW, boxH, radius);
-                    ctx.fill();
-                  }
-
-                  // Shadow
-                  if (style.shadowColor) {
-                    ctx.shadowColor = style.shadowColor;
-                    ctx.shadowBlur = style.shadowBlur ?? 10;
-                  }
-
-                  // Stroke / Outline
-                  if (style.strokeColor && style.strokeWidth) {
-                    ctx.strokeStyle = style.strokeColor;
-                    ctx.lineWidth = style.strokeWidth;
-                    ctx.strokeText(textClip.content, x, y);
-                  }
-
-                  // Text Fill
-                  ctx.fillStyle = style.color || '#ffffff';
-                  ctx.fillText(textClip.content, x, y);
-                  ctx.restore();
+                if (ph < clip.startAt || ph >= clip.startAt + clip.duration) {
+                  return;
                 }
+                const textClip = clip as TextClip;
+                const style = textClip.style;
+                const fontSize = style.fontSize || 40;
+                const fontFamily = style.fontFamily || 'Roboto';
+
+                ctx.save();
+                ctx.font = `bold ${fontSize}px ${fontFamily}, sans-serif`;
+                ctx.textAlign = style.textAlign || 'center';
+
+                const textMetrics = ctx.measureText(textClip.content);
+                const textWidth = textMetrics.width;
+                const padding = style.padding ?? 12;
+                const textHeight = fontSize * 1.2;
+                const x = canvas.width / 2 + (textClip.transform?.x ?? 0);
+                const y = canvas.height / 2 + (textClip.transform?.y ?? 0);
+
+                if (
+                  style.backgroundColor &&
+                  style.backgroundColor !== 'transparent'
+                ) {
+                  ctx.fillStyle = style.backgroundColor;
+                  const boxX = x - textWidth / 2 - padding;
+                  const boxY = y - fontSize + padding / 2;
+                  const radius = style.borderRadius ?? 8;
+                  ctx.beginPath();
+                  ctx.roundRect(
+                    boxX,
+                    boxY,
+                    textWidth + padding * 2,
+                    textHeight + padding,
+                    radius,
+                  );
+                  ctx.fill();
+                }
+
+                if (style.shadowColor) {
+                  ctx.shadowColor = style.shadowColor;
+                  ctx.shadowBlur = style.shadowBlur ?? 10;
+                }
+                if (style.strokeColor && style.strokeWidth) {
+                  ctx.strokeStyle = style.strokeColor;
+                  ctx.lineWidth = style.strokeWidth;
+                  ctx.strokeText(textClip.content, x, y);
+                }
+                ctx.fillStyle = style.color || '#ffffff';
+                ctx.fillText(textClip.content, x, y);
+                ctx.restore();
               });
             });
         }
@@ -248,9 +290,8 @@ export default function StudioPlayer() {
     };
     render();
     return () => cancelAnimationFrame(animationId);
-  }, [activeVideo, activeImage]);
+  }, []);
 
-  // Playhead step loop during playback
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (isPlaying) {
@@ -259,11 +300,9 @@ export default function StudioPlayer() {
         const now = performance.now();
         const delta = (now - lastTime) / 1000;
         lastTime = now;
-
         const currentPlayhead = useStudioStore.getState().playhead;
-        const project = useStudioStore.getState().project;
-
-        if (project && currentPlayhead + delta >= project.duration) {
+        const proj = useStudioStore.getState().project;
+        if (proj && currentPlayhead + delta >= proj.duration) {
           setPlayhead(0);
           useStudioStore.getState().setPlaying(false);
         } else {
@@ -281,23 +320,23 @@ export default function StudioPlayer() {
   return (
     <div className="w-full h-full flex items-center justify-center bg-transparent relative p-2 sm:p-6 overflow-hidden">
       <div
-        className={`h-full max-h-full w-auto ${aspectClass} rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10 bg-[#000000] relative flex items-center justify-center`}
+        data-studio-preview
+        className={`h-full max-h-full w-auto ${aspectClass} rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10 bg-surface-base relative flex items-center justify-center`}
       >
         {!hasClips && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-white/40 pointer-events-none z-10 bg-black/60 backdrop-blur-sm p-4 text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-white/40 pointer-events-none z-10 bg-black/60 p-4 text-center">
             <p className="text-sm font-semibold text-white/80">
-              Proyecto vacío
+              {t('studio.timeline.empty')}
             </p>
             <p className="text-xs text-white/40 mt-1">
-              Añade vídeos, imágenes o texto desde el panel lateral
+              {t('studio.select_clip_hint')}
             </p>
           </div>
         )}
-
         <canvas
           ref={canvasRef}
-          width={canvasWidth}
-          height={canvasHeight}
+          width={dims.width}
+          height={dims.height}
           className="w-full h-full object-contain"
         />
       </div>

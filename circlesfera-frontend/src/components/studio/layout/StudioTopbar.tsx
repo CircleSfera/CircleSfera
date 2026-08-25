@@ -1,4 +1,3 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Cloud,
   Download,
@@ -11,9 +10,8 @@ import {
   Undo2,
   X,
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { editsService } from '../../../services/edits.service';
 import { useStudioStore } from '../../../stores/studioStore';
 import type { AspectRatioType } from '../../../types/studio';
 
@@ -21,193 +19,158 @@ interface StudioTopbarProps {
   onOpenDrafts: () => void;
   onExport: () => void;
   isExporting: boolean;
+  onSave: () => void;
 }
 
 export default function StudioTopbar({
   onOpenDrafts,
   onExport,
   isExporting,
+  onSave,
 }: StudioTopbarProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const {
     project,
-    setProject,
-    cloudProjectId,
-    setCloudProjectId,
+    setProjectName,
     undo,
     redo,
     canUndo,
     canRedo,
     setAspectRatio,
+    saveStatus,
   } = useStudioStore();
 
   const currentAspect: AspectRatioType = project?.aspectRatio || '9:16';
 
-  const saveDraftMutation = useMutation({
-    mutationFn: async () => {
-      if (!project) return;
-      if (cloudProjectId) {
-        return editsService.updateProjectState(cloudProjectId, {
-          version: 3,
-          studio: project,
-        });
-      } else {
-        return editsService.createProject(
-          'studio',
-          'video',
-          { version: 3, studio: project },
-          project.name,
-        );
-      }
-    },
-    onSuccess: (data) => {
-      if (data?.id) {
-        setCloudProjectId(data.id);
-        queryClient.invalidateQueries({ queryKey: ['studioDrafts'] });
-        toast.success('Borrador guardado en la nube');
-      }
-    },
-  });
+  const saveLabel =
+    saveStatus === 'saving'
+      ? t('studio.saving')
+      : saveStatus === 'saved'
+        ? t('studio.saved')
+        : saveStatus === 'error'
+          ? t('studio.save_error_short')
+          : t('studio.save');
 
   return (
-    <div className="h-14 flex items-center justify-between px-3 sm:px-4 shrink-0 border border-white/10 z-30 bg-[#121216]/90 backdrop-blur-xl rounded-xl lg:rounded-2xl shadow-xl">
-      {/* Left: Close & Project Title */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="p-1.5 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors"
-          title="Salir del Studio"
-        >
-          <X size={18} />
-        </button>
+    <div className="pt-safe bg-surface-elevated border-b border-white/10 z-30 shrink-0">
+      <div className="min-h-14 py-1 flex items-center justify-between px-2 sm:px-3">
+        <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="min-h-11 min-w-11 flex items-center justify-center hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors"
+            aria-label={t('studio.exit')}
+          >
+            <X size={18} />
+          </button>
 
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-linear-to-br from-brand-primary to-purple-600 flex items-center justify-center shadow-lg shadow-brand-primary/30 shrink-0">
-            <Scissors size={14} className="text-white" />
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center shadow-lg shadow-brand-primary/30 shrink-0">
+              <Scissors size={14} className="text-white" aria-hidden />
+            </div>
+            <input
+              type="text"
+              value={project?.name || t('studio.default_project_name')}
+              onChange={(e) => setProjectName(e.target.value)}
+              className="bg-transparent border-none text-xs sm:text-sm font-bold text-white w-20 sm:w-36 focus:w-44 transition-all outline-none focus:ring-1 focus:ring-brand-primary/50 rounded px-1.5 py-0.5 placeholder:text-white/30 truncate"
+              aria-label={t('studio.project_name')}
+            />
           </div>
-          <input
-            type="text"
-            value={project?.name || 'Nuevo Proyecto'}
-            onChange={(e) =>
-              project && setProject({ ...project, name: e.target.value })
-            }
-            className="bg-transparent border-none text-xs sm:text-sm font-bold text-white w-24 sm:w-36 focus:w-44 transition-all outline-none focus:ring-1 focus:ring-brand-primary/50 rounded px-1.5 py-0.5 placeholder:text-white/30 truncate"
-          />
         </div>
-      </div>
 
-      {/* Center: Undo/Redo & Aspect Ratio Selector */}
-      <div className="flex items-center gap-1 sm:gap-2">
-        {/* Undo / Redo */}
-        <div className="flex items-center bg-white/5 border border-white/10 rounded-xl p-0.5">
+        <div className="flex items-center gap-1">
+          <div className="flex items-center bg-white/5 border border-white/10 rounded-xl p-0.5">
+            <button
+              type="button"
+              onClick={undo}
+              disabled={!canUndo}
+              className="min-h-11 min-w-11 md:min-h-0 md:min-w-0 md:p-1.5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-30"
+              aria-label={t('studio.undo')}
+            >
+              <Undo2 size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={redo}
+              disabled={!canRedo}
+              className="min-h-11 min-w-11 md:min-h-0 md:min-w-0 md:p-1.5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-30"
+              aria-label={t('studio.redo')}
+            >
+              <Redo2 size={15} />
+            </button>
+          </div>
+
+          <div className="hidden md:flex items-center bg-white/5 border border-white/10 rounded-xl p-0.5 ml-1">
+            {(
+              [
+                { id: '9:16' as const, icon: Smartphone },
+                { id: '16:9' as const, icon: Monitor },
+                { id: '1:1' as const, icon: Square },
+                { id: '4:5' as const, icon: Smartphone },
+              ] as const
+            ).map((ratio) => {
+              const Icon = ratio.icon;
+              const isSelected = currentAspect === ratio.id;
+              return (
+                <button
+                  key={ratio.id}
+                  type="button"
+                  onClick={() => setAspectRatio(ratio.id)}
+                  className={`flex items-center justify-center gap-1 px-2 min-h-11 rounded-lg text-[11px] font-bold transition-all ${
+                    isSelected
+                      ? 'bg-brand-primary text-white shadow-sm'
+                      : 'text-white/60 hover:text-white hover:bg-white/5'
+                  }`}
+                  aria-pressed={isSelected}
+                  aria-label={ratio.id}
+                >
+                  <Icon size={12} />
+                  <span>{ratio.id}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={undo}
-            disabled={!canUndo}
-            className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-            title="Deshacer (Cmd+Z)"
+            onClick={onOpenDrafts}
+            className="flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/5 px-2 min-h-11 rounded-xl text-xs font-semibold transition-colors"
+            aria-label={t('studio.open_drafts')}
           >
-            <Undo2 size={15} />
+            <FolderOpen size={15} />
+            <span className="hidden lg:inline">{t('studio.open')}</span>
           </button>
+
           <button
             type="button"
-            onClick={redo}
-            disabled={!canRedo}
-            className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-            title="Rehacer (Cmd+Shift+Z)"
+            onClick={onSave}
+            className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/5 px-2 min-h-11 rounded-xl text-xs font-semibold transition-colors"
+            aria-label={saveLabel}
           >
-            <Redo2 size={15} />
+            <Cloud
+              size={15}
+              className={
+                saveStatus === 'saving'
+                  ? 'animate-pulse text-brand-primary'
+                  : ''
+              }
+            />
+            <span className="hidden lg:inline">{saveLabel}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onExport}
+            disabled={isExporting}
+            className="ml-1 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold h-11 md:h-9 px-3 rounded-xl text-xs shadow-lg shadow-brand-primary/25 transition-all disabled:opacity-50 flex items-center gap-1.5"
+          >
+            <Download size={14} />
+            <span>{t('studio.export')}</span>
           </button>
         </div>
-
-        <div className="hidden sm:block w-px h-4 bg-white/10 mx-1" />
-
-        {/* Aspect Ratio Picker */}
-        <div className="hidden sm:flex items-center bg-white/5 border border-white/10 rounded-xl p-0.5">
-          {[
-            {
-              id: '9:16',
-              label: '9:16',
-              icon: Smartphone,
-              title: 'Reels / Stories (9:16)',
-            },
-            {
-              id: '16:9',
-              label: '16:9',
-              icon: Monitor,
-              title: 'Widescreen (16:9)',
-            },
-            { id: '1:1', label: '1:1', icon: Square, title: 'Cuadrado (1:1)' },
-            {
-              id: '4:5',
-              label: '4:5',
-              icon: Smartphone,
-              title: 'Retrato (4:5)',
-            },
-          ].map((ratio) => {
-            const Icon = ratio.icon;
-            const isSelected = currentAspect === ratio.id;
-            return (
-              <button
-                key={ratio.id}
-                type="button"
-                onClick={() => setAspectRatio(ratio.id as AspectRatioType)}
-                className={`flex items-center justify-center gap-1 px-2 min-h-11 md:min-h-0 md:py-1 rounded-lg text-[11px] font-bold transition-all ${
-                  isSelected
-                    ? 'bg-brand-primary text-white shadow-sm'
-                    : 'text-white/60 hover:text-white hover:bg-white/5'
-                }`}
-                title={ratio.title}
-              >
-                <Icon size={12} />
-                <span>{ratio.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Right: Cloud Drafts & Export */}
-      <div className="flex items-center gap-1.5 sm:gap-2">
-        <button
-          type="button"
-          onClick={onOpenDrafts}
-          className="flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/5 px-2.5 min-h-11 md:min-h-0 md:py-1.5 rounded-xl text-xs font-semibold transition-colors"
-          title="Borradores"
-        >
-          <FolderOpen size={15} />
-          <span className="hidden md:inline">Abrir</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => saveDraftMutation.mutate()}
-          disabled={saveDraftMutation.isPending}
-          className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/5 px-2.5 min-h-11 md:min-h-0 md:py-1.5 rounded-xl text-xs font-semibold transition-colors disabled:opacity-50"
-          title="Guardar en la nube"
-        >
-          <Cloud
-            size={15}
-            className={
-              saveDraftMutation.isPending
-                ? 'animate-bounce text-brand-primary'
-                : ''
-            }
-          />
-          <span className="hidden md:inline">Guardar</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={onExport}
-          disabled={isExporting}
-          className="ml-1 bg-linear-to-r from-brand-primary to-purple-600 hover:from-brand-primary/90 hover:to-purple-600/90 text-white font-bold h-11 md:h-8 px-3.5 rounded-xl text-xs shadow-lg shadow-brand-primary/25 transition-all disabled:opacity-50 flex items-center gap-1.5 hover:scale-[1.02] active:scale-95"
-        >
-          <Download size={14} />
-          <span className="font-bold">Exportar</span>
-        </button>
       </div>
     </div>
   );

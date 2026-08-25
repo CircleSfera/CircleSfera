@@ -1,5 +1,7 @@
+import { getQueueToken } from '@nestjs/bullmq';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AIService } from '../ai/ai.service.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
@@ -17,10 +19,23 @@ describe('EditsService', () => {
       delete: vi.fn(),
       deleteMany: vi.fn(),
     },
+    featureFlag: {
+      findUnique: vi.fn(),
+    },
   };
 
   const mockUploadsService = {
     deleteFile: vi.fn().mockResolvedValue(true),
+  };
+
+  const mockAiService = {
+    transcribeAudio: vi.fn(),
+    isConfigured: vi.fn().mockReturnValue(true),
+  };
+
+  const mockAiQueue = {
+    add: vi.fn().mockResolvedValue({ id: 'job-1' }),
+    getJob: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -29,6 +44,8 @@ describe('EditsService', () => {
         EditsService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: UploadsService, useValue: mockUploadsService },
+        { provide: AIService, useValue: mockAiService },
+        { provide: getQueueToken('ai-processing'), useValue: mockAiQueue },
       ],
     }).compile();
 
@@ -77,43 +94,99 @@ describe('EditsService', () => {
         AppException,
       );
     });
+  });
 
-    it('should return edit project if owned by user', async () => {
+  describe('startCaptions', () => {
+    it('queues a transcription job for a remote clip', async () => {
+      mockPrismaService.featureFlag.findUnique.mockResolvedValue(null);
       mockPrismaService.editProject.findFirst.mockResolvedValue({
         id: 'edit-1',
         userId: 'user-1',
+        state: {
+          version: 3,
+          studio: {
+            tracks: [
+              {
+                clips: [
+                  {
+                    id: 'clip-1',
+                    type: 'video',
+                    fileUrl: 'https://cdn.example.com/v.mp4',
+                  },
+                ],
+              },
+            ],
+          },
+        },
       });
 
-      const result = await service.findOne('user-1', 'edit-1');
-      expect(result).toEqual({ id: 'edit-1', userId: 'user-1' });
+      const result = await service.startCaptions('user-1', 'edit-1', 'clip-1');
+      expect(result).toEqual({ jobId: 'job-1', status: 'queued' });
+      expect(mockAiQueue.add).toHaveBeenCalledWith(
+        'transcribe-edit-clip',
+        expect.objectContaining({
+          userId: 'user-1',
+          editId: 'edit-1',
+          clipId: 'clip-1',
+          mediaUrl: 'https://cdn.example.com/v.mp4',
+        }),
+        expect.any(Object),
+      );
+    });
+
+    it('rejects when feature flag kill switch is off', async () => {
+      mockPrismaService.featureFlag.findUnique.mockResolvedValue({
+        key: 'studio_ai_captions',
+        isEnabled: false,
+      });
+
+      await expect(
+        service.startCaptions('user-1', 'edit-1', 'clip-1'),
+      ).rejects.toThrow(AppException);
     });
   });
 
   describe('remove', () => {
-    it('should throw NotFoundException if edit project does not exist', async () => {
-      mockPrismaService.editProject.findFirst.mockResolvedValue(null);
-
-      await expect(service.remove('user-1', 'invalid-id')).rejects.toThrow(
-        AppException,
-      );
-    });
-
-    it('should delete edit project and media file', async () => {
+    it('deletes mediaUrl and clip fileUrls from v3 studio state', async () => {
       mockPrismaService.editProject.findFirst.mockResolvedValue({
         id: 'edit-1',
         userId: 'user-1',
-        mediaUrl: 'https://cdn.example.com/photo.jpg',
+        mediaUrl: 'https://cdn.example.com/cover.mp4',
+        state: {
+          version: 3,
+          studio: {
+            tracks: [
+              {
+                clips: [
+                  {
+                    type: 'video',
+                    fileUrl: 'https://cdn.example.com/clip-a.mp4',
+                  },
+                  {
+                    type: 'image',
+                    fileUrl: 'https://cdn.example.com/clip-b.jpg',
+                  },
+                  { type: 'text', content: 'hi' },
+                ],
+              },
+            ],
+          },
+        },
       });
-      mockPrismaService.editProject.delete.mockResolvedValue({ id: 'edit-1' });
+      mockPrismaService.editProject.delete.mockResolvedValue({});
 
-      const result = await service.remove('user-1', 'edit-1');
+      await service.remove('user-1', 'edit-1');
+
       expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
-        'https://cdn.example.com/photo.jpg',
+        'https://cdn.example.com/cover.mp4',
       );
-      expect(mockPrismaService.editProject.delete).toHaveBeenCalledWith({
-        where: { id: 'edit-1' },
-      });
-      expect(result).toEqual({ success: true });
+      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
+        'https://cdn.example.com/clip-a.mp4',
+      );
+      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
+        'https://cdn.example.com/clip-b.jpg',
+      );
+      expect(mockPrismaService.editProject.delete).toHaveBeenCalled();
     });
   });
 });

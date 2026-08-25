@@ -262,6 +262,10 @@ export interface AdminUserDetail {
   accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
   createdAt: string;
   identityVerifiedAt?: string | null;
+  botLabeledAt?: string | null;
+  botLabelReason?: string | null;
+  signupIp?: string | null;
+  lastIp?: string | null;
   stripeIdentitySessionId?: string | null;
   profile?: {
     username: string;
@@ -538,6 +542,42 @@ export const adminApi = {
 
   getUserDetail: (id: string) =>
     apiClient.get<AdminUserDetail>(`admin/users/${id}/detail`),
+
+  getLinkedAccounts: (id: string) =>
+    apiClient.get<{
+      clusterSize: number;
+      accounts: Array<{
+        id: string;
+        username?: string | null;
+        createdAt: string;
+        emailConfirmed: boolean;
+        identityVerified: boolean;
+        botLabeled: boolean;
+        strikeCount: number;
+        isActive: boolean;
+      }>;
+    }>(`admin/users/${id}/linked-accounts`),
+
+  getTrustScore: (id: string) =>
+    apiClient.get<{
+      score: number;
+      factors: Array<{ key: string; delta: number; label: string }>;
+    }>(`admin/users/${id}/trust-score`),
+
+  applyBotLabel: (id: string, reason: string) =>
+    apiClient.post(`admin/users/${id}/bot-label`, { reason }),
+
+  clearBotLabel: (id: string) =>
+    apiClient.delete(`admin/users/${id}/bot-label`),
+
+  getSignupFunnel: () =>
+    apiClient.get<{
+      signups24h: number;
+      emailVerifiedAmongSignups24h: number;
+      emailVerifiedRate24h: number;
+      turnstileFailures: number;
+      emailForbidden: number;
+    }>('admin/trust/funnel'),
 
   banUser: (id: string) => apiClient.patch(`admin/users/${id}/ban`),
 

@@ -6,8 +6,8 @@ import { useTranslation } from 'react-i18next';
 import type { CreatorStory } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse } from '../../types';
-import { EmptyState } from '../ErrorEmptyStates';
 import { Button } from '../ui';
+import CreatorEmpty from './CreatorEmpty';
 
 export default function CreatorStoriesTab() {
   const { t } = useTranslation();
@@ -76,13 +76,12 @@ export default function CreatorStoriesTab() {
               {/* Top Bar: Status */}
               <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
                 {isExpired(story.expiresAt) ? (
-                  <span className="px-2.5 py-1 bg-zinc-900/80 backdrop-blur-xl border border-white/5 rounded-lg text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                    Expirada
+                  <span className="px-2 py-1 bg-black/50 rounded-lg text-[11px] text-white/70">
+                    {t('creator.stories.expired', 'Expired')}
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1 px-2.5 py-1 bg-brand-primary text-white backdrop-blur-xl rounded-lg text-xs font-semibold uppercase tracking-wide">
-                    <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
-                    Activa
+                  <span className="px-2 py-1 bg-brand-primary/90 text-white rounded-lg text-[11px]">
+                    {t('creator.stories.active', 'Active')}
                   </span>
                 )}
 
@@ -103,8 +102,8 @@ export default function CreatorStoriesTab() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <div className="p-1 bg-pink-500/20 backdrop-blur-md rounded-lg border border-pink-500/20">
-                      <Heart size={12} className="text-pink-400" />
+                    <div className="p-1 bg-white/10 rounded-lg">
+                      <Heart size={12} className="text-brand-secondary" />
                     </div>
                     <span className="text-white font-semibold text-xs tracking-tight">
                       {story._count.reactions.toLocaleString()}
@@ -114,7 +113,7 @@ export default function CreatorStoriesTab() {
 
                 <div className="h-0.5 w-full bg-white/10 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-linear-to-r from-brand-primary to-purple-500"
+                    className="h-full bg-brand-primary"
                     style={{
                       width: isExpired(story.expiresAt)
                         ? '100%'
@@ -138,8 +137,8 @@ export default function CreatorStoriesTab() {
       )}
 
       {!isLoading && !data?.data?.length && (
-        <EmptyState
-          icon="stories"
+        <CreatorEmpty
+          icon={Clock}
           title={t('creator.stories.empty_title', 'No stories yet')}
           message={t(
             'creator.stories.empty_desc',
@@ -157,9 +156,9 @@ export default function CreatorStoriesTab() {
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
-            Anterior
+            {t('creator.posts.prev', 'Previous')}
           </Button>
-          <span className="text-xs font-semibold text-gray-400 px-2">
+          <span className="text-xs text-white/40 px-2">
             {page} / {data.meta.totalPages}
           </span>
           <Button
@@ -171,7 +170,7 @@ export default function CreatorStoriesTab() {
               setPage((p) => Math.min(data.meta.totalPages, p + 1))
             }
           >
-            Siguiente
+            {t('creator.posts.next', 'Next')}
           </Button>
         </div>
       )}

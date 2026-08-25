@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../stores/studioStore';
 import Playhead from './Playhead';
 import TrackItem from './Track';
 
 export default function Timeline() {
+  const { t } = useTranslation();
   const { project, zoom, setPlayhead, isPlaying } = useStudioStore();
   const containerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -24,17 +26,15 @@ export default function Timeline() {
     return () => window.removeEventListener('resize', checkScroll);
   }, [project?.duration, zoom]);
 
-  // Auto-scroll timeline when playing
   useEffect(() => {
     if (!isPlaying || !containerRef.current) return;
 
     let animationFrameId: number;
     const scrollLoop = () => {
       if (containerRef.current) {
-        const { playhead, zoom } = useStudioStore.getState();
-        const playheadX = playhead * zoom;
+        const { playhead: ph, zoom: z } = useStudioStore.getState();
+        const playheadX = ph * z;
         const containerWidth = containerRef.current.clientWidth;
-
         const targetScroll = playheadX + 32 - containerWidth / 2;
         if (targetScroll > containerRef.current.scrollLeft) {
           containerRef.current.scrollLeft = targetScroll;
@@ -49,40 +49,29 @@ export default function Timeline() {
 
   const handleScroll = () => {
     checkScroll();
-    if (isPlaying) return; // Don't allow manual scrub via scroll while playing
-    if (!containerRef.current) return;
-
-    // In a real editor like CapCut, scrolling horizontally scrubs the playhead.
-    // For now, we just let them scroll. We can implement scroll-scrubbing later if desired.
   };
 
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left + containerRef.current.scrollLeft;
-    // Account for the padding at the start
     const offsetLeft = 32;
-
     let newTime = (clickX - offsetLeft) / zoom;
     if (newTime < 0) newTime = 0;
-
     setPlayhead(newTime);
   };
 
   if (!project) {
     return (
-      <div className="h-full flex items-center justify-center text-white/50">
-        Comienza agregando contenido
+      <div className="h-full flex items-center justify-center text-white/50 text-sm">
+        {t('studio.timeline.empty')}
       </div>
     );
   }
 
-  // Left padding is fixed, right padding allows scrolling past the end
   const paddingStyle = { paddingLeft: '32px', paddingRight: '50vw' };
-
-  // Generate ruler markers
   const rulerMarkers = [];
-  const duration = Math.max(project.duration, 10); // Minimum 10s ruler
+  const duration = Math.max(project.duration, 10);
   for (let i = 0; i <= duration; i += 1) {
     rulerMarkers.push(
       <div
@@ -96,7 +85,6 @@ export default function Timeline() {
         <div className="w-px h-2 bg-white/20" />
       </div>,
     );
-    // Add half-second marker
     if (zoom >= 40 && i < duration) {
       rulerMarkers.push(
         <div
@@ -109,17 +97,17 @@ export default function Timeline() {
   }
 
   return (
-    <div className="relative w-full h-full bg-[#0e0e12] overflow-hidden flex flex-col border-t border-white/10 group">
-      {/* Scroll Indicators */}
+    <div className="relative w-full h-full bg-surface-elevated overflow-hidden flex flex-col group">
       <div
-        className={`absolute left-0 top-0 bottom-0 w-8 bg-linear-to-r from-[#0e0e12] to-transparent z-20 pointer-events-none transition-opacity duration-300 ${canScrollLeft ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute left-0 top-0 bottom-0 w-8 bg-linear-to-r from-surface-elevated to-transparent z-20 pointer-events-none transition-opacity duration-300 ${canScrollLeft ? 'opacity-100' : 'opacity-0'}`}
       />
       <div
-        className={`absolute right-0 top-0 bottom-0 w-8 bg-linear-to-l from-[#0e0e12] to-transparent z-20 pointer-events-none transition-opacity duration-300 ${canScrollRight ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute right-0 top-0 bottom-0 w-8 bg-linear-to-l from-surface-elevated to-transparent z-20 pointer-events-none transition-opacity duration-300 ${canScrollRight ? 'opacity-100' : 'opacity-0'}`}
       />
 
       <div
         ref={containerRef}
+        data-studio-timeline
         className="flex-1 overflow-x-auto overflow-y-auto relative no-scrollbar"
         onScroll={handleScroll}
       >
@@ -133,16 +121,15 @@ export default function Timeline() {
           }}
           onClick={handleTimelineClick}
         >
-          {/* Time markers (Ruler) */}
-          <div className="sticky top-0 z-20 h-6 border-b border-white/10 bg-[#0e0e12]/90 backdrop-blur w-full mb-4">
+          <div className="sticky top-0 z-20 h-6 border-b border-white/10 bg-surface-elevated/90 w-full mb-2">
             <div className="relative h-full pointer-events-none">
               {rulerMarkers}
             </div>
           </div>
 
-          <div className="pb-8 flex flex-col gap-3 min-h-[calc(100%-1.5rem)]">
+          <div className="pb-4 flex flex-col gap-2 min-h-[calc(100%-1.5rem)]">
             {project.tracks.map((track) => (
-              <TrackItem key={track.id} track={track} />
+              <TrackItem key={track.id} track={track} compact />
             ))}
           </div>
 

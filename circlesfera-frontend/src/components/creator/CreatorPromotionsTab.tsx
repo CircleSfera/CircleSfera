@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   DollarSign,
   Image as ImageIcon,
+  Megaphone,
   Pause,
   Play,
   Plus,
@@ -21,8 +22,8 @@ import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse } from '../../types';
 import { AdminListRow } from '../admin/AdminList';
 import { AdminSplitView } from '../admin/AdminSplitView';
-import { EmptyState } from '../ErrorEmptyStates';
 import { Button } from '../ui';
+import CreatorEmpty from './CreatorEmpty';
 import NewPromoModal from './NewPromoModal';
 
 function computeProgress(startDate: string, endDate: string): number {
@@ -42,7 +43,7 @@ function computeDaysLeft(endDate: string): number {
 }
 
 function getProgressColor(pct: number): string {
-  if (pct < 50) return 'from-emerald-500 to-emerald-400';
+  if (pct < 50) return 'from-brand-primary to-brand-primary/70';
   if (pct < 80) return 'from-amber-500 to-orange-400';
   return 'from-rose-500 to-red-400';
 }
@@ -213,7 +214,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
               {promo.target?.caption ||
                 t('creator.promotions.campaign', { type: promo.targetType })}
             </h3>
-            <p className="text-gray-400 text-xs font-semibold mt-1">
+            <p className="text-white/50 text-xs mt-1">
               {t('creator.promotions.started_on', {
                 date: formatDate(promo.startDate),
               })}
@@ -227,16 +228,16 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-            <p className="text-gray-400 text-xs font-semibold mb-1">
+          <div className="rounded-xl border border-white/5 bg-white/3 p-3">
+            <p className="text-white/50 text-xs mb-1">
               {t('creator.promotions.investment')}
             </p>
             <p className="text-white font-bold text-lg">
               {promo.budget} {promo.currency}
             </p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-            <p className="text-gray-400 text-xs font-semibold mb-1">
+          <div className="rounded-xl border border-white/5 bg-white/3 p-3">
+            <p className="text-white/50 text-xs mb-1">
               {t('creator.promotions.total_reach')}
             </p>
             <p className="text-brand-primary font-bold text-lg">
@@ -247,7 +248,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
 
         <div className="grid grid-cols-3 gap-3">
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
-            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">
+            <p className="text-white/50 text-[11px] mb-1">
               {t('creator.promotions.clicks', 'Clicks')}
             </p>
             <p className="text-white font-bold text-base">
@@ -255,10 +256,8 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             </p>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
-            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">
-              CTR
-            </p>
-            <p className="text-emerald-400 font-bold text-base">
+            <p className="text-white/50 text-[11px] mb-1">CTR</p>
+            <p className="text-white font-semibold text-base tabular-nums">
               {promo.reach > 0
                 ? (((promo.clicks || 0) / promo.reach) * 100).toFixed(2)
                 : '0.00'}
@@ -266,9 +265,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             </p>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
-            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">
-              CPC
-            </p>
+            <p className="text-white/50 text-[11px] mb-1">CPC</p>
             <p className="text-brand-accent font-bold text-base">
               €
               {promo.clicks > 0
@@ -387,15 +384,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h3 className="text-white font-semibold text-xl tracking-tight">
-            {t('creator.promotions.center')}
-          </h3>
-          <p className="text-zinc-400 text-xs font-semibold mt-1">
-            {t('creator.promotions.marketing')}
-          </p>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3">
         <Button
           variant="secondary"
           className="min-h-11"
@@ -416,8 +405,8 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
           ))}
         </div>
       ) : !data?.data?.length ? (
-        <EmptyState
-          icon="posts"
+        <CreatorEmpty
+          icon={Megaphone}
           title={t('creator.promotions.no_active')}
           message={t('creator.promotions.boost_desc')}
           action={{
@@ -435,8 +424,8 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
               {activePromos.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 px-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    <h4 className="text-emerald-400 text-xs font-semibold">
+                    <div className="w-1.5 h-1.5 rounded-full bg-brand-primary" />
+                    <h4 className="text-white/70 text-xs font-medium">
                       {t('creator.promotions.in_progress', {
                         count: activePromos.length,
                       })}
@@ -541,7 +530,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                           <span className="inline-flex items-center gap-1">
                             <DollarSign
                               size={10}
-                              className="text-emerald-500"
+                              className="text-brand-primary"
                             />
                             €{promo.budget}
                           </span>

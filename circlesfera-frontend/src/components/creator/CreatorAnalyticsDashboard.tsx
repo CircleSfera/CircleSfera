@@ -1,7 +1,6 @@
 import {
   AlertCircle,
   Award,
-  BarChart3,
   Clock,
   DollarSign,
   Download,
@@ -12,10 +11,11 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react';
-import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { creatorApi } from '../../services/creator.service';
 import { logger } from '../../utils/logger';
+import { Button, Card } from '../ui';
 
 interface RevenueData {
   period: string;
@@ -49,8 +49,11 @@ interface TopPost {
   createdAt: string;
 }
 
-export const CreatorAnalyticsDashboard: React.FC = () => {
-  const [period, setPeriod] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
+const PERIODS = ['7d', '30d', '90d', '1y'] as const;
+
+export const CreatorAnalyticsDashboard = () => {
+  const { t } = useTranslation();
+  const [period, setPeriod] = useState<(typeof PERIODS)[number]>('30d');
   const [loading, setLoading] = useState(true);
   const [downloadingCsv, setDownloadingCsv] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,11 +76,13 @@ export const CreatorAnalyticsDashboard: React.FC = () => {
       setTopPosts(topRes.data);
     } catch (err) {
       logger.error('Failed to fetch creator analytics:', err);
-      setError('No se pudieron cargar las analíticas avanzadas.');
+      setError(
+        t('creator.advanced.error', 'Could not load advanced analytics.'),
+      );
     } finally {
       setLoading(false);
     }
-  }, [period]);
+  }, [period, t]);
 
   useEffect(() => {
     fetchAnalytics();
@@ -103,234 +108,143 @@ export const CreatorAnalyticsDashboard: React.FC = () => {
     }
   };
 
+  const share = (part: number) =>
+    revenue?.grossRevenue ? (part / revenue.grossRevenue) * 100 : 0;
+
   return (
     <div className="space-y-6">
-      {/* Header & Filter Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-white/5 border border-white/5 rounded-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center space-x-2">
-            <BarChart3 className="w-5 h-5 text-accent-blue" />
-            <h2 className="text-lg font-bold text-white tracking-tight">
-              Analíticas Avanzadas & Ingresos
-            </h2>
-          </div>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Rendimiento financiero, conversión de suscriptores y retención de
-            audiencia
+          <h2 className="text-lg font-semibold text-white tracking-tight">
+            {t('creator.advanced.title', 'Revenue and retention')}
+          </h2>
+          <p className="text-sm text-white/50 mt-0.5">
+            {t(
+              'creator.advanced.subtitle',
+              'Paid audience, income mix and when people stay.',
+            )}
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
-          {/* Period selector */}
-          <div className="flex items-center p-1 bg-black/40 border border-white/10 rounded-xl">
-            {(['7d', '30d', '90d', '1y'] as const).map((p) => (
+        <div className="flex items-center gap-2">
+          <div
+            role="tablist"
+            className="flex p-1 rounded-xl border border-white/10 bg-surface-elevated"
+          >
+            {PERIODS.map((p) => (
               <button
                 key={p}
                 type="button"
+                role="tab"
+                aria-selected={period === p}
                 onClick={() => setPeriod(p)}
-                className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+                className={`px-3 min-h-11 text-sm rounded-lg transition-colors ${
                   period === p
-                    ? 'bg-accent-blue text-white shadow-lg'
-                    : 'text-gray-400 hover:text-white'
+                    ? 'bg-brand-primary/15 text-white font-medium'
+                    : 'text-white/60 hover:text-white'
                 }`}
               >
-                {p === '7d'
-                  ? '7D'
-                  : p === '30d'
-                    ? '30D'
-                    : p === '90d'
-                      ? '90D'
-                      : '1A'}
+                {p}
               </button>
             ))}
           </div>
-
-          {/* Export CSV Button */}
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="md"
             onClick={handleExportCsv}
             disabled={downloadingCsv || loading}
-            className="flex items-center space-x-2 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-xl transition-all disabled:opacity-50"
+            className="min-h-11 gap-2"
           >
             {downloadingCsv ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Download className="w-4 h-4" />
             )}
-            <span className="hidden sm:inline">Exportar CSV</span>
-          </button>
+            <span className="hidden sm:inline">
+              {t('creator.advanced.export_csv', 'Export CSV')}
+            </span>
+          </Button>
         </div>
       </div>
 
       {error && (
-        <div className="flex items-center space-x-2 p-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl">
+        <div className="flex items-center gap-2 p-3 rounded-xl border border-brand-secondary/20 bg-brand-secondary/10 text-sm text-brand-secondary">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {loading ? (
-        <div className="flex justify-center items-center py-12 text-gray-400">
-          <Loader2 className="w-6 h-6 animate-spin mr-3 text-accent-blue" />
-          <span className="text-sm font-medium">
-            Cargando métricas de creador...
+        <div className="flex justify-center items-center py-12 text-white/50">
+          <Loader2 className="w-5 h-5 animate-spin mr-3 text-brand-primary" />
+          <span className="text-sm">
+            {t('creator.advanced.loading', 'Loading creator metrics…')}
           </span>
         </div>
       ) : (
         <>
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Gross Revenue */}
-            <div className="p-4 bg-linear-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/20 rounded-2xl">
-              <div className="flex items-center justify-between text-emerald-400 mb-2">
-                <span className="text-xs font-bold uppercase tracking-wider">
-                  Ingresos Brutos
-                </span>
-                <DollarSign className="w-5 h-5" />
-              </div>
-              <p className="text-2xl font-black text-white">
-                €{(revenue?.grossRevenue || 0).toFixed(2)}
-              </p>
-              <p className="text-[11px] text-emerald-400/80 mt-1 font-medium">
-                Período: {period}
-              </p>
-            </div>
-
-            {/* Active Subscribers */}
-            <div className="p-4 bg-linear-to-br from-brand-blue/10 to-brand-primary/5 border border-brand-blue/20 rounded-xl">
-              <div className="flex items-center justify-between text-accent-blue mb-2">
-                <span className="text-xs font-bold uppercase tracking-wider">
-                  Suscriptores de Pago
-                </span>
-                <Users className="w-5 h-5" />
-              </div>
-              <p className="text-2xl font-black text-white">
-                {revenue?.activeSubscribersCount || 0}
-              </p>
-              <p className="text-[11px] text-accent-blue/80 mt-1 font-medium">
-                Tasa Conversión: {revenue?.conversionRate || 0}%
-              </p>
-            </div>
-
-            {/* Avg Dwell Time */}
-            <div className="p-4 bg-linear-to-br from-brand-primary/10 to-brand-accent/5 border border-brand-primary/20 rounded-xl">
-              <div className="flex items-center justify-between text-brand-primary mb-2">
-                <span className="text-xs font-bold uppercase tracking-wider">
-                  Dwell Time Medio
-                </span>
-                <Clock className="w-5 h-5" />
-              </div>
-              <p className="text-2xl font-black text-white">
-                {retention?.avgDwellSeconds || 0}s
-              </p>
-              <p className="text-[11px] text-brand-primary/80 mt-1 font-medium">
-                Hora pico: {retention?.peakActivityHourUTC}:00 UTC
-              </p>
-            </div>
-
-            {/* Propinas y Regalos */}
-            <div className="p-4 bg-linear-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/20 rounded-2xl">
-              <div className="flex items-center justify-between text-amber-400 mb-2">
-                <span className="text-xs font-bold uppercase tracking-wider">
-                  Propinas & Regalos
-                </span>
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <p className="text-2xl font-black text-white">
-                €
-                {(
-                  (revenue?.tipsTotal || 0) + (revenue?.giftsTotal || 0)
-                ).toFixed(2)}
-              </p>
-              <p className="text-[11px] text-amber-400/80 mt-1 font-medium">
-                Directos & Mensajes Directos
-              </p>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <Kpi
+              icon={DollarSign}
+              label={t('creator.advanced.gross', 'Gross revenue')}
+              value={`€${(revenue?.grossRevenue || 0).toFixed(2)}`}
+              hint={t('creator.advanced.period_hint', 'Period: {{period}}', {
+                period,
+              })}
+            />
+            <Kpi
+              icon={Users}
+              label={t('creator.advanced.paid_subs', 'Paid subscribers')}
+              value={String(revenue?.activeSubscribersCount || 0)}
+              hint={t('creator.advanced.conversion', 'Conversion: {{rate}}%', {
+                rate: revenue?.conversionRate || 0,
+              })}
+            />
+            <Kpi
+              icon={Clock}
+              label={t('creator.advanced.dwell', 'Average dwell')}
+              value={`${retention?.avgDwellSeconds || 0}s`}
+              hint={t('creator.advanced.peak', 'Peak: {{hour}}:00 UTC', {
+                hour: retention?.peakActivityHourUTC ?? '—',
+              })}
+            />
+            <Kpi
+              icon={Sparkles}
+              label={t('creator.advanced.tips_gifts', 'Tips & gifts')}
+              value={`€${((revenue?.tipsTotal || 0) + (revenue?.giftsTotal || 0)).toFixed(2)}`}
+              hint={t('creator.advanced.tips_hint', 'Live and direct messages')}
+            />
           </div>
 
-          {/* Revenue Breakdown & Activity Distribution */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Revenue Breakdown Card */}
-            <div className="p-5 bg-white/5 border border-white/5 rounded-2xl space-y-4">
-              <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-                <DollarSign className="w-4 h-4 text-emerald-400" />
-                <span>Desglose de Fuentes de Ingresos</span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card variant="glass" className="p-4 space-y-4">
+              <h3 className="text-sm font-medium text-white">
+                {t('creator.advanced.breakdown', 'Income sources')}
               </h3>
+              <ShareRow
+                label={t('creator.advanced.subscriptions', 'Subscriptions')}
+                amount={revenue?.subscriptionsTotal || 0}
+                pct={share(revenue?.subscriptionsTotal || 0)}
+              />
+              <ShareRow
+                label={t('creator.advanced.unlocks', 'Paid unlocks')}
+                amount={revenue?.postUnlocksTotal || 0}
+                pct={share(revenue?.postUnlocksTotal || 0)}
+              />
+              <ShareRow
+                label={t('creator.advanced.tips_gifts', 'Tips & gifts')}
+                amount={(revenue?.tipsTotal || 0) + (revenue?.giftsTotal || 0)}
+                pct={share(
+                  (revenue?.tipsTotal || 0) + (revenue?.giftsTotal || 0),
+                )}
+              />
+            </Card>
 
-              <div className="space-y-3">
-                {/* Subscriptions */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs font-medium">
-                    <span className="text-gray-300">
-                      Suscripciones Mensuales
-                    </span>
-                    <span className="text-white font-bold">
-                      €{(revenue?.subscriptionsTotal || 0).toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-accent-blue rounded-full"
-                      style={{
-                        width: `${revenue?.grossRevenue ? (revenue.subscriptionsTotal / revenue.grossRevenue) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Post Unlocks */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs font-medium">
-                    <span className="text-gray-300">
-                      Desbloqueo de Posts de Pago
-                    </span>
-                    <span className="text-white font-bold">
-                      €{(revenue?.postUnlocksTotal || 0).toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-brand-primary rounded-full"
-                      style={{
-                        width: `${revenue?.grossRevenue ? (revenue.postUnlocksTotal / revenue.grossRevenue) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Tips & Gifts */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs font-medium">
-                    <span className="text-gray-300">
-                      Propinas & Regalos Virtuales
-                    </span>
-                    <span className="text-white font-bold">
-                      €
-                      {(
-                        (revenue?.tipsTotal || 0) + (revenue?.giftsTotal || 0)
-                      ).toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-amber-400 rounded-full"
-                      style={{
-                        width: `${revenue?.grossRevenue ? (((revenue.tipsTotal || 0) + (revenue.giftsTotal || 0)) / revenue.grossRevenue) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Audience Peak Activity Heatmap Preview */}
-            <div className="p-5 bg-white/5 border border-white/5 rounded-2xl space-y-4">
-              <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-                <Clock className="w-4 h-4 text-brand-primary" />
-                <span>Distribución Horaria de Interacción (UTC)</span>
+            <Card variant="glass" className="p-4 space-y-4">
+              <h3 className="text-sm font-medium text-white">
+                {t('creator.advanced.hourly', 'Hourly interaction (UTC)')}
               </h3>
-
-              <div className="grid grid-cols-12 gap-1.5 pt-2">
+              <div className="grid grid-cols-12 gap-1 pt-1">
                 {Array.from({ length: 24 }, (_, hour) => ({
                   hour,
                   count: retention?.hourlyDistribution[hour] || 0,
@@ -343,88 +257,142 @@ export const CreatorAnalyticsDashboard: React.FC = () => {
                     Math.round((slot.count / max) * 100),
                     100,
                   );
-
                   return (
                     <div
                       key={`hour-slot-${slot.hour}`}
-                      title={`Hora ${slot.hour}:00 UTC - ${slot.count} interacciones`}
-                      className="h-10 rounded-md flex flex-col justify-end p-1 transition-all hover:scale-105 cursor-pointer"
+                      title={t('creator.advanced.hour_slot', {
+                        hour: slot.hour,
+                        count: slot.count,
+                        defaultValue:
+                          '{{hour}}:00 UTC — {{count}} interactions',
+                      })}
+                      className="h-10 rounded-md flex flex-col justify-end p-1"
                       style={{
-                        backgroundColor: `rgba(99, 102, 241, ${Math.max(intensity / 100, 0.1)})`,
+                        backgroundColor: `rgba(var(--brand-primary-rgb), ${Math.max(intensity / 100, 0.08)})`,
                       }}
                     >
-                      <span className="text-[9px] text-gray-300 font-bold text-center">
-                        {slot.hour}h
+                      <span className="text-[9px] text-white/70 text-center">
+                        {slot.hour}
                       </span>
                     </div>
                   );
                 })}
               </div>
-              <p className="text-xs text-gray-400 italic">
-                Sugerencia: Publicar alrededor de las{' '}
-                {retention?.peakActivityHourUTC}:00 UTC maximizará el dwell time
-                y alcance de tus posts.
+              <p className="text-xs text-white/50">
+                {t(
+                  'creator.advanced.hourly_hint',
+                  'Publishing around {{hour}}:00 UTC usually matches peak dwell.',
+                  { hour: retention?.peakActivityHourUTC ?? '—' },
+                )}
               </p>
-            </div>
+            </Card>
           </div>
 
-          {/* Top Performing Posts Ranking */}
-          <div className="p-5 bg-white/5 border border-white/5 rounded-2xl space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-              <Award className="w-4 h-4 text-amber-400" />
-              <span>
-                Publicaciones con Mayor Rendimiento (Performance Score)
-              </span>
+          <Card variant="glass" className="p-4 space-y-3">
+            <h3 className="text-sm font-medium text-white flex items-center gap-2">
+              <Award size={16} className="text-brand-primary" aria-hidden />
+              {t('creator.advanced.top_posts', 'Highest-performing posts')}
             </h3>
-
             {topPosts.length === 0 ? (
-              <p className="text-xs text-gray-400 italic py-2">
-                Aún no tienes publicaciones con métricas calculadas.
+              <p className="text-sm text-white/50 py-2">
+                {t(
+                  'creator.advanced.no_top_posts',
+                  'No posts with scored metrics yet.',
+                )}
               </p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {topPosts.map((post, idx) => (
                   <div
                     key={post.id}
-                    className="flex items-center justify-between p-3 bg-white/5 hover:bg-white/8 border border-white/5 rounded-xl transition-all"
+                    className="flex items-center justify-between gap-3 p-3 rounded-lg border border-white/5 bg-white/3"
                   >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center font-black text-xs">
-                        #{idx + 1}
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-white line-clamp-1">
-                          {post.caption || 'Publicación sin texto'}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="w-8 h-8 rounded-lg bg-brand-primary/15 text-brand-primary text-xs font-medium flex items-center justify-center">
+                        {idx + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm text-white truncate">
+                          {post.caption ||
+                            t(
+                              'creator.dashboard.untitled_post',
+                              'Untitled post',
+                            )}
                         </p>
-                        <div className="flex items-center space-x-3 text-[11px] text-gray-400 mt-0.5">
-                          <span className="flex items-center space-x-1">
-                            <Eye className="w-3 h-3 text-accent-blue" />
-                            <span>{post.views}</span>
+                        <div className="flex items-center gap-3 text-[11px] text-white/40 mt-0.5">
+                          <span className="inline-flex items-center gap-1">
+                            <Eye size={12} aria-hidden />
+                            {post.views}
                           </span>
-                          <span className="flex items-center space-x-1">
-                            <Heart className="w-3 h-3 text-red-400" />
-                            <span>{post.likes}</span>
+                          <span className="inline-flex items-center gap-1">
+                            <Heart size={12} aria-hidden />
+                            {post.likes}
                           </span>
-                          <span className="flex items-center space-x-1">
-                            <MessageCircle className="w-3 h-3 text-emerald-400" />
-                            <span>{post.comments}</span>
+                          <span className="inline-flex items-center gap-1">
+                            <MessageCircle size={12} aria-hidden />
+                            {post.comments}
                           </span>
                         </div>
                       </div>
                     </div>
-
-                    <div className="text-right">
-                      <span className="px-2.5 py-1 bg-accent-blue/10 border border-accent-blue/20 text-accent-blue text-xs font-black rounded-lg">
-                        Score: {post.performanceScore.toFixed(1)}
-                      </span>
-                    </div>
+                    <span className="text-xs text-white/70 tabular-nums shrink-0">
+                      {post.performanceScore.toFixed(1)}
+                    </span>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </Card>
         </>
       )}
     </div>
   );
 };
+
+function Kpi({
+  icon: Icon,
+  label,
+  value,
+  hint,
+}: {
+  icon: typeof DollarSign;
+  label: string;
+  value: string;
+  hint: string;
+}) {
+  return (
+    <Card variant="glass" className="p-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs text-white/50">{label}</span>
+        <Icon size={16} className="text-brand-primary" aria-hidden />
+      </div>
+      <p className="text-2xl font-semibold text-white tabular-nums">{value}</p>
+      <p className="text-[11px] text-white/40 mt-1">{hint}</p>
+    </Card>
+  );
+}
+
+function ShareRow({
+  label,
+  amount,
+  pct,
+}: {
+  label: string;
+  amount: number;
+  pct: number;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-xs">
+        <span className="text-white/60">{label}</span>
+        <span className="text-white tabular-nums">€{amount.toFixed(2)}</span>
+      </div>
+      <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-brand-primary rounded-full"
+          style={{ width: `${Math.min(pct, 100)}%` }}
+        />
+      </div>
+    </div>
+  );
+}

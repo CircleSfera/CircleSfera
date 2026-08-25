@@ -15,9 +15,9 @@ import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import { useAuthStore } from '../../stores/authStore';
 import type { PaginatedResponse } from '../../types';
-import { EmptyState } from '../ErrorEmptyStates';
 import PostInsightsModal from '../modals/PostInsightsModal';
 import { Button } from '../ui';
+import CreatorEmpty from './CreatorEmpty';
 
 interface Props {
   onPromote: (post: CreatorPost) => void;
@@ -44,20 +44,27 @@ export default function CreatorPostsTab({ onPromote }: Props) {
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-2 w-full">
+      <div className="p-1 rounded-xl border border-white/10 bg-surface-elevated flex flex-col sm:flex-row gap-1">
         {['', 'POST', 'FRAME'].map((filter) => (
-          <Button
+          <button
             key={filter || 'all'}
-            variant={typeFilter === filter ? 'primary' : 'ghost'}
-            size="compact"
-            className="w-full sm:w-auto min-h-11"
+            type="button"
+            className={`flex-1 min-h-11 px-4 rounded-lg text-sm font-medium transition-colors ${
+              typeFilter === filter
+                ? 'bg-brand-primary/15 text-white'
+                : 'text-white/60 hover:text-white hover:bg-white/5'
+            }`}
             onClick={() => {
               setTypeFilter(filter);
               setPage(1);
             }}
           >
-            {filter === '' ? 'Todos' : filter === 'POST' ? 'Posts' : 'Frames'}
-          </Button>
+            {filter === ''
+              ? t('creator.posts.filter_all', 'All')
+              : filter === 'POST'
+                ? t('creator.posts.filter_posts', 'Posts')
+                : t('creator.posts.filter_frames', 'Frames')}
+          </button>
         ))}
       </div>
 
@@ -96,7 +103,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                   </div>
                 )}
                 {/* Type badge */}
-                <span className="absolute top-3 left-3 px-2 py-0.5 bg-black/60 backdrop-blur rounded text-xs font-black uppercase text-white tracking-wide border border-white/5">
+                <span className="absolute top-3 left-3 px-2 py-0.5 bg-black/60 rounded text-[11px] text-white">
                   {post.type}
                 </span>
               </div>
@@ -109,22 +116,12 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                   </p>
 
                   <div className="space-y-2 mb-4">
-                    <div className="flex items-center justify-between text-xs font-black uppercase tracking-wide text-zinc-400 italic">
-                      <span>Rendimiento</span>
-                      <span
-                        className={
-                          post.performanceScore >= 120
-                            ? 'text-emerald-400'
-                            : post.performanceScore >= 80
-                              ? 'text-brand-primary'
-                              : 'text-rose-400'
-                        }
-                      >
-                        {post.performanceScore >= 120
-                          ? 'Excelente'
-                          : post.performanceScore >= 80
-                            ? 'Promedio'
-                            : 'Bajo'}
+                    <div className="flex items-center justify-between text-xs text-white/40">
+                      <span>
+                        {t('creator.dashboard.performance', 'Performance')}
+                      </span>
+                      <span className="tabular-nums text-white/70">
+                        {post.performanceScore || 0}%
                       </span>
                     </div>
                     <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
@@ -133,28 +130,22 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                         animate={{
                           width: `${Math.min(post.performanceScore, 100)}%`,
                         }}
-                        className={`h-full rounded-full ${
-                          post.performanceScore >= 120
-                            ? 'bg-emerald-500'
-                            : post.performanceScore >= 80
-                              ? 'bg-brand-primary'
-                              : 'bg-rose-500'
-                        }`}
+                        className="h-full rounded-full bg-brand-primary"
                       />
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 text-xs font-black">
-                    <span className="flex items-center gap-1 text-zinc-400">
-                      <Heart size={12} className="text-pink-500/60" />{' '}
+                  <div className="flex items-center gap-4 text-xs text-white/40">
+                    <span className="flex items-center gap-1">
+                      <Heart size={12} className="text-brand-secondary" />{' '}
                       {post._count.likes.toLocaleString()}
                     </span>
-                    <span className="flex items-center gap-1 text-zinc-400">
-                      <MessageCircle size={12} className="text-blue-500/60" />{' '}
+                    <span className="flex items-center gap-1">
+                      <MessageCircle size={12} className="text-brand-primary" />{' '}
                       {post._count.comments.toLocaleString()}
                     </span>
-                    <span className="text-zinc-400 ml-auto opacity-60">
-                      {post.views.toLocaleString()} views
+                    <span className="ml-auto">
+                      {post.views.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -202,8 +193,8 @@ export default function CreatorPostsTab({ onPromote }: Props) {
       )}
 
       {!isLoading && !data?.data?.length && (
-        <EmptyState
-          icon="posts"
+        <CreatorEmpty
+          icon={ImageIcon}
           title={t('creator.posts.empty_title', 'No posts yet')}
           message={t(
             'creator.posts.empty_desc',
@@ -222,9 +213,9 @@ export default function CreatorPostsTab({ onPromote }: Props) {
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
-            Anterior
+            {t('creator.posts.prev', 'Previous')}
           </Button>
-          <span className="text-xs font-semibold text-gray-400 px-2">
+          <span className="text-xs text-white/40 px-2">
             {page} / {data.meta.totalPages}
           </span>
           <Button
@@ -236,7 +227,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
               setPage((p) => Math.min(data.meta.totalPages, p + 1))
             }
           >
-            Siguiente
+            {t('creator.posts.next', 'Next')}
           </Button>
         </div>
       )}

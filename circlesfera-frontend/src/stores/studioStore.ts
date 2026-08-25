@@ -6,22 +6,24 @@ import type {
   StudioTab,
   Track,
 } from '../types/studio';
+import { resolutionForAspect } from '../utils/studioExportHelpers';
 
 interface StudioState {
   project: StudioProject | null;
   cloudProjectId: string | null;
-  playhead: number; // Current time in seconds
+  playhead: number;
   isPlaying: boolean;
   selectedClipId: string | null;
-  zoom: number; // Pixels per second
+  zoom: number;
   activeTab: StudioTab;
+  openSheet: StudioTab | 'properties' | null;
+  saveStatus: 'idle' | 'saving' | 'saved' | 'error';
 
-  // History stack for Undo / Redo
   past: StudioProject[];
   future: StudioProject[];
 
-  // Core Actions
   setProject: (project: StudioProject) => void;
+  setProjectName: (name: string) => void;
   setCloudProjectId: (id: string | null) => void;
   setPlayhead: (time: number) => void;
   togglePlayback: () => void;
@@ -29,22 +31,27 @@ interface StudioState {
   setZoom: (zoom: number) => void;
   selectClip: (clipId: string | null) => void;
   setActiveTab: (tab: StudioTab) => void;
+  setOpenSheet: (sheet: StudioTab | 'properties' | null) => void;
   setAspectRatio: (aspectRatio: AspectRatioType) => void;
+  setSaveStatus: (status: StudioState['saveStatus']) => void;
 
-  // Undo / Redo
+  beginHistoryTransaction: () => void;
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
 
-  // Track & Clip mutations
   addTrack: (track: Track) => void;
   removeTrack: (trackId: string) => void;
   toggleTrackMute: (trackId: string) => void;
   toggleTrackHidden: (trackId: string) => void;
   toggleTrackLock: (trackId: string) => void;
   addClip: (trackId: string, clip: Clip) => void;
-  updateClip: (clipId: string, updates: Partial<Clip>) => void;
+  updateClip: (
+    clipId: string,
+    updates: Partial<Clip>,
+    options?: { history?: boolean },
+  ) => void;
   removeClip: (clipId: string) => void;
   splitClip: () => void;
 
@@ -68,8 +75,10 @@ export const useStudioStore = create<StudioState>((set) => ({
   playhead: 0,
   isPlaying: false,
   selectedClipId: null,
-  zoom: 50, // 50px = 1 second default
+  zoom: 50,
   activeTab: 'media',
+  openSheet: null,
+  saveStatus: 'idle',
 
   past: [],
   future: [],
@@ -85,6 +94,18 @@ export const useStudioStore = create<StudioState>((set) => ({
       canRedo: false,
     }),
 
+  setProjectName: (name) =>
+    set((state) => {
+      if (!state.project) return state;
+      return {
+        project: {
+          ...state.project,
+          name,
+          updatedAt: new Date().toISOString(),
+        },
+      };
+    }),
+
   setCloudProjectId: (id) => set({ cloudProjectId: id }),
 
   setPlayhead: (time) => set({ playhead: Math.max(0, time) }),
@@ -95,15 +116,38 @@ export const useStudioStore = create<StudioState>((set) => ({
 
   setZoom: (zoom) => set({ zoom: Math.max(10, Math.min(200, zoom)) }),
 
-  selectClip: (clipId) => set({ selectedClipId: clipId }),
+  selectClip: (clipId) =>
+    set({
+      selectedClipId: clipId,
+      openSheet: clipId ? 'properties' : null,
+    }),
 
-  setActiveTab: (tab) => set({ activeTab: tab }),
+  setActiveTab: (tab) => set({ activeTab: tab, openSheet: tab }),
+
+  setOpenSheet: (sheet) => set({ openSheet: sheet }),
 
   setAspectRatio: (aspectRatio) =>
     set((state) => {
       if (!state.project) return state;
-      const updated = { ...state.project, aspectRatio };
+      const updated = {
+        ...state.project,
+        aspectRatio,
+        resolution: resolutionForAspect(aspectRatio),
+      };
       return pushHistory(state, updated);
+    }),
+
+  setSaveStatus: (saveStatus) => set({ saveStatus }),
+
+  beginHistoryTransaction: () =>
+    set((state) => {
+      if (!state.project) return state;
+      return {
+        past: [...state.past.slice(-20), state.project],
+        future: [],
+        canUndo: true,
+        canRedo: false,
+      };
     }),
 
   undo: () =>
@@ -147,11 +191,20 @@ export const useStudioStore = create<StudioState>((set) => ({
   removeTrack: (trackId) =>
     set((state) => {
       if (!state.project) return state;
+      const track = state.project.tracks.find((t) => t.id === trackId);
+      const selectedOnTrack = track?.clips.some(
+        (c) => c.id === state.selectedClipId,
+      );
       const updated = {
         ...state.project,
         tracks: state.project.tracks.filter((t) => t.id !== trackId),
       };
-      return pushHistory(state, updated);
+      const historyResult = pushHistory(state, updated);
+      return {
+        ...historyResult,
+        selectedClipId: selectedOnTrack ? null : state.selectedClipId,
+        openSheet: selectedOnTrack ? null : state.openSheet,
+      };
     }),
 
   toggleTrackMute: (trackId) =>
@@ -160,7 +213,7 @@ export const useStudioStore = create<StudioState>((set) => ({
       const tracks = state.project.tracks.map((t) =>
         t.id === trackId ? { ...t, muted: !t.muted } : t,
       );
-      return { project: { ...state.project, tracks } };
+      return pushHistory(state, { ...state.project, tracks });
     }),
 
   toggleTrackHidden: (trackId) =>
@@ -169,7 +222,7 @@ export const useStudioStore = create<StudioState>((set) => ({
       const tracks = state.project.tracks.map((t) =>
         t.id === trackId ? { ...t, hidden: !t.hidden } : t,
       );
-      return { project: { ...state.project, tracks } };
+      return pushHistory(state, { ...state.project, tracks });
     }),
 
   toggleTrackLock: (trackId) =>
@@ -178,7 +231,7 @@ export const useStudioStore = create<StudioState>((set) => ({
       const tracks = state.project.tracks.map((t) =>
         t.id === trackId ? { ...t, locked: !t.locked } : t,
       );
-      return { project: { ...state.project, tracks } };
+      return pushHistory(state, { ...state.project, tracks });
     }),
 
   addClip: (trackId, clip) =>
@@ -200,7 +253,7 @@ export const useStudioStore = create<StudioState>((set) => ({
       return pushHistory(state, updated);
     }),
 
-  updateClip: (clipId, updates) =>
+  updateClip: (clipId, updates, options) =>
     set((state) => {
       if (!state.project) return state;
       const tracks = state.project.tracks.map((t) => ({
@@ -209,7 +262,11 @@ export const useStudioStore = create<StudioState>((set) => ({
           c.id === clipId ? ({ ...c, ...updates } as Clip) : c,
         ),
       }));
-      return { project: { ...state.project, tracks } };
+      const updated = { ...state.project, tracks };
+      if (options?.history) {
+        return pushHistory(state, updated);
+      }
+      return { project: updated };
     }),
 
   removeClip: (clipId) =>
@@ -225,6 +282,7 @@ export const useStudioStore = create<StudioState>((set) => ({
         ...historyResult,
         selectedClipId:
           state.selectedClipId === clipId ? null : state.selectedClipId,
+        openSheet: state.selectedClipId === clipId ? null : state.openSheet,
       };
     }),
 
@@ -238,7 +296,7 @@ export const useStudioStore = create<StudioState>((set) => ({
       let targetClip: Clip | undefined;
 
       for (const t of state.project.tracks) {
-        const c = t.clips.find((c) => c.id === selectedClipId);
+        const c = t.clips.find((clip) => clip.id === selectedClipId);
         if (c) {
           targetTrack = t;
           targetClip = c;
@@ -260,7 +318,7 @@ export const useStudioStore = create<StudioState>((set) => ({
           ? crypto.randomUUID()
           : Math.random().toString(36).substring(2);
 
-      const newClip: any = {
+      const newClip: Clip = {
         ...targetClip,
         id: generateId(),
         startAt: playhead,
@@ -268,7 +326,10 @@ export const useStudioStore = create<StudioState>((set) => ({
       };
 
       if (targetClip.type !== 'text') {
-        newClip.mediaStart = (targetClip as any).mediaStart + relativeSplit;
+        const speed = (targetClip as { speed?: number }).speed ?? 1;
+        (newClip as typeof targetClip & { mediaStart: number }).mediaStart =
+          (targetClip as { mediaStart: number }).mediaStart +
+          relativeSplit * speed;
       }
 
       const updatedTracks = state.project.tracks.map((t) => {

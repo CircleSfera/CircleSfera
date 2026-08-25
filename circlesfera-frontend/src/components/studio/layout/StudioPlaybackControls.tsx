@@ -1,27 +1,57 @@
-import { Maximize, Pause, Play, SkipBack, SkipForward } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Maximize,
+  Pause,
+  Play,
+  SkipBack,
+  SkipForward,
+} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../../stores/studioStore';
 
 export default function StudioPlaybackControls() {
-  const { project, playhead, setPlayhead, isPlaying, togglePlayback } =
-    useStudioStore();
+  const { t } = useTranslation();
+  const {
+    project,
+    playhead,
+    setPlayhead,
+    isPlaying,
+    togglePlayback,
+    setPlaying,
+  } = useStudioStore();
+  const fps = project?.fps || 30;
+  const frameDuration = 1 / fps;
 
   const formatTimecode = (timeInSeconds: number) => {
     const mins = Math.floor(timeInSeconds / 60);
     const secs = Math.floor(timeInSeconds % 60);
-    const frames = Math.floor((timeInSeconds % 1) * 30);
+    const frames = Math.floor((timeInSeconds % 1) * fps);
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${frames.toString().padStart(2, '0')}`;
   };
 
-  const skipFrames = (frames: number) => {
-    const timeToSkip = frames / 30;
-    setPlayhead(Math.max(0, playhead + timeToSkip));
+  const stepFrames = (frames: number) => {
+    setPlaying(false);
+    const max = project?.duration ?? Number.POSITIVE_INFINITY;
+    setPlayhead(Math.max(0, Math.min(max, playhead + frames * frameDuration)));
+  };
+
+  const toggleFullscreen = () => {
+    const preview = document.querySelector('[data-studio-preview]');
+    if (!preview) return;
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+      return;
+    }
+    if (preview instanceof HTMLElement && preview.requestFullscreen) {
+      void preview.requestFullscreen();
+    }
   };
 
   return (
-    <div className="h-16 bg-[#0a0a0c]/80 backdrop-blur-md border-t border-white/5 shrink-0 flex items-center justify-between px-3 sm:px-6 z-20">
-      {/* Left: Timecode */}
-      <div className="w-24 sm:w-32">
-        <span className="font-mono text-xs sm:text-sm text-brand-primary drop-shadow-[0_0_8px_rgba(140, 82, 255,0.5)] bg-brand-primary/10 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded">
+    <div className="min-h-14 bg-surface-base/80 border-t border-white/5 shrink-0 flex items-center justify-between px-2 sm:px-6 z-20">
+      <div className="w-16 sm:w-32 shrink-0">
+        <span className="font-mono text-xs sm:text-sm text-brand-primary bg-brand-primary/10 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded">
           {formatTimecode(playhead)}
         </span>
         <span className="font-mono text-xs text-white/30 ml-2 hidden sm:inline">
@@ -29,43 +59,32 @@ export default function StudioPlaybackControls() {
         </span>
       </div>
 
-      {/* Center: Playback Buttons */}
-      <div className="flex items-center gap-3 sm:gap-6">
+      <div className="flex items-center gap-1 sm:gap-3">
         <button
           type="button"
           onClick={() => setPlayhead(0)}
-          className="w-11 h-11 md:w-8 md:h-8 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-          title="Ir al inicio"
+          className="min-h-11 min-w-11 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          aria-label={t('studio.playback.start')}
         >
           <SkipBack size={18} />
         </button>
 
         <button
           type="button"
-          onClick={() => skipFrames(-1)}
-          className="hidden sm:flex w-11 h-11 md:w-8 md:h-8 items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-          title="Frame anterior"
+          onClick={() => stepFrames(-1)}
+          className="min-h-11 min-w-11 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          aria-label={t('studio.playback.frame_back')}
         >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <polygon points="11 19 2 12 11 5 11 19"></polygon>
-            <polygon points="22 19 13 12 22 5 22 19"></polygon>
-          </svg>
+          <ChevronLeft size={18} />
         </button>
 
         <button
           type="button"
           onClick={togglePlayback}
-          className="w-12 h-12 flex items-center justify-center bg-white text-black hover:bg-zinc-200 hover:scale-105 rounded-full transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+          className="w-12 h-12 flex items-center justify-center bg-white text-black hover:bg-white/90 rounded-full transition-all shadow-lg"
+          aria-label={
+            isPlaying ? t('studio.playback.pause') : t('studio.playback.play')
+          }
         >
           {isPlaying ? (
             <Pause size={22} className="fill-black" />
@@ -76,41 +95,29 @@ export default function StudioPlaybackControls() {
 
         <button
           type="button"
-          onClick={() => skipFrames(1)}
-          className="hidden sm:flex w-11 h-11 md:w-8 md:h-8 items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-          title="Siguiente frame"
+          onClick={() => stepFrames(1)}
+          className="min-h-11 min-w-11 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          aria-label={t('studio.playback.frame_forward')}
         >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <polygon points="13 19 22 12 13 5 13 19"></polygon>
-            <polygon points="2 19 11 12 2 5 2 19"></polygon>
-          </svg>
+          <ChevronRight size={18} />
         </button>
 
         <button
           type="button"
           onClick={() => project && setPlayhead(project.duration)}
-          className="w-11 h-11 md:w-8 md:h-8 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-          title="Ir al final"
+          className="min-h-11 min-w-11 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          aria-label={t('studio.playback.end')}
         >
           <SkipForward size={18} />
         </button>
       </div>
 
-      {/* Right: Fullscreen/Settings */}
-      <div className="w-24 sm:w-32 flex justify-end gap-2">
+      <div className="w-20 sm:w-32 flex justify-end gap-2 shrink-0">
         <button
           type="button"
-          className="w-11 h-11 md:w-8 md:h-8 flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          onClick={toggleFullscreen}
+          className="min-h-11 min-w-11 flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          aria-label={t('studio.playback.fullscreen')}
         >
           <Maximize size={16} />
         </button>

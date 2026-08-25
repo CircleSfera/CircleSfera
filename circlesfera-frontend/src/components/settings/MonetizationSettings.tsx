@@ -1,9 +1,11 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { ExternalLink, Loader2, Wallet } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { monetizationApi } from '../../services/monetization.service';
+import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
+import SettingsSection from './SettingsSection';
 
 export function MonetizationSettings() {
   const { t } = useTranslation();
@@ -26,10 +28,8 @@ export function MonetizationSettings() {
     onSuccess: (data) => {
       window.location.href = data.url;
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || 'Error al conectar con Stripe',
-      );
+    onError: () => {
+      toast.error(t('settings.monetization.error_connect'));
     },
   });
 
@@ -40,17 +40,15 @@ export function MonetizationSettings() {
     onSuccess: (data) => {
       window.open(data.url, '_blank');
     },
-    onError: (error: any) => {
-      toast.error(
-        error.response?.data?.message || 'Error al abrir Stripe Dashboard',
-      );
+    onError: () => {
+      toast.error(t('settings.monetization.error_dashboard'));
     },
   });
 
   if (statusLoading || monetizationLoading) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-300" />
+      <div className="flex justify-center py-12">
+        <LoadingSpinner size="sm" />
       </div>
     );
   }
@@ -58,91 +56,70 @@ export function MonetizationSettings() {
   const isConnected = status?.connected;
   const isTransfersEnabled = status?.transfersEnabled;
   const lifetimeEarnings = (monetization?.lifetimeEarningsCents || 0) / 100;
+  const statusCopy = isTransfersEnabled
+    ? t('settings.monetization.status.active')
+    : isConnected
+      ? t('settings.monetization.status.incomplete')
+      : t('settings.monetization.status.unconnected');
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium text-white mb-2 flex items-center gap-2">
-          <Wallet className="w-5 h-5 text-purple-400" />
-          {t('settings.monetization.title', 'Monetization')}
-        </h3>
-        <p className="text-gray-300 text-sm">
-          {t(
-            'settings.monetization.desc',
-            'Manage your payments, payouts, and Stripe Connect account.',
-          )}
-        </p>
-      </div>
-
-      <div className="glass-panel rounded-xl p-6 border border-white/5 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h4 className="text-white font-medium">
-              {t('settings.monetization.stripeConnect', 'Stripe Connect')}
-            </h4>
-            <p className="text-sm text-gray-300 mt-1">
-              {isTransfersEnabled
-                ? t(
-                    'settings.monetization.status.active',
-                    'Your account is active and can receive payouts.',
-                  )
-                : isConnected
-                  ? t(
-                      'settings.monetization.status.incomplete',
-                      'Your account needs more details to receive payouts.',
-                    )
-                  : t(
-                      'settings.monetization.status.unconnected',
-                      'Connect with Stripe to start receiving tips.',
-                    )}
+    <div className="max-w-xl space-y-5">
+      <SettingsSection
+        title={t('settings.monetization.title')}
+        description={t('settings.monetization.desc')}
+        card={false}
+      >
+        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-white">
+              {t('settings.monetization.stripeConnect')}
+            </p>
+            <p className="text-xs text-white/50 mt-1 leading-relaxed">
+              {statusCopy}
             </p>
           </div>
-          <div>
-            {isConnected ? (
-              <Button
-                variant="outline"
-                size="compact"
-                onClick={() => dashboardMutation.mutate()}
-                disabled={dashboardMutation.isPending}
-                className="flex items-center gap-2"
-              >
-                {dashboardMutation.isPending && (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                )}
-                {t('settings.monetization.dashboard', 'Stripe Dashboard')}
-                <ExternalLink className="w-4 h-4" />
-              </Button>
-            ) : (
-              <Button
-                variant="primary"
-                onClick={() => connectMutation.mutate()}
-                disabled={connectMutation.isPending}
-              >
-                {connectMutation.isPending && (
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                )}
-                {t('settings.monetization.connect', 'Connect Stripe')}
-              </Button>
-            )}
-          </div>
+          {isConnected ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              onClick={() => dashboardMutation.mutate()}
+              isLoading={dashboardMutation.isPending}
+              className="shrink-0"
+            >
+              {t('settings.monetization.dashboard')}
+              <ExternalLink size={14} aria-hidden />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              onClick={() => connectMutation.mutate()}
+              isLoading={connectMutation.isPending}
+              className="shrink-0"
+            >
+              {t('settings.monetization.connect')}
+            </Button>
+          )}
         </div>
+      </SettingsSection>
 
-        {isTransfersEnabled && (
-          <div className="pt-6 border-t border-white/5">
-            <h4 className="text-white font-medium mb-4">
-              {t('settings.monetization.earnings', 'Earnings Overview')}
-            </h4>
-            <div className="bg-white/5 rounded-lg p-4">
-              <div className="text-sm text-gray-300">
-                {t('settings.monetization.lifetime', 'Lifetime Earnings')}
-              </div>
-              <div className="text-2xl font-bold text-white mt-1">
-                ${lifetimeEarnings.toFixed(2)}
-              </div>
-            </div>
+      {isTransfersEnabled ? (
+        <SettingsSection
+          title={t('settings.monetization.earnings')}
+          card={false}
+        >
+          <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+            <p className="text-xs text-white/50">
+              {t('settings.monetization.lifetime')}
+            </p>
+            <p className="text-xl font-semibold text-white mt-1 tracking-tight">
+              ${lifetimeEarnings.toFixed(2)}
+            </p>
           </div>
-        )}
-      </div>
+        </SettingsSection>
+      ) : null}
     </div>
   );
 }

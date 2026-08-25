@@ -24,6 +24,8 @@ import { creatorApi } from '../../services/creator.service';
 import { monetizationApi } from '../../services/monetization.service';
 import { exportToCSV } from '../../utils/exportUtils';
 import SafeResponsiveContainer from '../common/SafeResponsiveContainer';
+import { Card } from '../ui';
+import { CreatorAnalyticsDashboard } from './CreatorAnalyticsDashboard';
 
 export default function CreatorAnalyticsTab() {
   const { t } = useTranslation();
@@ -55,7 +57,7 @@ export default function CreatorAnalyticsTab() {
 
   if (isLoading) {
     return (
-      <div className="p-6 bg-surface-elevated rounded-xl border border-white/5 animate-pulse min-h-100">
+      <div className="p-5 rounded-xl border border-white/5 glass-panel animate-pulse min-h-100">
         <div className="h-6 w-48 bg-white/10 rounded-md mb-8" />
         <div className="h-75 bg-white/5 rounded-xl" />
       </div>
@@ -64,10 +66,7 @@ export default function CreatorAnalyticsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="p-6 bg-surface-elevated rounded-xl border border-white/5 relative overflow-hidden">
-        {/* Glow effect */}
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-brand-primary/10 blur-[100px] rounded-full pointer-events-none" />
-
+      <Card variant="glass" className="p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
           <h2 className="text-lg sm:text-xl font-semibold text-white tracking-tight">
             {t('creator.analytics.audience_evolution')}
@@ -76,10 +75,10 @@ export default function CreatorAnalyticsTab() {
             <button
               type="button"
               onClick={() => exportToCSV('analytics_report.csv', chartData)}
-              className="inline-flex items-center justify-center gap-2 min-h-11 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-xs font-semibold text-gray-300 transition-colors w-full sm:w-auto"
+              className="inline-flex items-center justify-center gap-2 min-h-11 px-3 py-1.5 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors w-full sm:w-auto"
             >
               <Download size={14} />
-              Exportar CSV
+              {t('creator.analytics.export_csv', 'Export CSV')}
             </button>
           )}
         </div>
@@ -90,8 +89,16 @@ export default function CreatorAnalyticsTab() {
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                    <stop
+                      offset="5%"
+                      stopColor="var(--color-brand-primary)"
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor="var(--color-brand-primary)"
+                      stopOpacity={0}
+                    />
                   </linearGradient>
                   <linearGradient
                     id="colorFollowers"
@@ -100,8 +107,16 @@ export default function CreatorAnalyticsTab() {
                     x2="0"
                     y2="1"
                   >
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    <stop
+                      offset="5%"
+                      stopColor="var(--color-brand-accent)"
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor="var(--color-brand-accent)"
+                      stopOpacity={0}
+                    />
                   </linearGradient>
                 </defs>
                 <CartesianGrid
@@ -152,7 +167,7 @@ export default function CreatorAnalyticsTab() {
                   type="monotone"
                   dataKey="views"
                   name={t('creator.analytics.views')}
-                  stroke="#2563eb"
+                  stroke="var(--color-brand-primary)"
                   strokeWidth={2}
                   fillOpacity={1}
                   fill="url(#colorViews)"
@@ -161,7 +176,7 @@ export default function CreatorAnalyticsTab() {
                   type="monotone"
                   dataKey="followers"
                   name={t('creator.analytics.followers')}
-                  stroke="#10b981"
+                  stroke="var(--color-brand-accent)"
                   strokeWidth={2}
                   fillOpacity={1}
                   fill="url(#colorFollowers)"
@@ -169,27 +184,28 @@ export default function CreatorAnalyticsTab() {
               </AreaChart>
             </SafeResponsiveContainer>
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-zinc-400">
-              <p className="text-sm font-bold">
+            <div className="w-full h-full flex flex-col items-center justify-center text-white/50">
+              <p className="text-sm font-medium">
                 {t('creator.analytics.not_enough_data')}
               </p>
-              <p className="text-xs">{t('creator.analytics.upload_content')}</p>
+              <p className="text-xs mt-1">
+                {t('creator.analytics.upload_content')}
+              </p>
             </div>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* 1.5. Financials (Income & Summary) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Income Chart */}
-        <div className="p-6 bg-surface-elevated rounded-xl border border-white/5 relative overflow-hidden lg:col-span-2 flex flex-col">
-          <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none" />
+        <Card variant="glass" className="p-5 lg:col-span-2 flex flex-col">
           <div className="flex items-center gap-2 mb-6">
-            <DollarSign size={16} className="text-emerald-500" />
-            <h3 className="text-sm font-semibold text-white tracking-wide">
+            <DollarSign size={16} className="text-brand-primary" />
+            <h3 className="text-sm font-medium text-white">
               {t(
                 'creator.analytics.income_history',
-                'Historial de Ingresos (6 Meses)',
+                'Income history (6 months)',
               )}
             </h3>
           </div>
@@ -205,8 +221,16 @@ export default function CreatorAnalyticsTab() {
                       x2="0"
                       y2="1"
                     >
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                      <stop
+                        offset="5%"
+                        stopColor="var(--color-brand-primary)"
+                        stopOpacity={0.3}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="var(--color-brand-primary)"
+                        stopOpacity={0}
+                      />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
@@ -245,7 +269,7 @@ export default function CreatorAnalyticsTab() {
                   <Area
                     type="monotone"
                     dataKey="income"
-                    stroke="#10b981"
+                    stroke="var(--color-brand-primary)"
                     strokeWidth={3}
                     fillOpacity={1}
                     fill="url(#incomeGradient)"
@@ -253,7 +277,7 @@ export default function CreatorAnalyticsTab() {
                 </AreaChart>
               </SafeResponsiveContainer>
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-zinc-400 text-xs font-bold">
+              <div className="w-full h-full flex items-center justify-center text-sm text-white/50">
                 {t(
                   'creator.analytics.no_income_data',
                   'No hay datos de ingresos en este periodo',
@@ -261,38 +285,42 @@ export default function CreatorAnalyticsTab() {
               </div>
             )}
           </div>
-        </div>
+        </Card>
 
         {/* Financial KPIs */}
         <div className="flex flex-col gap-4">
-          <div className="p-6 bg-surface-elevated rounded-xl border border-emerald-500/20 relative overflow-hidden flex-1 flex flex-col justify-center">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-[60px] rounded-full pointer-events-none" />
-            <h3 className="text-xs font-medium text-emerald-400/80 uppercase tracking-wider mb-2">
-              {t('creator.analytics.current_month_income', 'Ingresos este mes')}
+          <Card
+            variant="glass"
+            className="p-5 flex-1 flex flex-col justify-center"
+          >
+            <h3 className="text-xs text-white/50 mb-2">
+              {t('creator.analytics.current_month_income', 'Income this month')}
             </h3>
-            <div className="text-4xl font-bold text-white tracking-tight">
+            <div className="text-3xl font-semibold text-white tracking-tight tabular-nums">
               €{((financialSummary?.currentMonthIncome || 0) / 100).toFixed(2)}
             </div>
-          </div>
-          <div className="p-6 bg-surface-elevated rounded-xl border border-white/5 relative overflow-hidden flex-1 flex flex-col justify-center">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 blur-[60px] rounded-full pointer-events-none" />
-            <h3 className="text-xs font-medium text-amber-400/80 uppercase tracking-wider mb-2">
-              {t('creator.analytics.total_tips', 'Propinas Totales')}
+          </Card>
+          <Card
+            variant="glass"
+            className="p-5 flex-1 flex flex-col justify-center"
+          >
+            <h3 className="text-xs text-white/50 mb-2">
+              {t('creator.analytics.total_tips', 'Total tips')}
             </h3>
-            <div className="text-4xl font-bold text-white tracking-tight">
+            <div className="text-3xl font-semibold text-white tracking-tight tabular-nums">
               €{((financialSummary?.totalTips || 0) / 100).toFixed(2)}
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 
       {/* 2. Demographics, Activity Hours, and Retention Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Geographic Distribution */}
-        <div className="p-6 bg-surface-elevated rounded-xl border border-white/5 relative overflow-hidden flex flex-col">
+        <Card variant="glass" className="p-5 flex flex-col">
           <div className="flex items-center gap-2 mb-6">
             <MapPin size={16} className="text-brand-secondary" />
-            <h3 className="text-sm font-semibold text-white tracking-wide">
+            <h3 className="text-sm font-medium text-white">
               {t(
                 'creator.analytics.follower_locations',
                 'Geografía de Seguidores',
@@ -336,14 +364,14 @@ export default function CreatorAnalyticsTab() {
                   />
                   <Bar
                     dataKey="count"
-                    fill="#A855F7"
+                    fill="var(--color-brand-primary)"
                     radius={[0, 4, 4, 0]}
                     barSize={16}
                   />
                 </BarChart>
               </SafeResponsiveContainer>
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-zinc-400 text-xs font-bold">
+              <div className="w-full h-full flex items-center justify-center text-sm text-white/50">
                 {t(
                   'creator.analytics.no_location_data',
                   'No hay datos de ubicación',
@@ -351,13 +379,13 @@ export default function CreatorAnalyticsTab() {
               </div>
             )}
           </div>
-        </div>
+        </Card>
 
         {/* Subscriber Retention */}
-        <div className="p-6 bg-surface-elevated rounded-xl border border-white/5 relative overflow-hidden flex flex-col">
+        <Card variant="glass" className="p-5 flex flex-col">
           <div className="flex items-center gap-2 mb-6">
             <Users size={16} className="text-brand-primary" />
-            <h3 className="text-sm font-semibold text-white tracking-wide">
+            <h3 className="text-sm font-medium text-white">
               {t(
                 'creator.analytics.sub_retention',
                 'Retención de Suscripciones',
@@ -401,9 +429,9 @@ export default function CreatorAnalyticsTab() {
                         paddingAngle={4}
                         dataKey="value"
                       >
-                        <Cell fill="#10b981" />
-                        <Cell fill="#f59e0b" />
-                        <Cell fill="#ef4444" />
+                        <Cell fill="var(--color-brand-primary)" />
+                        <Cell fill="var(--color-brand-accent)" />
+                        <Cell fill="var(--color-brand-secondary)" />
                       </Pie>
                       <Tooltip
                         contentStyle={{
@@ -418,8 +446,8 @@ export default function CreatorAnalyticsTab() {
                 </div>
                 <div className="flex flex-col gap-2.5 text-xs">
                   <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                    <span className="text-zinc-400 font-medium">
+                    <div className="w-2.5 h-2.5 rounded-full bg-brand-primary" />
+                    <span className="text-white/50 font-medium">
                       {t('creator.analytics.retained', 'Activas (Renovando)')}:
                     </span>
                     <span className="text-white font-bold">
@@ -427,8 +455,8 @@ export default function CreatorAnalyticsTab() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                    <span className="text-zinc-400 font-medium">
+                    <div className="w-2.5 h-2.5 rounded-full bg-brand-accent" />
+                    <span className="text-white/50 font-medium">
                       {t(
                         'creator.analytics.churning',
                         'Canceladas (Por Expirar)',
@@ -440,8 +468,8 @@ export default function CreatorAnalyticsTab() {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                    <span className="text-zinc-400 font-medium">
+                    <div className="w-2.5 h-2.5 rounded-full bg-brand-secondary" />
+                    <span className="text-white/50 font-medium">
                       {t('creator.analytics.churned', 'Expiradas')}:
                     </span>
                     <span className="text-white font-bold">
@@ -451,7 +479,7 @@ export default function CreatorAnalyticsTab() {
                 </div>
               </>
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-zinc-400 text-xs font-bold">
+              <div className="w-full h-full flex items-center justify-center text-sm text-white/50">
                 {t(
                   'creator.analytics.no_retention_data',
                   'No hay datos de suscriptores',
@@ -459,13 +487,13 @@ export default function CreatorAnalyticsTab() {
               </div>
             )}
           </div>
-        </div>
+        </Card>
 
         {/* Activity Hours */}
-        <div className="p-6 bg-surface-elevated rounded-xl border border-white/5 relative overflow-hidden md:col-span-2 flex flex-col">
+        <Card variant="glass" className="p-5 md:col-span-2 flex flex-col">
           <div className="flex items-center gap-2 mb-6">
-            <Clock size={16} className="text-amber-500" />
-            <h3 className="text-sm font-semibold text-white tracking-wide">
+            <Clock size={16} className="text-brand-primary" />
+            <h3 className="text-sm font-medium text-white">
               {t(
                 'creator.analytics.activity_hours',
                 'Horas de Mayor Actividad (Últimos 30 días)',
@@ -508,7 +536,7 @@ export default function CreatorAnalyticsTab() {
                   <Line
                     type="monotone"
                     dataKey="count"
-                    stroke="#3b82f6"
+                    stroke="var(--color-brand-primary)"
                     strokeWidth={3}
                     dot={false}
                     activeDot={{ r: 6 }}
@@ -516,7 +544,7 @@ export default function CreatorAnalyticsTab() {
                 </LineChart>
               </SafeResponsiveContainer>
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-zinc-400 text-xs font-bold">
+              <div className="w-full h-full flex items-center justify-center text-sm text-white/50">
                 {t(
                   'creator.analytics.no_activity_data',
                   'No hay datos de actividad',
@@ -524,8 +552,10 @@ export default function CreatorAnalyticsTab() {
               </div>
             )}
           </div>
-        </div>
+        </Card>
       </div>
+
+      <CreatorAnalyticsDashboard />
     </div>
   );
 }

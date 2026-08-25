@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { profileApi } from '../../services';
+import { LoadingSpinner } from '../LoadingStates';
 import UserAvatar from '../UserAvatar';
-import { Button, Input } from '../ui';
+import { Button } from '../ui';
+import SettingsSection from './SettingsSection';
 
 export default function ReferralsSettings() {
   const { t } = useTranslation();
@@ -15,8 +16,8 @@ export default function ReferralsSettings() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-10">
-        <Loader2 className="animate-spin text-blue-500" size={32} />
+      <div className="flex justify-center py-12">
+        <LoadingSpinner size="sm" />
       </div>
     );
   }
@@ -25,7 +26,8 @@ export default function ReferralsSettings() {
   const referrals = data?.data?.referrals || [];
   const maxReferrals = data?.data?.maxReferrals || 3;
   const referralCount = data?.data?.referralCount || 0;
-  const inviteLink = `${window.location.origin}/accounts/emailsignup?inviteCode=${inviteCode}`;
+  const inviteLink = `${window.location.origin}/accounts/signup?inviteCode=${inviteCode}`;
+  const atMax = referralCount >= maxReferrals;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(inviteLink);
@@ -33,86 +35,98 @@ export default function ReferralsSettings() {
   };
 
   return (
-    <div className="max-w-xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div>
-        <h2 className="text-xl font-black text-white tracking-tighter">
-          {t('referralsSettings.title')}
-        </h2>
-        <p className="text-gray-300 text-sm font-medium mt-1 uppercase tracking-wide italic opacity-60">
-          {t('referralsSettings.subtitle')}
-        </p>
-      </div>
-
-      <div className="bg-white/2 p-5 rounded-xl border border-white/5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-            {t('referralsSettings.your_invite_link')}
-          </h3>
-          <span className="text-xs font-bold bg-blue-500/20 text-blue-400 px-2 py-1 rounded-md">
-            {t('referralsSettings.used_count', {
-              count: referralCount,
-              max: maxReferrals,
-            })}
-          </span>
+    <div className="max-w-xl space-y-5">
+      <SettingsSection
+        title={t('referralsSettings.title')}
+        description={t('referralsSettings.subtitle')}
+        card={false}
+      >
+        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-medium text-white">
+              {t('referralsSettings.your_invite_link')}
+            </h3>
+            <span className="text-xs font-medium text-white/70 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full">
+              {t('referralsSettings.used_count', {
+                count: referralCount,
+                max: maxReferrals,
+              })}
+            </span>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              value={inviteLink}
+              readOnly
+              aria-label={t('referralsSettings.your_invite_link')}
+              className="flex-1 min-h-11 min-w-0 rounded-xl border border-white/10 bg-white/5 px-4 font-mono text-sm text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
+            />
+            <Button
+              type="button"
+              onClick={handleCopyLink}
+              disabled={atMax}
+              className="shrink-0"
+            >
+              {t('referralsSettings.copy')}
+            </Button>
+          </div>
+          {atMax ? (
+            <p className="text-xs text-brand-secondary">
+              {t('referralsSettings.max_reached')}
+            </p>
+          ) : null}
         </div>
+      </SettingsSection>
 
-        <div className="flex gap-2 mb-2">
-          <Input
-            value={inviteLink}
-            readOnly
-            className="flex-1 font-mono text-sm"
-          />
-          <Button
-            onClick={handleCopyLink}
-            disabled={referralCount >= maxReferrals}
-          >
-            {t('referralsSettings.copy')}
-          </Button>
-        </div>
-        {referralCount >= maxReferrals && (
-          <p className="text-xs text-red-400 font-bold uppercase tracking-wider">
-            {t('referralsSettings.max_reached')}
-          </p>
-        )}
-      </div>
-
-      <div className="bg-white/2 p-5 rounded-xl border border-white/5 space-y-4">
-        <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-          {t('referralsSettings.users_invited')}
-        </h3>
-
+      <SettingsSection
+        title={t('referralsSettings.users_invited')}
+        card={false}
+      >
         {referrals.length === 0 ? (
-          <div className="text-center py-6 text-gray-500 text-sm font-medium">
+          <p className="text-sm text-white/50 text-center py-8 rounded-xl border border-white/5 bg-white/[0.02]">
             {t('referralsSettings.no_invites')}
-          </div>
+          </p>
         ) : (
-          <div className="space-y-3">
-            {referrals.map((referral: any) => (
-              <div
-                key={referral.id}
-                className="flex items-center gap-3 p-3 bg-white/5 rounded-lg"
-              >
-                <UserAvatar
-                  src={referral.profile?.avatar}
-                  alt={referral.profile?.fullName || referral.profile?.username}
-                  size="md"
-                />
-                <div className="flex flex-col">
-                  <span className="font-bold text-white text-sm">
-                    {referral.profile?.fullName || referral.profile?.username}
-                  </span>
-                  <span className="text-xs text-gray-300">
-                    @{referral.profile?.username}{' '}
-                    {t('referralsSettings.joined_on', {
-                      date: new Date(referral.createdAt).toLocaleDateString(),
-                    })}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+          <ul className="rounded-xl border border-white/5 bg-white/[0.02] divide-y divide-white/5">
+            {referrals.map(
+              (referral: {
+                id: string;
+                createdAt: string;
+                profile?: {
+                  avatar?: string;
+                  fullName?: string;
+                  username?: string;
+                };
+              }) => (
+                <li
+                  key={referral.id}
+                  className="flex items-center gap-3 px-4 py-3"
+                >
+                  <UserAvatar
+                    src={referral.profile?.avatar}
+                    alt={
+                      referral.profile?.fullName ||
+                      referral.profile?.username ||
+                      ''
+                    }
+                    size="md"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-white truncate">
+                      {referral.profile?.fullName || referral.profile?.username}
+                    </p>
+                    <p className="text-xs text-white/45 truncate">
+                      @{referral.profile?.username}{' '}
+                      {t('referralsSettings.joined_on', {
+                        date: new Date(referral.createdAt).toLocaleDateString(),
+                      })}
+                    </p>
+                  </div>
+                </li>
+              ),
+            )}
+          </ul>
         )}
-      </div>
+      </SettingsSection>
     </div>
   );
 }
