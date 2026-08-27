@@ -159,10 +159,33 @@ export class CommentsService {
    * Retrieve top-level comments for a post with nested replies, paginated.
    * @param postId - The post ID
    * @param pagination - Page and limit parameters
+   * @param currentProfileId - Optional viewer profile for isLiked hydration
    */
-  async findByPost(postId: string, pagination: PaginationDto) {
+  async findByPost(
+    postId: string,
+    pagination: PaginationDto,
+    currentProfileId?: string,
+  ) {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
+
+    const likeInclude = currentProfileId
+      ? {
+          where: { profileId: currentProfileId },
+          take: 1,
+          select: { id: true, profileId: true },
+        }
+      : false;
+
+    const profileSelect = {
+      id: true,
+      username: true,
+      avatar: true,
+      fullName: true,
+      user: {
+        select: { verificationLevel: true, accountType: true },
+      },
+    } as const;
 
     const [comments, total] = await Promise.all([
       this.prisma.comment.findMany({
@@ -175,33 +198,15 @@ export class CommentsService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          profile: {
-            select: {
-              id: true,
-              username: true,
-              avatar: true,
-              fullName: true,
-              user: {
-                select: { verificationLevel: true, accountType: true },
-              },
-            },
-          },
-          likes: { select: { id: true } },
+          profile: { select: profileSelect },
+          likes: likeInclude,
+          _count: { select: { likes: true } },
           replies: {
             orderBy: { createdAt: 'asc' },
             include: {
-              profile: {
-                select: {
-                  id: true,
-                  username: true,
-                  avatar: true,
-                  fullName: true,
-                  user: {
-                    select: { verificationLevel: true, accountType: true },
-                  },
-                },
-              },
-              likes: { select: { id: true } },
+              profile: { select: profileSelect },
+              likes: likeInclude,
+              _count: { select: { likes: true } },
             },
           },
         },

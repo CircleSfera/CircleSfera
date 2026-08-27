@@ -8,6 +8,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import {
+  CurrentUser,
+  type CurrentUserData,
+} from '../auth/decorators/current-user.decorator.js';
 import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
@@ -19,7 +23,7 @@ import { UnlockStoryDto } from './dto/unlock-story.dto.js';
 import { MonetizationService } from './monetization.service.js';
 
 interface AuthRequest extends Request {
-  user: { userId: string; email: string; role: string };
+  user: CurrentUserData;
 }
 
 @ApiTags('Monetization')
@@ -78,6 +82,7 @@ export class MonetizationController {
   async unlockPost(@Req() req: AuthRequest, @Body() body: UnlockPostDto) {
     return this.monetizationService.createPostUnlockSession(
       req.user.userId,
+      req.user.profileId,
       body.postId,
       body.returnUrl,
       body.idempotencyKey,
@@ -89,6 +94,7 @@ export class MonetizationController {
   async unlockStory(@Req() req: AuthRequest, @Body() body: UnlockStoryDto) {
     return this.monetizationService.createStoryUnlockSession(
       req.user.userId,
+      req.user.profileId,
       body.storyId,
       body.returnUrl,
       body.idempotencyKey,

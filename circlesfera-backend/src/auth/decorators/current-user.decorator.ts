@@ -9,13 +9,18 @@ export interface CurrentUserData {
 }
 
 interface RequestWithUser extends Request {
-  user: CurrentUserData;
+  user?: CurrentUserData;
 }
 
 export const CurrentUser = createParamDecorator(
-  // biome-ignore lint/correctness/noUnusedFunctionParameters: data is mandatory for NestJS decorators but not used here
-  (data: unknown, ctx: ExecutionContext): CurrentUserData => {
+  (
+    data: keyof CurrentUserData | undefined,
+    ctx: ExecutionContext,
+  ): CurrentUserData | string | null => {
     const request = ctx.switchToHttp().getRequest<RequestWithUser>();
-    return request.user;
+    const user = request.user;
+    if (!user) return null;
+    if (data) return user[data];
+    return user;
   },
 );

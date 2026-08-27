@@ -948,14 +948,21 @@ export class PostsService {
     // VIP subscriptions removed
     const subscribedCreatorIds = new Set<string>();
 
-    // Fetch user's unlocked posts
-    const unlocks = await this.prisma.postUnlock.findMany({
-      where: {
-        userId: currentProfileId,
-      },
-      select: { postId: true },
-    });
-    const unlockedPostIds = new Set(unlocks.map((u) => u.postId));
+    // Fetch user's unlocked posts (PostUnlock is keyed by User, not Profile)
+    let unlockedPostIds = new Set<string>();
+    if (currentProfileId) {
+      const viewer = await this.prisma.profile.findUnique({
+        where: { id: currentProfileId },
+        select: { userId: true },
+      });
+      const unlocks = viewer
+        ? await this.prisma.postUnlock.findMany({
+            where: { userId: viewer.userId },
+            select: { postId: true },
+          })
+        : [];
+      unlockedPostIds = new Set(unlocks.map((u) => u.postId));
+    }
 
     return posts.map((post) => {
       if (post.isPremium && post.profileId !== currentProfileId) {

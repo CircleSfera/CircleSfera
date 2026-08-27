@@ -42,7 +42,7 @@ export interface CreatePostDto {
   }>;
   audioId?: string;
   isPremium?: boolean;
-  price?: number;
+  priceCents?: number;
 }
 
 export interface CreateCommentDto {
@@ -58,7 +58,7 @@ export interface CreateStoryDto {
   isCloseFriendsOnly?: boolean;
   audioId?: string;
   isPremium?: boolean;
-  price?: number;
+  priceCents?: number;
 }
 
 export interface PlatformPlanDto {

@@ -138,6 +138,7 @@ describe('MonetizationService', () => {
       await expect(
         service.createPostUnlockSession(
           'user-1',
+          'profile-1',
           'post-1',
           'http://localhost/return',
         ),
@@ -149,12 +150,13 @@ describe('MonetizationService', () => {
         id: 'post-1',
         isPremium: true,
         priceCents: 500,
-        userId: 'user-1',
+        profileId: 'profile-1',
       });
 
       await expect(
         service.createPostUnlockSession(
           'user-1',
+          'profile-1',
           'post-1',
           'http://localhost/return',
         ),

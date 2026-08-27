@@ -8,7 +8,10 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
+import {
+  CurrentUser,
+  type CurrentUserData,
+} from '../auth/decorators/current-user.decorator.js';
 import {
   AdminGuard,
   RequireStaffPermissions,
@@ -30,7 +33,7 @@ export class AnalyticsController {
   @Post('events')
   @UseGuards(JwtOptionalGuard)
   async logEvent(
-    @CurrentUser('id') userId: string | null,
+    @CurrentUser('userId') userId: string | null,
     @Body() dto: CreateEventDto,
   ) {
     await this.analyticsService.logEvent(userId, dto);
@@ -41,7 +44,7 @@ export class AnalyticsController {
   @Post(['events/batch', 'batch'])
   @UseGuards(JwtOptionalGuard)
   async logEventsBatch(
-    @CurrentUser('id') userId: string | null,
+    @CurrentUser('userId') userId: string | null,
     @Body() dto: CreateEventBatchDto,
   ) {
     await this.analyticsService.logEventsBatch(userId, dto);
@@ -52,11 +55,11 @@ export class AnalyticsController {
   @Get('dashboard')
   @UseGuards(JwtAuthGuard)
   async getDashboard(
-    @CurrentUser('id') userId: string,
+    @CurrentUser('profileId') profileId: string,
     @Query('days') days?: string,
   ) {
     return this.analyticsService.getCreatorDashboard(
-      userId,
+      profileId,
       days ? parseInt(days, 10) : 30,
     );
   }
@@ -66,7 +69,7 @@ export class AnalyticsController {
   @UseGuards(JwtAuthGuard)
   async trackView(
     @Param('id') postId: string,
-    @CurrentUser('id') viewerId: string,
+    @CurrentUser('profileId') viewerId: string,
   ) {
     return this.analyticsService.trackPostView(postId, viewerId);
   }
@@ -102,7 +105,7 @@ export class AnalyticsController {
   @Post('debug/aggregate')
   @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('system')
-  async debugAggregate(@CurrentUser('id') userId: string) {
-    return this.analyticsService.performDailyAggregation(userId);
+  async debugAggregate(@CurrentUser('profileId') profileId: string) {
+    return this.analyticsService.performDailyAggregation(profileId);
   }
 }

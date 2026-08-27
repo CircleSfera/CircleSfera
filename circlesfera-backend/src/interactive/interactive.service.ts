@@ -13,7 +13,7 @@ export class InteractiveService {
   /**
    * Create a poll attached to a post or story owned by the user.
    */
-  async createPoll(userId: string, dto: CreatePollDto) {
+  async createPoll(profileId: string, dto: CreatePollDto) {
     if (!dto.postId && !dto.storyId) {
       throw AppException.BadRequest(
         ErrorCode.MISSING_POST_OR_STORY_ID,
@@ -41,7 +41,7 @@ export class InteractiveService {
       });
       if (!post)
         throw AppException.NotFound(ErrorCode.POST_NOT_FOUND, 'Post not found');
-      if (post.profileId !== userId)
+      if (post.profileId !== profileId)
         throw AppException.Forbidden(
           ErrorCode.FORBIDDEN_ACCESS,
           'Not your post',
@@ -65,7 +65,7 @@ export class InteractiveService {
           ErrorCode.STORY_NOT_FOUND,
           'Story not found',
         );
-      if (story.profileId !== userId)
+      if (story.profileId !== profileId)
         throw AppException.Forbidden(
           ErrorCode.FORBIDDEN_ACCESS,
           'Not your story',
@@ -93,7 +93,7 @@ export class InteractiveService {
   /**
    * Create a Q&A box attached to a post or story owned by the user.
    */
-  async createQnaBox(userId: string, dto: CreateQnaBoxDto) {
+  async createQnaBox(profileId: string, dto: CreateQnaBoxDto) {
     if (!dto.postId && !dto.storyId) {
       throw AppException.BadRequest(
         ErrorCode.MISSING_POST_OR_STORY_ID,
@@ -113,7 +113,7 @@ export class InteractiveService {
       });
       if (!post)
         throw AppException.NotFound(ErrorCode.POST_NOT_FOUND, 'Post not found');
-      if (post.profileId !== userId)
+      if (post.profileId !== profileId)
         throw AppException.Forbidden(
           ErrorCode.FORBIDDEN_ACCESS,
           'Not your post',
@@ -137,7 +137,7 @@ export class InteractiveService {
           ErrorCode.STORY_NOT_FOUND,
           'Story not found',
         );
-      if (story.profileId !== userId)
+      if (story.profileId !== profileId)
         throw AppException.Forbidden(
           ErrorCode.FORBIDDEN_ACCESS,
           'Not your story',
@@ -164,7 +164,7 @@ export class InteractiveService {
   /**
    * Cast or change a user vote in a poll.
    */
-  async votePoll(userId: string, pollId: string, optionIndex: number) {
+  async votePoll(profileId: string, pollId: string, optionIndex: number) {
     const poll = await this.prisma.poll.findUnique({
       where: { id: pollId },
     });
@@ -186,11 +186,11 @@ export class InteractiveService {
     // Upsert vote (allow changing vote)
     await this.prisma.pollVote.upsert({
       where: {
-        pollId_profileId: { pollId, profileId: userId },
+        pollId_profileId: { pollId, profileId },
       },
       create: {
         pollId,
-        profileId: userId,
+        profileId,
         optionIndex,
       },
       update: {
@@ -198,13 +198,13 @@ export class InteractiveService {
       },
     });
 
-    return this.getPoll(pollId, userId);
+    return this.getPoll(pollId, profileId);
   }
 
   /**
    * Get poll details with vote count and breakdown.
    */
-  async getPoll(pollId: string, userId?: string) {
+  async getPoll(pollId: string, profileId?: string) {
     const poll = await this.prisma.poll.findUnique({
       where: { id: pollId },
       include: {
@@ -228,7 +228,7 @@ export class InteractiveService {
       if (vote.optionIndex >= 0 && vote.optionIndex < poll.options.length) {
         optionCounts[vote.optionIndex] += 1;
       }
-      if (userId && vote.profileId === userId) {
+      if (profileId && vote.profileId === profileId) {
         userVoteIndex = vote.optionIndex;
       }
     }
@@ -259,7 +259,7 @@ export class InteractiveService {
   /**
    * Submit an answer to a Q&A box ("Hazme una pregunta").
    */
-  async answerQna(userId: string, qnaBoxId: string, answerText: string) {
+  async answerQna(profileId: string, qnaBoxId: string, answerText: string) {
     if (!answerText || answerText.trim().length === 0) {
       throw AppException.BadRequest(
         ErrorCode.EMPTY_ANSWER_TEXT,
@@ -281,7 +281,7 @@ export class InteractiveService {
     const answer = await this.prisma.qnaAnswer.create({
       data: {
         qnaBoxId,
-        profileId: userId,
+        profileId,
         answerText: answerText.trim(),
       },
     });

@@ -10,6 +10,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import {
+  CurrentUser,
+  type CurrentUserData,
+} from '../auth/decorators/current-user.decorator.js';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -18,14 +22,6 @@ import { SendGiftDto } from './dto/send-gift.dto.js';
 import { StartStreamDto } from './dto/start-stream.dto.js';
 import { LiveService } from './live.service.js';
 
-interface RequestWithUser extends Request {
-  user: {
-    userId: string;
-    email: string;
-    role: string;
-  };
-}
-
 @Controller('live')
 @UseGuards(JwtAuthGuard)
 export class LiveController {
@@ -33,13 +29,16 @@ export class LiveController {
 
   @Post('start')
   @UseGuards(EmailVerifiedGuard)
-  startStream(@Req() req: RequestWithUser, @Body() dto: StartStreamDto) {
-    return this.liveService.startStream(req.user.userId, dto.title);
+  startStream(
+    @CurrentUser() user: CurrentUserData,
+    @Body() dto: StartStreamDto,
+  ) {
+    return this.liveService.startStream(user.profileId, dto.title);
   }
 
   @Post('end')
-  endStream(@Req() req: RequestWithUser) {
-    return this.liveService.endStream(req.user.userId);
+  endStream(@CurrentUser() user: CurrentUserData) {
+    return this.liveService.endStream(user.profileId);
   }
 
   @Get('active')
@@ -53,43 +52,47 @@ export class LiveController {
   }
 
   @Get('join/:streamId')
-  joinStream(@Req() req: RequestWithUser, @Param('streamId') streamId: string) {
-    return this.liveService.getViewerToken(streamId, req.user.userId);
+  joinStream(
+    @CurrentUser() user: CurrentUserData,
+    @Param('streamId') streamId: string,
+  ) {
+    return this.liveService.getViewerToken(streamId, user.userId);
   }
 
   @Post(':streamId/cohost/invite')
   inviteCoHost(
-    @Req() req: RequestWithUser,
+    @CurrentUser() user: CurrentUserData,
     @Param('streamId') streamId: string,
     @Body() dto: InviteCoHostDto,
   ) {
     return this.liveService.inviteCoHost(
       streamId,
-      req.user.userId,
+      user.profileId,
       dto.coHostUserId,
     );
   }
 
   @Post(':streamId/cohost/accept')
   acceptCoHostInvite(
-    @Req() req: RequestWithUser,
+    @CurrentUser() user: CurrentUserData,
     @Param('streamId') streamId: string,
   ) {
-    return this.liveService.acceptCoHostInvite(streamId, req.user.userId);
+    return this.liveService.acceptCoHostInvite(streamId, user.profileId);
   }
 
   @Delete(':streamId/cohost')
   removeCoHost(
-    @Req() req: RequestWithUser,
+    @CurrentUser() user: CurrentUserData,
     @Param('streamId') streamId: string,
   ) {
-    return this.liveService.removeCoHost(streamId, req.user.userId);
+    return this.liveService.removeCoHost(streamId, user.profileId);
   }
 
   @Post(':streamId/gift')
   @UseGuards(IdentityVerifiedGuard)
   sendGift(
-    @Req() req: RequestWithUser,
+    @Req() req: Request,
+    @CurrentUser() user: CurrentUserData,
     @Param('streamId') streamId: string,
     @Body() dto: SendGiftDto,
     @Headers('idempotency-key') idempotencyKey?: string,
@@ -98,7 +101,7 @@ export class LiveController {
       dto.returnUrl || `${req.protocol}://${req.get('host')}/live/${streamId}`;
     return this.liveService.sendGift(
       streamId,
-      req.user.userId,
+      user.userId,
       dto.giftId,
       returnUrl,
       idempotencyKey,

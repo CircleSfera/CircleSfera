@@ -28,7 +28,7 @@ export class EditsService {
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
   ) {}
 
-  async create(userId: string, createEditDto: CreateEditDto) {
+  async create(profileId: string, createEditDto: CreateEditDto) {
     try {
       if (!this.prisma.editProject) {
         throw new Error(
@@ -37,7 +37,7 @@ export class EditsService {
       }
       return await this.prisma.editProject.create({
         data: {
-          profileId: userId,
+          profileId,
           mediaUrl: createEditDto.mediaUrl,
           mediaType: createEditDto.mediaType || 'image',
           name: createEditDto.name,
@@ -56,16 +56,16 @@ export class EditsService {
     }
   }
 
-  async findAll(userId: string) {
+  async findAll(profileId: string) {
     return this.prisma.editProject.findMany({
-      where: { profileId: userId },
+      where: { profileId },
       orderBy: { updatedAt: 'desc' },
     });
   }
 
-  async findOne(userId: string, id: string) {
+  async findOne(profileId: string, id: string) {
     const edit = await this.prisma.editProject.findFirst({
-      where: { id, userId },
+      where: { id, profileId },
     });
 
     if (!edit) {
@@ -78,8 +78,8 @@ export class EditsService {
     return edit;
   }
 
-  async update(userId: string, id: string, updateEditDto: UpdateEditDto) {
-    const edit = await this.findOne(userId, id);
+  async update(profileId: string, id: string, updateEditDto: UpdateEditDto) {
+    const edit = await this.findOne(profileId, id);
 
     return this.prisma.editProject.update({
       where: { id: edit.id },
@@ -144,8 +144,8 @@ export class EditsService {
     }
   }
 
-  async remove(userId: string, id: string) {
-    const edit = await this.findOne(userId, id);
+  async remove(profileId: string, id: string) {
+    const edit = await this.findOne(profileId, id);
     await this.deleteProjectMedia(edit);
 
     await this.prisma.editProject.delete({
@@ -202,7 +202,7 @@ export class EditsService {
     return null;
   }
 
-  async startCaptions(userId: string, editId: string, clipId: string) {
+  async startCaptions(profileId: string, editId: string, clipId: string) {
     await this.assertCaptionsEnabled();
     if (!this.aiService.isConfigured()) {
       throw new NestHttpException(
@@ -213,7 +213,7 @@ export class EditsService {
         HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
-    const edit = await this.findOne(userId, editId);
+    const edit = await this.findOne(profileId, editId);
     const mediaUrl = this.findClipMediaUrl(edit.state, clipId);
 
     if (!mediaUrl) {
@@ -225,15 +225,15 @@ export class EditsService {
 
     const job = await this.aiQueue.add(
       'transcribe-edit-clip',
-      { userId, editId, clipId, mediaUrl },
+      { profileId, editId, clipId, mediaUrl },
       { attempts: 2, removeOnComplete: 100, removeOnFail: 50 },
     );
 
     return { jobId: String(job.id), status: 'queued' };
   }
 
-  async getCaptionsJob(userId: string, editId: string, jobId: string) {
-    await this.findOne(userId, editId);
+  async getCaptionsJob(profileId: string, editId: string, jobId: string) {
+    await this.findOne(profileId, editId);
     const job = await this.aiQueue.getJob(jobId);
     if (!job) {
       throw AppException.NotFound(
@@ -242,8 +242,8 @@ export class EditsService {
       );
     }
 
-    const data = job.data as { userId?: string; editId?: string };
-    if (data.userId !== userId || data.editId !== editId) {
+    const data = job.data as { profileId?: string; editId?: string };
+    if (data.profileId !== profileId || data.editId !== editId) {
       throw AppException.Forbidden(
         ErrorCode.FORBIDDEN_ACCESS,
         'Not allowed to view this job',

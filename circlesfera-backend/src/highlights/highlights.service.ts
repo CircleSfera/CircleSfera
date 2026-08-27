@@ -12,15 +12,15 @@ export class HighlightsService {
 
   /**
    * Create a new highlight from selected stories.
-   * @param userId - The owner's user ID
+   * @param profileId - The owner's profile ID
    * @param createHighlightDto - Title, coverUrl, and story IDs
    */
-  async create(userId: string, createHighlightDto: CreateHighlightDto) {
+  async create(profileId: string, createHighlightDto: CreateHighlightDto) {
     const { title, coverUrl, storyIds } = createHighlightDto;
 
     const highlight = await this.prisma.highlight.create({
       data: {
-        profileId: userId,
+        profileId,
         title,
         coverUrl,
         stories: {
@@ -42,12 +42,12 @@ export class HighlightsService {
   }
 
   /**
-   * List all highlights for a user, ordered by creation date descending.
-   * @param userId - The owner's user ID
+   * List all highlights for a profile, ordered by creation date descending.
+   * @param profileId - The owner's profile ID
    */
-  async findAll(userId: string) {
+  async findAll(profileId: string) {
     return this.prisma.highlight.findMany({
-      where: { profileId: userId },
+      where: { profileId },
       include: {
         stories: {
           include: {
@@ -70,13 +70,13 @@ export class HighlightsService {
     const highlight = await this.prisma.highlight.findUnique({
       where: { id },
       include: {
-        user: true,
+        profile: true,
         stories: {
           include: {
             story: true,
           },
           orderBy: {
-            createdAt: 'asc', // Order stories by creation time usually
+            createdAt: 'asc',
           },
         },
       },
@@ -95,19 +95,18 @@ export class HighlightsService {
   /**
    * Update a highlight (title, cover, or stories).
    * @param id - Highlight ID
-   * @param userId - Owner's user ID
+   * @param profileId - Owner's profile ID
    * @param updateHighlightDto - New data
    */
   async update(
     id: string,
-    userId: string,
+    profileId: string,
     updateHighlightDto: UpdateHighlightDto,
   ) {
     const { title, coverUrl, storyIds } = updateHighlightDto;
 
-    // Verify ownership
     const existing = await this.prisma.highlight.findFirst({
-      where: { id, userId },
+      where: { id, profileId },
     });
 
     if (!existing) {
@@ -124,7 +123,7 @@ export class HighlightsService {
         coverUrl,
         ...(storyIds && {
           stories: {
-            deleteMany: {}, // Remove current relations
+            deleteMany: {},
             create: storyIds.map((storyId) => ({
               story: { connect: { id: storyId } },
             })),
@@ -142,14 +141,14 @@ export class HighlightsService {
   }
 
   /**
-   * Delete a highlight owned by the user.
+   * Delete a highlight owned by the profile.
    * @param id - The highlight ID
-   * @param userId - The requesting user's ID (for ownership check)
+   * @param profileId - The requesting profile ID (for ownership check)
    * @throws NotFoundException if highlight not found or not owned
    */
-  async remove(id: string, userId: string) {
+  async remove(id: string, profileId: string) {
     const highlight = await this.prisma.highlight.findFirst({
-      where: { id, userId },
+      where: { id, profileId },
     });
 
     if (!highlight) {

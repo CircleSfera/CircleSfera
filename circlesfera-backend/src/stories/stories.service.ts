@@ -231,10 +231,17 @@ export class StoriesService {
     }
 
     const unlocked = viewerId
-      ? await this.prisma.storyUnlock.findMany({
-          where: { profileId: viewerId, storyId: { in: premiumIds } },
-          select: { storyId: true },
-        })
+      ? await (async () => {
+          const viewer = await this.prisma.profile.findUnique({
+            where: { id: viewerId },
+            select: { userId: true },
+          });
+          if (!viewer) return [];
+          return this.prisma.storyUnlock.findMany({
+            where: { userId: viewer.userId, storyId: { in: premiumIds } },
+            select: { storyId: true },
+          });
+        })()
       : [];
     const unlockedSet = new Set(
       unlocked.map((u: { storyId: string }) => u.storyId),

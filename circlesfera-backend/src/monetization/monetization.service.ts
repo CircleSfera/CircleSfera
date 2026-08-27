@@ -86,6 +86,7 @@ export class MonetizationService {
 
   async createPostUnlockSession(
     userId: string,
+    profileId: string,
     postId: string,
     returnUrl: string,
     idempotencyKey?: string,
@@ -101,7 +102,7 @@ export class MonetizationService {
         'This post is not premium or has no price',
       );
     }
-    if (post.profileId === userId) {
+    if (post.profileId === profileId) {
       throw AppException.BadRequest(
         ErrorCode.CANNOT_BUY_OWN_CONTENT,
         'You cannot buy your own post',
@@ -169,6 +170,7 @@ export class MonetizationService {
 
   async createStoryUnlockSession(
     userId: string,
+    profileId: string,
     storyId: string,
     returnUrl: string,
     idempotencyKey?: string,
@@ -184,7 +186,7 @@ export class MonetizationService {
         'This story is not premium or has no price',
       );
     }
-    if (story.profileId === userId) {
+    if (story.profileId === profileId) {
       throw AppException.BadRequest(
         ErrorCode.CANNOT_BUY_OWN_CONTENT,
         'You cannot buy your own story',

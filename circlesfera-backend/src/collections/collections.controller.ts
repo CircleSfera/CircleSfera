@@ -27,19 +27,19 @@ export class CollectionsController {
     @CurrentUser() user: CurrentUserData,
     @Body('name') name: string,
   ): Promise<any> {
-    return await this.collectionsService.create(user.userId, name);
+    return await this.collectionsService.create(user.profileId, name);
   }
 
   /** List all collections for the authenticated user. */
   @Get()
   findAll(@CurrentUser() user: CurrentUserData) {
-    return this.collectionsService.findAll(user.userId);
+    return this.collectionsService.findAll(user.profileId);
   }
 
   /** Get a single collection by ID. */
   @Get(':id')
   findOne(@CurrentUser() user: CurrentUserData, @Param('id') id: string) {
-    return this.collectionsService.findOne(user.userId, id);
+    return this.collectionsService.findOne(user.profileId, id);
   }
 
   /** Rename a collection. */
@@ -49,12 +49,12 @@ export class CollectionsController {
     @Param('id') id: string,
     @Body('name') name: string,
   ) {
-    return this.collectionsService.update(user.userId, id, name);
+    return this.collectionsService.update(user.profileId, id, name);
   }
 
   /** Delete a collection. */
   @Delete(':id')
   remove(@CurrentUser() user: CurrentUserData, @Param('id') id: string) {
-    return this.collectionsService.delete(user.userId, id);
+    return this.collectionsService.delete(user.profileId, id);
   }
 }

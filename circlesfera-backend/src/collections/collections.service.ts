@@ -13,25 +13,25 @@ export class CollectionsService {
 
   /**
    * Create a new bookmark collection.
-   * @param userId - The owner's user ID
+   * @param profileId - The owner's profile ID
    * @param name - The collection name
    */
-  async create(userId: string, name: string): Promise<any> {
+  async create(profileId: string, name: string): Promise<any> {
     return await this.prisma.collection.create({
       data: {
-        profileId: userId,
+        profileId,
         name,
       },
     });
   }
 
   /**
-   * List all collections for a user with bookmark counts and auto-derived cover URLs.
-   * @param userId - The owner's user ID
+   * List all collections for a profile with bookmark counts and auto-derived cover URLs.
+   * @param profileId - The owner's profile ID
    */
-  async findAll(userId: string) {
+  async findAll(profileId: string) {
     const collections = await this.prisma.collection.findMany({
-      where: { profileId: userId },
+      where: { profileId },
       include: {
         bookmarks: {
           take: 1,
@@ -71,13 +71,11 @@ export class CollectionsService {
 
   /**
    * Get a single collection with all its bookmarked posts.
-   * @param userId - The requesting user's ID (for ownership check)
+   * @param profileId - The requesting profile ID (for ownership check)
    * @param id - The collection ID
-   * @throws NotFoundException if collection not found
-   * @throws ForbiddenException if user does not own the collection
    */
-  async findOne(userId: string, id: string): Promise<any> {
-    const collection = (await this.prisma.collection.findUnique({
+  async findOne(profileId: string, id: string): Promise<any> {
+    const collection = await this.prisma.collection.findUnique({
       where: { id },
       include: {
         bookmarks: {
@@ -86,14 +84,14 @@ export class CollectionsService {
           },
         },
       },
-    })) as { userId: string } | null;
+    });
 
     if (!collection)
       throw AppException.NotFound(
         ErrorCode.COLLECTION_NOT_FOUND,
         'Collection not found',
       );
-    if (collection.userId !== userId)
+    if (collection.profileId !== profileId)
       throw AppException.Forbidden(ErrorCode.FORBIDDEN_ACCESS, 'Access denied');
 
     return collection;
@@ -101,23 +99,21 @@ export class CollectionsService {
 
   /**
    * Rename a collection.
-   * @param userId - The requesting user's ID (for ownership check)
+   * @param profileId - The requesting profile ID (for ownership check)
    * @param id - The collection ID
    * @param name - The new collection name
-   * @throws NotFoundException if collection not found
-   * @throws ForbiddenException if user does not own the collection
    */
-  async update(userId: string, id: string, name: string): Promise<any> {
-    const collection = (await this.prisma.collection.findUnique({
+  async update(profileId: string, id: string, name: string): Promise<any> {
+    const collection = await this.prisma.collection.findUnique({
       where: { id },
-    })) as { userId: string } | null;
+    });
 
     if (!collection)
       throw AppException.NotFound(
         ErrorCode.COLLECTION_NOT_FOUND,
         'Collection not found',
       );
-    if (collection.userId !== userId)
+    if (collection.profileId !== profileId)
       throw AppException.Forbidden(ErrorCode.FORBIDDEN_ACCESS, 'Access denied');
 
     return await this.prisma.collection.update({
@@ -128,22 +124,20 @@ export class CollectionsService {
 
   /**
    * Delete a collection (bookmarks are unaffected).
-   * @param userId - The requesting user's ID (for ownership check)
+   * @param profileId - The requesting profile ID (for ownership check)
    * @param id - The collection ID
-   * @throws NotFoundException if collection not found
-   * @throws ForbiddenException if user does not own the collection
    */
-  async delete(userId: string, id: string): Promise<any> {
-    const collection = (await this.prisma.collection.findUnique({
+  async delete(profileId: string, id: string): Promise<any> {
+    const collection = await this.prisma.collection.findUnique({
       where: { id },
-    })) as { userId: string } | null;
+    });
 
     if (!collection)
       throw AppException.NotFound(
         ErrorCode.COLLECTION_NOT_FOUND,
         'Collection not found',
       );
-    if (collection.userId !== userId)
+    if (collection.profileId !== profileId)
       throw AppException.Forbidden(ErrorCode.FORBIDDEN_ACCESS, 'Access denied');
 
     return await this.prisma.collection.delete({

@@ -70,7 +70,7 @@ export interface Post {
   type?: string;
 
   isPremium?: boolean;
-  price?: number | null;
+  priceCents?: number | null;
   currency?: string;
   isPurchased?: boolean;
 
@@ -101,7 +101,7 @@ export interface Comment {
   profile: ProfileWithUser;
   parentId?: string | null;
   replies?: Comment[];
-  likes?: { userId: string }[];
+  likes?: { profileId: string }[];
   _count?: {
     replies: number;
     likes: number;
@@ -128,7 +128,6 @@ export interface Story {
 
   isPremium?: boolean;
   priceCents?: number | null;
-  price?: number | null;
   currency?: string;
   isPurchased?: boolean;
   isLocked?: boolean;

@@ -33,7 +33,7 @@ export class OwnershipGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    if (!user?.userId) {
+    if (!user?.userId || !user?.profileId) {
       throw new ForbiddenException('User not authenticated');
     }
 
@@ -44,7 +44,7 @@ export class OwnershipGuard implements CanActivate {
       throw new BadRequestException(`Missing route parameter: ${paramKey}`);
     }
 
-    const userIdField = options.userIdField || 'userId';
+    const ownerField = options.userIdField || 'profileId';
     const model = options.model;
 
     // Dynamically access prisma model
@@ -60,14 +60,14 @@ export class OwnershipGuard implements CanActivate {
 
     const resource = await delegate.findUnique({
       where: { id: resourceId },
-      select: { [userIdField]: true },
+      select: { [ownerField]: true },
     });
 
     if (!resource) {
       throw new NotFoundException(`${model} not found`);
     }
 
-    if (resource[userIdField] !== user.userId) {
+    if (resource[ownerField] !== user.profileId) {
       throw new ForbiddenException(
         `You can only manage your own ${model.toLowerCase()}s`,
       );

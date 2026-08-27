@@ -7,19 +7,16 @@ import {
   Param,
   Patch,
   Post,
-  Request,
   UseGuards,
 } from '@nestjs/common';
+import {
+  CurrentUser,
+  type CurrentUserData,
+} from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { CreateHighlightDto } from './dto/create-highlight.dto.js';
 import { UpdateHighlightDto } from './dto/update-highlight.dto.js';
 import { HighlightsService } from './highlights.service.js';
-
-interface RequestWithUser {
-  user: {
-    userId: string;
-  };
-}
 
 /** REST controller for story highlights. Create/delete require authentication. */
 @Controller('highlights')
@@ -33,31 +30,37 @@ export class HighlightsController {
   @UseGuards(JwtAuthGuard)
   @Post()
   create(
-    @Request() req: RequestWithUser,
+    @CurrentUser() user: CurrentUserData,
     @Body() createHighlightDto: CreateHighlightDto,
   ) {
-    return this.highlightsService.create(req.user.userId, createHighlightDto);
+    return this.highlightsService.create(user.profileId, createHighlightDto);
   }
 
   /** Update a highlight (requires auth). */
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
   update(
-    @Request() req: RequestWithUser,
+    @CurrentUser() user: CurrentUserData,
     @Param('id') id: string,
     @Body() updateHighlightDto: UpdateHighlightDto,
   ) {
     return this.highlightsService.update(
       id,
-      req.user.userId,
+      user.profileId,
       updateHighlightDto,
     );
   }
 
-  /** List all highlights for a specific user. */
-  @Get('user/:userId')
-  findAll(@Param('userId') userId: string) {
-    return this.highlightsService.findAll(userId);
+  /** List all highlights for a specific profile. */
+  @Get('profile/:profileId')
+  findAll(@Param('profileId') profileId: string) {
+    return this.highlightsService.findAll(profileId);
+  }
+
+  /** @deprecated Use GET highlights/profile/:profileId */
+  @Get('user/:profileId')
+  findAllLegacy(@Param('profileId') profileId: string) {
+    return this.highlightsService.findAll(profileId);
   }
 
   /** Get a single highlight by ID. */
@@ -69,7 +72,7 @@ export class HighlightsController {
   /** Delete a highlight (requires auth). */
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  remove(@Request() req: RequestWithUser, @Param('id') id: string) {
-    return this.highlightsService.remove(req.user.userId, id);
+  remove(@CurrentUser() user: CurrentUserData, @Param('id') id: string) {
+    return this.highlightsService.remove(id, user.profileId);
   }
 }

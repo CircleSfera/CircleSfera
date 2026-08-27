@@ -37,7 +37,7 @@ export class LiveService {
     private systemSettings: SystemSettingsService,
   ) {}
 
-  async startStream(userId: string, title?: string) {
+  async startStream(hostProfileId: string, title?: string) {
     const liveEnabled = await this.systemSettings.isEnabled(
       SYSTEM_SETTING_KEYS.LIVE_STREAMS_ENABLED,
     );
@@ -46,19 +46,19 @@ export class LiveService {
     }
 
     await this.prisma.liveStream.updateMany({
-      where: { hostId: userId, status: 'LIVE' },
+      where: { hostId: hostProfileId, status: 'LIVE' },
       data: { status: 'ENDED', endedAt: new Date() },
     });
 
     const stream = await this.prisma.liveStream.create({
       data: {
-        hostId: userId,
+        hostId: hostProfileId,
         title,
         status: 'LIVE',
       },
     });
 
-    const token = await this.createToken(stream.id, userId, true);
+    const token = await this.createToken(stream.id, hostProfileId, true);
     return { stream, token };
   }
 
@@ -78,9 +78,9 @@ export class LiveService {
     return { token };
   }
 
-  async endStream(userId: string) {
+  async endStream(hostProfileId: string) {
     const activeStreams = await this.prisma.liveStream.findMany({
-      where: { hostId: userId, status: 'LIVE' },
+      where: { hostId: hostProfileId, status: 'LIVE' },
     });
 
     if (activeStreams.length > 0) {
@@ -173,7 +173,11 @@ export class LiveService {
     return stream;
   }
 
-  async inviteCoHost(streamId: string, hostId: string, coHostUserId: string) {
+  async inviteCoHost(
+    streamId: string,
+    hostProfileId: string,
+    coHostUserId: string,
+  ) {
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
     });
@@ -183,7 +187,7 @@ export class LiveService {
         ErrorCode.STREAM_NOT_FOUND,
         'Stream not found',
       );
-    if (stream.hostId !== hostId)
+    if (stream.hostId !== hostProfileId)
       throw AppException.Forbidden(
         ErrorCode.ONLY_HOST_CAN_INVITE,
         'Only the host can invite a co-host',
@@ -193,60 +197,59 @@ export class LiveService {
         ErrorCode.STREAM_NOT_ACTIVE,
         'Stream is not active',
       );
-    if (coHostUserId === hostId)
+
+    const [inviteeProfile, hostProfile] = await Promise.all([
+      this.prisma.profile.findFirst({
+        where: { userId: coHostUserId },
+        select: { id: true, username: true, userId: true },
+      }),
+      this.prisma.profile.findUnique({
+        where: { id: hostProfileId },
+        select: { id: true, username: true, avatar: true },
+      }),
+    ]);
+
+    if (!inviteeProfile)
+      throw AppException.NotFound(
+        ErrorCode.USER_NOT_FOUND,
+        'Invited user not found',
+      );
+    if (inviteeProfile.id === hostProfileId)
       throw AppException.Forbidden(
         ErrorCode.CANNOT_INVITE_SELF,
         'Cannot invite yourself as co-host',
       );
 
-    const [invitee, host] = await Promise.all([
-      this.prisma.user.findUnique({
-        where: { id: coHostUserId },
-        select: { id: true, profiles: { select: { username: true } } },
-      }),
-      this.prisma.user.findUnique({
-        where: { id: hostId },
-        select: {
-          id: true,
-          profiles: { select: { username: true, avatar: true } },
-        },
-      }),
-    ]);
-
-    if (!invitee)
-      throw AppException.NotFound(
-        ErrorCode.USER_NOT_FOUND,
-        'Invited user not found',
-      );
-
     await this.prisma.liveStream.update({
       where: { id: streamId },
-      data: { coHostId: coHostUserId },
+      data: { coHostId: inviteeProfile.id },
     });
 
-    this.gateway.server.to(`user:${coHostUserId}`).emit('live:cohost_invite', {
-      streamId,
-      streamTitle: stream.title,
-      host: {
-        id: host?.id,
-        username: host?.profiles[0]?.username,
-        avatar: host?.profiles[0]?.avatar,
-      },
-    });
+    this.gateway.server
+      .to(`user:${inviteeProfile.userId}`)
+      .emit('live:cohost_invite', {
+        streamId,
+        streamTitle: stream.title,
+        host: {
+          id: hostProfile?.id,
+          username: hostProfile?.username,
+          avatar: hostProfile?.avatar,
+        },
+      });
 
     this.gateway.server.to(`live:${streamId}`).emit('live:cohost_joined', {
-      coHostId: coHostUserId,
-      coHostUsername: invitee.profiles[0]?.username,
+      coHostId: inviteeProfile.id,
+      coHostUsername: inviteeProfile.username,
     });
 
     this.logger.log(
-      `User ${coHostUserId} invited as co-host for stream ${streamId}`,
+      `Profile ${inviteeProfile.id} invited as co-host for stream ${streamId}`,
     );
 
-    return { success: true, coHostId: coHostUserId };
+    return { success: true, coHostId: inviteeProfile.id };
   }
 
-  async acceptCoHostInvite(streamId: string, userId: string) {
+  async acceptCoHostInvite(streamId: string, profileId: string) {
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
     });
@@ -261,22 +264,22 @@ export class LiveService {
         ErrorCode.STREAM_NOT_ACTIVE,
         'Stream is not active',
       );
-    if (stream.coHostId !== userId)
+    if (stream.coHostId !== profileId)
       throw AppException.Forbidden(
         ErrorCode.FORBIDDEN_ACCESS,
         'You are not the invited co-host for this stream',
       );
 
-    const token = await this.createToken(streamId, userId, true);
+    const token = await this.createToken(streamId, profileId, true);
 
     this.logger.log(
-      `User ${userId} accepted co-host role for stream ${streamId}`,
+      `Profile ${profileId} accepted co-host role for stream ${streamId}`,
     );
 
     return { token, streamId };
   }
 
-  async removeCoHost(streamId: string, hostId: string) {
+  async removeCoHost(streamId: string, hostProfileId: string) {
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
     });
@@ -286,7 +289,7 @@ export class LiveService {
         ErrorCode.STREAM_NOT_FOUND,
         'Stream not found',
       );
-    if (stream.hostId !== hostId)
+    if (stream.hostId !== hostProfileId)
       throw AppException.Forbidden(
         ErrorCode.ONLY_HOST_CAN_REMOVE,
         'Only the host can remove a co-host',
@@ -300,9 +303,15 @@ export class LiveService {
     });
 
     if (removedCoHostId) {
-      this.gateway.server
-        .to(`user:${removedCoHostId}`)
-        .emit('live:cohost_removed', { streamId });
+      const coHostProfile = await this.prisma.profile.findUnique({
+        where: { id: removedCoHostId },
+        select: { userId: true },
+      });
+      if (coHostProfile) {
+        this.gateway.server
+          .to(`user:${coHostProfile.userId}`)
+          .emit('live:cohost_removed', { streamId });
+      }
       this.gateway.server
         .to(`live:${streamId}`)
         .emit('live:cohost_left', { coHostId: removedCoHostId });
@@ -336,6 +345,7 @@ export class LiveService {
         host: {
           select: {
             id: true,
+            userId: true,
             username: true,
             user: {
               select: {
@@ -355,7 +365,7 @@ export class LiveService {
       );
     }
 
-    if (stream.hostId === senderId) {
+    if (stream.host.userId === senderId) {
       throw AppException.BadRequest(
         ErrorCode.CANNOT_GIFT_SELF,
         'You cannot gift yourself',
@@ -386,7 +396,7 @@ export class LiveService {
       data: {
         streamId,
         senderId,
-        receiverId: stream.hostId,
+        receiverId: stream.host.userId,
         giftId,
         amountCents,
         currency: 'EUR',
