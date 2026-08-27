@@ -26,9 +26,13 @@ interface JwtPayload {
   email: string;
 }
 
+interface SocketAuthUser extends JwtPayload {
+  profileId: string;
+}
+
 export interface SocketWithAuth extends Socket {
   data: {
-    user: JwtPayload;
+    user: SocketAuthUser;
     conversationIds?: Set<string>;
   };
 }
@@ -89,24 +93,25 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         throw new UnauthorizedException('Account suspended');
       }
 
-      // Attach user to socket
-      (client as SocketWithAuth).data.user = payload;
+      const profileId = user.profiles[0]?.id;
+      if (!profileId) {
+        throw new UnauthorizedException('Profile not found');
+      }
 
-      // Load all conversation IDs for the user in memory to prevent N+1 queries during chat events
+      (client as SocketWithAuth).data.user = { ...payload, profileId };
+
       const userConvs = await this.prisma.participant.findMany({
-        where: { profileId: payload.sub, deletedAt: null },
+        where: { profileId, deletedAt: null },
         select: { conversationId: true },
       });
       (client as SocketWithAuth).data.conversationIds = new Set(
         userConvs.map((c) => c.conversationId),
       );
 
-      // Join user to their personal room
-      await client.join(`user:${payload.sub}`);
+      await client.join(`user:${profileId}`);
 
-      // Join rooms of everyone the user follows to receive their status updates
       const following = await this.prisma.follow.findMany({
-        where: { followerId: payload.sub },
+        where: { followerId: profileId },
         select: { followingId: true },
       });
       const followRooms = following.map((f) => `presence:${f.followingId}`);
@@ -114,22 +119,19 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         await client.join(followRooms);
       }
 
-      // Join our own presence room so others can track us
-      await client.join(`presence:${payload.sub}`);
+      await client.join(`presence:${profileId}`);
 
-      // Update online status
       await this.prisma.user.update({
         where: { id: payload.sub },
         data: { isOnline: true },
       });
 
-      // Notify anyone tracking this user (in a single emit to the presence room)
-      this.server.to(`presence:${payload.sub}`).emit('user_status', {
-        profileId: payload.sub,
+      this.server.to(`presence:${profileId}`).emit('user_status', {
+        profileId,
         isOnline: true,
       });
 
-      this.logger.log(`User connected: ${payload.sub}`);
+      this.logger.log(`User connected: ${payload.sub} (profile ${profileId})`);
     } catch (e: unknown) {
       this.logger.error(
         `Socket connection failed: ${e instanceof Error ? e.message : 'Unknown'}`,
@@ -151,13 +153,15 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
 
         // Notify anyone tracking this user
-        this.server.to(`presence:${user.sub}`).emit('user_status', {
-          profileId: user.sub,
+        this.server.to(`presence:${user.profileId}`).emit('user_status', {
+          profileId: user.profileId,
           isOnline: false,
           lastSeenAt: new Date().toISOString(),
         });
 
-        this.logger.log(`User disconnected: ${user.sub}`);
+        this.logger.log(
+          `User disconnected: ${user.sub} (profile ${user.profileId})`,
+        );
       }
     } catch (error) {
       this.logger.warn(
@@ -204,7 +208,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   addConversationToSocket(profileId: string, conversationId: string) {
     for (const client of this.connectedSockets()) {
-      if (client.data?.user?.sub === profileId) {
+      if (client.data?.user?.profileId === profileId) {
         if (!client.data.conversationIds) {
           client.data.conversationIds = new Set();
         }
@@ -222,7 +226,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!client.data.conversationIds?.has(payload.conversationId)) return;
 
     this.server.to(`user:${payload.recipientId}`).emit('user_typing', {
-      profileId: client.data.user.sub,
+      profileId: client.data.user.profileId,
       conversationId: payload.conversationId,
     });
   }
@@ -235,6 +239,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!client.data.conversationIds?.has(payload.conversationId)) return;
 
     this.server.to(`user:${payload.recipientId}`).emit('user_stopped_typing', {
+      profileId: client.data.user.profileId,
       conversationId: payload.conversationId,
     });
   }
@@ -251,13 +256,13 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const reactionRecord = await this.addReactionUseCase.execute(
       payload.messageId,
-      client.data.user.sub,
+      client.data.user.profileId,
       payload.reaction,
     );
 
     const eventPayload = {
       messageId: payload.messageId,
-      profileId: client.data.user.sub,
+      profileId: client.data.user.profileId,
       reaction: reactionRecord.reaction,
       id: reactionRecord.id,
     };
@@ -286,7 +291,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.server.to(`user:${payload.recipientId}`).emit('messages_read', {
       conversationId: payload.conversationId,
-      profileId: client.data.user.sub,
+      profileId: client.data.user.profileId,
       readAt: new Date().toISOString(),
     });
   }
@@ -304,7 +309,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     },
     @ConnectedSocket() client: SocketWithAuth,
   ) {
-    const callerId = client.data.user.sub;
+    const callerId = client.data.user.profileId;
     const targetId = payload.targetId || payload.recipientId;
     if (!targetId) return;
 
@@ -326,13 +331,13 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    const caller = await this.prisma.user.findUnique({
+    const callerProfile = await this.prisma.profile.findUnique({
       where: { id: callerId },
       select: {
         id: true,
-        profile: {
-          select: { username: true, fullName: true, avatar: true },
-        },
+        username: true,
+        fullName: true,
+        avatar: true,
       },
     });
 
@@ -341,9 +346,18 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     );
 
     this.server.to(`user:${targetId}`).emit('call:incoming', {
-      caller: caller,
+      caller: callerProfile
+        ? {
+            id: callerProfile.id,
+            profile: {
+              username: callerProfile.username,
+              fullName: callerProfile.fullName ?? undefined,
+              avatar: callerProfile.avatar,
+            },
+          }
+        : null,
       type: payload.type,
-      signalData: null, // Initial invitation, signaling will follow in call:signal
+      signalData: null,
     });
   }
 
@@ -352,7 +366,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() payload: { callerId: string },
     @ConnectedSocket() client: SocketWithAuth,
   ) {
-    const receiverId = client.data.user.sub;
+    const receiverId = client.data.user.profileId;
     this.logger.log(
       `Call accepted by ${receiverId} (Caller: ${payload.callerId})`,
     );
@@ -374,7 +388,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Transparently forward WebRTC signaling data (OFFER, ANSWER, ICE Candidates)
     this.server.to(`user:${payload.targetId}`).emit('call:signal', {
       signal: payload.signal,
-      fromId: client.data.user.sub,
+      fromId: client.data.user.profileId,
     });
   }
 
@@ -411,7 +425,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const count = updatedStream?.viewerCount ?? 1;
 
     this.server.to(`live:${payload.streamId}`).emit('live:viewer_joined', {
-      profileId: client.data.user.sub,
+      profileId: client.data.user.profileId,
       viewerCount: count,
     });
 
@@ -448,7 +462,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const count = Math.max(0, updatedStream?.viewerCount ?? 0);
 
     this.server.to(`live:${payload.streamId}`).emit('live:viewer_left', {
-      profileId: client.data.user.sub,
+      profileId: client.data.user.profileId,
       viewerCount: count,
     });
 
@@ -474,7 +488,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(`live:${payload.streamId}`).emit('live:chat_message', {
         id: crypto.randomUUID(),
         profile: {
-          id: user.id,
+          id: user.profiles[0].id,
           username: user.profiles[0].username,
           avatar: user.profiles[0].avatar,
         },
@@ -518,7 +532,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const reaction = payload.reaction || '❤️';
     this.server.to(`live:${payload.streamId}`).emit('live:heart_received', {
-      profileId: client.data.user.sub,
+      profileId: client.data.user.profileId,
       reaction,
     });
   }
@@ -529,7 +543,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: SocketWithAuth,
   ) {
     this.server.to(`live:${payload.streamId}`).emit('live:reaction_received', {
-      profileId: client.data.user.sub,
+      profileId: client.data.user.profileId,
       reaction: payload.reaction || '🔥',
     });
   }
