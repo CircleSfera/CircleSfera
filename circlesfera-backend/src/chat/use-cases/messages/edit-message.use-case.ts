@@ -18,7 +18,7 @@ export class EditMessageUseCase {
     return this.moduleRef.get(AppGateway, { strict: false });
   }
 
-  async execute(userId: string, messageId: string, newContent: string) {
+  async execute(profileId: string, messageId: string, newContent: string) {
     const message = await this.prisma.message.findUnique({
       where: { id: messageId },
       include: { conversation: { include: { participants: true } } },
@@ -26,7 +26,7 @@ export class EditMessageUseCase {
 
     if (!message)
       throw AppException.NotFound(ErrorCode.NOT_FOUND, 'Message not found');
-    if (message.senderId !== userId) {
+    if (message.senderId !== profileId) {
       throw AppException.Forbidden(
         ErrorCode.FORBIDDEN_ACCESS,
         'You can only edit your own messages',
@@ -58,7 +58,7 @@ export class EditMessageUseCase {
     updated.content = newContent;
     message.conversation.participants.forEach((p: any) => {
       this.gateway.server
-        .to(`user:${p.userId}`)
+        .to(`user:${p.profileId}`)
         .emit('message_edited', updated);
     });
 

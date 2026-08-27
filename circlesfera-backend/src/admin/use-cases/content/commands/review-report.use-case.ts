@@ -221,24 +221,33 @@ export class ReviewReportUseCase {
     } else if (report.targetType === 'POST') {
       const post = await this.prisma.post.findUnique({
         where: { id: report.targetId },
+        select: { profile: { select: { userId: true } } },
       });
-      if (post) targetUserId = post.userId;
+      if (post) targetUserId = post.profile.userId;
     } else if (report.targetType === 'STORY') {
       const story = await this.prisma.story.findUnique({
         where: { id: report.targetId },
+        select: { profile: { select: { userId: true } } },
       });
-      if (story) targetUserId = story.userId;
+      if (story) targetUserId = story.profile.userId;
     } else if (report.targetType === 'COMMENT') {
       const comment = await this.prisma.comment.findUnique({
         where: { id: report.targetId },
+        select: { profile: { select: { userId: true } } },
       });
-      if (comment) targetUserId = comment.userId;
+      if (comment) targetUserId = comment.profile.userId;
     } else if (report.targetType === 'MESSAGE') {
       const message = await this.prisma.message.findUnique({
         where: { id: report.targetId },
         select: { senderId: true },
       });
-      if (message) targetUserId = message.senderId;
+      if (message) {
+        const senderProfile = await this.prisma.profile.findUnique({
+          where: { id: message.senderId },
+          select: { userId: true },
+        });
+        if (senderProfile) targetUserId = senderProfile.userId;
+      }
     }
 
     if (penaltyAction === 'STRIKE' && targetUserId) {

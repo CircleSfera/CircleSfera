@@ -19,7 +19,7 @@ export class FeedController {
     @CurrentUser() user: CurrentUserData | null,
     @Query() pagination: PaginationDto,
   ) {
-    return this.feedService.getHybridFeed(user?.userId || null, pagination);
+    return this.feedService.getHybridFeed(user?.profileId || null, pagination);
   }
 
   /** Get personalized feed from followed users */
@@ -35,6 +35,6 @@ export class FeedController {
         meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
       };
     }
-    return this.feedService.getFollowingFeed(user.userId, pagination);
+    return this.feedService.getFollowingFeed(user.profileId, pagination);
   }
 }

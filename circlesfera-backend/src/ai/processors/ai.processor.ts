@@ -279,23 +279,23 @@ export class AIProcessor extends WorkerHost {
             const res = await this.prisma.post.update({
               where: { id: targetId },
               data: updateData,
-              select: { userId: true },
+              select: { profileId: true },
             });
-            authorId = res.userId;
+            authorId = res.profileId;
           } else if (targetType === 'STORY') {
             const res = await this.prisma.story.update({
               where: { id: targetId },
               data: updateData,
-              select: { userId: true },
+              select: { profileId: true },
             });
-            authorId = res.userId;
+            authorId = res.profileId;
           } else if (targetType === 'COMMENT') {
             const res = await this.prisma.comment.update({
               where: { id: targetId },
               data: updateData,
-              select: { userId: true },
+              select: { profileId: true },
             });
-            authorId = res.userId;
+            authorId = res.profileId;
           }
 
           const adminUser = await this.prisma.user.findFirst({
@@ -385,23 +385,23 @@ export class AIProcessor extends WorkerHost {
           const res = await this.prisma.post.update({
             where: { id: targetId },
             data: updateData,
-            select: { userId: true },
+            select: { profileId: true },
           });
-          authorId = res.userId;
+          authorId = res.profileId;
         } else if (targetType === 'STORY') {
           const res = await this.prisma.story.update({
             where: { id: targetId },
             data: updateData,
-            select: { userId: true },
+            select: { profileId: true },
           });
-          authorId = res.userId;
+          authorId = res.profileId;
         } else if (targetType === 'COMMENT') {
           const res = await this.prisma.comment.update({
             where: { id: targetId },
             data: updateData,
-            select: { userId: true },
+            select: { profileId: true },
           });
-          authorId = res.userId;
+          authorId = res.profileId;
         }
 
         // Find system admin to attribute the report to

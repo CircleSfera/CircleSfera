@@ -35,11 +35,11 @@ export class CommentsService {
    * Create a comment on a post. Sends notifications to the post owner, mentioned users,
    * and (if a reply) the parent comment author.
    * @param postId - The post to comment on
-   * @param userId - The commenting user's ID
+   * @param profileId - The commenting user's ID
    * @param dto - Comment data (content, optional parentId, url, mediaType)
    * @throws NotFoundException if the post does not exist
    */
-  async create(postId: string, userId: string, dto: CreateCommentDto) {
+  async create(postId: string, profileId: string, dto: CreateCommentDto) {
     const post = await this.prisma.post.findUnique({ where: { id: postId } });
 
     if (!post) {
@@ -49,7 +49,7 @@ export class CommentsService {
     const comment = await this.prisma.comment.create({
       data: {
         postId,
-        userId,
+        profileId,
         content: dto.content,
         url: dto.url,
         mediaType: dto.mediaType,
@@ -60,11 +60,15 @@ export class CommentsService {
           : undefined,
       },
       include: {
-        user: {
+        profile: {
           select: {
             id: true,
-            verificationLevel: true,
-            profile: true,
+            username: true,
+            avatar: true,
+            fullName: true,
+            user: {
+              select: { verificationLevel: true, accountType: true },
+            },
           },
         },
       },
@@ -80,10 +84,10 @@ export class CommentsService {
     }
 
     // Create notification for post owner
-    if (post.userId !== userId) {
+    if (post.profileId !== profileId) {
       this.eventEmitter.emit('notification.create', {
-        recipientId: post.userId,
-        senderId: userId,
+        recipientId: post.profileId,
+        senderId: profileId,
         type: 'COMMENT',
         content: 'commented on your post',
         postId: post.id,
@@ -106,16 +110,16 @@ export class CommentsService {
         const profiles = await this.prisma.profile.findMany({
           where: {
             username: { in: uniqueMentions },
-            userId: { notIn: [userId, post.userId] }, // Don't notify self or post owner (already notified)
+            id: { notIn: [profileId, post.profileId] }, // Don't notify self or post owner (already notified)
           },
-          select: { userId: true },
+          select: { id: true },
         });
 
         await Promise.all(
           profiles.map((profile) =>
             this.eventEmitter.emit('notification.create', {
-              recipientId: profile.userId,
-              senderId: userId,
+              recipientId: profile.id,
+              senderId: profileId,
               type: NotificationType.MENTION,
               content: 'mentioned you in a comment',
               postId: post.id,
@@ -131,13 +135,13 @@ export class CommentsService {
         where: { id: dto.parentId },
       });
 
-      if (parentComment && parentComment.userId !== userId) {
+      if (parentComment && parentComment.profileId !== profileId) {
         // Only notify if not already notified by mention or post owner check
         // Simplicity: just notify. Users might get 2 notifications if they are also mentioned.
         // That is acceptable for now.
         this.eventEmitter.emit('notification.create', {
-          recipientId: parentComment.userId,
-          senderId: userId,
+          recipientId: parentComment.profileId,
+          senderId: profileId,
           type: 'COMMENT',
           content: 'replied to your comment',
           postId: post.id,
@@ -171,25 +175,33 @@ export class CommentsService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          user: {
+          profile: {
             select: {
               id: true,
-              verificationLevel: true,
-              profile: true,
+              username: true,
+              avatar: true,
+              fullName: true,
+              user: {
+                select: { verificationLevel: true, accountType: true },
+              },
             },
           },
-          likes: { select: { userId: true } },
+          likes: { select: { id: true } },
           replies: {
             orderBy: { createdAt: 'asc' },
             include: {
-              user: {
+              profile: {
                 select: {
                   id: true,
-                  verificationLevel: true,
-                  profile: true,
+                  username: true,
+                  avatar: true,
+                  fullName: true,
+                  user: {
+                    select: { verificationLevel: true, accountType: true },
+                  },
                 },
               },
-              likes: { select: { userId: true } },
+              likes: { select: { id: true } },
             },
           },
         },
@@ -207,11 +219,11 @@ export class CommentsService {
   /**
    * Delete a comment. Only the comment author can delete.
    * @param id - The comment ID
-   * @param userId - The requesting user's ID
+   * @param profileId - The requesting user's ID
    * @throws NotFoundException if comment not found
    * @throws ForbiddenException if user is not the author
    */
-  async remove(id: string, userId: string) {
+  async remove(id: string, profileId: string) {
     const comment = await this.prisma.comment.findUnique({
       where: { id },
     });
@@ -220,7 +232,7 @@ export class CommentsService {
       throw new NotFoundException('Comment not found');
     }
 
-    if (comment.userId !== userId) {
+    if (comment.profileId !== profileId) {
       throw new ForbiddenException('You can only delete your own comments');
     }
 
@@ -233,26 +245,26 @@ export class CommentsService {
   }
 
   /** Like a comment */
-  async likeComment(commentId: string, userId: string) {
+  async likeComment(commentId: string, profileId: string) {
     const comment = await this.prisma.comment.findUnique({
       where: { id: commentId },
-      include: { user: true },
+      include: { profile: true },
     });
     if (!comment) throw new NotFoundException('Comment not found');
 
     const existingLike = await this.prisma.commentLike.findUnique({
-      where: { commentId_userId: { commentId, userId } },
+      where: { commentId_profileId: { commentId, profileId } },
     });
 
     if (!existingLike) {
       await this.prisma.commentLike.create({
-        data: { commentId, userId },
+        data: { commentId, profileId },
       });
 
-      if (comment.userId !== userId) {
+      if (comment.profileId !== profileId) {
         this.eventEmitter.emit('notification.create', {
-          recipientId: comment.userId,
-          senderId: userId,
+          recipientId: comment.profileId,
+          senderId: profileId,
           type: NotificationType.COMMENT_LIKE,
           content: 'liked your comment.',
           postId: comment.postId,
@@ -262,9 +274,9 @@ export class CommentsService {
   }
 
   /** Unlike a comment */
-  async unlikeComment(commentId: string, userId: string) {
+  async unlikeComment(commentId: string, profileId: string) {
     const existingLike = await this.prisma.commentLike.findUnique({
-      where: { commentId_userId: { commentId, userId } },
+      where: { commentId_profileId: { commentId, profileId } },
     });
 
     if (existingLike) {

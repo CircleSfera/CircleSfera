@@ -17,13 +17,13 @@ export class UpdateGroupUseCase {
   }
 
   async execute(
-    userId: string,
+    profileId: string,
     conversationId: string,
     name?: string,
     avatarUrl?: string,
   ) {
     const participant = await this.prisma.participant.findFirst({
-      where: { conversationId, userId },
+      where: { conversationId, profileId },
     });
 
     if (!participant?.isAdmin) {
@@ -43,8 +43,13 @@ export class UpdateGroupUseCase {
       include: {
         participants: {
           include: {
-            user: {
-              select: { id: true, profile: true },
+            profile: {
+              select: {
+                id: true,
+                username: true,
+                avatar: true,
+                fullName: true,
+              },
             },
           },
         },
@@ -53,7 +58,7 @@ export class UpdateGroupUseCase {
 
     updated?.participants?.forEach((p: any) => {
       this.gateway.server
-        .to(`user:${p.userId}`)
+        .to(`user:${p.profileId}`)
         .emit('conversation_updated', updated);
     });
 

@@ -15,14 +15,14 @@ export class GetMessagesQuery {
   async execute(
     conversationId: string,
     limit = 50,
-    userId?: string,
+    profileId?: string,
   ): Promise<Message[]> {
     let isParticipant = null;
-    if (userId) {
+    if (profileId) {
       isParticipant = await this.prisma.participant.findFirst({
         where: {
           conversationId,
-          userId,
+          profileId,
         },
       });
 
@@ -39,6 +39,15 @@ export class GetMessagesQuery {
       whereClause.createdAt = { gt: isParticipant.clearedAt };
     }
 
+    let viewerUserId: string | undefined;
+    if (profileId) {
+      const viewer = await this.prisma.profile.findUnique({
+        where: { id: profileId },
+        select: { userId: true },
+      });
+      viewerUserId = viewer?.userId;
+    }
+
     const messages = await this.prisma.message.findMany({
       where: whereClause,
       orderBy: { createdAt: 'asc' },
@@ -47,17 +56,15 @@ export class GetMessagesQuery {
         sender: {
           select: {
             id: true,
-            profile: {
-              select: { username: true, avatar: true },
-            },
+            username: true,
+            avatar: true,
+            user: { select: { id: true } },
           },
         },
         post: {
           include: {
             media: true,
-            user: {
-              include: { profile: true },
-            },
+            profile: { include: { user: true } },
           },
         },
         replyTo: {
@@ -65,21 +72,25 @@ export class GetMessagesQuery {
             sender: {
               select: {
                 id: true,
-                profile: { select: { username: true } },
+                username: true,
+                user: { select: { id: true } },
               },
             },
           },
         },
         reactions: {
           include: {
-            user: {
+            profile: {
               select: {
-                profile: { select: { username: true } },
+                username: true,
+                user: { select: { id: true } },
               },
             },
           },
         },
-        messageUnlocks: userId ? { where: { userId } } : false,
+        messageUnlocks: viewerUserId
+          ? { where: { userId: viewerUserId } }
+          : false,
       },
     });
 
@@ -88,7 +99,7 @@ export class GetMessagesQuery {
         m.content = this.cryptoService.decrypt(m.content);
       }
 
-      if (m.isLocked && userId && m.senderId !== userId) {
+      if (m.isLocked && profileId && m.senderId !== profileId) {
         const isUnlocked = m.messageUnlocks && m.messageUnlocks.length > 0;
         if (!isUnlocked) {
           m.content = 'This message is locked. Pay to unlock.';

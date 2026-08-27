@@ -52,23 +52,23 @@ describe('CommentsService', () => {
 
   describe('create', () => {
     const postId = 'post-1';
-    const userId = 'user-1';
+    const profileId = 'user-1';
     const dto = { content: 'Nice post! @user2' };
 
     it('should create a comment and notify post owner', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue({
         id: postId,
-        userId: 'owner-1',
+        profileId: 'owner-1',
       });
       mockPrismaService.comment.create.mockResolvedValue({
         id: 'comment-1',
         content: dto.content,
       });
       mockPrismaService.profile.findMany.mockResolvedValue([
-        { userId: 'user-2' },
+        { profileId: 'user-2' },
       ]);
 
-      const result = await service.create(postId, userId, dto);
+      const result = await service.create(postId, profileId, dto);
 
       expect(result).toBeDefined();
       expect(mockPrismaService.comment.create).toHaveBeenCalled();
@@ -91,7 +91,7 @@ describe('CommentsService', () => {
     it('should throw NotFoundException if post not found', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue(null);
 
-      await expect(service.create(postId, userId, dto)).rejects.toThrow(
+      await expect(service.create(postId, profileId, dto)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -100,15 +100,15 @@ describe('CommentsService', () => {
       const replyDto = { content: 'Reply content', parentId: 'parent-1' };
       mockPrismaService.post.findUnique.mockResolvedValue({
         id: postId,
-        userId: userId,
+        profileId: profileId,
       }); // Same user as post owner to avoid notification duplicate in test check
       mockPrismaService.comment.findUnique.mockResolvedValue({
         id: 'parent-1',
-        userId: 'parent-owner-1',
+        profileId: 'parent-owner-1',
       });
       mockPrismaService.comment.create.mockResolvedValue({ id: 'comment-1' });
 
-      await service.create(postId, userId, replyDto);
+      await service.create(postId, profileId, replyDto);
 
       expect(mockEventEmitter.emit).toHaveBeenCalledWith(
         'notification.create',
@@ -138,7 +138,7 @@ describe('CommentsService', () => {
     it('should delete comment if owner', async () => {
       mockPrismaService.comment.findUnique.mockResolvedValue({
         id: '1',
-        userId: 'user-1',
+        profileId: 'user-1',
       });
 
       await service.remove('1', 'user-1');
@@ -151,7 +151,7 @@ describe('CommentsService', () => {
     it('should throw ForbiddenException if not owner', async () => {
       mockPrismaService.comment.findUnique.mockResolvedValue({
         id: '1',
-        userId: 'user-2',
+        profileId: 'user-2',
       });
 
       await expect(service.remove('1', 'user-1')).rejects.toThrow(

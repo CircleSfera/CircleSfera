@@ -198,7 +198,7 @@ export class AuthService {
       },
     });
 
-    const profile = await this.prisma.profile.findUnique({
+    const profile = await this.prisma.profile.findFirst({
       where: { userId: user.id },
       select: { username: true },
     });
@@ -403,10 +403,10 @@ export class AuthService {
         } catch (_err) {
           // Ignore queue connection issues during login restore
         }
-      } else if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+      } else if (user.isRootBanned) {
         throw new UnauthorizedException({
-          message: ApiErrorCode.ACCOUNT_SUSPENDED,
-          suspendedUntil: user.suspendedUntil.toISOString(),
+          message: ApiErrorCode.ACCOUNT_BANNED,
+          reason: user.rootBanReason,
         });
       } else {
         const secret =
@@ -421,10 +421,25 @@ export class AuthService {
           appealToken,
         });
       }
-    } else if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+    } else if (user.isRootBanned) {
+      throw new UnauthorizedException({
+        message: ApiErrorCode.ACCOUNT_BANNED,
+        reason: user.rootBanReason,
+      });
+    }
+
+    // Temporary suspensions live on Profile, not User.
+    const loginProfile = await this.prisma.profile.findFirst({
+      where: { userId: user.id },
+      select: { id: true, suspendedUntil: true },
+    });
+    if (
+      loginProfile?.suspendedUntil &&
+      loginProfile.suspendedUntil > new Date()
+    ) {
       throw new UnauthorizedException({
         message: ApiErrorCode.ACCOUNT_SUSPENDED,
-        suspendedUntil: user.suspendedUntil.toISOString(),
+        suspendedUntil: loginProfile.suspendedUntil.toISOString(),
       });
     }
 
@@ -501,10 +516,10 @@ export class AuthService {
         if (job) {
           await job.remove();
         }
-      } else if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+      } else if (user.isRootBanned) {
         throw new UnauthorizedException({
-          message: ApiErrorCode.ACCOUNT_SUSPENDED,
-          suspendedUntil: user.suspendedUntil.toISOString(),
+          message: ApiErrorCode.ACCOUNT_BANNED,
+          reason: user.rootBanReason,
         });
       } else {
         const secret = this.configService.getOrThrow<string>('JWT_SECRET');
@@ -517,10 +532,10 @@ export class AuthService {
           appealToken,
         });
       }
-    } else if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+    } else if (user.isRootBanned) {
       throw new UnauthorizedException({
-        message: ApiErrorCode.ACCOUNT_SUSPENDED,
-        suspendedUntil: user.suspendedUntil.toISOString(),
+        message: ApiErrorCode.ACCOUNT_BANNED,
+        reason: user.rootBanReason,
       });
     }
 

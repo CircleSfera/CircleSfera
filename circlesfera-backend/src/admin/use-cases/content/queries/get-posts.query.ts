@@ -17,21 +17,20 @@ export class GetPostsQuery {
     const skip = (page - 1) * limit;
     const where: Prisma.PostWhereInput = {};
 
-    if (search) {
+    // Admin UI passes platform User.id; posts are owned by Profile.
+    if (userId) {
+      where.profile = { userId };
+    }
+    if (search?.trim()) {
       where.OR = [
-        { caption: { contains: search, mode: 'insensitive' } },
+        { caption: { contains: search.trim(), mode: 'insensitive' } },
+        { location: { contains: search.trim(), mode: 'insensitive' } },
         {
-          user: {
-            profile: {
-              username: { contains: search, mode: 'insensitive' },
-            },
+          profile: {
+            username: { contains: search.trim(), mode: 'insensitive' },
           },
         },
       ];
-    }
-
-    if (userId) {
-      where.userId = userId;
     }
 
     if (type === 'POST' || type === 'FRAME') {
@@ -52,7 +51,9 @@ export class GetPostsQuery {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          user: { include: { profile: true } },
+          profile: {
+            select: { id: true, username: true, avatar: true },
+          },
           media: true,
           _count: { select: { likes: true, comments: true } },
         },
@@ -60,8 +61,22 @@ export class GetPostsQuery {
       this.prisma.post.count({ where }),
     ]);
 
+    // Preserve AdminPost shape: post.user.profile.username
+    const data = posts.map(({ profile, ...rest }) => ({
+      ...rest,
+      profile,
+      user: profile
+        ? {
+            profile: {
+              username: profile.username,
+              avatar: profile.avatar,
+            },
+          }
+        : null,
+    }));
+
     return {
-      data: posts,
+      data,
       meta: {
         total,
         page,

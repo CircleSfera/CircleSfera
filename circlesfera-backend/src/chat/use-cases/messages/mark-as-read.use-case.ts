@@ -5,11 +5,11 @@ import { PrismaService } from '../../../prisma/prisma.service.js';
 export class MarkAsReadUseCase {
   constructor(@Inject(PrismaService) private prisma: PrismaService) {}
 
-  async execute(conversationId: string, userId: string) {
+  async execute(conversationId: string, profileId: string) {
     await this.prisma.participant.updateMany({
       where: {
         conversationId,
-        userId,
+        profileId,
       },
       data: {
         lastReadAt: new Date(),

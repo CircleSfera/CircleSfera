@@ -9,7 +9,7 @@ describe('SearchService', () => {
   let service: SearchService;
 
   const mockPrismaService = {
-    user: {
+    profile: {
       findMany: vi.fn(),
     },
     hashtag: {
@@ -63,7 +63,7 @@ describe('SearchService', () => {
 
   describe('search', () => {
     it('should return users and hashtags', async () => {
-      mockPrismaService.user.findMany.mockResolvedValue([
+      mockPrismaService.profile.findMany.mockResolvedValue([
         { id: '1', _count: { followers: 0 } },
       ]);
       mockPrismaService.hashtag.findMany.mockResolvedValue([{ id: 'tag-1' }]);

@@ -23,24 +23,23 @@ export class AnalyticsService {
   async handleDailyAggregation() {
     this.logger.log('Starting daily analytics aggregation... queueing jobs');
     try {
-      // Find all users who have created a post in the last 24h or have active promotions
-      const creators = await this.prisma.user.findMany({
+      const profiles = await this.prisma.profile.findMany({
         where: {
           OR: [
             { posts: { some: {} } },
-            { promotions: { some: { status: 'ACTIVE' } } },
+            { user: { promotions: { some: { status: 'ACTIVE' } } } },
           ],
         },
         select: { id: true },
       });
 
       this.logger.log(
-        `Queueing aggregation stats for ${creators.length} creators`,
+        `Queueing aggregation stats for ${profiles.length} profiles`,
       );
 
-      for (const creator of creators) {
+      for (const profile of profiles) {
         await this.analyticsQueue.add('aggregate-creator', {
-          userId: creator.id,
+          profileId: profile.id,
         });
       }
 
@@ -255,17 +254,18 @@ export class AnalyticsService {
 
   /**
    * Retrieves aggregated statistics for a creator's dashboard.
+   * @param profileId - Profile that owns the content / metrics
    */
-  async getCreatorDashboard(userId: string, days = 30) {
+  async getCreatorDashboard(profileId: string, days = 30) {
     // 0. Force live sync of today's metrics before querying
-    await this.performDailyAggregation(userId);
+    await this.performDailyAggregation(profileId);
 
     const startDate = subDays(startOfDay(new Date()), days);
 
     // 1. Get daily metrics
-    const metrics = await this.prisma.userMetric.findMany({
+    const metrics = await this.prisma.profileMetric.findMany({
       where: {
-        userId,
+        profileId,
         date: { gte: startDate },
       },
       orderBy: { date: 'asc' },
@@ -273,20 +273,17 @@ export class AnalyticsService {
 
     // 2. Get current lifetime stats
     const [posts, followers, totalLikes] = await Promise.all([
-      this.prisma.post.count({ where: { userId } }),
+      this.prisma.post.count({ where: { profileId } }),
       this.prisma.follow.count({
-        where: { followingId: userId, status: 'ACCEPTED' },
+        where: { followingId: profileId, status: 'ACCEPTED' },
       }),
-      this.prisma.like.count({ where: { post: { userId } } }),
+      this.prisma.like.count({ where: { post: { profileId } } }),
     ]);
 
     // 3. Calculate recent engagement
     // We look at posts from the last 30 days
     const recentPosts = await this.prisma.post.findMany({
-      where: {
-        userId,
-        createdAt: { gte: startDate },
-      },
+      where: { profileId, createdAt: { gte: startDate } },
       select: {
         id: true,
         views: true,
@@ -339,48 +336,48 @@ export class AnalyticsService {
    * Task to take a daily snapshot of user metrics.
    * This should be called by a cron job or at the end of the day.
    */
-  async performDailyAggregation(userId: string) {
+  async performDailyAggregation(profileId: string) {
     const today = startOfDay(new Date());
 
     const [followers, following, posts, likes, views] = await Promise.all([
       this.prisma.follow.count({
-        where: { followingId: userId, status: 'ACCEPTED' },
+        where: { followingId: profileId, status: 'ACCEPTED' },
       }),
       this.prisma.follow.count({
-        where: { followerId: userId, status: 'ACCEPTED' },
+        where: { followerId: profileId, status: 'ACCEPTED' },
       }),
-      this.prisma.post.count({ where: { userId } }),
-      this.prisma.like.count({ where: { post: { userId } } }),
+      this.prisma.post.count({ where: { profileId } }),
+      this.prisma.like.count({ where: { post: { profileId } } }),
       this.prisma.post.aggregate({
-        where: { userId },
+        where: { profileId },
         _sum: { views: true },
       }),
     ]);
 
-    await this.prisma.userMetric.upsert({
+    await this.prisma.profileMetric.upsert({
       where: {
-        userId_date: {
-          userId,
+        profileId_date: {
+          profileId,
           date: today,
         },
       },
       create: {
-        userId,
+        profileId,
         date: today,
         followers,
         following,
         posts,
         likes,
-        views: views._sum.views || 0,
-        reach: views._sum.views || 0, // Simplified for now
+        views: views._sum?.views || 0,
+        reach: views._sum?.views || 0, // Simplified for now
       },
       update: {
         followers,
         following,
         posts,
         likes,
-        views: views._sum.views || 0,
-        reach: (views._sum.views || 0) + likes, // Improved reach calculation (views + engagement)
+        views: views._sum?.views || 0,
+        reach: (views._sum?.views || 0) + likes, // Improved reach calculation (views + engagement)
       },
     });
   }

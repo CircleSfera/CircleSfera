@@ -210,21 +210,39 @@ export class MaintenanceService {
 
     try {
       const now = new Date();
-      const result = await this.prisma.user.updateMany({
+      const expiredProfiles = await this.prisma.profile.findMany({
         where: {
           suspendedUntil: { not: null, lte: now },
-          isActive: false,
-          scheduledDeletionAt: null,
-        } satisfies Prisma.UserWhereInput,
-        data: {
-          isActive: true,
-          suspendedUntil: null,
+          user: {
+            isActive: false,
+            scheduledDeletionAt: null,
+            isRootBanned: false,
+          },
         },
+        select: { id: true, userId: true },
       });
 
-      if (result.count > 0) {
-        this.logger.log(`Lifted ${result.count} expired suspensions.`);
+      if (expiredProfiles.length === 0) {
+        return;
       }
+
+      const profileIds = expiredProfiles.map((p) => p.id);
+      const userIds = [...new Set(expiredProfiles.map((p) => p.userId))];
+
+      await this.prisma.$transaction([
+        this.prisma.profile.updateMany({
+          where: { id: { in: profileIds } },
+          data: { suspendedUntil: null },
+        }),
+        this.prisma.user.updateMany({
+          where: { id: { in: userIds } },
+          data: { isActive: true },
+        }),
+      ]);
+
+      this.logger.log(
+        `Lifted ${userIds.length} expired suspensions (${profileIds.length} profiles).`,
+      );
     } catch (error) {
       this.logger.error('Error in liftExpiredSuspensions cron job', error);
     }
@@ -253,7 +271,7 @@ export class MaintenanceService {
             },
           ],
         } satisfies Prisma.UserWhereInput,
-        include: { profile: true },
+        include: { profiles: true },
       });
 
       if (usersToPurge.length === 0) {
@@ -268,13 +286,13 @@ export class MaintenanceService {
       for (const user of usersToPurge) {
         try {
           // Physical deletion of media to comply with GDPR
-          if (user.profile) {
+          if (user.profiles[0]) {
             const mediaToDelete = [
-              user.profile.avatar,
-              user.profile.standardUrl,
-              user.profile.thumbnailUrl,
-              user.profile.cover,
-              user.profile.coverStandardUrl,
+              user.profiles[0].avatar,
+              user.profiles[0].standardUrl,
+              user.profiles[0].thumbnailUrl,
+              user.profiles[0].cover,
+              user.profiles[0].coverStandardUrl,
             ].filter(Boolean) as string[];
 
             for (const url of mediaToDelete) {

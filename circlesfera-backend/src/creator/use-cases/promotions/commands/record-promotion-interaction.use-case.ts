@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PromotionStatus } from '@prisma/client';
+import { PROMOTION_COST_PER_VIEW_CENTS } from '../../../../common/constants/monetization.constants.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 
 @Injectable()
@@ -11,13 +12,16 @@ export class RecordPromotionInteractionUseCase {
       return { success: false };
     }
 
-    const COST_PER_VIEW = 0.01;
-
     return this.prisma.$transaction(async (tx) => {
       const rows = await tx.$queryRaw<
-        Array<{ id: string; budget: number; userId: string; status: string }>
+        Array<{
+          id: string;
+          budgetCents: number;
+          userId: string;
+          status: string;
+        }>
       >`
-        SELECT id, budget, "userId", status::text AS status
+        SELECT id, "budgetCents", "userId", status::text AS status
         FROM promotions
         WHERE id = ${promotionId}
         FOR UPDATE
@@ -30,22 +34,22 @@ export class RecordPromotionInteractionUseCase {
       if (promo.userId === viewerId) {
         return { success: false };
       }
-      if (promo.budget < COST_PER_VIEW) {
+      if (promo.budgetCents < PROMOTION_COST_PER_VIEW_CENTS) {
         await tx.promotion.update({
           where: { id: promotionId },
-          data: { budget: 0, status: PromotionStatus.COMPLETED },
+          data: { budgetCents: 0, status: PromotionStatus.COMPLETED },
         });
         return { success: false };
       }
 
-      const newBudget = promo.budget - COST_PER_VIEW;
+      const newBudgetCents = promo.budgetCents - PROMOTION_COST_PER_VIEW_CENTS;
       await tx.promotion.update({
         where: { id: promotionId },
         data: {
           reach: { increment: 1 },
-          budget: newBudget,
-          ...(newBudget <= 0
-            ? { status: PromotionStatus.COMPLETED, budget: 0 }
+          budgetCents: newBudgetCents,
+          ...(newBudgetCents <= 0
+            ? { status: PromotionStatus.COMPLETED, budgetCents: 0 }
             : {}),
         },
       });

@@ -39,7 +39,7 @@ export class GetContentQuery {
       where.content = { contains: search.trim(), mode: 'insensitive' };
     }
     if (userId) {
-      where.userId = userId;
+      where.profile = { userId };
     }
     if (
       moderationStatus &&
@@ -55,8 +55,8 @@ export class GetContentQuery {
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          user: {
-            select: { profile: { select: { username: true, avatar: true } } },
+          profile: {
+            select: { username: true, avatar: true },
           },
           post: { select: { id: true, caption: true } },
         },
@@ -81,7 +81,7 @@ export class GetContentQuery {
   ) {
     const where: Prisma.StoryWhereInput = {};
     if (filters?.userId) {
-      where.userId = filters.userId;
+      where.profile = { userId: filters.userId };
     }
     if (
       filters?.moderationStatus &&
@@ -105,8 +105,8 @@ export class GetContentQuery {
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          user: {
-            select: { profile: { select: { username: true, avatar: true } } },
+          profile: {
+            select: { username: true, avatar: true },
           },
           _count: { select: { views: true, reactions: true } },
         },
@@ -136,7 +136,7 @@ export class GetContentQuery {
           include: {
             reporter: {
               select: {
-                profile: { select: { username: true } },
+                username: true,
               },
             },
             assignedAdmin: {
@@ -156,7 +156,7 @@ export class GetContentQuery {
             user: {
               select: {
                 email: true,
-                profile: { select: { username: true } },
+                profiles: { select: { username: true } },
               },
             },
           },
@@ -189,8 +189,8 @@ export class GetContentQuery {
     const posts = await this.prisma.post.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
-        user: {
-          include: { profile: { select: { username: true } } },
+        profile: {
+          select: { username: true },
         },
         _count: { select: { likes: true, comments: true } },
       },
@@ -200,7 +200,7 @@ export class GetContentQuery {
     const rows = posts.map((p) =>
       [
         p.id,
-        p.user?.profile?.username || '',
+        p.profile?.username || '',
         p.type,
         `"${(p.caption || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
         p._count.likes,

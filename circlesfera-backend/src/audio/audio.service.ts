@@ -115,7 +115,14 @@ export class AudioService {
     return await this.prisma.post.findMany({
       where: { audioId: id, visibility: 'PUBLIC', moderationStatus: 'VISIBLE' },
       include: {
-        user: { include: { profile: true } },
+        profile: {
+          select: {
+            id: true,
+            username: true,
+            avatar: true,
+            fullName: true,
+          },
+        },
         media: true,
         _count: { select: { likes: true, comments: true } },
       },

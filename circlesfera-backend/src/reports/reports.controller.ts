@@ -41,7 +41,7 @@ export class ReportsController {
     @CurrentUser() user: CurrentUserData,
     @Body() dto: CreateReportDto,
   ): Promise<Report> {
-    return await this.reportsService.create(user.userId, dto);
+    return await this.reportsService.create(user.profileId, dto);
   }
 
   /** List reports filed by the current user. */
@@ -51,7 +51,7 @@ export class ReportsController {
     @CurrentUser() user: CurrentUserData,
     @Query() pagination: PaginationDto,
   ) {
-    return this.reportsService.findMyReports(user.userId, pagination);
+    return this.reportsService.findMyReports(user.profileId, pagination);
   }
 
   /** List all reports (admin only). */
@@ -71,6 +71,6 @@ export class ReportsController {
     @Body('status') status: ReportStatus,
     @CurrentUser() user: CurrentUserData,
   ): Promise<Report> {
-    return this.reportsService.update(id, status, user.userId);
+    return this.reportsService.update(id, status, user.profileId);
   }
 }

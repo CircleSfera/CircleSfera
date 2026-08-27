@@ -14,6 +14,10 @@ describe('UsersService', () => {
       findMany: vi.fn(),
       update: vi.fn(),
     },
+    profile: {
+      findMany: vi.fn(),
+      updateMany: vi.fn(),
+    },
     follow: {
       findMany: vi.fn(),
     },
@@ -57,24 +61,32 @@ describe('UsersService', () => {
     it('should return user suggestions excluding follows and blocks', async () => {
       const mockSuggestions = [
         {
-          id: 's1',
-          profile: { username: 'user_s1' },
+          id: 'p1',
+          username: 'user_s1',
+          fullName: 'User S1',
+          avatar: null,
+          bio: null,
+          user: { id: 's1', verificationLevel: 'BASIC' },
           _count: { followers: 10 },
         },
       ];
-      mockPrismaService.user.findMany.mockResolvedValue(mockSuggestions);
+      mockPrismaService.profile.findMany
+        .mockResolvedValueOnce([{ id: 'my-profile' }])
+        .mockResolvedValueOnce(mockSuggestions);
 
       const limit = 10;
       const result = await service.getSuggestions('1', limit);
       expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('s1');
+      expect(result[0].profileId).toBe('p1');
+      expect(result[0].username).toBe('user_s1');
 
-      const lastCallArgs = vi.mocked(mockPrismaService.user.findMany).mock
-        .calls[0][0] as any;
-      expect(lastCallArgs.where.followers.none.followerId).toBe('1');
-      expect(lastCallArgs.where.blocking.none.blockedId).toBe('1');
-      expect(lastCallArgs.where.blockedBy.none.blockerId).toBe('1');
-      expect(lastCallArgs.take).toBe(limit);
+      const suggestionCall = vi.mocked(mockPrismaService.profile.findMany).mock
+        .calls[1][0] as any;
+      expect(suggestionCall.where.userId).toEqual({ not: '1' });
+      expect(suggestionCall.where.followers.none.followerId).toEqual({
+        in: ['my-profile'],
+      });
+      expect(suggestionCall.take).toBe(limit);
     });
   });
 
@@ -88,11 +100,16 @@ describe('UsersService', () => {
   });
 
   it('should unban a user', async () => {
+    mockPrismaService.profile.updateMany.mockResolvedValue({ count: 1 });
     mockPrismaService.user.update.mockResolvedValue({
       id: '1',
       isActive: true,
     });
     const result = await service.unbanUser('1');
+    expect(mockPrismaService.profile.updateMany).toHaveBeenCalledWith({
+      where: { userId: '1' },
+      data: { suspendedUntil: null },
+    });
     expect(result.isActive).toBe(true);
   });
 

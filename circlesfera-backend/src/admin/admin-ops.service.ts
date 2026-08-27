@@ -110,8 +110,10 @@ export class AdminOpsService {
             { experimentKey: { contains: search, mode: 'insensitive' } },
             {
               user: {
-                profile: {
-                  username: { contains: search, mode: 'insensitive' },
+                profiles: {
+                  some: {
+                    username: { contains: search, mode: 'insensitive' },
+                  },
                 },
               },
             },
@@ -129,7 +131,7 @@ export class AdminOpsService {
           user: {
             select: {
               id: true,
-              profile: {
+              profiles: {
                 select: { avatar: true, fullName: true, username: true },
               },
             },
@@ -161,7 +163,7 @@ export class AdminOpsService {
       update: { variant },
       create: { userId, experimentKey, variant },
       include: {
-        user: { select: { profile: { select: { username: true } } } },
+        user: { select: { profiles: { select: { username: true } } } },
       },
     });
 
@@ -170,7 +172,7 @@ export class AdminOpsService {
       AdminAction.MANUAL_OVERRIDE,
       'user_experiment',
       experiment.id,
-      `Assigned ${experiment.user?.profile?.username || userId} to ${experimentKey} (${variant})`,
+      `Assigned ${experiment.user?.profiles[0]?.username || userId} to ${experimentKey} (${variant})`,
     );
 
     return experiment;
@@ -180,7 +182,7 @@ export class AdminOpsService {
     const experiment = await this.prisma.userExperiment.delete({
       where: { id },
       include: {
-        user: { select: { profile: { select: { username: true } } } },
+        user: { select: { profiles: { select: { username: true } } } },
       },
     });
 
@@ -189,7 +191,7 @@ export class AdminOpsService {
       AdminAction.MANUAL_OVERRIDE,
       'user_experiment',
       id,
-      `Removed ${experiment.user?.profile?.username || experiment.userId} from ${experiment.experimentKey}`,
+      `Removed ${experiment.user?.profiles[0]?.username || experiment.userId} from ${experiment.experimentKey}`,
     );
 
     return { success: true };
@@ -215,7 +217,7 @@ export class AdminOpsService {
             select: {
               id: true,
               email: true,
-              profile: { select: { username: true, avatar: true } },
+              profiles: { select: { username: true, avatar: true } },
             },
           },
         },

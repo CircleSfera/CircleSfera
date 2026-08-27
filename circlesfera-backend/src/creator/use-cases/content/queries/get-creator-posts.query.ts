@@ -20,14 +20,14 @@ export class GetCreatorPostsQuery {
     private readonly getCreatorStats: GetCreatorStatsQuery,
   ) {}
 
-  async execute(userId: string, page = 1, limit = 10, type?: string) {
+  async execute(profileId: string, page = 1, limit = 10, type?: string) {
     const where = {
-      userId,
+      profileId,
       ...(type ? { type: type as 'POST' | 'FRAME' } : {}),
     };
 
     const [stats, postsResult, total] = await Promise.all([
-      this.getCreatorStats.execute(userId),
+      this.getCreatorStats.execute(profileId),
       this.prisma.post.findMany({
         where,
         orderBy: { createdAt: 'desc' },

@@ -12,22 +12,22 @@ async function main() {
   const prisma = new PrismaClient({ adapter });
 
   const users = await prisma.user.findMany({
-    include: { profile: true },
+    include: { profiles: true },
   });
   console.log('--- USERS ---');
   users.forEach((u) => {
     console.log(
-      `ID: ${u.id} | Email: ${u.email} | User: ${u.profile?.username} | FullName: ${u.profile?.fullName} | Role: ${u.role}`,
+      `ID: ${u.id} | Email: ${u.email} | User: ${u.profiles[0]?.username} | FullName: ${u.profiles[0]?.fullName} | Role: ${u.role}`,
     );
   });
 
   const posts = await prisma.post.findMany({
-    include: { user: { include: { profile: true } } },
+    include: { profile: { include: { user: true } } },
   });
   console.log('--- POSTS ---');
   posts.forEach((p) => {
     console.log(
-      `Post ID: ${p.id} | Author: ${p.user.profile?.username} | Caption: ${p.caption}`,
+      `Post ID: ${p.id} | Author: ${p.profile?.username} | Caption: ${p.caption}`,
     );
   });
 
@@ -40,7 +40,7 @@ async function main() {
     where: {
       id: { not: 'fd9babd0-9a0b-47d8-95a0-a131e19d852b' }, // Exclude self (EasyFeliu)
       isActive: true, // Only active users
-      profile: { isNot: null }, // Ensure they have a profile
+      profiles: { some: {} }, // Ensure they have a profile
       // Exclude users already followed
       followers: {
         none: { followerId: 'fd9babd0-9a0b-47d8-95a0-a131e19d852b' },
@@ -55,7 +55,7 @@ async function main() {
       },
     },
     include: {
-      profile: true,
+      profiles: true,
     },
   });
   console.log('--- SUGGESTIONS QUERY RESULTS ---');

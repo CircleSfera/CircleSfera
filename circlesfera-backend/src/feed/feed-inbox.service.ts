@@ -78,18 +78,18 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
    * Reads the inbox for a specific user with pagination.
    */
   async getInbox(
-    userId: string,
+    profileId: string,
     skip: number,
     limit: number,
   ): Promise<string[]> {
     if (!this.redisClient) return [];
 
-    const key = `user:${userId}:inbox`;
+    const key = `user:${profileId}:inbox`;
     try {
       const end = skip + limit - 1;
       return await this.redisClient.zrevrange(key, skip, end);
     } catch (error) {
-      this.logger.error(`Error getting inbox for user ${userId}: ${error}`);
+      this.logger.error(`Error getting inbox for user ${profileId}: ${error}`);
       return [];
     }
   }
@@ -97,9 +97,9 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
   /**
    * Utility to check if a user's inbox is empty (cache miss or inactive user).
    */
-  async isInboxEmpty(userId: string): Promise<boolean> {
+  async isInboxEmpty(profileId: string): Promise<boolean> {
     if (!this.redisClient) return true;
-    const key = `user:${userId}:inbox`;
+    const key = `user:${profileId}:inbox`;
     const length = await this.redisClient.llen(key);
     return length === 0;
   }
@@ -129,15 +129,15 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
   /**
    * Invalidates Redis feed cache for a user.
    */
-  async invalidateUserFeedCache(userId: string): Promise<void> {
+  async invalidateUserFeedCache(profileId: string): Promise<void> {
     if (!this.redisClient) return;
     try {
-      const key = `user:${userId}:inbox`;
+      const key = `user:${profileId}:inbox`;
       await this.redisClient.del(key);
-      this.logger.debug(`Invalidated feed inbox cache for user ${userId}`);
+      this.logger.debug(`Invalidated feed inbox cache for user ${profileId}`);
     } catch (error) {
       this.logger.error(
-        `Failed to invalidate feed cache for user ${userId}: ${error}`,
+        `Failed to invalidate feed cache for user ${profileId}: ${error}`,
       );
     }
   }
@@ -145,15 +145,15 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
   /**
    * Gets the total count of posts in the user's inbox
    */
-  async getInboxCount(userId: string): Promise<number> {
+  async getInboxCount(profileId: string): Promise<number> {
     if (!this.redisClient) return 0;
-    const key = `user:${userId}:inbox`;
+    const key = `user:${profileId}:inbox`;
     try {
       const count = await this.redisClient.zcard(key);
       return count;
     } catch (error) {
       this.logger.error(
-        `Error getting inbox count for user ${userId}: ${error}`,
+        `Error getting inbox count for user ${profileId}: ${error}`,
       );
       return 0;
     }

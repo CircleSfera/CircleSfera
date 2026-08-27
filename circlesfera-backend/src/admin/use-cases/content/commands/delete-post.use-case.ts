@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { AdminAction } from '@prisma/client';
 import { EmailService } from '../../../../email/email.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
@@ -13,7 +13,18 @@ export class DeletePostUseCase {
     private readonly logAdminAction: LogAdminActionUseCase,
   ) {}
 
-  async execute(adminId: string, postId: string) {
+  async execute(
+    adminId: string,
+    postId: string,
+    reason = 'Violación de políticas',
+  ) {
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      include: { profile: { select: { userId: true, username: true } } },
+    });
+
+    if (!post) throw new NotFoundException('Post not found');
+
     await this.logAdminAction.execute(
       adminId,
       AdminAction.DELETE_POST,
@@ -23,16 +34,21 @@ export class DeletePostUseCase {
 
     const deletedPost = await this.prisma.post.delete({
       where: { id: postId },
-      include: { user: { include: { profile: true } } },
     });
 
-    if (deletedPost.user?.email) {
-      await this.emailService.sendModerationEmail(
-        deletedPost.user.email,
-        deletedPost.user.profile?.username || 'Usuario',
-        'eliminada',
-        'Publicación',
-        'Incumplimiento de nuestras políticas de contenido',
+    const user = await this.prisma.user.findUnique({
+      where: { id: post.profile?.userId },
+      select: { email: true },
+    });
+
+    if (user?.email) {
+      await this.emailService.sendBroadcastEmail(
+        user.email,
+        'Your Post was Deleted',
+        'Hello',
+        `Your post was deleted by an admin for violating our community guidelines.\nReason: ${reason}`,
+        'Review Guidelines',
+        'https://circlesfera.com/guidelines',
       );
     }
 

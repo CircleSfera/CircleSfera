@@ -16,9 +16,9 @@ export class DeleteConversationUseCase {
     return this.moduleRef.get(AppGateway, { strict: false });
   }
 
-  async execute(userId: string, conversationId: string) {
+  async execute(profileId: string, conversationId: string) {
     const participant = await this.prisma.participant.findFirst({
-      where: { conversationId, userId },
+      where: { conversationId, profileId },
       include: { conversation: { include: { participants: true } } },
     });
 
@@ -42,7 +42,7 @@ export class DeleteConversationUseCase {
 
       participant.conversation.participants.forEach((p) => {
         this.gateway.server
-          .to(`user:${p.userId}`)
+          .to(`user:${p.profileId}`)
           .emit('conversationDeleted', { conversationId });
       });
 
@@ -58,7 +58,7 @@ export class DeleteConversationUseCase {
     });
 
     this.gateway.server
-      .to(`user:${userId}`)
+      .to(`user:${profileId}`)
       .emit('conversationDeleted', { conversationId });
 
     const allDeleted = await this.prisma.participant.findMany({

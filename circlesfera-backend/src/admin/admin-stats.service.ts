@@ -233,7 +233,7 @@ export class AdminStatsService {
       plan: {
         id: string;
         name: string;
-        price: number;
+        priceCents: number;
       };
     }
 
@@ -260,7 +260,7 @@ export class AdminStatsService {
     };
 
     rawSubscriptions.forEach((sub) => {
-      activeMRR += sub.plan?.price || 0;
+      activeMRR += (sub.plan?.priceCents || 0) / 100;
       const planName = sub.plan?.name?.toUpperCase() || '';
       if (planName.includes('PREMIUM')) tierCounts.PREMIUM++;
       else if (planName.includes('ELITE')) tierCounts.ELITE++;
@@ -337,7 +337,11 @@ export class AdminStatsService {
       where.user = {
         OR: [
           { email: { contains: search, mode: 'insensitive' } },
-          { profile: { username: { contains: search, mode: 'insensitive' } } },
+          {
+            profiles: {
+              some: { username: { contains: search, mode: 'insensitive' } },
+            },
+          },
         ],
       };
     }
@@ -348,7 +352,7 @@ export class AdminStatsService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          user: { include: { profile: true } },
+          user: { include: { profiles: true } },
         },
       }),
       this.prisma.stripePayoutLog.count({ where }),
@@ -367,10 +371,16 @@ export class AdminStatsService {
       where: { isActive: true },
       select: {
         id: true,
-        profile: { select: { username: true, avatar: true, fullName: true } },
-        posts: {
+        profiles: {
           select: {
-            _count: { select: { likes: true, comments: true } },
+            username: true,
+            avatar: true,
+            fullName: true,
+            posts: {
+              select: {
+                _count: { select: { likes: true, comments: true } },
+              },
+            },
           },
         },
       },
@@ -378,16 +388,16 @@ export class AdminStatsService {
 
     const ranked = users
       .map((u) => {
-        const totalLikes = u.posts.reduce((sum, p) => sum + p._count.likes, 0);
-        const totalComments = u.posts.reduce(
-          (sum, p) => sum + p._count.comments,
-          0,
-        );
+        const profile = u.profiles[0];
+        const totalLikes =
+          profile?.posts?.reduce((sum, p) => sum + p._count.likes, 0) || 0;
+        const totalComments =
+          profile?.posts?.reduce((sum, p) => sum + p._count.comments, 0) || 0;
         return {
           id: u.id,
-          username: u.profile?.username || 'unknown',
-          avatar: u.profile?.avatar,
-          fullName: u.profile?.fullName,
+          username: profile?.username || 'unknown',
+          avatar: profile?.avatar,
+          fullName: profile?.fullName,
           totalLikes,
           totalComments,
           engagement: totalLikes + totalComments,
@@ -426,12 +436,16 @@ export class AdminStatsService {
         { receiver: { email: { contains: q, mode: 'insensitive' } } },
         {
           sender: {
-            profile: { username: { contains: q, mode: 'insensitive' } },
+            profiles: {
+              some: { username: { contains: q, mode: 'insensitive' } },
+            },
           },
         },
         {
           receiver: {
-            profile: { username: { contains: q, mode: 'insensitive' } },
+            profiles: {
+              some: { username: { contains: q, mode: 'insensitive' } },
+            },
           },
         },
       ];
@@ -447,13 +461,13 @@ export class AdminStatsService {
           sender: {
             select: {
               email: true,
-              profile: { select: { username: true } },
+              profiles: { select: { username: true } },
             },
           },
           receiver: {
             select: {
               email: true,
-              profile: { select: { username: true } },
+              profiles: { select: { username: true } },
             },
           },
         },

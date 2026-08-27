@@ -51,10 +51,10 @@ export class StoriesService {
 
   /**
    * Create a new ephemeral story with a 24-hour expiry.
-   * @param userId - The author's user ID
+   * @param profileId - The author's user ID
    * @param dto - Story data (url, mediaType, isCloseFriendsOnly, audioId)
    */
-  async create(userId: string, dto: CreateStoryDto) {
+  async create(profileId: string, dto: CreateStoryDto) {
     const postingEnabled = await this.systemSettings.isEnabled(
       SYSTEM_SETTING_KEYS.CONTENT_POSTING_ENABLED,
     );
@@ -80,7 +80,7 @@ export class StoriesService {
 
     const story = await this.prisma.story.create({
       data: {
-        userId,
+        profileId,
         url: dto.url,
         standardUrl: dto.standardUrl,
         thumbnailUrl: dto.thumbnailUrl,
@@ -94,11 +94,7 @@ export class StoriesService {
         scheduledStatus: scheduledAt ? 'SCHEDULED' : 'PUBLISHED',
       },
       include: {
-        user: {
-          include: {
-            profile: true,
-          },
-        },
+        profile: { include: { user: true } },
       },
     });
 
@@ -121,9 +117,9 @@ export class StoriesService {
   /**
    * Retrieve all active (non-expired) stories, optionally filtered to followed users.
    * Respects close-friends visibility permissions.
-   * @param userId - Optional current user ID for personalized filtering
+   * @param profileId - Optional current user ID for personalized filtering
    */
-  async findAll(userId?: string) {
+  async findAll(profileId?: string) {
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     // Build where clause
@@ -134,41 +130,39 @@ export class StoriesService {
       scheduledStatus: 'PUBLISHED',
     };
 
-    // If userId is provided, filter to show only stories from followed users
-    if (userId) {
+    // If profileId is provided, filter to show only stories from followed users
+    if (profileId) {
       const following = await this.prisma.follow.findMany({
-        where: { followerId: userId, status: 'ACCEPTED' },
+        where: { followerId: profileId, status: 'ACCEPTED' },
         select: { followingId: true },
       });
       const followingIds = following.map(
         (f: { followingId: string }) => f.followingId,
       );
       // Include the user's own stories as well
-      followingIds.push(userId);
-      whereClause.userId = { in: followingIds };
+      followingIds.push(profileId);
+      whereClause.profileId = { in: followingIds };
     } else {
-      // If no userId (guest), only public user stories
-      whereClause.user = { settings: { privacyLevel: Visibility.PUBLIC } };
+      // If no profileId (guest), only public user stories
+      whereClause.profile = {
+        user: { settings: { privacyLevel: Visibility.PUBLIC } },
+      };
       whereClause.isCloseFriendsOnly = false;
     }
 
     const stories = await this.prisma.story.findMany({
       where: whereClause,
       include: {
-        user: {
-          include: {
-            profile: true,
-          },
-        },
+        profile: { include: { user: true } },
         poll: { select: { id: true } },
         qnaBox: { select: { id: true } },
         _count: {
           select: { views: true },
         },
-        ...(userId
+        ...(profileId
           ? {
               views: {
-                where: { viewerId: userId },
+                where: { viewerId: profileId },
               },
             }
           : {}),
@@ -183,23 +177,23 @@ export class StoriesService {
       const { views, ...storyData } = s;
       return {
         ...storyData,
-        isViewed: userId ? (views as unknown[])?.length > 0 : false,
+        isViewed: profileId ? (views as unknown[])?.length > 0 : false,
       };
     });
 
     // Check Close Friends permission
-    if (userId) {
+    if (profileId) {
       const allowedStories = await Promise.all(
         mappedStories.map(async (story) => {
           if (!story.isCloseFriendsOnly) return story;
-          if (story.userId === userId) return story; // Own story
+          if (story.profileId === profileId) return story; // Own story
 
           // Check if viewer is in story owner's close friends
           const isCloseFriend = await this.prisma.closeFriend.findUnique({
             where: {
-              userId_friendId: {
-                userId: story.userId,
-                friendId: userId,
+              profileId_friendId: {
+                profileId: story.profileId,
+                friendId: profileId,
               },
             },
           });
@@ -208,7 +202,7 @@ export class StoriesService {
       );
 
       const visible = allowedStories.filter((s) => s !== null);
-      return this.applyStoryPremiumLocks(visible, userId);
+      return this.applyStoryPremiumLocks(visible, profileId);
     }
 
     // Guest cannot view close friends
@@ -222,7 +216,7 @@ export class StoriesService {
   private async applyStoryPremiumLocks<
     T extends {
       id: string;
-      userId: string;
+      profileId: string;
       isPremium?: boolean;
       url?: string;
       standardUrl?: string | null;
@@ -230,7 +224,7 @@ export class StoriesService {
     },
   >(stories: T[], viewerId?: string): Promise<(T & { isLocked?: boolean })[]> {
     const premiumIds = stories
-      .filter((s) => s.isPremium && s.userId !== viewerId)
+      .filter((s) => s.isPremium && s.profileId !== viewerId)
       .map((s) => s.id);
     if (premiumIds.length === 0) {
       return stories.map((s) => ({ ...s, isLocked: false }));
@@ -238,7 +232,7 @@ export class StoriesService {
 
     const unlocked = viewerId
       ? await this.prisma.storyUnlock.findMany({
-          where: { userId: viewerId, storyId: { in: premiumIds } },
+          where: { profileId: viewerId, storyId: { in: premiumIds } },
           select: { storyId: true },
         })
       : [];
@@ -247,7 +241,7 @@ export class StoriesService {
     );
 
     return stories.map((s) => {
-      if (!s.isPremium || s.userId === viewerId || unlockedSet.has(s.id)) {
+      if (!s.isPremium || s.profileId === viewerId || unlockedSet.has(s.id)) {
         return { ...s, isLocked: false };
       }
       return {
@@ -262,10 +256,10 @@ export class StoriesService {
   /**
    * Retrieve active stories by a specific user's username.
    * @param username - The profile username to look up
-   * @param currentUserId - Optional current user for authorization check
+   * @param currentProfileId - Optional current user for authorization check
    * @returns Array of active stories or empty array if user not found
    */
-  async findByUser(username: string, currentUserId?: string) {
+  async findByUser(username: string, currentProfileId?: string) {
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
       include: { user: { include: { settings: true } } },
@@ -278,13 +272,13 @@ export class StoriesService {
     // Authorization check for private accounts
     const isProfilePrivate =
       profile.user.settings?.privacyLevel === Visibility.PRIVATE;
-    if (isProfilePrivate && profile.userId !== currentUserId) {
-      const follow = currentUserId
+    if (isProfilePrivate && profile.id !== currentProfileId) {
+      const follow = currentProfileId
         ? await this.prisma.follow.findUnique({
             where: {
               followerId_followingId: {
-                followerId: currentUserId,
-                followingId: profile.userId,
+                followerId: currentProfileId,
+                followingId: profile.id,
               },
             },
           })
@@ -297,25 +291,21 @@ export class StoriesService {
 
     const stories = await this.prisma.story.findMany({
       where: {
-        userId: profile.userId,
+        profileId: profile.id,
         expiresAt: {
           gt: new Date(),
         },
         moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
       },
       include: {
-        user: {
-          include: {
-            profile: true,
-          },
-        },
+        profile: { include: { user: true } },
         _count: {
           select: { views: true },
         },
-        ...(currentUserId
+        ...(currentProfileId
           ? {
               views: {
-                where: { viewerId: currentUserId },
+                where: { viewerId: currentProfileId },
               },
             }
           : {}),
@@ -329,28 +319,24 @@ export class StoriesService {
       const { views, ...storyData } = s;
       return {
         ...storyData,
-        isViewed: currentUserId ? (views as unknown[]).length > 0 : false,
+        isViewed: currentProfileId ? (views as unknown[]).length > 0 : false,
       };
     });
-    return this.applyStoryPremiumLocks(mapped, currentUserId);
+    return this.applyStoryPremiumLocks(mapped, currentProfileId);
   }
 
   /**
    * Retrieve ALL stories (active and expired) for the current user's archive.
    * Only accessible by the owner.
-   * @param userId - The current user's ID
+   * @param profileId - The current user's ID
    */
-  async getArchive(userId: string) {
+  async getArchive(profileId: string) {
     return this.prisma.story.findMany({
       where: {
-        userId,
+        profileId,
       },
       include: {
-        user: {
-          include: {
-            profile: true,
-          },
-        },
+        profile: { include: { user: true } },
         _count: {
           select: { views: true },
         },
@@ -364,11 +350,11 @@ export class StoriesService {
   /**
    * Delete a story (author only, enforced by compound where clause).
    * @param id - The story ID
-   * @param userId - The requesting user's ID
+   * @param profileId - The requesting user's ID
    */
-  async delete(id: string, userId: string): Promise<void> {
+  async delete(id: string, profileId: string): Promise<void> {
     const story = await this.prisma.story.findFirst({
-      where: { id, userId },
+      where: { id, profileId },
     });
 
     if (story) {
@@ -394,15 +380,15 @@ export class StoriesService {
   /**
    * Record a story view. Idempotent — returns existing view if already viewed.
    * @param id - The story ID
-   * @param userId - The viewer's user ID
+   * @param profileId - The viewer's user ID
    * @returns The story view record
    */
-  async view(id: string, userId: string): Promise<StoryView> {
+  async view(id: string, profileId: string): Promise<StoryView> {
     const existingView = await this.prisma.storyView.findUnique({
       where: {
         storyId_viewerId: {
           storyId: id,
-          viewerId: userId,
+          viewerId: profileId,
         },
       },
     });
@@ -412,7 +398,7 @@ export class StoriesService {
     const newView = await this.prisma.storyView.create({
       data: {
         storyId: id,
-        viewerId: userId,
+        viewerId: profileId,
       },
     });
 
@@ -428,36 +414,32 @@ export class StoriesService {
     const views = await this.prisma.storyView.findMany({
       where: { storyId: id },
       include: {
-        viewer: {
-          include: {
-            profile: true,
-          },
-        },
+        viewer: { include: { user: true } },
       },
       orderBy: {
         createdAt: 'desc',
       },
     });
 
-    return views.map((v) => v.viewer);
+    return views.map((v) => ({ ...v.viewer.user, profile: v.viewer })) as any;
   }
 
   /**
-   * Add or update a reaction on a story. Upserts by storyId+userId.
+   * Add or update a reaction on a story. Upserts by storyId+profileId.
    * @param storyId - The story ID
-   * @param userId - The reacting user's ID
+   * @param profileId - The reacting user's ID
    * @param reaction - The emoji/reaction string
    */
   async addReaction(
     storyId: string,
-    userId: string,
+    profileId: string,
     reaction: string,
   ): Promise<StoryReaction> {
     const existing = await this.prisma.storyReaction.findUnique({
       where: {
-        storyId_userId: {
+        storyId_profileId: {
           storyId,
-          userId,
+          profileId,
         },
       },
     });
@@ -472,7 +454,7 @@ export class StoriesService {
     return this.prisma.storyReaction.create({
       data: {
         storyId,
-        userId,
+        profileId,
         reaction,
       },
     });
@@ -486,15 +468,11 @@ export class StoriesService {
     const reactions = await this.prisma.storyReaction.findMany({
       where: { storyId },
       include: {
-        user: {
-          include: {
-            profile: true,
-          },
-        },
+        profile: { include: { user: true } },
       },
     });
 
-    return reactions as StoryReactionWithUser[];
+    return reactions as unknown as StoryReactionWithUser[];
   }
 
   /**
@@ -540,9 +518,9 @@ export class StoriesService {
   }
 
   @OnEvent('user.hard_deleted')
-  async handleUserDeleted(payload: { userId: string }) {
+  async handleUserDeleted(payload: { profileId: string }) {
     const userStories = await this.prisma.story.findMany({
-      where: { userId: payload.userId },
+      where: { profileId: payload.profileId },
     });
 
     const mediaUrls = new Set<string>();

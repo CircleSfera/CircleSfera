@@ -5,6 +5,7 @@ export interface CurrentUserData {
   userId: string;
   email: string;
   role: 'USER' | 'ADMIN' | 'MODERATOR';
+  profileId: string;
 }
 
 interface RequestWithUser extends Request {

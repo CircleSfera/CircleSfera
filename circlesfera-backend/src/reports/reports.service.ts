@@ -155,7 +155,7 @@ export class ReportsService {
         take: limit,
         include: {
           reporter: {
-            include: { profile: true },
+            include: { user: true },
           },
         },
       }),

@@ -19,7 +19,7 @@ export class LikesController {
     @Param('postId') postId: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.likesService.toggle(postId, user.userId);
+    return this.likesService.toggle(postId, user.profileId);
   }
 
   /** Check if the current user has liked a post. */
@@ -29,6 +29,6 @@ export class LikesController {
     @Param('postId') postId: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.likesService.checkLike(postId, user.userId);
+    return this.likesService.checkLike(postId, user.profileId);
   }
 }

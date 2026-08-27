@@ -25,28 +25,24 @@ export class NotificationsService {
 
   /**
    * List all notifications for a user, paginated, newest first.
-   * @param userId - The recipient user's ID
+   * @param profileId - The recipient user's ID
    * @param pagination - Page and limit
    */
-  async findAll(userId: string, pagination: PaginationDto) {
+  async findAll(profileId: string, pagination: PaginationDto) {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
 
     const [notifications, total] = await Promise.all([
       this.prisma.notification.findMany({
-        where: { recipientId: userId },
+        where: { recipientId: profileId },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          sender: {
-            include: {
-              profile: true,
-            },
-          },
+          sender: { include: { user: true } },
         },
       }),
-      this.prisma.notification.count({ where: { recipientId: userId } }),
+      this.prisma.notification.count({ where: { recipientId: profileId } }),
     ]);
 
     return createPaginatedResult(notifications, total, page, limit);
@@ -55,11 +51,11 @@ export class NotificationsService {
   /**
    * Mark a single notification as read.
    * @param id - Notification ID
-   * @param userId - The recipient user's ID (for ownership check)
+   * @param profileId - The recipient user's ID (for ownership check)
    */
-  async markAsRead(id: string, userId: string) {
+  async markAsRead(id: string, profileId: string) {
     const notification = await this.prisma.notification.findFirst({
-      where: { id, recipientId: userId },
+      where: { id, recipientId: profileId },
     });
 
     if (!notification) {
@@ -74,23 +70,23 @@ export class NotificationsService {
 
   /**
    * Mark all unread notifications as read for a user.
-   * @param userId - The recipient user's ID
+   * @param profileId - The recipient user's ID
    */
-  async markAllAsRead(userId: string) {
+  async markAllAsRead(profileId: string) {
     await this.prisma.notification.updateMany({
-      where: { recipientId: userId, read: false },
+      where: { recipientId: profileId, read: false },
       data: { read: true },
     });
   }
 
   /**
    * Get the count of unread notifications.
-   * @param userId - The recipient user's ID
+   * @param profileId - The recipient user's ID
    * @returns `{ count: number }`
    */
-  async getUnreadCount(userId: string) {
+  async getUnreadCount(profileId: string) {
     const count = await this.prisma.notification.count({
-      where: { recipientId: userId, read: false },
+      where: { recipientId: profileId, read: false },
     });
 
     return { count };
@@ -148,11 +144,7 @@ export class NotificationsService {
               createdAt: new Date(), // bump to top
             },
             include: {
-              sender: {
-                include: {
-                  profile: true,
-                },
-              },
+              sender: { include: { user: true } },
             },
           });
 
@@ -190,11 +182,7 @@ export class NotificationsService {
           postId: data.postId,
         } as Prisma.NotificationUncheckedCreateInput,
         include: {
-          sender: {
-            include: {
-              profile: true,
-            },
-          },
+          sender: { include: { user: true } },
         },
       });
 
@@ -204,8 +192,8 @@ export class NotificationsService {
       // Skip immediate Push Notification for batchable events
       // They will be handled by NotificationsCronService (Option B)
       if (!isBatchableType) {
-        const settings = await this.prisma.userSettings.findUnique({
-          where: { userId: data.recipientId },
+        const settings = await this.prisma.userSettings.findFirst({
+          where: { user: { profiles: { some: { id: data.recipientId } } } },
           select: { pushNotifications: true },
         });
         if (settings?.pushNotifications === false) {
@@ -214,12 +202,12 @@ export class NotificationsService {
 
         this.pushService
           .sendNotification(data.recipientId, {
-            title: notification.sender?.profile?.username || 'CircleSfera',
+            title: (notification as any).sender?.username || 'CircleSfera',
             body: data.content,
             data: {
               type: data.type,
               postId: data.postId,
-              url: `/${notification.sender?.profile?.username}`,
+              url: `/${(notification as any).sender?.username}`,
             },
           })
           .catch((err) =>

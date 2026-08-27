@@ -12,11 +12,12 @@ export class GetLiveStreamsQuery {
     if (status && ['LIVE', 'ENDED'].includes(status)) {
       where.status = status as $Enums.LiveStatus;
     }
+    // Admin UI passes platform User.id; LiveStream.host is a Profile.
     if (userId) {
-      where.hostId = userId;
+      where.host = { userId };
     }
 
-    const [data, total] = await Promise.all([
+    const [streams, total] = await Promise.all([
       this.prisma.liveStream.findMany({
         where,
         skip,
@@ -26,13 +27,44 @@ export class GetLiveStreamsQuery {
           host: {
             select: {
               id: true,
-              profile: { select: { username: true, avatar: true } },
+              username: true,
+              avatar: true,
+            },
+          },
+          coHost: {
+            select: {
+              id: true,
+              username: true,
+              avatar: true,
             },
           },
         },
       }),
       this.prisma.liveStream.count({ where }),
     ]);
+
+    // Preserve AdminLiveStream shape: host.profile.username
+    const data = streams.map((stream) => ({
+      ...stream,
+      host: stream.host
+        ? {
+            id: stream.host.id,
+            profile: {
+              username: stream.host.username,
+              avatar: stream.host.avatar,
+            },
+          }
+        : null,
+      coHost: stream.coHost
+        ? {
+            id: stream.coHost.id,
+            profile: {
+              username: stream.coHost.username,
+              avatar: stream.coHost.avatar,
+            },
+          }
+        : null,
+    }));
 
     return {
       data,

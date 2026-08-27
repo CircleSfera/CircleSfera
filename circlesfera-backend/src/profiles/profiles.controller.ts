@@ -38,14 +38,14 @@ export class ProfilesController {
   @Get('me/referrals')
   @UseGuards(JwtAuthGuard)
   async getMyReferrals(@CurrentUser() user: CurrentUserData) {
-    return this.profilesService.getMyReferrals(user.userId);
+    return this.profilesService.getMyReferrals(user.profileId);
   }
 
   /** Get the authenticated user's own profile. */
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async getMyProfile(@CurrentUser() user: CurrentUserData) {
-    return this.profilesService.getMyProfile(user.userId);
+    return this.profilesService.getMyProfile(user.profileId);
   }
 
   /** Check if a username is available and valid. */
@@ -67,20 +67,20 @@ export class ProfilesController {
     @CurrentUser() user: CurrentUserData,
     @Body() dto: UpdateProfileDto,
   ) {
-    return this.profilesService.updateProfile(user.userId, dto);
+    return this.profilesService.updateProfile(user.profileId, dto);
   }
 
   /** Deactivate the authenticated user's account. */
   @Post('me/deactivate')
   @UseGuards(JwtAuthGuard)
   async deactivateAccount(@CurrentUser() user: CurrentUserData) {
-    return this.profilesService.deactivateAccount(user.userId);
+    return this.profilesService.deactivateAccount(user.profileId);
   }
 
   /** Permanently delete the authenticated user's account. */
   @Delete('me')
   @UseGuards(JwtAuthGuard)
   async deleteAccount(@CurrentUser() user: CurrentUserData) {
-    return this.profilesService.deleteAccount(user.userId);
+    return this.profilesService.deleteAccount(user.profileId);
   }
 }

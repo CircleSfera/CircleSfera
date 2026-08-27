@@ -29,7 +29,7 @@ export class BookmarksController {
     @Param('postId') postId: string,
     @Body('collectionId') collectionId?: string,
   ) {
-    return this.bookmarksService.toggle(user.userId, postId, collectionId);
+    return this.bookmarksService.toggle(user.profileId, postId, collectionId);
   }
 
   /** Move a bookmarked post to a different collection. */
@@ -40,7 +40,7 @@ export class BookmarksController {
     @Body('collectionId') collectionId: string,
   ) {
     return this.bookmarksService.updateCollection(
-      user.userId,
+      user.profileId,
       postId,
       collectionId,
     );
@@ -55,7 +55,7 @@ export class BookmarksController {
     @Query('collectionId') collectionId?: string,
   ) {
     return this.bookmarksService.getBookmarks(
-      user.userId,
+      user.profileId,
       Number(page),
       Number(limit),
       collectionId,
@@ -66,6 +66,6 @@ export class BookmarksController {
   @SkipThrottle()
   @Get(':postId/check')
   check(@CurrentUser() user: CurrentUserData, @Param('postId') postId: string) {
-    return this.bookmarksService.check(user.userId, postId);
+    return this.bookmarksService.check(user.profileId, postId);
   }
 }

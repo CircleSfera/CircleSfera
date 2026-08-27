@@ -12,9 +12,9 @@ export class HandleUserDeletedUseCase {
   ) {}
 
   @OnEvent('user.hard_deleted')
-  async execute(payload: { userId: string }) {
+  async execute(payload: { profileId: string }) {
     const messages = await this.prisma.message.findMany({
-      where: { senderId: payload.userId },
+      where: { senderId: payload.profileId },
     });
 
     const mediaUrls = new Set<string>();

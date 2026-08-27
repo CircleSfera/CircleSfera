@@ -22,13 +22,18 @@ import { resolveAdminNotificationSenderId } from './utils/resolve-admin-notifica
 type VLevel = 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
 type AType = 'PERSONAL' | 'CREATOR' | 'BUSINESS';
 
-interface UserWithVerification
-  extends Prisma.UserGetPayload<{
-    include: {
-      profile: true;
-      _count: { select: { posts: true } };
-    };
-  }> {
+export interface UserWithVerification {
+  id: string;
+  email: string;
+  isActive: boolean;
+  isRootBanned: boolean;
+  suspendedUntil: Date | null;
+  createdAt: Date;
+  role: string;
+  profile: any; // We use any or Prisma.ProfileGetPayload here
+  postCount: number;
+  identityVerifiedAt: Date | null;
+  stripeIdentitySessionId: string | null;
   verificationLevel: VLevel;
   accountType: AType;
 }
@@ -73,16 +78,29 @@ export class AdminUsersService {
   /** Helper to invalidate a profile cache by userId. */
   private async invalidateProfileCache(userId: string) {
     try {
-      const profile = await this.prisma.profile.findUnique({
+      const profiles = await this.prisma.profile.findMany({
         where: { userId },
         select: { username: true },
       });
-      if (profile) {
-        await this.cacheManager.del(`profile:${profile.username}`);
+      for (const profile of profiles) {
+        if (profile.username) {
+          await this.cacheManager.del(`profile:${profile.username}`);
+        }
       }
     } catch (error) {
       console.error('Failed to invalidate cache:', error);
     }
+  }
+
+  /** Notification.recipientId is a Profile.id; resolve from account User.id. */
+  private async resolvePrimaryProfileId(
+    userId: string,
+  ): Promise<string | null> {
+    const profile = await this.prisma.profile.findFirst({
+      where: { userId },
+      select: { id: true },
+    });
+    return profile?.id ?? null;
   }
 
   /** Paginated users with optional search and status filter. Includes role and post count. */
@@ -95,23 +113,35 @@ export class AdminUsersService {
     kycStatus?: string,
   ) {
     const skip = (page - 1) * limit;
-    const where: Prisma.UserWhereInput = {};
-
-    if (search) {
-      where.OR = [
-        { email: { contains: search, mode: 'insensitive' } },
-        {
-          profile: {
-            username: { contains: search, mode: 'insensitive' },
-          },
-        },
-        {
-          profile: {
-            fullName: { contains: search, mode: 'insensitive' },
-          },
-        },
-      ];
-    }
+    const where: Prisma.UserWhereInput = {
+      ...(search
+        ? {
+            OR: [
+              { email: { contains: search, mode: 'insensitive' as const } },
+              {
+                profiles: {
+                  some: {
+                    username: {
+                      contains: search,
+                      mode: 'insensitive' as const,
+                    },
+                  },
+                },
+              },
+              {
+                profiles: {
+                  some: {
+                    fullName: {
+                      contains: search,
+                      mode: 'insensitive' as const,
+                    },
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
 
     if (role) {
       const roles = role
@@ -146,30 +176,37 @@ export class AdminUsersService {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          profile: true,
-          _count: { select: { posts: true } },
+          profiles: { include: { _count: { select: { posts: true } } } },
+          linkedAdminIdentities: { where: { status: 'ACTIVE' } },
         },
       }),
       this.prisma.user.count({ where }),
     ]);
 
     return {
-      data: (users as unknown as UserWithVerification[]).map((u) => ({
-        id: u.id,
-        email: u.email,
-        isActive: u.isActive,
-        role: u.role,
-        verificationLevel: u.verificationLevel,
-        accountType: u.accountType,
-        createdAt: u.createdAt,
-        suspendedUntil: u.suspendedUntil,
-        scheduledDeletionAt: u.scheduledDeletionAt,
-        deletedAt: u.deletedAt,
-        profile: u.profile,
-        postCount: u._count.posts,
-        identityVerifiedAt: u.identityVerifiedAt,
-        stripeIdentitySessionId: u.stripeIdentitySessionId,
-      })),
+      data: users.map(
+        (u): UserWithVerification => ({
+          id: u.id,
+          email: u.email,
+          isActive: u.isActive,
+          isRootBanned: u.isRootBanned,
+          suspendedUntil: u.profiles[0]?.suspendedUntil || null,
+          createdAt: u.createdAt,
+          role:
+            u.linkedAdminIdentities && u.linkedAdminIdentities.length > 0
+              ? 'ADMIN'
+              : u.role,
+          profile: u.profiles[0],
+          postCount: u.profiles.reduce(
+            (acc, p) => acc + (p._count?.posts || 0),
+            0,
+          ),
+          identityVerifiedAt: u.identityVerifiedAt,
+          stripeIdentitySessionId: u.stripeIdentitySessionId,
+          verificationLevel: (u.verificationLevel as VLevel) || 'BASIC',
+          accountType: (u.accountType as AType) || 'PERSONAL',
+        }),
+      ),
       meta: {
         total,
         page,
@@ -194,10 +231,22 @@ export class AdminUsersService {
   }
 
   async banUser(adminId: string, userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { profiles: true },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
     const result = await this.prisma.user.update({
       where: { id: userId },
-      data: { isActive: false },
-      include: { profile: true },
+      data: { isActive: false, isRootBanned: true },
+      include: {
+        profiles: {
+          select: { username: true, fullName: true, avatar: true },
+        },
+      },
     });
     await this.logAction(adminId, AdminAction.BAN_USER, 'user', userId);
     await this.invalidateProfileCache(userId);
@@ -205,7 +254,9 @@ export class AdminUsersService {
     if (result.email) {
       await this.emailService.sendModerationEmail(
         result.email,
-        result.profile?.fullName || result.profile?.username || 'Usuario',
+        result.profiles[0]?.fullName ||
+          result.profiles[0]?.username ||
+          'Usuario',
         'suspendida',
         'Cuenta',
         'Violación de los Términos de Servicio',
@@ -218,7 +269,10 @@ export class AdminUsersService {
   async unbanUser(adminId: string, userId: string) {
     const result = await this.prisma.user.update({
       where: { id: userId },
-      data: { isActive: true, suspendedUntil: null },
+      data: { isActive: true, isRootBanned: false },
+      include: {
+        profiles: true,
+      },
     });
     await this.logAction(adminId, AdminAction.UNBAN_USER, 'user', userId);
     await this.invalidateProfileCache(userId);
@@ -325,10 +379,98 @@ export class AdminUsersService {
 
   async updateUserRole(adminId: string, userId: string, role: string) {
     if (['ADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE'].includes(role)) {
+      if (role === 'ADMIN') {
+        const targetUser = await this.prisma.user.findUnique({
+          where: { id: userId },
+        });
+        if (!targetUser) throw new NotFoundException('User not found');
+
+        const existing = await this.prisma.adminIdentity.findUnique({
+          where: { email: targetUser.email },
+        });
+        if (existing) {
+          if (existing.status !== 'ACTIVE') {
+            await this.prisma.adminIdentity.update({
+              where: { id: existing.id },
+              data: { status: 'ACTIVE' },
+            });
+            await this.logAction(
+              adminId,
+              AdminAction.ADMIN_IDENTITY_CREATED,
+              'admin',
+              existing.id,
+              'Re-activated AdminIdentity via user promotion',
+            );
+            return targetUser;
+          }
+          throw new BadRequestException(
+            'This user already has an AdminIdentity operator account',
+          );
+        }
+
+        const superAdminRole = await this.prisma.adminRole.findUnique({
+          where: { name: 'SUPER_ADMIN' },
+        });
+        if (!superAdminRole) {
+          throw new BadRequestException(
+            'SUPER_ADMIN role not found in database',
+          );
+        }
+
+        const crypto = await import('node:crypto');
+        const argon2 = await import('argon2');
+        const password = crypto.randomBytes(16).toString('hex');
+        const passwordHash = await argon2.hash(password);
+
+        await this.prisma.adminIdentity.create({
+          data: {
+            email: targetUser.email,
+            passwordHash,
+            displayName: targetUser.email.split('@')[0],
+            status: 'ACTIVE',
+            mfaRequired: true,
+            linkedUserId: targetUser.id,
+            roles: {
+              create: { roleId: superAdminRole.id },
+            },
+          },
+        });
+
+        await this.logAction(
+          adminId,
+          AdminAction.ADMIN_IDENTITY_CREATED,
+          'admin',
+          targetUser.id,
+          `Promoted user ${targetUser.email} to AdminIdentity operator`,
+        );
+
+        return targetUser;
+      }
       throw new BadRequestException(
         'Staff roles on User are deprecated. Use AdminIdentity / bootstrap-admin.',
       );
     }
+    if (role === 'USER') {
+      const existingIdentities = await this.prisma.adminIdentity.findMany({
+        where: { linkedUserId: userId, status: 'ACTIVE' },
+      });
+      if (existingIdentities.length > 0) {
+        await this.prisma.adminIdentity.updateMany({
+          where: { linkedUserId: userId },
+          data: { status: 'DISABLED' },
+        });
+        for (const identity of existingIdentities) {
+          await this.logAction(
+            adminId,
+            AdminAction.ADMIN_IDENTITY_DISABLED,
+            'admin',
+            identity.id,
+            `Demoted user and disabled their AdminIdentity`,
+          );
+        }
+      }
+    }
+
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: { role: role as any },
@@ -441,12 +583,17 @@ export class AdminUsersService {
   ) {
     const until = new Date();
     until.setDate(until.getDate() + Math.max(1, days));
+    await this.prisma.profile.updateMany({
+      where: { userId },
+      data: {
+        suspendedUntil: until,
+      },
+    });
     await this.prisma.user.update({
       where: { id: userId },
       data: {
         isActive: false,
-        suspendedUntil: until,
-      } satisfies Prisma.UserUpdateInput,
+      },
     });
     await this.logAction(
       adminId,
@@ -455,25 +602,36 @@ export class AdminUsersService {
       userId,
       `Suspended until ${until.toISOString()}: ${reason || ''}`,
     );
-    await this.notificationsService
-      .create({
-        recipientId: userId,
-        senderId: await resolveAdminNotificationSenderId(this.prisma, adminId),
-        type: NotificationType.MODERATION,
-        content:
-          `Your account is suspended until ${until.toISOString().slice(0, 10)}. ${reason || ''}`.trim(),
-      })
-      .catch((e) => this.logger.error(e));
+    const recipientProfileId = await this.resolvePrimaryProfileId(userId);
+    if (recipientProfileId) {
+      await this.notificationsService
+        .create({
+          recipientId: recipientProfileId,
+          senderId: await resolveAdminNotificationSenderId(
+            this.prisma,
+            adminId,
+          ),
+          type: NotificationType.MODERATION,
+          content:
+            `Your account is suspended until ${until.toISOString().slice(0, 10)}. ${reason || ''}`.trim(),
+        })
+        .catch((e) => this.logger.error(e));
+    }
     return { success: true, suspendedUntil: until };
   }
 
   async restoreUser(adminId: string, userId: string) {
+    await this.prisma.profile.updateMany({
+      where: { userId },
+      data: {
+        suspendedUntil: null,
+      },
+    });
     await this.prisma.user.update({
       where: { id: userId },
       data: {
         isActive: true,
-        suspendedUntil: null,
-      } satisfies Prisma.UserUpdateInput,
+      },
     });
     await this.logAction(adminId, AdminAction.ACCOUNT_RESTORED, 'user', userId);
     return { success: true };
@@ -490,16 +648,22 @@ export class AdminUsersService {
       userId,
       reason || 'Formal warning',
     );
-    await this.notificationsService
-      .create({
-        recipientId: userId,
-        senderId: await resolveAdminNotificationSenderId(this.prisma, adminId),
-        type: NotificationType.MODERATION,
-        content:
-          reason ||
-          'You received a formal warning for violating CircleSfera policies.',
-      })
-      .catch((e) => this.logger.error(e));
+    const recipientProfileId = await this.resolvePrimaryProfileId(userId);
+    if (recipientProfileId) {
+      await this.notificationsService
+        .create({
+          recipientId: recipientProfileId,
+          senderId: await resolveAdminNotificationSenderId(
+            this.prisma,
+            adminId,
+          ),
+          type: NotificationType.MODERATION,
+          content:
+            reason ||
+            'You received a formal warning for violating CircleSfera policies.',
+        })
+        .catch((e) => this.logger.error(e));
+    }
     return { success: true };
   }
 
@@ -507,20 +671,23 @@ export class AdminUsersService {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
       include: {
-        profile: true,
-        posts: {
-          orderBy: { createdAt: 'desc' },
-          take: 3,
-          select: { id: true, caption: true, createdAt: true, type: true },
-        },
-        _count: {
-          select: {
-            posts: true,
-            comments: true,
-            stories: true,
-            liveStreams: true,
-            followers: true,
-            following: true,
+        profiles: {
+          include: {
+            posts: {
+              orderBy: { createdAt: 'desc' },
+              take: 3,
+              select: { id: true, caption: true, createdAt: true, type: true },
+            },
+            _count: {
+              select: {
+                posts: true,
+                comments: true,
+                stories: true,
+                liveStreams: true,
+                followers: true,
+                following: true,
+              },
+            },
           },
         },
       },
@@ -538,11 +705,53 @@ export class AdminUsersService {
       }),
     ]);
 
+    const primaryProfile = user.profiles[0] ?? null;
+    const recentPosts = user.profiles
+      .flatMap((p) => p.posts)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, 3);
+
+    const { profiles: _profiles, ...userRest } = user;
+
     return {
-      ...user,
+      ...userRest,
+      profile: primaryProfile
+        ? {
+            username: primaryProfile.username,
+            fullName: primaryProfile.fullName,
+            avatar: primaryProfile.avatar,
+            standardUrl: primaryProfile.standardUrl,
+            thumbnailUrl: primaryProfile.thumbnailUrl,
+            bio: primaryProfile.bio,
+          }
+        : null,
+      posts: recentPosts,
       reports: reportsAgainst,
       _count: {
-        ...user._count,
+        posts: user.profiles.reduce(
+          (acc, p) => acc + (p._count?.posts || 0),
+          0,
+        ),
+        comments: user.profiles.reduce(
+          (acc, p) => acc + (p._count?.comments || 0),
+          0,
+        ),
+        stories: user.profiles.reduce(
+          (acc, p) => acc + (p._count?.stories || 0),
+          0,
+        ),
+        liveStreams: user.profiles.reduce(
+          (acc, p) => acc + (p._count?.liveStreams || 0),
+          0,
+        ),
+        followers: user.profiles.reduce(
+          (acc, p) => acc + (p._count?.followers || 0),
+          0,
+        ),
+        following: user.profiles.reduce(
+          (acc, p) => acc + (p._count?.following || 0),
+          0,
+        ),
         reportsAgainst: reportsAgainstCount,
       },
     };
@@ -595,7 +804,7 @@ export class AdminUsersService {
         botLabeledAt: true,
         strikeCount: true,
         isActive: true,
-        profile: { select: { username: true, fullName: true, avatar: true } },
+        profiles: { select: { username: true, fullName: true, avatar: true } },
       },
       take: 50,
       orderBy: { createdAt: 'desc' },
@@ -605,9 +814,9 @@ export class AdminUsersService {
       clusterSize: linked.length + 1,
       accounts: linked.map((a) => ({
         id: a.id,
-        username: a.profile?.username,
-        fullName: a.profile?.fullName,
-        avatar: a.profile?.avatar,
+        username: a.profiles[0]?.username,
+        fullName: a.profiles[0]?.fullName,
+        avatar: a.profiles[0]?.avatar,
         createdAt: a.createdAt,
         emailConfirmed: !!a.emailVerified,
         identityVerified: !!a.identityVerifiedAt,
@@ -666,15 +875,21 @@ export class AdminUsersService {
       userId,
       reason.trim().slice(0, 500),
     );
-    await this.notificationsService
-      .create({
-        recipientId: userId,
-        senderId: await resolveAdminNotificationSenderId(this.prisma, adminId),
-        type: NotificationType.MODERATION,
-        content:
-          'Your account was labeled as possibly automated after a staff review. You can appeal in Settings.',
-      })
-      .catch((e) => this.logger.error(e));
+    const recipientProfileId = await this.resolvePrimaryProfileId(userId);
+    if (recipientProfileId) {
+      await this.notificationsService
+        .create({
+          recipientId: recipientProfileId,
+          senderId: await resolveAdminNotificationSenderId(
+            this.prisma,
+            adminId,
+          ),
+          type: NotificationType.MODERATION,
+          content:
+            'Your account was labeled as possibly automated after a staff review. You can appeal in Settings.',
+        })
+        .catch((e) => this.logger.error(e));
+    }
     await this.invalidateProfileCache(userId);
     return { success: true };
   }
@@ -808,8 +1023,11 @@ export class AdminUsersService {
     const users = await this.prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
-        profile: true,
-        _count: { select: { posts: true } },
+        profiles: {
+          include: {
+            _count: { select: { posts: true } },
+          },
+        },
       },
     });
 
@@ -817,12 +1035,12 @@ export class AdminUsersService {
     const rows = users.map((u) =>
       [
         u.id,
-        u.profile?.username || '',
+        u.profiles[0]?.username || '',
         u.email,
-        `"${(u.profile?.fullName || '').replace(/"/g, '""')}"`,
+        `"${(u.profiles[0]?.fullName || '').replace(/"/g, '""')}"`,
         u.role,
         u.isActive ? 'Active' : 'Banned',
-        u._count.posts,
+        u.profiles.reduce((acc, p) => acc + (p._count?.posts || 0), 0),
         u.createdAt.toISOString(),
       ].join(','),
     );

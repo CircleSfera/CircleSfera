@@ -28,11 +28,11 @@ export class LikesService {
   /**
    * Toggle like/unlike on a post. Sends notification to post owner on like.
    * @param postId - The post to like/unlike
-   * @param userId - The liking user's ID
+   * @param profileId - The liking user's ID
    * @returns `{ liked: boolean }`
    * @throws NotFoundException if post not found
    */
-  async toggle(postId: string, userId: string) {
+  async toggle(postId: string, profileId: string) {
     const post = await this.prisma.post.findUnique({ where: { id: postId } });
 
     if (!post) {
@@ -41,9 +41,9 @@ export class LikesService {
 
     const existingLike = await this.prisma.like.findUnique({
       where: {
-        postId_userId: {
+        postId_profileId: {
           postId,
-          userId,
+          profileId,
         },
       },
     });
@@ -60,21 +60,21 @@ export class LikesService {
         this.prisma,
         this.systemSettings,
         this.turnstile,
-        userId,
+        profileId,
       );
       // Like
       await this.prisma.like.create({
         data: {
           postId,
-          userId,
+          profileId,
         },
       });
 
       // Create notification for post owner
-      if (post.userId !== userId) {
+      if (post.profileId !== profileId) {
         this.eventEmitter.emit('notification.create', {
-          recipientId: post.userId,
-          senderId: userId,
+          recipientId: post.profileId,
+          senderId: profileId,
           type: NotificationType.LIKE,
           content: 'liked your post',
           postId: post.id,
@@ -91,15 +91,15 @@ export class LikesService {
   /**
    * Check whether a user has liked a specific post.
    * @param postId - The post ID
-   * @param userId - The user's ID
+   * @param profileId - The user's ID
    * @returns `{ liked: boolean }`
    */
-  async checkLike(postId: string, userId: string) {
+  async checkLike(postId: string, profileId: string) {
     const like = await this.prisma.like.findUnique({
       where: {
-        postId_userId: {
+        postId_profileId: {
           postId,
-          userId,
+          profileId,
         },
       },
     });
@@ -116,12 +116,12 @@ export class LikesService {
     const likes = await this.prisma.like.findMany({
       where: { postId },
       include: {
-        user: {
-          include: { profile: true },
+        profile: {
+          include: { user: true },
         },
       },
     });
 
-    return likes.map((like) => like.user);
+    return likes.map((like) => (like as any).profile);
   }
 }

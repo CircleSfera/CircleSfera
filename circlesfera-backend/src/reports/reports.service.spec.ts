@@ -22,7 +22,8 @@ describe('ReportsService', () => {
     },
     post: { findUnique: vi.fn() },
     comment: { findUnique: vi.fn() },
-    user: { findUnique: vi.fn(), findFirst: vi.fn() },
+    profile: { findUnique: vi.fn(), findFirst: vi.fn() },
+    user: { findFirst: vi.fn() },
     story: { findUnique: vi.fn() },
     message: { findUnique: vi.fn() },
   };

@@ -74,7 +74,6 @@ export class ProfilesService {
             createdAt: true,
             lastSeenAt: true,
             isActive: true,
-            suspendedUntil: true,
             strikeCount: true,
             emailVerified: true,
             identityVerifiedAt: true,
@@ -87,13 +86,13 @@ export class ProfilesService {
                 privacyLevel: true,
               },
             },
-            _count: {
-              select: {
-                posts: true,
-                followers: { where: { status: 'ACCEPTED' } },
-                following: { where: { status: 'ACCEPTED' } },
-              },
-            },
+          },
+        },
+        _count: {
+          select: {
+            posts: true,
+            followers: { where: { status: 'ACCEPTED' } },
+            following: { where: { status: 'ACCEPTED' } },
           },
         },
       },
@@ -106,7 +105,7 @@ export class ProfilesService {
       );
     }
 
-    // Check if user is verified via subscription
+    // Check if user is verified via subscription (PlatformSubscription is on User)
     const isVerifiedResult = await this.prisma.platformSubscription.findFirst({
       where: {
         userId: profile.userId,
@@ -130,7 +129,6 @@ export class ProfilesService {
         ? {
             id: user.id,
             createdAt: user.createdAt,
-            _count: user._count,
           }
         : undefined,
       verificationLevel: user?.verificationLevel,
@@ -147,7 +145,7 @@ export class ProfilesService {
       lastActiveBucket: lastActiveBucket(user?.lastSeenAt),
       accountStanding: accountStanding({
         isActive: user?.isActive ?? true,
-        suspendedUntil: user?.suspendedUntil ?? null,
+        suspendedUntil: profile.suspendedUntil ?? null,
       }),
     };
 
@@ -173,7 +171,6 @@ export class ProfilesService {
       take: 10,
       select: {
         id: true,
-        userId: true,
         username: true,
         fullName: true,
         avatar: true,
@@ -230,13 +227,13 @@ export class ProfilesService {
 
   /**
    * Update the authenticated user's profile. Invalidates the profile cache.
-   * @param userId - The user's ID
+   * @param profileId - The user's ID
    * @param dto - Fields to update
    * @throws NotFoundException if profile not found
    */
-  async updateProfile(userId: string, dto: UpdateProfileDto) {
+  async updateProfile(profileId: string, dto: UpdateProfileDto) {
     const profile = await this.prisma.profile.findUnique({
-      where: { userId },
+      where: { id: profileId },
     });
 
     if (!profile) {
@@ -251,7 +248,7 @@ export class ProfilesService {
     // If accountType or isPrivate is provided, update the User and UserSettings models
     if (accountType || isPrivate !== undefined) {
       await this.prisma.user.update({
-        where: { id: userId },
+        where: { id: profile.userId },
         data: {
           ...(accountType ? { accountType: accountType as AccountType } : {}),
           ...(isPrivate !== undefined
@@ -284,7 +281,7 @@ export class ProfilesService {
     };
 
     const updated = await this.prisma.profile.update({
-      where: { userId },
+      where: { id: profileId },
       data: updateData,
       include: {
         user: {
@@ -298,12 +295,12 @@ export class ProfilesService {
             settings: {
               select: { privacyLevel: true },
             },
-            _count: {
-              select: {
-                followers: { where: { status: 'ACCEPTED' } },
-                following: { where: { status: 'ACCEPTED' } },
-              },
-            },
+          },
+        },
+        _count: {
+          select: {
+            followers: { where: { status: 'ACCEPTED' } },
+            following: { where: { status: 'ACCEPTED' } },
           },
         },
       },
@@ -335,12 +332,12 @@ export class ProfilesService {
 
   /**
    * Get the authenticated user's own profile (not cached).
-   * @param userId - The user's ID
+   * @param profileId - The user's ID
    * @throws NotFoundException if profile not found
    */
-  async getMyReferrals(userId: string) {
+  async getMyReferrals(profileId: string) {
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: profileId },
       select: {
         inviteCode: true,
         referrals: {
@@ -372,9 +369,9 @@ export class ProfilesService {
     };
   }
 
-  async getMyProfile(userId: string) {
+  async getMyProfile(profileId: string) {
     const profile = await this.prisma.profile.findUnique({
-      where: { userId },
+      where: { id: profileId },
       include: {
         user: {
           select: {
@@ -384,7 +381,6 @@ export class ProfilesService {
             createdAt: true,
             lastSeenAt: true,
             isActive: true,
-            suspendedUntil: true,
             strikeCount: true,
             emailVerified: true,
             verificationLevel: true,
@@ -397,12 +393,12 @@ export class ProfilesService {
             settings: {
               select: { isOnboarded: true, privacyLevel: true },
             },
-            _count: {
-              select: {
-                followers: { where: { status: 'ACCEPTED' } },
-                following: { where: { status: 'ACCEPTED' } },
-              },
-            },
+          },
+        },
+        _count: {
+          select: {
+            followers: { where: { status: 'ACCEPTED' } },
+            following: { where: { status: 'ACCEPTED' } },
           },
         },
       },
@@ -449,7 +445,7 @@ export class ProfilesService {
       lastActiveBucket: lastActiveBucket(profile.user?.lastSeenAt),
       accountStanding: accountStanding({
         isActive: profile.user?.isActive ?? true,
-        suspendedUntil: profile.user?.suspendedUntil ?? null,
+        suspendedUntil: profile.suspendedUntil ?? null,
       }),
       isPrivate: profile.user?.settings?.privacyLevel === 'PRIVATE',
       isVerified: planVerified,
@@ -458,12 +454,14 @@ export class ProfilesService {
 
   /**
    * Deactivate the authenticated user's account (soft, reversible).
-   * @param userId - The user's ID
+   * @param profileId - The user's ID
    */
-  async deactivateAccount(userId: string) {
-    const profile = await this.prisma.profile.findUnique({ where: { userId } });
+  async deactivateAccount(profileId: string) {
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: profileId },
+    });
     const result = await this.prisma.user.update({
-      where: { id: userId },
+      where: { id: profileId },
       data: { isActive: false },
     });
     if (profile) {
@@ -477,10 +475,12 @@ export class ProfilesService {
    * Delegates to UsersService so BullMQ hard-delete job is always enqueued.
    * Prefer DELETE /users/me from new clients; this keeps DELETE /profiles/me compatible.
    */
-  async deleteAccount(userId: string) {
-    const profile = await this.prisma.profile.findUnique({ where: { userId } });
+  async deleteAccount(profileId: string) {
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: profileId },
+    });
     const scheduledDeletionAt =
-      await this.usersService.scheduleDeletion(userId);
+      await this.usersService.scheduleDeletion(profileId);
     if (profile) {
       await this.cacheManager.del(`profile:${profile.username}`);
     }

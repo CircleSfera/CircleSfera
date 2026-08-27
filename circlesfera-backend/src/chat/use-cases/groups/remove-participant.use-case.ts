@@ -16,9 +16,13 @@ export class RemoveParticipantUseCase {
     return this.moduleRef.get(AppGateway, { strict: false });
   }
 
-  async execute(userId: string, conversationId: string, targetUserId: string) {
+  async execute(
+    profileId: string,
+    conversationId: string,
+    targetProfileId: string,
+  ) {
     const admin = await this.prisma.participant.findFirst({
-      where: { conversationId, userId },
+      where: { conversationId, profileId },
     });
 
     if (!admin?.isAdmin) {
@@ -29,7 +33,7 @@ export class RemoveParticipantUseCase {
     }
 
     const targetParticipant = await this.prisma.participant.findFirst({
-      where: { conversationId, userId: targetUserId },
+      where: { conversationId, profileId: targetProfileId },
     });
 
     if (!targetParticipant) {
@@ -45,8 +49,13 @@ export class RemoveParticipantUseCase {
       include: {
         participants: {
           include: {
-            user: {
-              select: { id: true, profile: true },
+            profile: {
+              select: {
+                id: true,
+                username: true,
+                avatar: true,
+                fullName: true,
+              },
             },
           },
         },
@@ -56,7 +65,7 @@ export class RemoveParticipantUseCase {
     if (updated) {
       [...(updated.participants || []), targetParticipant].forEach((p: any) => {
         this.gateway.server
-          .to(`user:${p.userId}`)
+          .to(`user:${p.profileId}`)
           .emit('conversation_updated', updated);
       });
     }

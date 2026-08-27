@@ -5,7 +5,10 @@ import { PrismaService } from '../../../../prisma/prisma.service.js';
 export class GetRevenueAnalyticsQuery {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async execute(userId: string, period: '7d' | '30d' | '90d' | '1y' = '30d') {
+  async execute(
+    profileId: string,
+    period: '7d' | '30d' | '90d' | '1y' = '30d',
+  ) {
     const daysMap = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 };
     const days = daysMap[period] || 30;
     const startDate = new Date();
@@ -15,14 +18,14 @@ export class GetRevenueAnalyticsQuery {
       await Promise.all([
         this.prisma.transaction.findMany({
           where: {
-            receiverId: userId,
+            receiverId: profileId,
             status: 'COMPLETED',
             createdAt: { gte: startDate },
           },
         }),
         Promise.resolve(0), // creatorSubscription.count
         this.prisma.follow.count({
-          where: { followingId: userId, status: 'ACCEPTED' },
+          where: { followingId: profileId, status: 'ACCEPTED' },
         }),
       ]);
 

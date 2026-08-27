@@ -19,7 +19,7 @@ export class CollectionsService {
   async create(userId: string, name: string): Promise<any> {
     return await this.prisma.collection.create({
       data: {
-        userId,
+        profileId: userId,
         name,
       },
     });
@@ -31,7 +31,7 @@ export class CollectionsService {
    */
   async findAll(userId: string) {
     const collections = await this.prisma.collection.findMany({
-      where: { userId },
+      where: { profileId: userId },
       include: {
         bookmarks: {
           take: 1,

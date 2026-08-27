@@ -57,11 +57,11 @@ export class PostsService {
    * Create a new post with media, caption, hashtags, and mentions.
    * Extracts hashtags/mentions from the caption, creates notification for mentioned users,
    * and enqueues AI embedding generation via BullMQ.
-   * @param userId - The author's user ID
+   * @param profileId - The author's user ID
    * @param dto - Post creation data (caption, mediaUrl, mediaType, etc.)
    * @returns The created post with user profile and engagement counts
    */
-  async create(userId: string, dto: CreatePostDto) {
+  async create(profileId: string, dto: CreatePostDto) {
     const postingEnabled = await this.systemSettings.isEnabled(
       SYSTEM_SETTING_KEYS.CONTENT_POSTING_ENABLED,
     );
@@ -116,7 +116,7 @@ export class PostsService {
       async (tx: Prisma.TransactionClient) => {
         const post = await tx.post.create({
           data: {
-            userId,
+            profileId,
             caption: dto.caption,
             type: dto.type || 'POST',
             location: dto.location,
@@ -133,7 +133,7 @@ export class PostsService {
               dto.tags && dto.tags.length > 0
                 ? {
                     create: dto.tags.map((t) => ({
-                      userId: t.userId,
+                      profileId: t.profileId,
                       x: t.x,
                       y: t.y,
                     })),
@@ -187,7 +187,7 @@ export class PostsService {
         media: true,
         hashtags: { include: { hashtag: true } },
         tags: true,
-        user: { include: { profile: true } },
+        profile: { include: { user: true } },
         _count: {
           select: {
             likes: true,
@@ -228,7 +228,7 @@ export class PostsService {
     ) {
       await this.feedFanoutQueue.add('distribute', {
         postId: post.id,
-        authorId: post.userId,
+        authorId: post.profileId,
       });
     }
 
@@ -238,17 +238,17 @@ export class PostsService {
       const profiles = await this.prisma.profile.findMany({
         where: {
           username: { in: uniqueMentions },
-          userId: { not: userId }, // Don't notify self
+          id: { not: profileId }, // Don't notify self
         },
-        select: { userId: true },
+        select: { id: true },
       });
 
       // Create notifications
       await Promise.all(
         profiles.map((profile) =>
           this.eventEmitter.emit('notification.create', {
-            recipientId: profile.userId,
-            senderId: userId,
+            recipientId: profile.id,
+            senderId: profileId,
             type: NotificationType.MENTION,
             content: `mentioned you in a post`,
           }),
@@ -285,9 +285,9 @@ export class PostsService {
         ...(cursor && { cursor: { id: cursor } }),
         orderBy: { createdAt: 'desc' },
         include: {
-          user: {
+          profile: {
             include: {
-              profile: true,
+              user: true,
             },
           },
           media: true,
@@ -326,12 +326,12 @@ export class PostsService {
    * Enriches each post with `isLiked` and `isBookmarked` flags for the current user.
    * @param pagination - Page and limit parameters
    * @param sort - Sort order: 'latest' (default) or 'trending' (by like count)
-   * @param currentUserId - Optional current user for engagement flags
+   * @param currentProfileId - Optional current user for engagement flags
    */
   async findAll(
     pagination: PaginationDto,
     sort: 'latest' | 'trending' = 'latest',
-    currentUserId?: string,
+    currentProfileId?: string,
   ) {
     const { page = 1, limit = 10, cursor } = pagination;
     const skip = cursor ? 1 : (page - 1) * limit;
@@ -345,16 +345,16 @@ export class PostsService {
       this.prisma.post.findMany({
         where: {
           type: 'POST',
-          ...this.getGlobalVisibilityFilter(currentUserId),
+          ...this.getGlobalVisibilityFilter(currentProfileId),
         },
         skip,
         take: limit,
         ...(cursor && { cursor: { id: cursor } }),
         orderBy,
         include: {
-          user: {
+          profile: {
             include: {
-              profile: true,
+              user: true,
             },
           },
           media: true,
@@ -364,15 +364,15 @@ export class PostsService {
               comments: true,
             },
           },
-          likes: currentUserId
-            ? { where: { userId: currentUserId }, take: 1 }
+          likes: currentProfileId
+            ? { where: { profileId: currentProfileId }, take: 1 }
             : false,
         },
       }),
       this.prisma.post.count({
         where: {
           type: 'POST',
-          ...this.getGlobalVisibilityFilter(currentUserId),
+          ...this.getGlobalVisibilityFilter(currentProfileId),
         },
       }),
     ]);
@@ -380,7 +380,7 @@ export class PostsService {
     const formattedPosts = posts.map((post) => {
       const { likes, ...rest } = post;
       const isLiked =
-        currentUserId && Array.isArray(likes) ? likes.length > 0 : false;
+        currentProfileId && Array.isArray(likes) ? likes.length > 0 : false;
       return {
         ...rest,
         isLiked,
@@ -389,7 +389,7 @@ export class PostsService {
 
     const processedPosts = await this.applyPaywall(
       formattedPosts,
-      currentUserId,
+      currentProfileId,
     );
     return createPaginatedResult(
       processedPosts,
@@ -405,9 +405,9 @@ export class PostsService {
   /**
    * Retrieve a video-only feed (Frames/Reels) with pagination.
    * @param pagination - Page and limit parameters
-   * @param currentUserId - Optional current user for engagement flags
+   * @param currentProfileId - Optional current user for engagement flags
    */
-  async getFramesFeed(pagination: PaginationDto, currentUserId?: string) {
+  async getFramesFeed(pagination: PaginationDto, currentProfileId?: string) {
     const { page = 1, limit = 10, cursor } = pagination;
     const skip = cursor ? 1 : (page - 1) * limit;
 
@@ -416,16 +416,16 @@ export class PostsService {
       this.prisma.post.findMany({
         where: {
           type: 'FRAME',
-          ...this.getGlobalVisibilityFilter(currentUserId),
+          ...this.getGlobalVisibilityFilter(currentProfileId),
         },
         skip,
         take: limit,
         ...(cursor && { cursor: { id: cursor } }),
         orderBy: { createdAt: 'desc' },
         include: {
-          user: {
+          profile: {
             include: {
-              profile: true,
+              user: true,
             },
           },
           media: true,
@@ -435,15 +435,15 @@ export class PostsService {
               comments: true,
             },
           },
-          likes: currentUserId
-            ? { where: { userId: currentUserId }, take: 1 }
+          likes: currentProfileId
+            ? { where: { profileId: currentProfileId }, take: 1 }
             : false,
         },
       }),
       this.prisma.post.count({
         where: {
           type: 'FRAME',
-          ...this.getGlobalVisibilityFilter(currentUserId),
+          ...this.getGlobalVisibilityFilter(currentProfileId),
         },
       }),
     ]);
@@ -451,7 +451,7 @@ export class PostsService {
     const formattedPosts = posts.map((post) => {
       const { likes, ...rest } = post;
       const isLiked =
-        currentUserId && Array.isArray(likes) ? likes.length > 0 : false;
+        currentProfileId && Array.isArray(likes) ? likes.length > 0 : false;
       return {
         ...rest,
         isLiked,
@@ -460,7 +460,7 @@ export class PostsService {
 
     const processedPosts = await this.applyPaywall(
       formattedPosts,
-      currentUserId,
+      currentProfileId,
     );
 
     return createPaginatedResult(processedPosts, total, page, limit);
@@ -469,17 +469,16 @@ export class PostsService {
   /**
    * Retrieve a single post by ID with full relations and engagement flags.
    * @param id - The post's unique identifier
-   * @param currentUserId - Optional current user for isLiked/isBookmarked
+   * @param currentProfileId - Optional current user for isLiked/isBookmarked
    * @throws NotFoundException if the post does not exist
    */
-  async findOne(id: string, currentUserId?: string) {
+  async findOne(id: string, currentProfileId?: string) {
     const post = await this.prisma.post.findUnique({
       where: { id },
       include: {
-        user: {
+        profile: {
           include: {
-            profile: true,
-            settings: true,
+            user: { include: { settings: true } },
           },
         },
         _count: {
@@ -488,8 +487,8 @@ export class PostsService {
             comments: true,
           },
         },
-        likes: currentUserId
-          ? { where: { userId: currentUserId }, take: 1 }
+        likes: currentProfileId
+          ? { where: { profileId: currentProfileId }, take: 1 }
           : false,
         media: true,
         poll: { select: { id: true } },
@@ -504,14 +503,14 @@ export class PostsService {
     // Authorization: Check if the post is private
     // Authorization: Check if the post belongs to a private account
     const isProfilePrivate =
-      post.user.settings?.privacyLevel === Visibility.PRIVATE;
-    if (isProfilePrivate && post.userId !== currentUserId) {
-      const follow = currentUserId
+      post.profile.user?.settings?.privacyLevel === Visibility.PRIVATE;
+    if (isProfilePrivate && post.profileId !== currentProfileId) {
+      const follow = currentProfileId
         ? await this.prisma.follow.findUnique({
             where: {
               followerId_followingId: {
-                followerId: currentUserId,
-                followingId: post.userId,
+                followerId: currentProfileId,
+                followingId: post.profileId,
               },
             },
           })
@@ -526,17 +525,17 @@ export class PostsService {
     // Post-level visibility check
     if (
       post.visibility === Visibility.PRIVATE &&
-      post.userId !== currentUserId
+      post.profileId !== currentProfileId
     ) {
       throw new ForbiddenException('This post is private');
     }
 
     if (
       post.visibility === Visibility.FOLLOWERS &&
-      post.userId !== currentUserId
+      post.profileId !== currentProfileId
     ) {
-      const isFollower = currentUserId
-        ? await this.isFollowing(currentUserId, post.userId)
+      const isFollower = currentProfileId
+        ? await this.isFollowing(currentProfileId, post.profileId)
         : false;
 
       if (!isFollower) {
@@ -545,11 +544,16 @@ export class PostsService {
     }
 
     // Track view asynchronously (don't block the response)
-    this.analyticsService.trackPostView(post.id, currentUserId).catch((err) => {
-      console.error('Failed to track view in findOne:', err);
-    });
+    this.analyticsService
+      .trackPostView(post.id, currentProfileId)
+      .catch((err) => {
+        console.error('Failed to track view in findOne:', err);
+      });
 
-    return this.injectIsLiked(post, currentUserId) as Record<string, unknown>;
+    return this.injectIsLiked(post, currentProfileId) as Record<
+      string,
+      unknown
+    >;
   }
 
   /**
@@ -557,13 +561,13 @@ export class PostsService {
    * @param username - The profile username to look up
    * @param pagination - Page and limit parameters
    * @param type - Optional filter by PostType (post, reel, frame)
-   * @param currentUserId - Optional current user for engagement flags
+   * @param currentProfileId - Optional current user for engagement flags
    */
   async findByUser(
     username: string,
     pagination: PaginationDto,
     type?: PostType,
-    currentUserId?: string,
+    currentProfileId?: string,
   ) {
     const { page = 1, limit = 10, cursor } = pagination;
     const skip = cursor ? 1 : (page - 1) * limit;
@@ -580,13 +584,13 @@ export class PostsService {
     // Authorization check for private accounts
     const isProfilePrivate =
       profile.user.settings?.privacyLevel === Visibility.PRIVATE;
-    if (isProfilePrivate && profile.userId !== currentUserId) {
-      const follow = currentUserId
+    if (isProfilePrivate && profile.id !== currentProfileId) {
+      const follow = currentProfileId
         ? await this.prisma.follow.findUnique({
             where: {
               followerId_followingId: {
-                followerId: currentUserId,
-                followingId: profile.userId,
+                followerId: currentProfileId,
+                followingId: profile.id,
               },
             },
           })
@@ -598,8 +602,8 @@ export class PostsService {
     }
 
     const whereClause: Prisma.PostWhereInput = {
-      userId: profile.userId,
-      ...this.getUserProfileVisibilityFilter(profile.userId, currentUserId),
+      profileId: profile.id,
+      ...this.getUserProfileVisibilityFilter(profile.id, currentProfileId),
     };
 
     if (type) {
@@ -614,9 +618,9 @@ export class PostsService {
         ...(cursor && { cursor: { id: cursor } }),
         orderBy: { createdAt: 'desc' },
         include: {
-          user: {
+          profile: {
             include: {
-              profile: true,
+              user: true,
             },
           },
           media: true,
@@ -626,8 +630,8 @@ export class PostsService {
               comments: true,
             },
           },
-          likes: currentUserId
-            ? { where: { userId: currentUserId }, take: 1 }
+          likes: currentProfileId
+            ? { where: { profileId: currentProfileId }, take: 1 }
             : false,
         },
       }),
@@ -635,11 +639,11 @@ export class PostsService {
     ]);
 
     const postsWithLikes = posts.map((post) =>
-      this.injectIsLiked(post, currentUserId),
+      this.injectIsLiked(post, currentProfileId),
     );
     const processedPosts = await this.applyPaywall(
       postsWithLikes,
-      currentUserId,
+      currentProfileId,
     );
 
     return createPaginatedResult(
@@ -675,7 +679,7 @@ export class PostsService {
         where: {
           tags: {
             some: {
-              userId: profile.userId,
+              profileId: profile.id,
             },
           },
         },
@@ -684,9 +688,9 @@ export class PostsService {
         ...(cursor && { cursor: { id: cursor } }),
         orderBy: { createdAt: 'desc' },
         include: {
-          user: {
+          profile: {
             include: {
-              profile: true,
+              user: true,
             },
           },
           media: true,
@@ -702,7 +706,7 @@ export class PostsService {
         where: {
           tags: {
             some: {
-              userId: profile.userId,
+              profileId: profile.id,
             },
           },
         },
@@ -727,7 +731,7 @@ export class PostsService {
   /**
    * Update a post's caption and media. Only the author can update.
    * @param id - The post ID
-   * @param userId - The requesting user's ID (must be the author)
+   * @param profileId - The requesting user's ID (must be the author)
    * @param dto - Updated post data
    * @throws NotFoundException if post not found
    * @throws ForbiddenException if user is not the author
@@ -742,9 +746,9 @@ export class PostsService {
         visibility: dto.visibility as Visibility,
       },
       include: {
-        user: {
+        profile: {
           include: {
-            profile: true,
+            user: true,
           },
         },
         _count: {
@@ -761,7 +765,7 @@ export class PostsService {
   /**
    * Delete a post. Only the author can delete their own posts.
    * @param id - The post ID
-   * @param userId - The requesting user's ID (must be the author)
+   * @param profileId - The requesting user's ID (must be the author)
    * @throws NotFoundException if post not found
    * @throws ForbiddenException if user is not the author
    */
@@ -834,18 +838,20 @@ export class PostsService {
    * Shows only PUBLIC posts from non-private profiles, plus user's own posts.
    */
   private getGlobalVisibilityFilter(
-    currentUserId?: string,
+    currentProfileId?: string,
   ): Prisma.PostWhereInput {
     const baseFilter: Prisma.PostWhereInput = {
       visibility: Visibility.PUBLIC,
       moderationStatus: 'VISIBLE',
-      user: { settings: { privacyLevel: Visibility.PUBLIC } },
+      profile: {
+        user: { settings: { is: { privacyLevel: Visibility.PUBLIC } } },
+      },
     };
 
-    if (!currentUserId) return baseFilter;
+    if (!currentProfileId) return baseFilter;
 
     return {
-      OR: [baseFilter, { userId: currentUserId }],
+      OR: [baseFilter, { profileId: currentProfileId }],
     };
   }
 
@@ -855,16 +861,16 @@ export class PostsService {
    */
   private getUserProfileVisibilityFilter(
     authorId: string,
-    currentUserId?: string,
+    currentProfileId?: string,
   ): Prisma.PostWhereInput {
-    if (authorId === currentUserId) return {}; // Author sees everything
+    if (authorId === currentProfileId) return {}; // Author sees everything
 
     const publicFilter: Prisma.PostWhereInput = {
       visibility: Visibility.PUBLIC,
     };
 
     // If not logged in, only see public
-    if (!currentUserId) return publicFilter;
+    if (!currentProfileId) return publicFilter;
 
     return {
       moderationStatus: { in: ['VISIBLE', 'FLAGGED'] }, // Still show flagged but not hidden
@@ -872,10 +878,10 @@ export class PostsService {
         publicFilter,
         {
           visibility: Visibility.FOLLOWERS,
-          user: {
+          profile: {
             followers: {
               some: {
-                followerId: currentUserId,
+                followerId: currentProfileId,
                 status: 'ACCEPTED',
               },
             },
@@ -885,10 +891,10 @@ export class PostsService {
     };
   }
 
-  private injectIsLiked(post: Record<string, any>, currentUserId?: string) {
+  private injectIsLiked(post: Record<string, any>, currentProfileId?: string) {
     const { likes, ...rest } = post as { likes?: any[] } & Record<string, any>;
     const isLiked =
-      currentUserId && Array.isArray(likes) ? likes.length > 0 : false;
+      currentProfileId && Array.isArray(likes) ? likes.length > 0 : false;
 
     return {
       ...(rest as Record<string, unknown>),
@@ -914,11 +920,11 @@ export class PostsService {
   /**
    * Applies the paywall to a list of posts, blurring media if the user hasn't paid or subscribed.
    */
-  private async applyPaywall(posts: any[], currentUserId?: string) {
+  private async applyPaywall(posts: any[], currentProfileId?: string) {
     if (!posts || posts.length === 0) return posts;
 
     // If guest, blur all premium posts
-    if (!currentUserId) {
+    if (!currentProfileId) {
       return posts.map((post) => {
         if (post.isPremium) {
           return {
@@ -945,15 +951,15 @@ export class PostsService {
     // Fetch user's unlocked posts
     const unlocks = await this.prisma.postUnlock.findMany({
       where: {
-        userId: currentUserId,
+        userId: currentProfileId,
       },
       select: { postId: true },
     });
     const unlockedPostIds = new Set(unlocks.map((u) => u.postId));
 
     return posts.map((post) => {
-      if (post.isPremium && post.userId !== currentUserId) {
-        const isSubscribed = subscribedCreatorIds.has(post.userId);
+      if (post.isPremium && post.profileId !== currentProfileId) {
+        const isSubscribed = subscribedCreatorIds.has(post.profileId);
         const isUnlocked = unlockedPostIds.has(post.id);
 
         if (!isSubscribed && !isUnlocked) {
@@ -977,9 +983,9 @@ export class PostsService {
   }
 
   @OnEvent('user.hard_deleted')
-  async handleUserDeleted(payload: { userId: string }) {
+  async handleUserDeleted(payload: { profileId: string }) {
     const userPosts = await this.prisma.post.findMany({
-      where: { userId: payload.userId },
+      where: { profileId: payload.profileId },
       include: { media: true },
     });
 

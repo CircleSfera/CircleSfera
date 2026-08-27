@@ -14,7 +14,7 @@ import {
 class TagDto {
   @IsString()
   @IsNotEmpty()
-  userId!: string;
+  profileId!: string;
 
   @IsNumber()
   x!: number;

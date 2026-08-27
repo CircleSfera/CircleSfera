@@ -87,7 +87,7 @@ export class SubscriptionGuard implements CanActivate {
     }
 
     // Compare prices to determine if the user's plan is equal or higher tier
-    if (userSubscription.plan.price < dbRequiredPlan.price) {
+    if (userSubscription.plan.priceCents < dbRequiredPlan.priceCents) {
       throw new ForbiddenException(
         `Your current plan '${userSubscription.plan.name}' is not sufficient. This feature requires at least '${requiredPlan}'.`,
       );

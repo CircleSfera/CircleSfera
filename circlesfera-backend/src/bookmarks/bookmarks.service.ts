@@ -16,13 +16,13 @@ export class BookmarksService {
 
   /**
    * Toggle a bookmark on/off for a post. Optionally assign to a collection.
-   * @param userId - The user's ID
+   * @param profileId - The user's ID
    * @param postId - The post to bookmark
    * @param collectionId - Optional collection to add the bookmark to
    * @returns `{ bookmarked: boolean }`
    * @throws NotFoundException if post not found
    */
-  async toggle(userId: string, postId: string, collectionId?: string) {
+  async toggle(profileId: string, postId: string, collectionId?: string) {
     // Verify post exists
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
@@ -35,8 +35,8 @@ export class BookmarksService {
     // Check if bookmark exists
     const existingBookmark = await this.prisma.bookmark.findUnique({
       where: {
-        userId_postId: {
-          userId,
+        profileId_postId: {
+          profileId,
           postId,
         },
       },
@@ -56,8 +56,8 @@ export class BookmarksService {
 
       await this.prisma.bookmark.delete({
         where: {
-          userId_postId: {
-            userId,
+          profileId_postId: {
+            profileId,
             postId,
           },
         },
@@ -67,7 +67,7 @@ export class BookmarksService {
     }
 
     const data: Prisma.BookmarkUncheckedCreateInput = {
-      userId,
+      profileId,
       postId,
     };
     if (collectionId) {
@@ -84,25 +84,25 @@ export class BookmarksService {
   /**
    * Move or assign a bookmarked post to a different collection.
    * Creates the bookmark if it doesn't exist.
-   * @param userId - The user's ID
+   * @param profileId - The user's ID
    * @param postId - The post ID
    * @param collectionId - Target collection ID (or null to remove from collection)
    */
   async updateCollection(
-    userId: string,
+    profileId: string,
     postId: string,
     collectionId: string | null,
   ) {
     // Find the bookmark first
     const bookmark = await this.prisma.bookmark.findUnique({
-      where: { userId_postId: { userId, postId } },
+      where: { profileId_postId: { profileId, postId } },
     });
 
     if (!bookmark) {
       // If not bookmarked, create it in the collection
       return this.prisma.bookmark.create({
         data: {
-          userId,
+          profileId,
           postId,
           collectionId,
         },
@@ -117,14 +117,14 @@ export class BookmarksService {
 
   /**
    * Check whether a user has bookmarked a specific post.
-   * @param userId - The user's ID
+   * @param profileId - The user's ID
    * @param postId - The post ID
    * @returns `{ bookmarked: boolean }`
    */
-  async check(userId: string, postId: string) {
+  async check(profileId: string, postId: string) {
     const bookmark = await this.prisma.bookmark.findUnique({
       where: {
-        userId_postId: { userId, postId },
+        profileId_postId: { profileId, postId },
       },
     });
 
@@ -133,20 +133,20 @@ export class BookmarksService {
 
   /**
    * Get the user's bookmarked posts with pagination. Optionally filtered by collection.
-   * @param userId - The user's ID
+   * @param profileId - The user's ID
    * @param page - Page number (default 1)
    * @param limit - Items per page (default 10)
    * @param collectionId - Optional collection filter
    */
   async getBookmarks(
-    userId: string,
+    profileId: string,
     page = 1,
     limit = 10,
     collectionId?: string,
   ) {
     const skip = (page - 1) * limit;
 
-    const where: Prisma.BookmarkWhereInput = { userId };
+    const where: Prisma.BookmarkWhereInput = { profileId };
     if (collectionId) {
       where.collectionId = collectionId;
     }
@@ -162,12 +162,15 @@ export class BookmarksService {
         include: {
           post: {
             include: {
-              user: {
-                include: {
-                  profile: {
+              profile: {
+                select: {
+                  id: true,
+                  username: true,
+                  avatar: true,
+                  user: {
                     select: {
-                      username: true,
-                      avatar: true,
+                      verificationLevel: true,
+                      accountType: true,
                     },
                   },
                 },
@@ -197,7 +200,7 @@ export class BookmarksService {
     }
 
     return {
-      data: bookmarks.map((b) => b.post),
+      data: bookmarks.map((b) => (b as any).post),
       meta: {
         total,
         page,
@@ -210,7 +213,7 @@ export class BookmarksService {
 
   /**
    * Get bookmarked posts within a specific collection, with ownership validation.
-   * @param userId - The user's ID
+   * @param profileId - The user's ID
    * @param collectionId - The collection to retrieve from
    * @param page - Page number (default 1)
    * @param limit - Items per page (default 10)
@@ -218,7 +221,7 @@ export class BookmarksService {
    * @throws ForbiddenException if user does not own the collection
    */
   async getByCollection(
-    userId: string,
+    profileId: string,
     collectionId: string,
     page = 1,
     limit = 10,
@@ -230,21 +233,21 @@ export class BookmarksService {
       where: { id: collectionId },
     });
     if (!collection) throw new NotFoundException('Collection not found');
-    if (collection.userId !== userId) {
+    if (collection.profileId !== profileId) {
       throw new ForbiddenException('Access denied');
     }
 
     const [bookmarks, total] = await Promise.all([
       this.prisma.bookmark.findMany({
-        where: { userId, collectionId },
+        where: { profileId, collectionId },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
         include: {
           post: {
             include: {
-              user: {
-                include: { profile: true },
+              profile: {
+                include: { user: true },
               },
               media: {
                 orderBy: { order: 'asc' },
@@ -256,11 +259,11 @@ export class BookmarksService {
           },
         },
       }),
-      this.prisma.bookmark.count({ where: { userId, collectionId } }),
+      this.prisma.bookmark.count({ where: { profileId, collectionId } }),
     ]);
 
     return {
-      data: bookmarks.map((b) => b.post),
+      data: bookmarks.map((b) => (b as any).post),
       total,
       page,
       limit,

@@ -37,8 +37,8 @@ import { GetMessagesQuery } from './use-cases/queries/get-messages.query.js';
 import { GetUnreadCountQuery } from './use-cases/queries/get-unread-count.query.js';
 
 interface AuthenticatedRequest extends Request {
-  user: {
-    userId: string;
+  profile: {
+    profileId: string;
     email: string;
   };
 }
@@ -77,14 +77,14 @@ export class ChatController {
   async getConversations(
     @Request() req: AuthenticatedRequest,
   ): Promise<Conversation[]> {
-    return this.getConversationsQuery.execute(req.user.userId);
+    return this.getConversationsQuery.execute(req.user.profileId);
   }
 
   @Get('conversations/unread-count')
   async getUnreadCount(
     @Request() req: AuthenticatedRequest,
   ): Promise<{ count: number }> {
-    const count = await this.getUnreadCountQuery.execute(req.user.userId);
+    const count = await this.getUnreadCountQuery.execute(req.user.profileId);
     return { count };
   }
 
@@ -93,7 +93,7 @@ export class ChatController {
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ): Promise<Message[]> {
-    return this.getMessagesQuery.execute(id, 50, req.user.userId);
+    return this.getMessagesQuery.execute(id, 50, req.user.profileId);
   }
 
   @Post('conversations')
@@ -103,7 +103,7 @@ export class ChatController {
     @Body() dto: CreateGroupDto,
   ) {
     return this.createGroupUseCase.execute(
-      req.user.userId,
+      req.user.profileId,
       dto.participantIds,
       dto.name,
     );
@@ -116,7 +116,7 @@ export class ChatController {
     @Body() dto: SendMessageDto,
   ): Promise<Message> {
     return this.sendMessageUseCase.execute(
-      req.user.userId,
+      req.user.profileId,
       dto.recipientId,
       dto.content,
       dto.mediaUrl,
@@ -134,7 +134,7 @@ export class ChatController {
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
-    await this.markAsReadUseCase.execute(id, req.user.userId);
+    await this.markAsReadUseCase.execute(id, req.user.profileId);
     return { success: true };
   }
 
@@ -145,7 +145,7 @@ export class ChatController {
     @Query('mode') _mode: 'me' | 'both' = 'me',
   ) {
     // Mode is intentionally ignored by the use case for security but maintained in the signature for frontend compat.
-    return this.deleteConversationUseCase.execute(req.user.userId, id);
+    return this.deleteConversationUseCase.execute(req.user.profileId, id);
   }
 
   @Put('conversations/:id/group')
@@ -155,23 +155,23 @@ export class ChatController {
     @Body() body: UpdateGroupDto,
   ) {
     return this.updateGroupUseCase.execute(
-      req.user.userId,
+      req.user.profileId,
       id,
       body.name,
       body.avatarUrl,
     );
   }
 
-  @Delete('conversations/:id/participants/:userId')
+  @Delete('conversations/:id/participants/:profileId')
   async removeParticipant(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Param('userId') targetUserId: string,
+    @Param('profileId') targetProfileId: string,
   ) {
     return this.removeParticipantUseCase.execute(
-      req.user.userId,
+      req.user.profileId,
       id,
-      targetUserId,
+      targetProfileId,
     );
   }
 
@@ -180,7 +180,7 @@ export class ChatController {
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
-    return this.leaveGroupUseCase.execute(req.user.userId, id);
+    return this.leaveGroupUseCase.execute(req.user.profileId, id);
   }
 
   @Put('messages/:id')
@@ -189,7 +189,11 @@ export class ChatController {
     @Param('id') id: string,
     @Body() body: EditMessageDto,
   ) {
-    return this.editMessageUseCase.execute(req.user.userId, id, body.content);
+    return this.editMessageUseCase.execute(
+      req.user.profileId,
+      id,
+      body.content,
+    );
   }
 
   @Delete('messages/:id')
@@ -197,6 +201,6 @@ export class ChatController {
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
   ) {
-    return this.deleteMessageUseCase.execute(req.user.userId, id);
+    return this.deleteMessageUseCase.execute(req.user.profileId, id);
   }
 }

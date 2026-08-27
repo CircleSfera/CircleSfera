@@ -80,7 +80,7 @@ describe('FeedService', () => {
   describe('getHybridFeed', () => {
     it('should fallback to trending feed if user is not logged in', async () => {
       mockPrismaService.post.findMany.mockResolvedValue([
-        { id: '1', type: 'POST', user: { profile: {} }, likes: [] },
+        { id: '1', type: 'POST', profile: { profile: {} }, likes: [] },
       ]);
 
       const result = (await service.getHybridFeed(null, {

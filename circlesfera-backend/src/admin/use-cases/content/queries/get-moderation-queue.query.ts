@@ -23,7 +23,9 @@ export class GetModerationQueueQuery {
         in: ['FLAGGED', 'HIDDEN'] as $Enums.ModerationStatus[],
       },
     };
-    const userInclude = { user: { include: { profile: true } } };
+    const profileInclude = {
+      profile: { select: { username: true, avatar: true } },
+    };
     const mergeCap = Math.min(Math.max(limit * 20, 100), 500);
 
     type QueueRow = {
@@ -54,10 +56,8 @@ export class GetModerationQueueQuery {
         where.OR = [
           { caption: { contains: search, mode: 'insensitive' } },
           {
-            user: {
-              profile: {
-                username: { contains: search, mode: 'insensitive' },
-              },
+            profile: {
+              username: { contains: search, mode: 'insensitive' },
             },
           },
         ];
@@ -66,7 +66,7 @@ export class GetModerationQueueQuery {
         where,
         take: mergeCap,
         orderBy: { updatedAt: 'desc' },
-        include: { ...userInclude, media: true },
+        include: { ...profileInclude, media: true },
       });
       for (const p of posts) {
         rows.push({
@@ -79,7 +79,7 @@ export class GetModerationQueueQuery {
           moderationStatus: p.moderationStatus,
           moderationNote: p.moderationNote,
           media: p.media,
-          user: p.user,
+          user: p.profile,
         });
       }
     }
@@ -89,10 +89,8 @@ export class GetModerationQueueQuery {
       if (search) {
         where.OR = [
           {
-            user: {
-              profile: {
-                username: { contains: search, mode: 'insensitive' },
-              },
+            profile: {
+              username: { contains: search, mode: 'insensitive' },
             },
           },
         ];
@@ -101,7 +99,7 @@ export class GetModerationQueueQuery {
         where,
         take: mergeCap,
         orderBy: { createdAt: 'desc' },
-        include: userInclude,
+        include: profileInclude,
       });
       for (const s of stories) {
         rows.push({
@@ -123,7 +121,7 @@ export class GetModerationQueueQuery {
                 },
               ]
             : [],
-          user: s.user,
+          user: s.profile,
         });
       }
     }
@@ -134,10 +132,8 @@ export class GetModerationQueueQuery {
         where.OR = [
           { content: { contains: search, mode: 'insensitive' } },
           {
-            user: {
-              profile: {
-                username: { contains: search, mode: 'insensitive' },
-              },
+            profile: {
+              username: { contains: search, mode: 'insensitive' },
             },
           },
         ];
@@ -146,7 +142,7 @@ export class GetModerationQueueQuery {
         where,
         take: mergeCap,
         orderBy: { updatedAt: 'desc' },
-        include: userInclude,
+        include: profileInclude,
       });
       for (const c of comments) {
         rows.push({
@@ -159,7 +155,7 @@ export class GetModerationQueueQuery {
           moderationStatus: c.moderationStatus,
           moderationNote: c.moderationNote,
           media: [],
-          user: c.user,
+          user: c.profile,
         });
       }
     }

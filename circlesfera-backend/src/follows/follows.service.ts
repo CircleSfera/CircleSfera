@@ -19,7 +19,7 @@ const NotificationType = $Enums.NotificationType;
 // Type definitions for return values
 type FollowStatusResponse = { following: boolean; status: string };
 type SuccessResponse = { success: boolean };
-type UserWithProfile = User & { profile: Profile | null };
+type ProfileWithUser = Profile & { user: User };
 
 /**
  * Service for follow/unfollow, blocking, and follow request management.
@@ -46,6 +46,7 @@ export class FollowsService {
   async toggle(
     followingUsername: string,
     followerId: string,
+    userId: string,
   ): Promise<FollowStatusResponse> {
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: followingUsername, mode: 'insensitive' } },
@@ -55,7 +56,7 @@ export class FollowsService {
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
     }
 
-    const followingId = profile.userId;
+    const followingId = profile.id;
 
     if (followerId === followingId) {
       throw AppException.BadRequest(
@@ -96,12 +97,12 @@ export class FollowsService {
         this.prisma,
         this.systemSettings,
         this.turnstile,
-        followerId,
+        userId,
       );
       // Follow
       // Check privacy level from settings
       const targetUser = await this.prisma.user.findUnique({
-        where: { id: followingId },
+        where: { id: profile.userId },
         include: { settings: true },
       });
       const isPrivate = targetUser?.settings?.privacyLevel === 'PRIVATE';
@@ -157,7 +158,7 @@ export class FollowsService {
     const block = await this.prisma.block.findUnique({
       where: {
         blockerId_blockedId: {
-          blockerId: profile.userId,
+          blockerId: profile.id,
           blockedId: followerId,
         },
       },
@@ -169,7 +170,7 @@ export class FollowsService {
       where: {
         followerId_followingId: {
           followerId,
-          followingId: profile.userId,
+          followingId: profile.id,
         },
       },
     });
@@ -185,7 +186,7 @@ export class FollowsService {
    * @param username - The profile username
    * @returns Array of follower users with profiles
    */
-  async getFollowers(username: string): Promise<UserWithProfile[]> {
+  async getFollowers(username: string): Promise<ProfileWithUser[]> {
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
     });
@@ -195,12 +196,12 @@ export class FollowsService {
 
     const followers = await this.prisma.follow.findMany({
       where: {
-        followingId: profile.userId,
+        followingId: profile.id,
         status: 'ACCEPTED',
       },
       include: {
         follower: {
-          include: { profile: true },
+          include: { user: true },
         },
       },
     });
@@ -213,7 +214,7 @@ export class FollowsService {
    * @param username - The profile username
    * @returns Array of followed users with profiles
    */
-  async getFollowing(username: string): Promise<UserWithProfile[]> {
+  async getFollowing(username: string): Promise<ProfileWithUser[]> {
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
     });
@@ -223,12 +224,12 @@ export class FollowsService {
 
     const following = await this.prisma.follow.findMany({
       where: {
-        followerId: profile.userId,
+        followerId: profile.id,
         status: 'ACCEPTED',
       },
       include: {
         following: {
-          include: { profile: true },
+          include: { user: true },
         },
       },
     });
@@ -252,7 +253,7 @@ export class FollowsService {
     if (!profile)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
-    const blockedId = profile.userId;
+    const blockedId = profile.id;
     if (blockerId === blockedId)
       throw AppException.BadRequest(
         ErrorCode.CANNOT_BLOCK_SELF,
@@ -296,7 +297,7 @@ export class FollowsService {
       where: {
         blockerId_blockedId: {
           blockerId,
-          blockedId: profile.userId,
+          blockedId: profile.id,
         },
       },
     });
@@ -306,13 +307,13 @@ export class FollowsService {
 
   /**
    * Get all users blocked by the current user.
-   * @param userId - The authenticated user's ID
+   * @param profileId - The authenticated user's ID
    */
-  async getBlockedUsers(userId: string): Promise<UserWithProfile[]> {
+  async getBlockedUsers(profileId: string): Promise<ProfileWithUser[]> {
     const blocks = await this.prisma.block.findMany({
-      where: { blockerId: userId },
+      where: { blockerId: profileId },
       include: {
-        blocked: { include: { profile: true } },
+        blocked: { include: { user: true } },
       },
     });
     return blocks.map((b) => b.blocked);
@@ -334,7 +335,7 @@ export class FollowsService {
     if (!profile)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
-    const mutedId = profile.userId;
+    const mutedId = profile.id;
     if (muterId === mutedId)
       throw AppException.BadRequest(
         ErrorCode.CANNOT_MUTE_SELF,
@@ -376,7 +377,7 @@ export class FollowsService {
         where: {
           muterId_mutedId: {
             muterId,
-            mutedId: profile.userId,
+            mutedId: profile.id,
           },
         },
       });
@@ -389,13 +390,13 @@ export class FollowsService {
 
   /**
    * Get all users muted by the current user.
-   * @param userId - The authenticated user's ID
+   * @param profileId - The authenticated user's ID
    */
-  async getMutedUsers(userId: string): Promise<UserWithProfile[]> {
+  async getMutedUsers(profileId: string): Promise<ProfileWithUser[]> {
     const mutes = await this.prisma.mute.findMany({
-      where: { muterId: userId },
+      where: { muterId: profileId },
       include: {
-        muted: { include: { profile: true } },
+        muted: { include: { user: true } },
       },
     });
     return mutes.map((m) => m.muted);
@@ -403,16 +404,16 @@ export class FollowsService {
 
   /**
    * Get all pending follow requests for the current user (private account).
-   * @param userId - The authenticated user's ID
+   * @param profileId - The authenticated user's ID
    */
-  async getPendingRequests(userId: string): Promise<UserWithProfile[]> {
+  async getPendingRequests(profileId: string): Promise<ProfileWithUser[]> {
     const pendingFollows = await this.prisma.follow.findMany({
       where: {
-        followingId: userId,
+        followingId: profileId,
         status: 'PENDING',
       },
       include: {
-        follower: { include: { profile: true } },
+        follower: { include: { user: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -421,12 +422,12 @@ export class FollowsService {
 
   /**
    * Accept a pending follow request from a specific user.
-   * @param userId - The authenticated user's ID (the one being followed)
+   * @param profileId - The authenticated user's ID (the one being followed)
    * @param requesterUsername - Username of the requester
    * @throws NotFoundException if no pending request found
    */
   async acceptFollowRequest(
-    userId: string,
+    profileId: string,
     requesterUsername: string,
   ): Promise<SuccessResponse> {
     const requesterProfile = await this.prisma.profile.findFirst({
@@ -438,8 +439,8 @@ export class FollowsService {
     const follow = await this.prisma.follow.findUnique({
       where: {
         followerId_followingId: {
-          followerId: requesterProfile.userId,
-          followingId: userId,
+          followerId: requesterProfile.id,
+          followingId: profileId,
         },
       },
     });
@@ -458,8 +459,8 @@ export class FollowsService {
 
     // Create notification for acceptance
     this.eventEmitter.emit('notification.create', {
-      recipientId: requesterProfile.userId,
-      senderId: userId,
+      recipientId: requesterProfile.id,
+      senderId: profileId,
       type: NotificationType.FOLLOW_ACCEPTED,
       content: 'accepted your follow request',
     });
@@ -469,12 +470,12 @@ export class FollowsService {
 
   /**
    * Reject and delete a pending follow request.
-   * @param userId - The authenticated user's ID
+   * @param profileId - The authenticated user's ID
    * @param requesterUsername - Username of the requester to reject
    * @throws NotFoundException if no pending request found
    */
   async rejectFollowRequest(
-    userId: string,
+    profileId: string,
     requesterUsername: string,
   ): Promise<SuccessResponse> {
     const requesterProfile = await this.prisma.profile.findFirst({
@@ -486,8 +487,8 @@ export class FollowsService {
     const follow = await this.prisma.follow.findUnique({
       where: {
         followerId_followingId: {
-          followerId: requesterProfile.userId,
-          followingId: userId,
+          followerId: requesterProfile.id,
+          followingId: profileId,
         },
       },
     });

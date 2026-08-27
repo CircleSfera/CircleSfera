@@ -5,9 +5,9 @@ import { PrismaService } from '../../../../prisma/prisma.service.js';
 export class GetTopContentQuery {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async execute(userId: string, limit = 5) {
+  async execute(profileId: string, limit = 5) {
     const topPosts = await this.prisma.post.findMany({
-      where: { userId, type: 'POST' },
+      where: { profileId, type: 'POST' },
       take: limit,
       orderBy: { performanceScore: 'desc' },
       include: {

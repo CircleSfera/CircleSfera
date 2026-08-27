@@ -6,12 +6,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import type { SearchHistory } from '@prisma/client';
 import {
   CurrentUser,
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import type { SearchHistory } from '../types/prisma.js';
 import { SearchService } from './search.service.js';
 
 /** REST controller for combined search, trending, user search, and search history. */
@@ -28,7 +28,7 @@ export class SearchController {
     @Query('q') query: string,
     @CurrentUser() user: CurrentUserData,
   ): Promise<any> {
-    const results = await this.searchService.search(query, user.userId);
+    const results = await this.searchService.search(query, user.profileId);
     return results;
   }
 
@@ -60,7 +60,7 @@ export class SearchController {
     @Query('q') query: string,
     @CurrentUser() user: CurrentUserData,
   ): Promise<any[]> {
-    return this.searchService.semanticSearchProfiles(query, 10, user.userId);
+    return this.searchService.semanticSearchProfiles(query, 10, user.profileId);
   }
 
   /** Search for users by username or full name with Social Discovery ranking. */
@@ -70,7 +70,7 @@ export class SearchController {
     @Query('q') query: string,
     @CurrentUser() user: CurrentUserData,
   ): Promise<any[]> {
-    return this.searchService.searchUsers(query, user.userId);
+    return this.searchService.searchUsers(query, user.profileId);
   }
 
   /** Get the user's recent search history. */
@@ -79,13 +79,13 @@ export class SearchController {
   async getHistory(
     @CurrentUser() user: CurrentUserData,
   ): Promise<SearchHistory[]> {
-    return await this.searchService.getHistory(user.userId);
+    return await this.searchService.getHistory(user.profileId);
   }
 
   /** Clear the user's search history. */
   @Delete('history')
   @UseGuards(JwtAuthGuard)
   async clearHistory(@CurrentUser() user: CurrentUserData): Promise<any> {
-    return await this.searchService.clearHistory(user.userId);
+    return await this.searchService.clearHistory(user.profileId);
   }
 }

@@ -73,18 +73,25 @@ export class ReviewPromotionUseCase {
       this.prisma,
       adminId,
     );
-    await this.notificationsService.create({
-      recipientId: promo.userId,
-      senderId,
-      type: NotificationType.MODERATION,
-      content:
-        status === PromotionStatus.ACTIVE
-          ? `¡Tu promoción ha sido aprobada! Tu contenido ahora llegará a más personas.`
-          : `Tu solicitud de promoción ha sido rechazada.${
-              note ? ` Motivo: ${note}` : ''
-            }`,
-      postId: promo.targetType === 'POST' ? promo.targetId : undefined,
+    const recipientProfile = await this.prisma.profile.findFirst({
+      where: { userId: promo.userId },
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
     });
+    if (recipientProfile) {
+      await this.notificationsService.create({
+        recipientId: recipientProfile.id,
+        senderId,
+        type: NotificationType.MODERATION,
+        content:
+          status === PromotionStatus.ACTIVE
+            ? `¡Tu promoción ha sido aprobada! Tu contenido ahora llegará a más personas.`
+            : `Tu solicitud de promoción ha sido rechazada.${
+                note ? ` Motivo: ${note}` : ''
+              }`,
+        postId: promo.targetType === 'POST' ? promo.targetId : undefined,
+      });
+    }
 
     return updated;
   }

@@ -37,7 +37,7 @@ This ERD describes the reality of the project's current model. It does not simpl
 
 ### profiles
 - `id` (PK)
-- `userId` (UNIQUE, FK → users.id)
+- `userId` (FK → users.id; indexed, not unique — account may own multiple profiles)
 - `username` (UNIQUE)
 - `fullName`
 - `bio`
@@ -51,6 +51,9 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `cover`
 - `coverStandardUrl`
 - `coverThumbnailUrl`
+- `isAccountBanned`
+- `accountBanReason`
+- `suspendedUntil`
 
 ### refresh_tokens
 - `id` (PK)
@@ -74,7 +77,7 @@ This ERD describes the reality of the project's current model. It does not simpl
 
 ### posts
 - `id` (PK)
-- `userId` (FK → users.id)
+- `profileId` (FK → profiles.id)
 - `caption`
 - `createdAt`
 - `updatedAt`
@@ -85,6 +88,7 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `contentRating` (`GENERAL | MATURE`)
 - `views`
 - `visibility` (`PUBLIC | FOLLOWERS | PRIVATE`)
+- `priceCents`
 - `audioId` (nullable FK → audio_tracks.id)
 
 ### post_media
@@ -101,11 +105,11 @@ This ERD describes the reality of the project's current model. It does not simpl
 
 ### post_tags
 - `postId` (FK → posts.id)
-- `userId` (FK → users.id)
+- `profileId` (FK → profiles.id)
 - `x`
 - `y`
 - `createdAt`
-- UNIQUE (`postId`, `userId`)
+- UNIQUE (`postId`, `profileId`)
 
 ### hashtags
 - `id` (PK)
@@ -186,10 +190,10 @@ This ERD describes the reality of the project's current model. It does not simpl
 
 ### close_friends
 - `id` (PK)
-- `userId` (FK → users.id)
-- `friendId`
+- `profileId` (FK → profiles.id)
+- `friendId` (FK → profiles.id)
 - `createdAt`
-- UNIQUE (`userId`, `friendId`)
+- UNIQUE (`profileId`, `friendId`)
 
 ---
 
@@ -332,8 +336,8 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `id` (PK)
 - `name`
 - `description`
-- `price`
-- `yearlyPrice`
+- `priceCents` (source of truth)
+- `yearlyPriceCents` (nullable)
 - `currency`
 - `interval`
 - `stripeProductId` (UNIQUE)
@@ -413,10 +417,11 @@ This ERD describes the reality of the project's current model. It does not simpl
 
 ### promotions
 - `id` (PK)
-- `userId` (FK → users.id)
+- `userId` (FK → users.id) — billing account (not profile)
 - `targetType`
 - `targetId`
-- `budget`
+- `budgetCents` (remaining budget; integer cents)
+- `dailyBudgetCents` (nullable; integer cents)
 - `currency`
 - `status` (`PENDING | ACTIVE | COMPLETED | REJECTED | CANCELLED | FAILED`)
 - `stripePaymentIntentId` (UNIQUE)
@@ -593,7 +598,13 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `users` 1 ── N `platform_subscriptions`
 - `platform_plans` 1 ── N `platform_subscriptions`
 - `users` 1 ── N `promotions`
+- `profiles` 1 ── N `close_friends` as owner (`profileId`)
+- `profiles` 1 ── N `close_friends` as friend (`friendId`)
 - `users` 1 ── N `reports`
+
+### Money units
+- Prefer `*Cents` Int columns (`priceCents`, `budgetCents`, `amountCents`, `lifetimeEarningsCents`).
+- `transactions.amount` is **already integer cents** under the legacy field name `amount` (public API contract — do not rename without a versioned migration).
 - `users` 1 ── N `admin_audit_logs`
 - `users` 1 ── 1 `user_settings`
 - `audio_tracks` 1 ── N `posts`

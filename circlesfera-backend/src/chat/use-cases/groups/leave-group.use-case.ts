@@ -16,9 +16,9 @@ export class LeaveGroupUseCase {
     return this.moduleRef.get(AppGateway, { strict: false });
   }
 
-  async execute(userId: string, conversationId: string) {
+  async execute(profileId: string, conversationId: string) {
     const participant = await this.prisma.participant.findFirst({
-      where: { conversationId, userId },
+      where: { conversationId, profileId },
     });
 
     if (!participant) {
@@ -37,8 +37,13 @@ export class LeaveGroupUseCase {
       include: {
         participants: {
           include: {
-            user: {
-              select: { id: true, profile: true },
+            profile: {
+              select: {
+                id: true,
+                username: true,
+                avatar: true,
+                fullName: true,
+              },
             },
           },
         },
@@ -48,13 +53,13 @@ export class LeaveGroupUseCase {
     if (updated) {
       updated?.participants?.forEach((p: any) => {
         this.gateway.server
-          .to(`user:${p.userId}`)
+          .to(`user:${p.profileId}`)
           .emit('conversation_updated', updated);
       });
     }
 
     this.gateway.server
-      .to(`user:${userId}`)
+      .to(`user:${profileId}`)
       .emit('conversationDeleted', { conversationId });
 
     return { success: true };

@@ -21,7 +21,7 @@ export class FollowsController {
     @Param('username') username: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.followsService.toggle(username, user.userId);
+    return this.followsService.toggle(username, user.profileId, user.userId);
   }
 
   /** Check follow status with a specific user. */
@@ -30,7 +30,7 @@ export class FollowsController {
     @Param('username') username: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.followsService.checkFollow(username, user.userId);
+    return this.followsService.checkFollow(username, user.profileId);
   }
 
   /** Get followers for a user. */
@@ -51,7 +51,7 @@ export class FollowsController {
     @Param('username') username: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.followsService.blockUser(user.userId, username);
+    return this.followsService.blockUser(user.profileId, username);
   }
 
   /** Unblock a previously blocked user. */
@@ -60,7 +60,7 @@ export class FollowsController {
     @Param('username') username: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.followsService.unblockUser(user.userId, username);
+    return this.followsService.unblockUser(user.profileId, username);
   }
 
   /** Mute a user by username. */
@@ -69,7 +69,7 @@ export class FollowsController {
     @Param('username') username: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.followsService.muteUser(user.userId, username);
+    return this.followsService.muteUser(user.profileId, username);
   }
 
   /** Unmute a previously muted user. */
@@ -78,31 +78,31 @@ export class FollowsController {
     @Param('username') username: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.followsService.unmuteUser(user.userId, username);
+    return this.followsService.unmuteUser(user.profileId, username);
   }
 
   /** List all muted users. */
   @Get('me/follow/muted')
   async getMuted(
     @CurrentUser() user: CurrentUserData,
-  ): Promise<(User & { profile: Profile | null })[]> {
-    return this.followsService.getMutedUsers(user.userId);
+  ): Promise<(Profile & { user: User })[]> {
+    return this.followsService.getMutedUsers(user.profileId);
   }
 
   /** List all blocked users. */
   @Get('me/follow/blocked')
   async getBlocked(
     @CurrentUser() user: CurrentUserData,
-  ): Promise<(User & { profile: Profile | null })[]> {
-    return this.followsService.getBlockedUsers(user.userId);
+  ): Promise<(Profile & { user: User })[]> {
+    return this.followsService.getBlockedUsers(user.profileId);
   }
 
   /** List pending follow requests (private account). */
   @Get('me/follow/pending')
   async getPendingRequests(
     @CurrentUser() user: CurrentUserData,
-  ): Promise<(User & { profile: Profile | null })[]> {
-    return this.followsService.getPendingRequests(user.userId);
+  ): Promise<(Profile & { user: User })[]> {
+    return this.followsService.getPendingRequests(user.profileId);
   }
 
   /** Accept a pending follow request. */
@@ -111,7 +111,7 @@ export class FollowsController {
     @Param('username') username: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.followsService.acceptFollowRequest(user.userId, username);
+    return this.followsService.acceptFollowRequest(user.profileId, username);
   }
 
   /** Reject a pending follow request. */
@@ -120,6 +120,6 @@ export class FollowsController {
     @Param('username') username: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.followsService.rejectFollowRequest(user.userId, username);
+    return this.followsService.rejectFollowRequest(user.profileId, username);
   }
 }

@@ -77,7 +77,7 @@ export class GetPromotionsQuery {
           }
         } else if (promo.targetType === PromotionTargetType.PROFILE) {
           const profile = await this.prisma.profile.findUnique({
-            where: { userId: promo.targetId },
+            where: { id: promo.targetId },
             select: { username: true, avatar: true },
           });
           if (profile) {
@@ -89,7 +89,11 @@ export class GetPromotionsQuery {
           }
         }
 
-        return { ...promo, target };
+        // Wire money as integer cents (budgetCents / dailyBudgetCents).
+        return {
+          ...promo,
+          target,
+        };
       }),
     );
 

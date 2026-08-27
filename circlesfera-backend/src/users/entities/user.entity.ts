@@ -5,6 +5,9 @@ export class UserEntity implements User {
   id!: string;
   email!: string;
 
+  isRootBanned!: boolean;
+  rootBanReason!: string | null;
+
   @Exclude()
   password!: string;
 
@@ -14,7 +17,6 @@ export class UserEntity implements User {
   strikeCount!: number;
   deletedAt!: Date | null;
   scheduledDeletionAt!: Date | null;
-  suspendedUntil!: Date | null;
 
   inviteCode!: string | null;
   referredById!: string | null;

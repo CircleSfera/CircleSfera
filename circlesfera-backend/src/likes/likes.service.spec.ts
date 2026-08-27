@@ -47,27 +47,27 @@ describe('LikesService', () => {
 
   describe('toggle', () => {
     const postId = 'post-1';
-    const userId = 'user-1';
+    const profileId = 'user-1';
 
     it('should like a post and notify owner if not self', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue({
         id: postId,
-        userId: 'owner-1',
+        profileId: 'owner-1',
       });
       mockPrismaService.like.findUnique.mockResolvedValue(null);
       mockPrismaService.like.create.mockResolvedValue({ id: 'like-1' });
 
-      const result = await service.toggle(postId, userId);
+      const result = await service.toggle(postId, profileId);
 
       expect(result).toEqual({ liked: true });
       expect(mockPrismaService.like.create).toHaveBeenCalledWith({
-        data: { postId, userId },
+        data: { postId, profileId },
       });
       expect(mockEventEmitter.emit).toHaveBeenCalledWith(
         'notification.create',
         expect.objectContaining({
           recipientId: 'owner-1',
-          senderId: userId,
+          senderId: profileId,
           type: 'LIKE',
         }),
       );
@@ -76,11 +76,11 @@ describe('LikesService', () => {
     it('should like a post without notification if self', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue({
         id: postId,
-        userId: userId,
+        profileId: profileId,
       });
       mockPrismaService.like.findUnique.mockResolvedValue(null);
 
-      const result = await service.toggle(postId, userId);
+      const result = await service.toggle(postId, profileId);
 
       expect(result).toEqual({ liked: true });
       expect(mockEventEmitter.emit).not.toHaveBeenCalled();
@@ -89,11 +89,11 @@ describe('LikesService', () => {
     it('should unlike a post if already liked', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue({
         id: postId,
-        userId: 'owner-1',
+        profileId: 'owner-1',
       });
       mockPrismaService.like.findUnique.mockResolvedValue({ id: 'like-1' });
 
-      const result = await service.toggle(postId, userId);
+      const result = await service.toggle(postId, profileId);
 
       expect(result).toEqual({ liked: false });
       expect(mockPrismaService.like.delete).toHaveBeenCalledWith({
@@ -105,7 +105,7 @@ describe('LikesService', () => {
     it('should throw NotFoundException if post not found', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue(null);
 
-      await expect(service.toggle(postId, userId)).rejects.toThrow(
+      await expect(service.toggle(postId, profileId)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -113,19 +113,19 @@ describe('LikesService', () => {
 
   describe('checkLike', () => {
     const postId = 'post-1';
-    const userId = 'user-1';
+    const profileId = 'user-1';
 
     it('should return true if like exists', async () => {
       mockPrismaService.like.findUnique.mockResolvedValue({ id: 'like-1' });
 
-      const result = await service.checkLike(postId, userId);
+      const result = await service.checkLike(postId, profileId);
       expect(result).toEqual({ liked: true });
     });
 
     it('should return false if like does not exist', async () => {
       mockPrismaService.like.findUnique.mockResolvedValue(null);
 
-      const result = await service.checkLike(postId, userId);
+      const result = await service.checkLike(postId, profileId);
       expect(result).toEqual({ liked: false });
     });
   });
@@ -133,7 +133,7 @@ describe('LikesService', () => {
   describe('getLikesByPost', () => {
     it('should return users who liked the post', async () => {
       mockPrismaService.like.findMany.mockResolvedValue([
-        { user: { id: 'user-1', profile: { firstName: 'John' } } },
+        { profile: { id: 'user-1', profile: { firstName: 'John' } } },
       ]);
 
       const result = await service.getLikesByPost('post-1');

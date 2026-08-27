@@ -20,7 +20,11 @@ export class GetPromotionsQuery {
       where.user = {
         OR: [
           { email: { contains: search, mode: 'insensitive' } },
-          { profile: { username: { contains: search, mode: 'insensitive' } } },
+          {
+            profiles: {
+              some: { username: { contains: search, mode: 'insensitive' } },
+            },
+          },
         ],
       };
     }
@@ -33,7 +37,7 @@ export class GetPromotionsQuery {
         orderBy: { createdAt: 'desc' },
         include: {
           user: {
-            include: { profile: true },
+            include: { profiles: true },
           },
         },
       }),
@@ -53,7 +57,10 @@ export class GetPromotionsQuery {
             where: { id: promo.targetId },
           });
         }
-        return { ...promo, target };
+        return {
+          ...promo,
+          target,
+        };
       }),
     );
 

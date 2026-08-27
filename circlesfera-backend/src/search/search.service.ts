@@ -32,11 +32,11 @@ export class SearchService {
   async semanticSearchPosts(
     query: string,
     limit = 10,
-    userId?: string,
+    profileId?: string,
   ): Promise<any[]> {
     if (!query || query.length < 3) return [];
 
-    const cacheKey = `search:semantic:${query.toLowerCase().replace(/\s/g, '_')}:${limit}:${userId || 'guest'}`;
+    const cacheKey = `search:semantic:${query.toLowerCase().replace(/\s/g, '_')}:${limit}:${profileId || 'guest'}`;
     const cached = await this.cacheManager.get<any[]>(cacheKey);
     if (cached) return cached;
 
@@ -48,7 +48,7 @@ export class SearchService {
       // 2. Find similar posts via post_embeddings (pgvector cosine distance)
       let matches: any[];
 
-      if (userId) {
+      if (profileId) {
         matches = await this.prisma.$queryRaw`
           SELECT p.id,
                  (pe.vector <=> ${vectorLiteral}::vector) as distance
@@ -56,8 +56,8 @@ export class SearchService {
           JOIN "posts" p ON p.id = pe."postId"
           WHERE p.visibility = 'PUBLIC'
             AND p."moderationStatus" = 'VISIBLE'
-            AND p."userId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${userId})
-            AND p."userId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${userId})
+            AND p."profileId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
+            AND p."profileId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
           ORDER BY distance ASC
           LIMIT ${limit}
         `;
@@ -82,7 +82,7 @@ export class SearchService {
           const post = await this.prisma.post.findUnique({
             where: { id: m.id },
             include: {
-              user: { include: { profile: true } },
+              profile: { include: { user: true } },
               media: true,
               poll: { select: { id: true } },
               qnaBox: { select: { id: true } },
@@ -108,11 +108,11 @@ export class SearchService {
   async semanticSearchProfiles(
     query: string,
     limit = 10,
-    userId?: string,
+    profileId?: string,
   ): Promise<any[]> {
     if (!query || query.length < 3) return [];
 
-    const cacheKey = `search:semantic_profiles:${query.toLowerCase().replace(/\s/g, '_')}:${limit}:${userId || 'guest'}`;
+    const cacheKey = `search:semantic_profiles:${query.toLowerCase().replace(/\s/g, '_')}:${limit}:${profileId || 'guest'}`;
     const cached = await this.cacheManager.get<any[]>(cacheKey);
     if (cached) return cached;
 
@@ -121,14 +121,14 @@ export class SearchService {
       const vectorLiteral = JSON.stringify(queryEmbedding);
       let matches: any[];
 
-      if (userId) {
+      if (profileId) {
         matches = await this.prisma.$queryRaw`
           SELECT pe."profileId",
                  (pe.vector <=> ${vectorLiteral}::vector) as distance
           FROM "profile_embeddings" pe
           JOIN "profiles" pr ON pr.id = pe."profileId"
-          WHERE pr."userId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${userId})
-            AND pr."userId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${userId})
+          WHERE pr."profileId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
+            AND pr."profileId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
           ORDER BY distance ASC
           LIMIT ${limit}
         `;
@@ -175,9 +175,9 @@ export class SearchService {
   /**
    * Perform a combined search for users and hashtags. Saves search history if authenticated.
    * @param query - The search query (min 2 chars)
-   * @param userId - Optional authenticated user ID for history tracking
+   * @param profileId - Optional authenticated user ID for history tracking
    */
-  async search(query: string, userId?: string): Promise<SearchResponse> {
+  async search(query: string, profileId?: string): Promise<SearchResponse> {
     if (!query || query.length < 2) {
       return {
         users: [],
@@ -188,16 +188,16 @@ export class SearchService {
     }
 
     const sanitizedQuery = query.toLowerCase();
-    const cacheKey = `search:combined:v2:${sanitizedQuery.replace(/\s/g, '_')}:${userId || 'guest'}`;
+    const cacheKey = `search:combined:v2:${sanitizedQuery.replace(/\s/g, '_')}:${profileId || 'guest'}`;
     const cached = await this.cacheManager.get<SearchResponse>(cacheKey);
     if (cached) return cached;
 
-    // Save search history if userId is provided
-    if (userId) {
+    // Save search history if profileId is provided
+    if (profileId) {
       this.prisma.searchHistory
         .create({
           data: {
-            userId,
+            profileId,
             query: sanitizedQuery,
           },
         })
@@ -208,7 +208,7 @@ export class SearchService {
 
     const [users, hashtags, semanticPosts, semanticProfiles] =
       await Promise.all([
-        this.searchUsers(sanitizedQuery, userId),
+        this.searchUsers(sanitizedQuery, profileId),
         this.prisma.hashtag.findMany({
           where: {
             tag: {
@@ -221,17 +221,17 @@ export class SearchService {
             postCount: 'desc',
           },
         }),
-        this.semanticSearchPosts(sanitizedQuery, 3, userId),
+        this.semanticSearchPosts(sanitizedQuery, 3, profileId),
         query.length >= 3
-          ? this.semanticSearchProfiles(sanitizedQuery, 5, userId)
+          ? this.semanticSearchProfiles(sanitizedQuery, 5, profileId)
           : Promise.resolve([]),
       ]);
 
-    const keywordUserIds = new Set(users.map((u: { id: string }) => u.id));
+    const keywordProfileIds = new Set(users.map((u: { id: string }) => u.id));
     const uniqueSemanticProfiles = (semanticProfiles || []).filter(
-      (p: { user?: { id?: string }; userId?: string }) => {
-        const id = p.user?.id || p.userId;
-        return id && !keywordUserIds.has(id);
+      (p: { user?: { id?: string }; profileId?: string }) => {
+        const id = p.user?.id || p.profileId;
+        return id && !keywordProfileIds.has(id);
       },
     );
 
@@ -248,11 +248,11 @@ export class SearchService {
 
   /**
    * Get the user's 10 most recent unique search queries.
-   * @param userId - The authenticated user's ID
+   * @param profileId - The authenticated user's ID
    */
-  async getHistory(userId: string) {
+  async getHistory(profileId: string) {
     return this.prisma.searchHistory.findMany({
-      where: { userId },
+      where: { profileId },
       orderBy: { createdAt: 'desc' },
       take: 10,
       distinct: ['query'],
@@ -261,11 +261,11 @@ export class SearchService {
 
   /**
    * Clear all search history for a user.
-   * @param userId - The authenticated user's ID
+   * @param profileId - The authenticated user's ID
    */
-  async clearHistory(userId: string) {
+  async clearHistory(profileId: string) {
     return this.prisma.searchHistory.deleteMany({
-      where: { userId },
+      where: { profileId },
     });
   }
 
@@ -275,57 +275,42 @@ export class SearchService {
    * @param query - The search query
    * @param viewerId - Optional ID of the user performing the search
    */
+
   async searchUsers(query: string, viewerId?: string): Promise<any[]> {
     if (!query || query.length < 2) return [];
 
     const sanitizedQuery = query.toLowerCase();
 
     // 1. Get potential matches (extended pool for ranking)
-    const users = await this.prisma.user.findMany({
+    const profiles = await this.prisma.profile.findMany({
       where: {
         OR: [
-          {
-            profile: {
-              username: { contains: sanitizedQuery, mode: 'insensitive' },
-            },
-          },
-          {
-            profile: {
-              fullName: { contains: sanitizedQuery, mode: 'insensitive' },
-            },
-          },
+          { username: { contains: sanitizedQuery, mode: 'insensitive' } },
+          { fullName: { contains: sanitizedQuery, mode: 'insensitive' } },
         ],
       },
       take: 30, // Larger pool for better ranking
       include: {
-        profile: {
-          select: {
-            username: true,
-            fullName: true,
-            avatar: true,
-            thumbnailUrl: true,
-            standardUrl: true,
-          },
-        },
+        user: { select: { verificationLevel: true } },
         _count: {
           select: { followers: true },
         },
       },
     });
 
-    if (users.length === 0) return [];
+    if (profiles.length === 0) return [];
 
     // 2. Personalize ranking if viewerId is provided
     const rankedUsers = await Promise.all(
-      users.map(async (user) => {
+      profiles.map(async (profile) => {
         let mutualCount = 0;
         let followedByFriendNames: string[] = [];
 
-        if (viewerId && viewerId !== user.id) {
+        if (viewerId && viewerId !== profile.id) {
           // Social Discovery: Find people followed by viewer who follow this target
           const mutualFollows = await this.prisma.follow.findMany({
             where: {
-              followingId: user.id,
+              followingId: profile.id,
               follower: {
                 followers: {
                   some: { followerId: viewerId },
@@ -334,34 +319,26 @@ export class SearchService {
             },
             take: 3,
             select: {
-              follower: {
-                select: { profile: { select: { username: true } } },
-              },
+              follower: { select: { username: true } },
             },
           });
 
           mutualCount = mutualFollows.length;
           followedByFriendNames = mutualFollows
-            .map((f) => f.follower.profile?.username)
+            .map((f) => f.follower.username)
             .filter(Boolean) as string[];
         }
 
-        /**
-         * Ponderación de Autoridad & Algoritmo de Relevancia
-         * - Base: log10 de seguidores (meritocracia histórica)
-         * - Multiplicador Social: +5 por cada amigo mutuo (descubrimiento orgánico)
-         * - Coeficiente de Autoridad: +20 si es Verificado (confianza oficial)
-         */
-        const authoritySignal = user.verificationLevel !== 'BASIC' ? 20 : 0;
+        const authoritySignal =
+          profile.user.verificationLevel !== 'BASIC' ? 20 : 0;
         const score =
-          Math.log10(user._count.followers + 1) +
+          Math.log10(profile._count.followers + 1) +
           mutualCount * 5 +
           authoritySignal;
 
         return {
-          ...user.profile,
-          id: user.id,
-          verificationLevel: user.verificationLevel,
+          ...profile,
+          verificationLevel: profile.user.verificationLevel,
           mutualCount,
           followedByFriends: followedByFriendNames,
           score,
@@ -405,7 +382,7 @@ export class SearchService {
     const posts = await this.prisma.post.findMany({
       where: { id: { in: postIds } },
       include: {
-        user: { include: { profile: true } },
+        profile: { include: { user: true } },
         media: true,
         _count: { select: { likes: true, comments: true } },
       },
@@ -434,7 +411,7 @@ export class SearchService {
         visibility: 'PUBLIC',
       },
       include: {
-        user: { include: { profile: true } },
+        profile: { include: { user: true } },
         media: true,
         _count: { select: { likes: true, comments: true } },
       },
@@ -444,8 +421,10 @@ export class SearchService {
     // Rank by Authority Signal + Simple engagement
     return posts
       .sort((a, b) => {
-        const authorityA = a.user.verificationLevel !== 'BASIC' ? 100 : 0;
-        const authorityB = b.user.verificationLevel !== 'BASIC' ? 100 : 0;
+        const authorityA =
+          a.profile.user.verificationLevel !== 'BASIC' ? 100 : 0;
+        const authorityB =
+          b.profile.user.verificationLevel !== 'BASIC' ? 100 : 0;
 
         const scoreA =
           a._count.likes * 1.2 + a._count.comments * 2.5 + authorityA;

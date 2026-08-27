@@ -311,13 +311,19 @@ export class SlackService {
     try {
       const user = await this.prisma.user.findFirst({
         where: {
-          OR: [{ email: searchTerm }, { profile: { username: searchTerm } }],
+          OR: [
+            { email: searchTerm },
+            { profiles: { some: { username: searchTerm } } },
+          ],
         },
         include: {
-          profile: true,
-          posts: {
-            take: 1,
-            orderBy: { createdAt: 'desc' },
+          profiles: {
+            include: {
+              posts: {
+                take: 1,
+                orderBy: { createdAt: 'desc' },
+              },
+            },
           },
         },
       });
@@ -335,7 +341,7 @@ export class SlackService {
             type: 'header',
             text: {
               type: 'plain_text',
-              text: `🔍 Información de Usuario: @${user.profile?.username || 'Desconocido'}`,
+              text: `🔍 Información de Usuario: @${user.profiles[0]?.username || 'Desconocido'}`,
             },
           },
           {
@@ -358,24 +364,24 @@ export class SlackService {
               { type: 'mrkdwn', text: `*Role:*\n${user.role}` },
             ],
           },
-          ...(user.profile?.bio
+          ...(user.profiles[0]?.bio
             ? [
                 {
                   type: 'section',
                   text: {
                     type: 'mrkdwn',
-                    text: `*Bio:*\n_${user.profile.bio}_`,
+                    text: `*Bio:*\n_${user.profiles[0].bio}_`,
                   },
                 },
               ]
             : []),
-          ...(user.posts && user.posts.length > 0
+          ...(user.profiles[0]?.posts && user.profiles[0]?.posts.length > 0
             ? [
                 {
                   type: 'section',
                   text: {
                     type: 'mrkdwn',
-                    text: `*Último Post:*\n${user.posts[0].caption || '(Sin texto)'}`,
+                    text: `*Último Post:*\n${user.profiles[0]?.posts[0].caption || '(Sin texto)'}`,
                   },
                 },
               ]
@@ -494,12 +500,12 @@ export class SlackService {
           const post = await this.prisma.post.findUnique({
             where: { id: report.targetId },
           });
-          if (post) reportedUserId = post.userId;
+          if (post) reportedUserId = post.profileId;
         } else if (report.targetType === 'COMMENT') {
           const comment = await this.prisma.comment.findUnique({
             where: { id: report.targetId },
           });
-          if (comment) reportedUserId = comment.userId;
+          if (comment) reportedUserId = comment.profileId;
         }
 
         if (reportedUserId) {

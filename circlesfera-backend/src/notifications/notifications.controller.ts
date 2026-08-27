@@ -21,13 +21,13 @@ export class NotificationsController {
     @CurrentUser() user: CurrentUserData,
     @Query() pagination: PaginationDto,
   ) {
-    return this.notificationsService.findAll(user.userId, pagination);
+    return this.notificationsService.findAll(user.profileId, pagination);
   }
 
   /** Get the count of unread notifications. */
   @Get('unread-count')
   async getUnreadCount(@CurrentUser() user: CurrentUserData) {
-    return this.notificationsService.getUnreadCount(user.userId);
+    return this.notificationsService.getUnreadCount(user.profileId);
   }
 
   /** Mark a single notification as read. */
@@ -36,13 +36,13 @@ export class NotificationsController {
     @Param('id') id: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.notificationsService.markAsRead(id, user.userId);
+    return this.notificationsService.markAsRead(id, user.profileId);
   }
 
   /** Mark all notifications as read. */
   @Put('read-all')
   async markAllAsRead(@CurrentUser() user: CurrentUserData) {
-    await this.notificationsService.markAllAsRead(user.userId);
+    await this.notificationsService.markAllAsRead(user.profileId);
     return { success: true };
   }
 }

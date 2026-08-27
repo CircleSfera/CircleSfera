@@ -1,5 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// CircleSfera Prisma schema — canonical data model.
+// Docs: https://pris.ly/d/prisma-schema
+// Domain sections below; enums live at the end. Reorder of models/enums is cosmetic (no migration).
 
 generator client {
   provider        = "prisma-client-js"
@@ -11,6 +12,10 @@ datasource db {
   extensions = [vector]
 }
 
+// =============================================================================
+// === Auth / Account
+// =============================================================================
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
@@ -18,175 +23,117 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Account Status
+  // Account status
   isActive            Boolean   @default(true)
+  isRootBanned        Boolean   @default(false)
+  rootBanReason       String?   @db.Text
   strikeCount         Int       @default(0)
-  deletedAt           DateTime? // Soft-delete / deactivation timestamp (when user left)
+  deletedAt           DateTime? // Soft-delete / deactivation timestamp
   scheduledDeletionAt DateTime? // Hard-delete due date (grace window); null = not scheduled
-  suspendedUntil      DateTime? // Temporary suspension; null = not suspended
 
-  profile           Profile?
-  posts             Post[]
-  stories           Story[]
-  liveStreams       LiveStream[]   @relation("LiveStreamHost")
-  coHostedStreams   LiveStream[]   @relation("LiveStreamCoHost")
-  comments          Comment[]
-  likes             Like[]
-  commentLikes      CommentLike[]
-  followers         Follow[]       @relation("UserFollowing")
-  following         Follow[]       @relation("UserFollowers")
-  notifications     Notification[] @relation("NotificationRecipient")
-  sentNotifications Notification[] @relation("NotificationSender")
-  refreshTokens     RefreshToken[]
-
-  // Chat relations
-  participants     Participant[]
-  messages         Message[]
-  messageReactions MessageReaction[] // New: User reactions to messages
-
-  // Block & Mute relations
-  blockedBy Block[] @relation("BlockedBy")
-  blocking  Block[] @relation("Blocking")
-  mutedBy   Mute[]  @relation("MutedBy")
-  muting    Mute[]  @relation("Muting")
-
-  // Bookmarks
-  bookmarks   Bookmark[]
-  collections Collection[]
-
-  // Highlights
-  highlights Highlight[]
-
-  // Passkeys for WebAuthn
-  passkeys         Passkey[]
-  currentChallenge String? // Temporary storage for registration/auth challenge
-
-  // Close Friends
-  closeFriends CloseFriend[]
-
-  // Story Views
-  storyViews StoryView[]
-
-  // Story Reactions
-  storyReactions StoryReaction[]
-
-  // Tagged in posts
-  taggedPosts PostTag[]
-
-  // Reports
-  reports Report[] @relation("ReportReporter")
-
-  // Search History
-  searchHistory SearchHistory[]
-
-  // Optional link from Admin Panel AdminIdentity (correlation only, never auth)
-  linkedAdminIdentities AdminIdentity[]
-
-  // GDPR Data Export
-  dataExportRequests DataExportRequest[]
-
-  // Promotions
-  promotions Promotion[]
-
-  // Activity Status
   isOnline   Boolean   @default(false)
   lastSeenAt DateTime?
 
-  // Abuse / trust signals — raw IP retained for account lifetime; hashes for clustering indexes.
-  // Public APIs never expose raw IP; GDPR export and admin do (transparency).
-  signupIp        String?
-  lastIp          String?
-  signupIpHash    String?
-  lastIpHash      String?
-  signupCountry   String?
-  botLabeledAt    DateTime?
-  botLabelReason  String?
-  deviceSignals   DeviceSignal[]
-
-  // Platform Subscriptions & Connect
-  stripeCustomerId       String?                @unique
-  stripeConnectAccountId String?                @unique
-  platformSubscriptions  PlatformSubscription[]
-  postViews              PostView[]
-  interactionEvents      InteractionEvent[]
-  metrics                UserMetric[]
-
-  // Growth & Referrals
-  inviteCode   String? @unique
-  referredById String?
-  referredBy   User?   @relation("UserReferrals", fields: [referredById], references: [id])
-  referrals    User[]  @relation("UserReferrals")
-
-  role Role @default(USER)
+  role              Role              @default(USER)
+  verificationLevel VerificationLevel @default(BASIC)
+  accountType       AccountType       @default(PERSONAL)
 
   // Identity & KYC
   identityVerifiedAt      DateTime?
   dateOfBirth             DateTime?
   stripeIdentitySessionId String?   @unique
+  emailVerified           DateTime?
+  verificationToken       String?   @unique
 
-  // Verification and Reset Tokens
-  emailVerified     DateTime?
-  verificationToken String?   @unique
-
-  // 2FA (TOTP)
+  // Auth secrets
   isTwoFactorEnabled Boolean   @default(false)
   twoFactorSecret    String?
   resetToken         String?   @unique
   resetTokenExpires  DateTime?
+  currentChallenge   String? // WebAuthn registration/auth challenge (temporary)
 
-  // Verification & Account Type
-  verificationLevel VerificationLevel @default(BASIC)
-  accountType       AccountType       @default(PERSONAL)
+  // Abuse / trust — raw IP for account lifetime; hashes for clustering. Public APIs never expose raw IP.
+  signupIp       String?
+  lastIp         String?
+  signupIpHash   String?
+  lastIpHash     String?
+  signupCountry  String?
+  botLabeledAt   DateTime?
+  botLabelReason String?
 
-  // User Settings
-  settings UserSettings?
+  // Growth & referrals
+  inviteCode   String? @unique
+  referredById String?
+  referredBy   User?   @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals    User[]  @relation("UserReferrals")
 
-  // Push Notifications
-  pushSubscriptions PushSubscription[]
+  // Stripe Connect / platform billing
+  stripeCustomerId       String?                @unique
+  stripeConnectAccountId String?                @unique
 
-  // Virtual Economy & Monetization
-  monetization         Monetization?
-  sentTransactions     Transaction[] @relation("SentTransactions")
-  receivedTransactions Transaction[] @relation("ReceivedTransactions")
-
-  postUnlocks       PostUnlock[]
-  storyUnlocks      StoryUnlock[]
-  messageUnlocks    MessageUnlock[]
-  sentLiveGifts     LiveGift[]      @relation("LiveGiftSender")
-  receivedLiveGifts LiveGift[]      @relation("LiveGiftReceiver")
-
-  // Feed preferences (hide post/author, mute keywords)
-  feedHiddenPosts     FeedHiddenPost[]
-  feedHiddenAuthors   FeedHiddenAuthor[] @relation("FeedHidingAuthor")
-  feedHiddenByAuthors FeedHiddenAuthor[] @relation("FeedHiddenAsAuthor")
-  feedMutedKeywords   FeedMutedKeyword[]
-
-  // Support
-  supportTickets SupportTicket[]
-  appeals        Appeal[]
-
-  // Edit Projects (Drafts)
-  editProjects EditProject[]
-
-  // A/B Testing
-  userExperiments UserExperiment[]
-
-  // Interactive Features
-  pollVotes        PollVote[]
-  qnaAnswers       QnaAnswer[]
-  stripePayoutLogs StripePayoutLog[]
+  // Relations (account-scoped; social content lives on Profile)
+  profiles              Profile[]
+  refreshTokens         RefreshToken[]
+  passkeys              Passkey[]
+  deviceSignals         DeviceSignal[]
+  settings              UserSettings?
+  linkedAdminIdentities AdminIdentity[] // Correlation only, never auth
+  dataExportRequests    DataExportRequest[]
+  pushSubscriptions     PushSubscription[]
+  promotions            Promotion[]
+  platformSubscriptions PlatformSubscription[]
+  interactionEvents     InteractionEvent[]
+  monetization          Monetization?
+  sentTransactions      Transaction[]          @relation("SentTransactions")
+  receivedTransactions  Transaction[]          @relation("ReceivedTransactions")
+  postUnlocks           PostUnlock[]
+  storyUnlocks          StoryUnlock[]
+  messageUnlocks        MessageUnlock[]
+  sentLiveGifts         LiveGift[]             @relation("LiveGiftSender")
+  receivedLiveGifts     LiveGift[]             @relation("LiveGiftReceiver")
+  supportTickets        SupportTicket[]
+  appeals               Appeal[]
+  userExperiments       UserExperiment[]
+  stripePayoutLogs      StripePayoutLog[]
 
   @@index([isOnline])
-  @@index([verificationToken])
-  @@index([resetToken])
   @@index([scheduledDeletionAt])
-  @@index([suspendedUntil])
   @@index([signupIp])
   @@index([lastIp])
   @@index([signupIpHash])
   @@index([lastIpHash])
   @@index([botLabeledAt])
   @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  userAgent String?
+  ipAddress String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Passkey {
+  id           String   @id @default(uuid())
+  userId       String
+  credentialID String   @unique
+  publicKey    Bytes
+  counter      BigInt
+  transports   String[] @default([])
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("passkeys")
 }
 
 /// First-party device hash for T&S clustering. visitorHash is HMAC(visitorId).
@@ -205,73 +152,59 @@ model DeviceSignal {
   @@map("device_signals")
 }
 
-model EditProject {
-  id        String   @id @default(uuid())
-  userId    String
-  name      String?
-  mediaUrl  String
-  mediaType String   @default("image")
-  state     Json
-  createdAt DateTime @default(now())
+model UserSettings {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  privacyLevel         Visibility    @default(PUBLIC)
+  contentPreference    ContentRating @default(GENERAL)
+  blurSensitiveContent Boolean       @default(true)
+  emailNotifications   Boolean       @default(true)
+  pushNotifications    Boolean       @default(true)
+  isOnboarded          Boolean       @default(false)
+
   updatedAt DateTime @updatedAt
+
+  @@map("user_settings")
+}
+
+model DataExportRequest {
+  id        String       @id @default(uuid())
+  userId    String
+  status    ExportStatus @default(PENDING)
+  expiresAt DateTime?
+  url       String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, updatedAt])
-  @@map("edit_projects")
+  @@index([userId])
+  @@map("data_export_requests")
 }
 
-enum Role {
-  USER
-  ADMIN
-  MODERATOR
-  SUPPORT
-  FINANCE
-}
-
-enum VerificationLevel {
-  BASIC
-  VERIFIED
-  BUSINESS
-  ELITE
-}
-
-enum AccountType {
-  PERSONAL
-  CREATOR
-  BUSINESS
-}
-
-enum PostType {
-  POST
-  FRAME
-}
-
-enum ModerationStatus {
-  VISIBLE
-  FLAGGED
-  HIDDEN
-  REMOVED
-}
-
-model RefreshToken {
+model PushSubscription {
   id        String   @id @default(uuid())
-  token     String   @unique
   userId    String
-  userAgent String?
-  ipAddress String?
-  expiresAt DateTime
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@map("refresh_tokens")
+  @@map("push_subscriptions")
 }
+
+// =============================================================================
+// === Profile / Social
+// =============================================================================
 
 model Profile {
   id                String  @id @default(uuid())
-  userId            String  @unique
+  userId            String
   username          String  @unique
   fullName          String?
   bio               String?
@@ -287,21 +220,67 @@ model Profile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  embedding ProfileEmbedding?
+  // Account Ban Flags
 
-  @@index([username])
+  isAccountBanned  Boolean   @default(false)
+  accountBanReason String?   @db.Text
+  suspendedUntil   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Social Relations Moved from User
+
+  posts               Post[]
+  stories             Story[]
+  liveStreams         LiveStream[]       @relation("LiveStreamHost")
+  coHostedStreams     LiveStream[]       @relation("LiveStreamCoHost")
+  comments            Comment[]
+  likes               Like[]
+  commentLikes        CommentLike[]
+  followers           Follow[]           @relation("UserFollowing")
+  following           Follow[]           @relation("UserFollowers")
+  notifications       Notification[]     @relation("NotificationRecipient")
+  sentNotifications   Notification[]     @relation("NotificationSender")
+  participants        Participant[]
+  messages            Message[]
+  messageReactions    MessageReaction[] // New: User reactions to messages
+  blockedBy           Block[]            @relation("BlockedBy")
+  blocking            Block[]            @relation("Blocking")
+  mutedBy             Mute[]             @relation("MutedBy")
+  muting              Mute[]             @relation("Muting")
+  bookmarks           Bookmark[]
+  collections         Collection[]
+  highlights          Highlight[]
+  closeFriends        CloseFriend[] @relation("CloseFriendOwner")
+  closeFriendOf       CloseFriend[] @relation("CloseFriendTarget")
+  storyViews          StoryView[]
+  storyReactions      StoryReaction[]
+  taggedPosts         PostTag[]
+  reports             Report[]           @relation("ReportReporter")
+  searchHistory       SearchHistory[]
+  postViews           PostView[]
+  feedHiddenPosts     FeedHiddenPost[]
+  feedHiddenAuthors   FeedHiddenAuthor[] @relation("FeedHidingAuthor")
+  feedHiddenByAuthors FeedHiddenAuthor[] @relation("FeedHiddenAsAuthor")
+  feedMutedKeywords   FeedMutedKeyword[]
+  editProjects        EditProject[]
+  pollVotes           PollVote[]
+  qnaAnswers          QnaAnswer[]
+  metrics             ProfileMetric[]
+  embedding           ProfileEmbedding?
+
+  @@index([userId])
   @@map("profiles")
 }
 
 model Post {
   id        String   @id @default(uuid())
-  userId    String
+  profileId String
   caption   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile       Profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
   media         PostMedia[] // New: Support for multiple media files
   comments      Comment[]
   likes         Like[]
@@ -312,6 +291,7 @@ model Post {
   postViews     PostView[] // New: Analytics support
 
   // New: Sharing in Chat
+
   sharedInMessages Message[] @relation("SharedPosts")
 
   tags PostTag[] // New: Tagged users
@@ -334,6 +314,7 @@ model Post {
   moderationNote   String?          @db.Text
 
   // Premium Content
+
   isPremium   Boolean      @default(false)
   priceCents  Int          @default(0) // Price in fiat cents (e.g., 500 = $5.00)
   postUnlocks PostUnlock[]
@@ -345,68 +326,17 @@ model Post {
   qnaBox          QnaBox?
 
   // Feed preferences
+
   hiddenByUsers FeedHiddenPost[]
 
-  @@index([userId, type, visibility, createdAt, moderationStatus])
-  @@index([userId])
+  @@index([profileId, type, visibility, createdAt, moderationStatus])
   @@index([type])
   @@index([createdAt])
   @@index([visibility])
   @@index([contentRating])
   @@index([moderationStatus, visibility, createdAt(sort: Desc)])
+  @@index([scheduledStatus, scheduledAt])
   @@map("posts")
-}
-
-model PostTag {
-  postId    String
-  userId    String
-  x         Float? // Optional: X coordinate (0-1)
-  y         Float? // Optional: Y coordinate (0-1)
-  createdAt DateTime @default(now())
-
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([postId, userId])
-  @@index([userId])
-  @@map("post_tags")
-}
-
-model Bookmark {
-  id        String   @id @default(uuid())
-  userId    String
-  postId    String
-  createdAt DateTime @default(now())
-
-  collectionId String?
-  collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, postId])
-  @@index([userId, createdAt])
-  @@index([userId])
-  @@index([postId])
-  @@index([collectionId])
-  @@map("bookmarks")
-}
-
-model Collection {
-  id           String   @id @default(uuid())
-  userId       String
-  name         String
-  coverUrl     String?
-  standardUrl  String? // New: Optimized variant
-  thumbnailUrl String? // New: Optimized variant
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bookmarks Bookmark[]
-
-  @@index([userId])
-  @@map("collections")
 }
 
 model PostMedia {
@@ -427,9 +357,65 @@ model PostMedia {
   @@map("post_media")
 }
 
+model PostTag {
+  postId    String
+  profileId String
+  x         Float? // Optional: X coordinate (0-1)
+  y         Float? // Optional: Y coordinate (0-1)
+  createdAt DateTime @default(now())
+
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, profileId])
+  @@index([profileId])
+  @@map("post_tags")
+}
+
+model PostHashtag {
+  postId    String
+  hashtagId String
+  createdAt DateTime @default(now())
+
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  hashtag Hashtag @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, hashtagId])
+  @@index([hashtagId])
+  @@map("post_hashtags")
+}
+
+model Hashtag {
+  id        String   @id @default(uuid())
+  tag       String   @unique
+  postCount Int      @default(0)
+  createdAt DateTime @default(now())
+
+  posts PostHashtag[]
+
+  @@index([postCount(sort: Desc)])
+  @@map("hashtags")
+}
+
+model Audio {
+  id           String   @id @default(uuid())
+  title        String
+  artist       String
+  url          String
+  thumbnailUrl String?
+  duration     Int // in seconds
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  posts   Post[]
+  stories Story[]
+
+  @@map("audio_tracks")
+}
+
 model Story {
   id           String   @id @default(uuid())
-  userId       String
+  profileId    String
   url          String
   standardUrl  String? // New: Optimized variant
   thumbnailUrl String? // New: Optimized variant
@@ -438,9 +424,10 @@ model Story {
   createdAt    DateTime @default(now())
 
   // Close Friends support
+
   isCloseFriendsOnly Boolean @default(false)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   audioId String?
   audio   Audio?  @relation(fields: [audioId], references: [id], onDelete: SetNull)
@@ -449,33 +436,38 @@ model Story {
   moderationNote   String?
 
   // Relation to highlights
+
   highlightStories HighlightStory[]
 
   // Views
+
   views StoryView[]
 
   // New: Story Reactions
+
   reactions StoryReaction[]
 
   // New: Sharing in Chat/DM
+
   sharedInMessages Message[] @relation("SharedStories")
 
   notifications Notification[]
 
   // Premium Content
+
   isPremium    Boolean       @default(false)
   priceCents   Int           @default(0)
   storyUnlocks StoryUnlock[]
 
   // Scheduling & Interactive Features
+
   scheduledAt     DateTime?
   scheduledStatus ScheduledPostStatus @default(PUBLISHED)
   poll            Poll?
   qnaBox          QnaBox?
 
-  @@index([userId, expiresAt])
-  @@index([userId, createdAt])
-  @@index([userId])
+  @@index([profileId, expiresAt])
+  @@index([profileId, createdAt])
   @@index([expiresAt])
   @@index([createdAt])
   @@map("stories")
@@ -487,75 +479,41 @@ model StoryView {
   viewerId  String
   createdAt DateTime @default(now())
 
-  story  Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  viewer User  @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+  story  Story   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  viewer Profile @relation(fields: [viewerId], references: [id], onDelete: Cascade)
 
-  @@unique([storyId, viewerId]) // One view per user per story
+  @@unique([storyId, viewerId]) // One view per profile per story
   @@index([storyId])
   @@map("story_views")
-}
-
-model PostView {
-  id        String   @id @default(uuid())
-  postId    String
-  viewerId  String? // Optional: tracking anonymous or identified views
-  createdAt DateTime @default(now())
-
-  post   Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
-  viewer User? @relation(fields: [viewerId], references: [id], onDelete: SetNull)
-
-  @@index([postId, createdAt])
-  @@index([viewerId])
-  @@map("post_views")
-}
-
-model UserMetric {
-  id     String   @id @default(uuid())
-  userId String
-  date   DateTime @default(now())
-
-  // Snapshots
-  followers Int @default(0)
-  following Int @default(0)
-  posts     Int @default(0)
-  likes     Int @default(0)
-  views     Int @default(0)
-  reach     Int @default(0)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, date])
-  @@index([userId, date])
-  @@map("user_metrics")
 }
 
 model StoryReaction {
   id        String   @id @default(uuid())
   storyId   String
-  userId    String
+  profileId String
   reaction  String // e.g. "❤️", "🔥", "😂"
   createdAt DateTime @default(now())
 
-  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  story   Story   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
-  @@unique([storyId, userId])
+  @@unique([storyId, profileId])
   @@index([storyId])
   @@map("story_reactions")
 }
 
 model Highlight {
   id        String   @id @default(uuid())
-  userId    String
+  profileId String
   title     String
   coverUrl  String? // Optional custom cover, otherwise use first story
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile Profile          @relation(fields: [profileId], references: [id], onDelete: Cascade)
   stories HighlightStory[]
 
-  @@index([userId])
+  @@index([profileId])
   @@map("highlights")
 }
 
@@ -572,27 +530,10 @@ model HighlightStory {
   @@map("highlight_stories")
 }
 
-model CloseFriend {
-  id        String   @id @default(uuid())
-  userId    String
-  friendId  String
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  // We don't necessarily need a strict relation to the friend User model if we just store ID, 
-  // but let's keep it simple for now and just store the ID or relation if needed. 
-  // Ideally, it's a relation to User.
-  // dependent on implementation, but let's assume friendId is a valid userId.
-
-  @@unique([userId, friendId])
-  @@index([userId])
-  @@map("close_friends")
-}
-
 model Comment {
   id           String   @id @default(uuid())
   postId       String
-  userId       String
+  profileId    String
   content      String
   url          String?
   standardUrl  String? // New: Optimized variant (HLS)
@@ -605,24 +546,26 @@ model Comment {
   moderationNote   String?
 
   // Voice Notes Support
+
   voiceUrl      String?
   voiceDuration Int?
   voiceWaveform Json?
 
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   // Self-relation for nested comments
+
   parentId String?
   parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies  Comment[] @relation("CommentReplies")
 
   // Likes
+
   likes CommentLike[]
 
   @@index([postId, createdAt])
-  @@index([postId])
-  @@index([userId])
+  @@index([profileId])
   @@index([parentId])
   @@index([createdAt])
   @@map("comments")
@@ -631,31 +574,30 @@ model Comment {
 model Like {
   id        String   @id @default(uuid())
   postId    String
-  userId    String
+  profileId String
   createdAt DateTime @default(now())
 
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
-  @@unique([postId, userId])
-  @@index([userId, createdAt])
+  @@unique([postId, profileId])
+  @@index([profileId, createdAt])
   @@index([postId])
-  @@index([userId])
   @@map("likes")
 }
 
 model CommentLike {
   id        String   @id @default(uuid())
   commentId String
-  userId    String
+  profileId String
   createdAt DateTime @default(now())
 
   comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
-  @@unique([commentId, userId])
+  @@unique([commentId, profileId])
   @@index([commentId])
-  @@index([userId])
+  @@index([profileId])
   @@map("comment_likes")
 }
 
@@ -666,13 +608,11 @@ model Follow {
   status      FollowStatus @default(ACCEPTED)
   createdAt   DateTime     @default(now())
 
-  follower  User @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
-  following User @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+  follower  Profile @relation("UserFollowers", fields: [followerId], references: [id], onDelete: Cascade)
+  following Profile @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@unique([followerId, followingId])
   @@index([followerId, status])
-  @@index([followerId])
-  @@index([followingId])
   @@index([followingId, status])
   @@map("follows")
 }
@@ -683,10 +623,11 @@ model Block {
   blockedId String
   createdAt DateTime @default(now())
 
-  blocker User @relation("Blocking", fields: [blockerId], references: [id], onDelete: Cascade)
-  blocked User @relation("BlockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
+  blocker Profile @relation("Blocking", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked Profile @relation("BlockedBy", fields: [blockedId], references: [id], onDelete: Cascade)
 
   @@unique([blockerId, blockedId])
+  @@index([blockedId])
   @@map("blocks")
 }
 
@@ -696,53 +637,377 @@ model Mute {
   mutedId   String
   createdAt DateTime @default(now())
 
-  muter User @relation("Muting", fields: [muterId], references: [id], onDelete: Cascade)
-  muted User @relation("MutedBy", fields: [mutedId], references: [id], onDelete: Cascade)
+  muter Profile @relation("Muting", fields: [muterId], references: [id], onDelete: Cascade)
+  muted Profile @relation("MutedBy", fields: [mutedId], references: [id], onDelete: Cascade)
 
   @@unique([muterId, mutedId])
+  @@index([mutedId])
   @@map("mutes")
 }
 
-model DataExportRequest {
-  id        String       @id @default(uuid())
-  userId    String
-  status    ExportStatus @default(PENDING)
+model CloseFriend {
+  id        String   @id @default(uuid())
+  profileId String
+  friendId  String
+  createdAt DateTime @default(now())
+
+  profile Profile @relation("CloseFriendOwner", fields: [profileId], references: [id], onDelete: Cascade)
+  friend  Profile @relation("CloseFriendTarget", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, friendId])
+  @@index([profileId])
+  @@index([friendId])
+  @@map("close_friends")
+}
+
+model Bookmark {
+  id        String   @id @default(uuid())
+  profileId String
+  postId    String
+  createdAt DateTime @default(now())
+
+  collectionId String?
+  collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, postId])
+  @@index([profileId, createdAt])
+  @@index([postId])
+  @@index([collectionId])
+  @@map("bookmarks")
+}
+
+model Collection {
+  id           String   @id @default(uuid())
+  profileId    String
+  name         String
+  coverUrl     String?
+  standardUrl  String? // New: Optimized variant
+  thumbnailUrl String? // New: Optimized variant
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  profile   Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  bookmarks Bookmark[]
+
+  @@index([profileId])
+  @@map("collections")
+}
+
+model SearchHistory {
+  id        String    @id @default(uuid())
+  profileId String
+  query     String
+  createdAt DateTime  @default(now())
+  expiresAt DateTime? // INC-08: GDPR retention (90 days)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@index([expiresAt])
+  @@map("search_history")
+}
+
+model EditProject {
+  id        String   @id @default(uuid())
+  profileId String
+  name      String?
+  mediaUrl  String
+  mediaType String   @default("image")
+  state     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, updatedAt])
+  @@map("edit_projects")
+}
+
+// =============================================================================
+// === Live
+// =============================================================================
+
+model LiveStream {
+  id          String     @id @default(uuid())
+  hostId      String
+  coHostId    String?
+  title       String?
+  status      LiveStatus @default(LIVE)
+  viewerCount Int        @default(0)
+  startedAt   DateTime   @default(now())
+  endedAt     DateTime?
+  hlsUrl      String?
+  replayUrl   String?
+
+  host         Profile       @relation("LiveStreamHost", fields: [hostId], references: [id])
+  coHost       Profile?      @relation("LiveStreamCoHost", fields: [coHostId], references: [id])
+  gifts        LiveGift[]
+  transactions Transaction[]
+
+  @@index([status])
+  @@index([hostId])
+  @@index([coHostId])
+  @@map("live_streams")
+}
+
+/// Paid virtual gift sent during a live stream (Stripe Checkout + webhook).
+model LiveGift {
+  id                      String            @id @default(uuid())
+  streamId                String
+  senderId                String
+  receiverId              String
+  giftId                  String // catalog key: star | flame | crown | gem | rocket
+  amountCents             Int
+  currency                String            @default("EUR")
+  status                  TransactionStatus @default(PENDING)
+  stripeCheckoutSessionId String?           @unique
+  transactionId           String?           @unique
+  createdAt               DateTime          @default(now())
+  completedAt             DateTime?
+
+  stream      LiveStream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  sender      User         @relation("LiveGiftSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    User         @relation("LiveGiftReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([streamId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([status])
+  @@map("live_gifts")
+}
+
+// =============================================================================
+// === Interactive
+// =============================================================================
+
+model Poll {
+  id        String   @id @default(uuid())
+  postId    String?  @unique
+  storyId   String?  @unique
+  question  String
+  options   String[]
+  createdAt DateTime @default(now())
+
+  post  Post?  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  story Story? @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  votes PollVote[]
+
+  @@map("polls")
+}
+
+model PollVote {
+  id          String   @id @default(uuid())
+  pollId      String
+  profileId   String
+  optionIndex Int
+  createdAt   DateTime @default(now())
+
+  poll    Poll    @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, profileId])
+  @@index([pollId])
+  @@map("poll_votes")
+}
+
+model QnaBox {
+  id        String   @id @default(uuid())
+  postId    String?  @unique
+  storyId   String?  @unique
+  prompt    String
+  createdAt DateTime @default(now())
+
+  post  Post?  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  story Story? @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  answers QnaAnswer[]
+
+  @@map("qna_boxes")
+}
+
+model QnaAnswer {
+  id         String   @id @default(uuid())
+  qnaBoxId   String
+  profileId  String
+  answerText String   @db.Text
+  createdAt  DateTime @default(now())
+
+  qnaBox  QnaBox  @relation(fields: [qnaBoxId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([qnaBoxId])
+  @@map("qna_answers")
+}
+
+// =============================================================================
+// === Chat
+// =============================================================================
+
+model Conversation {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name      String?
+  avatarUrl String?
+  isGroup   Boolean @default(false)
+
+  messages     Message[]
+  participants Participant[]
+
+  @@index([updatedAt])
+  @@map("conversations")
+}
+
+model Participant {
+  id             String    @id @default(uuid())
+  conversationId String
+  profileId      String
+  isAdmin        Boolean   @default(false)
+  lastReadAt     DateTime  @default(now()) // For "Seen" status
+  createdAt      DateTime  @default(now())
+  deletedAt      DateTime? // Allows "Delete for me" functionality
+  clearedAt      DateTime? // Hides messages before this time
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  profile      Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, profileId])
+  @@map("participants")
+}
+
+model Message {
+  id             String  @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String
+  url            String?
+  standardUrl    String? // New: Optimized variant (HLS)
+  thumbnailUrl   String? // New: Optimized variant
+  mediaType      String? // New: "image", "video", "file"
+
+  // Voice Notes Support
+
+  voiceUrl      String?
+  voiceDuration Int?
+  voiceWaveform Json?
+
+  // GDPR: Retention
+
   expiresAt DateTime?
-  url       String?
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Premium Content (PPV)
 
-  @@index([userId])
-  @@map("data_export_requests")
+  isLocked       Boolean         @default(false)
+  priceCents     Int             @default(0)
+  messageUnlocks MessageUnlock[]
+
+  // New: Post Sharing
+
+  postId String?
+  post   Post?   @relation("SharedPosts", fields: [postId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  isEdited  Boolean @default(false)
+  isDeleted Boolean @default(false)
+
+  // New: Reply support
+
+  replyToId String?
+  replyTo   Message?  @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies   Message[] @relation("MessageReplies")
+
+  // New: Story Sharing/Replying
+
+  storyId String?
+  story   Story?  @relation("SharedStories", fields: [storyId], references: [id], onDelete: SetNull)
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       Profile      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  reactions     MessageReaction[]
+  notifications Notification[]
+  transactions  Transaction[]
+
+  @@index([senderId, createdAt])
+  @@index([storyId])
+  @@index([replyToId])
+  @@index([createdAt])
+  @@index([conversationId, createdAt(sort: Desc)])
+  @@map("messages")
 }
 
-enum ExportStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
+model MessageReaction {
+  id        String   @id @default(uuid())
+  messageId String
+  profileId String
+  reaction  String // e.g. "❤️", "👍"
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, profileId])
+  @@index([messageId])
+  @@map("message_reactions")
 }
 
-enum FollowStatus {
-  PENDING
-  ACCEPTED
+// =============================================================================
+// === Notifications
+// =============================================================================
+
+model Notification {
+  // Retention: pruned by maintenance crons in src/maintenance/ (see InteractionEvent / PostView pattern).
+  id          String           @id @default(uuid())
+  recipientId String
+  senderId    String?
+  type        NotificationType
+  content     String
+  read        Boolean          @default(false)
+
+  // Polymorphic References
+
+  postId     String?
+  storyId    String?
+  reportId   String?
+  messageId  String? // New: Link to affected DM for moderation alerts
+  targetType String? // "post" | "story" | "comment" | "report" | "message"
+  targetId   String?
+
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  story   Story?   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  report  Report?  @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  message Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  recipient Profile  @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  sender    Profile? @relation("NotificationSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, type, createdAt])
+  @@index([recipientId, read, createdAt])
+  @@index([createdAt])
+  @@index([targetType, targetId])
+  @@map("notifications")
 }
 
-enum Visibility {
-  PUBLIC
-  FOLLOWERS
-  PRIVATE
-}
+// =============================================================================
+// === Monetization / Stripe
+// =============================================================================
 
-// Platform Subscriptions
 model PlatformPlan {
   id                  String   @id @default(uuid())
   name                String // e.g. "Pro Creator", "Verified"
   description         String?
-  price               Float
-  yearlyPrice         Float? // INC-04: Support for yearly pricing
+  priceCents          Int      @default(0) // Source of truth (e.g. 999 = €9.99)
+  yearlyPriceCents    Int? // INC-04: yearly price in cents
   currency            String   @default("EUR") // INC-13: Default to EUR
   interval            String   @default("month") // "month", "year"
   stripeProductId     String   @unique
@@ -779,8 +1044,8 @@ model PlatformSubscription {
   @@map("platform_subscriptions")
 }
 
-// Log of incoming webhooks to ensure idempotency
 model WebhookEvent {
+  // Retention: prune processed/failed events via maintenance (src/maintenance/); do not grow unbounded.
   id          String    @id @default(uuid())
   provider    String // "stripe", "ccbill", "segpay"
   externalId  String    @unique // The event ID from the provider
@@ -793,315 +1058,186 @@ model WebhookEvent {
   @@map("webhook_events")
 }
 
-model Notification {
-  id          String           @id @default(uuid())
-  recipientId String
-  senderId    String?
-  type        NotificationType
-  content     String
-  read        Boolean          @default(false)
-
-  // Polymorphic references
-  postId     String?
-  storyId    String?
-  reportId   String?
-  messageId  String? // New: Link to affected DM for moderation alerts
-  targetType String? // "post" | "story" | "comment" | "report" | "message"
-  targetId   String?
-
-  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  story   Story?   @relation(fields: [storyId], references: [id], onDelete: Cascade)
-  report  Report?  @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  message Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  recipient User  @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
-  sender    User? @relation("NotificationSender", fields: [senderId], references: [id], onDelete: Cascade)
-
-  @@index([recipientId, type, createdAt])
-  @@index([recipientId, read, createdAt])
-  @@index([recipientId])
-  @@index([createdAt])
-  @@index([targetType, targetId])
-  @@map("notifications")
-}
-
-enum NotificationType {
-  LIKE
-  COMMENT
-  FOLLOW
-  FOLLOW_REQUEST
-  FOLLOW_ACCEPTED
-  MENTION
-  COMMENT_LIKE
-  MODERATION
-  SUBSCRIPTION
-  MESSAGE
-  PAYMENT
-  SYSTEM
-  REPLY_MESSAGE
-}
-
-model Conversation {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  name      String?
-  avatarUrl String?
-  isGroup   Boolean @default(false)
-
-  messages     Message[]
-  participants Participant[]
-
-  @@index([updatedAt])
-  @@map("conversations")
-}
-
-model Participant {
-  id             String    @id @default(uuid())
-  conversationId String
-  userId         String
-  isAdmin        Boolean   @default(false)
-  lastReadAt     DateTime  @default(now()) // For "Seen" status
-  createdAt      DateTime  @default(now())
-  deletedAt      DateTime? // Allows "Delete for me" functionality
-  clearedAt      DateTime? // Hides messages before this time
-
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([conversationId, userId])
-  @@map("participants")
-}
-
-model Message {
-  id             String  @id @default(uuid())
-  conversationId String
-  senderId       String
-  content        String
-  url            String?
-  standardUrl    String? // New: Optimized variant (HLS)
-  thumbnailUrl   String? // New: Optimized variant
-  mediaType      String? // New: "image", "video", "file"
-
-  // Voice Notes Support
-  voiceUrl      String?
-  voiceDuration Int?
-  voiceWaveform Json?
-
-  // GDPR: Retention
-  expiresAt DateTime?
-
-  // Premium Content (PPV)
-  isLocked       Boolean         @default(false)
-  priceCents     Int             @default(0)
-  messageUnlocks MessageUnlock[]
-
-  // New: Post Sharing
-  postId String?
-  post   Post?   @relation("SharedPosts", fields: [postId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
-  isEdited  Boolean @default(false)
-  isDeleted Boolean @default(false)
-
-  // New: Reply support
-  replyToId String?
-  replyTo   Message?  @relation("MessageReplies", fields: [replyToId], references: [id])
-  replies   Message[] @relation("MessageReplies")
-
-  // New: Story Sharing/Replying
-  storyId String?
-  story   Story?  @relation("SharedStories", fields: [storyId], references: [id], onDelete: SetNull)
-
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
-
-  reactions     MessageReaction[]
-  notifications Notification[]
-  transactions  Transaction[]
-
-  @@index([conversationId])
-  @@index([senderId, createdAt])
-  @@index([storyId])
-  @@index([replyToId])
-  @@index([createdAt])
-  @@index([conversationId, createdAt(sort: Desc)])
-  @@map("messages")
-}
-
-model MessageReaction {
-  id        String   @id @default(uuid())
-  messageId String
-  userId    String
-  reaction  String // e.g. "❤️", "👍"
-  createdAt DateTime @default(now())
-
-  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([messageId, userId])
-  @@index([messageId])
-  @@map("message_reactions")
-}
-
-model Hashtag {
-  id        String   @id @default(uuid())
-  tag       String   @unique
-  postCount Int      @default(0)
-  createdAt DateTime @default(now())
-
-  posts PostHashtag[]
-
-  @@index([postCount(sort: Desc)])
-  @@map("hashtags")
-}
-
-model PostHashtag {
-  postId    String
-  hashtagId String
-  createdAt DateTime @default(now())
-
-  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  hashtag Hashtag @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
-
-  @@id([postId, hashtagId])
-  @@index([hashtagId])
-  @@map("post_hashtags")
-}
-
-model PostEmbedding {
-  postId String                      @id
-  vector Unsupported("vector(1536)") // Native pgvector storage
-  post   Post                        @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@map("post_embeddings")
-}
-
-model ProfileEmbedding {
-  profileId String                      @id
-  vector    Unsupported("vector(1536)") // Native pgvector storage
-  profile   Profile                     @relation(fields: [profileId], references: [id], onDelete: Cascade)
-
-  @@map("profile_embeddings")
-}
-
-model Passkey {
-  id           String   @id @default(uuid())
-  userId       String
-  credentialID String   @unique
-  publicKey    Bytes
-  counter      BigInt
-  transports   String[] @default([])
-  createdAt    DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("passkeys")
-}
-
-// Content Reporting
-model Report {
-  id         String       @id @default(uuid())
-  reporterId String
-  reason     ReportReason @default(OTHER)
-  details    String?
-  status     ReportStatus @default(PENDING)
-
-  // Target type
-  targetType ReportTargetType
+model Promotion {
+  id         String              @id @default(uuid())
+  userId     String
+  targetType PromotionTargetType
   targetId   String
+  budgetCents Int                @default(0) // Remaining budget in cents
+  currency   String              @default("EUR") // INC-13: Default to EUR
+  status     PromotionStatus     @default(PENDING) // INC-02: Use enum and PENDING default
+  startDate  DateTime            @default(now())
+  endDate    DateTime
+  reach      Int                 @default(0)
+  clicks     Int                 @default(0)
 
-  // Queue workflow (Admin Panel operator, not platform User)
-  assignedAdminId String?
-  assignedAdmin   AdminIdentity? @relation("ReportAssignedAdmin", fields: [assignedAdminId], references: [id], onDelete: SetNull)
-  resolvedAt      DateTime?
-  internalNotes   String?
+  // Sponsored Placements Segmentation
+
+  objective        String? @default("PROFILE_VISITS")
+  interests        String?
+  countries        String?
+  dailyBudgetCents Int? // Daily cap in cents
+
+  // Monetization: Checkout Session ID is stored in stripePaymentIntentId (legacy field name).
+
+  // chargedAt is set on checkout.session.completed. Cancel refunds remaining budget when PROPORTIONAL.
+  stripePaymentIntentId String?               @unique
+  chargedAt             DateTime?
+  refundPolicy          PromotionRefundPolicy @default(PROPORTIONAL)
+  refundedAt            DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  reporter      User           @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
-  notifications Notification[]
-
-  @@index([reporterId])
-  @@index([targetType, targetId])
-  @@index([status, createdAt])
-  @@index([assignedAdminId])
-  @@index([resolvedAt])
-  @@map("reports")
-}
-
-enum ReportReason {
-  SPAM
-  HARASSMENT
-  ILLEGAL_CONTENT
-  VIOLENCE
-  HATE_SPEECH
-  IMPERSONATION
-  CSAM
-  SCAM
-  OTHER
-}
-
-// Search History
-model SearchHistory {
-  id        String    @id @default(uuid())
-  userId    String
-  query     String
-  createdAt DateTime  @default(now())
-  expiresAt DateTime? // INC-08: GDPR retention (90 days)
-
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([expiresAt])
-  @@map("search_history")
+  @@index([status])
+  @@index([targetType, targetId])
+  @@index([status, endDate])
+  @@map("promotions")
 }
 
-model Audio {
-  id           String   @id @default(uuid())
-  title        String
-  artist       String
-  url          String
-  thumbnailUrl String?
-  duration     Int // in seconds
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+model Monetization {
+  id     String @id @default(uuid())
+  userId String @unique
 
-  posts   Post[]
-  stories Story[]
+  // Statistical ledger (platform fee share credited locally; funds settle in Connect)
 
-  @@map("audio_tracks")
+  lifetimeEarningsCents Int     @default(0)
+  // Cached from Stripe account.updated webhook
+  transfersEnabled      Boolean @default(false)
+  chargesEnabled        Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("monetization")
 }
 
-enum AdminIdentityStatus {
-  ACTIVE
-  DISABLED
+model StripePayoutLog {
+  id             String   @id @default(uuid())
+  stripePayoutId String   @unique
+  userId         String // Connected account owner
+  amountCents    Int
+  currency       String   @default("usd")
+  status         String // 'paid', 'pending', 'failed', 'canceled'
+  arrivalDate    DateTime
+  failureReason  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([userId])
+  @@map("stripe_payout_logs")
 }
+
+model Transaction {
+  id       String            @id @default(uuid())
+  type     TransactionType
+  amount   Int // Integer cents (legacy name; not amountCents — public money API contract)
+  currency String            @default("EUR")
+  status   TransactionStatus @default(COMPLETED)
+
+  // Participants
+
+  senderId   String?
+  receiverId String?
+
+  // Associated entities
+
+  postId       String?
+  storyId      String?
+  messageId    String?
+  promotionId  String?
+  liveStreamId String?
+
+  stripePaymentIntentId String? @unique
+
+  description String?
+  createdAt   DateTime @default(now())
+
+  sender     User?       @relation("SentTransactions", fields: [senderId], references: [id], onDelete: SetNull)
+  receiver   User?       @relation("ReceivedTransactions", fields: [receiverId], references: [id], onDelete: SetNull)
+  liveStream LiveStream? @relation(fields: [liveStreamId], references: [id], onDelete: SetNull)
+  liveGift   LiveGift?
+  message    Message?    @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([type])
+  @@index([liveStreamId])
+  @@map("transactions")
+}
+
+model PostUnlock {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  pricePaid Int // In cents
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@map("post_unlocks")
+}
+
+model MessageUnlock {
+  id        String   @id @default(uuid())
+  userId    String
+  messageId String
+  pricePaid Int // In cents
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, messageId])
+  @@map("message_unlocks")
+}
+
+model StoryUnlock {
+  id        String   @id @default(uuid())
+  userId    String
+  storyId   String
+  pricePaid Int
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, storyId])
+  @@map("story_unlocks")
+}
+
+// =============================================================================
+// === Admin Panel
+// =============================================================================
 
 /// Admin Panel operator. Separate from platform User.
 model AdminIdentity {
-  id              String              @id @default(uuid())
-  email           String              @unique
-  passwordHash    String
-  displayName     String
-  status          AdminIdentityStatus @default(ACTIVE)
-  totpSecret      String?
-  totpEnabled     Boolean             @default(false)
-  mfaRequired     Boolean             @default(true)
-  lastLoginAt     DateTime?
-  lastActivityAt  DateTime?
-  failedLoginCount Int                @default(0)
-  lockedUntil     DateTime?
-  linkedUserId    String?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  id               String              @id @default(uuid())
+  email            String              @unique
+  passwordHash     String
+  displayName      String
+  status           AdminIdentityStatus @default(ACTIVE)
+  totpSecret       String?
+  totpEnabled      Boolean             @default(false)
+  mfaRequired      Boolean             @default(true)
+  lastLoginAt      DateTime?
+  lastActivityAt   DateTime?
+  failedLoginCount Int                 @default(0)
+  lockedUntil      DateTime?
+  linkedUserId     String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
 
   linkedUser      User?               @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
   roles           AdminIdentityRole[]
@@ -1190,9 +1326,9 @@ model AdminPasskey {
   @@map("admin_passkeys")
 }
 
-// Admin Audit Log — Admin Panel actions
 model AdminAuditLog {
-  id           String       @id @default(uuid())
+  // Retention: append-only audit trail; prune per compliance policy via maintenance crons (src/maintenance/).
+  id           String      @id @default(uuid())
   adminId      String?
   legacyUserId String?
   action       AdminAction
@@ -1202,7 +1338,7 @@ model AdminAuditLog {
   ipAddress    String?
   userAgent    String?
   requestId    String?
-  createdAt    DateTime     @default(now())
+  createdAt    DateTime    @default(now())
 
   admin AdminIdentity? @relation(fields: [adminId], references: [id], onDelete: SetNull)
 
@@ -1214,60 +1350,6 @@ model AdminAuditLog {
   @@map("admin_audit_logs")
 }
 
-// Promotions
-model Promotion {
-  id         String              @id @default(uuid())
-  userId     String
-  targetType PromotionTargetType
-  targetId   String
-  budget     Float
-  currency   String              @default("EUR") // INC-13: Default to EUR
-  status     PromotionStatus     @default(PENDING) // INC-02: Use enum and PENDING default
-  startDate  DateTime            @default(now())
-  endDate    DateTime
-  reach      Int                 @default(0)
-  clicks     Int                 @default(0)
-
-  // Sponsored Placements Segmentation
-  objective   String? @default("PROFILE_VISITS")
-  interests   String?
-  countries   String?
-  dailyBudget Float?
-
-  // Monetization: Checkout Session ID is stored in stripePaymentIntentId (legacy field name).
-  // chargedAt is set on checkout.session.completed. Cancel refunds remaining budget when PROPORTIONAL.
-  stripePaymentIntentId String?               @unique
-  chargedAt             DateTime?
-  refundPolicy          PromotionRefundPolicy @default(PROPORTIONAL)
-  refundedAt            DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([status])
-  @@index([stripePaymentIntentId])
-  @@map("promotions")
-}
-
-enum PromotionRefundPolicy {
-  PROPORTIONAL
-  NONE
-}
-
-enum PromotionStatus {
-  PENDING
-  ACTIVE
-  PAUSED
-  COMPLETED
-  REJECTED
-  CANCELLED
-  FAILED // Payment failed
-}
-
-// Whitelist — for early access signups
 model WhitelistEntry {
   id        String          @id @default(uuid())
   email     String          @unique
@@ -1279,13 +1361,6 @@ model WhitelistEntry {
   @@map("whitelist_entries")
 }
 
-enum WhitelistStatus {
-  VALID
-  REGISTERED
-}
-
-// ─── Compliance & Settings ──────────────────────────────────────────
-
 model SystemSetting {
   key         String   @id
   value       String
@@ -1296,47 +1371,260 @@ model SystemSetting {
   @@map("system_settings")
 }
 
-model UserSettings {
-  id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+model SupportTicket {
+  id        String       @id @default(uuid())
+  userId    String?
+  email     String
+  subject   String
+  message   String
+  status    TicketStatus @default(OPEN)
+  reply     String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
-  privacyLevel         Visibility    @default(PUBLIC)
-  contentPreference    ContentRating @default(GENERAL)
-  blurSensitiveContent Boolean       @default(true)
-  emailNotifications   Boolean       @default(true)
-  pushNotifications    Boolean       @default(true)
-  isOnboarded          Boolean       @default(false)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  @@index([userId])
+  @@index([status])
+  @@map("support_tickets")
+}
+
+// =============================================================================
+// === Moderation / Trust & Safety
+// =============================================================================
+
+model Report {
+  id         String       @id @default(uuid())
+  reporterId String
+  reason     ReportReason @default(OTHER)
+  details    String?
+  status     ReportStatus @default(PENDING)
+
+  // Target type
+  targetType ReportTargetType
+  targetId   String
+
+  // Queue workflow (Admin Panel operator, not platform User)
+
+  assignedAdminId String?
+  assignedAdmin   AdminIdentity? @relation("ReportAssignedAdmin", fields: [assignedAdminId], references: [id], onDelete: SetNull)
+  resolvedAt      DateTime?
+  internalNotes   String?
+
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("user_settings")
+  reporter      Profile        @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  notifications Notification[]
+
+  @@index([reporterId])
+  @@index([targetType, targetId])
+  @@index([status, createdAt])
+  @@index([assignedAdminId])
+  @@index([resolvedAt])
+  @@map("reports")
 }
 
-enum ContentRating {
-  GENERAL
-  MATURE
+model Appeal {
+  id         String           @id @default(uuid())
+  userId     String
+  targetType AppealTargetType
+  targetId   String?
+  reason     String
+  status     AppealStatus     @default(PENDING)
+  adminNotes String?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("appeals")
 }
 
-enum ReportTargetType {
-  USER
-  POST
-  COMMENT
-  STORY
-  MESSAGE
-  PAYMENT
-  SYSTEM
+model ModerationRule {
+  id        String     @id @default(uuid())
+  keyword   String     @unique
+  action    RuleAction @default(FLAG)
+  isActive  Boolean    @default(true)
+  createdBy String // ID del admin
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("moderation_rules")
 }
 
-enum ReportStatus {
-  PENDING
-  REVIEWING
-  RESOLVED
-  REJECTED
+model ModerationSignature {
+  id          String                      @id @default(uuid())
+  vector      Unsupported("vector(1536)")
+  category    String // e.g., "hate", "sexual", "spam", "scam"
+  textPreview String? // The source text that generated this vector
+  createdAt   DateTime                    @default(now())
+
+  @@map("moderation_signatures")
+}
+
+// =============================================================================
+// === Growth / Experiments
+// =============================================================================
+
+model FeatureFlag {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  name        String
+  description String?
+  isEnabled   Boolean  @default(false)
+  percentage  Int      @default(0) // 0 to 100
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("feature_flags")
+}
+
+model UserExperiment {
+  id            String   @id @default(uuid())
+  userId        String
+  experimentKey String
+  variant       String // e.g., "control", "treatment", "true", "false"
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, experimentKey])
+  @@index([experimentKey])
+  @@map("user_experiments")
+}
+
+model InteractionEvent {
+  // Retention: high-volume analytics; prune old rows via maintenance crons in src/maintenance/.
+  id         String        @id @default(uuid())
+  userId     String? // Nullable for anonymous guests
+  eventType  UserEventType
+  targetId   String // Polymorphic ID (Post, User, Story, etc.)
+  targetType String // "POST", "STORY", "USER", "PROMOTION"
+  dwellTime  Int? // Dwell duration in milliseconds
+  createdAt  DateTime      @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([targetId, eventType])
+  @@index([createdAt])
+  @@map("interaction_events")
+}
+
+// =============================================================================
+// === Feed Preferences / Analytics / Vectors
+// =============================================================================
+
+model FeedHiddenPost {
+  id        String   @id @default(uuid())
+  profileId String
+  postId    String
+  createdAt DateTime @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, postId])
+  @@index([profileId])
+  @@map("feed_hidden_posts")
+}
+
+model FeedHiddenAuthor {
+  id        String   @id @default(uuid())
+  profileId String
+  authorId  String
+  createdAt DateTime @default(now())
+
+  profile Profile @relation("FeedHidingAuthor", fields: [profileId], references: [id], onDelete: Cascade)
+  author  Profile @relation("FeedHiddenAsAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, authorId])
+  @@index([profileId])
+  @@map("feed_hidden_authors")
+}
+
+model FeedMutedKeyword {
+  id        String   @id @default(uuid())
+  profileId String
+  keyword   String
+  createdAt DateTime @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, keyword])
+  @@index([profileId])
+  @@map("feed_muted_keywords")
+}
+
+model PostView {
+  // Retention: high-volume view log; prune via maintenance crons in src/maintenance/.
+  id        String   @id @default(uuid())
+  postId    String
+  viewerId  String? // Optional: tracking anonymous or identified views
+  createdAt DateTime @default(now())
+
+  post   Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  viewer Profile? @relation(fields: [viewerId], references: [id], onDelete: SetNull)
+
+  @@index([postId, createdAt])
+  @@index([viewerId])
+  @@map("post_views")
+}
+
+model ProfileMetric {
+  id        String   @id @default(uuid())
+  profileId String
+  date      DateTime @default(now())
+
+  // Snapshots
+  followers Int @default(0)
+  following Int @default(0)
+  posts     Int @default(0)
+  likes     Int @default(0)
+  views     Int @default(0)
+  reach     Int @default(0)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, date])
+  @@map("profile_metrics")
+}
+
+model PostEmbedding {
+  postId String                      @id
+  vector Unsupported("vector(1536)") // Native pgvector storage
+  post   Post                        @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("post_embeddings")
+}
+
+model ProfileEmbedding {
+  profileId String                      @id
+  vector    Unsupported("vector(1536)") // Native pgvector storage
+  profile   Profile                     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("profile_embeddings")
+}
+
+// =============================================================================
+// === Enums
+// =============================================================================
+
+enum AccountType {
+  PERSONAL
+  CREATOR
+  BUSINESS
 }
 
 enum AdminAction {
+
   // User Management
+
   BAN_USER
   UNBAN_USER
   DELETE_USER
@@ -1345,6 +1633,7 @@ enum AdminAction {
   UPDATE_USER_STATUS
 
   // Content Management
+
   DELETE_POST
   DELETE_COMMENT
   DELETE_STORY
@@ -1354,12 +1643,14 @@ enum AdminAction {
   CONTENT_LABELED
 
   // Report Management
+
   REPORT_REVIEWED
   REPORT_RESOLVED
   REPORT_DISMISSED
   REPORT_ESCALATED
 
   // Whitelist & Misc
+
   UPDATE_WHITELIST
   DELETE_WHITELIST
   ACCOUNT_WARNED
@@ -1390,6 +1681,143 @@ enum AdminAction {
   ADMIN_STEP_UP
 }
 
+enum AdminIdentityStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum AppealStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AppealTargetType {
+  ACCOUNT_BAN
+  POST_REMOVAL
+  BOT_LABEL
+}
+
+enum ContentRating {
+  GENERAL
+  MATURE
+}
+
+enum ExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum FollowStatus {
+  PENDING
+  ACCEPTED
+}
+
+enum LiveStatus {
+  LIVE
+  ENDED
+}
+
+enum ModerationStatus {
+  VISIBLE
+  FLAGGED
+  HIDDEN
+  REMOVED
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+  FOLLOW_REQUEST
+  FOLLOW_ACCEPTED
+  MENTION
+  COMMENT_LIKE
+  MODERATION
+  SUBSCRIPTION
+  MESSAGE
+  PAYMENT
+  SYSTEM
+  REPLY_MESSAGE
+}
+
+enum PostType {
+  POST
+  FRAME
+}
+
+enum PromotionRefundPolicy {
+  PROPORTIONAL
+  NONE
+}
+
+enum PromotionStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  COMPLETED
+  REJECTED
+  CANCELLED
+  FAILED // Payment failed
+}
+
+enum PromotionTargetType {
+  POST
+  STORY
+  PROFILE
+}
+
+enum ReportReason {
+  SPAM
+  HARASSMENT
+  ILLEGAL_CONTENT
+  VIOLENCE
+  HATE_SPEECH
+  IMPERSONATION
+  CSAM
+  SCAM
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  REJECTED
+}
+
+enum ReportTargetType {
+  USER
+  POST
+  COMMENT
+  STORY
+  MESSAGE
+  PAYMENT
+  SYSTEM
+}
+
+enum Role {
+  USER
+  ADMIN
+  MODERATOR
+  SUPPORT
+  FINANCE
+}
+
+enum RuleAction {
+  BLOCK
+  FLAG
+  MUTE
+}
+
+enum ScheduledPostStatus {
+  SCHEDULED
+  PUBLISHED
+  CANCELLED
+}
+
 enum SubscriptionStatus {
   ACTIVE
   TRIALING
@@ -1399,141 +1827,17 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
-enum PromotionTargetType {
-  POST
-  STORY
-  PROFILE
+enum TicketStatus {
+  OPEN
+  RESOLVED
+  CLOSED
 }
 
-model PushSubscription {
-  id        String   @id @default(uuid())
-  userId    String
-  endpoint  String   @unique
-  p256dh    String
-  auth      String
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@map("push_subscriptions")
-}
-
-// ─── Virtual Economy & Monetization ────────────────────────
-
-model Monetization {
-  id     String @id @default(uuid())
-  userId String @unique
-
-  // Statistical ledger (platform fee share credited locally; funds settle in Connect)
-  lifetimeEarningsCents Int     @default(0)
-  // Cached from Stripe account.updated webhook
-  transfersEnabled      Boolean @default(false)
-  chargesEnabled        Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("monetization")
-}
-
-model StripePayoutLog {
-  id             String   @id @default(uuid())
-  stripePayoutId String   @unique
-  userId         String // Connected account owner
-  amountCents    Int
-  currency       String   @default("usd")
-  status         String // 'paid', 'pending', 'failed', 'canceled'
-  arrivalDate    DateTime
-  failureReason  String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([status])
-  @@map("stripe_payout_logs")
-}
-
-model PostUnlock {
-  id        String   @id @default(uuid())
-  userId    String
-  postId    String
-  pricePaid Int // In cents
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, postId])
-  @@map("post_unlocks")
-}
-
-model MessageUnlock {
-  id        String   @id @default(uuid())
-  userId    String
-  messageId String
-  pricePaid Int // In cents
-  createdAt DateTime @default(now())
-
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, messageId])
-  @@map("message_unlocks")
-}
-
-model StoryUnlock {
-  id        String   @id @default(uuid())
-  userId    String
-  storyId   String
-  pricePaid Int
-  createdAt DateTime @default(now())
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, storyId])
-  @@map("story_unlocks")
-}
-
-model Transaction {
-  id       String            @id @default(uuid())
-  type     TransactionType
-  amount   Int // Positive for incoming, negative for outgoing
-  currency String            @default("EUR")
-  status   TransactionStatus @default(COMPLETED)
-
-  // Participants
-  senderId   String?
-  receiverId String?
-
-  // Associated entities
-  postId       String?
-  storyId      String?
-  messageId    String?
-  promotionId  String?
-  liveStreamId String?
-
-  stripePaymentIntentId String? @unique
-
-  description String?
-  createdAt   DateTime @default(now())
-
-  sender     User?       @relation("SentTransactions", fields: [senderId], references: [id], onDelete: SetNull)
-  receiver   User?       @relation("ReceivedTransactions", fields: [receiverId], references: [id], onDelete: SetNull)
-  liveStream LiveStream? @relation(fields: [liveStreamId], references: [id], onDelete: SetNull)
-  liveGift   LiveGift?
-  message    Message?    @relation(fields: [messageId], references: [id], onDelete: SetNull)
-
-  @@index([senderId])
-  @@index([receiverId])
-  @@index([type])
-  @@index([liveStreamId])
-  @@map("transactions")
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
 }
 
 enum TransactionType {
@@ -1544,69 +1848,6 @@ enum TransactionType {
   DIRECT_LIVE_GIFT
   STRIPE_SUBSCRIPTION
   PROMOTION_PAYMENT
-}
-
-enum TransactionStatus {
-  PENDING
-  COMPLETED
-  FAILED
-  REFUNDED
-}
-
-// Support Tickets
-model SupportTicket {
-  id        String       @id @default(uuid())
-  userId    String?
-  email     String
-  subject   String
-  message   String
-  status    TicketStatus @default(OPEN)
-  reply     String?
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([status])
-  @@map("support_tickets")
-}
-
-enum TicketStatus {
-  OPEN
-  RESOLVED
-  CLOSED
-}
-
-// AI Auto-Moderation Vector Firewall & Static Rules
-
-enum RuleAction {
-  BLOCK
-  FLAG
-  MUTE
-}
-
-model ModerationRule {
-  id        String     @id @default(uuid())
-  keyword   String     @unique
-  action    RuleAction @default(FLAG)
-  isActive  Boolean    @default(true)
-  createdBy String // ID del admin
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("moderation_rules")
-}
-
-model ModerationSignature {
-  id          String                      @id @default(uuid())
-  vector      Unsupported("vector(1536)")
-  category    String // e.g., "hate", "sexual", "spam", "scam"
-  textPreview String? // The source text that generated this vector
-  createdAt   DateTime                    @default(now())
-
-  @@map("moderation_signatures")
 }
 
 enum UserEventType {
@@ -1627,250 +1868,27 @@ enum UserEventType {
   SPONSORED_PLACEMENT_CLICK
 }
 
-model InteractionEvent {
-  id         String        @id @default(uuid())
-  userId     String? // Nullable for anonymous guests
-  eventType  UserEventType
-  targetId   String // Polymorphic ID (Post, User, Story, etc.)
-  targetType String // "POST", "STORY", "USER", "PROMOTION"
-  dwellTime  Int? // Dwell duration in milliseconds
-  createdAt  DateTime      @default(now())
-
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([eventType])
-  @@index([targetId, eventType])
-  @@index([createdAt])
-  @@map("interaction_events")
+enum VerificationLevel {
+  BASIC
+  VERIFIED
+  BUSINESS
+  ELITE
 }
 
-// A/B Testing & Feature Flags
-model FeatureFlag {
-  id          String   @id @default(uuid())
-  key         String   @unique
-  name        String
-  description String?
-  isEnabled   Boolean  @default(false)
-  percentage  Int      @default(0) // 0 to 100
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("feature_flags")
+enum Visibility {
+  PUBLIC
+  FOLLOWERS
+  PRIVATE
 }
 
-model UserExperiment {
-  id            String   @id @default(uuid())
-  userId        String
-  experimentKey String
-  variant       String // e.g., "control", "treatment", "true", "false"
-  createdAt     DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, experimentKey])
-  @@index([experimentKey])
-  @@map("user_experiments")
+enum WhitelistStatus {
+  VALID
+  REGISTERED
 }
 
-// -----------------------------------------------------------------------------
-// MODERATION APPEALS
-// -----------------------------------------------------------------------------
-model Appeal {
-  id         String           @id @default(uuid())
-  userId     String
-  targetType AppealTargetType
-  targetId   String?
-  reason     String
-  status     AppealStatus     @default(PENDING)
-  adminNotes String?
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([status])
-  @@map("appeals")
-}
-
-enum AppealTargetType {
-  ACCOUNT_BAN
-  POST_REMOVAL
-  BOT_LABEL
-}
-
-enum AppealStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-// LIVE SPACES
-// -----------------------------------------------------------------------------
-model LiveStream {
-  id          String     @id @default(uuid())
-  hostId      String
-  coHostId    String?
-  title       String?
-  status      LiveStatus @default(LIVE)
-  viewerCount Int        @default(0)
-  startedAt   DateTime   @default(now())
-  endedAt     DateTime?
-  hlsUrl      String?
-  replayUrl   String?
-
-  host         User          @relation("LiveStreamHost", fields: [hostId], references: [id])
-  coHost       User?         @relation("LiveStreamCoHost", fields: [coHostId], references: [id])
-  gifts        LiveGift[]
-  transactions Transaction[]
-
-  @@index([status])
-  @@index([hostId])
-  @@index([coHostId])
-  @@map("live_streams")
-}
-
-/// Paid virtual gift sent during a live stream (Stripe Checkout + webhook).
-model LiveGift {
-  id                      String            @id @default(uuid())
-  streamId                String
-  senderId                String
-  receiverId              String
-  giftId                  String // catalog key: star | flame | crown | gem | rocket
-  amountCents             Int
-  currency                String            @default("EUR")
-  status                  TransactionStatus @default(PENDING)
-  stripeCheckoutSessionId String?           @unique
-  transactionId           String?           @unique
-  createdAt               DateTime          @default(now())
-  completedAt             DateTime?
-
-  stream      LiveStream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
-  sender      User         @relation("LiveGiftSender", fields: [senderId], references: [id], onDelete: Cascade)
-  receiver    User         @relation("LiveGiftReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
-  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
-
-  @@index([streamId])
-  @@index([senderId])
-  @@index([receiverId])
-  @@index([status])
-  @@map("live_gifts")
-}
-
-// FEED PREFERENCES
-// -----------------------------------------------------------------------------
-model FeedHiddenPost {
-  id        String   @id @default(uuid())
-  userId    String
-  postId    String
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, postId])
-  @@index([userId])
-  @@map("feed_hidden_posts")
-}
-
-model FeedHiddenAuthor {
-  id        String   @id @default(uuid())
-  userId    String
-  authorId  String
-  createdAt DateTime @default(now())
-
-  user   User @relation("FeedHidingAuthor", fields: [userId], references: [id], onDelete: Cascade)
-  author User @relation("FeedHiddenAsAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, authorId])
-  @@index([userId])
-  @@map("feed_hidden_authors")
-}
-
-model FeedMutedKeyword {
-  id        String   @id @default(uuid())
-  userId    String
-  keyword   String
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, keyword])
-  @@index([userId])
-  @@map("feed_muted_keywords")
-}
-
-enum LiveStatus {
-  LIVE
-  ENDED
-}
-
-enum ScheduledPostStatus {
-  SCHEDULED
-  PUBLISHED
-  CANCELLED
-}
-
-model Poll {
-  id        String   @id @default(uuid())
-  postId    String?  @unique
-  storyId   String?  @unique
-  question  String
-  options   String[]
-  createdAt DateTime @default(now())
-
-  post  Post?  @relation(fields: [postId], references: [id], onDelete: Cascade)
-  story Story? @relation(fields: [storyId], references: [id], onDelete: Cascade)
-
-  votes PollVote[]
-
-  @@map("polls")
-}
-
-model PollVote {
-  id          String   @id @default(uuid())
-  pollId      String
-  userId      String
-  optionIndex Int
-  createdAt   DateTime @default(now())
-
-  poll Poll @relation(fields: [pollId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([pollId, userId])
-  @@index([pollId])
-  @@map("poll_votes")
-}
-
-model QnaBox {
-  id        String   @id @default(uuid())
-  postId    String?  @unique
-  storyId   String?  @unique
-  prompt    String
-  createdAt DateTime @default(now())
-
-  post  Post?  @relation(fields: [postId], references: [id], onDelete: Cascade)
-  story Story? @relation(fields: [storyId], references: [id], onDelete: Cascade)
-
-  answers QnaAnswer[]
-
-  @@map("qna_boxes")
-}
-
-model QnaAnswer {
-  id         String   @id @default(uuid())
-  qnaBoxId   String
-  userId     String
-  answerText String   @db.Text
-  createdAt  DateTime @default(now())
-
-  qnaBox QnaBox @relation(fields: [qnaBoxId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([qnaBoxId])
-  @@map("qna_answers")
-}
+// =============================================================================
+// === Shared client generator
+// =============================================================================
 
 generator sharedClient {
   provider = "prisma-client-js"

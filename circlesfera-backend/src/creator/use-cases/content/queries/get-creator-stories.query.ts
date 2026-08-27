@@ -5,10 +5,10 @@ import { PrismaService } from '../../../../prisma/prisma.service.js';
 export class GetCreatorStoriesQuery {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async execute(userId: string, page = 1, limit = 10) {
+  async execute(profileId: string, page = 1, limit = 10) {
     const [data, total] = await Promise.all([
       this.prisma.story.findMany({
-        where: { userId },
+        where: { profileId },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -21,7 +21,7 @@ export class GetCreatorStoriesQuery {
           _count: { select: { views: true, reactions: true } },
         },
       }),
-      this.prisma.story.count({ where: { userId } }),
+      this.prisma.story.count({ where: { profileId } }),
     ]);
 
     return {

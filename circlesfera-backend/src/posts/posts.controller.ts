@@ -49,7 +49,7 @@ export class PostsController {
     @CurrentUser() user: CurrentUserData,
     @Body() dto: CreatePostDto,
   ) {
-    return this.postsService.create(user.userId, dto);
+    return this.postsService.create(user.profileId, dto);
   }
 
   /** List all posts with optional sort (latest/trending). Supports guest access. */
@@ -60,7 +60,7 @@ export class PostsController {
     @Query() query: GetPostsDto,
   ) {
     const { sort, ...pagination } = query;
-    return this.postsService.findAll(pagination, sort, user?.userId);
+    return this.postsService.findAll(pagination, sort, user?.profileId);
   }
 
   /** Get video-only feed (Frames/Reels). */
@@ -70,7 +70,7 @@ export class PostsController {
     @CurrentUser() user: CurrentUserData | null,
     @Query() pagination: PaginationDto,
   ) {
-    return this.postsService.getFramesFeed(pagination, user?.userId);
+    return this.postsService.getFramesFeed(pagination, user?.profileId);
   }
 
   /** Get posts by a specific user's username. */
@@ -86,7 +86,7 @@ export class PostsController {
       username,
       pagination,
       type,
-      user?.userId,
+      user?.profileId,
     );
   }
 
@@ -115,7 +115,7 @@ export class PostsController {
     @CurrentUser() user: CurrentUserData | null,
     @Param('id') id: string,
   ) {
-    return this.postsService.findOne(id, user?.userId);
+    return this.postsService.findOne(id, user?.profileId);
   }
 
   /** Update a post (author only). */

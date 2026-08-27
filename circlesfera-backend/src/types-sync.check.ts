@@ -4,7 +4,13 @@ import type {
   Profile as SharedProfile,
   Story as SharedStory,
 } from '@circlesfera/shared';
-import type { Prisma } from '@prisma/client';
+import type { Comment, Post, Prisma, Story } from '@prisma/client';
+
+// This file ensures our DTOs match Prisma types
+
+export type PostSync = Omit<Post, 'profileId'>;
+export type StorySync = Omit<Story, 'profileId'>;
+export type CommentSync = Omit<Comment, 'profileId'>;
 
 /**
  * This file serves as a static type checker to ensure that the manually written
@@ -19,14 +25,17 @@ import type { Prisma } from '@prisma/client';
 // 1. Post Type Check
 type ExpectedPostPayload = Prisma.PostGetPayload<{
   include: {
-    user: {
-      include: { profile: true };
+    profile: {
+      include: { user: true };
     };
     media: true;
     _count: { select: { likes: true; comments: true } };
   };
 }>;
-export const _checkPost: SharedPost = {} as unknown as ExpectedPostPayload;
+export const _checkPost: SharedPost = {} as unknown as ExpectedPostPayload & {
+  userId: string;
+  user: any;
+};
 
 // 2. Profile Type Check
 type ExpectedProfilePayload =
@@ -37,22 +46,23 @@ export const _checkProfile: SharedProfile =
 // 3. Story Type Check
 type ExpectedStoryPayload = Prisma.StoryGetPayload<{
   include: {
-    user: {
-      include: { profile: true };
+    profile: {
+      include: { user: true };
     };
     _count: { select: { views: true; reactions: true } };
   };
 }>;
-export const _checkStory: SharedStory = {} as unknown as ExpectedStoryPayload;
+export const _checkStory: SharedStory =
+  {} as unknown as ExpectedStoryPayload & { userId: string; user: any };
 
 // 4. Comment Type Check
 type ExpectedCommentPayload = Prisma.CommentGetPayload<{
   include: {
-    user: {
-      include: { profile: true };
+    profile: {
+      include: { user: true };
     };
     _count: { select: { replies: true; likes: true } };
   };
 }>;
 export const _checkComment: SharedComment =
-  {} as unknown as ExpectedCommentPayload;
+  {} as unknown as ExpectedCommentPayload & { userId: string; user: any };

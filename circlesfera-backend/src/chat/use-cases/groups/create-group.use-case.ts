@@ -16,9 +16,9 @@ export class CreateGroupUseCase {
     return this.moduleRef.get(AppGateway, { strict: false });
   }
 
-  async execute(userId: string, participantIds: string[], name?: string) {
+  async execute(profileId: string, participantIds: string[], name?: string) {
     const uniqueParticipantIds = Array.from(
-      new Set(participantIds.filter((id) => id !== userId)),
+      new Set(participantIds.filter((id) => id !== profileId)),
     );
 
     if (uniqueParticipantIds.length === 0) {
@@ -31,8 +31,8 @@ export class CreateGroupUseCase {
     const blocks = await this.prisma.block.findMany({
       where: {
         OR: [
-          { blockerId: userId, blockedId: { in: uniqueParticipantIds } },
-          { blockedId: userId, blockerId: { in: uniqueParticipantIds } },
+          { blockerId: profileId, blockedId: { in: uniqueParticipantIds } },
+          { blockedId: profileId, blockerId: { in: uniqueParticipantIds } },
         ],
       },
     });
@@ -51,17 +51,19 @@ export class CreateGroupUseCase {
         where: {
           isGroup: false,
           AND: [
-            { participants: { some: { userId } } },
-            { participants: { some: { userId: recipientId } } },
+            { participants: { some: { profileId } } },
+            { participants: { some: { profileId: recipientId } } },
           ],
         },
         include: {
           participants: {
             include: {
-              user: {
+              profile: {
                 select: {
                   id: true,
-                  profile: true,
+                  username: true,
+                  avatar: true,
+                  fullName: true,
                 },
               },
             },
@@ -75,16 +77,18 @@ export class CreateGroupUseCase {
         data: {
           isGroup: false,
           participants: {
-            create: [{ userId }, { userId: recipientId }],
+            create: [{ profileId }, { profileId: recipientId }],
           },
         },
         include: {
           participants: {
             include: {
-              user: {
+              profile: {
                 select: {
                   id: true,
-                  profile: true,
+                  username: true,
+                  avatar: true,
+                  fullName: true,
                 },
               },
             },
@@ -94,7 +98,7 @@ export class CreateGroupUseCase {
     }
 
     const allParticipantIds = Array.from(
-      new Set([userId, ...uniqueParticipantIds]),
+      new Set([profileId, ...uniqueParticipantIds]),
     );
 
     const conversation = await this.prisma.conversation.create({
@@ -103,18 +107,20 @@ export class CreateGroupUseCase {
         name,
         participants: {
           create: allParticipantIds.map((id) => ({
-            userId: id,
-            isAdmin: id === userId,
+            profileId: id,
+            isAdmin: id === profileId,
           })),
         },
       },
       include: {
         participants: {
           include: {
-            user: {
+            profile: {
               select: {
                 id: true,
-                profile: true,
+                username: true,
+                avatar: true,
+                fullName: true,
               },
             },
           },
@@ -123,7 +129,7 @@ export class CreateGroupUseCase {
     });
 
     conversation.participants.forEach((p) => {
-      this.gateway.addConversationToSocket(p.userId, conversation.id);
+      this.gateway.addConversationToSocket(p.profileId, conversation.id);
     });
 
     return conversation;

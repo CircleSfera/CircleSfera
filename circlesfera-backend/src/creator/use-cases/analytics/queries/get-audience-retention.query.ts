@@ -5,9 +5,9 @@ import { PrismaService } from '../../../../prisma/prisma.service.js';
 export class GetAudienceRetentionQuery {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async execute(userId: string) {
+  async execute(profileId: string) {
     const posts = await this.prisma.post.findMany({
-      where: { userId },
+      where: { profileId },
       select: { id: true, performanceScore: true, views: true },
     });
 

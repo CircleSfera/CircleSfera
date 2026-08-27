@@ -43,31 +43,31 @@ export class ModerateContentUseCase {
 
     let result: {
       id: string;
-      userId: string;
+      profileId: string;
       moderationStatus: $Enums.ModerationStatus;
     };
-    let authorId: string | undefined;
+    let authorProfileId: string | undefined;
     if (targetType === 'POST') {
       result = await this.prisma.post.update({
         where: { id: targetId },
         data,
-        select: { id: true, userId: true, moderationStatus: true },
+        select: { id: true, profileId: true, moderationStatus: true },
       });
-      authorId = result.userId;
+      authorProfileId = result.profileId;
     } else if (targetType === 'STORY') {
       result = await this.prisma.story.update({
         where: { id: targetId },
         data,
-        select: { id: true, userId: true, moderationStatus: true },
+        select: { id: true, profileId: true, moderationStatus: true },
       });
-      authorId = result.userId;
+      authorProfileId = result.profileId;
     } else {
       result = await this.prisma.comment.update({
         where: { id: targetId },
         data,
-        select: { id: true, userId: true, moderationStatus: true },
+        select: { id: true, profileId: true, moderationStatus: true },
       });
-      authorId = result.userId;
+      authorProfileId = result.profileId;
     }
 
     const action =
@@ -85,7 +85,7 @@ export class ModerateContentUseCase {
       note,
     );
 
-    if (authorId) {
+    if (authorProfileId) {
       const statusLabel =
         status === 'VISIBLE'
           ? 'restored'
@@ -98,7 +98,7 @@ export class ModerateContentUseCase {
       );
       await this.notificationsService
         .create({
-          recipientId: authorId,
+          recipientId: authorProfileId,
           senderId,
           type: $Enums.NotificationType.MODERATION,
           content: `Your ${targetType.toLowerCase()} was ${statusLabel} by moderation.${note ? ` Note: ${note}` : ''} You can appeal from Settings → Appeals.`,

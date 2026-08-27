@@ -54,13 +54,13 @@ describe('BookmarksService', () => {
       mockPrismaService.bookmark.findUnique.mockResolvedValue(null);
       mockPrismaService.bookmark.create.mockResolvedValue({
         id: 'b-1',
-        userId: 'user-1',
+        profileId: 'user-1',
         postId: 'post-1',
       });
 
       const result = await service.toggle('user-1', 'post-1');
       expect(mockPrismaService.bookmark.create).toHaveBeenCalledWith({
-        data: { userId: 'user-1', postId: 'post-1' },
+        data: { profileId: 'user-1', postId: 'post-1' },
       });
       expect(result).toEqual({ bookmarked: true });
     });
@@ -69,13 +69,13 @@ describe('BookmarksService', () => {
       mockPrismaService.post.findUnique.mockResolvedValue({ id: 'post-1' });
       mockPrismaService.bookmark.findUnique.mockResolvedValue({
         id: 'b-1',
-        userId: 'user-1',
+        profileId: 'user-1',
         postId: 'post-1',
       });
 
       const result = await service.toggle('user-1', 'post-1');
       expect(mockPrismaService.bookmark.delete).toHaveBeenCalledWith({
-        where: { userId_postId: { userId: 'user-1', postId: 'post-1' } },
+        where: { profileId_postId: { profileId: 'user-1', postId: 'post-1' } },
       });
       expect(result).toEqual({ bookmarked: false });
     });
@@ -109,7 +109,7 @@ describe('BookmarksService', () => {
     it('should throw ForbiddenException if user does not own collection', async () => {
       mockPrismaService.collection.findUnique.mockResolvedValue({
         id: 'col-1',
-        userId: 'other-user',
+        profileId: 'other-user',
       });
 
       await expect(service.getByCollection('user-1', 'col-1')).rejects.toThrow(

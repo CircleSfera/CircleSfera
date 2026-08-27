@@ -32,24 +32,21 @@ export class UsersService {
    * @param limit - Maximum suggestions to return (default 10)
    */
   async getSuggestions(userId: string, limit = 10) {
-    // 1. Fetch popular users using a single optimized query with relational filters (NOT EXISTS in SQL)
-    // This avoids pulling massive arrays into application memory.
-    const suggestions = await this.prisma.user.findMany({
+    // 1. Fetch popular profiles using a single optimized query with relational filters (NOT EXISTS in SQL)
+    // We get profiles, excluding the current user's profiles
+    const userProfiles = await this.prisma.profile.findMany({
+      where: { userId },
+      select: { id: true },
+    });
+    const profileIds = userProfiles.map((p) => p.id);
+
+    const suggestions = await this.prisma.profile.findMany({
       where: {
-        id: { not: userId }, // Exclude self
-        isActive: true, // Only active users
-        profile: { isNot: null }, // Ensure they have a profile
-        // Exclude users already followed or with pending requests
+        userId: { not: userId }, // Exclude self
+        user: { isActive: true }, // Only active users
+        // Exclude profiles already followed or with pending requests by any of the user's profiles
         followers: {
-          none: { followerId: userId },
-        },
-        // Exclude users blocking the current user
-        blocking: {
-          none: { blockedId: userId },
-        },
-        // Exclude users blocked by the current user
-        blockedBy: {
-          none: { blockerId: userId },
+          none: { followerId: { in: profileIds } },
         },
       },
       take: limit,
@@ -59,13 +56,8 @@ export class UsersService {
         },
       },
       include: {
-        profile: {
-          select: {
-            username: true,
-            fullName: true,
-            avatar: true,
-            bio: true,
-          },
+        user: {
+          select: { id: true, verificationLevel: true },
         },
         _count: {
           select: {
@@ -76,16 +68,19 @@ export class UsersService {
     });
 
     // Remap to cleaner structure
-    return suggestions.map((user) => ({
-      id: user.id,
-      username: user.profile?.username,
-      fullName: user.profile?.fullName,
-      avatar: user.profile?.avatar,
-      bio: user.profile?.bio,
-      verificationLevel: user.verificationLevel,
-      followersCount: user._count.followers,
+    return suggestions.map((profile) => ({
+      id: profile.user.id, // Or profile.id depending on what frontend expects. Keep as User ID or Profile ID? The frontend uses userId as profileId now. Let's return profile.id
+      profileId: profile.id,
+      username: profile.username,
+      fullName: profile.fullName,
+      avatar: profile.avatar,
+      bio: profile.bio,
+      verificationLevel: profile.user.verificationLevel,
+      followersCount: profile._count.followers,
       reason:
-        user._count.followers > 50 ? 'Popular en CircleSfera' : 'Nuevo Creador',
+        profile._count.followers > 50
+          ? 'Popular en CircleSfera'
+          : 'Nuevo Creador',
     }));
   }
 
@@ -105,9 +100,13 @@ export class UsersService {
    * @param id - The user ID to unban
    */
   async unbanUser(id: string) {
+    await this.prisma.profile.updateMany({
+      where: { userId: id },
+      data: { suspendedUntil: null },
+    });
     return this.prisma.user.update({
       where: { id },
-      data: { isActive: true, suspendedUntil: null },
+      data: { isActive: true },
     });
   }
 
@@ -146,107 +145,110 @@ export class UsersService {
       this.prisma.user.findUnique({
         where: { id: userId },
         select: {
-          profile: true,
-          settings: true,
-          posts: {
+          profiles: {
             include: {
-              media: true,
-              _count: { select: { likes: true, comments: true } },
-            },
-          },
-          stories: {
-            select: {
-              id: true,
-              url: true,
-              mediaType: true,
-              createdAt: true,
-              expiresAt: true,
-              isCloseFriendsOnly: true,
-            },
-          },
-          likes: {
-            select: { id: true, postId: true, createdAt: true },
-          },
-          notifications: {
-            select: {
-              id: true,
-              type: true,
-              content: true,
-              read: true,
-              createdAt: true,
-              postId: true,
-              storyId: true,
-            },
-          },
-          appeals: true,
-          collections: {
-            select: {
-              id: true,
-              name: true,
-              coverUrl: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          },
-          sentTransactions: {
-            select: {
-              id: true,
-              type: true,
-              amount: true,
-              currency: true,
-              status: true,
-              createdAt: true,
-              receiverId: true,
-              postId: true,
-              storyId: true,
-            },
-          },
-          receivedTransactions: {
-            select: {
-              id: true,
-              type: true,
-              amount: true,
-              currency: true,
-              status: true,
-              createdAt: true,
-              senderId: true,
-              postId: true,
-              storyId: true,
-            },
-          },
-          followers: {
-            include: {
-              follower: {
-                select: { profile: { select: { username: true } } },
+              posts: {
+                include: {
+                  media: true,
+                  _count: { select: { likes: true, comments: true } },
+                },
               },
-            },
-          },
-          following: {
-            include: {
+              stories: {
+                select: {
+                  id: true,
+                  url: true,
+                  mediaType: true,
+                  createdAt: true,
+                  expiresAt: true,
+                  isCloseFriendsOnly: true,
+                },
+              },
+              likes: {
+                select: { id: true, postId: true, createdAt: true },
+              },
+              notifications: {
+                select: {
+                  id: true,
+                  type: true,
+                  content: true,
+                  read: true,
+                  createdAt: true,
+                  postId: true,
+                  storyId: true,
+                },
+              },
+              collections: {
+                select: {
+                  id: true,
+                  name: true,
+                  coverUrl: true,
+                  createdAt: true,
+                  updatedAt: true,
+                },
+              },
+              sentTransactions: {
+                select: {
+                  id: true,
+                  type: true,
+                  amount: true,
+                  currency: true,
+                  status: true,
+                  createdAt: true,
+                  receiverId: true,
+                  postId: true,
+                  storyId: true,
+                },
+              },
+              receivedTransactions: {
+                select: {
+                  id: true,
+                  type: true,
+                  amount: true,
+                  currency: true,
+                  status: true,
+                  createdAt: true,
+                  senderId: true,
+                  postId: true,
+                  storyId: true,
+                },
+              },
+              followers: {
+                include: {
+                  follower: {
+                    select: { username: true },
+                  },
+                },
+              },
               following: {
-                select: { profile: { select: { username: true } } },
+                include: {
+                  following: {
+                    select: { username: true },
+                  },
+                },
+              },
+              comments: true,
+              bookmarks: { include: { post: { select: { caption: true } } } },
+              messages: {
+                select: {
+                  id: true,
+                  conversationId: true,
+                  content: true,
+                  url: true,
+                  mediaType: true,
+                  voiceUrl: true,
+                  postId: true,
+                  storyId: true,
+                  createdAt: true,
+                  updatedAt: true,
+                  isEdited: true,
+                  isDeleted: true,
+                  expiresAt: true,
+                },
               },
             },
           },
-          comments: true,
-          bookmarks: { include: { post: { select: { caption: true } } } },
-          messages: {
-            select: {
-              id: true,
-              conversationId: true,
-              content: true,
-              url: true,
-              mediaType: true,
-              voiceUrl: true,
-              postId: true,
-              storyId: true,
-              createdAt: true,
-              updatedAt: true,
-              isEdited: true,
-              isDeleted: true,
-              expiresAt: true,
-            },
-          },
+          settings: true,
+          appeals: true,
           supportTickets: true,
           reports: true,
         },
@@ -287,26 +289,15 @@ export class UsersService {
           lastSeenAt: d.lastSeenAt,
         })),
       },
-      profile: relations.profile,
+      profiles: relations.profiles.map((p) => ({
+        ...p,
+        messages: {
+          note: 'Message content may be encrypted at rest; values are exported as stored ciphertext.',
+          items: p.messages,
+        },
+      })),
       settings: relations.settings,
-      posts: relations.posts,
-      stories: relations.stories,
-      likes: relations.likes,
-      notifications: relations.notifications,
       appeals: relations.appeals,
-      collections: relations.collections,
-      transactions: {
-        sent: relations.sentTransactions,
-        received: relations.receivedTransactions,
-      },
-      followers: relations.followers,
-      following: relations.following,
-      comments: relations.comments,
-      bookmarks: relations.bookmarks,
-      messages: {
-        note: 'Message content may be encrypted at rest; values are exported as stored ciphertext.',
-        items: relations.messages,
-      },
       supportTickets: relations.supportTickets,
       reportsFiled: relations.reports,
     };

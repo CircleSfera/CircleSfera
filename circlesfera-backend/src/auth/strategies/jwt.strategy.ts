@@ -40,9 +40,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(
-    payload: JwtPayload,
-  ): Promise<{ userId: string; email: string; role: string }> {
+  async validate(payload: JwtPayload): Promise<{
+    userId: string;
+    email: string;
+    role: string;
+    profileId: string;
+  }> {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
     });
@@ -51,10 +54,22 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('User not found or account deactivated');
     }
 
-    if (user.suspendedUntil && user.suspendedUntil > new Date()) {
+    if (user.isRootBanned) {
+      throw new UnauthorizedException({
+        message: ApiErrorCode.ACCOUNT_BANNED,
+        reason: user.rootBanReason,
+      });
+    }
+
+    const profile = await this.prisma.profile.findFirst({
+      where: { userId: user.id },
+      select: { id: true, suspendedUntil: true },
+    });
+
+    if (profile?.suspendedUntil && profile.suspendedUntil > new Date()) {
       throw new UnauthorizedException({
         message: ApiErrorCode.ACCOUNT_SUSPENDED,
-        suspendedUntil: user.suspendedUntil.toISOString(),
+        suspendedUntil: profile.suspendedUntil.toISOString(),
       });
     }
 
@@ -64,6 +79,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       userId: user.id,
       email: user.email,
       role: role,
+      profileId: profile?.id || '',
     };
   }
 }

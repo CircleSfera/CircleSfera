@@ -47,9 +47,7 @@ export class GetReportsQuery {
         { details: { contains: search, mode: 'insensitive' } },
         {
           reporter: {
-            profile: {
-              username: { contains: search, mode: 'insensitive' },
-            },
+            username: { contains: search, mode: 'insensitive' },
           },
         },
       ];
@@ -63,11 +61,7 @@ export class GetReportsQuery {
         orderBy: { createdAt: 'desc' },
         include: {
           reporter: {
-            include: {
-              profile: {
-                select: { username: true, avatar: true },
-              },
-            },
+            select: { username: true, avatar: true },
           },
           assignedAdmin: {
             select: {
@@ -99,7 +93,7 @@ export class GetReportsQuery {
                 caption: true,
                 type: true,
                 media: { take: 1, select: { url: true } },
-                user: { select: { profile: { select: { username: true } } } },
+                profile: { select: { username: true } },
               },
             });
             if (post) {
@@ -107,7 +101,7 @@ export class GetReportsQuery {
                 thumbnail: post.media?.[0]?.url || null,
                 text: post.caption,
                 type: post.type,
-                author: post.user?.profile?.username,
+                author: post.profile?.username,
               };
             }
           } else if (report.targetType === 'STORY') {
@@ -116,7 +110,7 @@ export class GetReportsQuery {
               select: {
                 url: true,
                 mediaType: true,
-                user: { select: { profile: { select: { username: true } } } },
+                profile: { select: { username: true } },
               },
             });
             if (story) {
@@ -124,7 +118,7 @@ export class GetReportsQuery {
                 thumbnail: story.url,
                 text: null,
                 type: 'STORY',
-                author: story.user?.profile?.username,
+                author: story.profile?.username,
               };
             }
           } else if (report.targetType === 'COMMENT') {
@@ -133,7 +127,7 @@ export class GetReportsQuery {
               select: {
                 content: true,
                 url: true,
-                user: { select: { profile: { select: { username: true } } } },
+                profile: { select: { username: true } },
               },
             });
             if (comment) {
@@ -141,7 +135,7 @@ export class GetReportsQuery {
                 thumbnail: comment.url || null,
                 text: comment.content,
                 type: 'COMMENT',
-                author: comment.user?.profile?.username,
+                author: comment.profile?.username,
               };
             }
           } else if (report.targetType === 'USER') {
@@ -149,20 +143,20 @@ export class GetReportsQuery {
               where: { id: report.targetId },
               select: {
                 email: true,
-                profile: {
+                profiles: {
                   select: { username: true, avatar: true, fullName: true },
                 },
               },
             });
             if (targetUser) {
               targetContent = {
-                thumbnail: targetUser.profile?.avatar || null,
+                thumbnail: targetUser.profiles[0]?.avatar || null,
                 text:
-                  targetUser.profile?.fullName ||
-                  targetUser.profile?.username ||
+                  targetUser.profiles[0]?.fullName ||
+                  targetUser.profiles[0]?.username ||
                   targetUser.email,
                 type: 'USER',
-                author: targetUser.profile?.username,
+                author: targetUser.profiles[0]?.username,
               };
             }
           } else if (report.targetType === 'MESSAGE') {
@@ -175,7 +169,7 @@ export class GetReportsQuery {
                 thumbnailUrl: true,
                 url: true,
                 sender: {
-                  select: { profile: { select: { username: true } } },
+                  select: { username: true },
                 },
               },
             });
@@ -188,7 +182,7 @@ export class GetReportsQuery {
                 thumbnail: message.thumbnailUrl || message.url || null,
                 text: preview,
                 type: 'MESSAGE',
-                author: message.sender?.profile?.username,
+                author: message.sender?.username,
               };
             }
           }

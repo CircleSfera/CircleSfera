@@ -67,10 +67,14 @@ export class AppealsService {
               id: true,
               email: true,
               isActive: true,
-              suspendedUntil: true,
               strikeCount: true,
-              profile: {
-                select: { username: true, fullName: true, avatar: true },
+              profiles: {
+                select: {
+                  username: true,
+                  fullName: true,
+                  avatar: true,
+                  suspendedUntil: true,
+                },
               },
             },
           },
@@ -87,6 +91,8 @@ export class AppealsService {
           moderationStatus?: string | null;
           type?: string;
         } | null = null;
+
+        const primaryProfile = appeal.user?.profiles?.[0];
 
         if (appeal.targetType === 'POST_REMOVAL' && appeal.targetId) {
           const post = await this.prisma.post.findUnique({
@@ -108,7 +114,7 @@ export class AppealsService {
           targetPreview = {
             text:
               appeal.user?.isActive === false ? 'Account inactive' : 'Account',
-            moderationStatus: appeal.user?.suspendedUntil
+            moderationStatus: primaryProfile?.suspendedUntil
               ? 'SUSPENDED'
               : appeal.user?.isActive === false
                 ? 'BANNED'
@@ -143,7 +149,7 @@ export class AppealsService {
       where: { id },
       include: {
         user: {
-          include: { profile: true },
+          include: { profiles: true },
         },
       },
     });
@@ -165,12 +171,15 @@ export class AppealsService {
 
       if (dto.status === 'APPROVED') {
         if (appeal.targetType === 'ACCOUNT_BAN') {
+          await tx.profile.updateMany({
+            where: { userId: appeal.userId },
+            data: { suspendedUntil: null },
+          });
           await tx.user.update({
             where: { id: appeal.userId },
             data: {
               isActive: true,
-              suspendedUntil: null,
-            } satisfies Prisma.UserUpdateInput,
+            },
           });
         }
         if (appeal.targetType === 'BOT_LABEL') {
@@ -227,30 +236,42 @@ export class AppealsService {
       this.prisma,
       adminId,
     );
-    await this.notificationsService
-      .create({
-        recipientId: appeal.userId,
-        senderId,
-        type: NotificationType.MODERATION,
-        content: `Your appeal was ${outcomeLabel}.${dto.adminNotes ? ` Notes: ${dto.adminNotes}` : ''}`,
-        postId:
-          appeal.targetType === 'POST_REMOVAL'
-            ? (appeal.targetId ?? undefined)
-            : undefined,
-      })
-      .catch((e) => console.error(e));
+    const appealProfile = await this.prisma.profile.findFirst({
+      where: { userId: appeal.userId },
+      select: { id: true },
+    });
+    if (appealProfile) {
+      await this.notificationsService
+        .create({
+          recipientId: appealProfile.id,
+          senderId,
+          type: NotificationType.MODERATION,
+          content: `Your appeal was ${outcomeLabel}.${dto.adminNotes ? ` Notes: ${dto.adminNotes}` : ''}`,
+          postId:
+            appeal.targetType === 'POST_REMOVAL'
+              ? (appeal.targetId ?? undefined)
+              : undefined,
+        })
+        .catch((e) => console.error(e));
+    }
 
-    if (appeal.user?.email) {
+    const appealUser = await this.prisma.user.findUnique({
+      where: { id: appeal.userId },
+      select: {
+        email: true,
+        profiles: { select: { username: true, fullName: true }, take: 1 },
+      },
+    });
+    if (appealUser?.email) {
       const actionLabel =
         dto.status === 'APPROVED'
           ? 'Restaurado (Apelación Aprobada)'
           : 'Rechazado (Decisión Mantenida)';
+      const profile = appealUser.profiles[0];
       await this.emailService
         .sendModerationEmail(
-          appeal.user.email,
-          appeal.user.profile?.fullName ||
-            appeal.user.profile?.username ||
-            'Usuario',
+          appealUser.email,
+          profile?.fullName || profile?.username || 'Usuario',
           actionLabel,
           appeal.targetType,
           dto.adminNotes ||

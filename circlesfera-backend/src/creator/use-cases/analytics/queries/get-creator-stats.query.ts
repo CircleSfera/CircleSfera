@@ -14,55 +14,63 @@ interface RecentInteraction {
 export class GetCreatorStatsQuery {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async execute(userId: string) {
+  async execute(profileId: string) {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: profileId },
+      select: { userId: true },
+    });
+    const userId = profile?.userId;
+
     const results = await Promise.all([
       this.prisma.post.count({
-        where: { userId, type: 'POST' },
+        where: { profileId, type: 'POST' },
       }),
       this.prisma.post.count({
-        where: { userId, type: 'FRAME' },
+        where: { profileId, type: 'FRAME' },
       }),
-      this.prisma.story.count({ where: { userId } }),
+      this.prisma.story.count({ where: { profileId } }),
       this.prisma.follow.count({
-        where: { followingId: userId, status: 'ACCEPTED' },
+        where: { followingId: profileId, status: 'ACCEPTED' },
       }),
       this.prisma.follow.count({
         where: {
-          followingId: userId,
+          followingId: profileId,
           status: 'ACCEPTED',
           createdAt: { lt: sevenDaysAgo },
         },
       }),
       this.prisma.like.count({
-        where: { post: { userId } },
+        where: { post: { profileId } },
       }),
       this.prisma.comment.count({
-        where: { post: { userId } },
+        where: { post: { profileId } },
       }),
       this.prisma.bookmark.count({
-        where: { post: { userId } },
+        where: { post: { profileId } },
       }),
-      this.prisma.promotion.count({
-        where: { userId, status: PromotionStatus.ACTIVE },
-      }),
+      userId
+        ? this.prisma.promotion.count({
+            where: { userId, status: PromotionStatus.ACTIVE },
+          })
+        : Promise.resolve(0),
       this.prisma.post.aggregate({
-        where: { userId },
+        where: { profileId },
         _sum: {
           views: true,
         },
       }) as unknown as Promise<PostViewsAggregation>,
       this.prisma.storyView.count({
-        where: { story: { userId } },
+        where: { story: { profileId } },
       }),
       this.prisma.like.findMany({
-        where: { post: { userId }, createdAt: { gte: sevenDaysAgo } },
+        where: { post: { profileId }, createdAt: { gte: sevenDaysAgo } },
         select: { createdAt: true },
       }),
       this.prisma.follow.count({
-        where: { followerId: userId, status: 'ACCEPTED' },
+        where: { followerId: profileId, status: 'ACCEPTED' },
       }),
     ]);
 
@@ -132,18 +140,24 @@ export class GetCreatorStatsQuery {
 
     const activeFollowersCount = await this.prisma.follow.count({
       where: {
-        followingId: userId,
+        followingId: profileId,
         status: 'ACCEPTED',
         follower: {
           OR: [
             {
               likes: {
-                some: { post: { userId }, createdAt: { gte: thirtyDaysAgo } },
+                some: {
+                  post: { profileId },
+                  createdAt: { gte: thirtyDaysAgo },
+                },
               },
             },
             {
               comments: {
-                some: { post: { userId }, createdAt: { gte: thirtyDaysAgo } },
+                some: {
+                  post: { profileId },
+                  createdAt: { gte: thirtyDaysAgo },
+                },
               },
             },
           ],
@@ -164,16 +178,12 @@ export class GetCreatorStatsQuery {
     const retentionStatus = { active, churning, churned };
 
     const followersList = await this.prisma.follow.findMany({
-      where: { followingId: userId, status: 'ACCEPTED' },
+      where: { followingId: profileId, status: 'ACCEPTED' },
       select: {
         followerId: true,
         follower: {
           select: {
-            profile: {
-              select: {
-                location: true,
-              },
-            },
+            location: true,
           },
         },
       },
@@ -181,7 +191,7 @@ export class GetCreatorStatsQuery {
 
     const locationCounts: Record<string, number> = {};
     for (const item of followersList) {
-      const loc = item.follower.profile?.location || 'Unknown';
+      const loc = item.follower.location || 'Unknown';
       locationCounts[loc] = (locationCounts[loc] || 0) + 1;
     }
 
@@ -198,7 +208,7 @@ export class GetCreatorStatsQuery {
     if (followerIds.length > 0) {
       const recentEvents = await this.prisma.interactionEvent.findMany({
         where: {
-          userId: { in: followerIds },
+          id: { in: followerIds },
           createdAt: { gte: thirtyDaysAgo },
         },
         select: {

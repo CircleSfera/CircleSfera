@@ -25,26 +25,37 @@ export class FeedService {
     private readonly feedPreferences: FeedPreferencesService,
   ) {}
 
-  private postHydrationInclude(userId?: string | null) {
+  private postHydrationInclude(profileId?: string | null) {
     return {
-      user: { include: { profile: true } },
+      profile: { include: { user: true } },
       media: true,
       poll: { select: { id: true } },
       qnaBox: { select: { id: true } },
       _count: { select: { likes: true, comments: true } },
-      likes: userId ? { where: { userId }, take: 1 } : false,
+      likes: profileId ? { where: { profileId }, take: 1 } : false,
     };
   }
 
-  private async getViewerContentSettings(userId: string | null) {
-    if (!userId) {
+  private async getViewerContentSettings(profileId: string | null) {
+    if (!profileId) {
+      return {
+        allowMature: false,
+        blurSensitiveContent: true,
+      };
+    }
+    // UserSettings is keyed by account User.id, not Profile.id
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: profileId },
+      select: { userId: true },
+    });
+    if (!profile) {
       return {
         allowMature: false,
         blurSensitiveContent: true,
       };
     }
     const settings = await this.prisma.userSettings.findUnique({
-      where: { userId },
+      where: { userId: profile.userId },
       select: {
         contentPreference: true,
         blurSensitiveContent: true,
@@ -113,17 +124,17 @@ export class FeedService {
    * Generates a hybrid "For You" feed using an advanced mathematical algorithm.
    * Score = (AI_Similarity * 0.4) + (Social_Graph * 0.3) + (Popularity * 0.3) * Time_Decay
    */
-  async getHybridFeed(userId: string | null, pagination: PaginationDto) {
+  async getHybridFeed(profileId: string | null, pagination: PaginationDto) {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
 
     // 1. If not logged in, return a trending chronological feed
-    if (!userId) {
+    if (!profileId) {
       return this.getTrendingFeed(page, limit, skip);
     }
 
-    const viewerSettings = await this.getViewerContentSettings(userId);
-    const cacheKey = `feed:hybrid:user_${userId}:page_${page}:limit_${limit}:mature_${viewerSettings.allowMature}`;
+    const viewerSettings = await this.getViewerContentSettings(profileId);
+    const cacheKey = `feed:hybrid:user_${profileId}:page_${page}:limit_${limit}:mature_${viewerSettings.allowMature}`;
     const cachedFeed = await this.cacheManager.get(cacheKey);
     if (cachedFeed) {
       return cachedFeed;
@@ -133,7 +144,7 @@ export class FeedService {
     try {
       // Step A: Calculate the User's Average Vector Preference based on recent likes
       const lastLikes = await this.prisma.like.findMany({
-        where: { userId },
+        where: { profileId },
         take: 20,
         orderBy: { createdAt: 'desc' },
         select: { postId: true },
@@ -171,11 +182,11 @@ export class FeedService {
           WITH social_graph_raw AS (
             SELECT "followingId", 1.5 AS weight
             FROM "follows"
-            WHERE "followerId" = ${userId} AND "status" = 'ACCEPTED'
+            WHERE "followerId" = ${profileId} AND "status" = 'ACCEPTED'
             UNION ALL
             SELECT "friendId" AS "followingId", 2.0 AS weight
             FROM "close_friends"
-            WHERE "userId" = ${userId}
+            WHERE "profileId" = ${profileId}
           ),
           social_graph AS (
             SELECT "followingId", MAX(weight) as weight FROM social_graph_raw GROUP BY "followingId"
@@ -200,20 +211,20 @@ export class FeedService {
             
           FROM "posts" p
           JOIN "post_embeddings" pe ON p.id = pe."postId"
-          LEFT JOIN social_graph sg ON p."userId" = sg."followingId"
+          LEFT JOIN social_graph sg ON p."profileId" = sg."followingId"
           
           WHERE (p.visibility = 'PUBLIC' OR (p.visibility = 'FOLLOWERS' AND sg.weight IS NOT NULL))
             AND p."moderationStatus" = 'VISIBLE'
-            AND p."userId" != ${userId}
-            AND p.id NOT IN (SELECT "postId" FROM "likes" WHERE "userId" = ${userId})
-            AND p."userId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${userId})
-            AND p."userId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${userId})
-            AND p."userId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${userId})
-            AND p.id NOT IN (SELECT "postId" FROM "feed_hidden_posts" WHERE "userId" = ${userId})
-            AND p."userId" NOT IN (SELECT "authorId" FROM "feed_hidden_authors" WHERE "userId" = ${userId})
+            AND p."profileId" != ${profileId}
+            AND p.id NOT IN (SELECT "postId" FROM "likes" WHERE "profileId" = ${profileId})
+            AND p."profileId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${profileId})
+            AND p."profileId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
+            AND p."profileId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
+            AND p.id NOT IN (SELECT "postId" FROM "feed_hidden_posts" WHERE "profileId" = ${profileId})
+            AND p."profileId" NOT IN (SELECT "authorId" FROM "feed_hidden_authors" WHERE "profileId" = ${profileId})
             AND NOT EXISTS (
               SELECT 1 FROM "feed_muted_keywords" fmk
-              WHERE fmk."userId" = ${userId}
+              WHERE fmk."profileId" = ${profileId}
                 AND p.caption IS NOT NULL
                 AND POSITION(fmk.keyword IN LOWER(p.caption)) > 0
             )
@@ -229,11 +240,11 @@ export class FeedService {
           WITH social_graph_raw AS (
             SELECT "followingId", 1.5 AS weight
             FROM "follows"
-            WHERE "followerId" = ${userId} AND "status" = 'ACCEPTED'
+            WHERE "followerId" = ${profileId} AND "status" = 'ACCEPTED'
             UNION ALL
             SELECT "friendId" AS "followingId", 2.0 AS weight
             FROM "close_friends"
-            WHERE "userId" = ${userId}
+            WHERE "profileId" = ${profileId}
           ),
           social_graph AS (
             SELECT "followingId", MAX(weight) as weight FROM social_graph_raw GROUP BY "followingId"
@@ -253,19 +264,19 @@ export class FeedService {
             ) * EXP(-EXTRACT(EPOCH FROM (NOW() - p."createdAt")) / 86400.0) AS final_score
             
           FROM "posts" p
-          LEFT JOIN social_graph sg ON p."userId" = sg."followingId"
+          LEFT JOIN social_graph sg ON p."profileId" = sg."followingId"
           
           WHERE (p.visibility = 'PUBLIC' OR (p.visibility = 'FOLLOWERS' AND sg.weight IS NOT NULL))
             AND p."moderationStatus" = 'VISIBLE'
-            AND p."userId" != ${userId}
-            AND p."userId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${userId})
-            AND p."userId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${userId})
-            AND p."userId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${userId})
-            AND p.id NOT IN (SELECT "postId" FROM "feed_hidden_posts" WHERE "userId" = ${userId})
-            AND p."userId" NOT IN (SELECT "authorId" FROM "feed_hidden_authors" WHERE "userId" = ${userId})
+            AND p."profileId" != ${profileId}
+            AND p."profileId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${profileId})
+            AND p."profileId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
+            AND p."profileId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
+            AND p.id NOT IN (SELECT "postId" FROM "feed_hidden_posts" WHERE "profileId" = ${profileId})
+            AND p."profileId" NOT IN (SELECT "authorId" FROM "feed_hidden_authors" WHERE "profileId" = ${profileId})
             AND NOT EXISTS (
               SELECT 1 FROM "feed_muted_keywords" fmk
-              WHERE fmk."userId" = ${userId}
+              WHERE fmk."profileId" = ${profileId}
                 AND p.caption IS NOT NULL
                 AND POSITION(fmk.keyword IN LOWER(p.caption)) > 0
             )
@@ -278,14 +289,14 @@ export class FeedService {
       }
 
       if (postsRaw.length === 0) {
-        return this.getTrendingFeed(page, limit, skip, userId);
+        return this.getTrendingFeed(page, limit, skip, profileId);
       }
 
       // Step C: Hydrate Post objects with full relations
       const postIds = postsRaw.map((p) => p.id);
       const hydratedPosts = await this.prisma.post.findMany({
         where: { id: { in: postIds } },
-        include: this.postHydrationInclude(userId),
+        include: this.postHydrationInclude(profileId),
       });
 
       // Sort back to algorithm order
@@ -297,11 +308,17 @@ export class FeedService {
       let subscribedCreatorIds = new Set<string>();
       let unlockedPostIds = new Set<string>();
 
-      if (userId) {
-        const unlocks = await this.prisma.postUnlock.findMany({
-          where: { userId },
-          select: { postId: true },
+      if (profileId) {
+        const viewer = await this.prisma.profile.findUnique({
+          where: { id: profileId },
+          select: { userId: true },
         });
+        const unlocks = viewer
+          ? await this.prisma.postUnlock.findMany({
+              where: { userId: viewer.userId },
+              select: { postId: true },
+            })
+          : [];
         subscribedCreatorIds = new Set();
         unlockedPostIds = new Set(unlocks.map((u) => u.postId));
       }
@@ -326,8 +343,8 @@ export class FeedService {
             post.contentRating === 'MATURE',
         };
 
-        if (finalPost.isPremium && finalPost.userId !== userId) {
-          const isSubscribed = subscribedCreatorIds.has(finalPost.userId);
+        if (finalPost.isPremium && finalPost.profileId !== profileId) {
+          const isSubscribed = subscribedCreatorIds.has(finalPost.profileId);
           const isUnlocked = unlockedPostIds.has(finalPost.id);
 
           if (!isSubscribed && !isUnlocked) {
@@ -348,7 +365,7 @@ export class FeedService {
 
       const feedWithPromotions = await this.injectPromotions(
         formattedPosts,
-        userId,
+        profileId,
       );
 
       // hasMore-style total: avoid a fake fixed total for algorithmic feeds
@@ -370,7 +387,7 @@ export class FeedService {
       return result;
     } catch (error) {
       console.error('Error generating Hybrid Feed:', error);
-      return this.getTrendingFeed(page, limit, skip, userId);
+      return this.getTrendingFeed(page, limit, skip, profileId);
     }
   }
 
@@ -379,20 +396,20 @@ export class FeedService {
    * Sensitive (`MATURE`) posts are not hidden here: Following is who the
    * viewer chose. Blur still applies. Discovery feeds filter separately.
    */
-  async getFollowingFeed(userId: string, pagination: PaginationDto) {
+  async getFollowingFeed(profileId: string, pagination: PaginationDto) {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
-    const viewerSettings = await this.getViewerContentSettings(userId);
+    const viewerSettings = await this.getViewerContentSettings(profileId);
 
     let posts: any[] = [];
     let total = 0;
 
     // 1. Try to read from Redis Inbox (Fast Path)
-    const inboxPostIds = await this.feedInbox.getInbox(userId, skip, limit);
+    const inboxPostIds = await this.feedInbox.getInbox(profileId, skip, limit);
 
     if (inboxPostIds.length > 0) {
       this.logger.debug(
-        `Fetching ${inboxPostIds.length} posts from Redis inbox for user ${userId}`,
+        `Fetching ${inboxPostIds.length} posts from Redis inbox for user ${profileId}`,
       );
 
       const rawPosts = await this.prisma.post.findMany({
@@ -401,7 +418,7 @@ export class FeedService {
           moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
           scheduledStatus: 'PUBLISHED',
         },
-        include: this.postHydrationInclude(userId),
+        include: this.postHydrationInclude(profileId),
       });
 
       // Maintain Redis order (chronological by push time)
@@ -409,23 +426,23 @@ export class FeedService {
         .map((id) => rawPosts.find((p) => p.id === id))
         .filter(Boolean);
 
-      total = await this.feedInbox.getInboxCount(userId);
+      total = await this.feedInbox.getInboxCount(profileId);
     } else {
       // 2. Fallback to Slow SQL JOIN (Legacy Path) - Only if inbox is empty
       this.logger.debug(
-        `Redis inbox empty for ${userId}, falling back to SQL...`,
+        `Redis inbox empty for ${profileId}, falling back to SQL...`,
       );
 
       const [following, mutes, prefs] = await Promise.all([
         this.prisma.follow.findMany({
-          where: { followerId: userId, status: 'ACCEPTED' },
+          where: { followerId: profileId, status: 'ACCEPTED' },
           select: { followingId: true },
         }),
         this.prisma.mute.findMany({
-          where: { muterId: userId },
+          where: { muterId: profileId },
           select: { mutedId: true },
         }),
-        this.feedPreferences.getFilterSets(userId),
+        this.feedPreferences.getFilterSets(profileId),
       ]);
 
       const mutedIds = new Set([
@@ -436,7 +453,7 @@ export class FeedService {
         .map((f) => f.followingId)
         .filter((id) => !mutedIds.has(id));
 
-      followingIds.push(userId); // Include own posts
+      followingIds.push(profileId); // Include own posts
 
       const preferenceFilter =
         prefs.hiddenPostIds.length > 0
@@ -446,7 +463,7 @@ export class FeedService {
       const [fallbackPosts, fallbackTotal] = await Promise.all([
         this.prisma.post.findMany({
           where: {
-            userId: { in: followingIds },
+            profileId: { in: followingIds },
             type: 'POST',
             moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
             scheduledStatus: 'PUBLISHED',
@@ -454,17 +471,17 @@ export class FeedService {
             OR: [
               { visibility: Visibility.PUBLIC },
               { visibility: Visibility.FOLLOWERS },
-              { userId: userId },
+              { profileId },
             ],
           },
           skip,
           take: limit,
           orderBy: { createdAt: 'desc' },
-          include: this.postHydrationInclude(userId),
+          include: this.postHydrationInclude(profileId),
         }),
         this.prisma.post.count({
           where: {
-            userId: { in: followingIds },
+            profileId: { in: followingIds },
             type: 'POST',
             moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
             scheduledStatus: 'PUBLISHED',
@@ -490,11 +507,17 @@ export class FeedService {
     let subscribedCreatorIds = new Set<string>();
     let unlockedPostIds = new Set<string>();
 
-    if (userId) {
-      const unlocks = await this.prisma.postUnlock.findMany({
-        where: { userId },
-        select: { postId: true },
+    if (profileId) {
+      const viewer = await this.prisma.profile.findUnique({
+        where: { id: profileId },
+        select: { userId: true },
       });
+      const unlocks = viewer
+        ? await this.prisma.postUnlock.findMany({
+            where: { userId: viewer.userId },
+            select: { postId: true },
+          })
+        : [];
       subscribedCreatorIds = new Set();
       unlockedPostIds = new Set(unlocks.map((u) => u.postId));
     }
@@ -517,8 +540,8 @@ export class FeedService {
           post.contentRating === 'MATURE',
       };
 
-      if (finalPost.isPremium && finalPost.userId !== userId) {
-        const isSubscribed = subscribedCreatorIds.has(finalPost.userId);
+      if (finalPost.isPremium && finalPost.profileId !== profileId) {
+        const isSubscribed = subscribedCreatorIds.has(finalPost.profileId);
         const isUnlocked = unlockedPostIds.has(finalPost.id);
 
         if (!isSubscribed && !isUnlocked) {
@@ -539,7 +562,7 @@ export class FeedService {
 
     const feedWithPromotions = await this.injectPromotions(
       formattedPosts,
-      userId,
+      profileId,
     );
 
     return createPaginatedResult(feedWithPromotions, total, page, limit);
@@ -552,21 +575,21 @@ export class FeedService {
     page: number,
     limit: number,
     skip: number,
-    currentUserId?: string | null,
+    currentProfileId?: string | null,
   ) {
     const viewerSettings = await this.getViewerContentSettings(
-      currentUserId ?? null,
+      currentProfileId ?? null,
     );
-    const cacheKey = `feed:trending:user_${currentUserId || 'guest'}:page_${page}:limit_${limit}:mature_${viewerSettings.allowMature}`;
+    const cacheKey = `feed:trending:user_${currentProfileId || 'guest'}:page_${page}:limit_${limit}:mature_${viewerSettings.allowMature}`;
     const cachedFeed = await this.cacheManager.get(cacheKey);
     if (cachedFeed) {
       return cachedFeed;
     }
 
     let mutedIds: string[] = [];
-    if (currentUserId) {
+    if (currentProfileId) {
       const mutes = await this.prisma.mute.findMany({
-        where: { muterId: currentUserId },
+        where: { muterId: currentProfileId },
         select: { mutedId: true },
       });
       mutedIds = mutes.map((m) => m.mutedId);
@@ -576,7 +599,7 @@ export class FeedService {
       visibility: Visibility.PUBLIC,
       moderationStatus: 'VISIBLE' as const,
       scheduledStatus: 'PUBLISHED' as const,
-      ...(mutedIds.length > 0 ? { userId: { notIn: mutedIds } } : {}),
+      ...(mutedIds.length > 0 ? { profileId: { notIn: mutedIds } } : {}),
       ...(viewerSettings.allowMature
         ? {}
         : { contentRating: 'GENERAL' as const }),
@@ -588,7 +611,7 @@ export class FeedService {
         orderBy: [{ performanceScore: 'desc' }, { createdAt: 'desc' }],
         skip,
         take: limit,
-        include: this.postHydrationInclude(currentUserId),
+        include: this.postHydrationInclude(currentProfileId),
       }),
       this.prisma.post.count({ where }),
     ]);
@@ -596,11 +619,17 @@ export class FeedService {
     let subscribedCreatorIds = new Set<string>();
     let unlockedPostIds = new Set<string>();
 
-    if (currentUserId) {
-      const unlocks = await this.prisma.postUnlock.findMany({
-        where: { userId: currentUserId },
-        select: { postId: true },
+    if (currentProfileId) {
+      const viewer = await this.prisma.profile.findUnique({
+        where: { id: currentProfileId },
+        select: { userId: true },
       });
+      const unlocks = viewer
+        ? await this.prisma.postUnlock.findMany({
+            where: { userId: viewer.userId },
+            select: { postId: true },
+          })
+        : [];
       subscribedCreatorIds = new Set();
       unlockedPostIds = new Set(unlocks.map((u) => u.postId));
     }
@@ -608,7 +637,7 @@ export class FeedService {
     const formattedPosts = posts.map((post: any) => {
       const { likes, ...rest } = post;
       const isLiked =
-        currentUserId && Array.isArray(likes) ? likes.length > 0 : false;
+        currentProfileId && Array.isArray(likes) ? likes.length > 0 : false;
       const recommendationMeta = this.buildRecommendationMeta(
         null,
         post.performanceScore || 0,
@@ -624,8 +653,8 @@ export class FeedService {
           post.contentRating === 'MATURE',
       };
 
-      if (finalPost.isPremium && finalPost.userId !== currentUserId) {
-        const isSubscribed = subscribedCreatorIds.has(finalPost.userId);
+      if (finalPost.isPremium && finalPost.profileId !== currentProfileId) {
+        const isSubscribed = subscribedCreatorIds.has(finalPost.profileId);
         const isUnlocked = unlockedPostIds.has(finalPost.id);
 
         if (!isSubscribed && !isUnlocked) {
@@ -646,7 +675,7 @@ export class FeedService {
 
     const feedWithPromotions = await this.injectPromotions(
       formattedPosts,
-      currentUserId,
+      currentProfileId,
     );
 
     const result = createPaginatedResult(
@@ -666,7 +695,7 @@ export class FeedService {
   /**
    * Helper to inject active promotions into a feed
    */
-  private async injectPromotions(posts: any[], userId?: string | null) {
+  private async injectPromotions(posts: any[], profileId?: string | null) {
     if (posts.length === 0) return posts;
 
     // We want to inject 1 promotion every 5 posts.
@@ -674,21 +703,23 @@ export class FeedService {
     if (neededPromotions === 0) return posts;
 
     let viewerLocation: string | undefined;
-    if (userId) {
-      const viewer = await this.prisma.user.findUnique({
-        where: { id: userId },
-        include: { profile: true },
+    let viewerUserId: string | undefined;
+    if (profileId) {
+      const viewer = await this.prisma.profile.findUnique({
+        where: { id: profileId },
+        include: { user: true },
       });
-      viewerLocation = viewer?.profile?.location?.toLowerCase();
+      viewerLocation = viewer?.location?.toLowerCase();
+      viewerUserId = viewer?.userId;
     }
 
     const activePromotionsRaw = await this.prisma.promotion.findMany({
       where: {
         status: 'ACTIVE',
         targetType: 'POST',
-        budget: { gt: 0 },
+        budgetCents: { gt: 0 },
         endDate: { gt: new Date() },
-        ...(userId ? { userId: { not: userId } } : {}),
+        ...(viewerUserId ? { userId: { not: viewerUserId } } : {}),
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -716,13 +747,14 @@ export class FeedService {
     const promotedPostIds = activePromotions.map((p) => p.targetId);
     const promotedPostsRaw = await this.prisma.post.findMany({
       where: { id: { in: promotedPostIds } },
-      include: this.postHydrationInclude(userId),
+      include: this.postHydrationInclude(profileId),
     });
 
     const promotedPostsDict = new Map();
     for (const p of promotedPostsRaw) {
       const { likes, ...rest } = p;
-      const isLiked = userId && Array.isArray(likes) ? likes.length > 0 : false;
+      const isLiked =
+        profileId && Array.isArray(likes) ? likes.length > 0 : false;
       promotedPostsDict.set(p.id, { ...rest, isLiked, isPromoted: true });
     }
 

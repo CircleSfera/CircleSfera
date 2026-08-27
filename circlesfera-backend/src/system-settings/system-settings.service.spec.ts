@@ -24,21 +24,26 @@ describe('SystemSettingsService', () => {
           updatedBy: 'system',
         })),
       ),
-      create: vi.fn(
+      upsert: vi.fn(
         async ({
-          data,
+          where,
+          create,
         }: {
-          data: { key: string; value: string; description?: string };
+          where: { key: string };
+          create: { key: string; value: string; description?: string };
+          update: Record<string, never>;
         }) => {
-          store.set(data.key, data.value);
-          return data;
+          if (!store.has(where.key)) {
+            store.set(create.key, create.value);
+          }
+          return { key: where.key, value: store.get(where.key) };
         },
       ),
     },
   };
 
   const cache = {
-    get: vi.fn(async (key: string) => undefined as string | undefined),
+    get: vi.fn(async (_key: string) => undefined as string | undefined),
     set: vi.fn(async () => undefined),
     del: vi.fn(async () => undefined),
   };
@@ -64,7 +69,7 @@ describe('SystemSettingsService', () => {
     expect(await service.isEnabled(SYSTEM_SETTING_KEYS.REGISTRATION_OPEN)).toBe(
       true,
     );
-    expect(prisma.systemSetting.create).toHaveBeenCalled();
+    expect(prisma.systemSetting.upsert).toHaveBeenCalled();
   });
 
   it('uses cached value when present', async () => {

@@ -65,7 +65,9 @@ export interface PlatformPlanDto {
   id: string;
   name: string;
   description: string | null;
-  price: number;
+  /** Integer cents — source of truth. */
+  priceCents: number;
+  yearlyPriceCents?: number | null;
   currency: string;
   interval: string;
   features: string[];

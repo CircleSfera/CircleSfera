@@ -50,7 +50,7 @@ export class SendMessageUseCase {
             include: {
               participants: {
                 include: {
-                  user: { select: { id: true } },
+                  profile: { select: { id: true } },
                 },
               },
             },
@@ -63,7 +63,7 @@ export class SendMessageUseCase {
             );
 
           const isParticipant = conv.participants.some(
-            (p: any) => p.userId === senderId,
+            (p: any) => p.profileId === senderId,
           );
           if (!isParticipant)
             throw AppException.Forbidden(
@@ -75,14 +75,14 @@ export class SendMessageUseCase {
             where: {
               isGroup: false,
               AND: [
-                { participants: { some: { userId: senderId } } },
-                { participants: { some: { userId: recipientId } } },
+                { participants: { some: { profileId: senderId } } },
+                { participants: { some: { profileId: recipientId } } },
               ],
             },
             include: {
               participants: {
                 include: {
-                  user: { select: { id: true } },
+                  profile: { select: { id: true } },
                 },
               },
             },
@@ -93,7 +93,7 @@ export class SendMessageUseCase {
               data: {
                 isGroup: false,
                 participants: {
-                  create: [{ userId: senderId }, { userId: recipientId }],
+                  create: [{ profileId: senderId }, { profileId: recipientId }],
                 },
               },
               include: { participants: true },
@@ -107,7 +107,7 @@ export class SendMessageUseCase {
         }
 
         const participantIds = conv.participants
-          .map((p: any) => p.userId)
+          .map((p: any) => p.profileId)
           .filter((id: string) => id !== senderId);
 
         const blocks = await tx.block.findMany({
@@ -146,24 +146,20 @@ export class SendMessageUseCase {
             sender: {
               select: {
                 id: true,
-                profile: {
-                  select: { username: true, avatar: true },
-                },
+                username: true,
+                avatar: true,
+                user: { select: { id: true } },
               },
             },
             post: {
               include: {
                 media: true,
-                user: {
-                  include: { profile: true },
-                },
+                profile: { include: { user: true } },
               },
             },
             story: {
               include: {
-                user: {
-                  include: { profile: true },
-                },
+                profile: { include: { user: true } },
               },
             },
             replyTo: {
@@ -171,16 +167,18 @@ export class SendMessageUseCase {
                 sender: {
                   select: {
                     id: true,
-                    profile: { select: { username: true } },
+                    username: true,
+                    user: { select: { id: true } },
                   },
                 },
               },
             },
             reactions: {
               include: {
-                user: {
+                profile: {
                   select: {
-                    profile: { select: { username: true } },
+                    username: true,
+                    user: { select: { id: true } },
                   },
                 },
               },
@@ -206,17 +204,17 @@ export class SendMessageUseCase {
 
     try {
       conversation.participants.forEach((p: any) => {
-        this.gateway.addConversationToSocket(p.userId, conversation.id);
+        this.gateway.addConversationToSocket(p.profileId, conversation.id);
 
         this.gateway.server
-          .to(`user:${p.userId}`)
+          .to(`user:${p.profileId}`)
           .emit('receiveMessage', payload);
 
-        if (p.userId !== senderId) {
+        if (p.profileId !== senderId) {
           this.pushService
-            .sendNotification(p.userId, {
+            .sendNotification(p.profileId, {
               title: `Nuevo mensaje cifrado`,
-              body: `Has recibido un mensaje de @${message.sender.profile?.username || 'Alguien'}`,
+              body: `Has recibido un mensaje de @${message.sender.username || 'Alguien'}`,
               data: { url: `/chat/${conversation.id}`, type: 'chat' },
             })
             .catch((err) =>

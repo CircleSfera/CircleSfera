@@ -117,13 +117,13 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
         if (postId) {
           const post = await this.prisma.post.findUnique({
             where: { id: postId },
-            include: { user: { include: { profile: true } }, media: true },
+            include: { profile: { include: { user: true } }, media: true },
           });
 
           if (post) {
             title = post.caption
-              ? `${post.user.profile?.fullName || post.user.profile?.username} on CircleSfera: "${post.caption.substring(0, 50)}..."`
-              : `Post by ${post.user.profile?.fullName || post.user.profile?.username}`;
+              ? `${post.profile?.fullName || post.profile?.username} on CircleSfera: "${post.caption.substring(0, 50)}..."`
+              : `Post by ${post.profile?.fullName || post.profile?.username}`;
             description = post.caption || description;
 
             // Point to dynamic OpenGraph image generator endpoint
@@ -142,11 +142,8 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
         const profile = await this.prisma.profile.findFirst({
           where: { username: { equals: username, mode: 'insensitive' } },
           include: {
-            user: {
-              include: {
-                _count: { select: { followers: true, following: true } },
-              },
-            },
+            _count: { select: { followers: true, following: true } },
+            user: true,
           },
         });
 
@@ -154,7 +151,7 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
           title = `${profile.fullName} (@${profile.username}) | CircleSfera`;
           description = profile.bio
             ? profile.bio
-            : `Follow @${profile.username} on CircleSfera. ${profile.user?._count?.followers || 0} Followers.`;
+            : `Follow @${profile.username} on CircleSfera. ${profile._count?.followers || 0} Followers.`;
 
           // Point to dynamic OpenGraph image generator endpoint
           imageUrl = `${baseUrl}/api/v1/og-image/profile/${username}`;
@@ -200,16 +197,14 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
       include: {
-        user: { include: { profile: true } },
+        profile: { include: { user: true } },
         _count: { select: { likes: true, comments: true } },
       },
     });
 
     const authorName =
-      post?.user.profile?.fullName ||
-      post?.user.profile?.username ||
-      'CircleSfera User';
-    const username = post?.user.profile?.username || 'user';
+      post?.profile?.fullName || post?.profile?.username || 'CircleSfera User';
+    const username = post?.profile?.username || 'user';
     const caption = post?.caption
       ? post.caption.length > 90
         ? `${post.caption.substring(0, 90)}...`
@@ -217,7 +212,7 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
       : 'Visual content on CircleSfera';
     const likes = post?._count.likes || 0;
     const comments = post?._count.comments || 0;
-    const isVerified = post?.user.verificationLevel !== 'BASIC';
+    const isVerified = post?.profile?.user?.verificationLevel !== 'BASIC';
 
     return `<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -252,13 +247,8 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
       include: {
-        user: {
-          include: {
-            _count: {
-              select: { followers: true, following: true, posts: true },
-            },
-          },
-        },
+        _count: { select: { followers: true, following: true, posts: true } },
+        user: true,
       },
     });
 
@@ -270,9 +260,9 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
         ? `${profile.bio.substring(0, 100)}...`
         : profile.bio
       : `Explore @${userHandle} profile on CircleSfera.`;
-    const followers = profile?.user?._count?.followers || 0;
-    const following = profile?.user?._count?.following || 0;
-    const postsCount = profile?.user?._count?.posts || 0;
+    const followers = profile?._count?.followers || 0;
+    const following = profile?._count?.following || 0;
+    const postsCount = profile?._count?.posts || 0;
 
     return `<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
       <defs>

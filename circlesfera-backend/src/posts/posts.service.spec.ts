@@ -106,7 +106,7 @@ describe('PostsService', () => {
 
   describe('create', () => {
     it('should extract hashtags and mentions and run transaction', async () => {
-      const userId = 'user-1';
+      const profileId = 'user-1';
       const dto = {
         caption: 'Hello #world @user2',
         type: 'POST' as const,
@@ -133,7 +133,7 @@ describe('PostsService', () => {
       );
 
       mockPrismaService.profile.findMany.mockResolvedValue([
-        { userId: 'user-2' },
+        { profileId: 'user-2' },
       ]);
       mockPrismaService.post.findUniqueOrThrow.mockResolvedValueOnce({
         id: 'post-1',
@@ -143,7 +143,7 @@ describe('PostsService', () => {
         _count: { likes: 0, comments: 0 },
       });
 
-      const _result = await service.create(userId, dto);
+      const _result = await service.create(profileId, dto);
 
       expect(mockTx.post.create).toHaveBeenCalled();
       expect(mockTx.hashtag.upsert).toHaveBeenCalledWith(
@@ -167,7 +167,7 @@ describe('PostsService', () => {
     });
 
     it('should create post with multiple media items', async () => {
-      const userId = 'user-1';
+      const profileId = 'user-1';
       const dto: CreatePostDto = {
         caption: 'Post with media',
         media: [
@@ -204,7 +204,7 @@ describe('PostsService', () => {
         _count: { likes: 0, comments: 0 },
       });
 
-      await service.create(userId, dto);
+      await service.create(profileId, dto);
 
       expect(mockTx.postMedia.createMany).toHaveBeenCalledWith({
         data: expect.arrayContaining([
@@ -219,7 +219,7 @@ describe('PostsService', () => {
     it('should update post if user is author', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue({
         id: 'post-1',
-        userId: 'me',
+        profileId: 'me',
       });
 
       mockPrismaService.post.update.mockResolvedValue({ id: 'post-1' });
@@ -233,7 +233,7 @@ describe('PostsService', () => {
     it('should delete post if user is author', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue({
         id: 'post-1',
-        userId: 'me',
+        profileId: 'me',
       });
 
       mockPrismaService.post.delete.mockResolvedValue({ id: 'post-1' });
@@ -246,7 +246,7 @@ describe('PostsService', () => {
   describe('findAll', () => {
     it('should return paginated posts', async () => {
       mockPrismaService.post.findMany.mockResolvedValue([
-        { id: '1', type: 'POST', user: { profile: {} }, likes: [] },
+        { id: '1', type: 'POST', profile: { profile: {} }, likes: [] },
       ]);
       mockPrismaService.post.count.mockResolvedValue(1);
 
@@ -259,8 +259,8 @@ describe('PostsService', () => {
   describe('findByUser', () => {
     it('should return posts for a specific user', async () => {
       mockPrismaService.profile.findFirst.mockResolvedValue({
-        userId: 'user-1',
-        user: { settings: { privacyLevel: 'PUBLIC' } },
+        profileId: 'user-1',
+        profile: { settings: { privacyLevel: 'PUBLIC' } },
       });
       mockPrismaService.post.findMany.mockResolvedValue([{ id: 'post-1' }]);
       mockPrismaService.post.count.mockResolvedValue(1);

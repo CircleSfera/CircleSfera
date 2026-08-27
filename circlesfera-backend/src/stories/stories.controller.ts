@@ -34,14 +34,14 @@ export class StoriesController {
     @CurrentUser() user: CurrentUserData,
     @Body() createStoryDto: CreateStoryDto,
   ) {
-    return this.storiesService.create(user.userId, createStoryDto);
+    return this.storiesService.create(user.profileId, createStoryDto);
   }
 
   /** List all active stories (filtered by followed users). */
   @Get()
   @UseGuards(JwtOptionalGuard)
   findAll(@CurrentUser() user: CurrentUserData | null) {
-    return this.storiesService.findAll(user?.userId);
+    return this.storiesService.findAll(user?.profileId);
   }
 
   /** Get active stories by a specific user. */
@@ -51,14 +51,14 @@ export class StoriesController {
     @CurrentUser() user: CurrentUserData | null,
     @Param('username') username: string,
   ) {
-    return this.storiesService.findByUser(username, user?.userId);
+    return this.storiesService.findByUser(username, user?.profileId);
   }
 
   /** Get all stories (archive) for the current user. */
   @Get('archive')
   @UseGuards(JwtAuthGuard)
   getArchive(@CurrentUser() user: CurrentUserData) {
-    return this.storiesService.getArchive(user.userId);
+    return this.storiesService.getArchive(user.profileId);
   }
 
   /** Delete a story (author only). */
@@ -68,7 +68,7 @@ export class StoriesController {
     @CurrentUser() user: CurrentUserData,
     @Param('id') id: string,
   ): Promise<void> {
-    return this.storiesService.delete(id, user.userId);
+    return this.storiesService.delete(id, user.profileId);
   }
 
   /** Record a view on a story (idempotent). */
@@ -78,7 +78,7 @@ export class StoriesController {
     @CurrentUser() user: CurrentUserData,
     @Param('id') id: string,
   ): Promise<StoryView> {
-    return this.storiesService.view(id, user.userId);
+    return this.storiesService.view(id, user.profileId);
   }
 
   /** Get all viewers of a story. */
@@ -95,7 +95,7 @@ export class StoriesController {
     @Param('id') id: string,
     @Body() dto: StoryReactionDto,
   ): Promise<StoryReaction> {
-    return this.storiesService.addReaction(id, user.userId, dto.reaction);
+    return this.storiesService.addReaction(id, user.profileId, dto.reaction);
   }
 
   /** Get all reactions for a story. */

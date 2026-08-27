@@ -84,7 +84,7 @@ describe('StoriesService', () => {
       expect(mockPrismaService.story.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            userId: 'user-1',
+            profileId: 'user-1',
             url: 'test.jpg',
           }) as unknown as Record<string, unknown>,
         }),
@@ -106,30 +106,34 @@ describe('StoriesService', () => {
 
   describe('findAll', () => {
     it('should return stories with visibility filters', async () => {
-      const userId = 'user-1';
+      const profileId = 'user-1';
       mockPrismaService.follow.findMany.mockResolvedValue([
         { followingId: 'user-2' },
       ]);
       mockPrismaService.story.findMany.mockResolvedValue([
-        { id: 'public-1', userId: 'user-2', isCloseFriendsOnly: false },
-        { id: 'cf-1', userId: 'user-2', isCloseFriendsOnly: true },
+        { id: 'public-1', profileId: 'user-2', isCloseFriendsOnly: false },
+        { id: 'cf-1', profileId: 'user-2', isCloseFriendsOnly: true },
       ]);
       mockPrismaService.closeFriend.findUnique.mockResolvedValue(null); // Not a close friend
 
-      const result = (await service.findAll(userId)) as Array<{ id: string }>;
+      const result = (await service.findAll(profileId)) as Array<{
+        id: string;
+      }>;
 
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('public-1');
     });
 
     it('should allow viewing own close friends story', async () => {
-      const userId = 'user-1';
+      const profileId = 'user-1';
       mockPrismaService.follow.findMany.mockResolvedValue([]);
       mockPrismaService.story.findMany.mockResolvedValue([
-        { id: 'cf-own', userId: 'user-1', isCloseFriendsOnly: true },
+        { id: 'cf-own', profileId: 'user-1', isCloseFriendsOnly: true },
       ]);
 
-      const result = (await service.findAll(userId)) as Array<{ id: string }>;
+      const result = (await service.findAll(profileId)) as Array<{
+        id: string;
+      }>;
 
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('cf-own');
@@ -167,7 +171,7 @@ describe('StoriesService', () => {
     it('should call delete with correct filters', async () => {
       mockPrismaService.story.findFirst.mockResolvedValueOnce({
         id: 'story-1',
-        userId: 'user-1',
+        profileId: 'user-1',
       });
       await service.delete('story-1', 'user-1');
       expect(mockPrismaService.story.delete).toHaveBeenCalledWith({
@@ -183,8 +187,8 @@ describe('StoriesService', () => {
 
       it('should return stories for public user', async () => {
         mockPrismaService.profile.findFirst.mockResolvedValue({
-          userId: 'u1',
-          user: { settings: { privacyLevel: 'PUBLIC' } },
+          profileId: 'u1',
+          profile: { settings: { privacyLevel: 'PUBLIC' } },
         });
         mockPrismaService.story.findMany.mockResolvedValue([
           { id: 's1', views: [] },
@@ -196,8 +200,8 @@ describe('StoriesService', () => {
 
       it('should return empty for private user if not following', async () => {
         mockPrismaService.profile.findFirst.mockResolvedValue({
-          userId: 'u1',
-          user: { settings: { privacyLevel: 'PRIVATE' } },
+          profileId: 'u1',
+          profile: { settings: { privacyLevel: 'PRIVATE' } },
         });
         mockPrismaService.follow.findUnique.mockResolvedValue(null);
 

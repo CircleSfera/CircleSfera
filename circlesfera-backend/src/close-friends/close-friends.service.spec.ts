@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -14,8 +14,8 @@ describe('CloseFriendsService', () => {
       create: vi.fn(),
       delete: vi.fn(),
     },
-    user: {
-      findMany: vi.fn(),
+    profile: {
+      findUnique: vi.fn(),
     },
   };
 
@@ -31,61 +31,84 @@ describe('CloseFriendsService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('getCloseFriends', () => {
-    it('should return list of close friends', async () => {
+    it('returns friend profiles with isCloseFriend flag', async () => {
       mockPrismaService.closeFriend.findMany.mockResolvedValue([
-        { id: 'cf-1', userId: 'user-1', friendId: 'friend-1' },
-      ]);
-      mockPrismaService.user.findMany.mockResolvedValue([
         {
-          id: 'friend-1',
-          email: 'friend@example.com',
-          profile: { username: 'friend' },
+          id: 'cf-1',
+          profileId: 'profile-1',
+          friendId: 'friend-1',
+          friend: {
+            id: 'friend-1',
+            username: 'alice',
+            fullName: 'Alice',
+            avatar: null,
+            standardUrl: null,
+            thumbnailUrl: null,
+            userId: 'user-2',
+          },
         },
       ]);
 
-      const result = await service.getCloseFriends('user-1');
-      expect(result).toHaveLength(1);
-      expect(result[0]).toHaveProperty('isCloseFriend', true);
+      const result = await service.getCloseFriends('profile-1');
+
+      expect(mockPrismaService.closeFriend.findMany).toHaveBeenCalledWith({
+        where: { profileId: 'profile-1' },
+        include: expect.any(Object),
+      });
+      expect(result[0]).toMatchObject({
+        id: 'friend-1',
+        username: 'alice',
+        isCloseFriend: true,
+      });
     });
   });
 
   describe('toggleCloseFriend', () => {
-    it('should throw BadRequestException if adding self', async () => {
+    it('rejects adding yourself', async () => {
       await expect(
-        service.toggleCloseFriend('user-1', 'user-1'),
-      ).rejects.toThrow(BadRequestException);
+        service.toggleCloseFriend('profile-1', 'profile-1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
 
-    it('should create close friend entry if not exists', async () => {
+    it('rejects unknown friend profile', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue(null);
+      await expect(
+        service.toggleCloseFriend('profile-1', 'missing'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('creates close friend when missing', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        id: 'friend-2',
+      });
       mockPrismaService.closeFriend.findUnique.mockResolvedValue(null);
       mockPrismaService.closeFriend.create.mockResolvedValue({
-        id: 'cf-1',
-        userId: 'user-1',
+        id: 'cf-2',
+        profileId: 'profile-1',
         friendId: 'friend-2',
       });
 
-      const result = await service.toggleCloseFriend('user-1', 'friend-2');
+      const result = await service.toggleCloseFriend('profile-1', 'friend-2');
       expect(mockPrismaService.closeFriend.create).toHaveBeenCalledWith({
-        data: { userId: 'user-1', friendId: 'friend-2' },
+        data: { profileId: 'profile-1', friendId: 'friend-2' },
       });
       expect(result).toEqual({ isCloseFriend: true });
     });
 
-    it('should delete close friend entry if already exists', async () => {
+    it('removes existing close friend', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        id: 'friend-2',
+      });
       mockPrismaService.closeFriend.findUnique.mockResolvedValue({
-        id: 'cf-1',
-        userId: 'user-1',
+        id: 'cf-2',
+        profileId: 'profile-1',
         friendId: 'friend-2',
       });
 
-      const result = await service.toggleCloseFriend('user-1', 'friend-2');
+      const result = await service.toggleCloseFriend('profile-1', 'friend-2');
       expect(mockPrismaService.closeFriend.delete).toHaveBeenCalledWith({
-        where: { id: 'cf-1' },
+        where: { id: 'cf-2' },
       });
       expect(result).toEqual({ isCloseFriend: false });
     });

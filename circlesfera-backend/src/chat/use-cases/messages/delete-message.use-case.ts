@@ -16,7 +16,7 @@ export class DeleteMessageUseCase {
     return this.moduleRef.get(AppGateway, { strict: false });
   }
 
-  async execute(userId: string, messageId: string) {
+  async execute(profileId: string, messageId: string) {
     const message = await this.prisma.message.findUnique({
       where: { id: messageId },
       include: { conversation: { include: { participants: true } } },
@@ -24,7 +24,7 @@ export class DeleteMessageUseCase {
 
     if (!message)
       throw AppException.NotFound(ErrorCode.NOT_FOUND, 'Message not found');
-    if (message.senderId !== userId) {
+    if (message.senderId !== profileId) {
       throw AppException.Forbidden(
         ErrorCode.FORBIDDEN_ACCESS,
         'You can only delete your own messages',
@@ -51,7 +51,7 @@ export class DeleteMessageUseCase {
 
     message.conversation.participants.forEach((p: any) => {
       this.gateway.server
-        .to(`user:${p.userId}`)
+        .to(`user:${p.profileId}`)
         .emit('message_deleted', { messageId });
     });
 

@@ -1,53 +1,69 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-/** Service for managing a user's close friends list (add/remove toggle). */
+/** Service for managing a profile's close friends list (add/remove toggle). */
 @Injectable()
 export class CloseFriendsService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   /**
-   * Get all close friends for a user, including their profiles.
-   * @param userId - The current user's ID
+   * Get all close friends for a profile.
+   * @param profileId - The current profile's ID
    */
-  async getCloseFriends(userId: string) {
+  async getCloseFriends(profileId: string) {
     const closeFriends = await this.prisma.closeFriend.findMany({
-      where: { userId },
-    });
-
-    const friendIds = closeFriends.map((cf) => cf.friendId);
-
-    const users = await this.prisma.user.findMany({
-      where: {
-        id: { in: friendIds },
-      },
+      where: { profileId },
       include: {
-        profile: true,
+        friend: {
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            avatar: true,
+            standardUrl: true,
+            thumbnailUrl: true,
+            userId: true,
+          },
+        },
       },
     });
 
-    return users.map((user) => ({
-      ...user,
+    return closeFriends.map((cf) => ({
+      ...cf.friend,
       isCloseFriend: true,
     }));
   }
 
   /**
-   * Toggle a user's close-friend status on or off.
-   * @param userId - The current user's ID
-   * @param friendId - The friend to toggle
+   * Toggle a profile's close-friend status on or off.
+   * @param profileId - The current profile's ID
+   * @param friendId - The friend profile to toggle
    * @returns `{ isCloseFriend: boolean }`
-   * @throws BadRequestException if userId equals friendId
+   * @throws BadRequestException if profileId equals friendId
+   * @throws NotFoundException if friend profile does not exist
    */
-  async toggleCloseFriend(userId: string, friendId: string) {
-    if (userId === friendId) {
+  async toggleCloseFriend(profileId: string, friendId: string) {
+    if (profileId === friendId) {
       throw new BadRequestException('Cannot add yourself to close friends');
+    }
+
+    const friend = await this.prisma.profile.findUnique({
+      where: { id: friendId },
+      select: { id: true },
+    });
+    if (!friend) {
+      throw new NotFoundException('Friend profile not found');
     }
 
     const existing = await this.prisma.closeFriend.findUnique({
       where: {
-        userId_friendId: {
-          userId,
+        profileId_friendId: {
+          profileId,
           friendId,
         },
       },
@@ -58,14 +74,14 @@ export class CloseFriendsService {
         where: { id: existing.id },
       });
       return { isCloseFriend: false };
-    } else {
-      await this.prisma.closeFriend.create({
-        data: {
-          userId,
-          friendId,
-        },
-      });
-      return { isCloseFriend: true };
     }
+
+    await this.prisma.closeFriend.create({
+      data: {
+        profileId,
+        friendId,
+      },
+    });
+    return { isCloseFriend: true };
   }
 }

@@ -31,19 +31,19 @@ const PLANS = [
     name: 'Premium',
     description:
       'Insignia de verificación, Analíticas básicas y Soporte prioritario.',
-    price: 9.99,
+    priceCents: 999,
   },
   {
     name: 'Elite Creator',
     description:
       'Herramientas Pro de crecimiento, Insights de audiencia y Spotlight.',
-    price: 19.99,
+    priceCents: 1999,
   },
   {
     name: 'Business',
     description:
       'Verificación de negocio, Gestión multi-cuenta y Soporte 24/7 dedicado.',
-    price: 49.99,
+    priceCents: 4999,
   },
 ];
 
@@ -63,7 +63,7 @@ async function main() {
     // 2. Create Price in Stripe (recurring monthly)
     const price = await stripe.prices.create({
       product: product.id,
-      unit_amount: Math.round(plan.price * 100), // in cents
+      unit_amount: plan.priceCents,
       currency: 'eur',
       recurring: { interval: 'month' },
     });

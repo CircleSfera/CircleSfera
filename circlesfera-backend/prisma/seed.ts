@@ -168,7 +168,7 @@ async function main() {
         name: 'Premium',
         description:
           'Insignia de verificación, Analíticas básicas y Soporte prioritario.',
-        price: 9.99,
+        priceCents: 999,
         currency: 'EUR',
         interval: 'month',
         stripeProductId: 'prod_UtQGHGBnYo5yGX',
@@ -184,7 +184,7 @@ async function main() {
         name: 'Elite Creator',
         description:
           'Herramientas Pro de crecimiento, Insights de audiencia y Spotlight.',
-        price: 19.99,
+        priceCents: 1999,
         currency: 'EUR',
         interval: 'month',
         stripeProductId: 'prod_UtQG21Jd98Vidi',
@@ -205,7 +205,7 @@ async function main() {
         name: 'Business',
         description:
           'Verificación de negocio, Gestión multi-cuenta y Soporte 24/7 dedicado.',
-        price: 49.99,
+        priceCents: 4999,
         currency: 'EUR',
         interval: 'month',
         stripeProductId: 'prod_UtQGy36G3SscjF',
@@ -231,7 +231,7 @@ async function main() {
         accountType: 'BUSINESS',
         verificationLevel: 'BUSINESS',
         emailVerified: new Date(),
-        profile: {
+        profiles: {
           create: {
             username: 'CircleSfera',
             fullName: 'Equipo CircleSfera',
@@ -243,7 +243,7 @@ async function main() {
           },
         },
       },
-      include: { profile: true },
+      include: { profiles: true },
     });
 
     const feliuUser = await prisma.user.upsert({
@@ -256,7 +256,7 @@ async function main() {
         accountType: 'CREATOR',
         verificationLevel: 'VERIFIED',
         emailVerified: new Date(),
-        profile: {
+        profiles: {
           create: {
             username: 'EasyFeliu',
             fullName: 'Luis Feliu',
@@ -268,7 +268,7 @@ async function main() {
           },
         },
       },
-      include: { profile: true },
+      include: { profiles: true },
     });
 
     // Admin Panel operators (separate from platform User.role).
@@ -279,7 +279,7 @@ async function main() {
       process.env.ADMIN_E2E_TOTP_SECRET || 'GK3L6YHMZSMTIZMLWAX3DJBYBOENFNJV';
     console.log('🔐 Creando AdminIdentity (Admin Panel)...');
     for (const [email, displayName, userId] of [
-      ['admin@circlesfera.com', 'CircleSfera Ops', adminUser.id],
+      ['admin@circlesfera.com', 'CircleSfera', adminUser.id],
       ['easyfeliu@gmail.com', 'Luis Feliu', feliuUser.id],
     ] as const) {
       const isE2eAdmin = email === 'admin@circlesfera.com';
@@ -350,7 +350,7 @@ async function main() {
           accountType: u.accountType as any,
           verificationLevel: u.verificationLevel as any,
           emailVerified: new Date(),
-          profile: {
+          profiles: {
             create: {
               username: u.username,
               fullName: u.fullName,
@@ -364,7 +364,7 @@ async function main() {
             },
           },
         },
-        include: { profile: true },
+        include: { profiles: true },
       });
       createdUsers.push(user);
     }
@@ -376,12 +376,12 @@ async function main() {
     const createdPosts = [];
     for (const post of POST_DATA) {
       const author = allUsers.find(
-        (u) => u.profile?.username === post.authorUsername,
+        (u) => u.profiles?.[0]?.username === post.authorUsername,
       );
       if (author) {
         const newPost = await prisma.post.create({
           data: {
-            userId: author.id,
+            profileId: author.profiles[0].id,
             caption: post.caption,
             media: {
               create: {
@@ -406,34 +406,43 @@ async function main() {
       await prisma.follow.upsert({
         where: {
           followerId_followingId: {
-            followerId: u.id,
-            followingId: feliuUser.id,
+            followerId: u.profiles[0].id,
+            followingId: feliuUser.profiles[0].id,
           },
         },
         update: {},
-        create: { followerId: u.id, followingId: feliuUser.id },
+        create: {
+          followerId: u.profiles[0].id,
+          followingId: feliuUser.profiles[0].id,
+        },
       });
       await prisma.follow.upsert({
         where: {
           followerId_followingId: {
-            followerId: u.id,
-            followingId: adminUser.id,
+            followerId: u.profiles[0].id,
+            followingId: adminUser.profiles[0].id,
           },
         },
         update: {},
-        create: { followerId: u.id, followingId: adminUser.id },
+        create: {
+          followerId: u.profiles[0].id,
+          followingId: adminUser.profiles[0].id,
+        },
       });
       // EasyFeliu sigue a algunos creadores
       if (Math.random() > 0.5) {
         await prisma.follow.upsert({
           where: {
             followerId_followingId: {
-              followerId: feliuUser.id,
-              followingId: u.id,
+              followerId: feliuUser.profiles[0].id,
+              followingId: u.profiles[0].id,
             },
           },
           update: {},
-          create: { followerId: feliuUser.id, followingId: u.id },
+          create: {
+            followerId: feliuUser.profiles[0].id,
+            followingId: u.profiles[0].id,
+          },
         });
       }
     }
@@ -457,9 +466,14 @@ async function main() {
         .slice(0, Math.floor(Math.random() * 3) + 2);
       for (const liker of likers) {
         await prisma.like.upsert({
-          where: { postId_userId: { userId: liker.id, postId: post.id } },
+          where: {
+            postId_profileId: {
+              profileId: liker.profiles[0].id,
+              postId: post.id,
+            },
+          },
           update: {},
-          create: { userId: liker.id, postId: post.id },
+          create: { profileId: liker.profiles[0].id, postId: post.id },
         });
       }
 
@@ -468,11 +482,11 @@ async function main() {
         .sort(() => 0.5 - Math.random())
         .slice(0, Math.floor(Math.random() * 2) + 1);
       for (const commenter of commenters) {
-        if (commenter.id !== post.userId) {
+        if (commenter.profiles[0].id !== post.profileId) {
           // Don't comment on own post
           await prisma.comment.create({
             data: {
-              userId: commenter.id,
+              profileId: commenter.profiles[0].id,
               postId: post.id,
               content:
                 sampleComments[

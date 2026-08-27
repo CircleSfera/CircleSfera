@@ -9,12 +9,12 @@ export class GetConversationsQuery {
     @Inject(CryptoService) private cryptoService: CryptoService,
   ) {}
 
-  async execute(userId: string) {
+  async execute(profileId: string) {
     const conversations = await this.prisma.conversation.findMany({
       where: {
         participants: {
           some: {
-            userId,
+            profileId,
             deletedAt: null,
           },
         },
@@ -22,16 +22,12 @@ export class GetConversationsQuery {
       include: {
         participants: {
           include: {
-            user: {
+            profile: {
               select: {
                 id: true,
-                profile: {
-                  select: {
-                    username: true,
-                    avatar: true,
-                    fullName: true,
-                  },
-                },
+                username: true,
+                avatar: true,
+                fullName: true,
               },
             },
           },

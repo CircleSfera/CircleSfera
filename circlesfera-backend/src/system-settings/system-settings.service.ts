@@ -20,19 +20,16 @@ export class SystemSettingsService {
   /** Insert missing catalog rows without overwriting existing values. */
   async ensureDefaults(updatedBy = 'system'): Promise<void> {
     for (const setting of SYSTEM_SETTING_DEFAULTS) {
-      const existing = await this.prisma.systemSetting.findUnique({
+      await this.prisma.systemSetting.upsert({
         where: { key: setting.key },
+        create: {
+          key: setting.key,
+          value: setting.value,
+          description: setting.description,
+          updatedBy,
+        },
+        update: {},
       });
-      if (!existing) {
-        await this.prisma.systemSetting.create({
-          data: {
-            key: setting.key,
-            value: setting.value,
-            description: setting.description,
-            updatedBy,
-          },
-        });
-      }
     }
   }
 

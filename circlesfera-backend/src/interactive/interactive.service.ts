@@ -41,7 +41,7 @@ export class InteractiveService {
       });
       if (!post)
         throw AppException.NotFound(ErrorCode.POST_NOT_FOUND, 'Post not found');
-      if (post.userId !== userId)
+      if (post.profileId !== userId)
         throw AppException.Forbidden(
           ErrorCode.FORBIDDEN_ACCESS,
           'Not your post',
@@ -65,7 +65,7 @@ export class InteractiveService {
           ErrorCode.STORY_NOT_FOUND,
           'Story not found',
         );
-      if (story.userId !== userId)
+      if (story.profileId !== userId)
         throw AppException.Forbidden(
           ErrorCode.FORBIDDEN_ACCESS,
           'Not your story',
@@ -113,7 +113,7 @@ export class InteractiveService {
       });
       if (!post)
         throw AppException.NotFound(ErrorCode.POST_NOT_FOUND, 'Post not found');
-      if (post.userId !== userId)
+      if (post.profileId !== userId)
         throw AppException.Forbidden(
           ErrorCode.FORBIDDEN_ACCESS,
           'Not your post',
@@ -137,7 +137,7 @@ export class InteractiveService {
           ErrorCode.STORY_NOT_FOUND,
           'Story not found',
         );
-      if (story.userId !== userId)
+      if (story.profileId !== userId)
         throw AppException.Forbidden(
           ErrorCode.FORBIDDEN_ACCESS,
           'Not your story',
@@ -186,11 +186,11 @@ export class InteractiveService {
     // Upsert vote (allow changing vote)
     await this.prisma.pollVote.upsert({
       where: {
-        pollId_userId: { pollId, userId },
+        pollId_profileId: { pollId, profileId: userId },
       },
       create: {
         pollId,
-        userId,
+        profileId: userId,
         optionIndex,
       },
       update: {
@@ -228,7 +228,7 @@ export class InteractiveService {
       if (vote.optionIndex >= 0 && vote.optionIndex < poll.options.length) {
         optionCounts[vote.optionIndex] += 1;
       }
-      if (userId && vote.userId === userId) {
+      if (userId && vote.profileId === userId) {
         userVoteIndex = vote.optionIndex;
       }
     }
@@ -281,7 +281,7 @@ export class InteractiveService {
     const answer = await this.prisma.qnaAnswer.create({
       data: {
         qnaBoxId,
-        userId,
+        profileId: userId,
         answerText: answerText.trim(),
       },
     });
@@ -303,12 +303,13 @@ export class InteractiveService {
       include: {
         answers: {
           include: {
-            user: {
+            profile: {
               select: {
                 id: true,
-                profile: {
-                  select: { username: true, avatar: true, fullName: true },
-                },
+                username: true,
+                avatar: true,
+                fullName: true,
+                user: { select: { id: true } },
               },
             },
           },
@@ -328,7 +329,7 @@ export class InteractiveService {
       id: qnaBox.id,
       prompt: qnaBox.prompt,
       totalAnswers: qnaBox.answers.length,
-      answers: qnaBox.answers.map((a) => {
+      answers: qnaBox.answers.map((a: any) => {
         const username = a.user.profile?.username || 'usuario';
         return {
           id: a.id,

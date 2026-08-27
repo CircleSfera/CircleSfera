@@ -33,7 +33,7 @@ export class CommentsController {
     @CurrentUser() user: CurrentUserData,
     @Body() dto: CreateCommentDto,
   ) {
-    return this.commentsService.create(postId, user.userId, dto);
+    return this.commentsService.create(postId, user.profileId, dto);
   }
 
   /** List top-level comments with nested replies for a post. */
@@ -50,7 +50,7 @@ export class CommentsController {
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string, @CurrentUser() user: CurrentUserData) {
-    await this.commentsService.remove(id, user.userId);
+    await this.commentsService.remove(id, user.profileId);
   }
 
   /** Like a comment. */
@@ -60,7 +60,7 @@ export class CommentsController {
     @Param('id') id: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    await this.commentsService.likeComment(id, user.userId);
+    await this.commentsService.likeComment(id, user.profileId);
     return { success: true };
   }
 
@@ -72,6 +72,6 @@ export class CommentsController {
     @Param('id') id: string,
     @CurrentUser() user: CurrentUserData,
   ) {
-    await this.commentsService.unlikeComment(id, user.userId);
+    await this.commentsService.unlikeComment(id, user.profileId);
   }
 }

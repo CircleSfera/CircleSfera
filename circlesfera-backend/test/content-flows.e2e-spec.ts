@@ -144,7 +144,7 @@ describe('Content Flows (e2e)', () => {
     // 2. Verify Mention notification
     const notification = await prisma.notification.findFirst({
       where: {
-        recipient: { profile: { username: mentionedUser.username } },
+        recipient: { username: mentionedUser.username },
         type: 'MENTION',
       },
     });

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PromotionStatus, PromotionTargetType } from '@prisma/client';
+import { eurosToCents } from '../../../../common/constants/monetization.constants.js';
 import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 
@@ -24,19 +25,26 @@ export class CreatePromotionUseCase {
     countries?: string,
     dailyBudget?: number,
   ) {
+    const ownedProfiles = await this.prisma.profile.findMany({
+      where: { userId },
+      select: { id: true },
+    });
+    const profileIds = ownedProfiles.map((p) => p.id);
+
     if (targetType === 'post' || targetType === 'frame') {
       const post = await this.prisma.post.findFirst({
-        where: { id: targetId, userId },
+        where: { id: targetId, profileId: { in: profileIds } },
       });
       if (!post) throw new Error('Post not found or not owned by user');
     } else if (targetType === 'story') {
       const story = await this.prisma.story.findFirst({
-        where: { id: targetId, userId },
+        where: { id: targetId, profileId: { in: profileIds } },
       });
       if (!story) throw new Error('Story not found or not owned by user');
     } else if (targetType === 'profile') {
-      if (targetId !== userId)
+      if (!profileIds.includes(targetId)) {
         throw new Error('Cannot promote other users profile');
+      }
     }
 
     const user = await this.prisma.user.findUnique({
@@ -56,8 +64,12 @@ export class CreatePromotionUseCase {
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + durationDays);
 
-    const finalBudget =
+    // API accepts major units from existing clients; persist integer cents.
+    const finalBudgetEuros =
       budget || (dailyBudget ? dailyBudget * durationDays : 0);
+    const budgetCents = eurosToCents(finalBudgetEuros);
+    const dailyBudgetCents =
+      dailyBudget !== undefined ? eurosToCents(dailyBudget) : undefined;
 
     const promotion = await this.prisma.promotion.create({
       data: {
@@ -65,8 +77,8 @@ export class CreatePromotionUseCase {
         targetType:
           typeMap[targetType.toLowerCase()] || PromotionTargetType.POST,
         targetId,
-        budget: finalBudget,
-        dailyBudget,
+        budgetCents,
+        dailyBudgetCents,
         currency,
         endDate,
         objective,
@@ -89,7 +101,7 @@ export class CreatePromotionUseCase {
               name: `Promotion: ${targetType.toUpperCase()}`,
               description: `Boost for ${durationDays} days`,
             },
-            unit_amount: Math.round(finalBudget * 100),
+            unit_amount: budgetCents,
           },
           quantity: 1,
         },

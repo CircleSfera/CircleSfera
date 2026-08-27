@@ -32,6 +32,9 @@ export interface ProfileWithUser extends Profile {
     email: string;
     role?: string;
     createdAt: Date | string;
+    verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
+    accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
+    isMonetizationEnabled?: boolean;
     _count?: {
       posts: number;
       followers: number;
@@ -61,7 +64,7 @@ export interface PostMedia {
 
 export interface Post {
   id: string;
-  userId: string;
+  profileId: string;
   caption: string | null;
   media: PostMedia[];
   type?: string;
@@ -76,14 +79,7 @@ export interface Post {
 
   createdAt: Date | string;
   updatedAt: Date | string;
-  user: {
-    id: string;
-    email: string;
-    profile: Profile | null;
-    role?: string;
-    verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
-    accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
-  };
+  profile: ProfileWithUser;
   _count: {
     likes: number;
     comments: number;
@@ -94,7 +90,7 @@ export interface Post {
 export interface Comment {
   id: string;
   postId: string;
-  userId: string;
+  profileId: string;
   content: string;
   url?: string | null;
   standardUrl?: string | null;
@@ -102,11 +98,7 @@ export interface Comment {
   mediaType?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
-  user: {
-    id: string;
-    email: string;
-    profile: Profile | null;
-  };
+  profile: ProfileWithUser;
   parentId?: string | null;
   replies?: Comment[];
   likes?: { userId: string }[];
@@ -119,13 +111,13 @@ export interface Comment {
 export interface CommentLike {
   id: string;
   commentId: string;
-  userId: string;
+  profileId: string;
   createdAt: Date | string;
 }
 
 export interface Story {
   id: string;
-  userId: string;
+  profileId: string;
   url: string;
   standardUrl?: string | null;
   thumbnailUrl?: string | null;
@@ -140,13 +132,7 @@ export interface Story {
   currency?: string;
   isPurchased?: boolean;
   isLocked?: boolean;
-  user: {
-    id: string;
-    email: string;
-    profile: Profile | null;
-    verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
-    accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
-  };
+  profile: ProfileWithUser;
   isCloseFriendsOnly?: boolean | null;
   audioId?: string | null;
   audio?: Audio | null;
@@ -159,7 +145,7 @@ export interface Story {
 
 export interface Collection {
   id: string;
-  userId: string;
+  profileId: string;
   name: string;
   coverUrl?: string;
   standardUrl?: string;
@@ -188,21 +174,14 @@ export interface Message {
   isEdited?: boolean;
   isLocked?: boolean;
   priceCents?: number;
-  sender?: {
-    id: string;
-    profile: Profile;
-  };
+  sender?: ProfileWithUser;
 }
 
 export interface Participant {
   id: string;
-  userId: string;
+  profileId: string;
   lastReadAt?: Date | string;
-  user: {
-    id: string;
-    isOnline?: boolean;
-    profile: Profile;
-  };
+  profile: ProfileWithUser;
 }
 
 export interface Conversation {
@@ -224,18 +203,11 @@ export interface Notification {
   createdAt: Date | string;
   postId?: string;
   commentId?: string;
-  sender: {
-    id: string;
-    email: string;
-    profile: Profile | null;
-  } | null;
+  sender: ProfileWithUser | null;
 }
 
 export interface SearchResult {
-  users: Array<{
-    id: string;
-    profile: Profile;
-  }>;
+  users: Array<ProfileWithUser>;
   hashtags: Array<{
     id: string;
     tag: string;
@@ -264,11 +236,7 @@ export interface Report {
   status: 'PENDING' | 'REVIEWING' | 'RESOLVED' | 'REJECTED';
   createdAt: Date | string;
   updatedAt: Date | string;
-  reporter?: {
-    id: string;
-    email: string;
-    profile: Profile;
-  };
+  reporter?: ProfileWithUser;
 }
 
 export interface Purchase {
@@ -286,12 +254,8 @@ export interface Purchase {
   externalSessionId?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
-  seller?: {
-    profile: Profile;
-  };
-  buyer?: {
-    profile: Profile;
-  };
+  seller?: ProfileWithUser;
+  buyer?: ProfileWithUser;
 }
 
 export interface WebhookEvent {

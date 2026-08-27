@@ -8,8 +8,8 @@ export class GetUnreadCountQuery {
     private readonly getConversationsQuery: GetConversationsQuery,
   ) {}
 
-  async execute(userId: string): Promise<number> {
-    const conversations = await this.getConversationsQuery.execute(userId);
+  async execute(profileId: string): Promise<number> {
+    const conversations = await this.getConversationsQuery.execute(profileId);
     let unreadCount = 0;
 
     for (const conv of conversations as {
@@ -19,10 +19,10 @@ export class GetUnreadCountQuery {
       const lastMsg = conv.messages?.[0];
       if (!lastMsg) continue;
 
-      if (lastMsg.senderId === userId) continue;
+      if (lastMsg.senderId === profileId) continue;
 
       const myParticipant = conv.participants.find(
-        (p: any) => p.userId === userId,
+        (p: any) => p.profileId === profileId,
       );
 
       if (

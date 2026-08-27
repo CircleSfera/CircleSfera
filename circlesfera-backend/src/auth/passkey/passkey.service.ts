@@ -48,13 +48,13 @@ export class PasskeyService {
     const user = (await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        profile: true,
+        profiles: true,
         passkeys: true,
       },
     })) as unknown as {
       id: string;
       email: string;
-      profile?: { username?: string | null; fullName?: string | null } | null;
+      profiles?: { username?: string | null; fullName?: string | null }[];
       passkeys: {
         id: string;
         credentialID: string;
@@ -69,12 +69,14 @@ export class PasskeyService {
       throw new NotFoundException('User not found');
     }
 
+    const primaryProfile = user.profiles?.[0];
+
     const options: GenerateRegistrationOptionsOpts = {
       rpName: this.rpName,
       rpID: this.rpID,
       userID: Buffer.from(user.id),
-      userName: user.profile?.username || user.email,
-      userDisplayName: user.profile?.fullName || user.email,
+      userName: primaryProfile?.username || user.email,
+      userDisplayName: primaryProfile?.fullName || user.email,
       attestationType: 'none',
       excludeCredentials: user.passkeys.map((pk) => ({
         id: pk.credentialID,
@@ -181,7 +183,10 @@ export class PasskeyService {
   async generateAuthenticationOptions(identifier: string) {
     const user = (await this.prisma.user.findFirst({
       where: {
-        OR: [{ email: identifier }, { profile: { username: identifier } }],
+        OR: [
+          { email: identifier },
+          { profiles: { some: { username: identifier } } },
+        ],
       },
       include: {
         passkeys: true,
@@ -231,7 +236,10 @@ export class PasskeyService {
   async verifyAuthentication(identifier: string, body: unknown) {
     const user = (await this.prisma.user.findFirst({
       where: {
-        OR: [{ email: identifier }, { profile: { username: identifier } }],
+        OR: [
+          { email: identifier },
+          { profiles: { some: { username: identifier } } },
+        ],
       },
       include: {
         passkeys: true,

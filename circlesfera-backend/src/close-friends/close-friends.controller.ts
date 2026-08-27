@@ -12,18 +12,18 @@ import { CloseFriendsService } from './close-friends.service.js';
 export class CloseFriendsController {
   constructor(private readonly closeFriendsService: CloseFriendsService) {}
 
-  /** List the authenticated user's close friends. */
+  /** List the authenticated profile's close friends. */
   @Get()
   async getCloseFriends(@CurrentUser() user: CurrentUserData) {
-    return this.closeFriendsService.getCloseFriends(user.userId);
+    return this.closeFriendsService.getCloseFriends(user.profileId);
   }
 
-  /** Toggle close-friend status for a user. */
+  /** Toggle close-friend status for a profile. */
   @Post(':friendId')
   async toggleCloseFriend(
     @CurrentUser() user: CurrentUserData,
     @Param('friendId') friendId: string,
   ) {
-    return this.closeFriendsService.toggleCloseFriend(user.userId, friendId);
+    return this.closeFriendsService.toggleCloseFriend(user.profileId, friendId);
   }
 }

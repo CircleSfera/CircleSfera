@@ -25,14 +25,16 @@ export class AnalyticsProcessor extends WorkerHost {
         return this.handleUpdatePerformanceScore(job.data);
       case 'daily-aggregation':
         return this.analyticsService.handleDailyAggregation();
-      case 'aggregate-creator':
-        if (!job.data.userId) {
+      case 'aggregate-creator': {
+        const profileId = job.data.profileId || job.data.userId;
+        if (!profileId) {
           throw AppException.BadRequest(
             ErrorCode.INVALID_INPUT,
-            'aggregate-creator job requires a userId',
+            'aggregate-creator job requires a profileId',
           );
         }
-        return this.analyticsService.performDailyAggregation(job.data.userId);
+        return this.analyticsService.performDailyAggregation(profileId);
+      }
       default:
         this.logger.warn(`Unknown job name: ${job.name}`);
     }

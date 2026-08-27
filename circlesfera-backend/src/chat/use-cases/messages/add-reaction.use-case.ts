@@ -10,7 +10,7 @@ export class AddReactionUseCase {
 
   async execute(
     messageId: string,
-    userId: string,
+    profileId: string,
     reaction: string,
   ): Promise<MessageReaction> {
     const message = await this.prisma.message.findUnique({
@@ -27,7 +27,7 @@ export class AddReactionUseCase {
     }
 
     const isParticipant = message.conversation.participants.some(
-      (p) => p.userId === userId,
+      (p) => p.profileId === profileId,
     );
 
     if (!isParticipant) {
@@ -39,9 +39,9 @@ export class AddReactionUseCase {
 
     const existing = await this.prisma.messageReaction.findUnique({
       where: {
-        messageId_userId: {
+        messageId_profileId: {
           messageId,
-          userId,
+          profileId,
         },
       },
     });
@@ -54,7 +54,7 @@ export class AddReactionUseCase {
         return {
           id: existing.id,
           messageId,
-          userId,
+          profileId,
           reaction: null as unknown as string,
           createdAt: existing.createdAt,
         };
@@ -69,7 +69,7 @@ export class AddReactionUseCase {
     return await this.prisma.messageReaction.create({
       data: {
         messageId,
-        userId,
+        profileId,
         reaction,
       },
     });

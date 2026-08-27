@@ -107,7 +107,7 @@ export class LiveService {
       where: { status: 'LIVE' },
       include: {
         host: {
-          include: { profile: true },
+          include: { user: true },
         },
       },
       orderBy: { startedAt: 'desc' },
@@ -153,13 +153,13 @@ export class LiveService {
         host: {
           select: {
             id: true,
-            profile: { select: { username: true, avatar: true } },
+            profiles: { select: { username: true, avatar: true } },
           },
         },
         coHost: {
           select: {
             id: true,
-            profile: { select: { username: true, avatar: true } },
+            profiles: { select: { username: true, avatar: true } },
           },
         },
       },
@@ -202,13 +202,13 @@ export class LiveService {
     const [invitee, host] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: coHostUserId },
-        select: { id: true, profile: { select: { username: true } } },
+        select: { id: true, profiles: { select: { username: true } } },
       }),
       this.prisma.user.findUnique({
         where: { id: hostId },
         select: {
           id: true,
-          profile: { select: { username: true, avatar: true } },
+          profiles: { select: { username: true, avatar: true } },
         },
       }),
     ]);
@@ -229,14 +229,14 @@ export class LiveService {
       streamTitle: stream.title,
       host: {
         id: host?.id,
-        username: host?.profile?.username,
-        avatar: host?.profile?.avatar,
+        username: host?.profiles[0]?.username,
+        avatar: host?.profiles[0]?.avatar,
       },
     });
 
     this.gateway.server.to(`live:${streamId}`).emit('live:cohost_joined', {
       coHostId: coHostUserId,
-      coHostUsername: invitee.profile?.username,
+      coHostUsername: invitee.profiles[0]?.username,
     });
 
     this.logger.log(
@@ -336,9 +336,13 @@ export class LiveService {
         host: {
           select: {
             id: true,
-            email: true,
-            stripeConnectAccountId: true,
-            profile: { select: { username: true } },
+            username: true,
+            user: {
+              select: {
+                email: true,
+                stripeConnectAccountId: true,
+              },
+            },
           },
         },
       },
@@ -358,7 +362,7 @@ export class LiveService {
       );
     }
 
-    if (!stream.host.stripeConnectAccountId) {
+    if (!stream.host.user?.stripeConnectAccountId) {
       throw new BadRequestException(
         'Host cannot receive gifts yet (no Stripe Connect account)',
       );
@@ -369,7 +373,7 @@ export class LiveService {
       select: {
         id: true,
         email: true,
-        profile: { select: { username: true } },
+        profiles: { select: { username: true } },
       },
     });
     if (!sender)
@@ -402,7 +406,7 @@ export class LiveService {
               currency: 'eur',
               product_data: {
                 name: `Live Gift: ${giftName}`,
-                description: `Gift for @${stream.host.profile?.username || 'creator'}`,
+                description: `Gift for @${stream.host.username || 'creator'}`,
               },
               unit_amount: amountCents,
             },
@@ -412,7 +416,7 @@ export class LiveService {
         payment_intent_data: {
           application_fee_amount: platformFee,
           transfer_data: {
-            destination: stream.host.stripeConnectAccountId,
+            destination: stream.host.user?.stripeConnectAccountId,
           },
         },
         metadata: {
@@ -479,7 +483,7 @@ export class LiveService {
       where: { id: params.liveGiftId },
       include: {
         sender: {
-          select: { profile: { select: { username: true, avatar: true } } },
+          select: { profiles: { select: { username: true, avatar: true } } },
         },
       },
     });
@@ -541,8 +545,8 @@ export class LiveService {
       giftId: params.giftId,
       amountCents: params.amountCents,
       senderId: params.senderId,
-      senderUsername: existing.sender.profile?.username,
-      senderAvatar: existing.sender.profile?.avatar,
+      senderUsername: existing.sender.profiles[0]?.username,
+      senderAvatar: existing.sender.profiles[0]?.avatar,
       receiverId: params.creatorId,
       liveGiftId: result.id,
       sentAt: new Date().toISOString(),

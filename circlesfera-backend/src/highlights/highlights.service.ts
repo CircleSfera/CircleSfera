@@ -20,7 +20,7 @@ export class HighlightsService {
 
     const highlight = await this.prisma.highlight.create({
       data: {
-        userId,
+        profileId: userId,
         title,
         coverUrl,
         stories: {
@@ -47,7 +47,7 @@ export class HighlightsService {
    */
   async findAll(userId: string) {
     return this.prisma.highlight.findMany({
-      where: { userId },
+      where: { profileId: userId },
       include: {
         stories: {
           include: {

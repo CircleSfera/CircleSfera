@@ -16,9 +16,6 @@ describe('ProfilesService', () => {
       findUnique: vi.fn(),
       update: vi.fn(),
     },
-    user: {
-      findUnique: vi.fn(),
-    },
   };
 
   const mockCacheManager = {

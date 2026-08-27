@@ -5,11 +5,13 @@ import {
   Get,
   Param,
   Post,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
-import type { Request } from 'express';
+import {
+  CurrentUser,
+  type CurrentUserData,
+} from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { FeedPreferencesService } from './feed-preferences.service.js';
 
@@ -21,53 +23,61 @@ class MuteKeywordDto {
   keyword!: string;
 }
 
-interface RequestWithUser extends Request {
-  user: { userId: string; email: string; role: string };
-}
-
 @Controller('feed/preferences')
 @UseGuards(JwtAuthGuard)
 export class FeedPreferencesController {
   constructor(private readonly feedPreferences: FeedPreferencesService) {}
 
   @Get()
-  list(@Req() req: RequestWithUser) {
-    return this.feedPreferences.listPreferences(req.user.userId);
+  list(@CurrentUser() user: CurrentUserData) {
+    return this.feedPreferences.listPreferences(user.profileId);
   }
 
   @Post('hide-post/:postId')
-  hidePost(@Req() req: RequestWithUser, @Param('postId') postId: string) {
-    return this.feedPreferences.hidePost(req.user.userId, postId);
+  hidePost(
+    @CurrentUser() user: CurrentUserData,
+    @Param('postId') postId: string,
+  ) {
+    return this.feedPreferences.hidePost(user.profileId, postId);
   }
 
   @Delete('hide-post/:postId')
-  unhidePost(@Req() req: RequestWithUser, @Param('postId') postId: string) {
-    return this.feedPreferences.unhidePost(req.user.userId, postId);
+  unhidePost(
+    @CurrentUser() user: CurrentUserData,
+    @Param('postId') postId: string,
+  ) {
+    return this.feedPreferences.unhidePost(user.profileId, postId);
   }
 
   @Post('hide-author/:authorId')
-  hideAuthor(@Req() req: RequestWithUser, @Param('authorId') authorId: string) {
-    return this.feedPreferences.hideAuthor(req.user.userId, authorId);
+  hideAuthor(
+    @CurrentUser() user: CurrentUserData,
+    @Param('authorId') authorId: string,
+  ) {
+    return this.feedPreferences.hideAuthor(user.profileId, authorId);
   }
 
   @Delete('hide-author/:authorId')
   unhideAuthor(
-    @Req() req: RequestWithUser,
+    @CurrentUser() user: CurrentUserData,
     @Param('authorId') authorId: string,
   ) {
-    return this.feedPreferences.unhideAuthor(req.user.userId, authorId);
+    return this.feedPreferences.unhideAuthor(user.profileId, authorId);
   }
 
   @Post('mute-keyword')
-  muteKeyword(@Req() req: RequestWithUser, @Body() dto: MuteKeywordDto) {
-    return this.feedPreferences.muteKeyword(req.user.userId, dto.keyword);
+  muteKeyword(
+    @CurrentUser() user: CurrentUserData,
+    @Body() dto: MuteKeywordDto,
+  ) {
+    return this.feedPreferences.muteKeyword(user.profileId, dto.keyword);
   }
 
   @Delete('mute-keyword/:keyword')
   unmuteKeyword(
-    @Req() req: RequestWithUser,
+    @CurrentUser() user: CurrentUserData,
     @Param('keyword') keyword: string,
   ) {
-    return this.feedPreferences.unmuteKeyword(req.user.userId, keyword);
+    return this.feedPreferences.unmuteKeyword(user.profileId, keyword);
   }
 }

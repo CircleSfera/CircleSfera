@@ -82,7 +82,7 @@ export class PaymentsService {
   async findAllPlans() {
     return this.prisma.platformPlan.findMany({
       where: { isActive: true },
-      orderBy: { price: 'asc' },
+      orderBy: { priceCents: 'asc' },
     });
   }
 
@@ -187,7 +187,7 @@ export class PaymentsService {
           select: {
             id: true,
             name: true,
-            price: true,
+            priceCents: true,
             currency: true,
           },
         },
@@ -209,7 +209,7 @@ export class PaymentsService {
             currentPeriodStart: subscription.currentPeriodStart,
             currentPeriodEnd: subscription.currentPeriodEnd,
             cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
-            price: subscription.plan.price,
+            priceCents: subscription.plan.priceCents,
             currency: subscription.plan.currency,
           }
         : null,

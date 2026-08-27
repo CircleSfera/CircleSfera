@@ -37,7 +37,7 @@ export class EditsService {
       }
       return await this.prisma.editProject.create({
         data: {
-          userId,
+          profileId: userId,
           mediaUrl: createEditDto.mediaUrl,
           mediaType: createEditDto.mediaType || 'image',
           name: createEditDto.name,
@@ -58,7 +58,7 @@ export class EditsService {
 
   async findAll(userId: string) {
     return this.prisma.editProject.findMany({
-      where: { userId },
+      where: { profileId: userId },
       orderBy: { updatedAt: 'desc' },
     });
   }

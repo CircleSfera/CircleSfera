@@ -27,7 +27,7 @@ export class RefundPromotionUseCase {
       return { refunded: false, reason: 'not_charged' };
     }
 
-    const amountInCents = Math.max(0, Math.round(promo.budget * 100));
+    const amountInCents = Math.max(0, promo.budgetCents);
     if (amountInCents <= 0) {
       return { refunded: false, reason: 'no_remaining_budget' };
     }

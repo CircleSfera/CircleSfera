@@ -17,7 +17,7 @@ describe('AnalyticsService', () => {
     user: {
       findMany: vi.fn(),
     },
-    userMetric: {
+    profileMetric: {
       upsert: vi.fn(),
     },
     post: {

@@ -97,7 +97,7 @@ export class DataExportProcessor extends WorkerHost {
         where: { id: userId },
         select: {
           email: true,
-          profile: { select: { fullName: true, username: true } },
+          profiles: { take: 1, select: { fullName: true, username: true } },
         },
       });
 
@@ -131,7 +131,9 @@ export class DataExportProcessor extends WorkerHost {
             });
 
             const name =
-              user.profile?.fullName || user.profile?.username || 'User';
+              user.profiles[0]?.fullName ||
+              user.profiles[0]?.username ||
+              'User';
             await this.emailService.sendBroadcastEmail(
               user.email,
               'Your Data Export is Ready',

@@ -92,7 +92,7 @@ export class MonetizationService {
   ) {
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
-      include: { user: true },
+      include: { profile: { include: { user: true } } },
     });
 
     if (!post?.isPremium || !post.priceCents) {
@@ -101,14 +101,14 @@ export class MonetizationService {
         'This post is not premium or has no price',
       );
     }
-    if (post.userId === userId) {
+    if (post.profileId === userId) {
       throw AppException.BadRequest(
         ErrorCode.CANNOT_BUY_OWN_CONTENT,
         'You cannot buy your own post',
       );
     }
 
-    const creator = post.user;
+    const creator = (post as any).profile.user;
     if (!creator.stripeConnectAccountId) {
       throw AppException.BadRequest(
         ErrorCode.CREATOR_STRIPE_NOT_SETUP,
@@ -175,7 +175,7 @@ export class MonetizationService {
   ) {
     const story = await this.prisma.story.findUnique({
       where: { id: storyId },
-      include: { user: true },
+      include: { profile: { include: { user: true } } },
     });
 
     if (!story?.isPremium || !story.priceCents) {
@@ -184,7 +184,7 @@ export class MonetizationService {
         'This story is not premium or has no price',
       );
     }
-    if (story.userId === userId) {
+    if (story.profileId === userId) {
       throw AppException.BadRequest(
         ErrorCode.CANNOT_BUY_OWN_CONTENT,
         'You cannot buy your own story',
@@ -201,7 +201,7 @@ export class MonetizationService {
       );
     }
 
-    const creator = story.user;
+    const creator = (story as any).profile.user;
     if (!creator.stripeConnectAccountId) {
       throw AppException.BadRequest(
         ErrorCode.CREATOR_STRIPE_NOT_SETUP,

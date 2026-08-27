@@ -17,6 +17,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { AnalyticsService } from '../analytics/analytics.service.js';
+import { type CurrentUserData } from '../auth/decorators/current-user.decorator.js';
 import { RequiresPlan } from '../auth/decorators/requires-plan.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { SubscriptionGuard } from '../auth/guards/subscription.guard.js';
@@ -39,7 +40,7 @@ import { RecordPromotionInteractionUseCase } from './use-cases/promotions/comman
 import { GetPromotionsQuery } from './use-cases/promotions/queries/get-promotions.query.js';
 
 interface AuthRequest extends Request {
-  user: { userId: string; email: string; role: string };
+  user: CurrentUserData;
 }
 
 const ElitePlan = () => RequiresPlan('Elite Creator');
@@ -82,7 +83,7 @@ export class CreatorController {
   @ElitePlan()
   @HttpCode(HttpStatus.OK)
   async getStats(@Req() req: AuthRequest) {
-    return this.getCreatorStatsQ.execute(req.user.userId);
+    return this.getCreatorStatsQ.execute(req.user.profileId);
   }
 
   @Get('activity-chart')
@@ -91,7 +92,7 @@ export class CreatorController {
   @HttpCode(HttpStatus.OK)
   async getActivityChart(@Req() req: AuthRequest) {
     const dashboard = await this.analyticsService.getCreatorDashboard(
-      req.user.userId,
+      req.user.profileId,
       14,
     );
     return dashboard.charts.dailyMetrics;
@@ -107,7 +108,7 @@ export class CreatorController {
     @Query('type') type?: string,
   ) {
     return this.getCreatorPostsQ.execute(
-      req.user.userId,
+      req.user.profileId,
       page ? Number.parseInt(page, 10) : 1,
       limit ? Number.parseInt(limit, 10) : 10,
       type,
@@ -123,7 +124,7 @@ export class CreatorController {
     @Query('limit') limit?: string,
   ) {
     return this.getCreatorStoriesQ.execute(
-      req.user.userId,
+      req.user.profileId,
       page ? Number.parseInt(page, 10) : 1,
       limit ? Number.parseInt(limit, 10) : 10,
     );
@@ -221,7 +222,7 @@ export class CreatorController {
 
   @Post('promotions/:id/click')
   async recordPromotionClick(@Req() req: AuthRequest, @Param('id') id: string) {
-    return this.recordPromotionInteractionUC.recordClick(id, req.user?.userId);
+    return this.recordPromotionInteractionUC.recordClick(id, req.user.userId);
   }
 
   @Patch('promotions/:id')
@@ -253,14 +254,14 @@ export class CreatorController {
     @Req() req: AuthRequest,
     @Query('period') period?: '7d' | '30d' | '90d' | '1y',
   ) {
-    return this.getRevenueAnalyticsQ.execute(req.user.userId, period);
+    return this.getRevenueAnalyticsQ.execute(req.user.profileId, period);
   }
 
   @Get('analytics/retention')
   @UseGuards(SubscriptionGuard)
   @ElitePlan()
   async getAudienceRetentionAnalytics(@Req() req: AuthRequest) {
-    return this.getAudienceRetentionQ.execute(req.user.userId);
+    return this.getAudienceRetentionQ.execute(req.user.profileId);
   }
 
   @Get('analytics/top-posts')
@@ -271,7 +272,7 @@ export class CreatorController {
     @Query('limit') limit?: string,
   ) {
     return this.getTopContentQ.execute(
-      req.user.userId,
+      req.user.profileId,
       limit ? Number.parseInt(limit, 10) : 5,
     );
   }
@@ -288,6 +289,9 @@ export class CreatorController {
     @Req() req: AuthRequest,
     @Query('period') period?: string,
   ) {
-    return this.exportAnalyticsCsvUC.execute(req.user.userId, period || '30d');
+    return this.exportAnalyticsCsvUC.execute(
+      req.user.profileId,
+      period || '30d',
+    );
   }
 }
