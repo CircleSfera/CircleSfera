@@ -1,0 +1,4 @@
+app_identifier("com.circlesfera.app") # TODO: Reemplazar por el Bundle ID definitivo en Septiembre
+apple_id("admin@circlesfera.com") # TODO: Reemplazar por el correo de la cuenta Apple Developer
+itc_team_id("XXXXXXXXX") # TODO: Reemplazar por el App Store Connect Team ID
+team_id("XXXXXXXXXX") # TODO: Reemplazar por el Developer Portal Team ID

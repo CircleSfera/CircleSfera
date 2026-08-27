@@ -1,0 +1,36 @@
+default_platform(:android)
+
+platform :android do
+  desc "Submit a new Beta Build to Google Play Internal Track"
+  lane :internal do
+    # 1. Compila la app usando Gradle para generar el Android App Bundle (.aab)
+    gradle(
+      task: "bundle",
+      build_type: "Release"
+    )
+
+    # 2. Sube el AAB al track interno de Google Play
+    upload_to_play_store(
+      track: 'internal',
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+
+  desc "Deploy a new version to the Google Play Store"
+  lane :release do
+    gradle(
+      task: "bundle",
+      build_type: "Release"
+    )
+    
+    upload_to_play_store(
+      track: 'production',
+      skip_upload_metadata: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: false
+    )
+  end
+end

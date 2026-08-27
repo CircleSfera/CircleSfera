@@ -1,0 +1,2 @@
+json_key_file("fastlane/google-play-key.json") # TODO: Coloca tu archivo JSON de credenciales de Google Play aquí
+package_name("com.circlesfera.app") # TODO: Reemplazar por el Package Name oficial en Septiembre
