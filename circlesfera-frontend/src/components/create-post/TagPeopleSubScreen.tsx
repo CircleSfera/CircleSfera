@@ -85,7 +85,7 @@ export default function TagPeopleSubScreen({
         [currentIndex]: [
           ...existing,
           {
-            userId: user.id,
+            profileId: user.id,
             username: user.profile.username,
             x: activeTap.x,
             y: activeTap.y,

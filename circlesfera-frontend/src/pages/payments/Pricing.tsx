@@ -31,6 +31,9 @@ export default function Pricing() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
+  const [billingCycle, setBillingCycle] = useState<'MONTHLY' | 'YEARLY'>(
+    'MONTHLY',
+  );
 
   const planDescriptions: Record<string, string> = {
     Premium: t('pricingPage.desc_premium'),
@@ -96,7 +99,7 @@ export default function Pricing() {
         return paymentsApi.getBillingPortalUrl();
       }
 
-      return paymentsApi.createSubscriptionCheckout(plan.id);
+      return paymentsApi.createSubscriptionCheckout(plan.id, billingCycle);
     },
     onSuccess: (res) => {
       if (res?.url) {
@@ -165,6 +168,10 @@ export default function Pricing() {
   const verificationLevel =
     currentUser?.user?.verificationLevel || currentUser?.verificationLevel;
 
+  const hasYearlyPlans =
+    plans?.some((p) => p.yearlyPriceCents != null && p.yearlyPriceCents > 0) ??
+    false;
+
   return (
     <MarketingPage withFooter={!isAuthenticated}>
       <div className="mx-auto max-w-6xl px-4 sm:px-5 py-8 sm:py-10 w-full">
@@ -182,6 +189,38 @@ export default function Pricing() {
           }
           description={t('pricingPage.subtitle')}
         />
+
+        {hasYearlyPlans && !isLoading && !isError && (
+          <div className="flex justify-center mb-6">
+            <fieldset className="inline-flex rounded-lg border border-white/10 p-1 bg-surface-raised/60 border-none m-0">
+              <legend className="sr-only">
+                {t('pricingPage.billing_cycle_label')}
+              </legend>
+              <button
+                type="button"
+                onClick={() => setBillingCycle('MONTHLY')}
+                className={`px-4 min-h-11 text-sm font-semibold rounded-md transition-colors ${
+                  billingCycle === 'MONTHLY'
+                    ? 'bg-brand-primary text-white'
+                    : 'text-white/60 hover:text-white'
+                }`}
+              >
+                {t('pricingPage.billing_monthly')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setBillingCycle('YEARLY')}
+                className={`px-4 min-h-11 text-sm font-semibold rounded-md transition-colors ${
+                  billingCycle === 'YEARLY'
+                    ? 'bg-brand-primary text-white'
+                    : 'text-white/60 hover:text-white'
+                }`}
+              >
+                {t('pricingPage.billing_yearly')}
+              </button>
+            </fieldset>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="flex justify-center py-12">
@@ -214,6 +253,17 @@ export default function Pricing() {
                 isActiveByBilling ||
                 (!!mappedLevel && verificationLevel === mappedLevel);
               const currencySymbol = plan.currency === 'EUR' ? '€' : '$';
+              const monthlyCents = plan.priceCents ?? 0;
+              const yearlyCents = plan.yearlyPriceCents ?? 0;
+              const showYearly = billingCycle === 'YEARLY' && yearlyCents > 0;
+              const displayCents = showYearly ? yearlyCents : monthlyCents;
+              const intervalLabel = showYearly
+                ? t('pricingPage.per_year')
+                : plan.interval || t('pricingPage.per_month');
+              const yearlySavingsPercent =
+                showYearly && monthlyCents > 0
+                  ? Math.round((1 - yearlyCents / (monthlyCents * 12)) * 100)
+                  : 0;
               const description =
                 plan.description ||
                 planDescriptions[plan.name] ||
@@ -248,14 +298,21 @@ export default function Pricing() {
                         </span>
                       )}
                     </div>
-                    <p className="flex items-baseline gap-1">
+                    <p className="flex items-baseline gap-1 flex-wrap">
                       <span className="text-2xl sm:text-3xl font-black text-white">
                         {currencySymbol}
-                        {((plan.priceCents ?? 0) / 100).toFixed(2)}
+                        {(displayCents / 100).toFixed(2)}
                       </span>
                       <span className="text-white/35 text-sm">
-                        /{plan.interval || 'month'}
+                        /{intervalLabel}
                       </span>
+                      {showYearly && yearlySavingsPercent > 0 && (
+                        <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                          {t('pricingPage.save_percent', {
+                            percent: yearlySavingsPercent,
+                          })}
+                        </span>
+                      )}
                     </p>
                     <p className="text-sm text-white/50 mt-2 leading-relaxed">
                       {description}
@@ -278,7 +335,10 @@ export default function Pricing() {
                   <MarketingCTA
                     variant={isPopular ? 'primary' : 'secondary'}
                     className="w-full"
-                    disabled={loadingPlanId !== null}
+                    disabled={
+                      loadingPlanId !== null ||
+                      (billingCycle === 'YEARLY' && yearlyCents <= 0)
+                    }
                     onClick={() => handleTierClick(plan)}
                   >
                     {loadingPlanId === plan.id ? (

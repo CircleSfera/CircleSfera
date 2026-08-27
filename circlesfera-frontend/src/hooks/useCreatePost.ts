@@ -31,7 +31,7 @@ export type InteractiveDraft =
   | null;
 
 export interface PostTagData {
-  userId: string;
+  profileId: string;
   username: string;
   x: number;
   y: number;
@@ -362,7 +362,7 @@ export function useCreatePost() {
           tags: Object.values(tagsMap)
             .flat()
             .map((t) => ({
-              userId: t.userId,
+              profileId: t.profileId,
               x: t.x,
               y: t.y,
             })),

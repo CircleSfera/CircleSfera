@@ -89,7 +89,7 @@ export default function ConversationList() {
     if (!searchQuery) return true;
     const participants = c.participants || [];
     const other = participants.find(
-      (p: Participant) => p.profileId !== me?.userId,
+      (p: Participant) => p.profileId !== me?.id,
     )?.user;
     const name =
       c.name || other?.profile?.fullName || other?.profile?.username || '';
@@ -166,11 +166,10 @@ export default function ConversationList() {
             filteredConversations.map((conv) => {
               const participants = conv.participants || [];
               const otherParticipant =
-                participants.find(
-                  (p: Participant) => p.profileId !== me?.userId,
-                ) || participants[0];
+                participants.find((p: Participant) => p.profileId !== me?.id) ||
+                participants[0];
               const myParticipant = participants.find(
-                (p: Participant) => p.profileId === me?.userId,
+                (p: Participant) => p.profileId === me?.id,
               );
               const other = otherParticipant?.user;
 
@@ -184,7 +183,7 @@ export default function ConversationList() {
               // Check if last message is unread using lastReadAt timestamp
               const isUnread = Boolean(
                 lastMsg &&
-                  lastMsg.senderId !== me?.userId &&
+                  lastMsg.senderId !== me?.id &&
                   (!myParticipant?.lastReadAt ||
                     new Date(lastMsg.createdAt).getTime() >
                       new Date(myParticipant.lastReadAt).getTime()),
@@ -245,7 +244,7 @@ export default function ConversationList() {
                         >
                           {lastMsg ? (
                             <>
-                              {lastMsg.senderId === me?.userId && (
+                              {lastMsg.senderId === me?.id && (
                                 <span className="mr-1 opacity-70">
                                   {t('chat.you')}
                                 </span>

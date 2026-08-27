@@ -321,9 +321,7 @@ export default function StoryViewer({
               <div className="absolute inset-0 z-50">
                 <PaywallOverlay
                   price={
-                    currentStory.priceCents
-                      ? currentStory.priceCents / 100
-                      : currentStory.price || 0
+                    currentStory.priceCents ? currentStory.priceCents / 100 : 0
                   }
                   onUnlock={() => unlockMutation.mutate()}
                   isLoading={unlockMutation.isPending}

@@ -24,9 +24,9 @@ export default function HighlightViewerPage() {
   });
 
   const isOwner =
-    !!profile?.userId &&
+    !!profile?.id &&
     !!highlight &&
-    (highlight as { userId?: string }).userId === profile.userId;
+    (highlight as { profileId?: string }).profileId === profile.id;
 
   const updateMutation = useMutation({
     mutationFn: (data: { title?: string }) => highlightsApi.update(id!, data),

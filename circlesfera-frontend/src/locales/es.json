@@ -2526,7 +2526,13 @@
     "verification_required_desc": "Debes verificar tu identidad antes de realizar compras.",
     "verify_button": "Verificar Identidad con Stripe",
     "verify_error": "No se pudo iniciar la verificación de identidad.",
-    "checkout_error": "Error al iniciar el pago. Inténtalo de nuevo."
+    "checkout_error": "Error al iniciar el pago. Inténtalo de nuevo.",
+    "billing_cycle_label": "Periodo de facturación",
+    "billing_monthly": "Mensual",
+    "billing_yearly": "Anual",
+    "per_month": "mes",
+    "per_year": "año",
+    "save_percent": "Ahorra {{percent}}%"
   },
   "studio": {
     "seo_title": "Studio | CircleSfera",

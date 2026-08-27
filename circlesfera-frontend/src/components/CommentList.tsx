@@ -58,11 +58,8 @@ const CommentItem = ({
   const isDeleting = deletingId === comment.id;
   const hasReplies = comment.replies && comment.replies.length > 0;
 
-  const isLiked =
-    comment.likes?.some(
-      (l: { userId: string }) => l.userId === currentUserId,
-    ) ?? false;
-  const likesCount = comment.likes?.length || 0;
+  const isLiked = (comment.likes?.length ?? 0) > 0;
+  const likesCount = comment._count?.likes ?? comment.likes?.length ?? 0;
 
   return (
     <div
@@ -464,7 +461,7 @@ export default function CommentList({
             key={comment.id}
             comment={comment}
             postId={postId}
-            currentUserId={profile?.userId}
+            currentUserId={profile?.id}
             onReply={handleReply}
             onDelete={handleDelete}
             deletingId={deletingId}

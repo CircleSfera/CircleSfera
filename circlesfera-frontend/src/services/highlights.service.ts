@@ -5,8 +5,12 @@ export const highlightsApi = {
   create: (data: { title: string; coverUrl?: string; storyIds: string[] }) =>
     apiClient.post<Highlight>('highlights', data),
 
-  getUserHighlights: (userId: string) =>
-    apiClient.get<Highlight[]>(`highlights/user/${userId}`),
+  getProfileHighlights: (profileId: string) =>
+    apiClient.get<Highlight[]>(`highlights/profile/${profileId}`),
+
+  /** @deprecated Use getProfileHighlights */
+  getUserHighlights: (profileId: string) =>
+    apiClient.get<Highlight[]>(`highlights/profile/${profileId}`),
 
   getOne: (id: string) =>
     apiClient.get<Highlight & { stories: { story: Story }[] }>(

@@ -2526,7 +2526,13 @@
     "verification_required_desc": "You must verify your identity before making purchases.",
     "verify_button": "Verify Identity with Stripe",
     "verify_error": "Could not start identity verification.",
-    "checkout_error": "Failed to start checkout. Please try again."
+    "checkout_error": "Failed to start checkout. Please try again.",
+    "billing_cycle_label": "Billing cycle",
+    "billing_monthly": "Monthly",
+    "billing_yearly": "Yearly",
+    "per_month": "month",
+    "per_year": "year",
+    "save_percent": "Save {{percent}}%"
   },
   "studio": {
     "seo_title": "Studio | CircleSfera",

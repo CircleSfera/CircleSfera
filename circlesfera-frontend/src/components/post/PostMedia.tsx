@@ -61,9 +61,7 @@ export default function PostMedia({
 
   // Use new media array if available
   if (post.media && post.media.length > 0) {
-    const displayPrice = post.priceCents
-      ? post.priceCents / 100
-      : post.price || 0;
+    const displayPrice = post.priceCents ? post.priceCents / 100 : 0;
     const isFullHeight = className.includes('h-full');
     const computedAspectRatio = getSmartAspectRatio(post.media, aspectRatio);
 

@@ -302,7 +302,7 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
     // Optionally trigger like API if not already liked
   };
 
-  const isOwner = profile?.userId === post.profileId;
+  const isOwner = profile?.id === post.profileId;
   const videoMedia = post.media?.find((m) => m.type === 'video') ||
     post.media?.[0] || { url: '' };
 
@@ -332,7 +332,7 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
 
         {post.isLocked && (
           <PaywallOverlay
-            price={post.priceCents ? post.priceCents / 100 : post.price || 0}
+            price={post.priceCents ? post.priceCents / 100 : 0}
             onUnlock={() => unlockMutation.mutate()}
             isLoading={unlockMutation.isPending}
           />

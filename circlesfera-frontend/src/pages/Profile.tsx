@@ -174,7 +174,7 @@ export default function Profile() {
 
   const { data: highlights } = useQuery({
     queryKey: ['userHighlights', profile?.data.id],
-    queryFn: () => highlightsApi.getUserHighlights(profile!.data.userId),
+    queryFn: () => highlightsApi.getProfileHighlights(profile!.data.id),
     enabled: !!profile?.data,
   });
 
