@@ -128,11 +128,11 @@ export default function Profile() {
   const isFollowing = followStatus?.data.following;
 
   const handleMessageClick = async () => {
-    if (!profile?.data?.user?.id) return;
+    if (!profile?.data?.id) return;
     setIsCreatingChat(true);
     try {
       const res = await chatApi.createGroup({
-        participantIds: [profile.data.user.id],
+        participantIds: [profile.data.id],
       });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       navigate(`/direct/inbox/t/${res.data.id}`);

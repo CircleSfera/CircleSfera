@@ -69,7 +69,7 @@ export class UsersService {
 
     // Remap to cleaner structure
     return suggestions.map((profile) => ({
-      id: profile.user.id, // Or profile.id depending on what frontend expects. Keep as User ID or Profile ID? The frontend uses userId as profileId now. Let's return profile.id
+      id: profile.id,
       profileId: profile.id,
       username: profile.username,
       fullName: profile.fullName,

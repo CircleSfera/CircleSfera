@@ -271,7 +271,6 @@ describe('LiveService', () => {
   describe('removeCoHost', () => {
     const hostProfileId = 'host-profile-1';
     const coHostProfileId = 'cohost-profile-2';
-    const coHostUserId = 'user-2';
 
     it('should throw ForbiddenException if caller is not the host', async () => {
       mockPrismaService.liveStream.findUnique.mockResolvedValue({
