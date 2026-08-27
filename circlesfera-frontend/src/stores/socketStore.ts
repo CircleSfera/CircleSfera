@@ -15,7 +15,7 @@ interface SocketState {
   socket: SocketWithRetry | null;
   isConnected: boolean;
   typingUsers: Record<string, string[]>; // conversationId -> userIds
-  userStatuses: Record<string, { isOnline: boolean; lastSeenAt?: string }>; // userId -> status
+  userStatuses: Record<string, { isOnline: boolean; lastSeenAt?: string }>;
   connect: () => void;
   disconnect: () => void;
   startTyping: (conversationId: string, recipientId: string) => void;
@@ -98,19 +98,23 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     newSocket.on(
       'user_typing',
       ({
+        profileId,
         userId,
         conversationId,
       }: {
-        userId: string;
+        profileId?: string;
+        userId?: string;
         conversationId: string;
       }) => {
+        const typerId = profileId ?? userId;
+        if (!typerId) return;
         set((state) => {
           const currentTyping = state.typingUsers[conversationId] || [];
-          if (!currentTyping.includes(userId)) {
+          if (!currentTyping.includes(typerId)) {
             return {
               typingUsers: {
                 ...state.typingUsers,
-                [conversationId]: [...currentTyping, userId],
+                [conversationId]: [...currentTyping, typerId],
               },
             };
           }
@@ -122,18 +126,22 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     newSocket.on(
       'user_stopped_typing',
       ({
+        profileId,
         userId,
         conversationId,
       }: {
-        userId: string;
+        profileId?: string;
+        userId?: string;
         conversationId: string;
       }) => {
+        const typerId = profileId ?? userId;
+        if (!typerId) return;
         set((state) => {
           const currentTyping = state.typingUsers[conversationId] || [];
           return {
             typingUsers: {
               ...state.typingUsers,
-              [conversationId]: currentTyping.filter((id) => id !== userId),
+              [conversationId]: currentTyping.filter((id) => id !== typerId),
             },
           };
         });
@@ -143,18 +151,22 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     newSocket.on(
       'user_status',
       ({
+        profileId,
         userId,
         isOnline,
         lastSeenAt,
       }: {
-        userId: string;
+        profileId?: string;
+        userId?: string;
         isOnline: boolean;
         lastSeenAt?: string;
       }) => {
+        const statusId = profileId ?? userId;
+        if (!statusId) return;
         set((state) => ({
           userStatuses: {
             ...state.userStatuses,
-            [userId]: { isOnline, lastSeenAt },
+            [statusId]: { isOnline, lastSeenAt },
           },
         }));
       },

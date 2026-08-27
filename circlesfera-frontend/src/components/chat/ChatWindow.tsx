@@ -81,7 +81,7 @@ export default function ChatWindow() {
       id: tempId,
       content: '🎤 Nota de Voz',
       conversationId: id || '',
-      senderId: profile?.userId || profile?.id || '',
+      senderId: profile?.id || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       voiceUrl: voiceData.voiceUrl,
@@ -189,11 +189,10 @@ export default function ChatWindow() {
     }
   }, [messages, scrollToBottom]);
 
-  const currentUserId =
-    profile?.userId || profile?.user?.id || profile?.id || '';
+  const currentProfileId = profile?.id || '';
 
   useEffect(() => {
-    if (!id || !currentUserId) return;
+    if (!id || !currentProfileId) return;
     let cancelled = false;
     setMessages([]);
     setConversation(null);
@@ -229,7 +228,7 @@ export default function ChatWindow() {
 
         if (!conv.isGroup && conv.participants) {
           const other = conv.participants.find(
-            (p: Participant) => p.profileId !== currentUserId,
+            (p: Participant) => p.profileId !== currentProfileId,
           );
           if (other) {
             markRead(id, other.profileId);
@@ -241,7 +240,7 @@ export default function ChatWindow() {
     return () => {
       cancelled = true;
     };
-  }, [id, currentUserId, markRead, queryClient]);
+  }, [id, currentProfileId, markRead, queryClient]);
 
   useEffect(() => {
     if (!socket || !id) return;
@@ -281,16 +280,18 @@ export default function ChatWindow() {
 
     const handleReaction = (data: {
       messageId: string;
-      userId: string;
+      profileId?: string;
+      userId?: string;
       reaction: string;
     }) => {
+      const reactorId = data.profileId ?? data.userId;
+      if (!reactorId) return;
       setMessages((prev) =>
         prev.map((msg) => {
           if (msg.id === data.messageId) {
             const reactions = msg.reactions || [];
-            // Check if user already reacted, if so update, else add (simplified)
             const existingIdx = reactions.findIndex(
-              (r) => r.userId === data.userId,
+              (r) => (r.profileId ?? r.userId) === reactorId,
             );
             const newReactions = [...reactions];
             if (existingIdx !== -1) {
@@ -302,7 +303,7 @@ export default function ChatWindow() {
               newReactions.push({
                 id: Date.now().toString(),
                 reaction: data.reaction,
-                userId: data.userId,
+                profileId: reactorId,
               });
             }
             return { ...msg, reactions: newReactions };
@@ -314,22 +315,21 @@ export default function ChatWindow() {
 
     const handleMessagesRead = (data: {
       conversationId: string;
-      userId: string;
+      profileId?: string;
+      userId?: string;
       readAt: string;
     }) => {
-      if (data.conversationId === id) {
-        setConversation((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            participants: prev.participants.map((p: Participant) =>
-              p.profileId === data.userId
-                ? { ...p, lastReadAt: data.readAt }
-                : p,
-            ),
-          };
-        });
-      }
+      const readerId = data.profileId ?? data.userId;
+      if (!readerId || data.conversationId !== id) return;
+      setConversation((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          participants: prev.participants.map((p: Participant) =>
+            p.profileId === readerId ? { ...p, lastReadAt: data.readAt } : p,
+          ),
+        };
+      });
     };
 
     const handleMessageEdited = (editedMsg: Message) => {
@@ -392,28 +392,15 @@ export default function ChatWindow() {
     const myUsername = profile.username?.toLowerCase();
     const myId = profile.id;
 
-    // Filter out me strictly by username (case-insensitive) AND ID
-    // We want to find the participant that is NOT me.
     const others = conversation.participants.filter((p: Participant) => {
       const pUsername = p.profile?.username?.toLowerCase();
       const pId = p.profileId;
       return pUsername !== myUsername && pId !== myId;
     });
 
-    logger.log('Debug Chat Redirection:', {
-      myUsername,
-      myId,
-      allParticipants: conversation.participants.map((p: Participant) => ({
-        u: p.profile?.username,
-        id: p.profileId,
-      })),
-      others: others.map((p: Participant) => p.profile?.username),
-    });
-
-    // If others exist, take the first one.
-    // If no others (e.g. self-chat), then target is me.
-    const targetUser =
-      others.length > 0 ? others[0].user : conversation.participants[0]?.user;
+    const otherParticipant =
+      others.length > 0 ? others[0] : conversation.participants[0];
+    const targetUser = otherParticipant?.user;
 
     return {
       name:
@@ -425,7 +412,7 @@ export default function ChatWindow() {
       thumbnailUrl: targetUser?.profile.thumbnailUrl,
       standardUrl: targetUser?.profile.standardUrl,
       isGroup: false,
-      userId: targetUser?.id,
+      otherProfileId: otherParticipant?.profileId ?? null,
     };
   };
 
@@ -437,17 +424,17 @@ export default function ChatWindow() {
     if (!socket || !id || !profile) return;
 
     // Only send typing indicators for 1-on-1 for now
-    if (!chatInfo.isGroup && chatInfo.userId) {
+    if (!chatInfo.isGroup && chatInfo.otherProfileId) {
       if (!isTyping) {
         setIsTyping(true);
-        startTyping(id, chatInfo.userId);
+        startTyping(id, chatInfo.otherProfileId);
       }
 
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
       typingTimeoutRef.current = setTimeout(() => {
         setIsTyping(false);
-        stopTyping(id, chatInfo.userId!);
+        stopTyping(id, chatInfo.otherProfileId!);
       }, 2000);
     }
   };
@@ -456,11 +443,11 @@ export default function ChatWindow() {
   useEffect(() => {
     return () => {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      if (isTyping && id && chatInfo.userId && !chatInfo.isGroup) {
-        stopTyping(id, chatInfo.userId);
+      if (isTyping && id && chatInfo.otherProfileId && !chatInfo.isGroup) {
+        stopTyping(id, chatInfo.otherProfileId);
       }
     };
-  }, [id, chatInfo.userId, chatInfo.isGroup, isTyping, stopTyping]);
+  }, [id, chatInfo.otherProfileId, chatInfo.isGroup, isTyping, stopTyping]);
 
   const handleReply = (msg: Message) => {
     setReplyTo(msg);
@@ -483,23 +470,23 @@ export default function ChatWindow() {
       prev.map((msg) => {
         if (msg.id === messageId) {
           const reactions = msg.reactions || [];
-          const myId = profile?.user?.id || profile?.id;
-
-          // Base: All reactions NOT from me
-          const baseReactions = reactions.filter((r) => r.userId !== myId);
-          const myExisting = reactions.find((r) => r.userId === myId);
+          const myId = profile?.id;
+          const baseReactions = reactions.filter(
+            (r) => (r.profileId ?? r.userId) !== myId,
+          );
+          const myExisting = reactions.find(
+            (r) => (r.profileId ?? r.userId) === myId,
+          );
 
           const newReactions = [...baseReactions];
 
-          // Toggle logic
           if (myExisting && myExisting.reaction === emoji) {
-            // Toggle off -> Keep just the baseReactions
+            // toggle off
           } else {
-            // Add or Update reaction
             newReactions.push({
               id: Date.now().toString(),
               reaction: emoji,
-              userId: myId ?? '',
+              profileId: myId ?? '',
             });
           }
 
@@ -551,7 +538,7 @@ export default function ChatWindow() {
         id: tempId,
         content: JSON.stringify(mediaPayload), // plaintext locally
         conversationId: id,
-        senderId: profile?.userId || profile?.id || '',
+        senderId: profile?.id || '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         url: uploadRes.data.url,
@@ -598,10 +585,10 @@ export default function ChatWindow() {
       id: tempId,
       content: input,
       conversationId: id,
-      senderId: currentUserId,
+      senderId: currentProfileId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      sender: { id: currentUserId, profile: profile },
+      sender: { id: currentProfileId, profile: profile },
       replyToId: replyTo?.id,
       replyTo: replyTo
         ? {
@@ -656,15 +643,14 @@ export default function ChatWindow() {
     setReplyTo(null);
     setEditingMessage(null);
     setIsTyping(false);
-    if (!chatInfo.isGroup && chatInfo.userId) {
-      stopTyping(id, chatInfo.userId);
+    if (!chatInfo.isGroup && chatInfo.otherProfileId) {
+      stopTyping(id, chatInfo.otherProfileId);
     }
   };
 
   const getTypingText = () => {
-    const currentUserId = profile?.userId || profile?.user?.id || profile?.id;
     if (!id || !conversation || !typingUsers[id]) return null;
-    const typingIds = typingUsers[id].filter((uid) => uid !== currentUserId);
+    const typingIds = typingUsers[id].filter((uid) => uid !== currentProfileId);
     if (typingIds.length === 0) return null;
 
     if (chatInfo.isGroup) {
@@ -710,8 +696,8 @@ export default function ChatWindow() {
       });
     }
 
-    if (chatInfo.userId) {
-      const socketStatus = userStatuses[chatInfo.userId];
+    if (chatInfo.otherProfileId) {
+      const socketStatus = userStatuses[chatInfo.otherProfileId];
       if (socketStatus) {
         if (socketStatus.isOnline)
           return <span className="text-green-500">{t('chat.active_now')}</span>;
@@ -726,7 +712,7 @@ export default function ChatWindow() {
       }
       // Fallback
       const participant = conversation?.participants.find(
-        (p: Participant) => p.profileId === chatInfo.userId,
+        (p: Participant) => p.profileId === chatInfo.otherProfileId,
       );
       if (participant?.user?.isOnline)
         return <span className="text-green-500">{t('chat.active_now')}</span>;
@@ -833,8 +819,8 @@ export default function ChatWindow() {
                     standardUrl={chatInfo.standardUrl || undefined}
                     alt={chatInfo.name}
                     isOnline={
-                      chatInfo.userId
-                        ? userStatuses[chatInfo.userId]?.isOnline
+                      chatInfo.otherProfileId
+                        ? userStatuses[chatInfo.otherProfileId]?.isOnline
                         : false
                     }
                   />
@@ -881,13 +867,13 @@ export default function ChatWindow() {
         {/* Header Actions */}
         <div className="flex items-center gap-1 md:gap-2 text-white/70 relative shrink-0">
           {/* Call Actions */}
-          {!chatInfo.isGroup && chatInfo.userId && (
+          {!chatInfo.isGroup && chatInfo.otherProfileId && (
             <>
               <button
                 type="button"
                 onClick={() => {
                   const targetUser = {
-                    id: chatInfo.userId!,
+                    id: chatInfo.otherProfileId!,
                     profile: {
                       username: chatInfo.username,
                       fullName: chatInfo.name,
@@ -896,7 +882,11 @@ export default function ChatWindow() {
                   };
                   useCallStore
                     .getState()
-                    .initiateCall(chatInfo.userId!, 'audio', targetUser);
+                    .initiateCall(
+                      chatInfo.otherProfileId!,
+                      'audio',
+                      targetUser,
+                    );
                 }}
                 className="hover:text-white text-white/60 transition-all p-2.5 rounded-full hover:bg-white/10 active:scale-90"
               >
@@ -906,7 +896,7 @@ export default function ChatWindow() {
                 type="button"
                 onClick={() => {
                   const targetUser = {
-                    id: chatInfo.userId!,
+                    id: chatInfo.otherProfileId!,
                     profile: {
                       username: chatInfo.username,
                       fullName: chatInfo.name,
@@ -915,7 +905,11 @@ export default function ChatWindow() {
                   };
                   useCallStore
                     .getState()
-                    .initiateCall(chatInfo.userId!, 'video', targetUser);
+                    .initiateCall(
+                      chatInfo.otherProfileId!,
+                      'video',
+                      targetUser,
+                    );
                 }}
                 className="hover:text-white text-white/60 transition-all p-2.5 rounded-full hover:bg-white/10 active:scale-90"
               >
@@ -1011,9 +1005,7 @@ export default function ChatWindow() {
         <div className="flex flex-col justify-end min-h-full">
           <AnimatePresence initial={false}>
             {messages.map((msg, idx) => {
-              const currentUserId =
-                profile?.userId || profile?.user?.id || profile?.id;
-              const isMe = msg.senderId === currentUserId;
+              const isMe = msg.senderId === currentProfileId;
               const isSeq =
                 idx > 0 && messages[idx - 1].senderId === msg.senderId;
               const showAvatar = !isMe && !isSeq;
@@ -1021,7 +1013,7 @@ export default function ChatWindow() {
               // Calculate isRead: find the latest read horizon from other participants
               const othersReadAt =
                 conversation?.participants
-                  .filter((p: Participant) => p.profileId !== currentUserId)
+                  .filter((p: Participant) => p.profileId !== currentProfileId)
                   .map((p: Participant) =>
                     new Date(p.lastReadAt || 0).getTime(),
                   ) || [];
@@ -1042,7 +1034,7 @@ export default function ChatWindow() {
                   onDelete={handleDelete}
                   onUnlock={handleUnlockMessage}
                   isRead={isRead}
-                  currentUserId={currentUserId}
+                  currentProfileId={currentProfileId}
                 />
               );
             })}
