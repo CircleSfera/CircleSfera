@@ -69,7 +69,7 @@ export default function PostOverlays({
 
   const hideAuthor = async () => {
     setShowMenu(false);
-    const authorId = post.userId || post.user?.id;
+    const authorId = post.profileId || post.profile?.id;
     if (!authorId) return;
     try {
       await api.post(`/feed/preferences/hide-author/${authorId}`);
@@ -155,9 +155,9 @@ export default function PostOverlays({
       <TipModal
         isOpen={showTipModal}
         onClose={() => setShowTipModal(false)}
-        receiverId={post.userId}
+        receiverId={post.profileId}
         postId={post.id}
-        receiverName={post.user?.profile?.username || 'Usuario'}
+        receiverName={post.profile?.username || 'Usuario'}
       />
 
       {showAddToCollectionModal && (

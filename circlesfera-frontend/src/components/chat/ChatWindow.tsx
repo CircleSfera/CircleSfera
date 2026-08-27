@@ -229,10 +229,10 @@ export default function ChatWindow() {
 
         if (!conv.isGroup && conv.participants) {
           const other = conv.participants.find(
-            (p: Participant) => p.userId !== currentUserId,
+            (p: Participant) => p.profileId !== currentUserId,
           );
           if (other) {
-            markRead(id, other.userId);
+            markRead(id, other.profileId);
           }
         }
       }
@@ -323,7 +323,9 @@ export default function ChatWindow() {
           return {
             ...prev,
             participants: prev.participants.map((p: Participant) =>
-              p.userId === data.userId ? { ...p, lastReadAt: data.readAt } : p,
+              p.profileId === data.userId
+                ? { ...p, lastReadAt: data.readAt }
+                : p,
             ),
           };
         });
@@ -393,8 +395,8 @@ export default function ChatWindow() {
     // Filter out me strictly by username (case-insensitive) AND ID
     // We want to find the participant that is NOT me.
     const others = conversation.participants.filter((p: Participant) => {
-      const pUsername = p.user?.profile.username?.toLowerCase();
-      const pId = p.userId;
+      const pUsername = p.profile?.username?.toLowerCase();
+      const pId = p.profileId;
       return pUsername !== myUsername && pId !== myId;
     });
 
@@ -402,10 +404,10 @@ export default function ChatWindow() {
       myUsername,
       myId,
       allParticipants: conversation.participants.map((p: Participant) => ({
-        u: p.user?.profile.username,
-        id: p.userId,
+        u: p.profile?.username,
+        id: p.profileId,
       })),
-      others: others.map((p: Participant) => p.user?.profile.username),
+      others: others.map((p: Participant) => p.profile?.username),
     });
 
     // If others exist, take the first one.
@@ -668,9 +670,9 @@ export default function ChatWindow() {
     if (chatInfo.isGroup) {
       if (typingIds.length === 1) {
         const user = conversation.participants.find(
-          (p: Participant) => p.userId === typingIds[0],
+          (p: Participant) => p.profileId === typingIds[0],
         );
-        return t('chat.is_typing', { username: user?.user?.profile.username });
+        return t('chat.is_typing', { username: user?.profile.username });
       }
       return t('chat.people_typing', { count: typingIds.length });
     } else {
@@ -724,7 +726,7 @@ export default function ChatWindow() {
       }
       // Fallback
       const participant = conversation?.participants.find(
-        (p: Participant) => p.userId === chatInfo.userId,
+        (p: Participant) => p.profileId === chatInfo.userId,
       );
       if (participant?.user?.isOnline)
         return <span className="text-green-500">{t('chat.active_now')}</span>;
@@ -810,12 +812,12 @@ export default function ChatWindow() {
                           <img
                             key={p.id}
                             src={
-                              p.user?.profile.thumbnailUrl ||
-                              p.user?.profile.avatar ||
+                              p.profile?.thumbnailUrl ||
+                              p.profile?.avatar ||
                               '/default-avatar.png'
                             }
                             className="w-full h-full object-cover"
-                            alt={p.user?.profile.username || 'User'}
+                            alt={p.profile?.username || 'User'}
                             loading="lazy"
                           />
                         ))}
@@ -1019,7 +1021,7 @@ export default function ChatWindow() {
               // Calculate isRead: find the latest read horizon from other participants
               const othersReadAt =
                 conversation?.participants
-                  .filter((p: Participant) => p.userId !== currentUserId)
+                  .filter((p: Participant) => p.profileId !== currentUserId)
                   .map((p: Participant) =>
                     new Date(p.lastReadAt || 0).getTime(),
                   ) || [];

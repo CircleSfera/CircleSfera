@@ -38,6 +38,21 @@ export default function LayoutWrapper({
   const isCreateRoute = location.pathname.startsWith('/create');
   const isImmersiveRoute = isFramesRoute || isEditsRoute || isCreateRoute;
 
+  const marketingRoutes = [
+    '/features',
+    '/principles',
+    '/faq',
+    '/terms',
+    '/privacy',
+    '/support',
+    '/pricing',
+    '/explore',
+    '/guidelines',
+  ];
+  const isMarketingRoute = marketingRoutes.some(
+    (r) => location.pathname === r || location.pathname.startsWith(`${r}/`),
+  );
+
   // Admin is a separate product shell. Creator Studio sits in the app chrome
   // like Settings: global Sidebar + section rail.
   // /create is immersive: no TopNav/BottomNav (Sidebar stays on md+).
@@ -132,18 +147,19 @@ export default function LayoutWrapper({
           )}
 
         <div
-          className={`w-full ${
+          className={`w-full flex flex-col ${
             location.pathname.startsWith('/direct')
               ? location.pathname.includes('/t/')
                 ? 'h-[calc(100dvh-var(--nav-bottom-height,60px))] md:h-dvh'
                 : 'h-[calc(100dvh-var(--nav-top-height,52px)-var(--nav-bottom-height,60px))] md:h-dvh'
               : isFramesRoute || isEditorRoute
                 ? 'h-dvh md:h-dvh'
-                : 'min-h-dvh md:pb-8'
+                : `min-h-dvh ${isMarketingRoute ? '' : 'md:pb-8'}`
           } overflow-x-hidden`}
           style={
             shouldShowNav &&
             !isImmersiveRoute &&
+            !isMarketingRoute &&
             !location.pathname.startsWith('/direct')
               ? {
                   paddingBottom:
@@ -157,9 +173,10 @@ export default function LayoutWrapper({
               shouldShowNav &&
               !location.pathname.startsWith('/direct') &&
               !location.pathname.startsWith('/admin') &&
-              !isImmersiveRoute
-                ? 'mx-auto max-w-5xl 2xl:max-w-7xl px-4 md:px-5 lg:px-6'
-                : `w-full h-full ${shouldShowNav && !isImmersiveRoute ? 'md:pb-10' : ''}`
+              !isImmersiveRoute &&
+              !isMarketingRoute
+                ? 'mx-auto max-w-5xl 2xl:max-w-7xl px-4 md:px-5 lg:px-6 w-full flex-1 flex flex-col'
+                : `w-full h-full flex-1 flex flex-col ${shouldShowNav && !isImmersiveRoute && !isMarketingRoute ? 'md:pb-10' : ''}`
             }
           >
             {children}

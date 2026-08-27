@@ -53,7 +53,8 @@ const CommentItem = ({
 }: CommentItemProps) => {
   const { t } = useTranslation();
   const isOwner =
-    currentUserId === comment.userId || currentUserId === comment.user?.id;
+    currentUserId === comment.profileId ||
+    currentUserId === comment.profile?.id;
   const isDeleting = deletingId === comment.id;
   const hasReplies = comment.replies && comment.replies.length > 0;
 
@@ -75,10 +76,10 @@ const CommentItem = ({
         className={`flex gap-2 md:gap-3 group ${isDeleting ? 'opacity-50' : ''}`}
       >
         <UserAvatar
-          src={comment.user.profile.avatar || undefined}
+          src={comment.profile.avatar || undefined}
           thumbnailUrl={comment.thumbnailUrl}
           standardUrl={comment.standardUrl}
-          alt={comment.user.profile.username}
+          alt={comment.profile.username}
           size="compact"
           className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover shrink-0"
         />
@@ -86,9 +87,11 @@ const CommentItem = ({
           <div className="flex items-start justify-between gap-2">
             <div className="text-sm leading-relaxed">
               <span className="font-semibold text-white mr-1 inline-flex items-center gap-1">
-                {comment.user.profile.username}
+                {comment.profile.username}
                 <VerificationBadge
-                  level={comment.user.verificationLevel as VerificationLevel}
+                  level={
+                    comment.profile.user?.verificationLevel as VerificationLevel
+                  }
                   size={12}
                 />
               </span>
@@ -323,7 +326,7 @@ export default function CommentList({
     setReplyingTo(comment);
 
     if (comment.parentId) {
-      setNewComment(`@${comment.user.profile.username} `);
+      setNewComment(`@${comment.profile.username} `);
     }
 
     inputRef.current?.focus();
@@ -339,7 +342,7 @@ export default function CommentList({
           <span className="text-gray-300 truncate">
             {t('comments.replying_to')}{' '}
             <span className="font-bold text-purple-400">
-              @{replyingTo.user.profile.username}
+              @{replyingTo.profile.username}
             </span>
           </span>
           <Button
@@ -418,7 +421,7 @@ export default function CommentList({
           placeholder={
             replyingTo
               ? t('comments.reply_to_user', {
-                  username: replyingTo.user.profile.username,
+                  username: replyingTo.profile.username,
                 })
               : t('comments.add_comment')
           }

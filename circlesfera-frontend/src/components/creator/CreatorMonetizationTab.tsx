@@ -357,7 +357,7 @@ export default function CreatorMonetizationTab({
 
                     <div className="flex items-baseline gap-1 mb-4">
                       <span className="text-2xl font-semibold text-white tabular-nums tracking-tight">
-                        {plan.price}
+                        {((plan.priceCents ?? 0) / 100).toFixed(2)}
                         {plan.currency === 'EUR' ? '€' : plan.currency}
                       </span>
                       <span className="text-xs text-white/50">

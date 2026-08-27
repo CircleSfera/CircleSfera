@@ -16,7 +16,6 @@ interface LegalDocumentLayoutProps {
   headerTitle: string;
   badgeKey: string;
   quoteKey: string;
-  lastUpdatedKey: string;
   sections: LegalSection[];
 }
 
@@ -25,7 +24,6 @@ export function LegalDocumentLayout({
   headerTitle,
   badgeKey,
   quoteKey,
-  lastUpdatedKey,
   sections,
 }: LegalDocumentLayoutProps) {
   const { t } = useTranslation();
@@ -49,10 +47,11 @@ export function LegalDocumentLayout({
           <aside className="lg:w-72 shrink-0">
             <div className="lg:sticky lg:top-24 space-y-8">
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-white/50 mb-4">
+                <p className="text-xs font-bold uppercase tracking-widest text-brand-primary mb-4 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-brand-primary animate-pulse" />
                   {t(badgeKey)}
                 </p>
-                <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white leading-[1.05]">
+                <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-linear-to-br from-white via-white to-white/50 leading-[1.05]">
                   {headerTitle}
                 </h1>
               </div>
@@ -62,7 +61,7 @@ export function LegalDocumentLayout({
                   {t('legal.toc_label', 'Jump to section')}
                 </span>
                 <select
-                  className="w-full h-14 rounded-2xl bg-black border border-white/10 text-sm text-white px-4 focus:outline-none focus-visible:border-white/30"
+                  className="w-full h-14 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 text-sm text-white px-4 focus:outline-none focus-visible:border-white/30 appearance-none"
                   defaultValue=""
                   onChange={(e) => {
                     if (e.target.value) scrollTo(e.target.value);
@@ -75,7 +74,7 @@ export function LegalDocumentLayout({
                     <option
                       key={s.id}
                       value={s.id}
-                      className="bg-black text-white"
+                      className="bg-surface-elevated text-white"
                     >
                       {tocLabel(s.title)}
                     </option>
@@ -84,7 +83,7 @@ export function LegalDocumentLayout({
               </label>
 
               <nav
-                className="hidden lg:block space-y-1 bg-black border border-white/10 rounded-3xl p-3"
+                className="hidden lg:block space-y-1 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-3 shadow-2xl shadow-black/20"
                 aria-label={t('legal.toc_label', 'Jump to section')}
               >
                 {sections.map((section) => (
@@ -92,26 +91,28 @@ export function LegalDocumentLayout({
                     type="button"
                     key={section.id}
                     onClick={() => scrollTo(section.id)}
-                    className="flex items-center gap-3 w-full min-h-12 px-4 rounded-2xl hover:bg-white/5 transition-colors text-left group focus:outline-none"
+                    className="flex items-center gap-3 w-full min-h-12 px-4 rounded-2xl hover:bg-white/10 transition-all text-left group focus:outline-none"
                   >
                     <section.icon
                       size={16}
-                      className="text-white/40 group-hover:text-white shrink-0 transition-colors"
+                      className="text-white/40 group-hover:text-brand-primary shrink-0 transition-colors"
                     />
-                    <span className="text-sm font-semibold text-white/50 group-hover:text-white truncate transition-colors">
+                    <span className="text-sm font-bold text-white/50 group-hover:text-white truncate transition-colors">
                       {tocLabel(section.title)}
                     </span>
                     <ChevronRight
                       size={14}
-                      className="ml-auto opacity-0 group-hover:opacity-100 text-white shrink-0 transition-opacity"
+                      className="ml-auto opacity-0 group-hover:opacity-100 text-white shrink-0 transition-opacity -translate-x-1 group-hover:translate-x-0"
                     />
                   </button>
                 ))}
               </nav>
 
-              <p className="hidden lg:block text-sm text-white/40 leading-relaxed font-medium">
-                {t(quoteKey)}
-              </p>
+              <div className="hidden lg:block p-5 rounded-3xl bg-linear-to-br from-white/5 to-transparent border border-white/5">
+                <p className="text-sm text-white/50 leading-relaxed font-medium">
+                  {t(quoteKey)}
+                </p>
+              </div>
             </div>
           </aside>
 
@@ -124,27 +125,26 @@ export function LegalDocumentLayout({
                   index > 0 ? 'border-t border-white/10' : ''
                 }`}
               >
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center shrink-0 shadow-inner">
                     <section.icon
-                      size={18}
-                      className="text-white"
+                      size={20}
+                      className="text-white drop-shadow-md"
+                      strokeWidth={1.5}
                       aria-hidden
                     />
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight pt-1">
+                  <h2 className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-linear-to-r from-white to-white/70 tracking-tight pt-1">
                     {section.title}
                   </h2>
                 </div>
-                <p className="text-base sm:text-lg text-white/50 leading-relaxed font-medium">
-                  {section.content}
-                </p>
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-sm text-white/60 leading-relaxed font-medium">
+                    {section.content}
+                  </p>
+                </div>
               </section>
             ))}
-
-            <p className="pt-16 text-center text-xs uppercase tracking-widest text-white/30 font-bold">
-              {t(lastUpdatedKey)}
-            </p>
           </main>
         </div>
       </div>

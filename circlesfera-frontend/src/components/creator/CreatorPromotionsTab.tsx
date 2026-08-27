@@ -149,8 +149,8 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
     : null;
 
   const handleRepeat = (promo: CreatorPromotion) => {
-    const remaining = promo.budget;
-    if (remaining <= 0) {
+    const remainingEuros = (promo.budgetCents || 0) / 100;
+    if (remainingEuros <= 0) {
       onToast(t('creator.promotions.error_repeat'), 'error');
       return;
     }
@@ -159,7 +159,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
       .createPromotion({
         targetType: promo.targetType,
         targetId: promo.targetId,
-        budget: remaining,
+        budget: remainingEuros,
         durationDays: 7,
         currency: promo.currency || 'EUR',
       })
@@ -233,7 +233,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
               {t('creator.promotions.investment')}
             </p>
             <p className="text-white font-bold text-lg">
-              {promo.budget} {promo.currency}
+              {(promo.budgetCents / 100).toFixed(2)} {promo.currency}
             </p>
           </div>
           <div className="rounded-xl border border-white/5 bg-white/3 p-3">
@@ -269,7 +269,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             <p className="text-brand-accent font-bold text-base">
               €
               {promo.clicks > 0
-                ? (promo.budget / promo.clicks).toFixed(2)
+                ? (promo.budgetCents / 100 / promo.clicks).toFixed(2)
                 : '0.00'}
             </p>
           </div>
@@ -331,10 +331,10 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             )}
             {confirmCancel === promo.id ? (
               <div className="space-y-2">
-                {promo.budget > 0 && (
+                {promo.budgetCents > 0 && (
                   <p className="text-zinc-400 text-xs leading-relaxed">
                     {t('creator.promotions.cancel_refund_hint', {
-                      amount: promo.budget.toFixed(2),
+                      amount: (promo.budgetCents / 100).toFixed(2),
                       currency: promo.currency,
                     })}
                   </p>
@@ -467,7 +467,8 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                       meta={
                         <>
                           <span>
-                            {promo.budget} {promo.currency}
+                            {(promo.budgetCents / 100).toFixed(2)}{' '}
+                            {promo.currency}
                           </span>
                           <span>+{promo.reach.toLocaleString()}</span>
                         </>
@@ -532,7 +533,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                               size={10}
                               className="text-brand-primary"
                             />
-                            €{promo.budget}
+                            €{(promo.budgetCents / 100).toFixed(2)}
                           </span>
                         </>
                       }

@@ -9,11 +9,6 @@ import type { Story } from '../types';
 import UserAvatar from './UserAvatar';
 import type { VerificationLevel } from './VerificationBadge';
 
-interface GroupedStories {
-  user: Story['user'];
-  stories: Story[];
-}
-
 /**
  * StoryList — Layout Guidelines §20 & Design System §9.5
  * Story avatars: md (40px) inside a ring, total visual ~52px
@@ -37,20 +32,31 @@ export default function StoryList() {
 
   const groupedStories = useMemo(() => {
     if (!storiesResponse?.data) return [];
-    const groups: Map<string, GroupedStories> = new Map();
-    (storiesResponse.data as Story[]).forEach((story: Story) => {
-      const userId = story.user.id;
-      if (groups.has(userId)) {
-        groups.get(userId)!.stories.push(story);
-      } else {
-        groups.set(userId, { user: story.user, stories: [story] });
-      }
-    });
-    const result = Array.from(groups.values());
-    result.forEach((group) => {
-      group.stories.reverse();
-    });
-    return result;
+    const stories = storiesResponse.data as Story[];
+    const grouped: { profile: any; stories: Story[] }[] = Object.values(
+      stories.reduce(
+        (acc, story) => {
+          if (!story.profile) return acc;
+          const profileId = story.profileId;
+          if (!acc[profileId]) {
+            acc[profileId] = {
+              profile: story.profile,
+              stories: [],
+            };
+          }
+          acc[profileId].stories.push(story);
+          return acc;
+        },
+        {} as Record<string, { profile: any; stories: Story[] }>,
+      ),
+    );
+
+    // Map into required format for rendering
+    return grouped.map((group, index) => ({
+      originalIndex: index,
+      profile: group.profile,
+      stories: group.stories,
+    }));
   }, [storiesResponse]);
 
   const allStories = useMemo(
@@ -111,7 +117,7 @@ export default function StoryList() {
         {/* Your Story / Add Story */}
         {(() => {
           const myStoriesIndex = groupedStories.findIndex(
-            (g) => g.user.id === profile?.id,
+            (g) => g.profile.id === profile?.id,
           );
           const hasStory = myStoriesIndex !== -1;
 
@@ -238,8 +244,7 @@ export default function StoryList() {
 
         {/* Other users' stories */}
         {groupedStories
-          .map((group, index) => ({ ...group, originalIndex: index }))
-          .filter((group) => group.user.id !== profile?.id)
+          .filter((group) => group.profile.id !== profile?.id)
           .map((group) => {
             const allViewed = group.stories.every((s) => s.isViewed);
             const hasCloseFriendStory = group.stories.some(
@@ -249,9 +254,9 @@ export default function StoryList() {
             return (
               <button
                 type="button"
-                key={group.user.id}
+                key={group.profile.id}
                 onClick={() => handleStoryClick(group.originalIndex)}
-                aria-label={`Ver historias de ${group.user.profile?.username || ''}`}
+                aria-label={`Ver historias de ${group.profile?.username || ''}`}
                 className="flex flex-col items-center gap-1 shrink-0 group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
                 style={{ width: 52 }}
               >
@@ -278,14 +283,14 @@ export default function StoryList() {
                 >
                   <div className="w-full h-full bg-black rounded-full p-0.5 flex items-center justify-center">
                     <UserAvatar
-                      src={group.user.profile?.avatar}
-                      thumbnailUrl={group.user.profile?.thumbnailUrl}
-                      standardUrl={group.user.profile?.standardUrl}
-                      alt={group.user.profile?.username || ''}
+                      src={group.profile?.avatar}
+                      thumbnailUrl={group.profile?.thumbnailUrl}
+                      standardUrl={group.profile?.standardUrl}
+                      alt={group.profile?.username || ''}
                       size="md"
                       hasStory={false}
                       verificationLevel={
-                        group.user.verificationLevel as VerificationLevel
+                        group.profile.verificationLevel as VerificationLevel
                       }
                     />
                   </div>
@@ -294,14 +299,14 @@ export default function StoryList() {
                   className={`truncate w-full text-center ${allViewed ? 'text-gray-600' : 'text-gray-300'}`}
                   style={{ fontSize: 'var(--text-badge, 11px)' }}
                 >
-                  {group.user.profile?.username}
+                  {group.profile?.username}
                 </span>
               </button>
             );
           })}
 
         {/* Dim placeholders if no extra stories */}
-        {groupedStories.filter((g) => g.user.id !== profile?.id).length ===
+        {groupedStories.filter((g) => g.profile.id !== profile?.id).length ===
           0 && (
           <div className="flex gap-3 items-center select-none">
             {[

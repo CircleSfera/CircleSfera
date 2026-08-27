@@ -262,7 +262,7 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
   };
 
   const followMutation = useMutation({
-    mutationFn: () => followsApi.toggle(post.user.profile?.username || ''),
+    mutationFn: () => followsApi.toggle(post.profile.username || ''),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['frames'] });
     },
@@ -302,7 +302,7 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
     // Optionally trigger like API if not already liked
   };
 
-  const isOwner = profile?.userId === post.userId;
+  const isOwner = profile?.userId === post.profileId;
   const videoMedia = post.media?.find((m) => m.type === 'video') ||
     post.media?.[0] || { url: '' };
 
@@ -384,23 +384,20 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
       <div className="absolute bottom-4 md:bottom-6 left-0 right-16 px-4 flex flex-col justify-end z-20 pointer-events-none">
         {/* User Info Row */}
         <div className="flex items-center gap-2.5 mb-2.5 pointer-events-auto">
-          <Link
-            to={`/${post.user.profile?.username}`}
-            className="relative shrink-0"
-          >
+          <Link to={`/${post.profile.username}`} className="relative shrink-0">
             <img
-              src={post.user.profile?.avatar || ''}
-              alt={post.user.profile?.username}
+              src={post.profile.avatar || ''}
+              alt={post.profile.username}
               className="w-10 h-10 rounded-full object-cover border border-white/20 shadow-md"
             />
           </Link>
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <Link
-                to={`/${post.user.profile?.username}`}
+                to={`/${post.profile.username}`}
                 className="font-bold text-[15px] text-white drop-shadow-md hover:underline transition-all"
               >
-                {post.user.profile?.username}
+                {post.profile.username}
               </Link>
               {!isOwner && (
                 <button
@@ -453,7 +450,7 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
             <div className="animate-marquee inline-block text-[13px] font-medium">
               {post.audio
                 ? `${post.audio.title} - ${post.audio.artist || 'Artista'}`
-                : `${post.user.profile?.username} • Audio original`}
+                : `${post.profile.username} • Audio original`}
             </div>
           </div>
         </Link>
@@ -533,7 +530,7 @@ export default function FrameItem({ post, isActive, isNext }: FrameItemProps) {
         {/* Spinning Music Record */}
         <div className="mt-2 w-11 h-11 rounded-full bg-zinc-900 border-8 border-zinc-800 overflow-hidden flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] relative shrink-0 animate-[spin_4s_linear_infinite]">
           <img
-            src={post.user.profile?.avatar || ''}
+            src={post.profile.avatar || ''}
             alt="Audio"
             className="w-full h-full object-cover"
           />

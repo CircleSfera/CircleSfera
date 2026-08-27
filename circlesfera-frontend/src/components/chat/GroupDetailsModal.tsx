@@ -28,7 +28,7 @@ export default function GroupDetailsModal({
 
   const myId = profile?.user?.id || profile?.id;
   const myParticipant = conversation.participants.find(
-    (p) => p.userId === myId,
+    (p) => p.profileId === myId,
   );
   const isAdmin = myParticipant?.isAdmin || false;
 
@@ -166,13 +166,13 @@ export default function GroupDetailsModal({
                 >
                   <div className="flex items-center gap-3">
                     <UserAvatar
-                      src={p.user?.profile.avatar ?? ''}
-                      alt={p.user?.profile.username ?? 'User'}
+                      src={p.profile?.avatar ?? ''}
+                      alt={p.profile?.username ?? 'User'}
                       className="w-10 h-10"
                     />
                     <div>
                       <div className="font-medium text-white flex items-center gap-2">
-                        {p.user?.profile.fullName || p.user?.profile.username}
+                        {p.profile?.fullName || p.profile?.username}
                         {p.isAdmin && (
                           <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded">
                             <Shield size={10} /> Admin
@@ -180,21 +180,21 @@ export default function GroupDetailsModal({
                         )}
                       </div>
                       <div className="text-xs text-white/50">
-                        @{p.user?.profile.username}
+                        @{p.profile?.username}
                       </div>
                     </div>
                   </div>
 
-                  {isAdmin && p.userId !== myId && (
+                  {isAdmin && p.profileId !== myId && (
                     <button
                       type="button"
                       onClick={() => {
                         if (
                           confirm(
-                            `¿Estás seguro de que deseas eliminar a ${p.user?.profile.username}?`,
+                            `¿Estás seguro de que deseas eliminar a ${p.profile?.username}?`,
                           )
                         ) {
-                          onRemoveParticipant(p.userId);
+                          onRemoveParticipant(p.profileId);
                         }
                       }}
                       className="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-full transition-all"

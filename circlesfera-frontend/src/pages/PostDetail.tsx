@@ -66,7 +66,7 @@ export default function PostDetail() {
   return (
     <div className="min-h-dvh py-3 md:py-6 relative">
       <SEO
-        title={`Post de @${post.data.user?.profile?.username || 'Usuario'}`}
+        title={`Post de @${post.data.profile?.username || 'Usuario'}`}
         description={
           post.data.caption || 'Mira esta publicación en CircleSfera'
         }

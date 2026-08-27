@@ -28,7 +28,7 @@ export function MarketingPage({
   return (
     <div
       className={clsx(
-        'min-h-dvh flex flex-col text-white font-sans selection:bg-brand-primary/30 relative overflow-x-hidden',
+        'min-h-dvh w-full h-full flex-1 flex flex-col text-white font-sans selection:bg-brand-primary/30 relative overflow-x-hidden',
         className,
       )}
     >

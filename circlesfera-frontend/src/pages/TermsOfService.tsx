@@ -44,7 +44,6 @@ export default function TermsOfService() {
       headerTitle={t('legal.terms.header_title')}
       badgeKey="legal.badges.terms_hub"
       quoteKey="legal.quotes.terms"
-      lastUpdatedKey="legal.last_updated.terms"
       sections={sections}
     />
   );

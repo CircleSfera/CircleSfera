@@ -226,7 +226,7 @@ export default function Notifications() {
           notifs.map((notif) => (
             <article
               key={notif.id}
-              className="group relative flex items-center gap-2.5 transition-all duration-200 min-h-[72px] py-3 px-3 rounded-xl"
+              className="group relative flex items-center gap-2.5 transition-all duration-200 min-h-18 py-3 px-3 rounded-xl"
               style={
                 !notif.read
                   ? {
@@ -253,16 +253,15 @@ export default function Notifications() {
               {/* Avatar with gradient icon badge */}
               <div className="relative shrink-0 ml-2">
                 <Link
-                  to={`/${notif.sender?.profile?.username}`}
+                  to={`/${notif.sender?.username}`}
                   className="block transition-transform active:scale-95"
                 >
                   <UserAvatar
-                    src={notif.sender?.profile?.avatar}
-                    thumbnailUrl={notif.sender?.profile?.thumbnailUrl}
-                    standardUrl={notif.sender?.profile?.standardUrl}
+                    src={notif.sender?.avatar || ''}
+                    thumbnailUrl={notif.sender?.thumbnailUrl}
+                    standardUrl={notif.sender?.standardUrl}
                     alt={
-                      notif.sender?.profile?.username ||
-                      t('notifications.unknown_user')
+                      notif.sender?.username || t('notifications.unknown_user')
                     }
                     size="compact"
                   />
@@ -279,11 +278,10 @@ export default function Notifications() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm leading-snug">
                   <Link
-                    to={`/${notif.sender?.profile?.username}`}
+                    to={`/${notif.sender?.username}`}
                     className="font-bold text-white hover:opacity-80 transition-opacity"
                   >
-                    {notif.sender?.profile?.username ||
-                      t('notifications.unknown_user')}
+                    {notif.sender?.username || t('notifications.unknown_user')}
                   </Link>
                   <span className="text-white/70 ml-1">
                     {notif.type === 'LIKE' && t('notifications.types.like')}

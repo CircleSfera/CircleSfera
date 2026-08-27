@@ -74,7 +74,7 @@ export default function PostHeader({
   const handleProfileClick = () => {
     telemetry.track({
       eventType: 'PROFILE_CLICK',
-      targetId: post.userId,
+      targetId: post.profileId,
       targetType: 'USER',
     });
   };
@@ -98,10 +98,10 @@ export default function PostHeader({
       )}
       {/* Avatar with story ring glow */}
       <Link
-        to={`/${post.user.profile?.username}`}
+        to={`/${post.profile.username}`}
         className="relative shrink-0"
         onClick={handleProfileClick}
-        aria-label={`Ver perfil de ${post.user.profile?.username}`}
+        aria-label={`Ver perfil de ${post.profile.username}`}
       >
         <div
           className="absolute -inset-0.5 rounded-full opacity-55"
@@ -111,27 +111,27 @@ export default function PostHeader({
           }}
         />
         <UserAvatar
-          src={post.user.profile?.avatar || undefined}
-          thumbnailUrl={post.user.profile?.thumbnailUrl}
-          standardUrl={post.user.profile?.standardUrl}
-          alt={post.user.profile?.username || ''}
+          src={post.profile.avatar || undefined}
+          thumbnailUrl={post.profile.thumbnailUrl}
+          standardUrl={post.profile.standardUrl}
+          alt={post.profile.username || ''}
           className={`relative ${isLg ? 'w-10 h-10 md:w-11 md:h-11' : 'w-9 h-9 md:w-10 md:h-10'} rounded-full object-cover`}
         />
       </Link>
 
       {/* Author info */}
       <Link
-        to={`/${post.user.profile?.username}`}
+        to={`/${post.profile.username}`}
         className="flex-1 min-w-0 hover:opacity-80 transition-opacity"
         onClick={handleProfileClick}
       >
         {/* Display name + verification */}
         <div className="flex items-center gap-1 truncate">
           <span className="text-sm font-bold text-white truncate leading-tight">
-            {post.user.profile?.fullName || post.user.profile?.username}
+            {post.profile.fullName || post.profile.username}
           </span>
           <VerificationBadge
-            level={post.user.verificationLevel as VerificationLevel}
+            level={post.profile.user?.verificationLevel as VerificationLevel}
           />
           {post.isPromoted && (
             <>
@@ -155,7 +155,7 @@ export default function PostHeader({
             className="font-medium text-gray-500 truncate leading-tight"
             style={{ fontSize: 'var(--text-badge, 11px)' }}
           >
-            @{post.user.profile?.username}
+            @{post.profile.username}
           </span>
           {timeAgo && (
             <>

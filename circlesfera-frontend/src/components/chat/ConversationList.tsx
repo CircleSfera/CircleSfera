@@ -89,7 +89,7 @@ export default function ConversationList() {
     if (!searchQuery) return true;
     const participants = c.participants || [];
     const other = participants.find(
-      (p: Participant) => p.userId !== me?.userId,
+      (p: Participant) => p.profileId !== me?.userId,
     )?.user;
     const name =
       c.name || other?.profile?.fullName || other?.profile?.username || '';
@@ -167,10 +167,10 @@ export default function ConversationList() {
               const participants = conv.participants || [];
               const otherParticipant =
                 participants.find(
-                  (p: Participant) => p.userId !== me?.userId,
+                  (p: Participant) => p.profileId !== me?.userId,
                 ) || participants[0];
               const myParticipant = participants.find(
-                (p: Participant) => p.userId === me?.userId,
+                (p: Participant) => p.profileId === me?.userId,
               );
               const other = otherParticipant?.user;
 

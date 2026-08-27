@@ -12,7 +12,7 @@ export function usePostInteractions(post: Post) {
   const verificationLevel =
     profile?.user?.verificationLevel || profile?.verificationLevel;
   const canPromote = verificationLevel === 'ELITE';
-  const isOwner = profile?.userId === post.userId;
+  const isOwner = profile?.userId === post.profileId;
 
   const [showMenu, setShowMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
@@ -217,7 +217,7 @@ export function usePostInteractions(post: Post) {
   const handleMute = () => {
     setShowMenu(false);
     followsApi
-      .mute(post.user?.profile?.username || '')
+      .mute(post.profile?.username || '')
       .then(() => {
         toast.success('User muted');
       })

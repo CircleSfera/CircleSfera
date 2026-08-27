@@ -35,7 +35,8 @@ interface AdminPromotion {
   userId: string;
   targetType: string;
   targetId: string;
-  budget: number;
+  budgetCents: number;
+  dailyBudgetCents?: number | null;
   currency: string;
   status: string;
   startDate: string;
@@ -224,7 +225,7 @@ export default function PromotionsTab({ onToast }: Props) {
                     }
                     title={`@${promo.user.profile.username}`}
                     subtitle={t('admin.promotions.reach_estimate', {
-                      budget: promo.budget,
+                      budget: (promo.budgetCents / 100).toFixed(2),
                       currency: promo.currency,
                       reach: promo.reach.toLocaleString(),
                     })}
@@ -341,7 +342,7 @@ export default function PromotionsTab({ onToast }: Props) {
                         {t('admin.promotions.budget_label')}
                       </p>
                       <p className="text-lg font-semibold text-white tabular-nums leading-tight">
-                        {selectedPromo.budget}{' '}
+                        {(selectedPromo.budgetCents / 100).toFixed(2)}{' '}
                         <span className="text-sm text-white/50 font-medium">
                           {selectedPromo.currency}
                         </span>

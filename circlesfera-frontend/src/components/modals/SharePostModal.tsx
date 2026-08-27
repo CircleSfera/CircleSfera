@@ -70,9 +70,9 @@ export default function SharePostModal({
   const filteredConversations = conversations.filter((c) => {
     if (c.isGroup) return c.name?.toLowerCase().includes(search.toLowerCase());
     const otherParticipant = c.participants.find(
-      (p: Participant) => p.userId !== post.userId,
+      (p: Participant) => p.profileId !== post.profileId,
     );
-    return otherParticipant?.user?.profile.username
+    return otherParticipant?.profile.username
       .toLowerCase()
       .includes(search.toLowerCase());
   });
@@ -170,14 +170,14 @@ export default function SharePostModal({
                     filteredConversations.map((c) => {
                       const otherParticipant = !c.isGroup
                         ? c.participants.find(
-                            (p: Participant) => p.userId !== post.userId,
+                            (p: Participant) => p.profileId !== post.profileId,
                           )
                         : null;
                       const name = c.isGroup
                         ? c.name
-                        : otherParticipant?.user?.profile.username;
+                        : otherParticipant?.profile.username;
                       const avatar = !c.isGroup
-                        ? otherParticipant?.user?.profile.avatar
+                        ? otherParticipant?.profile.avatar
                         : null;
                       const isSent = selectedIds.includes(c.id);
 

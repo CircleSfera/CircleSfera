@@ -44,7 +44,6 @@ export default function PrivacyPolicy() {
       headerTitle={t('legal.privacy.header_title')}
       badgeKey="legal.badges.privacy_hub"
       quoteKey="legal.quotes.privacy"
-      lastUpdatedKey="legal.last_updated.privacy"
       sections={sections}
     />
   );

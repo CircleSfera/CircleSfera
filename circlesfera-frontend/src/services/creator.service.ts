@@ -66,7 +66,9 @@ export interface CreatorPromotion {
   id: string;
   targetType: string;
   targetId: string;
-  budget: number;
+  /** Remaining budget in integer cents. */
+  budgetCents: number;
+  dailyBudgetCents?: number | null;
   currency: string;
   status: string;
   startDate: string;

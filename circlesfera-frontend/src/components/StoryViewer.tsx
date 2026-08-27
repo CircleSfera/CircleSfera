@@ -57,7 +57,7 @@ export default function StoryViewer({
   const [showViewers, setShowViewers] = useState(false);
   const [isLoadingViewers, setIsLoadingViewers] = useState(false);
   const [reactions, setReactions] = useState<
-    { reaction: string; userId: string; user: UserWithProfile }[]
+    { reaction: string; userId: string; profile: any }[]
   >([]);
   const [replyText, setReplyText] = useState('');
   const [isSendingReply, setIsSendingReply] = useState(false);
@@ -89,7 +89,7 @@ export default function StoryViewer({
   });
 
   const currentStory = stories[currentIndex];
-  const isOwner = profile?.userId === currentStory?.userId;
+  const isOwner = profile?.id === currentStory?.profileId;
   const isLocked = !!currentStory?.isLocked;
 
   useEffect(() => {
@@ -137,7 +137,11 @@ export default function StoryViewer({
     if (currentStory) {
       storiesApi
         .getReactions(currentStory.id)
-        .then((res) => setReactions(res.data))
+        .then((res) =>
+          setReactions(
+            res.data.map((r: any) => ({ ...r, profile: r.user || r.profile })),
+          ),
+        )
         .catch(console.error);
     }
   }, [currentStory]);
@@ -163,7 +167,9 @@ export default function StoryViewer({
       triggerReactionAnimation('❤️');
       await storiesApi.addReaction(currentStory.id, '❤️');
       const res = await storiesApi.getReactions(currentStory.id);
-      setReactions(res.data);
+      setReactions(
+        res.data.map((r: any) => ({ ...r, profile: r.user || r.profile })),
+      );
     } catch (error) {
       logger.error('Failed to toggle like', error);
     }
@@ -176,7 +182,7 @@ export default function StoryViewer({
     setIsSendingReply(true);
     try {
       await chatApi.sendMessage({
-        recipientId: currentStory.user.id,
+        recipientId: currentStory.profile.id,
         content: replyText,
         storyId: currentStory.id,
       });
@@ -227,7 +233,7 @@ export default function StoryViewer({
   const modalContent = (
     <div className="fixed inset-0 z-50 bg-black flex items-center justify-center overflow-hidden">
       <div className="sr-only" aria-live="polite" aria-atomic="true">
-        {`Story ${currentIndex + 1} of ${stories.length} from ${currentStory.user.profile?.username}`}
+        {`Story ${currentIndex + 1} of ${stories.length} from ${currentStory.profile?.username}`}
       </div>
 
       {/* Blurred Background Layer */}
@@ -364,19 +370,20 @@ export default function StoryViewer({
               <div className="flex items-center gap-3 pointer-events-auto">
                 <div className="ring-1 ring-white/20 rounded-full shadow-lg">
                   <UserAvatar
-                    src={currentStory.user.profile?.avatar}
-                    thumbnailUrl={currentStory.user.profile?.thumbnailUrl}
-                    standardUrl={currentStory.user.profile?.standardUrl}
-                    alt={currentStory.user.profile?.username || 'User'}
+                    src={currentStory.profile?.avatar}
+                    thumbnailUrl={currentStory.profile?.thumbnailUrl}
+                    standardUrl={currentStory.profile?.standardUrl}
+                    alt={currentStory.profile?.username || 'User'}
                     size="compact"
                   />
                 </div>
                 <div className="flex flex-col gap-0.5 justify-center">
                   <span className="text-white font-semibold text-[15px] leading-tight drop-shadow-md flex items-center gap-1">
-                    {currentStory.user.profile?.username}
+                    {currentStory.profile?.username}
                     <VerificationBadge
                       level={
-                        currentStory.user.verificationLevel as VerificationLevel
+                        currentStory.profile?.user
+                          ?.verificationLevel as VerificationLevel
                       }
                       size={14}
                     />
@@ -545,7 +552,7 @@ export default function StoryViewer({
             >
               <span className="text-base">{r.reaction}</span>
               <span className="text-xs font-medium text-white">
-                {r.user.profile?.username}
+                {r.profile?.username}
               </span>
             </div>
           ))}

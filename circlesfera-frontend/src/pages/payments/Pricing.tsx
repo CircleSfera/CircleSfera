@@ -104,14 +104,16 @@ export default function Pricing() {
       }
     },
     onError: async (error: unknown) => {
-      const axiosError = error as {
+      const apiError = error as {
+        status?: number;
+        message?: string;
         response?: { status?: number; data?: { message?: string } };
       };
-      const serverMessage = axiosError?.response?.data?.message;
-      if (
-        axiosError?.response?.status === 403 &&
-        serverMessage?.includes('verificar')
-      ) {
+      const status = apiError?.status || apiError?.response?.status;
+      const serverMessage =
+        apiError?.message || apiError?.response?.data?.message;
+
+      if (status === 403 && serverMessage?.includes('verificar')) {
         toast(
           (toastItem) => (
             <div className="flex flex-col gap-2 p-1 text-left">
@@ -164,7 +166,7 @@ export default function Pricing() {
     currentUser?.user?.verificationLevel || currentUser?.verificationLevel;
 
   return (
-    <MarketingPage>
+    <MarketingPage withFooter={!isAuthenticated}>
       <div className="mx-auto max-w-6xl px-4 sm:px-5 py-8 sm:py-10 w-full">
         <MarketingPageHeader
           align="center"
@@ -249,7 +251,7 @@ export default function Pricing() {
                     <p className="flex items-baseline gap-1">
                       <span className="text-2xl sm:text-3xl font-black text-white">
                         {currencySymbol}
-                        {plan.price}
+                        {((plan.priceCents ?? 0) / 100).toFixed(2)}
                       </span>
                       <span className="text-white/35 text-sm">
                         /{plan.interval || 'month'}

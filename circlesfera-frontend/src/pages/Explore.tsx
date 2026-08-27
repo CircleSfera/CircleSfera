@@ -1,3 +1,4 @@
+import type { ProfileWithUser } from '@circlesfera/shared';
 import {
   useInfiniteQuery,
   useMutation,
@@ -7,6 +8,7 @@ import {
 import { motion } from 'framer-motion';
 import { Clock, X as CloseIcon, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 import { ErrorState } from '../components/ErrorEmptyStates';
@@ -20,22 +22,6 @@ import VerificationBadge, {
 } from '../components/VerificationBadge';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { feedApi, postsApi, searchApi } from '../services';
-
-interface SearchUserResult {
-  id: string;
-  verificationLevel?: string;
-  mutualCount?: number;
-  followedByFriends?: string[];
-  profile: {
-    username: string;
-    fullName: string | null;
-    avatar: string | null;
-    thumbnailUrl?: string | null;
-    standardUrl?: string | null;
-  };
-}
-
-import { useTranslation } from 'react-i18next';
 import type {
   PaginatedResponse,
   Post,
@@ -306,42 +292,45 @@ export default function Explore() {
                     </h2>
                     {searchResults?.users && searchResults.users.length > 0 ? (
                       <div className="space-y-3">
-                        {searchResults.users.map((user: SearchUserResult) => (
+                        {searchResults.users.map((user: ProfileWithUser) => (
                           <Link
                             key={user.id}
-                            to={`/${user.profile.username}`}
+                            to={`/${user.username}`}
                             className="glass-panel p-3 rounded-xl flex items-center gap-3 hover:bg-white/10 transition-colors"
                           >
                             <UserAvatar
-                              src={user.profile.avatar || undefined}
-                              thumbnailUrl={user.profile.thumbnailUrl}
-                              standardUrl={user.profile.standardUrl}
-                              alt={user.profile.username}
+                              src={user.avatar || undefined}
+                              thumbnailUrl={user.thumbnailUrl}
+                              standardUrl={user.standardUrl}
+                              alt={user.username}
                               size="md"
                               verificationLevel={
-                                user.verificationLevel as VerificationLevel
+                                user.user
+                                  ?.verificationLevel as VerificationLevel
                               }
                             />
                             <div className="min-w-0">
                               <div className="font-bold truncate flex items-center gap-1">
-                                {user.profile.username}
+                                {user.username}
                                 <VerificationBadge
                                   level={
-                                    user.verificationLevel as VerificationLevel
+                                    user.user
+                                      ?.verificationLevel as VerificationLevel
                                   }
                                   size={12}
                                 />
                               </div>
                               <div className="text-xs text-gray-300 truncate">
-                                {user.profile.fullName}
+                                {user.fullName}
                               </div>
-                              {user.followedByFriends &&
-                                user.followedByFriends.length > 0 && (
+                              {(user as any).followedByFriends &&
+                                (user as any).followedByFriends.length > 0 && (
                                   <div className="text-xs font-bold text-brand-primary uppercase tracking-tighter mt-0.5 truncate opacity-80">
                                     {t('explore.followed_by')}{' '}
-                                    {user.followedByFriends[0]}
-                                    {user.mutualCount && user.mutualCount > 1
-                                      ? ` +${user.mutualCount - 1}`
+                                    {(user as any).followedByFriends[0]}
+                                    {(user as any).mutualCount &&
+                                    (user as any).mutualCount > 1
+                                      ? ` +${(user as any).mutualCount - 1}`
                                       : ''}
                                   </div>
                                 )}

@@ -44,7 +44,6 @@ export default function CommunityGuidelines() {
       headerTitle={t('legal.community.header_title')}
       badgeKey="legal.badges.community_hub"
       quoteKey="legal.quotes.community"
-      lastUpdatedKey="legal.last_updated.community"
       sections={sections}
     />
   );

@@ -90,7 +90,6 @@ export function GuestFooter() {
 
         <div className="mt-8 pt-5 border-t border-white/8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <p className="text-xs text-white/35">{t('landing.footer.rights')}</p>
-          <p className="text-xs text-white/30">{t('landing.footer.tagline')}</p>
         </div>
       </div>
     </footer>
