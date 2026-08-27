@@ -24,7 +24,7 @@ import {
 } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
-import type { Collection, ProfileWithUser, UserWithProfile } from '../types';
+import type { Collection, ProfileWithUser } from '../types';
 
 const CreateCollectionModal = lazy(
   () => import('../components/collections/CreateCollectionModal'),
@@ -454,11 +454,7 @@ export default function Profile() {
             {showFollowsModal && (
               <FollowersModal
                 title={showFollowsModal}
-                users={
-                  (followList?.data as UserWithProfile[])?.map(
-                    (u) => u.profile,
-                  ) || []
-                }
+                users={(followList?.data as ProfileWithUser[]) || []}
                 onClose={() => setShowFollowsModal(null)}
               />
             )}

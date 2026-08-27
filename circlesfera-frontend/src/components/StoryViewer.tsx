@@ -57,7 +57,7 @@ export default function StoryViewer({
   const [showViewers, setShowViewers] = useState(false);
   const [isLoadingViewers, setIsLoadingViewers] = useState(false);
   const [reactions, setReactions] = useState<
-    { reaction: string; userId: string; profile: any }[]
+    { reaction: string; profileId: string; profile?: { username?: string } }[]
   >([]);
   const [replyText, setReplyText] = useState('');
   const [isSendingReply, setIsSendingReply] = useState(false);
@@ -139,7 +139,17 @@ export default function StoryViewer({
         .getReactions(currentStory.id)
         .then((res) =>
           setReactions(
-            res.data.map((r: any) => ({ ...r, profile: r.user || r.profile })),
+            res.data.map(
+              (r: {
+                reaction: string;
+                profileId: string;
+                profile?: { username?: string };
+              }) => ({
+                reaction: r.reaction,
+                profileId: r.profileId,
+                profile: r.profile,
+              }),
+            ),
           ),
         )
         .catch(console.error);
@@ -168,7 +178,17 @@ export default function StoryViewer({
       await storiesApi.addReaction(currentStory.id, '❤️');
       const res = await storiesApi.getReactions(currentStory.id);
       setReactions(
-        res.data.map((r: any) => ({ ...r, profile: r.user || r.profile })),
+        res.data.map(
+          (r: {
+            reaction: string;
+            profileId: string;
+            profile?: { username?: string };
+          }) => ({
+            reaction: r.reaction,
+            profileId: r.profileId,
+            profile: r.profile,
+          }),
+        ),
       );
     } catch (error) {
       logger.error('Failed to toggle like', error);
@@ -456,8 +476,7 @@ export default function StoryViewer({
                         className={
                           reactions.some(
                             (r) =>
-                              r.userId === (profile?.user?.id || profile?.id) &&
-                              r.reaction === '❤️',
+                              r.profileId === profile?.id && r.reaction === '❤️',
                           )
                             ? 'fill-red-500 text-red-500'
                             : ''
@@ -545,7 +564,7 @@ export default function StoryViewer({
         <div className="absolute bottom-24 left-4 z-50 flex flex-wrap gap-2 pointer-events-none">
           {reactions.slice(0, 5).map((r) => (
             <div
-              key={r.userId}
+              key={r.profileId}
               className="flex items-center gap-1 bg-black/60 backdrop-blur-md rounded-full px-3 py-1.5 border border-white/20 pointer-events-auto"
             >
               <span className="text-base">{r.reaction}</span>

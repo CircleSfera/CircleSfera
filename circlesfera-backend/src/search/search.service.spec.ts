@@ -64,7 +64,11 @@ describe('SearchService', () => {
   describe('search', () => {
     it('should return users and hashtags', async () => {
       mockPrismaService.profile.findMany.mockResolvedValue([
-        { id: '1', _count: { followers: 0 } },
+        {
+          id: '1',
+          user: { verificationLevel: 'BASIC' },
+          _count: { followers: 0 },
+        },
       ]);
       mockPrismaService.hashtag.findMany.mockResolvedValue([{ id: 'tag-1' }]);
       mockPrismaService.follow.findMany.mockResolvedValue([]);

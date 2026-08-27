@@ -42,9 +42,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
       const res = await apiClient.get<Profile[]>(
         `/search/users?q=${debouncedSearch}`,
       );
-      return res.data.filter(
-        (p) => (p.userId || p.id) !== (currentUser?.userId || currentUser?.id),
-      );
+      return res.data.filter((p) => p.id !== currentUser?.id);
     },
     enabled: !!debouncedSearch,
   });
@@ -55,7 +53,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
     queryFn: async () => {
       if (!currentUser?.username) return [];
       const res = await followsApi.getFollowing(currentUser.username);
-      return (res.data || []).map((u: any) => u.profile).filter(Boolean);
+      return res.data || [];
     },
     enabled: !debouncedSearch && !!currentUser?.username,
   });
@@ -75,10 +73,7 @@ export default function NewChatModal({ onClose }: NewChatModalProps) {
     setIsCreating(true);
 
     try {
-      // search.service.ts returns the User ID as `id` instead of `userId` in search results
-      const participantIds = selectedUsers.map(
-        (u) => (u.userId || u.id) as string,
-      );
+      const participantIds = selectedUsers.map((u) => u.id);
       const res = await chatApi.createGroup({
         participantIds,
         name: selectedUsers.length > 1 ? groupName : undefined,

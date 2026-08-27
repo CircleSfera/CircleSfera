@@ -107,13 +107,8 @@ export interface PostMediaItem {
   filter?: string;
   altText?: string;
 }
-export type Participant = Omit<IParticipant, 'user'> & {
+export type Participant = IParticipant & {
   isAdmin?: boolean;
-  user?: {
-    id: string;
-    isOnline?: boolean;
-    profile: Profile;
-  };
 };
 export type Conversation = Omit<IConversation, 'messages' | 'participants'> & {
   avatarUrl?: string | null;
@@ -144,7 +139,7 @@ export type CreatePostDto = {
   media?: PostMediaItem[];
   audioId?: string;
   tags?: {
-    userId: string;
+    profileId: string;
     x: number;
     y: number;
   }[];
@@ -174,27 +169,17 @@ export type Message = Omit<
   mediaType?: string;
   createdAt: Date | string;
   updatedAt: Date | string;
-  sender?: {
-    id: string;
-    profile: Profile;
-  };
+  sender?: ProfileWithUser;
   reactions?: {
     id: string;
     reaction: string;
-    userId: string;
-    user?: {
-      id: string;
-      profile: {
-        username: string;
-      };
-    };
+    profileId?: string;
+    userId?: string;
+    profile?: Pick<Profile, 'username'>;
   }[];
   replyTo?:
     | (Omit<IMessage, 'sender'> & {
-        sender?: {
-          id: string;
-          profile: Partial<Profile>;
-        };
+        sender?: ProfileWithUser;
       })
     | null;
   post?: Post;

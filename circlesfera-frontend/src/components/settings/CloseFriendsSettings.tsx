@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebounce } from '../../hooks/useDebounce';
 import { api, closeFriendsApi } from '../../services';
-import type { UserWithProfile } from '../../types';
+import type { ProfileWithUser } from '../../types';
 import { logger } from '../../utils/logger';
 import UserAvatar from '../UserAvatar';
 import SettingsSection from './SettingsSection';
@@ -12,7 +12,7 @@ import SettingsSection from './SettingsSection';
 export default function CloseFriendsSettings() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<UserWithProfile[]>([]);
+  const [searchResults, setSearchResults] = useState<ProfileWithUser[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const { t } = useTranslation();
 
@@ -23,7 +23,7 @@ export default function CloseFriendsSettings() {
 
   const closeFriends = closeFriendsData?.data || [];
   const closeFriendIds = new Set(
-    closeFriends.map((u: UserWithProfile) => u.id),
+    closeFriends.map((u: ProfileWithUser) => u.id),
   );
 
   const searchUsers = async (term: string) => {
@@ -123,7 +123,7 @@ export default function CloseFriendsSettings() {
                     </p>
                   </li>
                 )}
-                {closeFriends.map((user: UserWithProfile) => (
+                {closeFriends.map((user: ProfileWithUser) => (
                   <CloseFriendRow
                     key={user.id}
                     user={user}
@@ -145,7 +145,7 @@ function CloseFriendRow({
   isClose,
   onToggle,
 }: {
-  user: UserWithProfile;
+  user: ProfileWithUser;
   isClose: boolean;
   onToggle: () => void;
 }) {
@@ -158,21 +158,19 @@ function CloseFriendRow({
       >
         <div className="flex items-center gap-3 min-w-0">
           <UserAvatar
-            src={user.profile?.avatar || undefined}
-            thumbnailUrl={user.profile?.thumbnailUrl || undefined}
-            standardUrl={user.profile?.standardUrl || undefined}
-            alt={user.profile?.username || ''}
+            src={user.avatar || undefined}
+            thumbnailUrl={user.thumbnailUrl || undefined}
+            standardUrl={user.standardUrl || undefined}
+            alt={user.username || ''}
             size="md"
             className="w-10 h-10 shrink-0"
           />
           <div className="min-w-0">
             <p className="text-sm font-semibold text-white truncate">
-              {user.profile?.username}
+              {user.username}
             </p>
-            {user.profile?.fullName ? (
-              <p className="text-xs text-white/50 truncate">
-                {user.profile.fullName}
-              </p>
+            {user.fullName ? (
+              <p className="text-xs text-white/50 truncate">{user.fullName}</p>
             ) : null}
           </div>
         </div>

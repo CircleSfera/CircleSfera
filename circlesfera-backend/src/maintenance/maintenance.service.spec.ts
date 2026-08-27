@@ -83,7 +83,7 @@ describe('MaintenanceService', () => {
   describe('purgeGdprDeletedUsers', () => {
     it('should permanently delete users soft-deleted > 30 days ago', async () => {
       mockPrismaService.user.findMany.mockResolvedValue([
-        { id: 'deleted-user-1' },
+        { id: 'deleted-user-1', profiles: [] },
       ]);
       mockPrismaService.user.delete.mockResolvedValue({ id: 'deleted-user-1' });
 

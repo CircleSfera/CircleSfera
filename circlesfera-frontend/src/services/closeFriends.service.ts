@@ -1,8 +1,8 @@
-import type { UserWithProfile } from '../types';
+import type { ProfileWithUser } from '../types';
 import { apiClient } from './api';
 
 export const closeFriendsApi = {
-  getCloseFriends: () => apiClient.get<UserWithProfile[]>('close-friends'),
+  getCloseFriends: () => apiClient.get<ProfileWithUser[]>('close-friends'),
 
   toggleCloseFriend: (friendId: string) =>
     apiClient.post<{ isCloseFriend: boolean }>(`close-friends/${friendId}`),

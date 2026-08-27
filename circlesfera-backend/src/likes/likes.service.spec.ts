@@ -2,7 +2,10 @@ import { NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
+import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { LikesService } from './likes.service.js';
 
 describe('LikesService', () => {
@@ -34,6 +37,23 @@ describe('LikesService', () => {
           provide: 'BullQueue_analytics-processing',
           useValue: { add: vi.fn().mockResolvedValue({}) },
         },
+        {
+          provide: SystemSettingsService,
+          useValue: {
+            isEnabled: vi.fn(async (key: string) => {
+              if (key === SYSTEM_SETTING_KEYS.EMAIL_VERIFICATION_REQUIRED)
+                return false;
+              return true;
+            }),
+          },
+        },
+        {
+          provide: TurnstileService,
+          useValue: {
+            assertValid: vi.fn().mockResolvedValue(undefined),
+            incrementEmailForbidden: vi.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -48,6 +68,7 @@ describe('LikesService', () => {
   describe('toggle', () => {
     const postId = 'post-1';
     const profileId = 'user-1';
+    const userId = 'account-1';
 
     it('should like a post and notify owner if not self', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue({
@@ -57,7 +78,7 @@ describe('LikesService', () => {
       mockPrismaService.like.findUnique.mockResolvedValue(null);
       mockPrismaService.like.create.mockResolvedValue({ id: 'like-1' });
 
-      const result = await service.toggle(postId, profileId);
+      const result = await service.toggle(postId, profileId, userId);
 
       expect(result).toEqual({ liked: true });
       expect(mockPrismaService.like.create).toHaveBeenCalledWith({
@@ -80,7 +101,7 @@ describe('LikesService', () => {
       });
       mockPrismaService.like.findUnique.mockResolvedValue(null);
 
-      const result = await service.toggle(postId, profileId);
+      const result = await service.toggle(postId, profileId, userId);
 
       expect(result).toEqual({ liked: true });
       expect(mockEventEmitter.emit).not.toHaveBeenCalled();
@@ -93,7 +114,7 @@ describe('LikesService', () => {
       });
       mockPrismaService.like.findUnique.mockResolvedValue({ id: 'like-1' });
 
-      const result = await service.toggle(postId, profileId);
+      const result = await service.toggle(postId, profileId, userId);
 
       expect(result).toEqual({ liked: false });
       expect(mockPrismaService.like.delete).toHaveBeenCalledWith({
@@ -105,7 +126,7 @@ describe('LikesService', () => {
     it('should throw NotFoundException if post not found', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue(null);
 
-      await expect(service.toggle(postId, profileId)).rejects.toThrow(
+      await expect(service.toggle(postId, profileId, userId)).rejects.toThrow(
         NotFoundException,
       );
     });

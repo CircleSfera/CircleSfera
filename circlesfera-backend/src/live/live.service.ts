@@ -226,7 +226,7 @@ export class LiveService {
     });
 
     this.gateway.server
-      .to(`user:${inviteeProfile.userId}`)
+      .to(`user:${inviteeProfile.id}`)
       .emit('live:cohost_invite', {
         streamId,
         streamTitle: stream.title,
@@ -303,15 +303,9 @@ export class LiveService {
     });
 
     if (removedCoHostId) {
-      const coHostProfile = await this.prisma.profile.findUnique({
-        where: { id: removedCoHostId },
-        select: { userId: true },
-      });
-      if (coHostProfile) {
-        this.gateway.server
-          .to(`user:${coHostProfile.userId}`)
-          .emit('live:cohost_removed', { streamId });
-      }
+      this.gateway.server
+        .to(`user:${removedCoHostId}`)
+        .emit('live:cohost_removed', { streamId });
       this.gateway.server
         .to(`live:${streamId}`)
         .emit('live:cohost_left', { coHostId: removedCoHostId });

@@ -64,9 +64,7 @@ describe('CommentsService', () => {
         id: 'comment-1',
         content: dto.content,
       });
-      mockPrismaService.profile.findMany.mockResolvedValue([
-        { profileId: 'user-2' },
-      ]);
+      mockPrismaService.profile.findMany.mockResolvedValue([{ id: 'user-2' }]);
 
       const result = await service.create(postId, profileId, dto);
 

@@ -37,13 +37,13 @@ describe('CollectionsService', () => {
     it('should create a new collection', async () => {
       mockPrismaService.collection.create.mockResolvedValue({
         id: 'col-1',
-        userId: 'user-1',
+        profileId: 'profile-1',
         name: 'Design Inspiration',
       });
 
-      const result = await service.create('user-1', 'Design Inspiration');
+      const result = await service.create('profile-1', 'Design Inspiration');
       expect(mockPrismaService.collection.create).toHaveBeenCalledWith({
-        data: { userId: 'user-1', name: 'Design Inspiration' },
+        data: { profileId: 'profile-1', name: 'Design Inspiration' },
       });
       expect(result).toHaveProperty('id', 'col-1');
     });
@@ -67,7 +67,7 @@ describe('CollectionsService', () => {
         },
       ]);
 
-      const collections = await service.findAll('user-1');
+      const collections = await service.findAll('profile-1');
       expect(collections[0].coverUrl).toBe('https://cdn.example.com/arch.jpg');
     });
   });
@@ -76,7 +76,7 @@ describe('CollectionsService', () => {
     it('should throw NotFoundException if collection does not exist', async () => {
       mockPrismaService.collection.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne('user-1', 'invalid-id')).rejects.toThrow(
+      await expect(service.findOne('profile-1', 'invalid-id')).rejects.toThrow(
         AppException,
       );
     });
@@ -84,10 +84,10 @@ describe('CollectionsService', () => {
     it('should throw ForbiddenException if user does not own collection', async () => {
       mockPrismaService.collection.findUnique.mockResolvedValue({
         id: 'col-1',
-        userId: 'other-user',
+        profileId: 'other-profile',
       });
 
-      await expect(service.findOne('user-1', 'col-1')).rejects.toThrow(
+      await expect(service.findOne('profile-1', 'col-1')).rejects.toThrow(
         AppException,
       );
     });
@@ -97,11 +97,11 @@ describe('CollectionsService', () => {
     it('should delete collection if user owns it', async () => {
       mockPrismaService.collection.findUnique.mockResolvedValue({
         id: 'col-1',
-        userId: 'user-1',
+        profileId: 'profile-1',
       });
       mockPrismaService.collection.delete.mockResolvedValue({ id: 'col-1' });
 
-      const result = await service.delete('user-1', 'col-1');
+      const result = await service.delete('profile-1', 'col-1');
       expect(mockPrismaService.collection.delete).toHaveBeenCalledWith({
         where: { id: 'col-1' },
       });

@@ -68,14 +68,14 @@ describe('EditsService', () => {
 
       mockPrismaService.editProject.create.mockResolvedValue({
         id: 'edit-1',
-        userId: 'user-1',
+        profileId: 'profile-1',
         ...dto,
       });
 
-      const result = await service.create('user-1', dto);
+      const result = await service.create('profile-1', dto);
       expect(mockPrismaService.editProject.create).toHaveBeenCalledWith({
         data: {
-          userId: 'user-1',
+          profileId: 'profile-1',
           mediaUrl: dto.mediaUrl,
           mediaType: 'image',
           name: dto.name,
@@ -101,7 +101,7 @@ describe('EditsService', () => {
       mockPrismaService.featureFlag.findUnique.mockResolvedValue(null);
       mockPrismaService.editProject.findFirst.mockResolvedValue({
         id: 'edit-1',
-        userId: 'user-1',
+        profileId: 'profile-1',
         state: {
           version: 3,
           studio: {
@@ -120,12 +120,16 @@ describe('EditsService', () => {
         },
       });
 
-      const result = await service.startCaptions('user-1', 'edit-1', 'clip-1');
+      const result = await service.startCaptions(
+        'profile-1',
+        'edit-1',
+        'clip-1',
+      );
       expect(result).toEqual({ jobId: 'job-1', status: 'queued' });
       expect(mockAiQueue.add).toHaveBeenCalledWith(
         'transcribe-edit-clip',
         expect.objectContaining({
-          userId: 'user-1',
+          profileId: 'profile-1',
           editId: 'edit-1',
           clipId: 'clip-1',
           mediaUrl: 'https://cdn.example.com/v.mp4',

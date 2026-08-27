@@ -1,4 +1,4 @@
-import type { Profile } from '../types';
+import type { ProfileWithUser } from '../types';
 import { apiClient } from './api';
 
 export const followsApi = {
@@ -23,24 +23,17 @@ export const followsApi = {
   unblock: (username: string) =>
     apiClient.post(`users/${username}/follow/unblock`),
 
-  getBlocked: () =>
-    apiClient.get<{ id: string; profile?: Profile }[]>(
-      'users/me/follow/blocked',
-    ),
+  getBlocked: () => apiClient.get<ProfileWithUser[]>('users/me/follow/blocked'),
 
   mute: (username: string) => apiClient.post(`users/${username}/follow/mute`),
 
   unmute: (username: string) =>
     apiClient.post(`users/${username}/follow/unmute`),
 
-  getMuted: () =>
-    apiClient.get<{ id: string; profile?: Profile }[]>('users/me/follow/muted'),
+  getMuted: () => apiClient.get<ProfileWithUser[]>('users/me/follow/muted'),
 
   // Pending follow requests
-  getPending: () =>
-    apiClient.get<{ id: string; profile?: Profile }[]>(
-      'users/me/follow/pending',
-    ),
+  getPending: () => apiClient.get<ProfileWithUser[]>('users/me/follow/pending'),
 
   acceptRequest: (username: string) =>
     apiClient.post<{ success: boolean }>(`users/${username}/follow/accept`),

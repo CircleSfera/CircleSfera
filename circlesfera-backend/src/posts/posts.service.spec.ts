@@ -132,9 +132,7 @@ describe('PostsService', () => {
           callback(mockTx as unknown as Partial<PrismaService>),
       );
 
-      mockPrismaService.profile.findMany.mockResolvedValue([
-        { profileId: 'user-2' },
-      ]);
+      mockPrismaService.profile.findMany.mockResolvedValue([{ id: 'user-2' }]);
       mockPrismaService.post.findUniqueOrThrow.mockResolvedValueOnce({
         id: 'post-1',
         caption: 'Hello #world @user2',
@@ -259,8 +257,8 @@ describe('PostsService', () => {
   describe('findByUser', () => {
     it('should return posts for a specific user', async () => {
       mockPrismaService.profile.findFirst.mockResolvedValue({
-        profileId: 'user-1',
-        profile: { settings: { privacyLevel: 'PUBLIC' } },
+        id: 'user-1',
+        user: { settings: { privacyLevel: 'PUBLIC' } },
       });
       mockPrismaService.post.findMany.mockResolvedValue([{ id: 'post-1' }]);
       mockPrismaService.post.count.mockResolvedValue(1);

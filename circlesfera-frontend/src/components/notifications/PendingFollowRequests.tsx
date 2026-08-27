@@ -77,13 +77,13 @@ export default function PendingFollowRequests() {
                 >
                   <div className="flex items-center gap-3">
                     <UserAvatar
-                      src={user.profile?.avatarUrl}
+                      src={user.avatar}
                       alt={user.username}
                       size="md"
                     />
                     <div>
                       <p className="text-white text-sm font-bold">
-                        {user.profile?.displayName || user.username}
+                        {user.fullName || user.username}
                       </p>
                       <p className="text-zinc-400 text-xs">@{user.username}</p>
                     </div>

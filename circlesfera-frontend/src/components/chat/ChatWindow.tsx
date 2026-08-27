@@ -400,17 +400,14 @@ export default function ChatWindow() {
 
     const otherParticipant =
       others.length > 0 ? others[0] : conversation.participants[0];
-    const targetUser = otherParticipant?.user;
+    const otherProfile = otherParticipant?.profile;
 
     return {
-      name:
-        targetUser?.profile.fullName ||
-        targetUser?.profile.username ||
-        t('chat.user'),
-      username: targetUser?.profile.username || '',
-      avatar: targetUser?.profile.avatar,
-      thumbnailUrl: targetUser?.profile.thumbnailUrl,
-      standardUrl: targetUser?.profile.standardUrl,
+      name: otherProfile?.fullName || otherProfile?.username || t('chat.user'),
+      username: otherProfile?.username || '',
+      avatar: otherProfile?.avatar,
+      thumbnailUrl: otherProfile?.thumbnailUrl,
+      standardUrl: otherProfile?.standardUrl,
       isGroup: false,
       otherProfileId: otherParticipant?.profileId ?? null,
     };
@@ -588,19 +585,9 @@ export default function ChatWindow() {
       senderId: currentProfileId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      sender: { id: currentProfileId, profile: profile },
+      sender: profile ?? undefined,
       replyToId: replyTo?.id,
-      replyTo: replyTo
-        ? {
-            ...replyTo,
-            sender: replyTo.sender
-              ? {
-                  id: replyTo.sender.id,
-                  profile: replyTo.sender.profile,
-                }
-              : undefined,
-          }
-        : undefined,
+      replyTo: replyTo ?? undefined,
       tempId,
     };
 
@@ -710,12 +697,6 @@ export default function ChatWindow() {
           return t('chat.active_recently');
         }
       }
-      // Fallback
-      const participant = conversation?.participants.find(
-        (p: Participant) => p.profileId === chatInfo.otherProfileId,
-      );
-      if (participant?.user?.isOnline)
-        return <span className="text-green-500">{t('chat.active_now')}</span>;
     }
     return null;
   };
@@ -1034,7 +1015,7 @@ export default function ChatWindow() {
                   onDelete={handleDelete}
                   onUnlock={handleUnlockMessage}
                   isRead={isRead}
-                  currentProfileId={currentProfileId}
+                  currentUserId={currentProfileId}
                 />
               );
             })}
@@ -1081,7 +1062,7 @@ export default function ChatWindow() {
                 <div className="flex items-center gap-2">
                   <span className="text-purple-400 font-semibold text-xs">
                     {t('chat.replying_to', {
-                      username: replyTo.sender?.profile.username,
+                      username: replyTo.sender?.username ?? t('chat.user'),
                     })}
                   </span>
                 </div>

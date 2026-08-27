@@ -88,11 +88,11 @@ export default function ConversationList() {
   const filteredConversations = conversations.filter((c) => {
     if (!searchQuery) return true;
     const participants = c.participants || [];
-    const other = participants.find(
+    const otherProfile = participants.find(
       (p: Participant) => p.profileId !== me?.id,
-    )?.user;
+    )?.profile;
     const name =
-      c.name || other?.profile?.fullName || other?.profile?.username || '';
+      c.name || otherProfile?.fullName || otherProfile?.username || '';
     return name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
@@ -171,14 +171,13 @@ export default function ConversationList() {
               const myParticipant = participants.find(
                 (p: Participant) => p.profileId === me?.id,
               );
-              const other = otherParticipant?.user;
-
+              const otherProfile = otherParticipant?.profile;
+              const status = otherParticipant
+                ? userStatuses[otherParticipant.profileId]
+                : undefined;
+              const isOnline = status?.isOnline ?? false;
               const lastMsg = conv.messages?.[0];
               const isActive = activeId === conv.id;
-              const status = other ? userStatuses[other.id] : undefined;
-              const isOnline = status
-                ? status.isOnline
-                : (other?.isOnline ?? false);
 
               // Check if last message is unread using lastReadAt timestamp
               const isUnread = Boolean(
@@ -212,10 +211,10 @@ export default function ConversationList() {
 
                     <div className="relative shrink-0">
                       <UserAvatar
-                        src={other?.profile?.avatar || undefined}
-                        thumbnailUrl={other?.profile?.thumbnailUrl}
-                        standardUrl={other?.profile?.standardUrl}
-                        alt={other?.profile?.username || 'User'}
+                        src={otherProfile?.avatar || undefined}
+                        thumbnailUrl={otherProfile?.thumbnailUrl}
+                        standardUrl={otherProfile?.standardUrl}
+                        alt={otherProfile?.username || 'User'}
                         size="md"
                         isOnline={isOnline}
                       />
@@ -227,8 +226,8 @@ export default function ConversationList() {
                           className={`truncate text-sm ${isActive || isUnread ? 'font-semibold text-white' : 'font-medium text-white/90'}`}
                         >
                           {conv.name ||
-                            other?.profile?.fullName ||
-                            other?.profile?.username}
+                            otherProfile?.fullName ||
+                            otherProfile?.username}
                         </span>
                         {lastMsg && (
                           <span

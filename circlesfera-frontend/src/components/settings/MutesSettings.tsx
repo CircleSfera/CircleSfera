@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { followsApi } from '../../services';
-import type { Profile } from '../../types';
+import type { ProfileWithUser } from '../../types';
 import { EmptyState } from '../ErrorEmptyStates';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
@@ -33,7 +33,7 @@ export default function MutesSettings() {
   });
 
   const renderUserRow = (
-    user: { id: string; profile?: Profile },
+    user: ProfileWithUser,
     actionLabel: string,
     onAction: () => void,
     isLoading: boolean,
@@ -44,21 +44,19 @@ export default function MutesSettings() {
     >
       <div className="flex items-center gap-3 min-w-0">
         <UserAvatar
-          src={user.profile?.avatar || undefined}
-          thumbnailUrl={user.profile?.thumbnailUrl}
-          standardUrl={user.profile?.standardUrl}
-          alt={user.profile?.username || ''}
+          src={user.avatar || undefined}
+          thumbnailUrl={user.thumbnailUrl}
+          standardUrl={user.standardUrl}
+          alt={user.username || ''}
           size="md"
           className="w-10 h-10 rounded-full object-cover shrink-0"
         />
         <div className="min-w-0">
           <p className="text-sm font-semibold text-white truncate">
-            {user.profile?.username || t('settings.mutes.unknown')}
+            {user.username || t('settings.mutes.unknown')}
           </p>
-          {user.profile?.fullName ? (
-            <p className="text-xs text-white/50 truncate">
-              {user.profile.fullName}
-            </p>
+          {user.fullName ? (
+            <p className="text-xs text-white/50 truncate">{user.fullName}</p>
           ) : null}
         </div>
       </div>
@@ -86,13 +84,11 @@ export default function MutesSettings() {
           />
         ) : (
           <ul className="space-y-2">
-            {blockedUsers.map((user: { id: string; profile?: Profile }) =>
+            {blockedUsers.map((user: ProfileWithUser) =>
               renderUserRow(
                 user,
                 t('settings.mutes.unblock'),
-                () =>
-                  user.profile?.username &&
-                  unblockMutation.mutate(user.profile.username),
+                () => user.username && unblockMutation.mutate(user.username),
                 unblockMutation.isPending,
               ),
             )}
@@ -111,13 +107,11 @@ export default function MutesSettings() {
           />
         ) : (
           <ul className="space-y-2">
-            {mutedUsers.map((user: { id: string; profile?: Profile }) =>
+            {mutedUsers.map((user: ProfileWithUser) =>
               renderUserRow(
                 user,
                 t('settings.mutes.unmute', 'Unmute'),
-                () =>
-                  user.profile?.username &&
-                  unmuteMutation.mutate(user.profile.username),
+                () => user.username && unmuteMutation.mutate(user.username),
                 unmuteMutation.isPending,
               ),
             )}

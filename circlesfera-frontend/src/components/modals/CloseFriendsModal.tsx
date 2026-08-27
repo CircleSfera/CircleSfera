@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useDebounce } from '../../hooks/useDebounce';
 import { api, closeFriendsApi } from '../../services';
-import type { UserWithProfile } from '../../types';
+import type { ProfileWithUser } from '../../types';
 import { logger } from '../../utils/logger';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
@@ -17,7 +17,7 @@ export default function CloseFriendsModal({
 }) {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<UserWithProfile[]>([]);
+  const [searchResults, setSearchResults] = useState<ProfileWithUser[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const { t } = useTranslation();
 
@@ -29,7 +29,7 @@ export default function CloseFriendsModal({
 
   const closeFriends = closeFriendsData?.data || [];
   const closeFriendIds = new Set(
-    closeFriends.map((u: UserWithProfile) => u.id),
+    closeFriends.map((u: ProfileWithUser) => u.id),
   );
 
   // Search users (debounced)
@@ -66,7 +66,7 @@ export default function CloseFriendsModal({
     },
   });
 
-  const handleToggle = (user: UserWithProfile) => {
+  const handleToggle = (user: ProfileWithUser) => {
     toggleMutation.mutate(user.id);
   };
 
@@ -152,7 +152,7 @@ export default function CloseFriendsModal({
                   )}
 
                   {/* List of close friends */}
-                  {closeFriends.map((user: UserWithProfile) => (
+                  {closeFriends.map((user: ProfileWithUser) => (
                     <UserItem
                       key={user.id}
                       user={user}
@@ -185,7 +185,7 @@ function UserItem({
   isClose,
   onToggle,
 }: {
-  user: UserWithProfile;
+  user: ProfileWithUser;
   isClose: boolean;
   onToggle: () => void;
 }) {
@@ -197,17 +197,15 @@ function UserItem({
     >
       <div className="flex items-center gap-3">
         <UserAvatar
-          src={user.profile?.avatar || undefined}
-          thumbnailUrl={user.profile?.thumbnailUrl || undefined}
-          standardUrl={user.profile?.standardUrl || undefined}
-          alt={user.profile?.username}
+          src={user.avatar || undefined}
+          thumbnailUrl={user.thumbnailUrl || undefined}
+          standardUrl={user.standardUrl || undefined}
+          alt={user.username}
           className="w-12 h-12"
         />
         <div>
-          <div className="font-semibold text-white">
-            {user.profile?.username}
-          </div>
-          <div className="text-sm text-gray-300">{user.profile?.fullName}</div>
+          <div className="font-semibold text-white">{user.username}</div>
+          <div className="text-sm text-gray-300">{user.fullName}</div>
         </div>
       </div>
       <div

@@ -1,4 +1,9 @@
-import type { CreateStoryDto, Story, UserWithProfile } from '../types';
+import type {
+  CreateStoryDto,
+  ProfileWithUser,
+  Story,
+  UserWithProfile,
+} from '../types';
 import { apiClient } from './api';
 
 export const storiesApi = {
@@ -21,7 +26,11 @@ export const storiesApi = {
 
   getReactions: (id: string) =>
     apiClient.get<
-      { reaction: string; userId: string; user: UserWithProfile }[]
+      {
+        reaction: string;
+        profileId: string;
+        profile?: ProfileWithUser;
+      }[]
     >(`stories/${id}/reactions`),
 
   delete: (id: string) => apiClient.delete(`stories/${id}`),

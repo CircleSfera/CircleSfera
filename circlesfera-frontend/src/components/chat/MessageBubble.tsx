@@ -77,10 +77,10 @@ export default memo(function MessageBubble({
         <div className="w-10 mr-2 shrink-0 flex justify-center">
           {showAvatar ? (
             <UserAvatar
-              src={msg.sender?.profile.avatar || undefined}
-              thumbnailUrl={msg.sender?.profile.thumbnailUrl}
-              standardUrl={msg.sender?.profile.standardUrl}
-              alt={msg.sender?.profile.username || t('chat.user')}
+              src={msg.sender?.avatar || undefined}
+              thumbnailUrl={msg.sender?.thumbnailUrl}
+              standardUrl={msg.sender?.standardUrl}
+              alt={msg.sender?.username || t('chat.user')}
               className="w-8 h-8 rounded-full shadow-sm"
             />
           ) : (
@@ -99,8 +99,7 @@ export default memo(function MessageBubble({
           >
             <div className="font-semibold text-purple-400 text-xs mb-0.5">
               {t('chat.replying_to_user', {
-                username:
-                  msg.replyTo?.sender?.profile?.username || t('chat.user'),
+                username: msg.replyTo?.sender?.username || t('chat.user'),
               })}
             </div>
             <div className="truncate opacity-90 italic">
@@ -351,10 +350,12 @@ export default memo(function MessageBubble({
                 >
                   <div className="bg-zinc-900/95 backdrop-blur-2xl p-1.5 rounded-full flex gap-1 shadow-2xl border border-white/10 ring-1 ring-white/5">
                     {EMOJI_OPTIONS.map((emoji) => {
-                      const isSelected = msg.reactions?.some(
-                        (r) =>
-                          r.reaction === emoji && r.userId === currentUserId,
-                      );
+                      const isSelected = msg.reactions?.some((r) => {
+                        const reactorId = r.profileId ?? r.userId;
+                        return (
+                          r.reaction === emoji && reactorId === currentUserId
+                        );
+                      });
                       return (
                         <motion.button
                           type="button"
@@ -439,9 +440,10 @@ export default memo(function MessageBubble({
                   const count =
                     msg.reactions?.filter((r) => r.reaction === emoji).length ||
                     0;
-                  const hasReacted = msg.reactions?.some(
-                    (r) => r.reaction === emoji && r.userId === currentUserId,
-                  );
+                  const hasReacted = msg.reactions?.some((r) => {
+                    const reactorId = r.profileId ?? r.userId;
+                    return r.reaction === emoji && reactorId === currentUserId;
+                  });
 
                   return (
                     <motion.button

@@ -179,8 +179,8 @@ export const useSocketStore = create<SocketState>((set, get) => ({
 
       // Show toast alert
       const senderName =
-        notification.sender?.profile?.fullName ||
-        notification.sender?.profile?.username ||
+        notification.sender?.fullName ||
+        notification.sender?.username ||
         'Someone';
       toast.success(`${senderName} ${notification.content}`, {
         icon: '🔔',

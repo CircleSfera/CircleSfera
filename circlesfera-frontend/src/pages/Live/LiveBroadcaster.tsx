@@ -26,6 +26,7 @@ import LiveQnAPanel, {
 } from '../../components/live/LiveQnAPanel';
 import { apiClient as api } from '../../services/api';
 import { liveApi } from '../../services/live';
+import { profileApi } from '../../services/profile.service';
 import { useSocketStore } from '../../stores/socketStore';
 
 export default function LiveBroadcaster() {
@@ -194,13 +195,12 @@ export default function LiveBroadcaster() {
     if (!streamId || !coHostUsernameInput.trim()) return;
     setIsInviting(true);
     try {
-      // Resolve userId from username via profile search
-      const profileRes = await api.get(
-        `/users/profile/${coHostUsernameInput.trim()}`,
+      const profileRes = await profileApi.getProfile(
+        coHostUsernameInput.trim(),
       );
-      const userId = profileRes.data?.id;
-      if (!userId) throw new Error('User not found');
-      await liveApi.inviteCoHost(streamId, userId);
+      const coHostUserId = profileRes.data?.user?.id;
+      if (!coHostUserId) throw new Error('User not found');
+      await liveApi.inviteCoHost(streamId, coHostUserId);
       setCoHostUsername(coHostUsernameInput.trim());
       setCoHostUsernameInput('');
     } catch {

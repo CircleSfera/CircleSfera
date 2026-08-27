@@ -74,9 +74,10 @@ describe('SeoService', () => {
       mockPrismaService.post.findUnique.mockResolvedValueOnce({
         id: 'post-1',
         caption: 'Hello World',
-        user: {
-          profile: { username: 'creator', fullName: 'Creator User' },
-          verificationLevel: 'VERIFIED',
+        profile: {
+          username: 'creator',
+          fullName: 'Creator User',
+          user: { verificationLevel: 'VERIFIED' },
         },
         _count: { likes: 10, comments: 2 },
       });
@@ -93,7 +94,8 @@ describe('SeoService', () => {
         username: 'procreator',
         fullName: 'Pro Creator',
         bio: 'Official CircleSfera Account',
-        user: { _count: { followers: 1250, following: 100, posts: 45 } },
+        _count: { followers: 1250, following: 100, posts: 45 },
+        user: { verificationLevel: 'BASIC' },
       });
 
       const svg = await service.generateProfileOgImage('procreator');

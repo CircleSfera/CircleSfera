@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { followsApi } from '../../services';
-import type { Profile } from '../../types';
+import type { ProfileWithUser } from '../../types';
 import { EmptyState } from '../ErrorEmptyStates';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
@@ -42,54 +42,54 @@ export default function RequestsSettings() {
           <EmptyState icon="followers" title={t('settings.requests.empty')} />
         ) : (
           <ul className="space-y-2">
-            {pendingRequests.map((user: { id: string; profile?: Profile }) => (
+            {pendingRequests.map((user: ProfileWithUser) => (
               <li
                 key={user.id}
                 className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3"
               >
                 <Link
-                  to={`/${user.profile?.username}`}
+                  to={`/${user.username}`}
                   className="flex items-center gap-3 min-w-0"
                 >
                   <UserAvatar
-                    src={user.profile?.avatar || undefined}
-                    thumbnailUrl={user.profile?.thumbnailUrl}
-                    standardUrl={user.profile?.standardUrl}
-                    alt={user.profile?.username || ''}
+                    src={user.avatar || undefined}
+                    thumbnailUrl={user.thumbnailUrl}
+                    standardUrl={user.standardUrl}
+                    alt={user.username || ''}
                     size="md"
                     className="w-10 h-10 rounded-full object-cover shrink-0"
                   />
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-white truncate">
-                      {user.profile?.fullName || user.profile?.username}
+                      {user.fullName || user.username}
                     </p>
                     <p className="text-xs text-white/50 truncate">
-                      @{user.profile?.username}
+                      @{user.username}
                     </p>
                   </div>
                 </Link>
                 <div className="flex gap-2 w-full sm:w-auto">
                   <Button
                     onClick={() =>
-                      user.profile?.username &&
-                      acceptRequestMutation.mutate(user.profile.username)
+                      user.username &&
+                      acceptRequestMutation.mutate(user.username)
                     }
                     isLoading={acceptRequestMutation.isPending}
                     variant="primary"
                     className="flex-1 sm:flex-none min-h-11 text-sm font-semibold px-4"
                   >
-                    {t('settings.requests.confirm')}
+                    {t('settings.requests.accept')}
                   </Button>
                   <Button
                     onClick={() =>
-                      user.profile?.username &&
-                      rejectRequestMutation.mutate(user.profile.username)
+                      user.username &&
+                      rejectRequestMutation.mutate(user.username)
                     }
                     isLoading={rejectRequestMutation.isPending}
-                    variant="ghost"
+                    variant="outline"
                     className="flex-1 sm:flex-none min-h-11 text-sm font-semibold px-4"
                   >
-                    {t('settings.requests.delete')}
+                    {t('settings.requests.reject')}
                   </Button>
                 </div>
               </li>

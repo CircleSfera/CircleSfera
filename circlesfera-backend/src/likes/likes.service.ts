@@ -32,7 +32,7 @@ export class LikesService {
    * @returns `{ liked: boolean }`
    * @throws NotFoundException if post not found
    */
-  async toggle(postId: string, profileId: string) {
+  async toggle(postId: string, profileId: string, userId: string) {
     const post = await this.prisma.post.findUnique({ where: { id: postId } });
 
     if (!post) {
@@ -60,7 +60,7 @@ export class LikesService {
         this.prisma,
         this.systemSettings,
         this.turnstile,
-        profileId,
+        userId,
       );
       // Like
       await this.prisma.like.create({

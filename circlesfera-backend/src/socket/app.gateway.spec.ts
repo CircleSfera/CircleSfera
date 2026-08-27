@@ -7,16 +7,22 @@ function gatewayWithServer(server: unknown): AppGateway {
   return gateway;
 }
 
+function mockSocket(profileId: string): SocketWithAuth {
+  return {
+    data: {
+      user: { sub: 'user-account', email: 'a@b.com', profileId },
+    },
+  } as SocketWithAuth;
+}
+
 describe('AppGateway.addConversationToSocket', () => {
   it('grants in-memory access when @WebSocketServer is a Namespace (sockets is a Map)', () => {
-    const socket = {
-      data: { user: { sub: 'user-1' } },
-    } as SocketWithAuth;
+    const socket = mockSocket('profile-1');
     const gateway = gatewayWithServer({
       sockets: new Map([['sid-1', socket]]),
     });
 
-    gateway.addConversationToSocket('user-1', 'conv-1');
+    gateway.addConversationToSocket('profile-1', 'conv-1');
 
     expect(socket.data.conversationIds?.has('conv-1')).toBe(true);
   });
@@ -27,19 +33,17 @@ describe('AppGateway.addConversationToSocket', () => {
     });
 
     expect(() =>
-      gateway.addConversationToSocket('user-1', 'conv-1'),
+      gateway.addConversationToSocket('profile-1', 'conv-1'),
     ).not.toThrow();
   });
 
   it('still walks Server-shaped sockets.sockets maps', () => {
-    const socket = {
-      data: { user: { sub: 'user-2' } },
-    } as SocketWithAuth;
+    const socket = mockSocket('profile-2');
     const gateway = gatewayWithServer({
       sockets: { sockets: new Map([['sid-2', socket]]) },
     });
 
-    gateway.addConversationToSocket('user-2', 'conv-2');
+    gateway.addConversationToSocket('profile-2', 'conv-2');
 
     expect(socket.data.conversationIds?.has('conv-2')).toBe(true);
   });

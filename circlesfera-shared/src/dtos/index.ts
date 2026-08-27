@@ -41,6 +41,7 @@ export interface CreatePostDto {
     altText?: string;
   }>;
   audioId?: string;
+  tags?: Array<{ profileId: string; x: number; y: number }>;
   isPremium?: boolean;
   priceCents?: number;
 }

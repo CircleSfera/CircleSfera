@@ -86,7 +86,7 @@ export default function TagPeopleSubScreen({
           ...existing,
           {
             profileId: user.id,
-            username: user.profile.username,
+            username: user.username,
             x: activeTap.x,
             y: activeTap.y,
           },
@@ -205,14 +205,14 @@ export default function TagPeopleSubScreen({
                           >
                             <img
                               src={
-                                user.profile.avatar ||
-                                `https://ui-avatars.com/api/?name=${user.profile.username}`
+                                user.avatar ||
+                                `https://ui-avatars.com/api/?name=${user.username}`
                               }
                               className="w-6 h-6 rounded-full"
                               alt=""
                             />
                             <span className="text-sm text-white/90 font-medium">
-                              {user.profile.username}
+                              {user.username}
                             </span>
                           </button>
                         ))

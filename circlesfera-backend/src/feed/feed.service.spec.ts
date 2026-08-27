@@ -36,6 +36,9 @@ describe('FeedService', () => {
     userSettings: {
       findUnique: vi.fn().mockResolvedValue(null),
     },
+    profile: {
+      findUnique: vi.fn().mockResolvedValue({ userId: 'account-1' }),
+    },
     $queryRaw: vi.fn(),
   };
 

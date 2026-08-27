@@ -187,8 +187,8 @@ describe('StoriesService', () => {
 
       it('should return stories for public user', async () => {
         mockPrismaService.profile.findFirst.mockResolvedValue({
-          profileId: 'u1',
-          profile: { settings: { privacyLevel: 'PUBLIC' } },
+          id: 'u1',
+          user: { settings: { privacyLevel: 'PUBLIC' } },
         });
         mockPrismaService.story.findMany.mockResolvedValue([
           { id: 's1', views: [] },
@@ -200,8 +200,8 @@ describe('StoriesService', () => {
 
       it('should return empty for private user if not following', async () => {
         mockPrismaService.profile.findFirst.mockResolvedValue({
-          profileId: 'u1',
-          profile: { settings: { privacyLevel: 'PRIVATE' } },
+          id: 'u1',
+          user: { settings: { privacyLevel: 'PRIVATE' } },
         });
         mockPrismaService.follow.findUnique.mockResolvedValue(null);
 
@@ -224,7 +224,7 @@ describe('StoriesService', () => {
     describe('getViews', () => {
       it('should return users who viewed the story', async () => {
         mockPrismaService.storyView.findMany.mockResolvedValue([
-          { viewer: { id: 'u1' } },
+          { viewer: { id: 'profile-1', user: { id: 'u1' } } },
         ]);
         const result = await service.getViews('s1');
         expect(result).toHaveLength(1);
