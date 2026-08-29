@@ -152,11 +152,12 @@ jobs:
         uses: appleboy/ssh-action@v1.2.5
         env:
           ENV_PRODUCTION_B64: ${{ secrets.ENV_PRODUCTION_B64 }}
+          ABUSE_HASH_PEPPER: ${{ secrets.ABUSE_HASH_PEPPER }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: ENV_PRODUCTION_B64
+          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER
           script: |
             set -e
             echo "Starting deployment on OVH VPS..."
@@ -185,8 +186,23 @@ jobs:
               echo "❌ .env.production is missing."
               exit 1
             fi
+
+            # Merge ABUSE_HASH_PEPPER when ENV_PRODUCTION_B64 predates ADR-0014 (avoid full env re-upload).
+            if ! grep -qE '^ABUSE_HASH_PEPPER=.{32,}' .env.production; then
+              if [ -n "${ABUSE_HASH_PEPPER:-}" ]; then
+                printf '\nABUSE_HASH_PEPPER=%s\n' "$ABUSE_HASH_PEPPER" >> .env.production
+                echo "✅ ABUSE_HASH_PEPPER merged from GitHub secret."
+              fi
+            fi
+
             if ! grep -q '^REDIS_PASSWORD=.\+' .env.production; then
               echo "❌ REDIS_PASSWORD is missing/empty in .env.production (required for compose interpolation)."
+              exit 1
+            fi
+            if ! grep -qE '^ABUSE_HASH_PEPPER=.{32,}' .env.production; then
+              echo "❌ ABUSE_HASH_PEPPER is missing or shorter than 32 chars."
+              echo "   Set GitHub secret: gh secret set ABUSE_HASH_PEPPER"
+              echo "   Or add to .env.production and run: ./scripts/upload-prod-env.sh"
               exit 1
             fi
 

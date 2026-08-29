@@ -53,6 +53,7 @@ API base (local): `http://localhost:3000/api/v1`
 | `JWT_ADMIN_SECRET` | Admin Panel JWT |
 | `CSRF_SECRET` | Double-submit CSRF |
 | `ENCRYPTION_KEY` | Encrypted DMs at rest |
+| `ABUSE_HASH_PEPPER` | HMAC pepper for abuse/trust device signals (min 32 chars) |
 
 See `.env.example` for Stripe, LiveKit, storage, email, OpenAI, etc.
 

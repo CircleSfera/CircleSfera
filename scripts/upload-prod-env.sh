@@ -39,6 +39,7 @@ require_var JWT_SECRET
 require_var JWT_REFRESH_SECRET
 require_var CSRF_SECRET
 require_var ENCRYPTION_KEY "Min 32 chars. Re-encrypt existing DMs with scripts/reencrypt-messages.ts before rotating."
+require_var ABUSE_HASH_PEPPER "Min 32 chars. HMAC pepper for abuse/trust signals (ADR-0014)."
 require_var OPENAI_API_KEY "Required in production"
 require_var LIVEKIT_API_KEY
 require_var LIVEKIT_API_SECRET
