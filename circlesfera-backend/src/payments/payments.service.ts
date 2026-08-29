@@ -7,6 +7,7 @@ import type Stripe from 'stripe';
 import { CREATOR_SHARE_DECIMAL } from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
+import { primaryProfileIdForUser } from '../common/utils/user-profile-shape.util.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SlackService } from '../slack/slack.service.js';
@@ -25,6 +26,27 @@ export class PaymentsService {
     @Optional()
     private readonly eventEmitter?: EventEmitter2,
   ) {}
+
+  private async emitPaymentNotification(params: {
+    recipientUserId: string;
+    senderUserId: string;
+    content: string;
+    postId?: string;
+  }) {
+    if (!this.eventEmitter) return;
+    const [recipientId, senderId] = await Promise.all([
+      primaryProfileIdForUser(this.prisma, params.recipientUserId),
+      primaryProfileIdForUser(this.prisma, params.senderUserId),
+    ]);
+    if (!recipientId) return;
+    this.eventEmitter.emit('notification.create', {
+      recipientId,
+      senderId,
+      type: 'PAYMENT' as const,
+      content: params.content,
+      postId: params.postId,
+    });
+  }
 
   /** Map Stripe status to our SubscriptionStatus enum. */
   private mapStripeStatus(stripeStatus: string): SubscriptionStatus {
@@ -630,19 +652,15 @@ export class PaymentsService {
               });
             });
 
-            // Emit Real-time Notification
-            if (this.eventEmitter) {
-              const amountFormatted = (amount / 100).toLocaleString('en-US', {
-                style: 'currency',
-                currency: session.currency || 'eur',
-              });
-              this.eventEmitter.emit('notification.create', {
-                recipientId: creatorId,
-                senderId: clientReferenceId,
-                type: 'PAYMENT' as any,
-                content: `Someone unlocked your private message for ${amountFormatted}!`,
-              });
-            }
+            const amountFormatted = (amount / 100).toLocaleString('en-US', {
+              style: 'currency',
+              currency: session.currency || 'eur',
+            });
+            await this.emitPaymentNotification({
+              recipientUserId: creatorId,
+              senderUserId: clientReferenceId,
+              content: `Someone unlocked your private message for ${amountFormatted}!`,
+            });
           }
         } else if (metadata?.type === 'DIRECT_TIP') {
           // Handle Direct Tips
@@ -701,20 +719,16 @@ export class PaymentsService {
               })
               .catch((e) => this.logger.error(e));
 
-            // Emit Real-time Notification
-            if (this.eventEmitter) {
-              const amountFormatted = (amount / 100).toLocaleString('en-US', {
-                style: 'currency',
-                currency: session.currency || 'eur',
-              });
-              this.eventEmitter.emit('notification.create', {
-                recipientId: creatorId,
-                senderId: clientReferenceId,
-                type: 'PAYMENT' as any,
-                content: `You received a ${amountFormatted} tip!`,
-                postId: postId || undefined,
-              });
-            }
+            const amountFormatted = (amount / 100).toLocaleString('en-US', {
+              style: 'currency',
+              currency: session.currency || 'eur',
+            });
+            await this.emitPaymentNotification({
+              recipientUserId: creatorId,
+              senderUserId: clientReferenceId,
+              content: `You received a ${amountFormatted} tip!`,
+              postId: postId || undefined,
+            });
           }
         } else if (metadata?.type === 'DIRECT_LIVE_GIFT') {
           const clientReferenceId = session.client_reference_id;

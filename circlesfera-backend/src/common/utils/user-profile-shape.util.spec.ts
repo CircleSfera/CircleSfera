@@ -1,5 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import { toAdminUser, withPrimaryProfile } from './user-profile-shape.util.js';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  primaryProfileIdForUser,
+  toAdminUser,
+  withPrimaryProfile,
+} from './user-profile-shape.util.js';
 
 describe('user-profile-shape.util', () => {
   it('toAdminUser maps profile fields for content tabs', () => {
@@ -17,6 +21,17 @@ describe('user-profile-shape.util', () => {
     ).toEqual({
       profile: { username: 'reporter', avatar: null, fullName: 'Rep' },
     });
+  });
+
+  it('primaryProfileIdForUser returns the first profile id', async () => {
+    const prisma = {
+      profile: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'profile-1' }),
+      },
+    };
+    await expect(
+      primaryProfileIdForUser(prisma as never, 'user-1'),
+    ).resolves.toBe('profile-1');
   });
 
   it('withPrimaryProfile flattens profiles[0] for account-backed rows', () => {

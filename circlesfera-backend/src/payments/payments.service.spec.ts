@@ -1,3 +1,4 @@
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SubscriptionStatus } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -14,6 +15,7 @@ describe('PaymentsService', () => {
   let slackService: SlackService;
   let stripeService: any;
   let usersService: any;
+  let eventEmitter: { emit: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -49,6 +51,7 @@ describe('PaymentsService', () => {
             },
             platformPlan: { findUnique: vi.fn() },
             user: { update: vi.fn(), findUnique: vi.fn(), findFirst: vi.fn() },
+            profile: { findFirst: vi.fn() },
             $transaction: vi.fn((callback) => callback(prisma)),
           },
         },
@@ -78,6 +81,10 @@ describe('PaymentsService', () => {
             syncUserTier: vi.fn(),
           },
         },
+        {
+          provide: EventEmitter2,
+          useValue: { emit: vi.fn() },
+        },
       ],
     }).compile();
 
@@ -86,6 +93,7 @@ describe('PaymentsService', () => {
     slackService = module.get<SlackService>(SlackService);
     stripeService = module.get<StripeService>(StripeService);
     usersService = module.get<UsersService>(UsersService);
+    eventEmitter = module.get(EventEmitter2);
   });
 
   it('should be defined', () => {
@@ -395,6 +403,11 @@ describe('PaymentsService', () => {
         },
       };
 
+      prisma.profile.findFirst = vi
+        .fn()
+        .mockResolvedValueOnce({ id: 'creator-profile-2' })
+        .mockResolvedValueOnce({ id: 'tipper-profile-1' });
+
       await service.processWebhookEvent(event);
 
       expect(prisma.$transaction).toHaveBeenCalled();
@@ -405,6 +418,14 @@ describe('PaymentsService', () => {
             senderId: 'tipper1',
             receiverId: 'creator2',
           }),
+        }),
+      );
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'notification.create',
+        expect.objectContaining({
+          recipientId: 'creator-profile-2',
+          senderId: 'tipper-profile-1',
+          type: 'PAYMENT',
         }),
       );
     });

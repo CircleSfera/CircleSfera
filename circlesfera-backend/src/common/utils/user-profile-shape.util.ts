@@ -1,3 +1,5 @@
+import type { PrismaService } from '../../prisma/prisma.service.js';
+
 type ProfileSnippet = {
   username: string;
   avatar?: string | null;
@@ -17,6 +19,19 @@ export function toAdminUser(profile: ProfileSnippet | null | undefined) {
         },
       }
     : null;
+}
+
+/** Primary Profile.id for a User — Notification and Report FKs need this, not User.id. */
+export async function primaryProfileIdForUser(
+  prisma: PrismaService,
+  userId: string,
+): Promise<string | undefined> {
+  const profile = await prisma.profile.findFirst({
+    where: { userId },
+    select: { id: true },
+    orderBy: { createdAt: 'asc' },
+  });
+  return profile?.id;
 }
 
 /** Maps User.profiles[0] onto user.profile for list/detail UIs. */
