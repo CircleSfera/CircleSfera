@@ -23,6 +23,10 @@ out/
 .DS_Store
 Thumbs.db
 
+# Python (Excalidraw SVG export)
+__pycache__/
+*.pyc
+
 # Docker
 docker-compose.override.yml
 
