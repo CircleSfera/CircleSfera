@@ -93,7 +93,17 @@ export default function TurnstileWidget({
     };
   }, [onToken]);
 
-  if (!SITE_KEY) return null;
+  if (!SITE_KEY) {
+    if (import.meta.env.PROD) {
+      return (
+        <p className="text-amber-400/90 text-xs text-center px-2">
+          Security check unavailable. Refresh the page in a minute or try again
+          after the latest deploy finishes.
+        </p>
+      );
+    }
+    return null;
+  }
 
   return (
     <div className="flex justify-center min-h-16" data-ready={ready}>

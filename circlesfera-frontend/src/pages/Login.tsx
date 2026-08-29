@@ -134,6 +134,15 @@ export default function Login() {
       );
       return;
     }
+    if (import.meta.env.PROD && !siteKey) {
+      setError(
+        t(
+          'auth.captcha_unavailable',
+          'Security check is not ready yet. Wait for the deploy to finish and refresh.',
+        ),
+      );
+      return;
+    }
     loginMutation.mutate({ identifier, password });
   };
 
