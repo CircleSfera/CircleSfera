@@ -68,7 +68,7 @@ export class AdminJwtStrategy extends PassportStrategy(
       },
     });
 
-    if (!admin || admin.status !== 'ACTIVE') {
+    if (admin?.status !== 'ACTIVE') {
       throw new UnauthorizedException('Admin identity not found or disabled');
     }
 

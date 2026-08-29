@@ -169,7 +169,7 @@ export class AdminAuthService {
       throw new UnauthorizedException('Invalid credentials');
     };
 
-    if (!admin || admin.status !== 'ACTIVE') {
+    if (admin?.status !== 'ACTIVE') {
       await fail(admin?.id);
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -328,7 +328,7 @@ export class AdminAuthService {
         },
       },
     });
-    if (!admin || admin.status !== 'ACTIVE') {
+    if (admin?.status !== 'ACTIVE') {
       throw new UnauthorizedException();
     }
     const { roles, permissions } = this.permissionsOf(admin);
@@ -429,7 +429,7 @@ export class AdminAuthService {
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id: adminId },
     });
-    if (!admin || admin.status !== 'ACTIVE') {
+    if (admin?.status !== 'ACTIVE') {
       throw new UnauthorizedException();
     }
 

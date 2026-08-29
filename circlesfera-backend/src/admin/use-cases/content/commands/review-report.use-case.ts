@@ -181,7 +181,7 @@ export class ReviewReportUseCase {
       where: { id: toAdminId },
       select: { id: true, status: true },
     });
-    if (!target || target.status !== 'ACTIVE') {
+    if (target?.status !== 'ACTIVE') {
       throw new BadRequestException('Target admin identity is not active');
     }
 
