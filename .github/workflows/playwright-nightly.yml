@@ -50,6 +50,7 @@ jobs:
       JWT_REFRESH_SECRET: ci-nightly-refresh-secret-not-for-production-use-only-testing-0987654321
       CSRF_SECRET: ci-nightly-csrf-secret-not-for-production-use-only-testing-abcdefghijklmno
       ENCRYPTION_KEY: test-encryption-key-32-characters!!
+      ABUSE_HASH_PEPPER: ci-nightly-abuse-hash-pepper-not-for-production-use!!
       STRIPE_SECRET_KEY: sk_test_dummy
       STRIPE_WEBHOOK_SECRET: whsec_dummy
       CLOUDINARY_NAME: dummy
@@ -114,8 +115,8 @@ jobs:
         run: |
           cd circlesfera-backend
           nohup node dist/main.js > /tmp/backend.log 2>&1 &
-          for i in $(seq 1 30); do
-            if curl -sS -o /dev/null "http://localhost:3005/api/v1/csrf-token"; then
+          for i in $(seq 1 45); do
+            if curl -sf "http://localhost:3005/api/v1/health" >/dev/null; then
               echo "Backend is up."
               exit 0
             fi

@@ -4,6 +4,7 @@ name: CI Quality
 
 on:
   workflow_call:
+  workflow_dispatch:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -91,6 +92,7 @@ jobs:
           JWT_REFRESH_SECRET: ci-e2e-refresh-secret-not-for-production-use-only-testing-0987654321
           CSRF_SECRET: ci-e2e-csrf-secret-not-for-production-use-only-testing-abcdefghijklmno
           ENCRYPTION_KEY: test-encryption-key-32-characters!!
+          ABUSE_HASH_PEPPER: ci-e2e-abuse-hash-pepper-not-for-production-use!!
           STRIPE_SECRET_KEY: sk_test_dummy
           STRIPE_WEBHOOK_SECRET: whsec_dummy
           CLOUDINARY_NAME: dummy

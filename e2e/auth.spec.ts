@@ -34,18 +34,26 @@ test.describe('Authentication Flow', () => {
   test('should allow a new user to register', async ({ page }) => {
     const randomSuffix = Math.floor(Math.random() * 100000);
     const testEmail = `newuser${randomSuffix}@circlesfera.com`;
+    const testPassword = `Password${randomSuffix}!`;
 
     await page.goto('/accounts/signup');
 
     await page.locator('#fullName').fill('Test User');
     await page.locator('#username').fill(`testuser${randomSuffix}`);
     await page.locator('#email').fill(testEmail);
-    await page.locator('#password').fill('password123');
+    await page.locator('#password').fill(testPassword);
     await page.locator('#dateOfBirth').fill('1995-06-15');
 
+    const registerResponse = page.waitForResponse(
+      (res) =>
+        res.url().includes('/auth/register') &&
+        res.request().method() === 'POST',
+    );
     await page.locator('button[type="submit"]').click();
 
-    // Successful register lands on onboarding (age-gated signup).
+    const response = await registerResponse;
+    expect(response.status(), await response.text()).toBe(201);
+
     await expect(page).toHaveURL(/.*\/onboarding/, {
       timeout: 15000,
     });

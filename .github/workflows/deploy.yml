@@ -153,11 +153,13 @@ jobs:
         env:
           ENV_PRODUCTION_B64: ${{ secrets.ENV_PRODUCTION_B64 }}
           ABUSE_HASH_PEPPER: ${{ secrets.ABUSE_HASH_PEPPER }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER
+          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,VITE_TURNSTILE_SITE_KEY
           script: |
             set -e
             echo "Starting deployment on OVH VPS..."
@@ -195,6 +197,19 @@ jobs:
               fi
             fi
 
+            if ! grep -qE '^TURNSTILE_SECRET_KEY=.' .env.production; then
+              if [ -n "${TURNSTILE_SECRET_KEY:-}" ]; then
+                printf 'TURNSTILE_SECRET_KEY=%s\n' "$TURNSTILE_SECRET_KEY" >> .env.production
+                echo "✅ TURNSTILE_SECRET_KEY merged from GitHub secret."
+              fi
+            fi
+            if ! grep -qE '^VITE_TURNSTILE_SITE_KEY=.' .env.production; then
+              if [ -n "${VITE_TURNSTILE_SITE_KEY:-}" ]; then
+                printf 'VITE_TURNSTILE_SITE_KEY=%s\n' "$VITE_TURNSTILE_SITE_KEY" >> .env.production
+                echo "✅ VITE_TURNSTILE_SITE_KEY merged from GitHub secret."
+              fi
+            fi
+
             if ! grep -q '^REDIS_PASSWORD=.\+' .env.production; then
               echo "❌ REDIS_PASSWORD is missing/empty in .env.production (required for compose interpolation)."
               exit 1
@@ -202,6 +217,12 @@ jobs:
             if ! grep -qE '^ABUSE_HASH_PEPPER=.{32,}' .env.production; then
               echo "❌ ABUSE_HASH_PEPPER is missing or shorter than 32 chars."
               echo "   Set GitHub secret: gh secret set ABUSE_HASH_PEPPER"
+              echo "   Or add to .env.production and run: ./scripts/upload-prod-env.sh"
+              exit 1
+            fi
+            if ! grep -qE '^TURNSTILE_SECRET_KEY=.' .env.production; then
+              echo "❌ TURNSTILE_SECRET_KEY is missing in .env.production."
+              echo "   Set GitHub secret: gh secret set TURNSTILE_SECRET_KEY"
               echo "   Or add to .env.production and run: ./scripts/upload-prod-env.sh"
               exit 1
             fi
