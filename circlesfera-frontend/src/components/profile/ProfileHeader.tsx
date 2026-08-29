@@ -117,6 +117,13 @@ export default function ProfileHeader({
     accountStanding?: 'ok' | 'suspended';
   };
 
+  const tierLevel = profile.data.verificationLevel as
+    | VerificationLevel
+    | undefined;
+  /** KYC identity badge — only when no premium tier badge is already shown. */
+  const showIdentityVerifiedBadge =
+    !!data.identityVerified && (!tierLevel || tierLevel === 'BASIC');
+
   return (
     <div className="glass-panel rounded-xl md:rounded-2xl p-3 md:p-4 mb-2 md:mb-3 relative border border-white/5 shadow-2xl backdrop-blur-2xl">
       <AboutAccountDialog
@@ -188,7 +195,7 @@ export default function ProfileHeader({
                     level={profile.data.verificationLevel as VerificationLevel}
                     size={20}
                   />
-                  {data.identityVerified && (
+                  {showIdentityVerifiedBadge && (
                     <span
                       title={t('profile.badges.identity', 'Identity verified')}
                       className="inline-flex"
@@ -425,7 +432,7 @@ export default function ProfileHeader({
               level={profile.data.verificationLevel as VerificationLevel}
               size={16}
             />
-            {data.identityVerified && (
+            {showIdentityVerifiedBadge && (
               <ShieldCheck
                 size={14}
                 className="fill-emerald-400 text-white shrink-0"

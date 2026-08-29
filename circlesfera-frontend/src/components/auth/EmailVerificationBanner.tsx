@@ -47,29 +47,33 @@ export default function EmailVerificationBanner() {
   if (!isAuthenticated || !profile || confirmed) return null;
 
   return (
-    <div
-      className="sticky top-0 z-40 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2.5 backdrop-blur-md"
-      role="status"
-    >
-      <div className="mx-auto flex max-w-3xl items-center gap-3 text-sm">
-        <Mail className="size-4 shrink-0 text-amber-400" aria-hidden />
-        <p className="flex-1 text-amber-100/90 text-xs md:text-sm">
-          {t(
-            'auth.verify.banner',
-            'Confirm your email to post, follow, message, and like.',
-          )}
-        </p>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          isLoading={resend.isPending}
-          onClick={() => resend.mutate()}
-          className="shrink-0 h-9 text-xs uppercase font-bold"
-        >
-          {t('auth.verify.resend', 'Resend')}
-        </Button>
+    <>
+      {/* Reserve space on mobile (TopNav is fixed above this bar). */}
+      <div className="md:hidden h-10 shrink-0" aria-hidden />
+      <div
+        className="fixed inset-x-0 z-[45] top-[calc(var(--nav-top-height,52px)+env(safe-area-inset-top,0px))] border-b border-amber-500/20 bg-amber-500/10 px-4 py-2.5 backdrop-blur-md md:static md:sticky md:top-0 md:z-40"
+        role="status"
+      >
+        <div className="mx-auto flex max-w-3xl items-center gap-3 text-sm">
+          <Mail className="size-4 shrink-0 text-amber-400" aria-hidden />
+          <p className="flex-1 text-amber-100/90 text-xs md:text-sm">
+            {t(
+              'auth.verify.banner',
+              'Confirm your email to post, follow, message, and like.',
+            )}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            isLoading={resend.isPending}
+            onClick={() => resend.mutate()}
+            className="shrink-0 h-9 text-xs uppercase font-bold"
+          >
+            {t('auth.verify.resend', 'Resend')}
+          </Button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

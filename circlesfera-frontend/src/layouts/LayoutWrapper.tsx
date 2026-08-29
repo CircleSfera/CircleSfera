@@ -112,13 +112,15 @@ export default function LayoutWrapper({
       {/* ─── Global Brand Gradient Background (Refined & Balanced) ─── */}
       <BrandAmbientBackground />
 
+      {shouldShowNav &&
+        !location.pathname.includes('/direct/inbox/t/') &&
+        !isImmersiveRoute && <TopNav />}
+
       {shouldShowNav && <EmailVerificationBanner />}
 
       {/* Navigation — Each handles its own visibility via media queries */}
       {shouldShowNav && (
         <>
-          {!location.pathname.includes('/direct/inbox/t/') &&
-            !isImmersiveRoute && <TopNav />}
           {showAppSidebar && <Sidebar />}
           {!isEditorRoute && <BottomNav />}
         </>
