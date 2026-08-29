@@ -143,7 +143,10 @@ export class AdminOpsService {
     ]);
 
     return {
-      data: experiments,
+      data: experiments.map((experiment) => ({
+        ...experiment,
+        user: experiment.user ? withPrimaryProfile(experiment.user) : null,
+      })),
       total,
       page,
       limit,

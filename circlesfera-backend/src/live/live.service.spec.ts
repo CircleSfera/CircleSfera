@@ -153,12 +153,26 @@ describe('LiveService', () => {
   });
 
   describe('getActiveStreams', () => {
-    it('should return all active streams ordered by startedAt', async () => {
-      const mockStreams = [{ id: 'stream-1', status: 'LIVE' }];
-      mockPrismaService.liveStream.findMany.mockResolvedValue(mockStreams);
+    it('should return active streams with host.profile for the feed', async () => {
+      mockPrismaService.liveStream.findMany.mockResolvedValue([
+        {
+          id: 'stream-1',
+          status: 'LIVE',
+          host: { id: 'host-profile-1', username: 'alice', avatar: null },
+        },
+      ]);
 
       const result = await service.getActiveStreams();
-      expect(result).toEqual(mockStreams);
+      expect(result).toEqual([
+        {
+          id: 'stream-1',
+          status: 'LIVE',
+          host: {
+            id: 'host-profile-1',
+            profile: { username: 'alice', avatar: null },
+          },
+        },
+      ]);
     });
   });
 

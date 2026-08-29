@@ -37,6 +37,19 @@ export class LiveService {
     private systemSettings: SystemSettingsService,
   ) {}
 
+  private mapStreamHost(
+    profile: { id: string; username: string; avatar: string | null } | null,
+  ) {
+    if (!profile) return null;
+    return {
+      id: profile.id,
+      profile: {
+        username: profile.username,
+        avatar: profile.avatar,
+      },
+    };
+  }
+
   async startStream(hostProfileId: string, title?: string) {
     const liveEnabled = await this.systemSettings.isEnabled(
       SYSTEM_SETTING_KEYS.LIVE_STREAMS_ENABLED,
@@ -103,15 +116,20 @@ export class LiveService {
   }
 
   async getActiveStreams() {
-    return this.prisma.liveStream.findMany({
+    const streams = await this.prisma.liveStream.findMany({
       where: { status: 'LIVE' },
       include: {
         host: {
-          include: { user: true },
+          select: { id: true, username: true, avatar: true },
         },
       },
       orderBy: { startedAt: 'desc' },
     });
+
+    return streams.map((stream) => ({
+      ...stream,
+      host: this.mapStreamHost(stream.host),
+    }));
   }
 
   async incrementViewerCount(streamId: string): Promise<number> {
@@ -151,16 +169,10 @@ export class LiveService {
       where: { id: streamId },
       include: {
         host: {
-          select: {
-            id: true,
-            profiles: { select: { username: true, avatar: true } },
-          },
+          select: { id: true, username: true, avatar: true },
         },
         coHost: {
-          select: {
-            id: true,
-            profiles: { select: { username: true, avatar: true } },
-          },
+          select: { id: true, username: true, avatar: true },
         },
       },
     });
@@ -170,7 +182,12 @@ export class LiveService {
         ErrorCode.STREAM_NOT_FOUND,
         'Stream not found',
       );
-    return stream;
+
+    return {
+      ...stream,
+      host: this.mapStreamHost(stream.host),
+      coHost: stream.coHost ? this.mapStreamHost(stream.coHost) : null,
+    };
   }
 
   async inviteCoHost(
