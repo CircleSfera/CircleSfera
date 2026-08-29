@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test:e2e": "npx playwright test",
+    "smoke:profile-drift": "node scripts/validate-profile-drift-smoke.mjs",
     "check": "biome check --write .",
     "prepare": "husky install"
   },
