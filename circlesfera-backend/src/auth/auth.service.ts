@@ -146,7 +146,7 @@ export class AuthService {
           randomUUID().split('-')[0].toUpperCase() +
           Math.random().toString(36).substring(2, 6).toUpperCase(),
         referredById,
-        profile: {
+        profiles: {
           create: {
             username: dto.username,
             fullName: dto.fullName || null,
