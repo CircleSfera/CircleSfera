@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Prisma, PromotionStatus } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
+import { withPrimaryProfile } from '../../../utils/admin-user-shape.util.js';
 
 @Injectable()
 export class GetPromotionsQuery {
@@ -59,6 +60,7 @@ export class GetPromotionsQuery {
         }
         return {
           ...promo,
+          user: withPrimaryProfile(promo.user),
           target,
         };
       }),

@@ -11,6 +11,7 @@ import { AIService } from '../ai/ai.service.js';
 import { EmailService } from '../email/email.service.js';
 import { PaymentsService } from '../payments/payments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { withPrimaryProfile } from './utils/admin-user-shape.util.js';
 
 /**
  * Admin operations that are orthogonal to core user/content moderation:
@@ -217,7 +218,9 @@ export class AdminOpsService {
             select: {
               id: true,
               email: true,
-              profiles: { select: { username: true, avatar: true } },
+              profiles: {
+                select: { username: true, avatar: true, fullName: true },
+              },
             },
           },
         },
@@ -226,7 +229,10 @@ export class AdminOpsService {
     ]);
 
     return {
-      data: tickets,
+      data: tickets.map((ticket) => ({
+        ...ticket,
+        user: ticket.user ? withPrimaryProfile(ticket.user) : null,
+      })),
       meta: {
         total,
         page,

@@ -1,19 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { $Enums } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
-
-type ProfileSnippet = { username: string; avatar: string | null };
-
-function toAdminUser(profile: ProfileSnippet | null | undefined) {
-  return profile
-    ? {
-        profile: {
-          username: profile.username,
-          avatar: profile.avatar,
-        },
-      }
-    : null;
-}
+import { toAdminUser } from '../../../utils/admin-user-shape.util.js';
 
 @Injectable()
 export class GetModerationQueueQuery {

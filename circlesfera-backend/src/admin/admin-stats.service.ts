@@ -3,6 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { AdminAction, Prisma } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { withPrimaryProfile } from './utils/admin-user-shape.util.js';
 
 @Injectable()
 export class AdminStatsService {
@@ -357,7 +358,13 @@ export class AdminStatsService {
       }),
       this.prisma.stripePayoutLog.count({ where }),
     ]);
-    return { data, meta: { total, page, limit } };
+    return {
+      data: data.map((payout) => ({
+        ...payout,
+        user: withPrimaryProfile(payout.user),
+      })),
+      meta: { total, page, limit },
+    };
   }
 
   // ─── Top Users by Engagement ──────────────────────────────────

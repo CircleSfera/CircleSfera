@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { $Enums, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
+import { toAdminUser } from '../../../utils/admin-user-shape.util.js';
 
 @Injectable()
 export class GetPostsQuery {
@@ -65,14 +66,7 @@ export class GetPostsQuery {
     const data = posts.map(({ profile, ...rest }) => ({
       ...rest,
       profile,
-      user: profile
-        ? {
-            profile: {
-              username: profile.username,
-              avatar: profile.avatar,
-            },
-          }
-        : null,
+      user: toAdminUser(profile),
     }));
 
     return {
