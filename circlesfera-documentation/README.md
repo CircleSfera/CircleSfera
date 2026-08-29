@@ -1,6 +1,6 @@
 # CircleSfera documentation
 
-Index of the **14** product/technical documents (01–14) under `circlesfera-documentation/`.
+Index of the **15** product/technical documents (01–15) under `circlesfera-documentation/`.
 
 **Source of truth:** `circlesfera-backend/prisma/schema.prisma` and implemented NestJS/React code supersede snapshots for domains such as **Appeal**, **Mute**, **CreatorSubscription**, **Live**, and **Polls** (interactive). Prefer schema + controllers when docs disagree.
 
@@ -28,4 +28,5 @@ AI-assisted engineering context lives outside this folder, in [`.ai/`](../.ai/RE
 | 12 | [12-global-roadmap.md](./12-global-roadmap.md) |
 | 13 | [13-layout-guidelines.md](./13-layout-guidelines.md) — **Layout Guidelines v1.0.0** (sincronizado desde Notion, Ago 2026) |
 | 14 | [14-uiux-improvement-roadmap.md](./14-uiux-improvement-roadmap.md) — roadmap UI/UX (olas Fundación → Consumer → Herramientas → Admin; planned) |
+| 15 | [15-identity-profile-model.md](./15-identity-profile-model.md) — **User / Profile / Username / AdminIdentity** (Ago 2026) |
 

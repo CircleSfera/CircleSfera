@@ -7,3 +7,5 @@
 > Always read that file (and its migrations under `circlesfera-backend/prisma/migrations/`) for models, enums, relations, and indexes. Do not treat any historical snapshot pasted here as authoritative. Older revisions of this document contained a multi-model dump that drifted from production — that dump has been removed.
 >
 > For architectural context on schema-backed decisions, see [ADRs](./adr/README.md) and [00-status.md](./00-status.md).
+>
+> **Identity model (User vs Profile vs AdminIdentity):** [15-identity-profile-model.md](./15-identity-profile-model.md), [ADR-0015](./adr/0015-user-profile-identity-split.md).

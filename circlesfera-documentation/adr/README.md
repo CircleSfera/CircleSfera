@@ -18,5 +18,6 @@ ADRs live here and sit at priority tier 4 in `AGENTS.md` (after schema, code, an
 | [0012](./0012-webrtc-signaling-architecture.md) | WebRTC Voice & Video Call Signaling Architecture and Socket Event Compatibility | Accepted |
 | [0013](./0013-admin-panel-admin-identity.md) | Admin Panel — separate Admin Identity, RBAC, MFA, admin.circlesfera.com | Accepted |
 | [0014](./0014-account-trust-signals.md) | Account trust signals (Turnstile, email gate, KYC vs plan, abuse hashes) | Accepted |
+| [0015](./0015-user-profile-identity-split.md) | User / Profile identity split — account vs social profile, JWT `profileId`, admin `user.profile` shim | Accepted |
 
 When adding a durable architectural choice, create `NNNN-slug.md` and link it from this table and from [00-status.md](../00-status.md) when relevant.

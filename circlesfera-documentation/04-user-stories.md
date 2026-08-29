@@ -17,10 +17,10 @@ This document replaces the previous version of user stories to align them with t
 ## 2. Current epics
 
 ### EPIC-1: Identity and access
-Includes registration, login, refresh token, password recovery, email verification, and passkeys.
+Includes registration, login, refresh token, password recovery, email verification, and passkeys. Operates on **`User`** (account credentials).
 
 ### EPIC-2: Profile and account
-Includes profile editing, account privacy, public/private visibility, and basic social status.
+Includes profile editing (`Profile.username`, avatar, bio), account privacy (`UserSettings`), public/private visibility, and basic social status. **Username and public presentation are profile-scoped** — see [15-identity-profile-model.md](./15-identity-profile-model.md).
 
 ### EPIC-3: Publishing and content
 Includes posts, frames as a post type, media, hashtags, tags, comments, likes, and visibility.

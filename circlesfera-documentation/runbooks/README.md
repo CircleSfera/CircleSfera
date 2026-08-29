@@ -11,6 +11,7 @@ Operational stubs for CircleSfera. Prefer the real scripts under [`scripts/`](..
 
 Also see:
 
+- `npm run smoke:profile-drift` — API smoke for User/Profile admin response shapes (`scripts/validate-profile-drift-smoke.mjs`); see [15-identity-profile-model.md](../15-identity-profile-model.md)
 - `scripts/backup-uploads.sh` — media/uploads backup
 - `scripts/upload-prod-env.sh` — production env upload (secrets-sensitive)
 - `circlesfera-documentation/05-deployment-strategy.md`

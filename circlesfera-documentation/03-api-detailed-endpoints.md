@@ -3,7 +3,7 @@
 ## CircleSfera REST API (controller inventory)
 
 **Generated:** 2026-07-22 from NestJS controllers under `circlesfera-backend/src/**/*.controller.ts`.
-**Last additive sync:** 2026-07-27 (gap-closure).
+**Last additive sync:** 2026-08-29 (User/Profile identity conventions).
 **Global prefix:** `api/v1` (see `main.ts`).
 **Production base:** `https://circlesfera.com/api/v1` (TLS terminates on the VPS host).
 
@@ -36,6 +36,28 @@
 - **CSRF:** required for mutating cookie-authenticated requests.
 - **Guards observed:** `JwtAuthGuard`, `JwtOptionalGuard`, `AdminGuard`, `IdentityVerifiedGuard`, `SubscriptionGuard` + `@RequiresPlan`, `ThrottlerGuard`, `SlackGuard`.
 - **No `@Public` decorator** in the codebase; unauthenticated routes omit auth guards.
+
+### Identity, profile, and username (Aug 2026)
+
+Canonical reference: [15-identity-profile-model.md](./15-identity-profile-model.md), [ADR-0015](./adr/0015-user-profile-identity-split.md).
+
+| Concept | Convention |
+| --- | --- |
+| JWT `sub` | Platform `User.id` |
+| Request user | `CurrentUserData`: `{ userId, email, role, profileId }` |
+| Active social identity | Primary `Profile.id` in `profileId` (v1: first profile for account) |
+| Public handle | `Profile.username` — **not** on `User` |
+| Own profile | `GET /profiles/me`, `PUT /profiles/me` (use `profileId`) |
+| Public profile | `GET /profiles/:username` |
+| Username availability | `GET /profiles/check-username/:username` |
+| Account/settings/billing | `/users/*`, `/payments/*`, `/monetization/*` (mostly `userId`) |
+| Content ownership in DB | `profileId` on posts, stories, comments, likes, follows, chat, etc. |
+| Admin Panel auth | Separate admin JWT → `AdminIdentity` ([ADR-0013](./adr/0013-admin-panel-admin-identity.md)) |
+| Admin list JSON | Nested `user.profile.{username, avatar, fullName?}` via `toAdminUser` / `withPrimaryProfile` |
+
+**Legacy route names:** some paths still say `userId` in the URL (e.g. chat participant removal, highlights) but operate on **profile** ids where the domain is social — verify the controller before assuming account id.
+
+---
 
 ## Route catalog
 

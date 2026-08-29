@@ -1,6 +1,6 @@
 # 02-Database-ER-Diagram
 ## CircleSfera
-**Version:** 3.0 aligned with the real schema  
+**Version:** 3.1 aligned with the real schema (User/Profile split, Aug 2026)  
 **Database:** PostgreSQL  
 **ORM:** Prisma  
 **Source of truth:** current project `schema.prisma`
@@ -10,6 +10,8 @@
 ## 1. Modeling criteria
 
 This ERD describes the reality of the project's current model. It does not simplify toward an outdated MVP, nor does it add entities that do not exist in the shared `schema.prisma`.
+
+**Identity model (Aug 2026):** platform **`User`** = account/money/auth; **`Profile`** = social identity (`username`, content FKs); **`AdminIdentity`** = admin panel operators. See [15-identity-profile-model.md](./15-identity-profile-model.md) and [ADR-0015](./adr/0015-user-profile-identity-split.md).
 
 ---
 
@@ -70,6 +72,28 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `counter`
 - `transports`
 - `createdAt`
+
+### admin_identities
+- `id` (PK)
+- `email` (UNIQUE)
+- `passwordHash`
+- `displayName`
+- `status` (`AdminIdentityStatus`)
+- `totpSecret`, `totpEnabled`, `mfaRequired`
+- `linkedUserId` (nullable FK → users.id — correlation only)
+- `lastLoginAt`, `lastActivityAt`, `failedLoginCount`, `lockedUntil`
+- `createdAt`, `updatedAt`
+- Separate from platform `User`; authorizes `/api/v1/admin/*` ([ADR-0013](./adr/0013-admin-panel-admin-identity.md)).
+
+### admin_roles / admin_permissions / join tables
+- RBAC for Admin Panel (`AdminRole`, `AdminPermission`, `AdminIdentityRole`, `AdminRolePermission`).
+
+### user_settings
+- `id` (PK)
+- `userId` (UNIQUE, FK → users.id)
+- `privacyLevel`, `contentPreference`, `blurSensitiveContent`
+- `emailNotifications`, `pushNotifications`, `isOnboarded`
+- `updatedAt`
 
 ---
 
@@ -148,7 +172,7 @@ This ERD describes the reality of the project's current model. It does not simpl
 
 ### stories
 - `id` (PK)
-- `userId` (FK → users.id)
+- `profileId` (FK → profiles.id)
 - `mediaUrl`
 - `standardUrl`
 - `thumbnailUrl`
@@ -161,21 +185,21 @@ This ERD describes the reality of the project's current model. It does not simpl
 ### story_views
 - `id` (PK)
 - `storyId` (FK → stories.id)
-- `viewerId` (FK → users.id)
+- `viewerId` (FK → profiles.id)
 - `createdAt`
 - UNIQUE (`storyId`, `viewerId`)
 
 ### story_reactions
 - `id` (PK)
 - `storyId` (FK → stories.id)
-- `userId` (FK → users.id)
+- `profileId` (FK → profiles.id)
 - `reaction`
 - `createdAt`
-- UNIQUE (`storyId`, `userId`)
+- UNIQUE (`storyId`, `profileId`)
 
 ### highlights
 - `id` (PK)
-- `userId` (FK → users.id)
+- `profileId` (FK → profiles.id)
 - `title`
 - `coverUrl`
 - `createdAt`
@@ -202,7 +226,7 @@ This ERD describes the reality of the project's current model. It does not simpl
 ### comments
 - `id` (PK)
 - `postId` (FK → posts.id)
-- `userId` (FK → users.id)
+- `profileId` (FK → profiles.id)
 - `content`
 - `mediaUrl`
 - `mediaType`
@@ -213,28 +237,28 @@ This ERD describes the reality of the project's current model. It does not simpl
 ### likes
 - `id` (PK)
 - `postId` (FK → posts.id)
-- `userId` (FK → users.id)
+- `profileId` (FK → profiles.id)
 - `createdAt`
-- UNIQUE (`postId`, `userId`)
+- UNIQUE (`postId`, `profileId`)
 
 ### comment_likes
 - `id` (PK)
 - `commentId` (FK → comments.id)
-- `userId` (FK → users.id)
+- `profileId` (FK → profiles.id)
 - `createdAt`
-- UNIQUE (`commentId`, `userId`)
+- UNIQUE (`commentId`, `profileId`)
 
 ### bookmarks
 - `id` (PK)
-- `userId` (FK → users.id)
+- `profileId` (FK → profiles.id)
 - `postId` (FK → posts.id)
 - `collectionId` (nullable FK → collections.id)
 - `createdAt`
-- UNIQUE (`userId`, `postId`)
+- UNIQUE (`profileId`, `postId`)
 
 ### collections
 - `id` (PK)
-- `userId` (FK → users.id)
+- `profileId` (FK → profiles.id)
 - `name`
 - `coverUrl`
 - `standardUrl`
@@ -248,23 +272,23 @@ This ERD describes the reality of the project's current model. It does not simpl
 
 ### follows
 - `id` (PK)
-- `followerId` (FK → users.id)
-- `followingId` (FK → users.id)
+- `followerId` (FK → profiles.id)
+- `followingId` (FK → profiles.id)
 - `status` (`PENDING | ACCEPTED`)
 - `createdAt`
 - UNIQUE (`followerId`, `followingId`)
 
 ### blocks
 - `id` (PK)
-- `blockerId` (FK → users.id)
-- `blockedId` (FK → users.id)
+- `blockerId` (FK → profiles.id)
+- `blockedId` (FK → profiles.id)
 - `createdAt`
 - UNIQUE (`blockerId`, `blockedId`)
 
 ### mutes
 - `id` (PK)
-- `muterId` (FK → users.id)
-- `mutedId` (FK → users.id)
+- `muterId` (FK → profiles.id)
+- `mutedId` (FK → profiles.id)
 - `createdAt`
 - UNIQUE (`muterId`, `mutedId`)
 - Excludes the muted user's posts from `FeedService` queries (`foryou` and `following`); exposed via `POST/DELETE /users/:username/follow/mute` and `GET /users/me/follow/muted`. Full-account mute is separate from feed preferences (hide post/author, mute keywords) — see [ADR-0004](./adr/0004-feed-preferences.md).
@@ -275,8 +299,8 @@ This ERD describes the reality of the project's current model. It does not simpl
 
 ### notifications
 - `id` (PK)
-- `recipientId` (FK → users.id)
-- `senderId` (nullable FK → users.id)
+- `recipientId` (FK → profiles.id)
+- `senderId` (nullable FK → profiles.id)
 - `type` (`NotificationType` enum)
 - `content`
 - `read`
@@ -302,15 +326,15 @@ This ERD describes the reality of the project's current model. It does not simpl
 ### participants
 - `id` (PK)
 - `conversationId` (FK → conversations.id)
-- `userId` (FK → users.id)
-- `lastReadAt`
+- `profileId` (FK → profiles.id)
+- `isAdmin`, `lastReadAt`, `deletedAt`, `clearedAt`
 - `createdAt`
-- UNIQUE (`conversationId`, `userId`)
+- UNIQUE (`conversationId`, `profileId`)
 
 ### messages
 - `id` (PK)
 - `conversationId` (FK → conversations.id)
-- `senderId` (FK → users.id)
+- `senderId` (FK → profiles.id)
 - `content`
 - `mediaUrl`
 - `mediaType`
@@ -323,10 +347,10 @@ This ERD describes the reality of the project's current model. It does not simpl
 ### message_reactions
 - `id` (PK)
 - `messageId` (FK → messages.id)
-- `userId` (FK → users.id)
+- `profileId` (FK → profiles.id)
 - `reaction`
 - `createdAt`
-- UNIQUE (`messageId`, `userId`)
+- UNIQUE (`messageId`, `profileId`)
 
 ---
 
@@ -435,18 +459,8 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `updatedAt`
 
 ### creator_subscriptions
-- `id` (PK)
-- `subscriberId` (FK → users.id)
-- `creatorId` (FK → users.id)
-- `status` (`SubscriptionStatus`)
-- `priceCents`
-- `stripeSubscriptionId` (UNIQUE, nullable)
-- `expiresAt`
-- `autoRenew`
-- `createdAt`
-- `updatedAt`
-- UNIQUE (`subscriberId`, `creatorId`)
-- Creator-to-creator VIP subscription (distinct from `platform_subscriptions`, which is the platform tier). Canonical price is `Profile.subscriptionPriceCents`, editable via `PATCH /creator/subscription-price`.
+
+**Removed** from live schema (migration `20260729154648_sync_schema_again`). Creator VIP billing paths use Stripe + `Transaction` / application logic; do not reintroduce this table without a new ADR.
 
 ---
 
@@ -454,8 +468,8 @@ This ERD describes the reality of the project's current model. It does not simpl
 
 ### live_streams
 - `id` (PK)
-- `hostId` (FK → users.id)
-- `coHostId` (nullable FK → users.id)
+- `hostId` (FK → profiles.id)
+- `coHostId` (nullable FK → profiles.id)
 - `title` (nullable)
 - `status` (`LiveStatus`: `LIVE | ENDED`)
 - `viewerCount`
@@ -478,10 +492,10 @@ This ERD describes the reality of the project's current model. It does not simpl
 ### poll_votes
 - `id` (PK)
 - `pollId` (FK → polls.id)
-- `userId` (FK → users.id)
+- `profileId` (FK → profiles.id)
 - `optionIndex`
 - `createdAt`
-- UNIQUE (`pollId`, `userId`)
+- UNIQUE (`pollId`, `profileId`)
 
 ### qna_boxes
 - `id` (PK)
@@ -493,7 +507,7 @@ This ERD describes the reality of the project's current model. It does not simpl
 ### qna_answers
 - `id` (PK)
 - `qnaBoxId` (FK → qna_boxes.id)
-- `userId` (FK → users.id)
+- `profileId` (FK → profiles.id)
 - `answerText`
 - `createdAt`
 - Endpoints: `POST /interactive/poll`, `GET /interactive/poll/:id`, `POST /interactive/poll/vote`, `POST /interactive/qna`, `GET /interactive/qna/:id`, `POST /interactive/qna/answer`.
@@ -504,24 +518,27 @@ This ERD describes the reality of the project's current model. It does not simpl
 
 ### reports
 - `id` (PK)
-- `reporterId` (FK → users.id)
+- `reporterId` (FK → profiles.id)
 - `reason`
 - `details`
 - `status` (`PENDING | REVIEWING | RESOLVED | REJECTED`)
 - `targetType` (`post | comment | user | story | message`)
 - `targetId`
-- `reviewedBy` (nullable FK → users.id) — admin who handled the report
-- `resolvedAt` (nullable timestamp) — when the report was closed
+- `assignedAdminId` (nullable FK → admin_identities.id) — operator who claimed/handled the report
+- `resolvedAt` (nullable timestamp)
+- `internalNotes`
 - `createdAt`
 - `updatedAt`
 
 ### admin_audit_logs
 - `id` (PK)
-- `adminId` (FK → users.id)
+- `adminId` (nullable FK → admin_identities.id)
+- `legacyUserId` (nullable — pre–AdminIdentity migration rows)
 - `action`
 - `targetType`
 - `targetId`
 - `details`
+- `ipAddress`, `userAgent`, `requestId`
 - `createdAt`
 
 ### appeals
@@ -538,9 +555,10 @@ This ERD describes the reality of the project's current model. It does not simpl
 
 ### search_history
 - `id` (PK)
-- `userId` (FK → users.id)
+- `profileId` (FK → profiles.id)
 - `query`
 - `createdAt`
+- `expiresAt` (GDPR retention)
 
 ### whitelist_entries
 - `id` (PK)
@@ -550,47 +568,37 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `createdAt`
 - `updatedAt`
 
-### user_settings
-- `id` (PK)
-- `userId` (UNIQUE, FK → users.id)
-- `privacyLevel` (`PUBLIC | FOLLOWERS | PRIVATE`)
-- `contentPreference` (`GENERAL | MATURE`)
-- `blurSensitiveContent`
-- `emailNotifications`
-- `pushNotifications`
-- `updatedAt`
-
 ---
 
 ## 12. Main relationships
 
-- `users` 1 ── 1 `profiles`
+- `users` 1 ── N `profiles` (v1 product uses one primary profile per account)
 - `users` 1 ── N `refresh_tokens`
 - `users` 1 ── N `passkeys`
-- `users` 1 ── N `posts`
+- `profiles` 1 ── N `posts`
 - `posts` 1 ── N `post_media`
 - `posts` 1 ── N `comments`
 - `posts` 1 ── N `likes`
 - `posts` 1 ── N `bookmarks`
 - `posts` N ── N `hashtags` via `post_hashtags`
 - `posts` 1 ── 1 `post_embeddings`
-- `users` N ── N `posts` via `post_tags`
-- `users` 1 ── N `stories`
+- `profiles` N ── N `posts` via `post_tags`
+- `profiles` 1 ── N `stories`
 - `stories` 1 ── N `story_views`
 - `stories` 1 ── N `story_reactions`
-- `users` 1 ── N `highlights`
+- `profiles` 1 ── N `highlights`
 - `highlights` N ── N `stories` via `highlight_stories`
-- `users` 1 ── N `comments`
+- `profiles` 1 ── N `comments`
 - `comments` 1 ── N `comment_likes`
 - `comments` 1 ── N `comments` (self-reference)
-- `users` 1 ── N `bookmarks`
-- `users` 1 ── N `collections`
-- `users` 1 ── N `follows` as follower
-- `users` 1 ── N `follows` as following
-- `users` 1 ── N `blocks` as blocker
-- `users` 1 ── N `blocks` as blocked
-- `users` 1 ── N `notifications` as recipient
-- `users` 1 ── N `notifications` as sender
+- `profiles` 1 ── N `bookmarks`
+- `profiles` 1 ── N `collections`
+- `profiles` 1 ── N `follows` as follower
+- `profiles` 1 ── N `follows` as following
+- `profiles` 1 ── N `blocks` as blocker
+- `profiles` 1 ── N `blocks` as blocked
+- `profiles` 1 ── N `notifications` as recipient
+- `profiles` 1 ── N `notifications` as sender
 - `conversations` 1 ── N `participants`
 - `conversations` 1 ── N `messages`
 - `messages` 1 ── N `message_reactions`
@@ -600,25 +608,25 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `users` 1 ── N `promotions`
 - `profiles` 1 ── N `close_friends` as owner (`profileId`)
 - `profiles` 1 ── N `close_friends` as friend (`friendId`)
-- `users` 1 ── N `reports`
+- `profiles` 1 ── N `reports` as reporter
+- `admin_identities` 1 ── N `reports` as assignee
+- `admin_identities` 1 ── N `admin_audit_logs`
 
 ### Money units
 - Prefer `*Cents` Int columns (`priceCents`, `budgetCents`, `amountCents`, `lifetimeEarningsCents`).
 - `transactions.amount` is **already integer cents** under the legacy field name `amount` (public API contract — do not rename without a versioned migration).
-- `users` 1 ── N `admin_audit_logs`
 - `users` 1 ── 1 `user_settings`
 - `audio_tracks` 1 ── N `posts`
 - `audio_tracks` 1 ── N `stories`
-- `users` 1 ── N `mutes` as muter
-- `users` 1 ── N `mutes` as muted
+- `profiles` 1 ── N `mutes` as muter
+- `profiles` 1 ── N `mutes` as muted
 - `users` 1 ── N `appeals`
-- `users` 1 ── N `live_streams` as host
-- `users` 1 ── N `live_streams` as co-host
+- `profiles` 1 ── N `live_streams` as host
+- `profiles` 1 ── N `live_streams` as co-host
 - `posts` 1 ── 0..1 `polls` / `qna_boxes`
 - `stories` 1 ── 0..1 `polls` / `qna_boxes`
-- `users` 1 ── N `creator_subscriptions` as subscriber
-- `users` 1 ── N `creator_subscriptions` as creator
 - `profiles` 1 ── 1 `profile_embeddings`
+- `profiles` 1 ── N `search_history`
 
 ---
 
@@ -630,8 +638,10 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `user_settings`, `feature_entitlements`, and separate analytics tables are removed from the current official ERD.
 - `chat`, `highlights`, `collections`, `passkeys`, `promotions`, `audio`, `search_history`, `whitelist_entries`, `user_settings`, and `post_embeddings` now appear in the official ERD.
 
-### Revision note (Jul 2026)
-An earlier revision of this document stated that `mutes`, `appeals`, and `moderation_actions` were "removed from the official ERD." That was inaccurate for `mutes` and `appeals`: both are real, persisted models in the live `schema.prisma` (`mutes` → §6, `appeals` → §11) and are wired to shipped API endpoints and UI (mute/unmute on profile and post menus; `Settings → Appeals`). There is still **no** separate `moderation_actions` table — `Report` + `AdminAuditLog` (+ `Appeal`) remain the persisted moderation surface. Feed-preference tables (`feed_hidden_posts`, `feed_hidden_authors`, `feed_muted_keywords`) **are implemented** — see [ADR-0004](./adr/0004-feed-preferences.md). Live gifts are billed (`LiveGift` + `DIRECT_LIVE_GIFT`).
+### Revision note (Aug 2026)
+**User/Profile split:** Social FKs documented as `profileId` / `profiles.id` (not `userId` on posts, likes, follows, chat, etc.). `username` lives on `Profile`. Admin audit/assignee references `AdminIdentity`. `creator_subscriptions` table removed from schema. See [15-identity-profile-model.md](./15-identity-profile-model.md).
+
+An earlier revision (Jul 2026) stated that `mutes`, `appeals`, and `moderation_actions` were "removed from the official ERD." That was inaccurate for `mutes` and `appeals`: both are real, persisted models in the live `schema.prisma` (`mutes` → §6, `appeals` → §11) and are wired to shipped API endpoints and UI (mute/unmute on profile and post menus; `Settings → Appeals`). There is still **no** separate `moderation_actions` table — `Report` + `AdminAuditLog` (+ `Appeal`) remain the persisted moderation surface. Feed-preference tables (`feed_hidden_posts`, `feed_hidden_authors`, `feed_muted_keywords`) **are implemented** — see [ADR-0004](./adr/0004-feed-preferences.md). Live gifts are billed (`LiveGift` + `DIRECT_LIVE_GIFT`).
 
 ### Kept as future application logic
 - A dedicated `ModerationAction` table (currently unmodeled; traceability lives in `AdminAuditLog`/`Report`).

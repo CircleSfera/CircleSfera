@@ -1,408 +1,107 @@
-# CircleSfera Backend API
+# CircleSfera Backend
 
-A modern, production-ready REST API for a social media platform built with NestJS, PostgreSQL, and Prisma.
+NestJS API for CircleSfera. Global prefix: **`/api/v1`**.
 
-## 📋 Table of Contents
+This is a production codebase (auth, monetization, chat, live, moderation, admin RBAC), not a tutorial API. For route inventory use [03-api-detailed-endpoints.md](../circlesfera-documentation/03-api-detailed-endpoints.md); for models use [`prisma/schema.prisma`](./prisma/schema.prisma).
 
-- [Overview](#overview)
-- [Technology Stack](#technology-stack)
-- [Features](#features)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [API Documentation](#api-documentation)
-- [Database Schema](#database-schema)
-- [Testing](#testing)
-- [Security](#security)
-- [Best Practices](#best-practices)
-- [Backlog](#backlog)
+## Identity model
 
-## 🎯 Overview
+| Model | Role |
+| --- | --- |
+| `User` | Account: email, auth, Stripe, platform plans, trust/abuse, settings |
+| `Profile` | Social identity: **`username`**, avatar, content & graph FKs (`profileId`) |
+| `AdminIdentity` | Admin Panel operators (separate JWT, MFA, RBAC) |
 
-CircleSfera Backend is a RESTful API that powers a social media application. It provides comprehensive functionality for user authentication, content management, social interactions, and real-time notifications.
+JWT session exposes `userId` (`sub`) and primary `profileId`. Details: [15-identity-profile-model.md](../circlesfera-documentation/15-identity-profile-model.md).
 
-## 🛠 Technology Stack
+## Stack
 
-| Category           | Technology        | Version |
-| ------------------ | ----------------- | ------- |
-| **Runtime**        | Node.js           | 20.x+   |
-| **Framework**      | NestJS            | 11.1.10 |
-| **Language**       | TypeScript        | 5.7.3   |
-| **Database**       | PostgreSQL        | 15+     |
-| **ORM**            | Prisma            | 7.4.0   |
-| **Testing**        | Vitest            | 4.0.18  |
-| **Authentication** | JWT (Passport)    | 0.7.0   |
-| **Validation**     | class-validator   | 0.14.3  |
-| **Security**       | bcrypt            | 6.0.0   |
-| **Rate Limiting**  | @nestjs/throttler | 6.5.0   |
+- NestJS 11, TypeScript, Vitest
+- PostgreSQL 16 + Prisma 7 (`@prisma/client` 7.8)
+- Redis (cache, BullMQ, Socket.IO adapter)
+- Argon2 password hashing, cookie JWT + CSRF ([ADR-0007](../circlesfera-documentation/adr/0007-auth-cookies-csrf.md))
 
-## ✨ Features
+## Module map (high level)
 
-### Authentication & Authorization
+`src/` is organized by domain modules, including: `auth`, `profiles`, `users`, `posts`, `stories`, `feed`, `follows`, `chat`, `notifications`, `search`, `interactive` (polls/QnA), `live`, `monetization`, `payments`, `creator`, `reports`, `appeals`, `admin`, `admin-auth`, `uploads`, `media`, `ai`, `webrtc`, `maintenance`, and others. Business rules live in **services**, not controllers.
 
-- [x] User registration with email validation
-- [x] Secure login with JWT tokens
-- [x] Access token (15min) + Refresh token (7 days) strategy
-- [x] Token refresh mechanism
-- [x] Secure logout
+## Getting started
 
-### User Management
-
-- [x] User profiles with customizable fields
-- [x] Profile updates (bio, avatar, website)
-- [x] Username uniqueness validation
-
-### Content Management
-
-- [x] Create, read, update, delete posts
-- [x] Media URL support (images)
-- [x] Caption support with optional text
-- [x] 24-hour ephemeral stories
-
-### Social Features
-
-- [x] Follow/Unfollow users
-- [x] Like/Unlike posts
-- [x] Comments on posts
-- [x] Personalized feed (followed users' posts)
-- [x] Explore page (all posts)
-
-### Notifications
-
-- [x] Follow notifications
-- [x] Like notifications
-- [x] Comment notifications
-- [x] Mark as read functionality
-- [x] Unread count
-
-## 📁 Project Structure
-
-```
-backend-api/
-├── prisma/
-│   ├── schema.prisma      # Database schema
-│   ├── seed.ts            # Main database seeding script
-│   ├── seed-audio.ts      # Audio tracks seeding script
-│   └── migrations/        # Database migrations
-├── scripts/
-│   └── check-user.ts      # Utility to list users in DB
-├── src/
-│   ├── auth/              # Authentication module
-│   │   ├── decorators/    # Custom decorators (@CurrentUser)
-│   │   ├── dto/           # Data Transfer Objects
-│   │   ├── guards/        # JWT Auth Guard
-│   │   └── strategies/    # Passport JWT Strategy
-│   ├── comments/          # Comments module
-│   ├── common/            # Shared utilities
-│   │   └── dto/           # Pagination DTOs
-│   ├── follows/           # Follow system module
-│   ├── likes/             # Likes module
-│   ├── notifications/     # Notifications module
-│   ├── posts/             # Posts module
-│   ├── prisma/            # Prisma service
-│   ├── profiles/          # User profiles module
-│   ├── stories/           # Stories module
-│   ├── users/             # Users module
-│   ├── app.module.ts      # Root module
-│   └── main.ts            # Application entry point
-├── test/                  # E2E tests
-├── vitest.config.ts       # Vitest configuration
-├── vitest.e2e.config.ts   # E2E test configuration
-├── .swcrc                 # SWC configuration for decorators
-├── .env.example           # Environment variables template
-└── package.json
-```
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js 20.x or higher
-- PostgreSQL 15 or higher
-- npm or yarn
-- **Shared Package**: Must be built locally (see Root README)
-
-### Installation
+**Prerequisites:** Node 24, PostgreSQL, Redis, built `@circlesfera/shared`.
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd backend-api
-
-# Install dependencies
+cd circlesfera-backend
 npm install
-
-# Copy environment variables
-cp .env.example .env
-
-# Edit .env with your database credentials
-```
-
-### Environment Variables
-
-```env
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/circlesfera?schema=public"
-
-# JWT
-JWT_SECRET="your-super-secret-jwt-key-min-32-chars"
-JWT_REFRESH_SECRET="your-refresh-secret-key-min-32-chars"
-
-# Server
-PORT=3000
-CORS_ORIGIN="http://localhost:5173"
-```
-
-### Database Setup
-
-```bash
-# Generate Prisma Client
+cp .env.example .env   # or symlink from repo root .env
 npx prisma generate
-
-# Run migrations
-npx prisma migrate dev --name init
-
-# Seed the database (optional)
-npm run prisma:seed
-
-# Seed only audio tracks
-npm run prisma:seed:audio
-```
-
-### Running the Application
-
-```bash
-# Development
+npx prisma migrate dev
+npm run prisma:seed    # optional
 npm run start:dev
-
-# Production build
-npm run build
-npm run start:prod
-
-# Utils
-npm run check-user
 ```
 
-## 📚 API Documentation
+API base (local): `http://localhost:3000/api/v1`
 
-### Base URL
+**Docker (recommended):** from repo root, `docker compose up -d` — backend runs with Postgres + Redis on the compose network.
 
-```
-http://localhost:3000/api/v1
-```
+### Essential environment
 
-### Authentication Endpoints
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL connection |
+| `REDIS_HOST` / `REDIS_PASSWORD` | Cache, queues, sockets |
+| `JWT_SECRET`, `JWT_REFRESH_SECRET` | Platform session cookies |
+| `JWT_ADMIN_SECRET` | Admin Panel JWT |
+| `CSRF_SECRET` | Double-submit CSRF |
+| `ENCRYPTION_KEY` | Encrypted DMs at rest |
 
-| Method | Endpoint         | Description          | Auth |
-| ------ | ---------------- | -------------------- | ---- |
-| POST   | `/auth/register` | Register new user    | No   |
-| POST   | `/auth/login`    | Login user           | No   |
-| POST   | `/auth/refresh`  | Refresh access token | No   |
-| POST   | `/auth/logout`   | Logout user          | Yes  |
+See `.env.example` for Stripe, LiveKit, storage, email, OpenAI, etc.
 
-### Posts Endpoints
+## Auth behaviour (platform)
 
-| Method | Endpoint         | Description           | Auth |
-| ------ | ---------------- | --------------------- | ---- |
-| GET    | `/posts/feed`    | Get personalized feed | Yes  |
-| GET    | `/posts/explore` | Get all posts         | Yes  |
-| GET    | `/posts/:id`     | Get single post       | Yes  |
-| POST   | `/posts`         | Create new post       | Yes  |
-| PUT    | `/posts/:id`     | Update post           | Yes  |
-| DELETE | `/posts/:id`     | Delete post           | Yes  |
+- Login/register set **HTTP-only cookies** (access + refresh), not tokens in JSON bodies.
+- Mutating requests from the browser require **CSRF** (`GET /csrf-token`, header `x-csrf-token`).
+- `@CurrentUser()` → `{ userId, email, role, profileId }`.
+- Admin routes under `/admin/*` require **admin** session (`/admin-auth/*`), not platform cookies.
 
-### Users & Profiles Endpoints
+## Database
 
-| Method | Endpoint              | Description              | Auth |
-| ------ | --------------------- | ------------------------ | ---- |
-| GET    | `/profiles/:username` | Get user profile         | Yes  |
-| GET    | `/profiles/me`        | Get current user profile | Yes  |
-| PUT    | `/profiles`           | Update profile           | Yes  |
+- **Canonical schema:** `prisma/schema.prisma` (~65 models). Do not edit without a migration in the same change.
+- Migrations: `prisma/migrations/`
+- Seed: `npm run prisma:seed`, `npm run prisma:seed:audio`
+- Admin bootstrap: `npm run bootstrap-admin`
+- Embedding backfill: `npm run embeddings:backfill`
+- Migration drift check: `npm run prisma:check-migrations`
 
-### Social Endpoints
-
-| Method | Endpoint                        | Description         | Auth |
-| ------ | ------------------------------- | ------------------- | ---- |
-| POST   | `/users/:username/follow`       | Toggle follow       | Yes  |
-| GET    | `/users/:username/follow/check` | Check follow status | Yes  |
-| POST   | `/posts/:id/like`               | Toggle like         | Yes  |
-| GET    | `/posts/:id/like/check`         | Check like status   | Yes  |
-| GET    | `/posts/:id/comments`           | Get post comments   | Yes  |
-| POST   | `/posts/:id/comments`           | Add comment         | Yes  |
-
-### Request/Response Examples
-
-#### Register User
-
-```json
-POST /api/v1/auth/register
-{
-  "email": "user@example.com",
-  "password": "securePassword123",
-  "username": "johndoe",
-  "fullName": "John Doe"
-}
-
-Response:
-{
-  "accessToken": "eyJhbGciOiJIUzI1NiIs...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
-}
-```
-
-## 🗃 Database Schema
-
-```
-User
-├── id (UUID)
-├── email (unique)
-├── password (hashed)
-├── createdAt
-├── updatedAt
-└── Relations: Profile, Posts, Stories, Comments, Likes, Follows
-
-Profile
-├── id (UUID)
-├── userId (unique)
-├── username (unique)
-├── fullName
-├── bio
-├── avatar
-├── website
-└── Relations: User
-
-Post
-├── id (UUID)
-├── userId
-├── caption
-├── mediaUrl
-├── mediaType
-├── createdAt
-└── Relations: User, Comments, Likes
-
-Story
-├── id (UUID)
-├── userId
-├── mediaUrl
-├── mediaType
-├── expiresAt
-├── createdAt
-└── Relations: User
-```
-
-## 🧪 Testing
-
-This project uses **Vitest** for testing, providing:
-
-- ⚡ Fast execution with native ESM support
-- 🔧 Native TypeScript support via SWC
-- 📊 Built-in code coverage
-- 🎯 Jest-compatible API
-
-### Running Tests
+## Testing
 
 ```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:cov
-
-# Run E2E tests
-npm run test:e2e
+npm test              # unit (Vitest)
+npm run test:e2e      # backend e2e
+npm run test:cov      # coverage
 ```
 
-### Test Configuration
+Repo-level Playwright suites live in `/e2e`.
 
-- **Unit tests**: `vitest.config.ts`
-- **E2E tests**: `vitest.e2e.config.ts`
-- **SWC config**: `.swcrc` (for decorator metadata support)
+## Ops scripts (repo root)
 
-## 🔒 Security
+```bash
+npm run smoke:profile-drift   # from monorepo root — admin User/Profile response smoke
+```
 
-### Implemented Security Measures
+Message re-encryption after key rotation: `dist/scripts/reencrypt-messages.js` (see runbooks).
 
-1. **Password Hashing**: bcrypt with salt rounds of 10
-2. **JWT Tokens**: Short-lived access tokens (15min) + long-lived refresh tokens (7 days)
-3. **Rate Limiting**: Three-tier throttling
-   - Short: 10 requests/second
-   - Medium: 100 requests/minute
-   - Long: 1000 requests/hour
-4. **Input Validation**: class-validator with whitelist mode
-5. **CORS**: Configurable origin restriction
-6. **SQL Injection Prevention**: Prisma ORM with parameterized queries
+## Security
 
-## 📐 Best Practices
+- Throttling (`@nestjs/throttler`), Helmet/CSP, validated DTOs (whitelist)
+- `OwnershipGuard` defaults to **`profileId`** for social resources
+- Do not weaken guards or expose secrets in logs/responses
 
-### Code Organization
+## Related docs
 
-- **Modular Architecture**: Each feature in its own NestJS module
-- **Separation of Concerns**: Controllers → Services → Prisma
-- **DTOs**: Type-safe data transfer objects with validation
-- **Custom Decorators**: Reusable @CurrentUser decorator
+- [06-security-privacy-compliance.md](../circlesfera-documentation/06-security-privacy-compliance.md)
+- [02-database-er-diagram.md](../circlesfera-documentation/02-database-er-diagram.md)
+- [ADR index](../circlesfera-documentation/adr/README.md)
 
-### TypeScript
+## License
 
-- **Strict Mode**: Enabled for maximum type safety
-- **Type-only Imports**: Using `import type` for type definitions
-- **No Any Types**: Explicit typing throughout the codebase
-
-### API Design
-
-- **RESTful Conventions**: Proper HTTP methods and status codes
-- **Pagination**: Consistent pagination with meta information
-- **Error Handling**: Global exception filter with standardized responses
-- **Versioning**: API versioned with `/api/v1` prefix
-
-### Database
-
-- **Prisma Migrations**: Version-controlled schema changes
-- **Seeding**: Reproducible test data
-- **Indexes**: Optimized for common queries
-- **Relationships**: Proper foreign keys and constraints
-
-## 📋 Backlog
-
-### Completed ✅
-
-- [x] Core authentication system
-- [x] User profiles
-- [x] Posts CRUD
-- [x] Stories with 24h expiration
-- [x] Follow/Unfollow system
-- [x] Like system
-- [x] Comment system
-- [x] Notifications
-- [x] Pagination
-- [x] Rate limiting
-- [x] Input validation
-- [x] Vitest testing setup
-
-### Future Enhancements 🚧
-
-- [ ] Real-time notifications (WebSockets)
-- [ ] Direct messaging
-- [ ] Story reactions
-- [ ] Post sharing
-- [ ] Hashtag support
-- [ ] User search
-- [ ] Media upload to cloud storage (S3/Cloudinary)
-- [ ] Email verification
-- [ ] Password reset
-- [ ] Two-factor authentication
-- [ ] Admin dashboard
-- [ ] Analytics
-
-## 📄 License
-
-MIT License - See LICENSE file for details.
-
-## 👥 Contributors
-
-- Development Team
-
----
-
-Built with ❤️ using NestJS + Vitest
+MIT — see [LICENSE](../LICENSE).

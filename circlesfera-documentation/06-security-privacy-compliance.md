@@ -59,7 +59,7 @@ This means security and privacy risks are greater than in a reduced documentary 
 ## 4. Authentication and authorization
 
 ### 4.1 Supported authentication
-- Password + JWT access token.
+- Password + JWT access token (`sub` = `User.id`; validated session also carries primary `Profile.id` as `profileId`).
 - Persisted refresh tokens.
 - Email verification flows.
 - Password reset.
@@ -79,6 +79,8 @@ This means security and privacy risks are greater than in a reduced documentary 
 **Admin Panel:** operators use a separate `AdminIdentity` with persisted RBAC (`AdminRole` / `AdminPermission`). Staff APIs require an admin JWT (`aud=circlesfera-admin`), not a platform session. MFA is mandatory for operators. ABAC scopes are not implemented in v1.
 
 Do not document `User.role = ADMIN` as the admin-panel entry path.
+
+**Social identity:** public `username` and avatar live on `Profile`, not `User`. Content and graph FKs use `profileId`. See [15-identity-profile-model.md](./15-identity-profile-model.md).
 
 ---
 

@@ -207,19 +207,18 @@ Operates reporting, auditing, and administrative actions. The schema includes `R
 
 ### 7.1 Identity and access
 
-- Registration and login.
-- Refresh tokens.
-- Email verification.
-- Account recovery.
-- Passkeys / WebAuthn.
-- Account states: active, soft-deleted (`deletedAt`).
-- Roles: `USER`, `ADMIN`.
+- Registration and login (platform **`User`** account).
+- Refresh tokens, email verification, account recovery, passkeys / WebAuthn.
+- Account states: active, soft-deleted (`deletedAt`), root ban, scheduled hard-delete.
+- Platform JWT roles: `USER`, `ADMIN`, `MODERATOR` (admin-panel access uses separate **`AdminIdentity`** — [ADR-0013](./adr/0013-admin-panel-admin-identity.md)).
 - Verification levels: `BASIC`, `VERIFIED`, `BUSINESS`, `ELITE`.
 - Account types: `PERSONAL`, `CREATOR`, `BUSINESS`.
 
+Canonical split: [15-identity-profile-model.md](./15-identity-profile-model.md).
+
 ### 7.2 Social profile
 
-- Unique username on `Profile`.
+- Unique **`username` on `Profile`** (not on `User`).
 - Public name, bio, website, and location.
 - Avatar with optimized variants.
 - Private profile via `UserSettings.privacyLevel` (exposed to clients as `isPrivate` where mapped).

@@ -24,7 +24,7 @@ Cuando exista conflicto entre documentos, se debe respetar este orden de priorid
 1. `schema.prisma`
 2. Código fuente realmente implementado
 3. Contratos API vigentes
-4. ADRs (Architecture Decision Records) — `circlesfera-documentation/adr/` (Currently 12 ADRs, through `0012`)
+4. ADRs (Architecture Decision Records) — `circlesfera-documentation/adr/` (Currently 15 ADRs, through `0015`)
 5. Documentación técnica y funcional (`circlesfera-documentation/`)
 6. Suposiciones
 

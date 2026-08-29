@@ -1,6 +1,14 @@
 # Documentation status
 
-**Last status note:** Aug 2026 — Admin Panel T&S workflow hardening
+**Last status note:** Aug 2026 — User/Profile identity documentation sync
+
+## Aug 2026 User / Profile identity
+
+- **`User`** = account (email, auth, Stripe, platform plans, trust); **`Profile`** = social identity (`username`, avatar, all content/social FKs)
+- JWT session exposes both `userId` (`sub`) and primary `profileId` — see [15-identity-profile-model.md](./15-identity-profile-model.md)
+- Admin APIs flatten profile fields to `user.profile.*` for React admin tabs; helpers in `common/utils/user-profile-shape.util.ts`
+- ERD §4–12 corrected: social tables use `profileId`, not `userId`; live hosts on `Profile`; reports reporter on `Profile`; assignee on `AdminIdentity`
+- **ADR-0015** documents the split; regression smoke: `npm run smoke:profile-drift` (`scripts/validate-profile-drift-smoke.mjs`)
 
 ## Aug 2026 Admin Panel
 

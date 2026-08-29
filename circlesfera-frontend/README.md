@@ -1,413 +1,106 @@
 # CircleSfera Frontend
 
-A modern, responsive social media web application built with React, TypeScript, and Tailwind CSS.
+React 19 SPA for the CircleSfera consumer app and the **Admin Panel** (host-based routing on `admin.circlesfera.com` in production).
 
-## 📋 Table of Contents
+Mobile-first UI (390×844 baseline), high information density. Design tokens and layout rules: [09-design-system.md](../circlesfera-documentation/09-design-system.md), [13-layout-guidelines.md](../circlesfera-documentation/13-layout-guidelines.md).
 
-- [Overview](#overview)
-- [Technology Stack](#technology-stack)
-- [Features](#features)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Components](#components)
-- [State Management](#state-management)
-- [API Integration](#api-integration)
-- [Styling](#styling)
-- [Best Practices](#best-practices)
-- [Backlog](#backlog)
+## Stack
 
-## 🎯 Overview
+- React 19, Vite 7, TypeScript
+- TanStack Query (server state), Zustand (client state)
+- Tailwind CSS 4, React Router 7
+- Axios with **`withCredentials: true`** (cookie sessions)
+- LiveKit components (live), Capacitor (native shell hooks)
+- Vitest + Playwright
 
-CircleSfera Frontend is a single-page application that provides a beautiful and intuitive user interface for social media interactions. Built with modern React patterns and TypeScript for type safety, it offers a seamless user experience.
+## Architecture notes
 
-## 🛠 Technology Stack
+### Auth
 
-| Category             | Technology     | Version |
-| -------------------- | -------------- | ------- |
-| **Framework**        | React          | 19.2.3  |
-| **Build Tool**       | Vite           | 7.2.4   |
-| **Language**         | TypeScript     | 5.9.3   |
-| **Styling**          | Tailwind CSS   | 4.1.18  |
-| **Routing**          | React Router   | 7.13.0  |
-| **State Management** | Zustand        | 5.0.11  |
-| **Data Fetching**    | TanStack Query | 5.90.20 |
-| **HTTP Client**      | Axios          | 1.13.4  |
+Platform auth uses **HTTP-only cookies** managed by the backend — not Bearer tokens in `localStorage`. `authStore` persists profile/session *metadata* only; `checkSession()` validates via `GET /profiles/me` on cold start.
 
-## ✨ Features
+CSRF: fetch `/api/v1/csrf-token` and send `x-csrf-token` on mutating requests.
 
-### Authentication
+Admin Panel uses a separate `adminAuthStore` and admin cookie domain ([ADR-0013](../circlesfera-documentation/adr/0013-admin-panel-admin-identity.md)).
 
-- [x] User registration with form validation
-- [x] Secure login with JWT tokens
-- [x] Automatic token refresh
-- [x] Protected routes
-- [x] Persistent auth state
+### Identity in the UI
 
-### User Experience
+- Public routes use **`Profile.username`** (`/:username`, profile cards, mentions).
+- Account settings, billing, GDPR: account-scoped APIs under `/users/*`.
+- See [15-identity-profile-model.md](../circlesfera-documentation/15-identity-profile-model.md).
 
-- [x] Responsive design (mobile-first)
-- [x] Modern UI with gradients and animations
-- [x] Loading states and skeletons
-- [x] Error handling with user-friendly messages
-- [x] Empty state handling
-
-### Social Features
-
-- [x] Personalized home feed
-- [x] Explore page with all posts
-- [x] User profiles with stats
-- [x] Follow/Unfollow users
-- [x] Like/Unlike posts
-- [x] Comments section
-- [x] 24-hour stories viewer
-
-### Navigation
-
-- [x] Fixed navbar with branding
-- [x] Quick access to profile
-- [x] Settings page
-- [x] Logout functionality
-
-## 📁 Project Structure
+### Code layout
 
 ```
-frontend-app/
-├── public/                   # Static assets
-├── src/
-│   ├── components/           # Reusable UI components
-│   │   ├── CommentList.tsx   # Comments display and input
-│   │   ├── ErrorEmptyStates.tsx  # Error and empty states
-│   │   ├── FollowButton.tsx  # Follow/unfollow button
-│   │   ├── LikeButton.tsx    # Like/unlike button
-│   │   ├── LoadingStates.tsx # Loading spinners and skeletons
-│   │   ├── Navbar.tsx        # Top navigation bar
-│   │   ├── PostCard.tsx      # Post display card
-│   │   ├── Sidebar.tsx       # Side navigation
-│   │   ├── StoryList.tsx     # Stories horizontal list
-│   │   ├── StoryViewer.tsx   # Full-screen story viewer
-│   │   ├── UserAvatar.tsx    # User avatar component
-│   │   └── index.ts          # Component exports
-│   ├── pages/                # Page components
-│   │   ├── Explore.tsx       # Explore/discover page
-│   │   ├── Home.tsx          # Main feed page
-│   │   ├── Login.tsx         # Login page
-│   │   ├── PostDetail.tsx    # Single post view
-│   │   ├── Profile.tsx       # User profile page
-│   │   ├── Register.tsx      # Registration page
-│   │   └── Settings.tsx      # User settings page
-│   ├── services/             # API integration
-│   │   ├── api.ts            # Axios instance and interceptors
-│   │   └── index.ts          # API endpoint functions
-│   ├── stores/               # State management
-│   │   └── authStore.ts      # Authentication state (Zustand)
-│   ├── types/                # TypeScript type definitions
-│   │   └── index.ts          # Shared types
-│   ├── App.tsx               # Root component with routing
-│   ├── main.tsx              # Application entry point
-│   └── index.css             # Global styles (Tailwind)
-├── .env.example              # Environment variables template
-├── index.html                # HTML template
-├── package.json              # Dependencies and scripts
-├── tailwind.config.js        # Tailwind configuration
-├── tsconfig.json             # TypeScript configuration
-└── vite.config.ts            # Vite configuration
+src/
+├── components/     # UI by feature (feed, chat, story, admin, create-post, …)
+├── pages/          # Route-level views
+├── services/       # Axios API modules per domain
+├── stores/         # Zustand (auth, notifications, chat, …)
+├── hooks/
+├── types/
+└── utils/
 ```
 
-## 🚀 Getting Started
+Lazy-loaded routes for heavy surfaces (chat panes, creator studio, admin tabs). Admin UI expects API payloads with nested `user.profile.username` for list rows.
 
-### Prerequisites
+## Getting started
 
-- Node.js 20.x or higher
-- npm or yarn
-- Backend API running (see backend README)
-- **Shared Package**: Must be built locally (see Root README)
-
-### Installation
+**Prerequisites:** Node 24, running API (Docker compose recommended).
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd frontend-app
-
-# Install dependencies
+cd circlesfera-frontend
 npm install
-
-# Copy environment variables
 cp .env.example .env
-```
-
-### Environment Variables
-
-```env
-# API URL
-VITE_API_URL=http://localhost:3000
-```
-
-### Running the Application
-
-```bash
-# Development server
 npm run dev
-
-# Production build
-npm run build
-
-# Preview production build
-npm run preview
-
-# Run linting
-npm run lint
 ```
 
-## 🧩 Components
+| Variable | Typical local value |
+| --- | --- |
+| `VITE_API_URL` | `http://localhost:3000/api/v1` (or `/api/v1` behind nginx on `:8080`) |
 
-### Core Components
+With Docker from repo root, frontend dev uses `VITE_API_PROXY_TARGET=http://backend:3000`; browse via **http://localhost:8080** (nginx) or **http://localhost:5173** (Vite direct).
 
-| Component    | Description                                     |
-| ------------ | ----------------------------------------------- |
-| `Navbar`     | Top navigation with logo, nav icons, and logout |
-| `Sidebar`    | Side navigation for desktop views               |
-| `PostCard`   | Displays a single post with interactions        |
-| `UserAvatar` | Reusable avatar component with fallback         |
+Build shared package first if linking locally: `cd ../circlesfera-shared && npm run build`.
 
-### Interactive Components
-
-| Component      | Description                             |
-| -------------- | --------------------------------------- |
-| `LikeButton`   | Heart icon that toggles like state      |
-| `FollowButton` | Button to follow/unfollow users         |
-| `CommentList`  | Displays comments with add comment form |
-
-### Story Components
-
-| Component     | Description                            |
-| ------------- | -------------------------------------- |
-| `StoryList`   | Horizontal scrollable story circles    |
-| `StoryViewer` | Full-screen story viewer with progress |
-
-### State Components
-
-| Component        | Description                     |
-| ---------------- | ------------------------------- |
-| `LoadingSpinner` | Animated loading spinner        |
-| `LoadingCard`    | Skeleton loader for cards       |
-| `LoadingPage`    | Full-page loading state         |
-| `ErrorState`     | Error message with retry option |
-| `EmptyState`     | Empty content placeholder       |
-
-## 🗃 State Management
-
-### Zustand Store (authStore)
-
-```typescript
-interface AuthState {
-  accessToken: string | null;
-  refreshToken: string | null;
-  profile: UserProfile | null;
-  isAuthenticated: boolean;
-
-  // Actions
-  setTokens: (access: string, refresh: string) => void;
-  setProfile: (profile: UserProfile) => void;
-  logout: () => void;
-}
-```
-
-**Features:**
-
-- Persistent storage (localStorage)
-- Type-safe with TypeScript
-- Simple API for authentication state
-
-### TanStack Query
-
-Used for:
-
-- Server state management
-- Automatic caching
-- Background refetching
-- Optimistic updates
-- Query invalidation
-
-**Query Keys Convention:**
-
-```typescript
-["feed"]["explore"][("post", id)][("profile", username)][("comments", postId)][ // Home feed // Explore posts // Single post // User profile // Post comments
-  ("followers", username)
-][("following", username)]; // User followers // User following
-```
-
-## 🔌 API Integration
-
-### Axios Instance (`services/api.ts`)
-
-```typescript
-// Automatic token injection
-requestInterceptor: (config) => {
-  const token = authStore.getState().accessToken;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-};
-
-// Automatic token refresh on 401
-responseInterceptor: async (error) => {
-  if (error.response?.status === 401) {
-    // Attempt token refresh
-  }
-};
-```
-
-### API Modules
-
-| Module             | Endpoints                                            |
-| ------------------ | ---------------------------------------------------- |
-| `authApi`          | register, login, refresh, logout                     |
-| `postsApi`         | create, getFeed, getExplore, getById, update, delete |
-| `profileApi`       | getProfile, getMyProfile, update                     |
-| `followsApi`       | toggle, check, getFollowers, getFollowing            |
-| `likesApi`         | toggle, check                                        |
-| `commentsApi`      | getByPost, create, delete                            |
-| `storiesApi`       | create, getAll, getByUser                            |
-| `notificationsApi` | getAll, getUnreadCount, markAsRead                   |
-
-## 🎨 Styling
-
-### Tailwind CSS v4
-
-**Configuration:**
-
-- PostCSS with `@tailwindcss/postcss`
-- Custom color scheme (purple/pink gradients)
-- Responsive breakpoints
-- Dark mode ready
-
-**Design System:**
-
-```css
-/* Brand Colors */
---purple-600: Primary brand color --pink-600: Accent color /* Gradients */
-  bg-gradient-to-r from-purple-600 to-pink-600 /* Shadows */ shadow: Card
-  elevation shadow-lg: Modal/overlay elevation /* Transitions */
-  transition: Default transitions for hover states;
-```
-
-### Component Styling Patterns
-
-```tsx
-// Example: Button with hover state
-<button
-  className="
-  bg-purple-600 
-  text-white 
-  px-4 py-2 
-  rounded-lg 
-  hover:bg-purple-700 
-  transition
-"
->
-  Button
-</button>
-```
-
-## 📐 Best Practices
-
-### TypeScript
-
-- **Strict Mode**: Enabled for maximum type safety
-- **Type-only Imports**: Using `import type` where applicable
-- **Interface Definitions**: All API responses typed
-- **Generic Components**: Reusable typed components
-
-### React Patterns
-
-- **Functional Components**: All components are functional
-- **Custom Hooks**: TanStack Query for data fetching
-- **Composition**: Small, composable components
-- **Prop Drilling Avoidance**: Zustand for global state
-
-### Performance
-
-- **Code Splitting**: React Router lazy loading ready
-- **Query Caching**: TanStack Query caches responses
-- **Optimistic Updates**: Instant UI feedback
-- **Image Optimization**: Lazy loading for images
-
-### Code Organization
-
-- **Barrel Exports**: `index.ts` for clean imports
-- **Feature-based Structure**: Components grouped by feature
-- **Type Colocation**: Types near their usage
-- **Consistent Naming**: PascalCase for components
-
-### Security
-
-- **No Sensitive Data in Code**: Environment variables
-- **Token Management**: Secure storage and refresh
-- **Protected Routes**: Auth-guarded pages
-- **XSS Prevention**: React's built-in escaping
-
-## 📋 Backlog
-
-### Completed ✅
-
-- [x] Authentication system (login/register)
-- [x] Home feed with followed users' posts
-- [x] Explore page with all posts
-- [x] User profiles with stats
-- [x] Follow/Unfollow functionality
-- [x] Like posts
-- [x] Comments
-- [x] 24-hour stories
-- [x] Responsive design
-- [x] Loading states
-- [x] Error handling
-
-### Future Enhancements 🚧
-
-- [ ] Dark mode toggle
-- [ ] Infinite scroll pagination
-- [ ] Post creation form with image upload
-- [ ] Story creation
-- [ ] Direct messaging UI
-- [ ] Notifications page
-- [ ] User search
-- [ ] Hashtag pages
-- [ ] Post sharing
-- [ ] Profile editing UI
-- [ ] PWA support
-- [ ] Push notifications
-- [ ] Accessibility improvements (ARIA)
-- [ ] E2E tests with Playwright
-- [ ] Unit tests with Vitest
-
-## 🧪 Testing
-
-### Available Scripts
+## Scripts
 
 ```bash
-# Run ESLint
-npm run lint
-
-# Type checking
-npx tsc --noEmit
+npm run dev          # Vite dev server
+npm run build        # production build
+npm run preview      # preview production build
+npm run test         # Vitest unit tests
+npm run test:e2e     # Playwright (frontend config)
+npm run lint         # Biome
+npm run check        # Biome check --write
 ```
 
-### Recommended Testing Setup (Future)
+Root repo also runs Playwright from `/e2e`.
 
-- **Unit Tests**: Vitest + React Testing Library
-- **E2E Tests**: Playwright
-- **Component Tests**: Storybook
+## API integration
 
-## 📄 License
+Domain modules under `src/services/` (e.g. `posts`, `profiles`, `chat`, `monetization`, `passkey`, `notifications`). Prefer TanStack Query hooks in components; invalidate queries on mutations.
 
-MIT License - See LICENSE file for details.
+Do not duplicate endpoint lists here — use [03-api-detailed-endpoints.md](../circlesfera-documentation/03-api-detailed-endpoints.md).
 
-## 👥 Contributors
+## Product surfaces (non-exhaustive)
 
-- Development Team
+Consumer: feed (hybrid/following), explore, profiles, stories, frames, chat + calls, live viewer, bookmarks/collections, creator studio, monetization, settings (privacy, appeals, passkeys).
 
----
+Admin (`admin.*` host): Trust queue, users, content, monetization, live ops, experiments — permission-gated tabs.
 
-Built with ❤️ using React + Vite
+## Testing & quality
+
+- Component/page tests: Vitest (`*.test.tsx`)
+- E2E: Playwright (`npm run test:e2e`, root `e2e/`)
+- Lint/format: Biome (aligned with monorepo root)
+
+## Related docs
+
+- [Frontend backlog / UI roadmap](../circlesfera-documentation/14-uiux-improvement-roadmap.md)
+- [04-user-stories.md](../circlesfera-documentation/04-user-stories.md)
+- [AGENTS.md](../AGENTS.md) — mobile-first sizing rules
+
+## License
+
+MIT — see [LICENSE](../LICENSE).
