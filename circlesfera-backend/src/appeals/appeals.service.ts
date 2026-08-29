@@ -1,5 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NotificationType, type Prisma } from '@prisma/client';
+import { withPrimaryProfile } from '../admin/utils/admin-user-shape.util.js';
 import { resolveAdminNotificationSenderId } from '../admin/utils/resolve-admin-notification-sender.js';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
@@ -129,7 +130,11 @@ export class AppealsService {
           };
         }
 
-        return { ...appeal, targetPreview };
+        return {
+          ...appeal,
+          user: appeal.user ? withPrimaryProfile(appeal.user) : null,
+          targetPreview,
+        };
       }),
     );
 

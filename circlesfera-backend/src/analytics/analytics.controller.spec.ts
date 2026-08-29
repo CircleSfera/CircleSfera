@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { UserEventType } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -61,5 +62,13 @@ describe('AnalyticsController', () => {
     };
     await controller.logEventsBatch('user-1', dto);
     expect(service.logEventsBatch).toHaveBeenCalledWith('user-1', dto);
+  });
+
+  it('debugAggregate requires profileId query param', async () => {
+    await expect(controller.debugAggregate(undefined)).rejects.toThrow(
+      BadRequestException,
+    );
+    await controller.debugAggregate('profile-1');
+    expect(service.performDailyAggregation).toHaveBeenCalledWith('profile-1');
   });
 });

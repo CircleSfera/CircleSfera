@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -105,7 +106,11 @@ export class AnalyticsController {
   @Post('debug/aggregate')
   @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('system')
-  async debugAggregate(@CurrentUser('profileId') profileId: string) {
-    return this.analyticsService.performDailyAggregation(profileId);
+  async debugAggregate(@Query('profileId') profileId?: string) {
+    const id = profileId?.trim();
+    if (!id) {
+      throw new BadRequestException('profileId query parameter is required');
+    }
+    return this.analyticsService.performDailyAggregation(id);
   }
 }

@@ -1,6 +1,6 @@
 type ProfileSnippet = {
   username: string;
-  avatar: string | null;
+  avatar?: string | null;
   fullName?: string | null;
 };
 
@@ -10,7 +10,7 @@ export function toAdminUser(profile: ProfileSnippet | null | undefined) {
     ? {
         profile: {
           username: profile.username,
-          avatar: profile.avatar,
+          avatar: profile.avatar ?? null,
           ...(profile.fullName !== undefined
             ? { fullName: profile.fullName }
             : {}),
@@ -30,7 +30,7 @@ export function withPrimaryProfile<
     profile: primary
       ? {
           username: primary.username,
-          avatar: primary.avatar,
+          avatar: primary.avatar ?? null,
           ...(primary.fullName !== undefined
             ? { fullName: primary.fullName }
             : {}),

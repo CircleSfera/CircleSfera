@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { $Enums, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
-import { toAdminUser } from '../../../utils/admin-user-shape.util.js';
+import {
+  toAdminUser,
+  withPrimaryProfile,
+} from '../../../utils/admin-user-shape.util.js';
 
 @Injectable()
 export class GetContentQuery {
@@ -188,7 +191,10 @@ export class GetContentQuery {
 
     return {
       reports,
-      appeals,
+      appeals: appeals.map((appeal) => ({
+        ...appeal,
+        user: appeal.user ? withPrimaryProfile(appeal.user) : null,
+      })),
       tickets,
       counts: {
         reports: reportCount,
