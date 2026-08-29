@@ -3,12 +3,15 @@ set -e
 
 echo "Starting CircleSfera Backend Entrypoint..."
 
-# Run database migrations if DATABASE_URL is present.
-# Fail hard: a skipped/failed migrate must not start the app against a stale schema.
 if [ -n "$DATABASE_URL" ]; then
   echo "Deploying Prisma database migrations..."
-  npx prisma migrate deploy
+  if [ -x /app/circlesfera-backend/scripts/prisma-migrate-deploy.sh ]; then
+    /app/circlesfera-backend/scripts/prisma-migrate-deploy.sh
+  elif [ -x /app/scripts/prisma-migrate-deploy.sh ]; then
+    /app/scripts/prisma-migrate-deploy.sh
+  else
+    npx prisma migrate deploy
+  fi
 fi
 
-# Execute main CMD
 exec "$@"

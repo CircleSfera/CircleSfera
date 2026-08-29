@@ -57,6 +57,8 @@ RUN npm install --omit=dev
 # Copy the built application from the build stage
 COPY --chown=node:node --from=build /app/circlesfera-backend/dist ./dist
 COPY --chown=node:node --from=build /app/circlesfera-backend/node_modules/.prisma ./node_modules/.prisma
+COPY --chown=node:node circlesfera-backend/scripts ./scripts/
+RUN chmod +x ./scripts/prisma-migrate-deploy.sh
 
 # Set environment variables
 ENV NODE_ENV=production

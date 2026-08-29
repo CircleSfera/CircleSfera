@@ -92,7 +92,7 @@ services:
       redis:
         condition: service_healthy
     command: >
-      sh -c "npx prisma migrate deploy && node dist/main"
+      sh -c "./scripts/prisma-migrate-deploy.sh && node dist/main"
     # node:alpine images do not include wget/curl by default
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/api/v1/health',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
