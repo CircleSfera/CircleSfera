@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { liveApi } from '../../services/live';
 import LiveGiftModal from './LiveGiftModal';
@@ -62,12 +62,18 @@ describe('LiveGiftModal', () => {
     fireEvent.click(screen.getByText('Diamante'));
     fireEvent.click(screen.getByRole('button', { name: /Enviar Regalo.*€25/ }));
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(liveApi.sendGift).toHaveBeenCalledWith(
         'stream-1',
         'gem',
         expect.any(String),
       );
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: /Enviar Regalo.*€25/ }),
+      ).not.toBeDisabled();
     });
   });
 

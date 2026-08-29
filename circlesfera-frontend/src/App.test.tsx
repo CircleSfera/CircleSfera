@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import App from './App';
 import {
   GuestAppChrome,
@@ -10,6 +10,23 @@ import {
   LandingHero,
   LandingPrinciples,
 } from './components/marketing';
+
+vi.mock('./stores/useExperimentStore', () => ({
+  useExperimentStore: (
+    selector: (state: {
+      flags: Record<string, boolean>;
+      isLoaded: boolean;
+      fetchFlags: () => Promise<void>;
+      setFlags: (flags: Record<string, boolean>) => void;
+    }) => unknown,
+  ) =>
+    selector({
+      flags: {},
+      isLoaded: true,
+      fetchFlags: vi.fn().mockResolvedValue(undefined),
+      setFlags: vi.fn(),
+    }),
+}));
 
 function renderWithProviders(ui: ReactElement) {
   const queryClient = new QueryClient({

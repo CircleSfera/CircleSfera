@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { authApi } from '../services/auth.service';
 import type { Profile } from '../types';
 import { useAuthStore } from './authStore';
+
+vi.mock('../services/auth.service', () => ({
+  authApi: {
+    logout: vi.fn().mockResolvedValue({ data: {} }),
+  },
+}));
 
 describe('authStore', () => {
   beforeEach(() => {
@@ -39,5 +46,6 @@ describe('authStore', () => {
     const state = useAuthStore.getState();
     expect(state.profile).toBeNull();
     expect(state.isAuthenticated).toBe(false);
+    expect(authApi.logout).toHaveBeenCalledTimes(1);
   });
 });
