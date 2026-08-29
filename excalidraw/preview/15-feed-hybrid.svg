@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -28.0 1596.0 1416.0" width="1596" height="1416">
+<rect x="-8.0" y="-28.0" width="1596.0" height="1416.0" fill="#F7F7F5" />
+<text x="40.0" y="43.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="start" opacity="1.00">Feed híbrido — ADR-0009</text>
+<text x="40.0" y="73.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#6B6B6B" text-anchor="start" opacity="1.00">Fuente: ADR-0004, ADR-0009, feed.module.ts, 00-status.md</text>
+<rect x="40.0" y="120.0" width="280.0" height="80.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="180.0" y="139.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">1. Publish Post</text>
+<rect x="380.0" y="120.0" width="300.0" height="80.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="530.0" y="139.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">PostsService</text>
+<rect x="740.0" y="120.0" width="320.0" height="80.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="900.0" y="139.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">2. Enqueue</text>
+<text x="900.0" y="159.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">feed-fanout</text>
+<path d="M 320.0 160.0 L 380.0 160.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="380.0,160.0 367.4,166.1 367.4,153.9" fill="#00897B" />
+<path d="M 680.0 160.0 L 740.0 160.0" fill="none" stroke="#EF6C00" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="740.0,160.0 727.4,166.1 727.4,153.9" fill="#EF6C00" />
+<rect x="40.0" y="280.0" width="700.0" height="110.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="390.0" y="299.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">3. Typical authors</text>
+<text x="390.0" y="319.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">fan-out write to follower inboxes</text>
+<rect x="780.0" y="280.0" width="760.0" height="110.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="1160.0" y="298.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">4. High-follower / star authors — hybrid path</text>
+<text x="1160.0" y="317.5" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">avoid writing every inbox row synchronously</text>
+<path d="M 900.0 200.0 L 390.0 280.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="390.0,280.0 401.5,272.0 403.4,284.1" fill="#00897B" />
+<path d="M 900.0 200.0 L 1160.0 280.0" fill="none" stroke="#EF6C00" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1160.0,280.0 1146.2,282.1 1149.7,270.5" fill="#EF6C00" />
+<rect x="40.0" y="440.0" width="1500.0" height="110.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="790.0" y="459.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">5. Read path — Following + For You</text>
+<text x="790.0" y="479.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">inbox rows  +  vector reads from post_embeddings</text>
+<path d="M 390.0 390.0 L 790.0 440.0" fill="none" stroke="#2E7D32" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="790.0,440.0 776.7,444.5 778.2,432.4" fill="#2E7D32" />
+<path d="M 1160.0 390.0 L 790.0 440.0" fill="none" stroke="#2E7D32" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="790.0,440.0 801.7,432.3 803.3,444.3" fill="#2E7D32" />
+<rect x="40.0" y="580.0" width="1500.0" height="260.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="1.5" stroke-dasharray="8 6" opacity="0.55" />
+<text x="52.0" y="599.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">6. Filters applied</text>
+<rect x="60.0" y="620.0" width="360.0" height="80.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="240.0" y="638.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">mutes</text>
+<rect x="440.0" y="620.0" width="520.0" height="80.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="700.0" y="638.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">content rating (UserSettings)</text>
+<rect x="980.0" y="620.0" width="540.0" height="80.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1250.0" y="638.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">API /feed/preferences</text>
+<rect x="60.0" y="720.0" width="480.0" height="90.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="300.0" y="737.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">feed_hidden_posts</text>
+<text x="300.0" y="755.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">FeedHiddenPost</text>
+<rect x="560.0" y="720.0" width="480.0" height="90.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="800.0" y="737.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">feed_hidden_authors</text>
+<text x="800.0" y="755.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">FeedHiddenAuthor</text>
+<rect x="1060.0" y="720.0" width="460.0" height="90.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="1290.0" y="737.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">feed_muted_keywords</text>
+<text x="1290.0" y="755.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">FeedMutedKeyword</text>
+<path d="M 790.0 550.0 L 240.0 620.0" fill="none" stroke="#546E7A" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="240.0,620.0 251.7,612.4 253.3,624.4" fill="#546E7A" />
+<rect x="40.0" y="880.0" width="1500.0" height="120.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="2"  opacity="1.00" />
+<text x="790.0" y="899.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">7. Promotions — feed injects only ACTIVE promotions</text>
+<text x="790.0" y="919.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">owner cannot burn own budget  ·  viewer JWT required for views</text>
+<path d="M 300.0 810.0 L 790.0 880.0" fill="none" stroke="#C2185B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="790.0,880.0 776.7,884.2 778.4,872.2" fill="#C2185B" />
+<rect x="40.0" y="1030.0" width="1500.0" height="120.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="790.0" y="1049.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">8. Interactive hydration — poll / qnaBox / live_streams</text>
+<text x="790.0" y="1069.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">must exist in migrations (past 500 outage)</text>
+<path d="M 790.0 1000.0 L 790.0 1030.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="790.0,1030.0 783.9,1017.4 796.1,1017.4" fill="#00897B" />
+<rect x="40.0" y="1180.0" width="1500.0" height="160.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="1.5" stroke-dasharray="8 6" opacity="0.55" />
+<text x="52.0" y="1199.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="start" opacity="1.00">Endpoints (no inventar más)</text>
+<rect x="60.0" y="1220.0" width="700.0" height="100.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="410.0" y="1239.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">FeedController</text>
+<text x="410.0" y="1259.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">@Controller(&#x27;feed&#x27;)</text>
+<rect x="800.0" y="1220.0" width="720.0" height="100.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1160.0" y="1239.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">FeedPreferencesController</text>
+<text x="1160.0" y="1259.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">@Controller(&#x27;feed/preferences&#x27;)</text>
+<path d="M 1250.0 700.0 L 1160.0 1220.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1160.0,1220.0 1156.1,1206.5 1168.2,1208.6" fill="#00897B" />
+<path d="M 790.0 1150.0 L 410.0 1220.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="410.0,1220.0 421.3,1211.7 423.5,1223.7" fill="#00897B" />
+</svg>

@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -28.0 1216.0 1143.5" width="1216" height="1144">
+<rect x="-8.0" y="-28.0" width="1216.0" height="1143.5" fill="#F7F7F5" />
+<text x="40.0" y="43.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="start" opacity="1.00">Fuera de alcance — no shipped (00-status.md)</text>
+<text x="40.0" y="71.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">Fuente: circlesfera-documentation/00-status.md OUT OF SCOPE + deferred</text>
+<text x="40.0" y="127.0" font-size="20.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="start" opacity="1.00">SÍ existe (shipped)</text>
+<rect x="40.0" y="150.0" width="200.0" height="50.0" rx="10" fill="#C8E6C9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="140.0" y="177.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">modular monolith</text>
+<rect x="260.0" y="150.0" width="160.0" height="50.0" rx="10" fill="#C8E6C9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="340.0" y="177.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">admin panel</text>
+<rect x="440.0" y="150.0" width="160.0" height="50.0" rx="10" fill="#C8E6C9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="520.0" y="177.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">live + gifts</text>
+<rect x="620.0" y="150.0" width="160.0" height="50.0" rx="10" fill="#C8E6C9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="700.0" y="177.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">hybrid feed</text>
+<rect x="800.0" y="150.0" width="240.0" height="50.0" rx="10" fill="#C8E6C9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="920.0" y="177.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">Stripe Connect Express</text>
+<rect x="40.0" y="220.0" width="180.0" height="50.0" rx="10" fill="#C8E6C9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="130.0" y="247.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">GDPR export</text>
+<rect x="240.0" y="220.0" width="240.0" height="50.0" rx="10" fill="#C8E6C9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="360.0" y="247.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">account deletion grace</text>
+<rect x="500.0" y="220.0" width="120.0" height="50.0" rx="10" fill="#C8E6C9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="560.0" y="247.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">PWA</text>
+<text x="40.0" y="317.0" font-size="20.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="start" opacity="1.00">OUT OF SCOPE — no shipped</text>
+<rect x="40.0" y="340.0" width="300.0" height="80.0" rx="10" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="190.0" y="374.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">Native mobile apps</text>
+<text x="190.0" y="391.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">(React Native / store binaries)</text>
+<rect x="360.0" y="340.0" width="240.0" height="80.0" rx="10" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="480.0" y="382.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">Communities / forums</text>
+<rect x="620.0" y="340.0" width="240.0" height="80.0" rx="10" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="740.0" y="382.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">B2B Business Manager</text>
+<rect x="880.0" y="340.0" width="280.0" height="80.0" rx="10" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="1020.0" y="374.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">Public OAuth /</text>
+<text x="1020.0" y="391.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">third-party developer platform</text>
+<rect x="40.0" y="440.0" width="300.0" height="70.0" rx="10" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="190.0" y="477.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">SSR indexable profiles</text>
+<rect x="360.0" y="440.0" width="240.0" height="80.0" rx="10" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="480.0" y="474.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">Subscriber badges as</text>
+<text x="480.0" y="491.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">first-class product surface</text>
+<rect x="620.0" y="440.0" width="240.0" height="100.0" rx="10" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="740.0" y="476.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">Data warehouse / BI</text>
+<text x="740.0" y="492.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">ClickHouse / BigQuery</text>
+<text x="740.0" y="509.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">executive LTV dashboards</text>
+<rect x="880.0" y="440.0" width="280.0" height="80.0" rx="10" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="1020.0" y="474.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">SOC2 certification and</text>
+<text x="1020.0" y="491.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">public bug-bounty program</text>
+<text x="40.0" y="587.0" font-size="20.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="start" opacity="1.00">Diferido</text>
+<rect x="40.0" y="610.0" width="540.0" height="110.0" rx="10" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="310.0" y="643.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">Creator payouts initiation</text>
+<text x="310.0" y="659.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">read-only Connect balance UI is shipped</text>
+<text x="310.0" y="676.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">initiating payouts stays in Stripe Express</text>
+<text x="310.0" y="692.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">ADR-0002</text>
+<rect x="600.0" y="610.0" width="560.0" height="110.0" rx="10" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="880.0" y="651.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">Cloudflare + ECS/AWS topology</text>
+<text x="880.0" y="667.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">05-deployment-strategy.md §3</text>
+<text x="880.0" y="684.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">Future target / Not in use yet</text>
+<rect x="40.0" y="740.0" width="540.0" height="120.0" rx="10" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="310.0" y="778.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">Aspirational WAL/PITR</text>
+<text x="310.0" y="794.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">11-backups-strategy.md</text>
+<text x="310.0" y="811.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">shipped: backup-postgres.sh,</text>
+<text x="310.0" y="827.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">backup-uploads.sh, restore-postgres.sh</text>
+<rect x="600.0" y="740.0" width="560.0" height="120.0" rx="10" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="880.0" y="786.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">Multi-profile switching</text>
+<text x="880.0" y="802.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">schema allows User.profiles[]</text>
+<text x="880.0" y="819.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">product v1 = one primary profile</text>
+<text x="40.0" y="907.0" font-size="20.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="start" opacity="1.00">Eliminado</text>
+<rect x="40.0" y="930.0" width="280.0" height="80.0" rx="10" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="180.0" y="964.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">circlesfera-landing/</text>
+<text x="180.0" y="981.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">Jul 2026</text>
+<rect x="340.0" y="930.0" width="300.0" height="90.0" rx="10" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="490.0" y="961.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">payout_requests /</text>
+<text x="490.0" y="977.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">internal payout ledger</text>
+<text x="490.0" y="994.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">ADR-0002</text>
+<text x="40.0" y="1061.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">Estas cajas no forman parte de la arquitectura shipped. No inventarlas como presentes.</text>
+</svg>

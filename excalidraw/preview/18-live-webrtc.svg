@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -28.0 1696.0 1256.0" width="1696" height="1256">
+<rect x="-8.0" y="-28.0" width="1696.0" height="1256.0" fill="#F7F7F5" />
+<text x="40.0" y="43.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="start" opacity="1.00">Live streaming y llamadas — ADR-0005 / ADR-0012</text>
+<text x="40.0" y="71.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">Fuente: LiveModule, WebrtcModule, app.gateway.ts</text>
+<text x="40.0" y="117.0" font-size="20.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="start" opacity="1.00">A) Live (LiveKit) — ADR-0005</text>
+<text x="800.0" y="117.0" font-size="20.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="start" opacity="1.00">B) Llamadas 1:1 WebRTC — ADR-0012</text>
+<path d="M 760.0 100.0 L 760.0 1180.0" fill="none" stroke="#B0BEC5" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="40.0" y="140.0" width="280.0" height="90.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="180.0" y="170.7" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">Host starts live</text>
+<text x="180.0" y="188.2" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">/live/broadcast</text>
+<text x="180.0" y="205.7" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">AuthGuard</text>
+<rect x="360.0" y="140.0" width="280.0" height="90.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="500.0" y="170.7" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">Viewer SPA</text>
+<text x="500.0" y="188.2" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">/live/:streamId</text>
+<text x="500.0" y="205.7" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">AuthGuard</text>
+<rect x="200.0" y="280.0" width="280.0" height="80.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="340.0" y="314.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">API @Controller(&#x27;live&#x27;)</text>
+<text x="340.0" y="331.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">LiveModule</text>
+<rect x="40.0" y="420.0" width="300.0" height="80.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="190.0" y="454.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">LiveService</text>
+<text x="190.0" y="471.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">fail-fast credentials in prod</text>
+<rect x="400.0" y="420.0" width="280.0" height="80.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="540.0" y="454.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">LiveKit</text>
+<text x="540.0" y="471.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">credentials required in prod</text>
+<rect x="40.0" y="560.0" width="300.0" height="100.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="190.0" y="595.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">LiveStream</text>
+<text x="190.0" y="613.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">host / co-host on Profile</text>
+<text x="190.0" y="630.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">LiveStatus enum</text>
+<text x="40.0" y="693.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#C2185B" text-anchor="start" opacity="1.00">Regalos de live</text>
+<rect x="40.0" y="710.0" width="200.0" height="70.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="2"  opacity="1.00" />
+<text x="140.0" y="748.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#C2185B" text-anchor="middle" opacity="1.00">Stripe Checkout</text>
+<rect x="280.0" y="700.0" width="360.0" height="90.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="2"  opacity="1.00" />
+<text x="460.0" y="730.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#C2185B" text-anchor="middle" opacity="1.00">LiveGift</text>
+<text x="460.0" y="748.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#C2185B" text-anchor="middle" opacity="1.00">DIRECT_LIVE_GIFT · 20% fee</text>
+<text x="460.0" y="765.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#C2185B" text-anchor="middle" opacity="1.00">catalog server-side</text>
+<rect x="280.0" y="830.0" width="360.0" height="70.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="460.0" y="868.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">webhook → live:gift socket</text>
+<text x="40.0" y="943.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">Obligatorio en producción</text>
+<rect x="40.0" y="960.0" width="300.0" height="80.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="190.0" y="994.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">OPENAI_API_KEY</text>
+<text x="190.0" y="1011.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">main.ts / AIService</text>
+<rect x="360.0" y="960.0" width="280.0" height="80.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="500.0" y="994.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">LiveKit credentials</text>
+<text x="500.0" y="1011.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">LiveService</text>
+<path d="M 320.0 185.0 L 200.0 320.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="200.0,320.0 203.8,306.5 212.9,314.6" fill="#00897B" />
+<path d="M 360.0 185.0 L 480.0 320.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="480.0,320.0 467.1,314.6 476.2,306.5" fill="#00897B" />
+<path d="M 200.0 320.0 L 340.0 460.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="340.0,460.0 326.8,455.4 335.4,446.8" fill="#00897B" />
+<path d="M 340.0 460.0 L 400.0 460.0" fill="none" stroke="#546E7A" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="400.0,460.0 387.4,466.1 387.4,453.9" fill="#546E7A" />
+<text x="370.0" y="451.4" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">credentials</text>
+<path d="M 190.0 500.0 L 190.0 560.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="190.0,560.0 183.9,547.4 196.1,547.4" fill="#00897B" />
+<path d="M 240.0 745.0 L 280.0 745.0" fill="none" stroke="#C2185B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="280.0,745.0 267.4,751.1 267.4,738.9" fill="#C2185B" />
+<path d="M 460.0 790.0 L 460.0 830.0" fill="none" stroke="#EF6C00" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="460.0,830.0 453.9,817.4 466.1,817.4" fill="#EF6C00" />
+<rect x="800.0" y="140.0" width="240.0" height="70.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="920.0" y="178.2" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">Browser A</text>
+<rect x="1080.0" y="140.0" width="240.0" height="70.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1200.0" y="178.2" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">Browser B</text>
+<rect x="1360.0" y="140.0" width="280.0" height="90.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1500.0" y="171.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">TURN/STUN (Coturn)</text>
+<text x="1500.0" y="187.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">externo · NAT en prod</text>
+<text x="1500.0" y="204.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">no está en compose</text>
+<rect x="800.0" y="400.0" width="340.0" height="110.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="970.0" y="431.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">AppGateway</text>
+<text x="970.0" y="449.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">signaling ONLY</text>
+<text x="970.0" y="466.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">rooms user:${userId}</text>
+<text x="970.0" y="484.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">WebrtcModule</text>
+<rect x="1180.0" y="400.0" width="340.0" height="110.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1350.0" y="433.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">Frontend</text>
+<text x="1350.0" y="449.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">webrtc.service.ts</text>
+<text x="1350.0" y="466.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">useCallStore</text>
+<text x="1350.0" y="482.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">GlobalCallContainer</text>
+<text x="800.0" y="573.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="start" opacity="1.00">Eventos de signaling (exactos)</text>
+<rect x="800.0" y="590.0" width="560.0" height="70.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1080.0" y="619.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">inbound aliases: call:invite AND call:initiate</text>
+<text x="1080.0" y="636.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">(targetId / recipientId)</text>
+<rect x="800.0" y="680.0" width="560.0" height="70.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1080.0" y="709.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">call:incoming → recipient</text>
+<text x="1080.0" y="726.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">media type audio / video</text>
+<rect x="800.0" y="770.0" width="560.0" height="50.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1080.0" y="797.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">call:accepted · call:declined · call:ended</text>
+<rect x="800.0" y="840.0" width="560.0" height="50.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1080.0" y="867.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">call:signal (SDP + ICE relay)</text>
+<text x="800.0" y="931.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">Media es P2P (browser ↔ browser). Signaling únicamente vía AppGateway. LiveKit no es el path de media de llamadas.</text>
+<path d="M 1040.0 175.0 L 1080.0 175.0" fill="none" stroke="#546E7A" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1080.0,175.0 1067.4,181.1 1067.4,168.9" fill="#546E7A" />
+<text x="1060.0" y="166.3" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">P2P media</text>
+<path d="M 920.0 210.0 L 970.0 400.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="970.0,400.0 960.9,389.4 972.7,386.3" fill="#00897B" />
+<path d="M 1200.0 210.0 L 970.0 400.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="970.0,400.0 975.8,387.3 983.6,396.7" fill="#00897B" />
+<path d="M 1360.0 185.0 L 1320.0 175.0" fill="none" stroke="#546E7A" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1320.0,175.0 1333.7,172.1 1330.8,184.0" fill="#546E7A" />
+<text x="1340.0" y="171.3" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">ICE / NAT</text>
+<path d="M 1140.0 455.0 L 1180.0 455.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1180.0,455.0 1167.4,461.1 1167.4,448.9" fill="#00897B" />
+<path d="M 970.0 510.0 L 1080.0 590.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1080.0,590.0 1066.2,587.5 1073.4,577.7" fill="#00897B" />
+<path d="M 1080.0 660.0 L 1080.0 680.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1080.0,680.0 1073.9,667.4 1086.1,667.4" fill="#00897B" />
+<path d="M 1080.0 750.0 L 1080.0 770.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1080.0,770.0 1073.9,757.4 1086.1,757.4" fill="#00897B" />
+<path d="M 1080.0 820.0 L 1080.0 840.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1080.0,840.0 1073.9,827.4 1086.1,827.4" fill="#00897B" />
+<text x="40.0" y="1091.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">Leyenda</text>
+<rect x="40.0" y="1110.0" width="140.0" height="40.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="110.0" y="1132.7" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">CircleSfera</text>
+<rect x="200.0" y="1110.0" width="140.0" height="40.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="270.0" y="1132.7" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">Externo</text>
+<rect x="360.0" y="1110.0" width="140.0" height="40.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="430.0" y="1132.7" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">Socket / relay</text>
+<rect x="520.0" y="1110.0" width="140.0" height="40.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="2"  opacity="1.00" />
+<text x="590.0" y="1132.7" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#C2185B" text-anchor="middle" opacity="1.00">Dinero</text>
+</svg>

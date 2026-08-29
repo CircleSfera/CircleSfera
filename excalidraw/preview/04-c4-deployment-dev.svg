@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -24.0 1536.0 797.5" width="1536" height="798">
+<rect x="-8.0" y="-24.0" width="1536.0" height="797.5" fill="#F7F7F5" />
+<text x="40.0" y="47.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">C4 Deployment — Desarrollo local</text>
+<text x="40.0" y="75.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">Fuente: docker-compose.yml</text>
+<rect x="40.0" y="260.0" width="160.0" height="88.0" rx="10" fill="#E3F2FD" stroke="#1565C0" stroke-width="2"  opacity="1.00" />
+<text x="120.0" y="283.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="middle" opacity="1.00">Browser</text>
+<rect x="240.0" y="140.0" width="1240.0" height="420.0" rx="10" fill="none" stroke="#90A4AE" stroke-width="1" stroke-dasharray="8 6" opacity="1.00" />
+<text x="256.0" y="159.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#90A4AE" text-anchor="start" opacity="1.00">docker-compose.yml</text>
+<rect x="280.0" y="260.0" width="260.0" height="120.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="410.0" y="283.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">proxy nginx</text>
+<text x="410.0" y="302.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">:8080</text>
+<text x="410.0" y="317.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">FRONTEND_PORT=5173</text>
+<text x="410.0" y="332.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">BACKEND_PORT=3000</text>
+<rect x="620.0" y="180.0" width="300.0" height="130.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="770.0" y="203.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">frontend</text>
+<text x="770.0" y="222.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Vite :5173</text>
+<text x="770.0" y="237.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">VITE_API_PROXY_TARGET=</text>
+<text x="770.0" y="252.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">http://backend:3000</text>
+<text x="770.0" y="267.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">VITE_API_URL=/api/v1</text>
+<rect x="620.0" y="360.0" width="320.0" height="140.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="780.0" y="383.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">backend</text>
+<text x="780.0" y="402.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">build target build</text>
+<text x="780.0" y="417.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">command npm run dev</text>
+<text x="780.0" y="432.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">ports 3000:3000</text>
+<rect x="1020.0" y="200.0" width="300.0" height="110.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="1170.0" y="223.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">postgres</text>
+<text x="1170.0" y="242.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">pgvector/pgvector:pg16</text>
+<text x="1170.0" y="257.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">host ${DB_PORT:-5432}</text>
+<rect x="1020.0" y="380.0" width="300.0" height="110.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="1170.0" y="403.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">redis</text>
+<text x="1170.0" y="422.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">redis:7-alpine</text>
+<text x="1170.0" y="437.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">${REDIS_PORT:-6379}</text>
+<text x="1170.0" y="452.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">requirepass</text>
+<rect x="280.0" y="600.0" width="420.0" height="80.0" rx="10" fill="#FFFDE7" stroke="#9E9E9E" stroke-width="1"  opacity="1.00" />
+<text x="490.0" y="623.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">Stripe test mode.</text>
+<text x="490.0" y="642.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Never commit secrets.</text>
+<path d="M 206.0 304.0 L 274.0 320.0" fill="none" stroke="#1565C0" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="274.0,320.0 262.3,322.6 264.7,312.4" fill="#1565C0" />
+<text x="240.0" y="306.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="middle" opacity="1.00">:8080</text>
+<path d="M 546.0 320.0 L 614.0 245.0" fill="none" stroke="#00897B" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="614.0,245.0 610.6,256.5 602.9,249.5" fill="#00897B" />
+<text x="580.0" y="276.7" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">5173</text>
+<path d="M 546.0 320.0 L 614.0 430.0" fill="none" stroke="#00897B" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="614.0,430.0 603.9,423.6 612.8,418.1" fill="#00897B" />
+<text x="580.0" y="369.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">3000</text>
+<path d="M 946.0 430.0 L 1014.0 255.0" fill="none" stroke="#2E7D32" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1014.0,255.0 1015.0,267.0 1005.2,263.2" fill="#2E7D32" />
+<path d="M 946.0 430.0 L 1014.0 435.0" fill="none" stroke="#EF6C00" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1014.0,435.0 1002.8,439.4 1003.6,429.0" fill="#EF6C00" />
+<text x="40.0" y="719.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">Fuente: docker-compose.yml</text>
+</svg>

@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -28.0 1376.0 1426.0" width="1376" height="1426">
+<rect x="-8.0" y="-28.0" width="1376.0" height="1426.0" fill="#F7F7F5" />
+<text x="40.0" y="43.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="start" opacity="1.00">CI/CD — PR a producción</text>
+<text x="40.0" y="71.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">Fuente: .ai/core/stack.md, 90-infra.mdc, 05-deployment-strategy.md §2</text>
+<rect x="40.0" y="110.0" width="520.0" height="70.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="300.0" y="139.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">PR  .github/workflows/pr.yml</text>
+<text x="300.0" y="156.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">PRs to main · Node 24 · Postgres + Redis services</text>
+<rect x="40.0" y="210.0" width="520.0" height="50.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="300.0" y="238.2" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">1. root npm install</text>
+<rect x="40.0" y="280.0" width="520.0" height="50.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="300.0" y="308.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">2. circlesfera-shared install + build</text>
+<rect x="40.0" y="350.0" width="520.0" height="50.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="300.0" y="378.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">3. backend: install, prisma generate, lint, unit test</text>
+<rect x="40.0" y="420.0" width="520.0" height="50.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="300.0" y="448.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">4. scripts/check-prisma-schema-migrations.sh</text>
+<rect x="40.0" y="490.0" width="520.0" height="50.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="300.0" y="518.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">5. backend npm run test:e2e</text>
+<rect x="40.0" y="560.0" width="520.0" height="70.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="300.0" y="589.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">6. frontend: lint, test, npm run build</text>
+<text x="300.0" y="606.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">(tsc -b &amp;&amp; vite build = typecheck)</text>
+<rect x="600.0" y="350.0" width="360.0" height="120.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="780.0" y="388.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Job separado</text>
+<text x="780.0" y="404.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Playwright e2e/smoke.spec.ts</text>
+<text x="780.0" y="421.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Playwright job backend :3005</text>
+<text x="780.0" y="437.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">(compose file maps 3000)</text>
+<path d="M 300.0 180.0 L 300.0 210.0" fill="none" stroke="#3949AB" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="300.0,210.0 293.9,197.4 306.1,197.4" fill="#3949AB" />
+<path d="M 300.0 260.0 L 300.0 280.0" fill="none" stroke="#3949AB" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="300.0,280.0 293.9,267.4 306.1,267.4" fill="#3949AB" />
+<path d="M 300.0 330.0 L 300.0 350.0" fill="none" stroke="#3949AB" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="300.0,350.0 293.9,337.4 306.1,337.4" fill="#3949AB" />
+<path d="M 300.0 400.0 L 300.0 420.0" fill="none" stroke="#3949AB" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="300.0,420.0 293.9,407.4 306.1,407.4" fill="#3949AB" />
+<path d="M 300.0 470.0 L 300.0 490.0" fill="none" stroke="#3949AB" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="300.0,490.0 293.9,477.4 306.1,477.4" fill="#3949AB" />
+<path d="M 300.0 540.0 L 300.0 560.0" fill="none" stroke="#3949AB" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="300.0,560.0 293.9,547.4 306.1,547.4" fill="#3949AB" />
+<path d="M 560.0 145.0 L 600.0 410.0" fill="none" stroke="#3949AB" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="600.0,410.0 592.1,398.4 604.1,396.6" fill="#3949AB" />
+<text x="580.0" y="268.9" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">job separado</text>
+<rect x="40.0" y="670.0" width="1280.0" height="60.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="680.0" y="694.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">deploy.yml   concurrency: deploy-production</text>
+<text x="680.0" y="711.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">test → GHCR → SSH OVH → up → smoke → rollback on failure</text>
+<rect x="40.0" y="760.0" width="140.0" height="60.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="110.0" y="793.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">test</text>
+<rect x="200.0" y="750.0" width="200.0" height="80.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="300.0" y="784.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">buildx push GHCR</text>
+<text x="300.0" y="801.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">latest + SHA</text>
+<rect x="420.0" y="760.0" width="140.0" height="60.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="490.0" y="793.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">SSH to OVH</text>
+<rect x="580.0" y="750.0" width="240.0" height="80.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="700.0" y="784.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">write .env.production</text>
+<text x="700.0" y="801.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">from ENV_PRODUCTION_B64</text>
+<rect x="840.0" y="750.0" width="160.0" height="80.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="920.0" y="784.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">best-effort</text>
+<text x="920.0" y="801.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">pg_dump</text>
+<rect x="1020.0" y="750.0" width="160.0" height="80.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1100.0" y="784.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">docker compose</text>
+<text x="1100.0" y="801.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">pull</text>
+<rect x="40.0" y="870.0" width="240.0" height="90.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="160.0" y="901.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">up -d --no-deps</text>
+<text x="160.0" y="917.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">backend frontend</text>
+<text x="160.0" y="934.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">nginx-proxy</text>
+<rect x="300.0" y="880.0" width="160.0" height="70.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="380.0" y="918.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">health poll</text>
+<rect x="480.0" y="860.0" width="280.0" height="100.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="620.0" y="896.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">smoke</text>
+<text x="620.0" y="912.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">/health  /feed/foryou</text>
+<text x="620.0" y="929.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">/stories  /live/active</text>
+<rect x="780.0" y="860.0" width="220.0" height="100.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="890.0" y="896.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">on failure</text>
+<text x="890.0" y="912.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">rollback previous</text>
+<text x="890.0" y="929.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">.deploy-sha</text>
+<path d="M 40.0 700.0 L 180.0 790.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="180.0,790.0 166.1,788.3 172.7,778.1" fill="#00897B" />
+<path d="M 180.0 790.0 L 200.0 790.0" fill="none" stroke="#3949AB" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="200.0,790.0 187.4,796.1 187.4,783.9" fill="#3949AB" />
+<path d="M 400.0 790.0 L 420.0 790.0" fill="none" stroke="#546E7A" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="420.0,790.0 407.4,796.1 407.4,783.9" fill="#546E7A" />
+<path d="M 560.0 790.0 L 580.0 790.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="580.0,790.0 567.4,796.1 567.4,783.9" fill="#00897B" />
+<path d="M 820.0 790.0 L 840.0 790.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="840.0,790.0 827.4,796.1 827.4,783.9" fill="#00897B" />
+<path d="M 1000.0 790.0 L 1020.0 790.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1020.0,790.0 1007.4,796.1 1007.4,783.9" fill="#00897B" />
+<path d="M 1100.0 830.0 L 160.0 870.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="160.0,870.0 172.3,863.4 172.9,875.5" fill="#00897B" />
+<path d="M 280.0 915.0 L 300.0 915.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="300.0,915.0 287.4,921.1 287.4,908.9" fill="#00897B" />
+<path d="M 460.0 915.0 L 480.0 910.0" fill="none" stroke="#3949AB" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="480.0,910.0 469.2,919.0 466.3,907.1" fill="#3949AB" />
+<path d="M 760.0 910.0 L 780.0 910.0" fill="none" stroke="#EF6C00" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="780.0,910.0 767.4,916.1 767.4,903.9" fill="#EF6C00" />
+<text x="40.0" y="1013.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="start" opacity="1.00">También existen (no son jobs extra inventados)</text>
+<rect x="40.0" y="1040.0" width="240.0" height="50.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="160.0" y="1067.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">playwright-nightly.yml</text>
+<rect x="300.0" y="1030.0" width="200.0" height="70.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="400.0" y="1059.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">ops-reencrypt.yml</text>
+<text x="400.0" y="1076.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">manual</text>
+<rect x="520.0" y="1040.0" width="180.0" height="50.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="610.0" y="1067.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">Dependabot</text>
+<rect x="720.0" y="1030.0" width="180.0" height="70.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="810.0" y="1059.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">security.yml</text>
+<text x="810.0" y="1076.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">CodeQL</text>
+<text x="40.0" y="1155.3" font-size="18.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="start" opacity="1.00">Notas</text>
+<rect x="40.0" y="1170.0" width="420.0" height="80.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="250.0" y="1204.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">No dedicated backend typecheck in PR test job</text>
+<text x="250.0" y="1221.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">nest build only in Playwright job</text>
+<rect x="480.0" y="1170.0" width="380.0" height="80.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="670.0" y="1204.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">Image rollback does NOT revert DB</text>
+<text x="670.0" y="1221.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">migrate deploy at backend start</text>
+<rect x="880.0" y="1170.0" width="220.0" height="80.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="990.0" y="1204.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">Service name nginx-proxy</text>
+<text x="990.0" y="1221.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">not nginx</text>
+<rect x="40.0" y="1270.0" width="280.0" height="80.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="180.0" y="1304.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">concurrency group:</text>
+<text x="180.0" y="1321.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">deploy-production</text>
+<rect x="340.0" y="1270.0" width="320.0" height="80.0" rx="10" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="500.0" y="1304.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">circlesfera-landing must not</text>
+<text x="500.0" y="1321.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">be restored / deployed</text>
+</svg>

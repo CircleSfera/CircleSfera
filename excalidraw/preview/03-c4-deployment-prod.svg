@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -24.0 1536.0 917.5" width="1536" height="918">
+<rect x="-8.0" y="-24.0" width="1536.0" height="917.5" fill="#F7F7F5" />
+<text x="40.0" y="47.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">C4 Deployment — Producción (OVH VPS)</text>
+<text x="40.0" y="75.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">Fuente: docker-compose.prod.yml, deploy.yml, 05-deployment-strategy.md §2. Future Cloudflare/ECS is NOT shown.</text>
+<rect x="40.0" y="220.0" width="160.0" height="80.0" rx="10" fill="#E3F2FD" stroke="#1565C0" stroke-width="2"  opacity="1.00" />
+<text x="120.0" y="243.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="middle" opacity="1.00">Browser</text>
+<rect x="260.0" y="200.0" width="240.0" height="120.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="380.0" y="223.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">Host nginx</text>
+<text x="380.0" y="242.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">TLS terminate on VPS</text>
+<rect x="560.0" y="200.0" width="260.0" height="120.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="690.0" y="223.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">nginx-proxy</text>
+<text x="690.0" y="242.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">:8082 → 80</text>
+<text x="690.0" y="257.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">compose service</text>
+<rect x="900.0" y="140.0" width="240.0" height="96.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1020.0" y="163.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">frontend</text>
+<text x="1020.0" y="182.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">static container</text>
+<rect x="900.0" y="280.0" width="280.0" height="130.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1040.0" y="303.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">backend</text>
+<text x="1040.0" y="322.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">npx prisma migrate deploy</text>
+<text x="1040.0" y="337.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">THEN node dist/main</text>
+<text x="1040.0" y="352.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Health /api/v1/health</text>
+<rect x="900.0" y="460.0" width="260.0" height="100.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="1030.0" y="483.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">postgres</text>
+<text x="1030.0" y="502.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">pgvector:pg16</text>
+<text x="1030.0" y="517.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">volume postgres_data</text>
+<rect x="1200.0" y="460.0" width="280.0" height="100.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="1340.0" y="483.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">redis</text>
+<text x="1340.0" y="502.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">redis:7-alpine requirepass</text>
+<text x="1340.0" y="517.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">REDIS_PASSWORD, AOF</text>
+<text x="1340.0" y="532.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">volume redis_data</text>
+<rect x="1200.0" y="140.0" width="240.0" height="96.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="1320.0" y="163.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">uploads volume</text>
+<text x="1320.0" y="182.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">ro to proxy</text>
+<rect x="40.0" y="400.0" width="280.0" height="88.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="180.0" y="423.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">GHCR</text>
+<text x="180.0" y="442.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">images tagged latest + SHA</text>
+<rect x="40.0" y="520.0" width="320.0" height="88.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="200.0" y="543.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">Secrets</text>
+<text x="200.0" y="562.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">.env.production</text>
+<text x="200.0" y="577.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">(from ENV_PRODUCTION_B64 at deploy)</text>
+<rect x="40.0" y="660.0" width="420.0" height="140.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="1"  opacity="1.00" />
+<text x="250.0" y="683.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Hosts (nginx template)</text>
+<text x="250.0" y="702.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">circlesfera.com / www.circlesfera.com</text>
+<text x="250.0" y="717.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">api.circlesfera.com</text>
+<text x="250.0" y="732.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">admin.circlesfera.com (SAN required on host cert)</text>
+<text x="250.0" y="747.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">dev.circlesfera.com (dev, in template)</text>
+<rect x="500.0" y="660.0" width="400.0" height="140.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="1"  opacity="1.00" />
+<text x="700.0" y="683.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">Post-deploy smoke</text>
+<text x="700.0" y="702.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">/api/v1/health</text>
+<text x="700.0" y="717.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">/feed/foryou</text>
+<text x="700.0" y="732.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">/stories</text>
+<text x="700.0" y="747.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">/live/active</text>
+<text x="700.0" y="762.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">must not 5xx</text>
+<rect x="940.0" y="660.0" width="500.0" height="100.0" rx="10" fill="#FFFDE7" stroke="#9E9E9E" stroke-width="1"  opacity="1.00" />
+<text x="1190.0" y="683.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">Image rollback does NOT revert DB.</text>
+<text x="1190.0" y="702.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">migrate deploy runs at boot.</text>
+<path d="M 206.0 260.0 L 254.0 260.0" fill="none" stroke="#1565C0" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="254.0,260.0 243.2,265.2 243.2,254.8" fill="#1565C0" />
+<text x="230.0" y="254.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="middle" opacity="1.00">HTTPS</text>
+<path d="M 506.0 260.0 L 554.0 260.0" fill="none" stroke="#00897B" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="554.0,260.0 543.2,265.2 543.2,254.8" fill="#00897B" />
+<path d="M 826.0 260.0 L 894.0 188.0" fill="none" stroke="#00897B" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="894.0,188.0 890.4,199.4 882.8,192.3" fill="#00897B" />
+<text x="860.0" y="218.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">/</text>
+<path d="M 826.0 260.0 L 894.0 345.0" fill="none" stroke="#00897B" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="894.0,345.0 883.2,339.8 891.3,333.3" fill="#00897B" />
+<text x="860.0" y="296.7" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">/api/v1</text>
+<path d="M 1040.0 416.0 L 1030.0 454.0" fill="none" stroke="#2E7D32" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1030.0,454.0 1027.7,442.2 1037.8,444.9" fill="#2E7D32" />
+<path d="M 1186.0 345.0 L 1194.0 510.0" fill="none" stroke="#EF6C00" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1194.0,510.0 1188.3,499.5 1198.7,499.0" fill="#EF6C00" />
+<path d="M 826.0 260.0 L 1194.0 188.0" fill="none" stroke="#2E7D32" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1194.0,188.0 1184.4,195.2 1182.4,185.0" fill="#2E7D32" />
+<text x="1010.0" y="218.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">/uploads/ ro</text>
+<path d="M 326.0 444.0 L 894.0 345.0" fill="none" stroke="#546E7A" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="894.0,345.0 884.3,352.0 882.5,341.7" fill="#546E7A" />
+<text x="610.0" y="388.7" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">image</text>
+<path d="M 366.0 564.0 L 894.0 345.0" fill="none" stroke="#F9A825" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="894.0,345.0 886.0,354.0 882.0,344.3" fill="#F9A825" />
+<text x="40.0" y="839.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">Fuente: docker-compose.prod.yml, deploy.yml, 05-deployment-strategy.md §2. Future Cloudflare/ECS is NOT shown.</text>
+</svg>

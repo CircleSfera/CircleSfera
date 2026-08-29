@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CircleSfera — arquitectura</title>
+  <style>
+    :root { color-scheme: light; font-family: Helvetica, Arial, sans-serif; }
+    body { margin: 0; display: grid; grid-template-columns: 280px 1fr; height: 100vh; background: #f3f2ee; }
+    nav { overflow: auto; padding: 16px 12px; background: #fff; border-right: 1px solid #ddd; }
+    h1 { font-size: 16px; margin: 0 8px 12px; }
+    p { font-size: 12px; color: #666; margin: 0 8px 16px; }
+    button { display: block; width: 100%; text-align: left; margin: 0 0 4px; padding: 8px 10px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
+    button:hover, button.active { background: #e8eaf6; }
+    main { overflow: auto; padding: 16px; }
+    img { width: 100%; height: auto; background: #fff; border-radius: 12px; box-shadow: 0 1px 8px #0001; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>CircleSfera arquitectura</h1>
+    <p>Previews SVG. Los .excalidraw se editan en excalidraw.com o con la extensión Excalidraw.</p>
+    <button type="button" data-src="preview/00-index.svg">00-index</button><button type="button" data-src="preview/01-c4-context.svg">01-c4-context</button><button type="button" data-src="preview/02-c4-containers.svg">02-c4-containers</button><button type="button" data-src="preview/03-c4-deployment-prod.svg">03-c4-deployment-prod</button><button type="button" data-src="preview/04-c4-deployment-dev.svg">04-c4-deployment-dev</button><button type="button" data-src="preview/05-monorepo.svg">05-monorepo</button><button type="button" data-src="preview/06-backend-layers.svg">06-backend-layers</button><button type="button" data-src="preview/07-backend-modules.svg">07-backend-modules</button><button type="button" data-src="preview/08-frontend-architecture.svg">08-frontend-architecture</button><button type="button" data-src="preview/09-frontend-surfaces.svg">09-frontend-surfaces</button><button type="button" data-src="preview/10-identity-user-profile.svg">10-identity-user-profile</button><button type="button" data-src="preview/11-data-model-domains.svg">11-data-model-domains</button><button type="button" data-src="preview/12-auth-security.svg">12-auth-security</button><button type="button" data-src="preview/13-request-lifecycle.svg">13-request-lifecycle</button><button type="button" data-src="preview/14-async-realtime.svg">14-async-realtime</button><button type="button" data-src="preview/15-feed-hybrid.svg">15-feed-hybrid</button><button type="button" data-src="preview/16-monetization.svg">16-monetization</button><button type="button" data-src="preview/17-admin-trust.svg">17-admin-trust</button><button type="button" data-src="preview/18-live-webrtc.svg">18-live-webrtc</button><button type="button" data-src="preview/19-ci-cd.svg">19-ci-cd</button><button type="button" data-src="preview/20-out-of-scope.svg">20-out-of-scope</button>
+  </nav>
+  <main>
+    <img id="stage" src="preview/00-index.svg" alt="Diagrama" />
+  </main>
+  <script>
+    const stage = document.getElementById("stage");
+    document.querySelectorAll("nav button").forEach((btn, i) => {
+      if (i === 0) btn.classList.add("active");
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("nav button").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        stage.src = btn.dataset.src;
+      });
+    });
+  </script>
+</body>
+</html>

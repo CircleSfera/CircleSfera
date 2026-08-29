@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -24.0 1416.0 877.5" width="1416" height="878">
+<rect x="-8.0" y="-24.0" width="1416.0" height="877.5" fill="#F7F7F5" />
+<text x="40.0" y="47.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">CircleSfera — mapa de arquitectura</text>
+<text x="40.0" y="75.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">Leer en orden 01 → 20. Fuente: código + schema.prisma. 2026-08-29</text>
+<rect x="40.0" y="100.0" width="1320.0" height="52.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="1"  opacity="1.00" />
+<text x="700.0" y="123.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Monolito modular. No microservicios. Landing estática eliminada.</text>
+<text x="40.0" y="179.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">C4</text>
+<text x="380.0" y="179.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">código</text>
+<text x="720.0" y="179.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">dominio</text>
+<text x="1060.0" y="179.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">producto / ops</text>
+<rect x="40.0" y="196.0" width="300.0" height="88.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="190.0" y="219.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">01  C4 Context</text>
+<text x="190.0" y="238.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Actores y sistemas externos</text>
+<rect x="40.0" y="316.0" width="300.0" height="88.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="190.0" y="339.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">02  C4 Containers</text>
+<text x="190.0" y="358.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">SPA, nginx, API, Postgres, Redis</text>
+<rect x="40.0" y="436.0" width="300.0" height="88.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="190.0" y="459.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">03  Deploy prod</text>
+<text x="190.0" y="478.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">OVH VPS + compose (hoy)</text>
+<rect x="40.0" y="556.0" width="300.0" height="88.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="190.0" y="579.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">04  Deploy dev</text>
+<text x="190.0" y="598.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">docker-compose.yml</text>
+<rect x="40.0" y="676.0" width="300.0" height="88.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="190.0" y="699.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">05  Monorepo</text>
+<text x="190.0" y="718.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">paquetes del repo</text>
+<rect x="380.0" y="196.0" width="300.0" height="88.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="530.0" y="219.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">06  Backend layers</text>
+<text x="530.0" y="238.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Controller → Service → Prisma</text>
+<rect x="380.0" y="316.0" width="300.0" height="88.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="530.0" y="339.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">07  Backend modules</text>
+<text x="530.0" y="358.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">NestJS por dominio</text>
+<rect x="380.0" y="436.0" width="300.0" height="88.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="530.0" y="459.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">08  Frontend arch</text>
+<text x="530.0" y="478.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Query + Zustand + ApiClient</text>
+<rect x="380.0" y="556.0" width="300.0" height="88.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="530.0" y="579.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">09  Frontend surfaces</text>
+<text x="530.0" y="598.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Rutas y hosts</text>
+<rect x="380.0" y="676.0" width="300.0" height="88.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="530.0" y="699.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">10  Identity</text>
+<text x="530.0" y="718.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">User / Profile / AdminIdentity</text>
+<rect x="720.0" y="196.0" width="300.0" height="88.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="870.0" y="219.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">11  Data model</text>
+<text x="870.0" y="238.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">clusters schema (76 modelos)</text>
+<rect x="720.0" y="316.0" width="300.0" height="88.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="870.0" y="339.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">12  Auth &amp; security</text>
+<text x="870.0" y="358.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">cookies + CSRF + guards</text>
+<rect x="720.0" y="436.0" width="300.0" height="88.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="870.0" y="459.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">13  Request lifecycle</text>
+<text x="870.0" y="478.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">un request E2E</text>
+<rect x="720.0" y="556.0" width="300.0" height="88.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="870.0" y="579.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">14  Async &amp; realtime</text>
+<text x="870.0" y="598.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">BullMQ + Socket.IO</text>
+<rect x="720.0" y="676.0" width="300.0" height="88.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="870.0" y="699.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">15  Feed híbrido</text>
+<text x="870.0" y="718.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">ADR-0009</text>
+<rect x="1060.0" y="196.0" width="300.0" height="88.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1210.0" y="219.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">16  Monetización</text>
+<text x="1210.0" y="238.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Stripe, fee 20%</text>
+<rect x="1060.0" y="316.0" width="300.0" height="88.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="1210.0" y="339.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">17  Admin T&amp;S</text>
+<text x="1210.0" y="358.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">admin.circlesfera.com</text>
+<rect x="1060.0" y="436.0" width="300.0" height="88.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="1210.0" y="459.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">18  Live + WebRTC</text>
+<text x="1210.0" y="478.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">LiveKit + P2P</text>
+<rect x="1060.0" y="556.0" width="300.0" height="88.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1210.0" y="579.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">19  CI/CD</text>
+<text x="1210.0" y="598.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">PR → GHCR → OVH</text>
+<rect x="1060.0" y="676.0" width="300.0" height="88.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1210.0" y="699.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">20  Out of scope</text>
+<text x="1210.0" y="718.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">no shipped</text>
+<text x="40.0" y="799.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">No inventa endpoints ni modelos. schema.prisma y controladores ganan.</text>
+</svg>

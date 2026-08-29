@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -24.0 1616.0 973.5" width="1616" height="974">
+<rect x="-8.0" y="-24.0" width="1616.0" height="973.5" fill="#F7F7F5" />
+<text x="40.0" y="47.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">C4 Nivel 2 — Containers</text>
+<text x="40.0" y="75.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">Fuente: .ai/core/architecture.md, docker-compose*.yml, nginx/master.conf.template</text>
+<rect x="40.0" y="280.0" width="160.0" height="88.0" rx="10" fill="#E3F2FD" stroke="#1565C0" stroke-width="2"  opacity="1.00" />
+<text x="120.0" y="303.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="middle" opacity="1.00">Usuario</text>
+<text x="120.0" y="322.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Browser</text>
+<rect x="240.0" y="120.0" width="1320.0" height="520.0" rx="10" fill="none" stroke="#90A4AE" stroke-width="1" stroke-dasharray="8 6" opacity="1.00" />
+<text x="256.0" y="139.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#90A4AE" text-anchor="start" opacity="1.00">System_Boundary  CircleSfera</text>
+<rect x="260.0" y="180.0" width="300.0" height="140.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="410.0" y="203.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">Browser SPA</text>
+<text x="410.0" y="222.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">React 19 + Vite 7 + PWA</text>
+<text x="410.0" y="237.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">(vite-plugin-pwa)</text>
+<text x="410.0" y="252.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">TanStack Query + Zustand</text>
+<text x="410.0" y="267.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">circlesfera.com y</text>
+<text x="410.0" y="282.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">admin.circlesfera.com</text>
+<text x="410.0" y="297.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">(mismo bundle, árbol de rutas distinto)</text>
+<rect x="620.0" y="200.0" width="300.0" height="160.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="770.0" y="223.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">nginx</text>
+<text x="770.0" y="242.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">TLS en host (prod)</text>
+<text x="770.0" y="257.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">/ → frontend</text>
+<text x="770.0" y="272.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">/api/v1/ → backend</text>
+<text x="770.0" y="287.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">/api/v1/socket.io/ WS upgrade</text>
+<text x="770.0" y="302.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">/uploads/</text>
+<rect x="980.0" y="180.0" width="320.0" height="160.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1140.0" y="203.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">API NestJS</text>
+<text x="1140.0" y="222.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">NestJS 11, Express, api/v1</text>
+<text x="1140.0" y="237.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Modular monolith</text>
+<text x="1140.0" y="252.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">BullMQ processors IN-PROCESS</text>
+<text x="1140.0" y="267.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Socket.IO namespace events</text>
+<rect x="980.0" y="400.0" width="280.0" height="120.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="1120.0" y="423.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">PostgreSQL + pgvector</text>
+<text x="1120.0" y="442.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">pgvector/pgvector:pg16</text>
+<text x="1120.0" y="457.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">76 models</text>
+<text x="1120.0" y="472.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Canonical schema.prisma</text>
+<rect x="1280.0" y="400.0" width="260.0" height="120.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="1410.0" y="423.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="middle" opacity="1.00">Redis 7</text>
+<text x="1410.0" y="442.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">cache (TTL 10 min)</text>
+<text x="1410.0" y="457.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">BullMQ broker</text>
+<text x="1410.0" y="472.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Socket.IO Redis adapter</text>
+<rect x="260.0" y="680.0" width="180.0" height="80.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="350.0" y="703.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">Stripe</text>
+<rect x="460.0" y="680.0" width="180.0" height="80.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="550.0" y="703.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">LiveKit</text>
+<rect x="660.0" y="680.0" width="180.0" height="80.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="750.0" y="703.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">OpenAI</text>
+<rect x="860.0" y="680.0" width="180.0" height="80.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="950.0" y="703.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">Brevo</text>
+<rect x="1060.0" y="680.0" width="220.0" height="80.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1170.0" y="703.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">S3 / Cloudinary</text>
+<rect x="260.0" y="790.0" width="720.0" height="72.0" rx="10" fill="#FFFDE7" stroke="#9E9E9E" stroke-width="1"  opacity="1.00" />
+<text x="620.0" y="813.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">No segundo runtime. No microservicios.</text>
+<text x="620.0" y="832.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">No domain event bus (EventEmitter2 solo in-process).</text>
+<path d="M 206.0 324.0 L 254.0 250.0" fill="none" stroke="#1565C0" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="254.0,250.0 252.5,261.9 243.7,256.2" fill="#1565C0" />
+<path d="M 566.0 232.0 L 614.0 262.0" fill="none" stroke="#00897B" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="614.0,262.0 602.1,260.7 607.6,251.8" fill="#00897B" />
+<text x="590.0" y="241.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">HTTPS + cookies + x-csrf-token</text>
+<path d="M 614.0 308.0 L 566.0 278.0" fill="none" stroke="#00897B" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="566.0,278.0 577.9,279.3 572.4,288.2" fill="#00897B" />
+<text x="590.0" y="287.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">static /</text>
+<path d="M 926.0 264.0 L 974.0 244.0" fill="none" stroke="#00897B" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="974.0,244.0 966.0,253.0 962.0,243.3" fill="#00897B" />
+<text x="950.0" y="248.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">/api/v1</text>
+<path d="M 1140.0 346.0 L 1120.0 394.0" fill="none" stroke="#2E7D32" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1120.0,394.0 1119.3,382.0 1129.0,386.0" fill="#2E7D32" />
+<text x="1130.0" y="364.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">Prisma 7 + adapter-pg</text>
+<path d="M 1306.0 260.0 L 1274.0 460.0" fill="none" stroke="#EF6C00" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1274.0,460.0 1270.6,448.5 1280.9,450.2" fill="#EF6C00" />
+<path d="M 974.0 260.0 L 446.0 720.0" fill="none" stroke="#546E7A" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="446.0,720.0 450.7,709.0 457.6,716.8" fill="#546E7A" />
+<path d="M 974.0 260.0 L 646.0 720.0" fill="none" stroke="#546E7A" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="646.0,720.0 648.0,708.2 656.5,714.2" fill="#546E7A" />
+<path d="M 1140.0 346.0 L 750.0 674.0" fill="none" stroke="#546E7A" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="750.0,674.0 754.9,663.1 761.6,671.0" fill="#546E7A" />
+<path d="M 1140.0 346.0 L 950.0 674.0" fill="none" stroke="#546E7A" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="950.0,674.0 950.9,662.0 959.9,667.3" fill="#546E7A" />
+<path d="M 1140.0 346.0 L 1170.0 674.0" fill="none" stroke="#546E7A" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1170.0,674.0 1163.8,663.7 1174.2,662.8" fill="#546E7A" />
+<path d="M 926.0 336.0 L 974.0 316.0" fill="none" stroke="#00897B" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="974.0,316.0 966.0,325.0 962.0,315.3" fill="#00897B" />
+<text x="950.0" y="350.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">socket.io</text>
+<text x="40.0" y="895.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">Fuente: .ai/core/architecture.md, docker-compose*.yml, nginx/master.conf.template</text>
+</svg>

@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -24.0 2008.0 1348.0" width="2008" height="1348">
+<rect x="-8.0" y="-24.0" width="2008.0" height="1348.0" fill="#F7F7F5" />
+<text x="40.0" y="47.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Modelo de datos — clusters (schema.prisma)</text>
+<text x="40.0" y="79.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">Fuente: circlesfera-backend/prisma/schema.prisma — 76 models, 28 enums. Clusters con ejemplos; no se listan los 76.</text>
+<rect x="40.0" y="120.0" width="460.0" height="268.0" rx="10" fill="#E3F2FD" stroke="#1565C0" stroke-width="2"  opacity="1.00" />
+<text x="56.0" y="149.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="start" opacity="1.00">Account</text>
+<text x="56.0" y="175.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">User</text>
+<text x="56.0" y="191.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">RefreshToken</text>
+<text x="56.0" y="207.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Passkey</text>
+<text x="56.0" y="223.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">DeviceSignal</text>
+<text x="56.0" y="240.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">UserSettings</text>
+<text x="56.0" y="256.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">DataExportRequest</text>
+<text x="56.0" y="272.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">PushSubscription</text>
+<rect x="524.0" y="120.0" width="460.0" height="268.0" rx="10" fill="#E0F7FA" stroke="#00838F" stroke-width="2"  opacity="1.00" />
+<text x="540.0" y="149.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00838F" text-anchor="start" opacity="1.00">Social identity</text>
+<text x="540.0" y="175.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Profile</text>
+<rect x="1008.0" y="120.0" width="460.0" height="268.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1024.0" y="149.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="start" opacity="1.00">Content</text>
+<text x="1024.0" y="175.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Post, PostMedia, PostTag</text>
+<text x="1024.0" y="191.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">PostHashtag, Hashtag, Audio</text>
+<text x="1024.0" y="207.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Comment, Like, CommentLike</text>
+<rect x="1492.0" y="120.0" width="460.0" height="268.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="1508.0" y="149.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="start" opacity="1.00">Vectors</text>
+<text x="1508.0" y="175.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">PostEmbedding</text>
+<text x="1508.0" y="191.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">ProfileEmbedding</text>
+<text x="1508.0" y="207.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">(pgvector)</text>
+<rect x="40.0" y="416.0" width="460.0" height="268.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="2"  opacity="1.00" />
+<text x="56.0" y="445.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#C2185B" text-anchor="start" opacity="1.00">Money</text>
+<text x="56.0" y="471.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">PlatformPlan, PlatformSubscription</text>
+<text x="56.0" y="487.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">WebhookEvent, Promotion</text>
+<text x="56.0" y="503.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Monetization, StripePayoutLog</text>
+<text x="56.0" y="519.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Transaction</text>
+<text x="56.0" y="536.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">PostUnlock, MessageUnlock, StoryUnlock</text>
+<rect x="524.0" y="416.0" width="460.0" height="268.0" rx="10" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2"  opacity="1.00" />
+<text x="540.0" y="445.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="start" opacity="1.00">Trust</text>
+<text x="540.0" y="471.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Report, Appeal</text>
+<text x="540.0" y="487.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">ModerationRule</text>
+<text x="540.0" y="503.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">ModerationSignature</text>
+<text x="540.0" y="519.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">WhitelistEntry</text>
+<text x="540.0" y="536.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">SupportTicket</text>
+<text x="540.0" y="552.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">SystemSetting</text>
+<rect x="1008.0" y="416.0" width="460.0" height="268.0" rx="10" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2"  opacity="1.00" />
+<text x="1024.0" y="445.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="start" opacity="1.00">Admin</text>
+<text x="1024.0" y="471.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">AdminIdentity, AdminRole</text>
+<text x="1024.0" y="487.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">AdminPermission</text>
+<text x="1024.0" y="503.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">AdminRolePermission</text>
+<text x="1024.0" y="519.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">AdminIdentityRole</text>
+<text x="1024.0" y="536.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">AdminRefreshToken, AdminPasskey</text>
+<text x="1024.0" y="552.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">AdminAuditLog</text>
+<rect x="1492.0" y="416.0" width="460.0" height="268.0" rx="10" fill="#E0F7FA" stroke="#00838F" stroke-width="2"  opacity="1.00" />
+<text x="1508.0" y="445.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00838F" text-anchor="start" opacity="1.00">Chat</text>
+<text x="1508.0" y="471.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Conversation</text>
+<text x="1508.0" y="487.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Participant</text>
+<text x="1508.0" y="503.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Message</text>
+<text x="1508.0" y="519.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">MessageReaction</text>
+<rect x="40.0" y="712.0" width="460.0" height="268.0" rx="10" fill="#E0F7FA" stroke="#00838F" stroke-width="2"  opacity="1.00" />
+<text x="56.0" y="741.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00838F" text-anchor="start" opacity="1.00">Graph</text>
+<text x="56.0" y="767.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Follow, Block, Mute</text>
+<text x="56.0" y="783.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">CloseFriend</text>
+<text x="56.0" y="799.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Bookmark, Collection</text>
+<text x="56.0" y="815.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">SearchHistory</text>
+<rect x="524.0" y="712.0" width="460.0" height="268.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="540.0" y="741.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="start" opacity="1.00">Stories</text>
+<text x="540.0" y="767.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Story</text>
+<text x="540.0" y="783.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">StoryView</text>
+<text x="540.0" y="799.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">StoryReaction</text>
+<text x="540.0" y="815.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Highlight</text>
+<text x="540.0" y="832.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">HighlightStory</text>
+<rect x="1008.0" y="712.0" width="460.0" height="268.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1024.0" y="741.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="start" opacity="1.00">Interactive</text>
+<text x="1024.0" y="767.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Poll</text>
+<text x="1024.0" y="783.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">PollVote</text>
+<text x="1024.0" y="799.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">QnaBox</text>
+<text x="1024.0" y="815.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">QnaAnswer</text>
+<rect x="1492.0" y="712.0" width="460.0" height="268.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1508.0" y="741.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="start" opacity="1.00">Live &amp; edits</text>
+<text x="1508.0" y="767.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">LiveStream</text>
+<text x="1508.0" y="783.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">LiveGift</text>
+<text x="1508.0" y="799.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">EditProject</text>
+<rect x="40.0" y="1008.0" width="460.0" height="268.0" rx="10" fill="#E3F2FD" stroke="#1565C0" stroke-width="2"  opacity="1.00" />
+<text x="56.0" y="1037.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="start" opacity="1.00">Notifications</text>
+<text x="56.0" y="1063.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Notification</text>
+<rect x="524.0" y="1008.0" width="460.0" height="268.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="540.0" y="1037.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="start" opacity="1.00">Feed prefs &amp; signals</text>
+<text x="540.0" y="1063.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">FeedHiddenPost, FeedHiddenAuthor</text>
+<text x="540.0" y="1079.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">FeedMutedKeyword</text>
+<text x="540.0" y="1095.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">PostView, ProfileMetric</text>
+<text x="540.0" y="1111.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">InteractionEvent</text>
+<text x="540.0" y="1128.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">FeatureFlag, UserExperiment</text>
+<path d="M 500.0 254.0 L 524.0 254.0" fill="none" stroke="#1565C0" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="524.0,254.0 511.4,260.1 511.4,247.9" fill="#1565C0" />
+<text x="518.0" y="245.3" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="start" opacity="1.00">User 1—N Profile</text>
+<path d="M 984.0 254.0 L 1008.0 254.0" fill="none" stroke="#00838F" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1008.0,254.0 995.4,260.1 995.4,247.9" fill="#00838F" />
+<text x="1002.0" y="245.3" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#00838F" text-anchor="start" opacity="1.00">Profile → Content</text>
+<path d="M 1468.0 254.0 L 1492.0 254.0" fill="none" stroke="#2E7D32" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1492.0,254.0 1479.4,260.1 1479.4,247.9" fill="#2E7D32" />
+<text x="1486.0" y="245.3" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="start" opacity="1.00">Post → PostEmbedding</text>
+<path d="M 270.0 388.0 L 270.0 416.0" fill="none" stroke="#C2185B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="270.0,416.0 263.9,403.4 276.1,403.4" fill="#C2185B" />
+<text x="276.0" y="393.4" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#C2185B" text-anchor="start" opacity="1.00">User → Money</text>
+<path d="M 754.0 388.0 L 754.0 416.0" fill="none" stroke="#00838F" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="754.0,416.0 748.8,405.2 759.2,405.2" fill="#00838F" />
+<text x="760.0" y="393.4" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#00838F" text-anchor="start" opacity="1.00">Profile → Report.reporter</text>
+<path d="M 1008.0 550.0 L 984.0 550.0" fill="none" stroke="#7B1FA2" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="984.0,550.0 996.6,543.9 996.6,556.1" fill="#7B1FA2" />
+<text x="1002.0" y="541.4" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="start" opacity="1.00">AdminIdentity → Report.assignee</text>
+<rect x="1008.0" y="1008.0" width="460.0" height="268.0" rx="10" fill="#FAFAFA" stroke="#757575" stroke-width="2"  opacity="1.00" />
+<text x="1024.0" y="1035.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#757575" text-anchor="start" opacity="1.00">Enums (no se dibujan todos)</text>
+<text x="1024.0" y="1060.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">TransactionType includes DIRECT_POST_UNLOCK,</text>
+<text x="1024.0" y="1076.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">DIRECT_STORY_UNLOCK, DIRECT_MESSAGE_UNLOCK, DIRECT_TIP,</text>
+<text x="1024.0" y="1093.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">DIRECT_LIVE_GIFT, STRIPE_SUBSCRIPTION,</text>
+<text x="1024.0" y="1109.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">PROMOTION_PAYMENT.</text>
+<text x="1024.0" y="1125.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Money is integer cents.</text>
+<rect x="1492.0" y="1008.0" width="460.0" height="268.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="2"  opacity="1.00" />
+<text x="1508.0" y="1035.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#C2185B" text-anchor="start" opacity="1.00">Payouts</text>
+<text x="1508.0" y="1060.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">No payout_requests table — dropped, ADR-0002.</text>
+<text x="1508.0" y="1076.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Stripe Connect Express only.</text>
+</svg>

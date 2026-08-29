@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -28.0 1564.0 1610.0" width="1564" height="1610">
+<rect x="-8.0" y="-28.0" width="1564.0" height="1610.0" fill="#F7F7F5" />
+<text x="40.0" y="43.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="start" opacity="1.00">Monetización — Stripe (ADR-0002, 0003, 0010)</text>
+<text x="40.0" y="73.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#6B6B6B" text-anchor="start" opacity="1.00">Fuente: schema TransactionType, payments/monetization controllers, 00-status.md</text>
+<text x="40.0" y="113.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="start" opacity="1.00">Actores</text>
+<rect x="40.0" y="130.0" width="360.0" height="80.0" rx="10" fill="#E3F2FD" stroke="#1565C0" stroke-width="2"  opacity="1.00" />
+<text x="220.0" y="149.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Fan (mismo User, paga)</text>
+<rect x="420.0" y="130.0" width="420.0" height="80.0" rx="10" fill="#E3F2FD" stroke="#1565C0" stroke-width="2"  opacity="1.00" />
+<text x="630.0" y="149.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Creator (mismo User, cobra)</text>
+<rect x="130.0" y="98.0" width="710.0" height="28.0" rx="10" fill="#FFFFFF" stroke="#1565C0" stroke-width="1.5" stroke-dasharray="8 6" opacity="1.00" />
+<text x="485.0" y="110.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="middle" opacity="1.00">AccountType PERSONAL ↔ CREATOR. Un User puede ser fan y creador, y dejar de ser creador.</text>
+<rect x="860.0" y="130.0" width="640.0" height="80.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="2"  opacity="1.00" />
+<text x="1180.0" y="148.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Platform — 20% application fee (ADR-0010)</text>
+<rect x="40.0" y="240.0" width="1460.0" height="56.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="2"  opacity="1.00" />
+<text x="770.0" y="259.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Server-priced — never trust client amount</text>
+<rect x="40.0" y="320.0" width="1460.0" height="280.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="1.5" stroke-dasharray="8 6" opacity="0.55" />
+<text x="52.0" y="339.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#C2185B" text-anchor="start" opacity="1.00">Rutas de dinero</text>
+<rect x="60.0" y="360.0" width="340.0" height="210.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="2"  opacity="1.00" />
+<text x="230.0" y="377.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Platform plan</text>
+<text x="230.0" y="395.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">PlatformSubscription</text>
+<text x="230.0" y="412.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">ONE active plan / user</text>
+<text x="230.0" y="430.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">(ADR-0003)</text>
+<text x="230.0" y="447.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">GET /payments/status</text>
+<rect x="420.0" y="360.0" width="360.0" height="210.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="2"  opacity="1.00" />
+<text x="600.0" y="377.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Creator VIP</text>
+<text x="600.0" y="393.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Profile.subscriptionPriceCents</text>
+<text x="600.0" y="409.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">canonical</text>
+<text x="600.0" y="425.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">PATCH /creator/subscription-price</text>
+<text x="600.0" y="442.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">client priceCents ignored</text>
+<rect x="800.0" y="360.0" width="330.0" height="210.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="2"  opacity="1.00" />
+<text x="965.0" y="377.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Tips / unlocks / gifts</text>
+<text x="965.0" y="395.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">post unlock</text>
+<text x="965.0" y="412.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">story unlock</text>
+<text x="965.0" y="430.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">message unlock</text>
+<text x="965.0" y="447.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">live gifts</text>
+<rect x="1150.0" y="360.0" width="330.0" height="210.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="2"  opacity="1.00" />
+<text x="1315.0" y="377.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Promotions</text>
+<text x="1315.0" y="393.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Stripe Checkout</text>
+<text x="1315.0" y="409.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">PAUSED / resume</text>
+<text x="1315.0" y="425.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">cancel → CANCELLED</text>
+<text x="1315.0" y="442.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">+ proportional unused-</text>
+<text x="1315.0" y="458.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">budget refund</text>
+<path d="M 220.0 210.0 L 230.0 360.0" fill="none" stroke="#C2185B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="230.0,360.0 223.1,347.8 235.2,347.0" fill="#C2185B" />
+<path d="M 630.0 210.0 L 600.0 360.0" fill="none" stroke="#C2185B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="600.0,360.0 596.5,346.4 608.4,348.8" fill="#C2185B" />
+<path d="M 220.0 210.0 L 965.0 360.0" fill="none" stroke="#C2185B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="965.0,360.0 951.4,363.5 953.8,351.5" fill="#C2185B" />
+<path d="M 1180.0 210.0 L 1315.0 360.0" fill="none" stroke="#C2185B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1315.0,360.0 1302.0,354.7 1311.1,346.6" fill="#C2185B" />
+<rect x="40.0" y="630.0" width="720.0" height="160.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="2"  opacity="1.00" />
+<text x="400.0" y="648.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Live gifts</text>
+<text x="400.0" y="667.5" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">catalog gift-catalog.ts (server-side)</text>
+<text x="400.0" y="686.2" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">TransactionType.DIRECT_LIVE_GIFT</text>
+<text x="400.0" y="705.0" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">webhook emits live:gift</text>
+<path d="M 965.0 570.0 L 400.0 630.0" fill="none" stroke="#C2185B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="400.0,630.0 411.9,622.6 413.2,634.7" fill="#C2185B" />
+<rect x="780.0" y="630.0" width="720.0" height="160.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1140.0" y="648.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Unlocks</text>
+<text x="1140.0" y="667.5" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">PostUnlock · MessageUnlock · StoryUnlock</text>
+<text x="1140.0" y="686.2" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Story PPV: isPremium / priceCents</text>
+<text x="1140.0" y="705.0" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">IdentityVerifiedGuard on unlock</text>
+<path d="M 965.0 570.0 L 1140.0 630.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1140.0,630.0 1126.1,631.7 1130.1,620.2" fill="#00897B" />
+<rect x="40.0" y="820.0" width="1460.0" height="230.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="1.5" stroke-dasharray="8 6" opacity="0.55" />
+<text x="52.0" y="839.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="start" opacity="1.00">TransactionType enum ONLY</text>
+<rect x="60.0" y="860.0" width="196.0" height="70.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="158.0" y="876.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">DIRECT_POST_UNLOCK</text>
+<rect x="268.0" y="860.0" width="196.0" height="70.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="366.0" y="876.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">DIRECT_STORY_UNLOCK</text>
+<rect x="476.0" y="860.0" width="196.0" height="70.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="574.0" y="876.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">DIRECT_MESSAGE_UNLOCK</text>
+<rect x="684.0" y="860.0" width="196.0" height="70.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="782.0" y="876.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">DIRECT_TIP</text>
+<rect x="60.0" y="946.0" width="196.0" height="70.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="158.0" y="962.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">DIRECT_LIVE_GIFT</text>
+<rect x="268.0" y="946.0" width="196.0" height="70.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="366.0" y="962.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">STRIPE_SUBSCRIPTION</text>
+<rect x="476.0" y="946.0" width="196.0" height="70.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="574.0" y="962.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">PROMOTION_PAYMENT</text>
+<rect x="40.0" y="1070.0" width="900.0" height="360.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="1.5" stroke-dasharray="8 6" opacity="0.55" />
+<text x="52.0" y="1089.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">Stripe</text>
+<rect x="60.0" y="1110.0" width="860.0" height="56.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="490.0" y="1129.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Single StripeService</text>
+<rect x="60.0" y="1180.0" width="860.0" height="70.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="490.0" y="1198.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Checkout + Connect Express + Identity + webhooks</text>
+<rect x="60.0" y="1264.0" width="860.0" height="70.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="490.0" y="1281.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Webhook: PROCESSED only after success</text>
+<text x="490.0" y="1299.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">FAILED + HTTP 5xx on error → Stripe retries</text>
+<rect x="60.0" y="1348.0" width="860.0" height="64.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="490.0" y="1365.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">CSRF excluded on /payments/webhook  ·  raw body  ·  currency EUR (tip/unlock/gift)</text>
+<path d="M 1315.0 570.0 L 490.0 1110.0" fill="none" stroke="#546E7A" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="490.0,1110.0 497.2,1098.0 503.9,1108.2" fill="#546E7A" />
+<path d="M 400.0 790.0 L 60.0 1138.0" fill="none" stroke="#546E7A" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="60.0,1138.0 64.5,1124.7 73.2,1133.2" fill="#546E7A" />
+<text x="60.0" y="1451.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#6B6B6B" text-anchor="start" opacity="1.00">Events handled include:</text>
+<rect x="60.0" y="1464.0" width="280.0" height="70.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="200.0" y="1480.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">checkout.session.expired</text>
+<rect x="352.0" y="1464.0" width="280.0" height="70.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="492.0" y="1480.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">invoice.payment_failed</text>
+<rect x="644.0" y="1464.0" width="280.0" height="70.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="784.0" y="1480.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">charge.refunded</text>
+<rect x="936.0" y="1464.0" width="280.0" height="70.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1076.0" y="1480.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">charge.dispute.created</text>
+<text x="1076.0" y="1495.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">(revoke unlocks)</text>
+<rect x="1228.0" y="1464.0" width="280.0" height="70.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1368.0" y="1480.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">account.updated</text>
+<rect x="960.0" y="1070.0" width="540.0" height="360.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="1.5" stroke-dasharray="8 6" opacity="0.55" />
+<text x="972.0" y="1089.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#C2185B" text-anchor="start" opacity="1.00">Payouts — ADR-0002</text>
+<rect x="980.0" y="1110.0" width="500.0" height="280.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="2"  opacity="1.00" />
+<text x="1230.0" y="1127.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">NO internal payout ledger</text>
+<text x="1230.0" y="1145.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">(payout_requests dropped)</text>
+<text x="1230.0" y="1162.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00"></text>
+<text x="1230.0" y="1180.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">GET /monetization/payouts</text>
+<text x="1230.0" y="1197.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Connect balance</text>
+<text x="1230.0" y="1215.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">available / pending</text>
+<text x="1230.0" y="1232.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">+ recent payouts (read-only)</text>
+<text x="1230.0" y="1250.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00"></text>
+<text x="1230.0" y="1267.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Initiating payouts stays in</text>
+<text x="1230.0" y="1285.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Stripe Express dashboard</text>
+</svg>

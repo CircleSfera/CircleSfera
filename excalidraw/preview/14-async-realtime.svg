@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -28.0 1996.0 1326.0" width="1996" height="1326">
+<rect x="-8.0" y="-28.0" width="1996.0" height="1326.0" fill="#F7F7F5" />
+<text x="40.0" y="43.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="start" opacity="1.00">Async y tiempo real — BullMQ + Socket.IO + cron</text>
+<text x="40.0" y="73.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#6B6B6B" text-anchor="start" opacity="1.00">Fuente: architecture.md, *Module registerQueue, app.gateway.ts, ADR-0006</text>
+<rect x="40.0" y="110.0" width="560.0" height="340.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="1.5" stroke-dasharray="8 6" opacity="0.55" />
+<text x="52.0" y="129.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="start" opacity="1.00">Proceso API (NestJS)</text>
+<rect x="60.0" y="150.0" width="520.0" height="80.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="320.0" y="169.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">NestJS API process</text>
+<text x="320.0" y="189.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">processors run IN this process</text>
+<rect x="60.0" y="250.0" width="520.0" height="80.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="320.0" y="268.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Heavy jobs compete</text>
+<text x="320.0" y="287.5" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">with request latency</text>
+<rect x="60.0" y="350.0" width="520.0" height="70.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="320.0" y="367.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">registerQueue in domain modules</text>
+<text x="320.0" y="385.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">+ ScheduleModule + @Cron</text>
+<ellipse cx="900.0" cy="290.0" rx="180.0" ry="110.0" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="900.0" y="201.3" font-size="18.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Redis</text>
+<text x="900.0" y="223.8" font-size="18.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">BullMQ · cache</text>
+<text x="900.0" y="246.3" font-size="18.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Socket.IO pub/sub</text>
+<rect x="1160.0" y="110.0" width="720.0" height="380.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="1.5" stroke-dasharray="8 6" opacity="0.55" />
+<text x="1172.0" y="129.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="start" opacity="1.00">Tiempo real</text>
+<rect x="1180.0" y="150.0" width="680.0" height="64.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1520.0" y="169.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Socket.IO  ·  src/socket/app.gateway.ts</text>
+<rect x="1180.0" y="230.0" width="330.0" height="56.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1345.0" y="247.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">namespace: events</text>
+<rect x="1520.0" y="230.0" width="340.0" height="56.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1690.0" y="247.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">path: /socket.io</text>
+<rect x="1180.0" y="304.0" width="680.0" height="56.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1520.0" y="321.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">JWT: access_token cookie or handshake</text>
+<rect x="1180.0" y="376.0" width="680.0" height="56.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1520.0" y="393.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">rooms: user:{id}  ·  presence:{id}</text>
+<rect x="1180.0" y="448.0" width="330.0" height="56.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="1345.0" y="465.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">RedisIoAdapter</text>
+<text x="1345.0" y="481.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">horizontal scale</text>
+<rect x="1520.0" y="448.0" width="340.0" height="56.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1690.0" y="465.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">nginx upgrades</text>
+<text x="1690.0" y="481.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">/api/v1/socket.io/</text>
+<path d="M 580.0 190.0 L 720.0 290.0" fill="none" stroke="#2E7D32" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="720.0,290.0 706.2,287.6 713.3,277.7" fill="#2E7D32" />
+<path d="M 1080.0 290.0 L 1180.0 182.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1180.0,182.0 1175.9,195.4 1167.0,187.1" fill="#00897B" />
+<path d="M 1080.0 290.0 L 1345.0 448.0" fill="none" stroke="#2E7D32" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1345.0,448.0 1331.1,446.8 1337.3,436.3" fill="#2E7D32" />
+<text x="40.0" y="485.3" font-size="18.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="start" opacity="1.00">Colas BullMQ (nombres verificados)</text>
+<text x="40.0" y="509.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#6B6B6B" text-anchor="start" opacity="1.00">Processors corren dentro del proceso API. posts-processing existe en posts.module.ts; no está en la lista stale de «10 queues».</text>
+<rect x="40.0" y="540.0" width="300.0" height="72.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="190.0" y="558.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">ai-processing</text>
+<rect x="360.0" y="540.0" width="300.0" height="72.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="510.0" y="558.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">analytics-processing</text>
+<rect x="680.0" y="540.0" width="300.0" height="72.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="830.0" y="558.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">chat-processing</text>
+<rect x="1000.0" y="540.0" width="300.0" height="72.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="1150.0" y="558.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">feed-fanout</text>
+<rect x="1320.0" y="540.0" width="300.0" height="72.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="1470.0" y="558.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">notifications-processing</text>
+<rect x="1640.0" y="540.0" width="300.0" height="72.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="1790.0" y="558.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">slack-processing</text>
+<rect x="40.0" y="632.0" width="300.0" height="72.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="190.0" y="650.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">stories-processing</text>
+<rect x="360.0" y="632.0" width="300.0" height="72.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="510.0" y="650.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">users-processing</text>
+<rect x="680.0" y="632.0" width="300.0" height="72.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="830.0" y="650.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">video-transcoding</text>
+<rect x="1000.0" y="632.0" width="300.0" height="72.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="1150.0" y="650.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">edits-processing</text>
+<rect x="1320.0" y="632.0" width="300.0" height="72.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="1470.0" y="649.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">posts-processing</text>
+<text x="1470.0" y="665.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">(posts.module.ts; not in stale 10-queue list)</text>
+<path d="M 900.0 400.0 L 1150.0 540.0" fill="none" stroke="#EF6C00" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1150.0,540.0 1136.0,539.2 1142.0,528.5" fill="#EF6C00" />
+<text x="985.0" y="462.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="start" opacity="1.00">BullMQ</text>
+<path d="M 320.0 230.0 L 190.0 540.0" fill="none" stroke="#EF6C00" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="190.0,540.0 189.3,526.0 200.5,530.7" fill="#EF6C00" />
+<rect x="40.0" y="720.0" width="1840.0" height="280.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="1.5" stroke-dasharray="8 6" opacity="0.55" />
+<text x="52.0" y="739.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#EF6C00" text-anchor="start" opacity="1.00">Repeatable / scheduled (architecture.md + ScheduleModule)</text>
+<rect x="60.0" y="760.0" width="420.0" height="200.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="270.0" y="779.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">chat cleanup</text>
+<text x="270.0" y="799.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">hourly</text>
+<rect x="500.0" y="760.0" width="420.0" height="200.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="710.0" y="779.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">Slack briefing</text>
+<text x="710.0" y="799.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">08:00 UTC</text>
+<rect x="940.0" y="760.0" width="420.0" height="200.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="1150.0" y="779.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">GDPR crons</text>
+<text x="1150.0" y="799.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">02:00 / 03:00 / 04:00 UTC</text>
+<rect x="1380.0" y="760.0" width="480.0" height="200.0" rx="10" fill="#FFF3E0" stroke="#EF6C00" stroke-width="2"  opacity="1.00" />
+<text x="1620.0" y="777.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">ScheduleModule</text>
+<text x="1620.0" y="795.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">maintenance.service.ts</text>
+<text x="1620.0" y="812.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">expired stories</text>
+<text x="1620.0" y="830.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">orphan uploads</text>
+<text x="1620.0" y="847.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">stale tokens</text>
+<text x="1620.0" y="865.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">daily suspension lift</text>
+<path d="M 320.0 420.0 L 270.0 760.0" fill="none" stroke="#EF6C00" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="270.0,760.0 265.8,746.6 277.9,748.4" fill="#EF6C00" />
+<rect x="40.0" y="1030.0" width="1840.0" height="220.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="1.5" stroke-dasharray="8 6" opacity="0.55" />
+<text x="52.0" y="1049.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">EventEmitter2 — in-process, NOT a bus</text>
+<rect x="60.0" y="1070.0" width="400.0" height="150.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="260.0" y="1089.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">EventEmitter2</text>
+<text x="260.0" y="1109.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">in-process</text>
+<text x="260.0" y="1129.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">NOT a bus</text>
+<rect x="490.0" y="1070.0" width="430.0" height="150.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="705.0" y="1089.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">notification.create</text>
+<rect x="940.0" y="1070.0" width="430.0" height="150.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1155.0" y="1089.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">media.delete_batch</text>
+<rect x="1390.0" y="1070.0" width="460.0" height="150.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1620.0" y="1088.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e" text-anchor="middle" opacity="1.00">payment.live_gift_completed</text>
+<path d="M 320.0 230.0 L 260.0 1070.0" fill="none" stroke="#546E7A" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="260.0,1070.0 254.8,1057.0 267.0,1057.9" fill="#546E7A" />
+</svg>

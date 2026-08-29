@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -24.0 2012.0 1301.0" width="2012" height="1301">
+<rect x="-8.0" y="-24.0" width="2012.0" height="1301.0" fill="#F7F7F5" />
+<text x="40.0" y="47.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Identidad — tres capas (ADR-0015 / ADR-0013)</text>
+<text x="40.0" y="79.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">Fuente: 15-identity-profile-model.md, schema.prisma, cookie.config.ts</text>
+<rect x="40.0" y="120.0" width="620.0" height="820.0" rx="10" fill="#E3F2FD" stroke="#1565C0" stroke-width="2"  opacity="1.00" />
+<rect x="40.0" y="120.0" width="620.0" height="52.0" rx="10" fill="#1565C0" stroke="#1565C0" stroke-width="1"  opacity="1.00" />
+<text x="56.0" y="149.3" font-size="18.0" font-family="Helvetica, Arial, sans-serif" fill="#FFFFFF" text-anchor="start" opacity="1.00">1  User  (account)</text>
+<text x="56.0" y="199.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">email, password, passkeys, 2FA</text>
+<text x="56.0" y="215.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">role, verificationLevel</text>
+<text x="56.0" y="231.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">accountType  PERSONAL | CREATOR | BUSINESS</text>
+<text x="56.0" y="247.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">KYC / Stripe Identity</text>
+<text x="56.0" y="264.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Stripe customer + Connect IDs</text>
+<text x="56.0" y="280.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">isRootBanned, deletedAt, scheduledDeletionAt</text>
+<text x="56.0" y="296.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00"></text>
+<text x="56.0" y="312.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Relaciones de cuenta</text>
+<text x="56.0" y="329.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">UserSettings, PlatformSubscription, Promotion</text>
+<text x="56.0" y="345.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Monetization, Transaction, unlocks</text>
+<text x="56.0" y="361.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">LiveGift sender / receiver</text>
+<text x="56.0" y="377.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Appeal, DataExportRequest</text>
+<text x="56.0" y="394.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">PushSubscription, DeviceSignal</text>
+<text x="56.0" y="410.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00"></text>
+<text x="56.0" y="426.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Handle público: email (privado)</text>
+<text x="56.0" y="442.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">No User.username.</text>
+<rect x="56.0" y="480.0" width="588.0" height="120.0" rx="10" fill="#FFFFFF" stroke="#1565C0" stroke-width="1.5" stroke-dasharray="8 6" opacity="1.00" />
+<text x="68.0" y="503.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="start" opacity="1.00">Creador no es otra identidad.</text>
+<text x="68.0" y="519.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="start" opacity="1.00">AccountType reversible: PERSONAL ↔ CREATOR (settings + syncUserTier).</text>
+<text x="68.0" y="535.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="start" opacity="1.00">BUSINESS = plan Business. Studio si CREATOR | BUSINESS.</text>
+<rect x="688.0" y="120.0" width="620.0" height="820.0" rx="10" fill="#E0F7FA" stroke="#00838F" stroke-width="2"  opacity="1.00" />
+<rect x="688.0" y="120.0" width="620.0" height="52.0" rx="10" fill="#00838F" stroke="#00838F" stroke-width="1"  opacity="1.00" />
+<text x="704.0" y="149.3" font-size="18.0" font-family="Helvetica, Arial, sans-serif" fill="#FFFFFF" text-anchor="start" opacity="1.00">2  Profile  (social)</text>
+<text x="704.0" y="199.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">username UNIQUE</text>
+<text x="704.0" y="215.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">canonical public handle @username</text>
+<text x="704.0" y="231.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">fullName, bio, avatar / cover</text>
+<text x="704.0" y="247.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">isAccountBanned, accountBanReason, suspendedUntil</text>
+<text x="704.0" y="264.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00"></text>
+<text x="704.0" y="280.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">ALL content / social FKs</text>
+<text x="704.0" y="296.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">posts, stories, comments, likes</text>
+<text x="704.0" y="312.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">follows, blocks, mutes</text>
+<text x="704.0" y="329.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">bookmarks, collections, notifications</text>
+<text x="704.0" y="345.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">chat, live host, poll votes, QnA</text>
+<text x="704.0" y="361.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">reports as reporter, search history</text>
+<text x="704.0" y="377.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">close friends, highlights, edits</text>
+<text x="704.0" y="394.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00"></text>
+<text x="704.0" y="410.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">URL: /:username</text>
+<text x="704.0" y="426.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">API: GET /profiles/:username</text>
+<text x="704.0" y="442.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">me: GET /profiles/me via JWT profileId</text>
+<rect x="1336.0" y="120.0" width="620.0" height="820.0" rx="10" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2"  opacity="1.00" />
+<rect x="1336.0" y="120.0" width="620.0" height="52.0" rx="10" fill="#7B1FA2" stroke="#7B1FA2" stroke-width="1"  opacity="1.00" />
+<text x="1352.0" y="149.3" font-size="18.0" font-family="Helvetica, Arial, sans-serif" fill="#FFFFFF" text-anchor="start" opacity="1.00">3  AdminIdentity  (operator)</text>
+<text x="1352.0" y="199.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Separate login on admin.circlesfera.com</text>
+<text x="1352.0" y="215.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00"></text>
+<text x="1352.0" y="231.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">RBAC</text>
+<text x="1352.0" y="247.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">AdminRole, AdminPermission</text>
+<text x="1352.0" y="264.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">AdminRolePermission, AdminIdentityRole</text>
+<text x="1352.0" y="280.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00"></text>
+<text x="1352.0" y="296.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">MFA mandatory</text>
+<text x="1352.0" y="312.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">AdminPasskey, AdminRefreshToken</text>
+<text x="1352.0" y="329.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">AdminAuditLog</text>
+<text x="1352.0" y="345.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00"></text>
+<text x="1352.0" y="361.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Platform User.role does NOT grant</text>
+<text x="1352.0" y="377.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">admin-panel access</text>
+<text x="1352.0" y="394.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00"></text>
+<text x="1352.0" y="410.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Report.assignedAdminId → AdminIdentity</text>
+<rect x="40.0" y="968.0" width="1916.0" height="114.5" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="56.0" y="997.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="start" opacity="1.00">JWT / session</text>
+<text x="56.0" y="1023.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Cookies httpOnly: access_token 15m + refresh_token 7d  (RefreshToken table, rotate)</text>
+<text x="56.0" y="1041.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">CurrentUserData: userId (sub) + profileId  (primary profile; findFirst by userId — multi-profile schema exists but product v1 is one primary)</text>
+<text x="56.0" y="1058.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Admin cookies: admin_access_token 10m, admin_refresh_token 8h, host-only</text>
+<text x="40.0" y="1133.8" font-size="18.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Tabla de decisión</text>
+<rect x="40.0" y="1154.5" width="364.0" height="74.5" rx="10" fill="#E0F7FA" stroke="#00838F" stroke-width="2"  opacity="1.00" />
+<text x="56.0" y="1181.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00838F" text-anchor="start" opacity="1.00">Who owns this post?</text>
+<text x="56.0" y="1205.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Post.profileId</text>
+<rect x="420.0" y="1154.5" width="364.0" height="74.5" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="2"  opacity="1.00" />
+<text x="436.0" y="1181.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#C2185B" text-anchor="start" opacity="1.00">Who pays a plan?</text>
+<text x="436.0" y="1205.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">PlatformSubscription.userId</text>
+<rect x="800.0" y="1154.5" width="364.0" height="74.5" rx="10" fill="#E0F7FA" stroke="#00838F" stroke-width="2"  opacity="1.00" />
+<text x="816.0" y="1181.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00838F" text-anchor="start" opacity="1.00">Who sent this DM?</text>
+<text x="816.0" y="1205.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Message.senderId → Profile</text>
+<rect x="1180.0" y="1154.5" width="364.0" height="74.5" rx="10" fill="#E0F7FA" stroke="#00838F" stroke-width="2"  opacity="1.00" />
+<text x="1196.0" y="1181.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00838F" text-anchor="start" opacity="1.00">Who filed report?</text>
+<text x="1196.0" y="1205.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Report.reporterId → Profile</text>
+<rect x="1560.0" y="1154.5" width="364.0" height="74.5" rx="10" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2"  opacity="1.00" />
+<text x="1576.0" y="1181.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="start" opacity="1.00">Who claimed report?</text>
+<text x="1576.0" y="1205.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Report.assignedAdminId → AdminIdentity</text>
+</svg>

@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -24.0 1436.0 744.0" width="1436" height="744">
+<rect x="-8.0" y="-24.0" width="1436.0" height="744.0" fill="#F7F7F5" />
+<text x="40.0" y="47.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#1B1B1B" text-anchor="start" opacity="1.00">Frontend — capas de la SPA</text>
+<text x="40.0" y="77.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">Fuente: architecture.md, src/main.tsx, src/App.tsx, src/services/api.ts</text>
+<rect x="60.0" y="100.0" width="200.0" height="56.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="160.0" y="131.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">index.html</text>
+<rect x="320.0" y="92.0" width="320.0" height="72.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="480.0" y="122.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">main.tsx</text>
+<text x="480.0" y="139.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">BrowserRouter · QueryClient · SW</text>
+<rect x="700.0" y="92.0" width="300.0" height="72.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="850.0" y="122.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">App.tsx</text>
+<text x="850.0" y="139.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">all routes · React.lazy heavy</text>
+<rect x="1060.0" y="92.0" width="320.0" height="72.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1220.0" y="122.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">LayoutWrapper</text>
+<text x="1220.0" y="139.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">nav · socket · story overlay · skip link</text>
+<rect x="60.0" y="220.0" width="420.0" height="130.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="270.0" y="263.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Server state — TanStack Query (inline)</text>
+<text x="270.0" y="279.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Ad-hoc keys: [&#x27;feed&#x27;, tab]</text>
+<text x="270.0" y="296.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">[&#x27;profile&#x27;, username] · [&#x27;post&#x27;, id]</text>
+<text x="270.0" y="312.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">NO src/queries/ factory</text>
+<rect x="520.0" y="220.0" width="500.0" height="150.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="770.0" y="257.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Client state — Zustand stores (11 files)</text>
+<text x="770.0" y="273.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">authStore · adminAuthStore · uiStore</text>
+<text x="770.0" y="289.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">socketStore · notificationsStore · storyStore</text>
+<text x="770.0" y="306.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">frameStore · studioStore</text>
+<text x="770.0" y="322.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">useCallStore · useExperimentStore · securityStore</text>
+<text x="770.0" y="338.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">(architecture.md said 9; code has these 11)</text>
+<rect x="1060.0" y="220.0" width="320.0" height="88.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="1220.0" y="258.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">Tokens never in localStorage</text>
+<text x="1220.0" y="275.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">authStore persists profile flags only</text>
+<rect x="60.0" y="400.0" width="420.0" height="190.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="270.0" y="449.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">HTTP — ONE ApiClient</text>
+<text x="270.0" y="465.4" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">src/services/api.ts</text>
+<text x="270.0" y="481.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">withCredentials</text>
+<text x="270.0" y="497.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">CSRF interceptor x-csrf-token</text>
+<text x="270.0" y="514.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">retry once on 403</text>
+<text x="270.0" y="530.4" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">401 → POST /auth/refresh</text>
+<text x="270.0" y="546.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">→ logout /accounts/login</text>
+<rect x="520.0" y="400.0" width="360.0" height="120.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="700.0" y="445.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Domain services wrap ApiClient</text>
+<text x="700.0" y="463.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">~30 files in src/services/</text>
+<text x="700.0" y="480.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Never fetch/axios from components</text>
+<rect x="920.0" y="400.0" width="460.0" height="100.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="1150.0" y="435.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">Guards (UX only, not security)</text>
+<text x="1150.0" y="453.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">AuthGuard · GuestGuard</text>
+<text x="1150.0" y="470.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">AdminGuard · CreatorStudioGuard</text>
+<rect x="520.0" y="544.0" width="200.0" height="72.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="620.0" y="574.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">i18n</text>
+<text x="620.0" y="591.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">i18next en + es</text>
+<rect x="760.0" y="536.0" width="220.0" height="88.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="870.0" y="566.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">PWA</text>
+<text x="870.0" y="582.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">service-worker.ts</text>
+<text x="870.0" y="599.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">injectManifest</text>
+<rect x="1020.0" y="544.0" width="240.0" height="72.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="1140.0" y="574.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Workers</text>
+<text x="1140.0" y="591.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">mediaProcessor.worker.ts</text>
+<rect x="60.0" y="620.0" width="420.0" height="52.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="270.0" y="649.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">NO list virtualization library</text>
+<path d="M 260.0 128.0 L 320.0 128.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="320.0,128.0 308.3,133.7 308.3,122.3" fill="#546E7A" />
+<path d="M 640.0 128.0 L 700.0 128.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="700.0,128.0 688.3,133.7 688.3,122.3" fill="#546E7A" />
+<path d="M 1000.0 128.0 L 1060.0 128.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1060.0,128.0 1048.3,133.7 1048.3,122.3" fill="#546E7A" />
+<path d="M 850.0 164.0 L 270.0 220.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="270.0,220.0 281.1,213.2 282.2,224.5" fill="#546E7A" />
+<path d="M 520.0 460.0 L 480.0 495.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="480.0,495.0 485.1,483.0 492.5,491.5" fill="#546E7A" />
+<path d="M 1220.0 164.0 L 1150.0 400.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1150.0,400.0 1147.9,387.2 1158.7,390.4" fill="#546E7A" />
+<path d="M 1020.0 295.0 L 1060.0 264.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1060.0,264.0 1054.2,275.6 1047.3,266.7" fill="#546E7A" />
+</svg>

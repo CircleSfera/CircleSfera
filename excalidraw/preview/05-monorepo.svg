@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -24.0 1376.0 898.0" width="1376" height="898">
+<rect x="-8.0" y="-24.0" width="1376.0" height="898.0" fill="#F7F7F5" />
+<text x="40.0" y="47.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#1B1B1B" text-anchor="start" opacity="1.00">Monorepo — layout del repositorio</text>
+<text x="40.0" y="77.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">Fuente: .ai/core/stack.md + tree real</text>
+<rect x="80.0" y="100.0" width="1240.0" height="88.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="700.0" y="128.6" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">/  (root)</text>
+<text x="700.0" y="147.4" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">Biome · Playwright · docker-compose</text>
+<text x="700.0" y="166.1" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">nginx/ · scripts/ · .github/workflows/</text>
+<rect x="80.0" y="230.0" width="380.0" height="130.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="270.0" y="271.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">circlesfera-backend/</text>
+<text x="270.0" y="289.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">NestJS 11 API + Prisma 7</text>
+<text x="270.0" y="306.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">+ BullMQ + Socket.IO</text>
+<text x="270.0" y="324.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">image: node:24-alpine</text>
+<rect x="80.0" y="380.0" width="380.0" height="92.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="1"  opacity="1.00" />
+<text x="270.0" y="412.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Versiones (package.json 2026-07-27)</text>
+<text x="270.0" y="428.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Nest 11.1.x · Prisma 7</text>
+<text x="270.0" y="445.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">TypeScript 6 · vitest</text>
+<rect x="510.0" y="230.0" width="380.0" height="130.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="700.0" y="280.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">circlesfera-frontend/</text>
+<text x="700.0" y="298.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">React 19 SPA (Vite 7)</text>
+<text x="700.0" y="315.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">PWA · TanStack Query + Zustand</text>
+<rect x="510.0" y="380.0" width="380.0" height="92.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="1"  opacity="1.00" />
+<text x="700.0" y="412.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Versiones (package.json 2026-07-27)</text>
+<text x="700.0" y="428.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">React 19.2 · Vite 7</text>
+<text x="700.0" y="445.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">TypeScript 5.9 · Tailwind 4</text>
+<rect x="940.0" y="230.0" width="380.0" height="242.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="1130.0" y="321.4" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">circlesfera-shared/</text>
+<text x="1130.0" y="337.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">hand-written enums / interfaces / DTOs</text>
+<text x="1130.0" y="353.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">NOT generated from Prisma (primary)</text>
+<text x="1130.0" y="370.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">Partial: 5 enums, 20 model interfaces,</text>
+<text x="1130.0" y="386.4" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">7 DTO interfaces · Can drift</text>
+<rect x="80.0" y="520.0" width="380.0" height="110.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="270.0" y="560.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">circlesfera-documentation/</text>
+<text x="270.0" y="578.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">numbered docs + adr/ (0015)</text>
+<text x="270.0" y="595.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">+ runbooks/</text>
+<rect x="510.0" y="520.0" width="380.0" height="110.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="700.0" y="560.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">e2e/</text>
+<text x="700.0" y="578.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Playwright specs</text>
+<text x="700.0" y="595.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">(root-level)</text>
+<rect x="940.0" y="520.0" width="380.0" height="110.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1130.0" y="569.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">excalidraw/</text>
+<text x="1130.0" y="586.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">this architecture set</text>
+<rect x="80.0" y="670.0" width="620.0" height="72.0" rx="10" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="390.0" y="700.0" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="middle" opacity="1.00">circlesfera-landing/  REMOVED Jul 2026</text>
+<text x="390.0" y="718.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="middle" opacity="1.00">do not restore</text>
+<rect x="740.0" y="670.0" width="280.0" height="72.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="1"  opacity="1.00" />
+<text x="880.0" y="708.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">Tipos: frontend + backend → shared</text>
+<rect x="1060.0" y="670.0" width="260.0" height="72.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="1"  opacity="1.00" />
+<text x="1190.0" y="700.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">Docs ← schema/code</text>
+<text x="1190.0" y="717.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">(not the reverse)</text>
+<rect x="80.0" y="770.0" width="380.0" height="56.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="1"  opacity="1.00" />
+<text x="270.0" y="800.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">e2e → frontend + backend</text>
+<path d="M 890.0 295.0 L 940.0 351.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="940.0,351.0 928.0,346.0 936.4,338.5" fill="#546E7A" />
+<text x="923.0" y="322.4" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">types</text>
+<path d="M 460.0 295.0 L 940.0 351.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="940.0,351.0 927.7,355.3 929.0,344.0" fill="#546E7A" />
+<text x="708.0" y="322.4" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">types</text>
+<path d="M 270.0 360.0 L 270.0 520.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="270.0,520.0 264.3,508.3 275.7,508.3" fill="#546E7A" />
+<text x="278.0" y="439.4" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">schema/code</text>
+<path d="M 700.0 520.0 L 700.0 360.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="700.0,360.0 705.7,371.7 694.3,371.7" fill="#546E7A" />
+<path d="M 510.0 575.0 L 460.0 295.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="460.0,295.0 467.6,305.5 456.5,307.5" fill="#546E7A" />
+<path d="M 1190.0 670.0 L 270.0 630.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="270.0,630.0 281.9,624.9 281.4,636.2" fill="#546E7A" />
+</svg>

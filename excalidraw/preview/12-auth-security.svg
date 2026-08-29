@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -24.0 2048.0 1067.8" width="2048" height="1068">
+<rect x="-8.0" y="-24.0" width="2048.0" height="1067.8" fill="#F7F7F5" />
+<text x="40.0" y="47.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Auth y seguridad — cookies + CSRF + guards</text>
+<text x="40.0" y="79.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">Fuente: ADR-0007, cookie.config.ts, main.ts CSRF list, auth/guards/</text>
+<rect x="40.0" y="120.0" width="300.0" height="200.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="56.0" y="148.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="start" opacity="1.00">1. Login</text>
+<text x="56.0" y="173.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">login / register</text>
+<text x="56.0" y="190.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">passkey / 2FA</text>
+<rect x="364.0" y="120.0" width="300.0" height="200.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="380.0" y="148.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="start" opacity="1.00">2. Cookies</text>
+<text x="380.0" y="173.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Set httpOnly</text>
+<text x="380.0" y="190.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">access_token +</text>
+<text x="380.0" y="206.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">refresh_token</text>
+<rect x="688.0" y="120.0" width="300.0" height="200.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="704.0" y="148.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="start" opacity="1.00">3. CSRF token</text>
+<text x="704.0" y="173.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Browser stores token</text>
+<text x="704.0" y="190.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">from GET</text>
+<text x="704.0" y="206.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">/api/v1/csrf-token</text>
+<rect x="1012.0" y="120.0" width="300.0" height="200.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="1028.0" y="148.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="start" opacity="1.00">4. Mutación</text>
+<text x="1028.0" y="173.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">cookie +</text>
+<text x="1028.0" y="190.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">header x-csrf-token</text>
+<rect x="1336.0" y="120.0" width="300.0" height="200.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="1352.0" y="148.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="start" opacity="1.00">5. JwtAuthGuard</text>
+<text x="1352.0" y="173.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">load user</text>
+<text x="1352.0" y="190.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">isActive, suspendedUntil</text>
+<text x="1352.0" y="206.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">ACCOUNT_SUSPENDED</text>
+<text x="1352.0" y="222.6" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">ACCOUNT_BANNED</text>
+<rect x="1660.0" y="120.0" width="300.0" height="200.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="1676.0" y="148.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="start" opacity="1.00">6. Ownership</text>
+<text x="1676.0" y="173.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Service check</text>
+<text x="1676.0" y="190.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">or OwnershipGuard</text>
+<text x="1676.0" y="206.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">on some post routes</text>
+<path d="M 340.0 220.0 L 364.0 220.0" fill="none" stroke="#F9A825" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="364.0,220.0 351.4,226.1 351.4,213.9" fill="#F9A825" />
+<path d="M 664.0 220.0 L 688.0 220.0" fill="none" stroke="#F9A825" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="688.0,220.0 675.4,226.1 675.4,213.9" fill="#F9A825" />
+<path d="M 988.0 220.0 L 1012.0 220.0" fill="none" stroke="#F9A825" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1012.0,220.0 999.4,226.1 999.4,213.9" fill="#F9A825" />
+<path d="M 1312.0 220.0 L 1336.0 220.0" fill="none" stroke="#F9A825" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1336.0,220.0 1323.4,226.1 1323.4,213.9" fill="#F9A825" />
+<path d="M 1636.0 220.0 L 1660.0 220.0" fill="none" stroke="#F9A825" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1660.0,220.0 1647.4,226.1 1647.4,213.9" fill="#F9A825" />
+<text x="40.0" y="395.3" font-size="18.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Guards que existen (archivos exactos)</text>
+<rect x="40.0" y="416.0" width="230.0" height="132.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="56.0" y="443.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="start" opacity="1.00">JwtAuthGuard</text>
+<text x="56.0" y="466.4" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">session de usuario</text>
+<rect x="286.0" y="416.0" width="230.0" height="132.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="302.0" y="443.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="start" opacity="1.00">JwtOptionalGuard</text>
+<text x="302.0" y="466.4" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">ruta autenticada opcional</text>
+<rect x="532.0" y="416.0" width="230.0" height="132.0" rx="10" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2"  opacity="1.00" />
+<text x="548.0" y="443.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="start" opacity="1.00">AdminJwtAuthGuard</text>
+<text x="548.0" y="466.4" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">cookies admin host-only</text>
+<rect x="778.0" y="416.0" width="230.0" height="132.0" rx="10" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2"  opacity="1.00" />
+<text x="794.0" y="443.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="start" opacity="1.00">AdminGuard</text>
+<text x="794.0" y="466.4" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">deny-by-default for</text>
+<text x="794.0" y="481.4" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">moderators</text>
+<text x="794.0" y="496.4" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">needs</text>
+<text x="794.0" y="511.4" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">@RequireStaffPermissions</text>
+<rect x="1024.0" y="416.0" width="230.0" height="132.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="1040.0" y="443.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="start" opacity="1.00">EmailVerifiedGuard</text>
+<text x="1040.0" y="466.4" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">email verificado</text>
+<rect x="1270.0" y="416.0" width="230.0" height="132.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="2"  opacity="1.00" />
+<text x="1286.0" y="443.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#C2185B" text-anchor="start" opacity="1.00">IdentityVerifiedGuard</text>
+<text x="1286.0" y="466.4" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">money paths</text>
+<rect x="1516.0" y="416.0" width="230.0" height="132.0" rx="10" fill="#FCE4EC" stroke="#C2185B" stroke-width="2"  opacity="1.00" />
+<text x="1532.0" y="443.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#C2185B" text-anchor="start" opacity="1.00">SubscriptionGuard</text>
+<text x="1532.0" y="466.4" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">+ @RequiresPlan</text>
+<rect x="1762.0" y="416.0" width="230.0" height="132.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1778.0" y="443.1" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="start" opacity="1.00">OwnershipGuard</text>
+<text x="1778.0" y="466.4" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">posts mutations</text>
+<rect x="40.0" y="600.0" width="620.0" height="140.0" rx="10" fill="#FAFAFA" stroke="#757575" stroke-width="2"  opacity="1.00" />
+<text x="56.0" y="629.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#757575" text-anchor="start" opacity="1.00">Throttler</text>
+<text x="56.0" y="655.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">global short 1s / medium 1m / long 1h</text>
+<text x="56.0" y="673.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">limits from env</text>
+<text x="56.0" y="690.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">defaults 100 / 1000 / 5000</text>
+<rect x="684.0" y="600.0" width="620.0" height="288.2" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="700.0" y="628.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="start" opacity="1.00">CSRF exclusions (exact from main.ts)</text>
+<text x="700.0" y="653.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">/auth/login</text>
+<text x="700.0" y="670.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">/auth/register</text>
+<text x="700.0" y="686.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">/auth/refresh</text>
+<text x="700.0" y="702.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">/auth/verify-email</text>
+<text x="700.0" y="718.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">/auth/request-reset</text>
+<text x="700.0" y="735.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">/auth/reset-password</text>
+<text x="700.0" y="751.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">/auth/passkey/login-options</text>
+<text x="700.0" y="767.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">/auth/passkey/login-verify</text>
+<text x="700.0" y="783.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">/admin-auth/login</text>
+<text x="700.0" y="800.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">/admin-auth/mfa/verify</text>
+<text x="700.0" y="816.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">/admin-auth/refresh</text>
+<text x="700.0" y="832.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">/csrf-token</text>
+<text x="700.0" y="848.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">/payments/webhook</text>
+<text x="700.0" y="865.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">/socket.io</text>
+<rect x="1328.0" y="600.0" width="620.0" height="167.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1344.0" y="629.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="start" opacity="1.00">También</text>
+<text x="1344.0" y="655.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Stripe webhook uses raw body</text>
+<text x="1344.0" y="673.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">helmet</text>
+<text x="1344.0" y="690.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Pino redacts cookie + authorization</text>
+<text x="1344.0" y="708.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Age ≥16 client + server</text>
+<text x="1344.0" y="725.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">CookieConsent mounted</text>
+<text x="1344.0" y="743.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Chat messages AES-256-GCM via ENCRYPTION_KEY</text>
+<rect x="40.0" y="916.2" width="1908.0" height="79.5" rx="10" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2"  opacity="1.00" />
+<text x="56.0" y="945.9" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="start" opacity="1.00">Admin path</text>
+<text x="56.0" y="972.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">separate cookies + MFA on admin host</text>
+</svg>

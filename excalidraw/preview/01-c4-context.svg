@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-28.0 -24.0 1536.0 809.5" width="1536" height="810">
+<rect x="-28.0" y="-24.0" width="1536.0" height="809.5" fill="#F7F7F5" />
+<text x="40.0" y="47.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">C4 Nivel 1 — System Context</text>
+<text x="40.0" y="75.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">Fuente: 00-status.md, ADR-0005/0007/0008/0010/0013, app.module.ts</text>
+<rect x="20.0" y="148.0" width="320.0" height="304.0" rx="10" fill="#F5F5F5" stroke="#1565C0" stroke-width="1" stroke-dasharray="8 6" opacity="1.00" />
+<text x="180.0" y="165.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="middle" opacity="1.00">Misma cuenta User</text>
+<rect x="40.0" y="180.0" width="280.0" height="96.0" rx="10" fill="#E3F2FD" stroke="#1565C0" stroke-width="2"  opacity="1.00" />
+<text x="180.0" y="203.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="middle" opacity="1.00">Usuario</text>
+<text x="180.0" y="222.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">User.accountType = PERSONAL (default).</text>
+<text x="180.0" y="237.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Publica, consume feed, chat, stories,</text>
+<text x="180.0" y="252.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">paga. Puede pasar a CREATOR.</text>
+<rect x="40.0" y="316.0" width="280.0" height="120.0" rx="10" fill="#E3F2FD" stroke="#1565C0" stroke-width="2"  opacity="1.00" />
+<text x="180.0" y="339.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="middle" opacity="1.00">Creador</text>
+<text x="180.0" y="358.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">mismo User, no otra cuenta.</text>
+<text x="180.0" y="373.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">AccountType CREATOR | BUSINESS.</text>
+<text x="180.0" y="388.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">VIP, tips, unlocks, promociones,</text>
+<text x="180.0" y="403.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">live, Studio.</text>
+<rect x="40.0" y="476.0" width="280.0" height="110.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="180.0" y="499.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">Operador Admin</text>
+<text x="180.0" y="518.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Trust &amp; Safety en</text>
+<text x="180.0" y="533.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">admin.circlesfera.com</text>
+<text x="180.0" y="548.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">AdminIdentity, no User.role</text>
+<rect x="440.0" y="280.0" width="320.0" height="180.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="600.0" y="303.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">CircleSfera</text>
+<text x="600.0" y="322.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">red social full-stack</text>
+<text x="600.0" y="337.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">NestJS + React SPA</text>
+<text x="600.0" y="352.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Modular monolith</text>
+<rect x="860.0" y="140.0" width="280.0" height="96.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1000.0" y="163.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">Stripe</text>
+<text x="1000.0" y="182.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Checkout, Connect Express,</text>
+<text x="1000.0" y="197.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">Identity, webhooks</text>
+<rect x="860.0" y="252.0" width="280.0" height="96.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1000.0" y="275.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">LiveKit</text>
+<text x="1000.0" y="294.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">live streaming (ADR-0005)</text>
+<rect x="860.0" y="364.0" width="280.0" height="96.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1000.0" y="387.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">OpenAI</text>
+<text x="1000.0" y="406.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">embeddings / AI processing</text>
+<rect x="860.0" y="476.0" width="280.0" height="96.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1000.0" y="499.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">Brevo</text>
+<text x="1000.0" y="518.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">email transaccional</text>
+<rect x="860.0" y="588.0" width="280.0" height="96.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1000.0" y="611.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">S3 / Cloudinary</text>
+<text x="1000.0" y="630.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">media (ADR-0008)</text>
+<rect x="1180.0" y="140.0" width="280.0" height="96.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1320.0" y="163.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">Sentry</text>
+<text x="1320.0" y="182.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">errores</text>
+<rect x="1180.0" y="252.0" width="280.0" height="96.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1320.0" y="275.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">Slack</text>
+<text x="1320.0" y="294.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">ops briefing / 5xx</text>
+<rect x="1180.0" y="364.0" width="280.0" height="96.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1320.0" y="387.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">GitHub + GHCR</text>
+<text x="1320.0" y="406.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">CI images</text>
+<rect x="1180.0" y="476.0" width="280.0" height="96.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="1320.0" y="499.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">STUN/TURN (Coturn)</text>
+<text x="1320.0" y="518.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="middle" opacity="1.00">NAT para WebRTC (ADR-0012)</text>
+<path d="M 180.0 282.0 L 180.0 310.0" fill="none" stroke="#1565C0" stroke-width="1" stroke-dasharray="8 6" opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="180.0,310.0 174.8,299.2 185.2,299.2" fill="#1565C0" />
+<text x="180.0" y="298.7" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="middle" opacity="1.00">PERSONAL ↔ CREATOR  (reversible)</text>
+<path d="M 326.0 228.0 L 434.0 370.0" fill="none" stroke="#1565C0" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="434.0,370.0 423.3,364.6 431.6,358.2" fill="#1565C0" />
+<text x="380.0" y="293.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="middle" opacity="1.00">HTTPS, cookies httpOnly</text>
+<path d="M 326.0 364.0 L 434.0 370.0" fill="none" stroke="#1565C0" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="434.0,370.0 422.9,374.6 423.5,364.2" fill="#1565C0" />
+<text x="380.0" y="361.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="middle" opacity="1.00">HTTPS, cookies httpOnly</text>
+<path d="M 326.0 507.0 L 434.0 370.0" fill="none" stroke="#F9A825" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="434.0,370.0 431.4,381.7 423.2,375.3" fill="#F9A825" />
+<text x="380.0" y="432.7" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">admin.circlesfera.com</text>
+<path d="M 766.0 370.0 L 854.0 188.0" fill="none" stroke="#3949AB" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="854.0,188.0 854.0,200.0 844.6,195.5" fill="#3949AB" />
+<text x="810.0" y="273.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Checkout / Connect / Identity / webhooks</text>
+<path d="M 766.0 370.0 L 854.0 300.0" fill="none" stroke="#3949AB" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="854.0,300.0 848.8,310.8 842.3,302.6" fill="#3949AB" />
+<text x="810.0" y="329.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">live streaming</text>
+<path d="M 766.0 370.0 L 854.0 412.0" fill="none" stroke="#3949AB" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="854.0,412.0 842.0,412.1 846.5,402.6" fill="#3949AB" />
+<text x="810.0" y="385.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">embeddings / AI</text>
+<path d="M 766.0 370.0 L 854.0 524.0" fill="none" stroke="#3949AB" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="854.0,524.0 844.1,517.2 853.2,512.0" fill="#3949AB" />
+<text x="810.0" y="441.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">email transaccional</text>
+<path d="M 766.0 370.0 L 854.0 636.0" fill="none" stroke="#3949AB" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="854.0,636.0 845.7,627.4 855.6,624.1" fill="#3949AB" />
+<text x="810.0" y="497.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">media</text>
+<path d="M 766.0 370.0 L 1174.0 188.0" fill="none" stroke="#3949AB" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1174.0,188.0 1166.3,197.2 1162.0,187.6" fill="#3949AB" />
+<text x="970.0" y="273.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">errores</text>
+<path d="M 766.0 370.0 L 1174.0 300.0" fill="none" stroke="#3949AB" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1174.0,300.0 1164.2,307.0 1162.5,296.7" fill="#3949AB" />
+<text x="970.0" y="329.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">ops briefing / 5xx</text>
+<path d="M 766.0 370.0 L 1174.0 412.0" fill="none" stroke="#3949AB" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1174.0,412.0 1162.7,416.1 1163.8,405.7" fill="#3949AB" />
+<text x="970.0" y="385.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">CI images</text>
+<path d="M 766.0 370.0 L 1174.0 524.0" fill="none" stroke="#3949AB" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="1174.0,524.0 1162.0,525.1 1165.7,515.3" fill="#3949AB" />
+<text x="970.0" y="441.2" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">NAT WebRTC</text>
+<text x="40.0" y="731.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">Fuente: 00-status.md, ADR-0005/0007/0008/0010/0013, app.module.ts  ·  Sin Cloudflare/ECS. Sin apps nativas (OUT OF SCOPE).</text>
+</svg>

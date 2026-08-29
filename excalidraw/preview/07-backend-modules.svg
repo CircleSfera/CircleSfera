@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -24.0 1416.0 1004.0" width="1416" height="1004">
+<rect x="-8.0" y="-24.0" width="1416.0" height="1004.0" fill="#F7F7F5" />
+<text x="40.0" y="47.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#1B1B1B" text-anchor="start" opacity="1.00">Backend — módulos NestJS por dominio</text>
+<text x="40.0" y="77.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">Fuente: app.module.ts imports (verified)</text>
+<rect x="60.0" y="100.0" width="620.0" height="100.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="370.0" y="135.7" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">Foundation</text>
+<text x="370.0" y="153.2" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">PrismaModule · ConfigModule · RedisCacheModule</text>
+<text x="370.0" y="170.7" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">SystemSettingsModule · AbuseModule · HealthModule</text>
+<rect x="720.0" y="100.0" width="640.0" height="100.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="1040.0" y="135.7" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">Identity &amp; access</text>
+<text x="1040.0" y="153.2" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">AuthModule (incl 2FA + passkeys as nested)</text>
+<text x="1040.0" y="170.7" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">AdminAuthModule · UsersModule · ProfilesModule · WhitelistModule</text>
+<rect x="60.0" y="230.0" width="1300.0" height="140.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="710.0" y="268.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Social graph &amp; content</text>
+<text x="710.0" y="285.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">PostsModule · CommentsModule · LikesModule · FollowsModule · CloseFriendsModule</text>
+<text x="710.0" y="303.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">StoriesModule · HighlightsModule · FeedModule · SearchModule</text>
+<text x="710.0" y="320.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">BookmarksModule · CollectionsModule · InteractiveModule (polls/QnA)</text>
+<text x="710.0" y="338.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">AudioModule · MediaModule · UploadsModule · EditsModule</text>
+<rect x="60.0" y="400.0" width="620.0" height="110.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="370.0" y="440.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Realtime &amp; comms</text>
+<text x="370.0" y="458.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">ChatModule · NotificationsModule · SocketModule</text>
+<text x="370.0" y="475.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">WebrtcModule · LiveModule · PushModule · EmailModule</text>
+<rect x="720.0" y="400.0" width="640.0" height="110.0" rx="10" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="1040.0" y="449.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="middle" opacity="1.00">Money</text>
+<text x="1040.0" y="466.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="middle" opacity="1.00">PaymentsModule · MonetizationModule · CreatorModule</text>
+<rect x="60.0" y="540.0" width="1300.0" height="110.0" rx="10" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="710.0" y="571.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="middle" opacity="1.00">Trust &amp; ops</text>
+<text x="710.0" y="589.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="middle" opacity="1.00">ReportsModule · AppealsModule · AdminModule · SupportModule</text>
+<text x="710.0" y="606.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="middle" opacity="1.00">AnalyticsModule · AIModule · SeoModule · SlackModule</text>
+<text x="710.0" y="624.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="middle" opacity="1.00">ExperimentsModule · MaintenanceModule</text>
+<text x="60.0" y="683.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="start" opacity="1.00">Ejemplos de acoplamiento (solo 3 flechas)</text>
+<rect x="60.0" y="704.0" width="200.0" height="52.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="160.0" y="733.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">PostsModule</text>
+<rect x="340.0" y="704.0" width="200.0" height="52.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="440.0" y="733.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">FeedModule</text>
+<rect x="60.0" y="792.0" width="200.0" height="52.0" rx="10" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2"  opacity="1.00" />
+<text x="160.0" y="821.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="middle" opacity="1.00">PaymentsModule</text>
+<rect x="340.0" y="792.0" width="200.0" height="52.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="440.0" y="821.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Notifications</text>
+<rect x="60.0" y="880.0" width="200.0" height="52.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="160.0" y="909.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">LiveModule</text>
+<rect x="340.0" y="880.0" width="200.0" height="52.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="440.0" y="909.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">Stripe (gifts)</text>
+<rect x="620.0" y="704.0" width="360.0" height="88.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="800.0" y="742.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">ServeStaticModule /uploads</text>
+<text x="800.0" y="759.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">only when CLOUDINARY_NAME is unset</text>
+<path d="M 260.0 730.0 L 340.0 730.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="340.0,730.0 328.3,735.7 328.3,724.3" fill="#546E7A" />
+<text x="308.0" y="729.4" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">feed-fanout</text>
+<path d="M 260.0 818.0 L 340.0 818.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="340.0,818.0 328.3,823.7 328.3,812.3" fill="#546E7A" />
+<text x="308.0" y="817.4" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">EventEmitter notification.create</text>
+<path d="M 260.0 906.0 L 340.0 906.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="340.0,906.0 328.3,911.7 328.3,900.3" fill="#546E7A" />
+<text x="308.0" y="905.4" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">gifts</text>
+</svg>

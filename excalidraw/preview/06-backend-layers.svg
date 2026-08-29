@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -24.0 1396.0 1016.0" width="1396" height="1016">
+<rect x="-8.0" y="-24.0" width="1396.0" height="1016.0" fill="#F7F7F5" />
+<text x="40.0" y="47.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#1B1B1B" text-anchor="start" opacity="1.00">Backend — patrón de request</text>
+<text x="40.0" y="77.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">Fuente: architecture.md, app.module.ts, posts.controller.ts</text>
+<rect x="80.0" y="100.0" width="420.0" height="88.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="290.0" y="129.7" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">1. HTTP</text>
+<text x="290.0" y="147.2" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">helmet · CORS · cookieParser</text>
+<text x="290.0" y="164.7" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">prefix api/v1</text>
+<rect x="80.0" y="220.0" width="420.0" height="88.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="290.0" y="249.7" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">2. CSRF middleware</text>
+<text x="290.0" y="267.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">csrf-csrf double-submit</text>
+<text x="290.0" y="284.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">exclusion list in main.ts</text>
+<rect x="80.0" y="340.0" width="420.0" height="88.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="290.0" y="370.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">3. ValidationPipe</text>
+<text x="290.0" y="386.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">whitelist + forbidNonWhitelisted + transform</text>
+<text x="290.0" y="403.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">undecorated DTO field = 400</text>
+<rect x="80.0" y="460.0" width="420.0" height="72.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="290.0" y="490.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">4. ThrottlerGuard</text>
+<text x="290.0" y="507.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">short / medium / long</text>
+<rect x="80.0" y="564.0" width="420.0" height="72.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="290.0" y="594.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">5. Controller (thin)</text>
+<text x="290.0" y="611.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">guards + DTO bind</text>
+<rect x="80.0" y="668.0" width="420.0" height="96.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="290.0" y="701.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">6. Service</text>
+<text x="290.0" y="719.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">business rules + ownership</text>
+<text x="290.0" y="736.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">+ PrismaService</text>
+<rect x="80.0" y="800.0" width="420.0" height="56.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="290.0" y="831.4" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">7. PrismaService</text>
+<rect x="80.0" y="888.0" width="420.0" height="56.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="290.0" y="919.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">PostgreSQL</text>
+<rect x="580.0" y="620.0" width="220.0" height="56.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="690.0" y="651.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">BullMQ queue</text>
+<rect x="580.0" y="696.0" width="220.0" height="56.0" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="2"  opacity="1.00" />
+<text x="690.0" y="727.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#2E7D32" text-anchor="middle" opacity="1.00">Redis cache</text>
+<rect x="580.0" y="772.0" width="220.0" height="56.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="690.0" y="803.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Socket.IO</text>
+<rect x="580.0" y="848.0" width="220.0" height="80.0" rx="10" fill="#ECEFF1" stroke="#546E7A" stroke-width="2"  opacity="1.00" />
+<text x="690.0" y="882.8" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">External SDK</text>
+<text x="690.0" y="899.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">Stripe · LiveKit · OpenAI</text>
+<rect x="860.0" y="100.0" width="480.0" height="220.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
+<text x="868.0" y="164.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="start" opacity="1.00">Globals (app.module.ts)</text>
+<text x="868.0" y="180.4" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="start" opacity="1.00">APP_PIPE ValidationPipe</text>
+<text x="868.0" y="196.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="start" opacity="1.00">APP_GUARD ThrottlerGuard</text>
+<text x="868.0" y="212.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="start" opacity="1.00">APP_FILTER AllExceptionsFilter</text>
+<text x="868.0" y="229.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="start" opacity="1.00">Logger nestjs-pino (redact cookies + authorization)</text>
+<text x="868.0" y="245.4" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="start" opacity="1.00">ScheduleModule · EventEmitterModule (in-process only)</text>
+<text x="868.0" y="261.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="start" opacity="1.00">RedisCacheModule · BullModule</text>
+<rect x="860.0" y="350.0" width="480.0" height="240.0" rx="10" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2"  opacity="1.00" />
+<text x="868.0" y="407.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="start" opacity="1.00">Hard rules</text>
+<text x="868.0" y="424.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="start" opacity="1.00">• No repository layer. No mapper layer. Do not introduce.</text>
+<text x="868.0" y="440.4" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="start" opacity="1.00">• Ownership usually in services; OwnershipGuard exists</text>
+<text x="868.0" y="456.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="start" opacity="1.00">  and is used on some post mutations.</text>
+<text x="868.0" y="472.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="start" opacity="1.00">• EventEmitter2 is in-process</text>
+<text x="868.0" y="489.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="start" opacity="1.00">  (notification.create, media.delete_batch,</text>
+<text x="868.0" y="505.4" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="start" opacity="1.00">  payment.live_gift_completed)</text>
+<text x="868.0" y="521.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="start" opacity="1.00">  — NOT a domain event bus / not EventEmitter</text>
+<text x="868.0" y="537.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#7B1FA2" text-anchor="start" opacity="1.00">  as architecture between modules.</text>
+<path d="M 290.0 188.0 L 290.0 220.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="290.0,220.0 284.3,208.3 295.7,208.3" fill="#546E7A" />
+<path d="M 290.0 308.0 L 290.0 340.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="290.0,340.0 284.3,328.3 295.7,328.3" fill="#546E7A" />
+<path d="M 290.0 428.0 L 290.0 460.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="290.0,460.0 284.3,448.3 295.7,448.3" fill="#546E7A" />
+<path d="M 290.0 532.0 L 290.0 564.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="290.0,564.0 284.3,552.3 295.7,552.3" fill="#546E7A" />
+<path d="M 290.0 636.0 L 290.0 668.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="290.0,668.0 284.3,656.3 295.7,656.3" fill="#546E7A" />
+<path d="M 290.0 764.0 L 290.0 800.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="290.0,800.0 284.3,788.3 295.7,788.3" fill="#546E7A" />
+<path d="M 290.0 856.0 L 290.0 888.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="290.0,888.0 284.3,876.3 295.7,876.3" fill="#546E7A" />
+<path d="M 500.0 716.0 L 580.0 648.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="580.0,648.0 574.7,659.9 567.4,651.3" fill="#546E7A" />
+<path d="M 500.0 716.0 L 580.0 724.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="580.0,724.0 567.8,728.5 568.9,717.2" fill="#546E7A" />
+<path d="M 500.0 716.0 L 580.0 800.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="580.0,800.0 567.8,795.4 576.0,787.6" fill="#546E7A" />
+<path d="M 500.0 716.0 L 580.0 888.0" fill="none" stroke="#546E7A" stroke-width="1.5"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="580.0,888.0 569.9,879.8 580.2,875.0" fill="#546E7A" />
+</svg>

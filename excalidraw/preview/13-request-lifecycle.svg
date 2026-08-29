@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -24.0 1624.0 902.0" width="1624" height="902">
+<rect x="-8.0" y="-24.0" width="1624.0" height="902.0" fill="#F7F7F5" />
+<text x="40.0" y="47.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">Ciclo de un request (dinámico)</text>
+<text x="40.0" y="79.0" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">Fuente: main.ts, api.ts, architecture.md</text>
+<rect x="100.0" y="120.0" width="900.0" height="110.0" rx="10" fill="#E3F2FD" stroke="#1565C0" stroke-width="2"  opacity="1.00" />
+<text x="116.0" y="151.3" font-size="18.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="start" opacity="1.00">Browser</text>
+<text x="116.0" y="179.2" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">1.  ApiClient attaches cookies (withCredentials)</text>
+<text x="116.0" y="198.0" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">    + x-csrf-token on non-GET</text>
+<ellipse cx="58.0" cy="174.0" rx="18.0" ry="18.0" fill="#E3F2FD" stroke="#1565C0" stroke-width="2"  opacity="1.00" />
+<text x="58.0" y="177.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="middle" opacity="1.00">1</text>
+<rect x="100.0" y="266.0" width="900.0" height="110.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="116.0" y="297.3" font-size="18.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="start" opacity="1.00">nginx</text>
+<text x="116.0" y="325.2" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">2.  HTTPS to nginx</text>
+<text x="116.0" y="344.0" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">3.  nginx routes /api/v1/* to backend</text>
+<ellipse cx="58.0" cy="300.0" rx="18.0" ry="18.0" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="58.0" y="303.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">2</text>
+<ellipse cx="58.0" cy="344.0" rx="18.0" ry="18.0" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="58.0" y="347.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="middle" opacity="1.00">3</text>
+<rect x="100.0" y="412.0" width="900.0" height="252.0" rx="10" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="116.0" y="443.3" font-size="18.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="start" opacity="1.00">NestJS API</text>
+<text x="116.0" y="471.2" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">4.  cookieParser, CSRF (unless excluded), body parser (50mb)</text>
+<text x="116.0" y="490.0" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">5.  ValidationPipe</text>
+<text x="116.0" y="508.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">6.  ThrottlerGuard</text>
+<text x="116.0" y="527.5" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">7.  Route guard (JwtAuthGuard etc.)</text>
+<text x="116.0" y="546.2" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">8.  Controller binds DTO → Service</text>
+<text x="116.0" y="565.0" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">9.  Service: authorize (ownership / plan / identity) → Prisma and/or cache</text>
+<text x="116.0" y="583.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">10. Optional: enqueue BullMQ, emit in-process event,</text>
+<text x="116.0" y="602.5" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">    socket to room user:{id}</text>
+<text x="116.0" y="621.2" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">11. AllExceptionsFilter shapes errors; 5xx → Sentry/Slack</text>
+<text x="116.0" y="640.0" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">12. JSON response</text>
+<ellipse cx="58.0" cy="486.0" rx="18.0" ry="18.0" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="58.0" y="489.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">4</text>
+<ellipse cx="58.0" cy="520.0" rx="18.0" ry="18.0" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="58.0" y="523.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">5</text>
+<ellipse cx="58.0" cy="554.0" rx="18.0" ry="18.0" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="58.0" y="557.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">6</text>
+<ellipse cx="58.0" cy="588.0" rx="18.0" ry="18.0" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="58.0" y="591.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">7</text>
+<ellipse cx="58.0" cy="622.0" rx="18.0" ry="18.0" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="58.0" y="625.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">8</text>
+<ellipse cx="58.0" cy="656.0" rx="18.0" ry="18.0" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="58.0" y="659.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">9</text>
+<ellipse cx="58.0" cy="690.0" rx="18.0" ry="18.0" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="58.0" y="693.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">10</text>
+<ellipse cx="58.0" cy="724.0" rx="18.0" ry="18.0" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="58.0" y="727.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">11</text>
+<ellipse cx="58.0" cy="758.0" rx="18.0" ry="18.0" fill="#FFF8E1" stroke="#F9A825" stroke-width="2"  opacity="1.00" />
+<text x="58.0" y="761.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">12</text>
+<rect x="100.0" y="700.0" width="900.0" height="130.0" rx="10" fill="#E0F7FA" stroke="#00838F" stroke-width="2"  opacity="1.00" />
+<text x="116.0" y="731.3" font-size="18.0" font-family="Helvetica, Arial, sans-serif" fill="#00838F" text-anchor="start" opacity="1.00">Frontend</text>
+<text x="116.0" y="759.2" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">13. TanStack Query cache.</text>
+<text x="116.0" y="778.0" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">    On 401: POST /auth/refresh then retry or logout to /accounts/login.</text>
+<text x="116.0" y="796.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">    On CSRF 403: refresh token and retry once.</text>
+<ellipse cx="58.0" cy="766.0" rx="18.0" ry="18.0" fill="#E0F7FA" stroke="#00838F" stroke-width="2"  opacity="1.00" />
+<text x="58.0" y="769.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00838F" text-anchor="middle" opacity="1.00">13</text>
+<path d="M 550.0 230.0 L 550.0 266.0" fill="none" stroke="#00897B" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="550.0,266.0 543.9,253.4 556.1,253.4" fill="#00897B" />
+<text x="556.0" y="239.3" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="start" opacity="1.00">2 HTTPS</text>
+<path d="M 550.0 376.0 L 550.0 412.0" fill="none" stroke="#F9A825" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="550.0,412.0 543.9,399.4 556.1,399.4" fill="#F9A825" />
+<text x="556.0" y="385.4" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="start" opacity="1.00">3 /api/v1/*</text>
+<path d="M 550.0 664.0 L 550.0 700.0" fill="none" stroke="#00838F" stroke-width="2"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
+<polygon points="550.0,700.0 543.9,687.4 556.1,687.4" fill="#00838F" />
+<text x="556.0" y="673.4" font-size="11.0" font-family="Helvetica, Arial, sans-serif" fill="#00838F" text-anchor="start" opacity="1.00">12 JSON</text>
+<rect x="1048.0" y="120.0" width="520.0" height="140.0" rx="10" fill="#FAFAFA" stroke="#757575" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
+<text x="1064.0" y="149.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#757575" text-anchor="start" opacity="1.00">Cold start (paralelo)</text>
+<text x="1064.0" y="176.8" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">authStore.checkSession()</text>
+<text x="1064.0" y="195.5" font-size="15.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">→ profileApi.getMyProfile()</text>
+<rect x="1048.0" y="300.0" width="520.0" height="132.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
+<text x="1064.0" y="329.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#00897B" text-anchor="start" opacity="1.00">Contrato de transporte</text>
+<text x="1064.0" y="355.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">withCredentials</text>
+<text x="1064.0" y="373.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">cookie access_token + refresh_token</text>
+<text x="1064.0" y="390.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">header x-csrf-token on non-GET</text>
+<text x="1064.0" y="408.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">prefix /api/v1/*</text>
+</svg>
