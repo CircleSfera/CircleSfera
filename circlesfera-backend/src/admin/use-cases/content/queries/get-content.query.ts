@@ -1,10 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { $Enums, Prisma } from '@prisma/client';
-import { PrismaService } from '../../../../prisma/prisma.service.js';
 import {
   toAdminUser,
   withPrimaryProfile,
-} from '../../../utils/admin-user-shape.util.js';
+} from '../../../../common/utils/user-profile-shape.util.js';
+import { PrismaService } from '../../../../prisma/prisma.service.js';
 
 @Injectable()
 export class GetContentQuery {

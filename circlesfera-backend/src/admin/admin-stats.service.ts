@@ -2,8 +2,8 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import { AdminAction, Prisma } from '@prisma/client';
 import type { Cache } from 'cache-manager';
+import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { withPrimaryProfile } from './utils/admin-user-shape.util.js';
 
 @Injectable()
 export class AdminStatsService {

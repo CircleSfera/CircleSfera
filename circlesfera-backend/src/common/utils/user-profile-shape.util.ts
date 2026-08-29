@@ -4,7 +4,7 @@ type ProfileSnippet = {
   fullName?: string | null;
 };
 
-/** Maps a Profile row to the legacy admin UI shape: user.profile.username */
+/** Maps a Profile row to the legacy UI shape: `{ profile: { username } }`. */
 export function toAdminUser(profile: ProfileSnippet | null | undefined) {
   return profile
     ? {
@@ -19,7 +19,7 @@ export function toAdminUser(profile: ProfileSnippet | null | undefined) {
     : null;
 }
 
-/** Maps User.profiles[0] onto user.profile for admin list/detail UIs. */
+/** Maps User.profiles[0] onto user.profile for list/detail UIs. */
 export function withPrimaryProfile<
   T extends { profiles?: ProfileSnippet[] | null },
 >(user: T) {

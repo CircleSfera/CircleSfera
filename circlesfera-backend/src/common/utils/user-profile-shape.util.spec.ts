@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { toAdminUser, withPrimaryProfile } from './admin-user-shape.util.js';
+import { toAdminUser, withPrimaryProfile } from './user-profile-shape.util.js';
 
-describe('admin-user-shape.util', () => {
+describe('user-profile-shape.util', () => {
   it('toAdminUser maps profile fields for content tabs', () => {
     expect(
       toAdminUser({ username: 'alice', avatar: 'https://cdn/a.png' }),
@@ -19,7 +19,7 @@ describe('admin-user-shape.util', () => {
     });
   });
 
-  it('withPrimaryProfile flattens profiles[0] for account-backed admin rows', () => {
+  it('withPrimaryProfile flattens profiles[0] for account-backed rows', () => {
     expect(
       withPrimaryProfile({
         id: 'u1',

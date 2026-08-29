@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { $Enums } from '@prisma/client';
+import { toAdminUser } from '../../../../common/utils/user-profile-shape.util.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
-import { toAdminUser } from '../../../utils/admin-user-shape.util.js';
 
 @Injectable()
 export class GetModerationQueueQuery {

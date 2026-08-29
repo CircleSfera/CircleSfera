@@ -8,10 +8,10 @@ import {
 import { AdminAction, type Prisma, type TicketStatus } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { AIService } from '../ai/ai.service.js';
+import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { EmailService } from '../email/email.service.js';
 import { PaymentsService } from '../payments/payments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { withPrimaryProfile } from './utils/admin-user-shape.util.js';
 
 /**
  * Admin operations that are orthogonal to core user/content moderation:

@@ -1,9 +1,9 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { Injectable, Logger } from '@nestjs/common';
-import { withPrimaryProfile } from '../admin/utils/admin-user-shape.util.js';
 import { PLATFORM_FEE_DECIMAL } from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
+import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 function appendCheckoutQuery(returnUrl: string, query: string): string {
