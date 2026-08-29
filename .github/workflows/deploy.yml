@@ -53,10 +53,12 @@ jobs:
         env:
           ENV_PRODUCTION_B64: ${{ secrets.ENV_PRODUCTION_B64 }}
           SECRET_VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          SECRET_VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
         run: |
           set -euo pipefail
           LIVEKIT_URL=""
           API_URL="${SECRET_VITE_API_URL:-}"
+          TURNSTILE_SITE_KEY="${SECRET_VITE_TURNSTILE_SITE_KEY:-}"
 
           if [ -z "${ENV_PRODUCTION_B64:-}" ]; then
             echo "❌ Secret ENV_PRODUCTION_B64 is missing. Run ./scripts/upload-prod-env.sh locally."
@@ -90,6 +92,15 @@ jobs:
               | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"
           )"
 
+          if [ -z "$TURNSTILE_SITE_KEY" ]; then
+            TURNSTILE_SITE_KEY="$(
+              grep -E '^VITE_TURNSTILE_SITE_KEY=' "$ENV_FILE" \
+                | head -1 \
+                | cut -d= -f2- \
+                | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"
+            )"
+          fi
+
           rm -f "$ENV_FILE"
 
           if [ -z "$API_URL" ]; then
@@ -106,8 +117,9 @@ jobs:
             echo "api_url=$API_URL"
             echo "livekit_url=$LIVEKIT_URL"
             echo "sentry_dsn=$SENTRY_DSN"
+            echo "turnstile_site_key=$TURNSTILE_SITE_KEY"
           } >> "$GITHUB_OUTPUT"
-          echo "✅ Vite build args resolved (API + LiveKit URL + optional Sentry)."
+          echo "✅ Vite build args resolved (API + LiveKit URL + optional Sentry + Turnstile)."
 
       - name: Build and push Backend
         uses: docker/build-push-action@v7
@@ -134,6 +146,7 @@ jobs:
             VITE_API_URL=${{ steps.vite_args.outputs.api_url }}
             VITE_LIVEKIT_URL=${{ steps.vite_args.outputs.livekit_url }}
             VITE_SENTRY_DSN=${{ steps.vite_args.outputs.sentry_dsn }}
+            VITE_TURNSTILE_SITE_KEY=${{ steps.vite_args.outputs.turnstile_site_key }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
