@@ -9,10 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import {
-  CurrentUser,
-  type CurrentUserData,
-} from '../auth/decorators/current-user.decorator.js';
+import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import {
   AdminGuard,
   RequireStaffPermissions,
