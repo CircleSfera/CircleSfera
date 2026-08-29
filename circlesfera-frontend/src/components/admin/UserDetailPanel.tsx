@@ -236,7 +236,12 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
                 : t('admin.user_preview.account_banned')}
             </span>
             <span className="inline-flex px-2.5 py-1 rounded-md bg-white/5 text-white/70 text-[11px] font-semibold uppercase tracking-wide">
-              {t('admin.user_preview.role_label', { role: user.role })}
+              {t('admin.user_preview.role_label', {
+                role:
+                  user.role === 'ADMIN'
+                    ? t('admin.users.role_admin')
+                    : t('admin.users.role_user'),
+              })}
             </span>
             {profileHref && (
               <a

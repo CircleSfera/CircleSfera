@@ -18,6 +18,7 @@ import type { BroadcastEmailDto } from './dto/broadcast-email.dto.js';
 import type { CreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
 import type { UpdateWhitelistEntryDto } from './dto/update-whitelist-entry.dto.js';
 import { resolveAdminNotificationSenderId } from './utils/resolve-admin-notification-sender.js';
+import { userListRoleWhere } from './utils/user-list-role-filter.js';
 
 type VLevel = 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
 type AType = 'PERSONAL' | 'CREATOR' | 'BUSINESS';
@@ -143,18 +144,14 @@ export class AdminUsersService {
         : {}),
     };
 
-    if (role) {
-      const roles = role
-        .split(',')
-        .map((r) => r.trim())
-        .filter((r): r is Role =>
-          (Object.values(Role) as string[]).includes(r),
-        );
-      if (roles.length === 1) {
-        where.role = roles[0];
-      } else if (roles.length > 1) {
-        where.role = { in: roles };
-      }
+    const roleWhere = userListRoleWhere(role);
+    if (roleWhere) {
+      const existingAnd = where.AND
+        ? Array.isArray(where.AND)
+          ? where.AND
+          : [where.AND]
+        : [];
+      where.AND = [...existingAnd, roleWhere];
     }
 
     if (kycStatus) {
@@ -690,6 +687,10 @@ export class AdminUsersService {
             },
           },
         },
+        linkedAdminIdentities: {
+          where: { status: 'ACTIVE' },
+          select: { id: true },
+        },
       },
     });
 
@@ -711,10 +712,11 @@ export class AdminUsersService {
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, 3);
 
-    const { profiles: _profiles, ...userRest } = user;
+    const { profiles: _profiles, linkedAdminIdentities, ...userRest } = user;
 
     return {
       ...userRest,
+      role: linkedAdminIdentities.length > 0 ? Role.ADMIN : user.role,
       profile: primaryProfile
         ? {
             username: primaryProfile.username,

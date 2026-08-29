@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ### Fixed
 
+- Admin Users tab no longer labels a linked panel operator as “platform ADMIN (≠ panel)”. Rows and the filter say Operator / Operadores, and that filter matches a linked AdminIdentity instead of the deprecated `User.role`
 - EditsStudio Later: export preview + schedule handoff to Create; Roboto Bold/Regular font parity; richer CSS→FFmpeg filters; keyboard J/K/L/E/Esc/zoom; constrained-device 720p encode; cancel e2e
 - EditsStudio polish: export cancel + encode preset picker; add/remove timeline tracks; text preset content i18n; AI captions cancel + prerequisite hints
 - EditsStudio production hardening: preview/export letterbox fit parity; text export align/box/stroke/shadow; self-hosted `@ffmpeg/core` via `/ffmpeg`; IndexedDB local draft + beforeunload; rename without wiping undo; export all video tracks; `splitClip` respects speed; draft delete cleans clip CDN URLs; export/captions i18n errors
