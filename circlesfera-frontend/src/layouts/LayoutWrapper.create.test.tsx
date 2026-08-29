@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { screen } from '@testing-library/react';
+import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+import { renderWithProviders } from '../test/test-utils';
 import LayoutWrapper from './LayoutWrapper';
 
 vi.mock('../stores/authStore', () => ({
@@ -13,7 +14,9 @@ vi.mock('../stores/socketStore', () => ({
 }));
 
 vi.mock('../stores/notificationsStore', () => ({
-  useNotificationsStore: () => [],
+  useNotificationsStore: (
+    selector: (s: { liveNotifications: unknown[] }) => unknown,
+  ) => selector({ liveNotifications: [] }),
 }));
 
 vi.mock('../stores/storyStore', () => ({
@@ -23,6 +26,10 @@ vi.mock('../stores/storyStore', () => ({
     initialIndex: 0,
     closeStories: vi.fn(),
   }),
+}));
+
+vi.mock('../components/auth/EmailVerificationBanner', () => ({
+  default: () => null,
 }));
 
 vi.mock('../components/navigation/TopNav', () => ({
@@ -50,19 +57,18 @@ vi.mock('../components/common/GlobalKeyboardShortcuts', () => ({
 }));
 
 function renderCreateRoute() {
-  return render(
-    <MemoryRouter initialEntries={['/create']}>
-      <Routes>
-        <Route
-          path="/create"
-          element={
-            <LayoutWrapper>
-              <div data-testid="create-page">Create</div>
-            </LayoutWrapper>
-          }
-        />
-      </Routes>
-    </MemoryRouter>,
+  return renderWithProviders(
+    <Routes>
+      <Route
+        path="/create"
+        element={
+          <LayoutWrapper>
+            <div data-testid="create-page">Create</div>
+          </LayoutWrapper>
+        }
+      />
+    </Routes>,
+    { routerProps: { initialEntries: ['/create'] } },
   );
 }
 
@@ -80,19 +86,18 @@ describe('LayoutWrapper /create immersive shell', () => {
 });
 
 function renderEditsRoute() {
-  return render(
-    <MemoryRouter initialEntries={['/edits']}>
-      <Routes>
-        <Route
-          path="/edits"
-          element={
-            <LayoutWrapper>
-              <div data-testid="edits-page">Edits</div>
-            </LayoutWrapper>
-          }
-        />
-      </Routes>
-    </MemoryRouter>,
+  return renderWithProviders(
+    <Routes>
+      <Route
+        path="/edits"
+        element={
+          <LayoutWrapper>
+            <div data-testid="edits-page">Edits</div>
+          </LayoutWrapper>
+        }
+      />
+    </Routes>,
+    { routerProps: { initialEntries: ['/edits'] } },
   );
 }
 

@@ -1,12 +1,10 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '../stores/authStore';
-import type { Post, Profile } from '../types';
+import { renderWithProviders } from '../test/test-utils';
+import type { Post } from '../types';
 import PostCard from './PostCard';
 
-// Mock the services
 vi.mock('../services', () => ({
   postsApi: {
     delete: vi.fn(),
@@ -17,31 +15,46 @@ vi.mock('../services', () => ({
     check: vi.fn().mockResolvedValue({ data: { bookmarked: false } }),
     toggle: vi.fn(),
   },
+  followsApi: {
+    check: vi.fn().mockResolvedValue({ data: { following: false } }),
+  },
+  creatorApi: {
+    recordPromotionView: vi.fn(),
+  },
 }));
 
-// Mock the auth store
 vi.mock('../stores/authStore', () => ({
   useAuthStore: vi.fn(),
 }));
 
-// Mock sub-components that are complex or have their own logic
+vi.mock('../hooks/useDwellTime', () => ({
+  useDwellTime: vi.fn(),
+}));
+
 vi.mock('./post/PostMedia', () => ({
   default: () => <div data-testid="post-media" />,
 }));
 
-const mockPost = {
+vi.mock('./interactive/PollWidget', () => ({
+  PollWidget: () => null,
+}));
+
+vi.mock('./interactive/QnaWidget', () => ({
+  QnaWidget: () => null,
+}));
+
+const mockPost: Post = {
   id: 'post-1',
-  userId: 'user-1',
+  profileId: 'profile-1',
   caption: 'Test caption #hashtag @user2',
   type: 'POST',
   createdAt: new Date().toISOString(),
-  user: {
-    id: 'user-1',
-    profile: {
-      username: 'testuser',
-      fullName: 'Test User',
-      avatar: null,
-    },
+  updatedAt: new Date().toISOString(),
+  profile: {
+    id: 'profile-1',
+    username: 'testuser',
+    fullName: 'Test User',
+    avatar: null,
   },
   media: [],
   _count: {
@@ -51,30 +64,17 @@ const mockPost = {
 };
 
 describe('PostCard', () => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
-
   beforeEach(() => {
-    vi.mocked(useAuthStore).mockReturnValue({
-      profile: { userId: 'user-2' } as unknown as Profile,
-    } as unknown as ReturnType<typeof useAuthStore>); // Avoiding any by using ReturnType
+    vi.mocked(useAuthStore).mockImplementation((selector) =>
+      selector({
+        profile: { id: 'profile-2', username: 'viewer' },
+      } as ReturnType<typeof useAuthStore>),
+    );
     vi.clearAllMocks();
   });
 
-  const renderComponent = () => {
-    return render(
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <PostCard post={mockPost as unknown as Post} />
-        </BrowserRouter>
-      </QueryClientProvider>,
-    );
-  };
+  const renderComponent = () =>
+    renderWithProviders(<PostCard post={mockPost} />);
 
   it('renders post information correctly', () => {
     renderComponent();
@@ -87,15 +87,13 @@ describe('PostCard', () => {
   });
 
   it('shows owner menu only if user is the author', () => {
-    // Render as author
-    vi.mocked(useAuthStore).mockReturnValue({
-      profile: { userId: 'user-1' } as unknown as Profile,
-    } as unknown as ReturnType<typeof useAuthStore>);
+    vi.mocked(useAuthStore).mockImplementation((selector) =>
+      selector({
+        profile: { id: 'profile-1', username: 'testuser' },
+      } as ReturnType<typeof useAuthStore>),
+    );
 
     renderComponent();
-    // In our implementation, owner check is used in PostMenu
-    // We can't easily check internal state, but we can check if it behaves as owner
-    // For now, let's just ensure it renders without crashing
     expect(screen.getByText('testuser')).toBeInTheDocument();
   });
 });

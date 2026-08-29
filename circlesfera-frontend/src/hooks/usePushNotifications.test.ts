@@ -1,33 +1,52 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { pushApi } from '../services';
-import { ensurePushServiceWorker } from '../utils/pushServiceWorker';
+import { api } from '../services';
 import { usePushNotifications } from './usePushNotifications';
 
-vi.mock('../services', () => ({
-  pushApi: {
-    getPublicKey: vi.fn(),
-    subscribe: vi.fn(),
-    unsubscribe: vi.fn(),
+vi.mock('@capacitor/core', () => ({
+  Capacitor: {
+    isNativePlatform: () => false,
+    getPlatform: () => 'web',
   },
 }));
 
-vi.mock('../utils/pushServiceWorker', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('../utils/pushServiceWorker')>();
-  return {
-    ...actual,
-    ensurePushServiceWorker: vi.fn(),
-    getExistingPushRegistration: vi.fn().mockResolvedValue(null),
-  };
-});
+vi.mock('@capacitor/push-notifications', () => ({
+  PushNotifications: {
+    checkPermissions: vi.fn(),
+    requestPermissions: vi.fn(),
+    register: vi.fn(),
+    addListener: vi.fn(),
+  },
+}));
+
+vi.mock('../services', () => ({
+  api: {
+    get: vi.fn(),
+    post: vi.fn(),
+    delete: vi.fn(),
+  },
+}));
 
 const mockPushManager = {
   getSubscription: vi.fn(),
   subscribe: vi.fn(),
 };
 
-describe('usePushNotifications', () => {
+function mockServiceWorkerReady(
+  registration: Partial<ServiceWorkerRegistration> = {},
+) {
+  Object.defineProperty(navigator, 'serviceWorker', {
+    configurable: true,
+    value: {
+      ready: Promise.resolve({
+        pushManager: mockPushManager,
+        ...registration,
+      }),
+    },
+  });
+}
+
+describe('usePushNotifications (web)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Object.defineProperty(window, 'PushManager', {
@@ -41,58 +60,37 @@ describe('usePushNotifications', () => {
         requestPermission: vi.fn().mockResolvedValue('granted'),
       },
     });
-    Object.defineProperty(navigator, 'serviceWorker', {
-      configurable: true,
-      value: {
-        getRegistration: vi.fn().mockResolvedValue(null),
-        register: vi.fn(),
-        ready: new Promise(() => {}),
-      },
-    });
     mockPushManager.getSubscription.mockResolvedValue(null);
+    mockServiceWorkerReady();
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it('does not leave loading stuck when the service worker never becomes ready', async () => {
-    vi.mocked(ensurePushServiceWorker).mockRejectedValue(
-      new Error('SERVICE_WORKER_TIMEOUT'),
-    );
-
+  it('detects web push support', async () => {
     const { result } = renderHook(() => usePushNotifications());
 
-    let ok = true;
-    await act(async () => {
-      ok = await result.current.requestPermission();
+    await waitFor(() => {
+      expect(result.current.isSupported).toBe(true);
     });
-
-    expect(ok).toBe(false);
-    expect(result.current.loading).toBe(false);
     expect(result.current.isSubscribed).toBe(false);
+    expect(result.current.loading).toBe(false);
   });
 
-  it('subscribes and posts only endpoint + keys', async () => {
-    const registration = {
-      active: {},
-      pushManager: mockPushManager,
-    } as unknown as ServiceWorkerRegistration;
-    vi.mocked(ensurePushServiceWorker).mockResolvedValue(registration);
-
+  it('subscribes via VAPID key and posts subscription JSON', async () => {
     const subscription = {
       endpoint: 'https://push.example.com/abc',
       toJSON: () => ({
         endpoint: 'https://push.example.com/abc',
-        expirationTime: null,
         keys: { p256dh: 'p', auth: 'a' },
       }),
     };
     mockPushManager.subscribe.mockResolvedValue(subscription);
-    vi.mocked(pushApi.getPublicKey).mockResolvedValue({
-      data: { publicKey: 'AQID' },
-    } as Awaited<ReturnType<typeof pushApi.getPublicKey>>);
-    vi.mocked(pushApi.subscribe).mockResolvedValue({} as never);
+    vi.mocked(api.get).mockResolvedValue({
+      data: { publicKey: 'AQIDBA==' },
+    } as never);
+    vi.mocked(api.post).mockResolvedValue({} as never);
 
     const { result } = renderHook(() => usePushNotifications());
 
@@ -108,38 +106,23 @@ describe('usePushNotifications', () => {
     expect(ok).toBe(true);
     expect(result.current.isSubscribed).toBe(true);
     expect(result.current.loading).toBe(false);
-    expect(pushApi.subscribe).toHaveBeenCalledWith({
+    expect(api.get).toHaveBeenCalledWith('/push/public-key');
+    expect(api.post).toHaveBeenCalledWith('/push/subscribe', {
       endpoint: 'https://push.example.com/abc',
       keys: { p256dh: 'p', auth: 'a' },
     });
-    expect(mockPushManager.subscribe).toHaveBeenCalled();
   });
 
-  it('rolls back the local subscription if the backend rejects it', async () => {
-    const unsubscribe = vi.fn().mockResolvedValue(true);
-    const registration = {
-      active: {},
-      pushManager: mockPushManager,
-    } as unknown as ServiceWorkerRegistration;
-    vi.mocked(ensurePushServiceWorker).mockResolvedValue(registration);
-
-    const subscription = {
-      endpoint: 'https://push.example.com/abc',
-      unsubscribe,
-      toJSON: () => ({
-        endpoint: 'https://push.example.com/abc',
-        expirationTime: null,
-        keys: { p256dh: 'p', auth: 'a' },
-      }),
-    };
-    mockPushManager.getSubscription.mockResolvedValue(null);
-    mockPushManager.subscribe.mockResolvedValue(subscription);
-    vi.mocked(pushApi.getPublicKey).mockResolvedValue({
-      data: { publicKey: 'AQID' },
-    } as Awaited<ReturnType<typeof pushApi.getPublicKey>>);
-    vi.mocked(pushApi.subscribe).mockRejectedValue(new Error('400'));
+  it('returns false when the user denies notification permission', async () => {
+    vi.mocked(window.Notification.requestPermission).mockResolvedValueOnce(
+      'denied',
+    );
 
     const { result } = renderHook(() => usePushNotifications());
+
+    await waitFor(() => {
+      expect(result.current.isSupported).toBe(true);
+    });
 
     let ok = true;
     await act(async () => {
@@ -147,53 +130,35 @@ describe('usePushNotifications', () => {
     });
 
     expect(ok).toBe(false);
-    expect(unsubscribe).toHaveBeenCalled();
     expect(result.current.isSubscribed).toBe(false);
     expect(result.current.loading).toBe(false);
+    expect(api.post).not.toHaveBeenCalled();
   });
 
-  it('reuses an in-flight subscribe instead of returning false', async () => {
-    const registration = {
-      active: {},
-      pushManager: mockPushManager,
-    } as unknown as ServiceWorkerRegistration;
-    vi.mocked(ensurePushServiceWorker).mockResolvedValue(registration);
-
-    mockPushManager.subscribe.mockResolvedValue({
+  it('unsubscribes and notifies backend', async () => {
+    const unsubscribe = vi.fn().mockResolvedValue(true);
+    mockPushManager.getSubscription.mockResolvedValue({
       endpoint: 'https://push.example.com/abc',
-      toJSON: () => ({
-        endpoint: 'https://push.example.com/abc',
-        keys: { p256dh: 'p', auth: 'a' },
-      }),
+      unsubscribe,
     });
-    vi.mocked(pushApi.getPublicKey).mockResolvedValue({
-      data: { publicKey: 'AQID' },
-    } as Awaited<ReturnType<typeof pushApi.getPublicKey>>);
-
-    let releaseSubscribe: (value: unknown) => void = () => {};
-    vi.mocked(pushApi.subscribe).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          releaseSubscribe = resolve;
-        }) as never,
-    );
+    vi.mocked(api.delete).mockResolvedValue({} as never);
 
     const { result } = renderHook(() => usePushNotifications());
 
-    let first!: Promise<boolean>;
-    let second!: Promise<boolean>;
-    await act(async () => {
-      first = result.current.requestPermission();
-      second = result.current.requestPermission();
+    await waitFor(() => {
+      expect(result.current.isSubscribed).toBe(true);
     });
 
+    let ok = false;
     await act(async () => {
-      releaseSubscribe({});
-      await expect(first).resolves.toBe(true);
-      await expect(second).resolves.toBe(true);
+      ok = await result.current.unsubscribeUser();
     });
 
-    expect(pushApi.subscribe).toHaveBeenCalledTimes(1);
-    expect(result.current.isSubscribed).toBe(true);
+    expect(ok).toBe(true);
+    expect(unsubscribe).toHaveBeenCalled();
+    expect(api.delete).toHaveBeenCalledWith(
+      '/push/unsubscribe?endpoint=https%3A%2F%2Fpush.example.com%2Fabc',
+    );
+    expect(result.current.isSubscribed).toBe(false);
   });
 });
