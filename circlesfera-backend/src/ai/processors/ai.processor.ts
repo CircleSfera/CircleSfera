@@ -3,6 +3,7 @@ import { Inject, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ModerationStatus, NotificationType } from '@prisma/client';
 import type { Job } from 'bullmq';
+import { resolveSystemModeratorActor } from '../../admin/utils/resolve-admin-notification-sender.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AIService } from '../ai.service.js';
 
@@ -176,14 +177,20 @@ export class AIProcessor extends WorkerHost {
 
   private async notifyAuthorOfModeration(params: {
     authorId: string | null;
-    adminId: string;
+    senderProfileId: string;
     targetType: 'POST' | 'STORY' | 'COMMENT';
     targetId: string;
     status: ModerationStatus;
     assessment: string;
   }) {
-    const { authorId, adminId, targetType, targetId, status, assessment } =
-      params;
+    const {
+      authorId,
+      senderProfileId,
+      targetType,
+      targetId,
+      status,
+      assessment,
+    } = params;
     if (!authorId) return;
 
     const statusLabel =
@@ -197,10 +204,85 @@ export class AIProcessor extends WorkerHost {
 
     this.eventEmitter.emit('notification.create', {
       recipientId: authorId,
-      senderId: adminId,
+      senderId: senderProfileId,
       type: NotificationType.MODERATION,
       content: content.slice(0, 500),
       postId: targetType === 'POST' ? targetId : undefined,
+    });
+  }
+
+  private async hideTargetAndGetAuthorProfileId(
+    targetType: 'POST' | 'STORY' | 'COMMENT',
+    targetId: string,
+    updateData: {
+      moderationStatus: ModerationStatus;
+      moderationNote: string;
+    },
+  ): Promise<string | null> {
+    if (targetType === 'POST') {
+      const res = await this.prisma.post.update({
+        where: { id: targetId },
+        data: updateData,
+        select: { profileId: true },
+      });
+      return res.profileId;
+    }
+    if (targetType === 'STORY') {
+      const res = await this.prisma.story.update({
+        where: { id: targetId },
+        data: updateData,
+        select: { profileId: true },
+      });
+      return res.profileId;
+    }
+    const res = await this.prisma.comment.update({
+      where: { id: targetId },
+      data: updateData,
+      select: { profileId: true },
+    });
+    return res.profileId;
+  }
+
+  private async fileAutomatedReportAndNotify(params: {
+    targetType: 'POST' | 'STORY' | 'COMMENT';
+    targetId: string;
+    authorProfileId: string | null;
+    assessment: string;
+    status: ModerationStatus;
+    applyStrike: boolean;
+  }) {
+    const actor = await resolveSystemModeratorActor(this.prisma);
+    if (!actor) {
+      this.logger.error(
+        `Cannot create AI report for ${params.targetId}: no ACTIVE operator with a profile.`,
+      );
+      return;
+    }
+
+    await this.prisma.report.create({
+      data: {
+        reporterId: actor.profileId,
+        targetType: params.targetType,
+        targetId: params.targetId,
+        reason: 'OTHER',
+        details: params.assessment,
+      },
+    });
+
+    if (params.applyStrike && params.authorProfileId) {
+      await this.applyStrikeAndCheckEscalation(
+        params.authorProfileId,
+        actor.profileId,
+      );
+    }
+
+    await this.notifyAuthorOfModeration({
+      authorId: params.authorProfileId,
+      senderProfileId: actor.profileId,
+      targetType: params.targetType,
+      targetId: params.targetId,
+      status: params.status,
+      assessment: params.assessment,
     });
   }
 
@@ -274,62 +356,19 @@ export class AIProcessor extends WorkerHost {
             moderationNote: aiAssessment,
           };
 
-          let authorId: string | null = null;
-          if (targetType === 'POST') {
-            const res = await this.prisma.post.update({
-              where: { id: targetId },
-              data: updateData,
-              select: { profileId: true },
-            });
-            authorId = res.profileId;
-          } else if (targetType === 'STORY') {
-            const res = await this.prisma.story.update({
-              where: { id: targetId },
-              data: updateData,
-              select: { profileId: true },
-            });
-            authorId = res.profileId;
-          } else if (targetType === 'COMMENT') {
-            const res = await this.prisma.comment.update({
-              where: { id: targetId },
-              data: updateData,
-              select: { profileId: true },
-            });
-            authorId = res.profileId;
-          }
-
-          const adminUser = await this.prisma.user.findFirst({
-            where: {
-              linkedAdminIdentities: {
-                some: { status: 'ACTIVE' },
-              },
-            },
-            select: { id: true },
+          const authorProfileId = await this.hideTargetAndGetAuthorProfileId(
+            targetType,
+            targetId,
+            updateData,
+          );
+          await this.fileAutomatedReportAndNotify({
+            targetType,
+            targetId,
+            authorProfileId,
+            assessment: aiAssessment,
+            status: ModerationStatus.HIDDEN,
+            applyStrike: true,
           });
-          if (adminUser) {
-            await this.prisma.report.create({
-              data: {
-                reporterId: adminUser.id,
-                targetType,
-                targetId,
-                reason: 'OTHER',
-                details: aiAssessment,
-              },
-            });
-
-            if (authorId) {
-              await this.applyStrikeAndCheckEscalation(authorId, adminUser.id);
-            }
-
-            await this.notifyAuthorOfModeration({
-              authorId,
-              adminId: adminUser.id,
-              targetType,
-              targetId,
-              status: ModerationStatus.HIDDEN,
-              assessment: aiAssessment,
-            });
-          }
 
           return; // EXIT EARLY! DO NOT CALL OPENAI
         }
@@ -374,77 +413,27 @@ export class AIProcessor extends WorkerHost {
           ? ModerationStatus.HIDDEN
           : ModerationStatus.FLAGGED;
 
-        // Update the target content status
         const updateData = {
           moderationStatus: status,
           moderationNote: aiAssessment,
         };
 
-        let authorId: string | null = null;
-        if (targetType === 'POST') {
-          const res = await this.prisma.post.update({
-            where: { id: targetId },
-            data: updateData,
-            select: { profileId: true },
-          });
-          authorId = res.profileId;
-        } else if (targetType === 'STORY') {
-          const res = await this.prisma.story.update({
-            where: { id: targetId },
-            data: updateData,
-            select: { profileId: true },
-          });
-          authorId = res.profileId;
-        } else if (targetType === 'COMMENT') {
-          const res = await this.prisma.comment.update({
-            where: { id: targetId },
-            data: updateData,
-            select: { profileId: true },
-          });
-          authorId = res.profileId;
-        }
-
-        // Find system admin to attribute the report to
-        const adminUser = await this.prisma.user.findFirst({
-          where: {
-            linkedAdminIdentities: {
-              some: { status: 'ACTIVE' },
-            },
-          },
-          select: { id: true },
+        const authorProfileId = await this.hideTargetAndGetAuthorProfileId(
+          targetType,
+          targetId,
+          updateData,
+        );
+        await this.fileAutomatedReportAndNotify({
+          targetType,
+          targetId,
+          authorProfileId,
+          assessment: aiAssessment,
+          status,
+          applyStrike: shouldHide,
         });
-
-        if (adminUser) {
-          await this.prisma.report.create({
-            data: {
-              reporterId: adminUser.id,
-              targetType,
-              targetId,
-              reason: 'OTHER',
-              details: aiAssessment,
-            },
-          });
-          this.logger.warn(
-            `AI automatically set ${targetType} ${targetId} to ${status} for ${flags.join(', ')}`,
-          );
-
-          if (shouldHide && authorId) {
-            await this.applyStrikeAndCheckEscalation(authorId, adminUser.id);
-          }
-
-          await this.notifyAuthorOfModeration({
-            authorId,
-            adminId: adminUser.id,
-            targetType,
-            targetId,
-            status,
-            assessment: aiAssessment,
-          });
-        } else {
-          this.logger.error(
-            `Cannot create AI report for ${targetId}: No ADMIN user found.`,
-          );
-        }
+        this.logger.warn(
+          `AI automatically set ${targetType} ${targetId} to ${status} for ${flags.join(', ')}`,
+        );
       }
     } catch (error: unknown) {
       const errorMessage =
@@ -456,24 +445,33 @@ export class AIProcessor extends WorkerHost {
     }
   }
 
-  private async applyStrikeAndCheckEscalation(userId: string, adminId: string) {
+  private async applyStrikeAndCheckEscalation(
+    authorProfileId: string,
+    reporterProfileId: string,
+  ) {
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: authorProfileId },
+      select: { userId: true },
+    });
+    if (!profile) return;
+
     const user = await this.prisma.user.update({
-      where: { id: userId },
+      where: { id: profile.userId },
       data: { strikeCount: { increment: 1 } },
-      select: { strikeCount: true },
+      select: { strikeCount: true, id: true },
     });
 
-    this.logger.log(`User ${userId} now has ${user.strikeCount} strikes.`);
+    this.logger.log(`User ${user.id} now has ${user.strikeCount} strikes.`);
 
     if (user.strikeCount >= 3) {
       this.logger.warn(
-        `User ${userId} reached 3 strikes. Escalating to Admin...`,
+        `User ${user.id} reached 3 strikes. Escalating to Admin...`,
       );
       await this.prisma.report.create({
         data: {
-          reporterId: adminId,
+          reporterId: reporterProfileId,
           targetType: 'USER',
-          targetId: userId,
+          targetId: user.id,
           reason: 'OTHER',
           details: `[URGENT] El usuario ha acumulado ${user.strikeCount} strikes por violaciones de contenido ocultadas automáticamente. Requiere revisión manual para posible suspensión de cuenta.`,
         },

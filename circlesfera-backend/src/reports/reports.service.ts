@@ -6,6 +6,7 @@ import {
   type Report,
   type ReportStatus,
 } from '@prisma/client';
+import { resolveSystemModeratorActor } from '../admin/utils/resolve-admin-notification-sender.js';
 import type { PaginationDto } from '../common/dto/pagination.dto.js';
 import { createPaginatedResult } from '../common/dto/pagination.dto.js';
 import { AppException } from '../common/errors/app.exception.js';
@@ -188,15 +189,7 @@ export class ReportsService {
 
     if (existing && existing.status !== status) {
       const senderId =
-        adminId ||
-        (
-          await this.prisma.user.findFirst({
-            where: {
-              linkedAdminIdentities: { some: { status: 'ACTIVE' } },
-            },
-            select: { id: true },
-          })
-        )?.id;
+        adminId || (await resolveSystemModeratorActor(this.prisma))?.profileId;
 
       if (senderId) {
         this.eventEmitter.emit('notification.create', {

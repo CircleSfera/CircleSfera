@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ### Fixed
 
+- Automated moderation reports and author notices now use a panel operator’s Profile id (`Report.reporterId` / `Notification.senderId`). Strikes increment on the author’s User, and a 3-strike escalation targets that User — the previous User.id-as-reporter path failed the Profile FKs after the identity split
 - Admin Users tab no longer labels a linked panel operator as “platform ADMIN (≠ panel)”. Rows and the filter say Operator / Operadores, and that filter matches a linked AdminIdentity instead of the deprecated `User.role`
 - EditsStudio Later: export preview + schedule handoff to Create; Roboto Bold/Regular font parity; richer CSS→FFmpeg filters; keyboard J/K/L/E/Esc/zoom; constrained-device 720p encode; cancel e2e
 - EditsStudio polish: export cancel + encode preset picker; add/remove timeline tracks; text preset content i18n; AI captions cancel + prerequisite hints

@@ -122,7 +122,10 @@ describe('ReportsService', () => {
         targetType: 'POST',
         targetId: 'post-1',
       });
-      mockPrismaService.user.findFirst.mockResolvedValue({ id: 'admin-1' });
+      mockPrismaService.user.findFirst.mockResolvedValue({
+        id: 'admin-1',
+        profiles: [{ id: 'admin-profile-1' }],
+      });
       mockPrismaService.report.update.mockResolvedValue({
         id: '1',
         status: 'RESOLVED',
@@ -130,7 +133,13 @@ describe('ReportsService', () => {
       const result = await service.update('1', 'RESOLVED');
       expect(result.status).toBe('RESOLVED');
       expect(mockPrismaService.report.update).toHaveBeenCalled();
-      expect(mockEventEmitter.emit).toHaveBeenCalled();
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'notification.create',
+        expect.objectContaining({
+          recipientId: 'reporter-1',
+          senderId: 'admin-profile-1',
+        }),
+      );
     });
 
     it('should throw AppException if report is not found', async () => {
