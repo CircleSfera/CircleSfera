@@ -350,12 +350,12 @@ export interface UserExperiment {
   createdAt: string;
   user: {
     id: string;
-    username: string;
     profile: {
+      username: string;
       avatar: string | null;
       fullName: string | null;
     } | null;
-  };
+  } | null;
 }
 
 export interface AdminSupportTicket {

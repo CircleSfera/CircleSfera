@@ -2,7 +2,7 @@ import { screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '../stores/authStore';
 import { renderWithProviders } from '../test/test-utils';
-import type { Post } from '../types';
+import type { Post, ProfileWithUser } from '../types';
 import PostCard from './PostCard';
 
 vi.mock('../services', () => ({
@@ -43,6 +43,20 @@ vi.mock('./interactive/QnaWidget', () => ({
   QnaWidget: () => null,
 }));
 
+const mockProfile: ProfileWithUser = {
+  id: 'profile-1',
+  userId: 'user-1',
+  username: 'testuser',
+  fullName: 'Test User',
+  bio: null,
+  avatar: null,
+  standardUrl: null,
+  thumbnailUrl: null,
+  website: null,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
+
 const mockPost: Post = {
   id: 'post-1',
   profileId: 'profile-1',
@@ -50,12 +64,7 @@ const mockPost: Post = {
   type: 'POST',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
-  profile: {
-    id: 'profile-1',
-    username: 'testuser',
-    fullName: 'Test User',
-    avatar: null,
-  },
+  profile: mockProfile,
   media: [],
   _count: {
     likes: 10,
@@ -63,13 +72,26 @@ const mockPost: Post = {
   },
 };
 
+function mockAuthProfile(profile: Pick<ProfileWithUser, 'id' | 'username'>) {
+  vi.mocked(useAuthStore).mockImplementation((selector) =>
+    selector({
+      profile: { ...mockProfile, ...profile },
+      isAuthenticated: true,
+      isCreatorModeActive: false,
+      isSessionChecked: true,
+      isCheckingSession: false,
+      setCreatorMode: vi.fn(),
+      setAuthenticated: vi.fn(),
+      setProfile: vi.fn(),
+      logout: vi.fn().mockResolvedValue(undefined),
+      checkSession: vi.fn().mockResolvedValue(undefined),
+    }),
+  );
+}
+
 describe('PostCard', () => {
   beforeEach(() => {
-    vi.mocked(useAuthStore).mockImplementation((selector) =>
-      selector({
-        profile: { id: 'profile-2', username: 'viewer' },
-      } as ReturnType<typeof useAuthStore>),
-    );
+    mockAuthProfile({ id: 'profile-2', username: 'viewer' });
     vi.clearAllMocks();
   });
 
@@ -87,11 +109,7 @@ describe('PostCard', () => {
   });
 
   it('shows owner menu only if user is the author', () => {
-    vi.mocked(useAuthStore).mockImplementation((selector) =>
-      selector({
-        profile: { id: 'profile-1', username: 'testuser' },
-      } as ReturnType<typeof useAuthStore>),
-    );
+    mockAuthProfile({ id: 'profile-1', username: 'testuser' });
 
     renderComponent();
     expect(screen.getByText('testuser')).toBeInTheDocument();

@@ -719,7 +719,7 @@ export default function ExperimentsTab() {
                             ? 'border-brand-primary/30 bg-brand-primary/10'
                             : undefined
                         }
-                        title={`@${entry.user.profile?.username || t('admin.shared.unknown')}`}
+                        title={`@${entry.user?.profile?.username || t('admin.shared.unknown')}`}
                         subtitle={entry.experimentKey}
                         badge={
                           <span
