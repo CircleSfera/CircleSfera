@@ -8,10 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import {
-  CurrentUser,
-  type CurrentUserData,
-} from '../auth/decorators/current-user.decorator.js';
+import { type CurrentUserData } from '../auth/decorators/current-user.decorator.js';
 import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
