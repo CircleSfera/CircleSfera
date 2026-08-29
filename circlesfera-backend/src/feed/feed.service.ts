@@ -7,7 +7,9 @@ import {
   createPaginatedResult,
   PaginationDto,
 } from '../common/dto/pagination.dto.js';
+import { ExperimentsService } from '../experiments/experiments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { FEED_HOME_FOLLOWING_FIRST } from './feed-experiments.js';
 import { FeedInboxService } from './feed-inbox.service.js';
 import { FeedPreferencesService } from './feed-preferences.service.js';
 
@@ -23,6 +25,8 @@ export class FeedService {
     @Inject(FeedInboxService) private readonly feedInbox: FeedInboxService,
     @Inject(FeedPreferencesService)
     private readonly feedPreferences: FeedPreferencesService,
+    @Inject(ExperimentsService)
+    private readonly experiments: ExperimentsService,
   ) {}
 
   private postHydrationInclude(profileId?: string | null) {
@@ -124,13 +128,27 @@ export class FeedService {
    * Generates a hybrid "For You" feed using an advanced mathematical algorithm.
    * Score = (AI_Similarity * 0.4) + (Social_Graph * 0.3) + (Popularity * 0.3) * Time_Decay
    */
-  async getHybridFeed(profileId: string | null, pagination: PaginationDto) {
+  async getHybridFeed(
+    profileId: string | null,
+    pagination: PaginationDto,
+    accountUserId?: string | null,
+  ) {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
 
     // 1. If not logged in, return a trending chronological feed
     if (!profileId) {
       return this.getTrendingFeed(page, limit, skip);
+    }
+
+    if (accountUserId) {
+      const followingFirst = await this.experiments.isFeatureEnabled(
+        FEED_HOME_FOLLOWING_FIRST,
+        accountUserId,
+      );
+      if (followingFirst) {
+        return this.getFollowingFeed(profileId, pagination);
+      }
     }
 
     const viewerSettings = await this.getViewerContentSettings(profileId);

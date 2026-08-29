@@ -962,6 +962,15 @@ export class PaymentsService {
         break;
       }
 
+      case 'payout.created':
+      case 'payout.updated':
+      case 'payout.paid':
+      case 'payout.failed':
+      case 'payout.canceled': {
+        await this.syncConnectPayoutLog(event);
+        break;
+      }
+
       case 'account.updated': {
         const account = data.object as {
           id: string;
@@ -993,6 +1002,75 @@ export class PaymentsService {
         this.logger.warn(`Unhandled Stripe event type: ${type}`);
         Sentry.captureMessage(`Unhandled Stripe event: ${type}`, 'warning');
     }
+  }
+
+  /**
+   * Mirror a Connect Express payout into StripePayoutLog (ADR-0002).
+   * Does not create Transaction rows or call payouts.create.
+   */
+  private mapConnectPayoutStatus(status: string): string {
+    if (status === 'in_transit') return 'pending';
+    return status;
+  }
+
+  private async syncConnectPayoutLog(event: {
+    account?: string;
+    data: {
+      object: {
+        id?: string;
+        amount?: number;
+        currency?: string;
+        status?: string;
+        arrival_date?: number;
+        failure_code?: string | null;
+        failure_message?: string | null;
+      };
+    };
+  }) {
+    const accountId = event.account;
+    const payout = event.data?.object;
+    if (!accountId || !payout?.id) {
+      this.logger.warn('Connect payout webhook missing account or payout id');
+      return;
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: { stripeConnectAccountId: accountId },
+      select: { id: true },
+    });
+    if (!user) {
+      this.logger.warn(
+        `No User linked to Connect account for payout ${payout.id}`,
+      );
+      return;
+    }
+
+    const arrivalDate = payout.arrival_date
+      ? new Date(payout.arrival_date * 1000)
+      : new Date();
+    const status = this.mapConnectPayoutStatus(payout.status || 'pending');
+    const currency = (payout.currency || 'eur').toLowerCase();
+    const failureReason = payout.failure_message || payout.failure_code || null;
+
+    await this.prisma.stripePayoutLog.upsert({
+      where: { stripePayoutId: payout.id },
+      create: {
+        stripePayoutId: payout.id,
+        userId: user.id,
+        amountCents: payout.amount ?? 0,
+        currency,
+        status,
+        arrivalDate,
+        failureReason,
+      },
+      update: {
+        amountCents: payout.amount ?? 0,
+        currency,
+        status,
+        arrivalDate,
+        failureReason,
+      },
+    });
   }
 
   /** Revoke unlock entitlements after refund or dispute. */

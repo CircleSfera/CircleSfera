@@ -19,7 +19,11 @@ export class FeedController {
     @CurrentUser() user: CurrentUserData | null,
     @Query() pagination: PaginationDto,
   ) {
-    return this.feedService.getHybridFeed(user?.profileId || null, pagination);
+    return this.feedService.getHybridFeed(
+      user?.profileId || null,
+      pagination,
+      user?.userId || null,
+    );
   }
 
   /** Get personalized feed from followed users */

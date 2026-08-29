@@ -78,10 +78,17 @@ CircleSfera already has a solid social core (feed, profiles, posts, frames, stor
 *   UI/UX: Waves 0–4 shipped (token freeze, consumer, tools, admin i18n/density — see doc 14).
 
 ### Phase 2: Discovery Engine, Ranking, and Analytics
-*Horizon: **NEXT** (Medium Term)*
+*Horizon: **NEXT** (Medium Term) — engine shipped; remaining work is measurement and controlled rollout*
 
-**Key Features:**
-*   Vector search (`pgvector`), Telemetry batching (`dwell_time`), Analytics on BullMQ, and A/B testing of the new feed.
+**Shipped (do not rebuild):**
+*   Vector search (`pgvector` / `search.service.ts`).
+*   Dwell telemetry (`useDwellTime` → analytics queue) and BullMQ analytics (`performanceScore` includes dwell).
+*   Hybrid Home ranking (`post_embeddings` + social graph + `performanceScore`).
+*   Experiment infrastructure: `FeatureFlag`, `UserExperiment`, `GET /experiments/me`, Admin Experiments.
+
+**Leftover (designed, default-off):**
+*   Home For You (`GET /feed/foryou`) can assign `feed_home_following_first` via `ExperimentsService`. Treatment is the existing following feed — not a new ranking formula. No `FeatureFlag` row (or `isEnabled=false` / `percentage=0`) keeps current hybrid. Enable from Admin Experiments when ready to measure dwell vs control.
+
 **Success Metrics (KPIs):**
 *   Increase in time on screen (Dwell Time) and conversions in the `Explore` tab.
 

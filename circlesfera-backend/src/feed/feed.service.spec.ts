@@ -2,8 +2,10 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
+import { ExperimentsService } from '../experiments/experiments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FeedService } from './feed.service.js';
+import { FEED_HOME_FOLLOWING_FIRST } from './feed-experiments.js';
 import { FeedInboxService } from './feed-inbox.service.js';
 import { FeedPreferencesService } from './feed-preferences.service.js';
 
@@ -61,6 +63,10 @@ describe('FeedService', () => {
     }),
   };
 
+  const mockExperiments = {
+    isFeatureEnabled: vi.fn().mockResolvedValue(false),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -70,6 +76,7 @@ describe('FeedService', () => {
         { provide: CACHE_MANAGER, useValue: mockCache },
         { provide: FeedInboxService, useValue: mockFeedInboxService },
         { provide: FeedPreferencesService, useValue: mockFeedPreferences },
+        { provide: ExperimentsService, useValue: mockExperiments },
       ],
     }).compile();
 
@@ -92,6 +99,28 @@ describe('FeedService', () => {
       })) as any;
       expect(result.data).toHaveLength(1);
       expect(result.data[0].id).toBe('1');
+    });
+
+    it('uses following feed when feed_home_following_first is on', async () => {
+      mockExperiments.isFeatureEnabled.mockResolvedValueOnce(true);
+      mockFeedInboxService.getInbox.mockResolvedValueOnce(['p1']);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        { id: 'p1', likes: [], contentRating: 'GENERAL' },
+      ]);
+      mockFeedInboxService.getInboxCount.mockResolvedValueOnce(1);
+
+      const result = (await service.getHybridFeed(
+        'profile-1',
+        { page: 1, limit: 10 },
+        'account-1',
+      )) as any;
+
+      expect(mockExperiments.isFeatureEnabled).toHaveBeenCalledWith(
+        FEED_HOME_FOLLOWING_FIRST,
+        'account-1',
+      );
+      expect(mockPrismaService.$queryRaw).not.toHaveBeenCalled();
+      expect(result.data[0].id).toBe('p1');
     });
 
     it('should query hybrid SQL if user has likes', async () => {

@@ -27,5 +27,5 @@ CircleSfera does not build or maintain an internal payout ledger or payout-initi
 
 - Lower engineering/compliance surface: no reconciliation between an internal ledger and Stripe's real payout state, no risk of the two drifting.
 - Creators still depend on Stripe for **initiating** a payout (automatic schedule by default; optional manual/instant from the Express Dashboard if Stripe enables those features). CircleSfera does not call `payouts.create`.
-- In-app visibility is partial: `GET /monetization/payouts` live-reads `balance.retrieve` + `payouts.list`; the Creator MonetizationDashboard shows available/pending balances only, not the payout list or next arrival date. Admin `StripePayoutLog` is read-only in `admin-stats.service.ts` and has **no writer** (payments webhooks do not handle `payout.*`).
-- A fuller native payout history should keep reading Stripe live (or webhook-sync `StripePayoutLog` from `payout.created` / `payout.paid` / `payout.failed`) — not reintroduce an independently-computed internal ledger.
+- In-app creator visibility is still partial: `GET /monetization/payouts` live-reads `balance.retrieve` + `payouts.list`; the Creator MonetizationDashboard shows available/pending balances only, not the payout list. Creators initiate payouts in the Express Dashboard.
+- Admin `StripePayoutLog` is a copy of Connect `payout.created` / `payout.updated` / `payout.paid` / `payout.failed` / `payout.canceled` as Stripe sends them. Enable those event types on the Stripe webhook endpoint.

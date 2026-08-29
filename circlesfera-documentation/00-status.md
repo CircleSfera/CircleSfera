@@ -51,7 +51,7 @@
 
 - **Live gifts billing**: Stripe Checkout + `LiveGift` + `TransactionType.DIRECT_LIVE_GIFT` (20% application fee); webhook completion emits `live:gift`; catalog prices server-side (`gift-catalog.ts`)
 - **Feed preferences**: `feed_hidden_posts` / `feed_hidden_authors` / `feed_muted_keywords` + `/feed/preferences` API; integrated into hybrid + following feeds; Settings UI + Post menu actions. See [ADR-0004](./adr/0004-feed-preferences.md) (Accepted)
-- **Stripe payouts (read-only)**: `GET /monetization/payouts` live-reads Connect `balance.retrieve` + `payouts.list` (no `payouts.create`). Creator MonetizationDashboard surfaces **available/pending balances** only — it does not render the payout list. No `TransactionType.PAYOUT`. See [ADR-0002](./adr/0002-stripe-connect-payouts.md).
+- **Stripe payouts**: `GET /monetization/payouts` live-reads Connect `balance.retrieve` + `payouts.list` (no `payouts.create`). Creator MonetizationDashboard surfaces **available/pending balances** only. Admin Payouts reads `StripePayoutLog` synced from Connect `payout.*` webhooks. No `TransactionType.PAYOUT`. See [ADR-0002](./adr/0002-stripe-connect-payouts.md).
 - **Auth bootstrap (frontend)**: `authStore.checkSession()` validates persisted session via `profileApi.getMyProfile()` on cold start
 - **Prod fail-fast**: `OPENAI_API_KEY` + LiveKit credentials required in production (`main.ts` / `AIService` / `LiveService`)
 - **Logging**: payments webhooks use Nest `Logger`; unhandled Stripe events → warn + Sentry
@@ -73,7 +73,7 @@
 - Admin reject of charged promo triggers proportional refund
 - Unlock requires IdentityVerifiedGuard; Checkout return query append safe when URL already has `?`
 - Ledger: `PROMOTION_PAYMENT` / `STRIPE_SUBSCRIPTION` / story unlocks / **live gifts**; tip/unlock/gift currency **EUR**
-- Ops handlers: `checkout.session.expired`, `invoice.payment_failed`, `charge.refunded`, `charge.dispute.created` (revoke unlocks), `account.updated` (Connect capability cache)
+- Ops handlers: `checkout.session.expired`, `invoice.payment_failed`, `charge.refunded`, `charge.dispute.created` (revoke unlocks), `account.updated` (Connect capability cache), Connect `payout.created` / `updated` / `paid` / `failed` / `canceled` (copy into `StripePayoutLog` for Admin Payouts, ADR-0002)
 - Story PPV: persist `isPremium`/`priceCents`; `StoryUnlock` + `POST /monetization/unlock-story`; feed redacts locked media
 - Creator VIP price UI in Creator finance tab (`PATCH /creator/subscription-price`)
 - Platform fee: **20%** application fee on Connect tips/unlocks/creator subs/**live gifts** — [ADR-0010](./adr/0010-platform-fee-20-percent.md)

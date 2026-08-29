@@ -37,10 +37,13 @@ Money is the highest-risk surface in the codebase. Nothing here is "probably fin
 - **Webhooks:** marked `PROCESSED` only after success; failures set `FAILED` and return HTTP 5xx so
   Stripe retries; `PENDING`/`FAILED` events are reprocessed. Handled ops events include
   `checkout.session.expired`, `invoice.payment_failed`, `charge.refunded`,
-  `charge.dispute.created` (revokes unlocks) and `account.updated` (Connect capability cache).
-- **Payouts are read-only.** Balance and recent payouts come from the Connect API; there is no
-  internal payout ledger and creators initiate payouts in Stripe Express
-  ([ADR-0002](../../circlesfera-documentation/adr/0002-stripe-connect-payouts.md)).
+  `charge.dispute.created` (revokes unlocks), `account.updated` (Connect capability cache),
+  and Connect `payout.created` / `updated` / `paid` / `failed` / `canceled` (upsert `StripePayoutLog`).
+- **Payouts are initiated only in Stripe.** CircleSfera never calls `payouts.create`. Creator
+  balances come from the Connect API. Admin Payouts reads `StripePayoutLog`, a copy of Connect
+  payout objects as Stripe sends them
+  ([ADR-0002](../../circlesfera-documentation/adr/0002-stripe-connect-payouts.md)). Enable those
+  `payout.*` types on the Stripe webhook (including Connected-account events).
 - **KYC:** `IdentityVerifiedGuard` protects connect, tip, unlock, unlock-story, checkout and gift
   sending.
 - **Promotions** are paid by Checkout, ledgered as `PROMOTION_PAYMENT`, budget consumption is

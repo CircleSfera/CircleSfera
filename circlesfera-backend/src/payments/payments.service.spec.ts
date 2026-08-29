@@ -38,6 +38,7 @@ describe('PaymentsService', () => {
               update: vi.fn(),
             },
             monetization: { upsert: vi.fn() },
+            stripePayoutLog: { upsert: vi.fn() },
             promotion: { update: vi.fn(), updateMany: vi.fn() },
             platformSubscription: {
               upsert: vi.fn(),
@@ -522,6 +523,86 @@ describe('PaymentsService', () => {
           }),
         }),
       );
+    });
+
+    it('8e. should upsert StripePayoutLog on payout.paid', async () => {
+      (prisma.user.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'creator1',
+      });
+      (
+        prisma.stripePayoutLog.upsert as ReturnType<typeof vi.fn>
+      ).mockResolvedValue({});
+
+      await service.processWebhookEvent({
+        id: 'evt_po_1',
+        type: 'payout.paid',
+        account: 'acct_1',
+        data: {
+          object: {
+            id: 'po_1',
+            amount: 2500,
+            currency: 'eur',
+            status: 'paid',
+            arrival_date: 1_714_521_600,
+          },
+        },
+      });
+
+      expect(prisma.stripePayoutLog.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { stripePayoutId: 'po_1' },
+          create: expect.objectContaining({
+            userId: 'creator1',
+            amountCents: 2500,
+            currency: 'eur',
+            status: 'paid',
+          }),
+          update: expect.objectContaining({
+            status: 'paid',
+            amountCents: 2500,
+          }),
+        }),
+      );
+    });
+
+    it('8f. maps in_transit payouts to pending and skips unknown Connect accounts', async () => {
+      (prisma.user.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        {
+          id: 'creator1',
+        },
+      );
+      await service.processWebhookEvent({
+        id: 'evt_po_2',
+        type: 'payout.created',
+        account: 'acct_1',
+        data: {
+          object: {
+            id: 'po_2',
+            amount: 100,
+            currency: 'eur',
+            status: 'in_transit',
+            arrival_date: 1_714_521_600,
+          },
+        },
+      });
+      expect(prisma.stripePayoutLog.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ status: 'pending' }),
+          update: expect.objectContaining({ status: 'pending' }),
+        }),
+      );
+
+      (prisma.user.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+        null,
+      );
+      (prisma.stripePayoutLog.upsert as ReturnType<typeof vi.fn>).mockClear();
+      await service.processWebhookEvent({
+        id: 'evt_po_3',
+        type: 'payout.failed',
+        account: 'acct_unknown',
+        data: { object: { id: 'po_3', amount: 1, status: 'failed' } },
+      });
+      expect(prisma.stripePayoutLog.upsert).not.toHaveBeenCalled();
     });
 
     it('9. should handle unknown event gracefully', async () => {

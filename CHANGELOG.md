@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ## [Unreleased]
 
+### Added
+
+- Admin Payouts tab can fill from Stripe Connect: webhooks `payout.created` / `updated` / `paid` / `failed` / `canceled` upsert `StripePayoutLog`. CircleSfera does not call `payouts.create` (ADR-0002)
+- Home For You can run the existing following feed as treatment under FeatureFlag `feed_home_following_first` (default off; assignment on User.id). No new ranking weights.
+
 ### Fixed
 
 - Admin report strike/ban notices now go to the target’s Profile; the strike/ban still writes on User

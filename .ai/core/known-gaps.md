@@ -12,7 +12,6 @@ it deliberately with tests and remove the entry in the same PR. Do not batch unr
 | # | Finding | Evidence | Risk |
 | --- | --- | --- | --- |
 | B6 | No repository layer, no mappers, no domain event bus. | `rg Repository` in `src/` finds none | Accepted architecture. Listed so agents stop proposing layers. |
-| B7 | `StripePayoutLog` is read by Admin payouts and never written. Payments webhooks handle `account.updated` but not `payout.created` / `payout.paid` / `payout.failed`. Creator UI reads Stripe live (`payouts.list`); admin tab will stay empty. | `schema.prisma` `StripePayoutLog`; `admin-stats.service.ts` reads; `rg stripePayoutLog.create` and `rg payout.` in `src/payments` are empty | Ops blind spot, not a money-movement bug. Do not invent a ledger; if filled, webhook-sync from Stripe only (ADR-0002). |
 
 ## Frontend
 
