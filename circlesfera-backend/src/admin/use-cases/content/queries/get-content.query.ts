@@ -2,6 +2,19 @@ import { Inject, Injectable } from '@nestjs/common';
 import { $Enums, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 
+type ProfileSnippet = { username: string; avatar: string | null };
+
+function toAdminUser(profile: ProfileSnippet | null | undefined) {
+  return profile
+    ? {
+        profile: {
+          username: profile.username,
+          avatar: profile.avatar,
+        },
+      }
+    : null;
+}
+
 @Injectable()
 export class GetContentQuery {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
@@ -48,7 +61,7 @@ export class GetContentQuery {
       where.moderationStatus = moderationStatus as $Enums.ModerationStatus;
     }
 
-    const [data, total] = await Promise.all([
+    const [comments, total] = await Promise.all([
       this.prisma.comment.findMany({
         where,
         orderBy: { createdAt: 'desc' },
@@ -63,6 +76,12 @@ export class GetContentQuery {
       }),
       this.prisma.comment.count({ where }),
     ]);
+
+    const data = comments.map(({ profile, ...rest }) => ({
+      ...rest,
+      profile,
+      user: toAdminUser(profile),
+    }));
 
     return {
       data,
@@ -98,7 +117,7 @@ export class GetContentQuery {
       where.expiresAt = { gte: new Date() };
     }
 
-    const [data, total] = await Promise.all([
+    const [stories, total] = await Promise.all([
       this.prisma.story.findMany({
         where,
         orderBy: { createdAt: 'desc' },
@@ -113,6 +132,12 @@ export class GetContentQuery {
       }),
       this.prisma.story.count({ where }),
     ]);
+
+    const data = stories.map(({ profile, ...rest }) => ({
+      ...rest,
+      profile,
+      user: toAdminUser(profile),
+    }));
 
     return {
       data,

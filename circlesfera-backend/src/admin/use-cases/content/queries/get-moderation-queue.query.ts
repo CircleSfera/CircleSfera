@@ -2,6 +2,19 @@ import { Inject, Injectable } from '@nestjs/common';
 import { $Enums } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 
+type ProfileSnippet = { username: string; avatar: string | null };
+
+function toAdminUser(profile: ProfileSnippet | null | undefined) {
+  return profile
+    ? {
+        profile: {
+          username: profile.username,
+          avatar: profile.avatar,
+        },
+      }
+    : null;
+}
+
 @Injectable()
 export class GetModerationQueueQuery {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
@@ -79,7 +92,7 @@ export class GetModerationQueueQuery {
           moderationStatus: p.moderationStatus,
           moderationNote: p.moderationNote,
           media: p.media,
-          user: p.profile,
+          user: toAdminUser(p.profile),
         });
       }
     }
@@ -121,7 +134,7 @@ export class GetModerationQueueQuery {
                 },
               ]
             : [],
-          user: s.profile,
+          user: toAdminUser(s.profile),
         });
       }
     }
@@ -155,7 +168,7 @@ export class GetModerationQueueQuery {
           moderationStatus: c.moderationStatus,
           moderationNote: c.moderationNote,
           media: [],
-          user: c.profile,
+          user: toAdminUser(c.profile),
         });
       }
     }
