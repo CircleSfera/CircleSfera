@@ -49,7 +49,9 @@ export class EditMessageUseCase {
         sender: {
           select: {
             id: true,
-            profile: { select: { username: true, avatar: true } },
+            username: true,
+            avatar: true,
+            user: { select: { id: true } },
           },
         },
       },

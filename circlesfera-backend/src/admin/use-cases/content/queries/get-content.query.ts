@@ -190,7 +190,10 @@ export class GetContentQuery {
       ]);
 
     return {
-      reports,
+      reports: reports.map((report) => ({
+        ...report,
+        reporter: report.reporter ? toAdminUser(report.reporter) : null,
+      })),
       appeals: appeals.map((appeal) => ({
         ...appeal,
         user: appeal.user ? withPrimaryProfile(appeal.user) : null,

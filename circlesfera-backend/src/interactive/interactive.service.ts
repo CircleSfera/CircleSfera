@@ -329,17 +329,18 @@ export class InteractiveService {
       id: qnaBox.id,
       prompt: qnaBox.prompt,
       totalAnswers: qnaBox.answers.length,
-      answers: qnaBox.answers.map((a: any) => {
-        const username = a.user.profile?.username || 'usuario';
+      answers: qnaBox.answers.map((a) => {
+        const profile = a.profile;
+        const username = profile?.username || 'usuario';
         return {
           id: a.id,
           answerText: a.answerText,
           createdAt: a.createdAt,
           user: {
-            id: a.user.id,
+            id: profile?.user?.id ?? profile?.id ?? '',
             username,
-            fullName: a.user.profile?.fullName || username,
-            avatar: a.user.profile?.avatar || null,
+            fullName: profile?.fullName || username,
+            avatar: profile?.avatar ?? null,
           },
         };
       }),

@@ -442,7 +442,7 @@ export default function ModerationTab({ onToast }: Props) {
                         />
                         <div>
                           <h3 className="text-sm font-semibold text-white">
-                            @{selectedItem.user?.profile?.username}
+                            @{selectedItem.user?.profile?.username || '—'}
                           </h3>
                           <p className="text-xs text-white/70">
                             {selectedItem.entityType} ·{' '}

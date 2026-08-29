@@ -483,7 +483,11 @@ export class AdminStatsService {
     ]);
 
     return {
-      data,
+      data: data.map((tx) => ({
+        ...tx,
+        sender: tx.sender ? withPrimaryProfile(tx.sender) : null,
+        receiver: tx.receiver ? withPrimaryProfile(tx.receiver) : null,
+      })),
       meta: {
         total,
         page,

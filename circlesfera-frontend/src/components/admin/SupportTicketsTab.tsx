@@ -239,7 +239,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       </dd>
                       {selectedTicket.user?.profile?.username && (
                         <dd className="text-xs text-white/50 mt-1">
-                          @{selectedTicket.user.profile.username}
+                          @{selectedTicket.user?.profile?.username}
                         </dd>
                       )}
                     </div>

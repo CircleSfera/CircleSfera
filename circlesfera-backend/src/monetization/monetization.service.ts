@@ -1,5 +1,6 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { Injectable, Logger } from '@nestjs/common';
+import { withPrimaryProfile } from '../admin/utils/admin-user-shape.util.js';
 import { PLATFORM_FEE_DECIMAL } from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
@@ -53,13 +54,19 @@ export class MonetizationService {
         sender: {
           select: {
             id: true,
-            profile: { select: { username: true, avatar: true } },
+            profiles: {
+              select: { username: true, avatar: true },
+              take: 1,
+            },
           },
         },
         receiver: {
           select: {
             id: true,
-            profile: { select: { username: true, avatar: true } },
+            profiles: {
+              select: { username: true, avatar: true },
+              take: 1,
+            },
           },
         },
       },
@@ -72,7 +79,11 @@ export class MonetizationService {
     });
 
     return {
-      data: transactions,
+      data: transactions.map((tx) => ({
+        ...tx,
+        sender: tx.sender ? withPrimaryProfile(tx.sender) : null,
+        receiver: tx.receiver ? withPrimaryProfile(tx.receiver) : null,
+      })),
       meta: {
         total,
         page,

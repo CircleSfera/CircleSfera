@@ -11,6 +11,14 @@ describe('admin-user-shape.util', () => {
     expect(toAdminUser(null)).toBeNull();
   });
 
+  it('toAdminUser maps Profile reporter rows for admin report UIs', () => {
+    expect(
+      toAdminUser({ username: 'reporter', avatar: null, fullName: 'Rep' }),
+    ).toEqual({
+      profile: { username: 'reporter', avatar: null, fullName: 'Rep' },
+    });
+  });
+
   it('withPrimaryProfile flattens profiles[0] for account-backed admin rows', () => {
     expect(
       withPrimaryProfile({

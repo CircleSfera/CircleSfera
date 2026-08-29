@@ -402,7 +402,7 @@ export default function MonetizationTab() {
                   title={tx.description || tx.type}
                   subtitle={
                     tx.sender?.profile?.username
-                      ? `@${tx.sender.profile.username} → @${tx.receiver?.profile?.username || '—'}`
+                      ? `@${tx.sender?.profile?.username} → @${tx.receiver?.profile?.username || '—'}`
                       : tx.sender?.email || '—'
                   }
                   badge={txStatusBadge(tx.status)}
@@ -451,7 +451,7 @@ export default function MonetizationTab() {
                   <td className="px-2 py-1">
                     <span className="text-sm text-white/70 truncate block max-w-56">
                       {tx.sender?.profile?.username
-                        ? `@${tx.sender.profile.username} → @${tx.receiver?.profile?.username || '—'}`
+                        ? `@${tx.sender?.profile?.username} → @${tx.receiver?.profile?.username || '—'}`
                         : tx.description || '—'}
                     </span>
                   </td>

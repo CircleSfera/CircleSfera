@@ -223,7 +223,7 @@ export default function PromotionsTab({ onToast }: Props) {
                         ? 'border-brand-primary/30 bg-brand-primary/10'
                         : undefined
                     }
-                    title={`@${promo.user.profile.username}`}
+                    title={`@${promo.user?.profile?.username || '—'}`}
                     subtitle={t('admin.promotions.reach_estimate', {
                       budget: (promo.budgetCents / 100).toFixed(2),
                       currency: promo.currency,
@@ -273,13 +273,13 @@ export default function PromotionsTab({ onToast }: Props) {
                 <div className="p-3 sm:p-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between shrink-0 gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <UserAvatar
-                      src={selectedPromo.user.profile.avatar || undefined}
-                      alt={selectedPromo.user.profile.username}
+                      src={selectedPromo.user?.profile?.avatar || undefined}
+                      alt={selectedPromo.user?.profile?.username || '—'}
                       size="compact"
                     />
                     <div>
                       <h3 className="text-sm font-semibold text-white">
-                        @{selectedPromo.user.profile.username}
+                        @{selectedPromo.user?.profile?.username || '—'}
                       </h3>
                       <p className="text-xs text-white/70">
                         {selectedPromo.user.email}

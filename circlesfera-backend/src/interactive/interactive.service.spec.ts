@@ -75,4 +75,35 @@ describe('InteractiveService', () => {
       expect(res.answerText).toContain('CircleSfera');
     });
   });
+
+  describe('getQnaBox', () => {
+    it('maps answer profile onto user shape for clients', async () => {
+      mockPrismaService.qnaBox.findUnique.mockResolvedValue({
+        id: 'qna-1',
+        prompt: 'Ask me anything',
+        answers: [
+          {
+            id: 'ans-1',
+            answerText: 'Hello',
+            createdAt: new Date('2026-01-01'),
+            profile: {
+              id: 'profile-1',
+              username: 'alice',
+              avatar: 'https://cdn/a.png',
+              fullName: 'Alice',
+              user: { id: 'user-1' },
+            },
+          },
+        ],
+      });
+
+      const res = await service.getQnaBox('qna-1');
+      expect(res.answers[0].user).toEqual({
+        id: 'user-1',
+        username: 'alice',
+        fullName: 'Alice',
+        avatar: 'https://cdn/a.png',
+      });
+    });
+  });
 });
