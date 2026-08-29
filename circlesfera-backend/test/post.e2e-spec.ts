@@ -53,6 +53,11 @@ describe('Posts (e2e)', () => {
       .send(testUser)
       .expect(201);
 
+    await prisma.user.update({
+      where: { email: testUser.email },
+      data: { emailVerified: new Date() },
+    });
+
     const loginRes = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
       .set('Cookie', [csrfCookie])
