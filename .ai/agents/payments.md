@@ -42,8 +42,11 @@ Money is the highest-risk surface in the codebase. Nothing here is "probably fin
 - **Payouts are initiated only in Stripe.** CircleSfera never calls `payouts.create`. Creator
   balances come from the Connect API. Admin Payouts reads `StripePayoutLog`, a copy of Connect
   payout objects as Stripe sends them
-  ([ADR-0002](../../circlesfera-documentation/adr/0002-stripe-connect-payouts.md)). Enable those
-  `payout.*` types on the Stripe webhook (including Connected-account events).
+  ([ADR-0002](../../circlesfera-documentation/adr/0002-stripe-connect-payouts.md)).
+  Platform events use `STRIPE_WEBHOOK_SECRET`. Creator Express `payout.*` /
+  `account.updated` need a second destination scoped to Connected accounts and
+  `STRIPE_CONNECT_WEBHOOK_SECRET` (same URL; do not reuse the platform `whsec_`).
+  See [stripe-connect-webhook](../../circlesfera-documentation/runbooks/stripe-connect-webhook.md).
 - **KYC:** `IdentityVerifiedGuard` protects connect, tip, unlock, unlock-story, checkout and gift
   sending.
 - **Promotions** are paid by Checkout, ledgered as `PROMOTION_PAYMENT`, budget consumption is

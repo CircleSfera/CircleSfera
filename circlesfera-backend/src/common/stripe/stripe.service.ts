@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
+import { stripeWebhookSecrets } from './stripe-webhook-secrets.js';
 
 @Injectable()
 export class StripeService implements OnModuleInit {
@@ -148,15 +149,28 @@ export class StripeService implements OnModuleInit {
 
   /**
    * Verify and construct a Stripe webhook event from a raw body + signature.
+   * Tries the platform destination first, then the Connect destination
+   * (`STRIPE_CONNECT_WEBHOOK_SECRET`) — each Stripe destination has its own
+   * `whsec_`.
    */
   constructEvent(payload: Buffer, sig: string): any {
-    const webhookSecret = this.configService.get<string>(
-      'STRIPE_WEBHOOK_SECRET',
-    );
-    if (!webhookSecret) {
+    const secrets = stripeWebhookSecrets({
+      platform: this.configService.get<string>('STRIPE_WEBHOOK_SECRET'),
+      connect: this.configService.get<string>('STRIPE_CONNECT_WEBHOOK_SECRET'),
+    });
+    if (secrets.length === 0) {
       throw new Error('STRIPE_WEBHOOK_SECRET is not configured');
     }
-    return this.stripe.webhooks.constructEvent(payload, sig, webhookSecret);
+
+    let lastError: unknown;
+    for (const secret of secrets) {
+      try {
+        return this.stripe.webhooks.constructEvent(payload, sig, secret);
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw lastError;
   }
 
   /**

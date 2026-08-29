@@ -9,6 +9,7 @@ Operational stubs for CircleSfera. Prefer the real scripts under [`scripts/`](..
 | [rollback-deploy](./rollback-deploy.md) | Roll back a bad production deploy | GitHub Actions deploy workflow, previous image/tag |
 | [profile-migration-p3009](./profile-migration-p3009.md) | Unblock failed User→Profile ownership migration (P3009) | `scripts/prisma-migrate-deploy.sh`, migration `20260827160002` |
 | [incident-response](./incident-response.md) | First response checklist for production incidents | Logs, health endpoints, backups |
+| [stripe-connect-webhook](./stripe-connect-webhook.md) | Second destination for Connected-account `payout.*` | `STRIPE_CONNECT_WEBHOOK_SECRET`, same `/payments/webhook` URL |
 
 Also see:
 
