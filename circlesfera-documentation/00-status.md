@@ -51,7 +51,7 @@
 
 - **Live gifts billing**: Stripe Checkout + `LiveGift` + `TransactionType.DIRECT_LIVE_GIFT` (20% application fee); webhook completion emits `live:gift`; catalog prices server-side (`gift-catalog.ts`)
 - **Feed preferences**: `feed_hidden_posts` / `feed_hidden_authors` / `feed_muted_keywords` + `/feed/preferences` API; integrated into hybrid + following feeds; Settings UI + Post menu actions. See [ADR-0004](./adr/0004-feed-preferences.md) (Accepted)
-- **Stripe payouts (read-only)**: `GET /monetization/payouts` returns Connect balance available/pending + recent payouts; Creator MonetizationDashboard surfaces them. No internal payout ledger. See [ADR-0002](./adr/0002-stripe-connect-payouts.md)
+- **Stripe payouts (read-only)**: `GET /monetization/payouts` live-reads Connect `balance.retrieve` + `payouts.list` (no `payouts.create`). Creator MonetizationDashboard surfaces **available/pending balances** only — it does not render the payout list. No `TransactionType.PAYOUT`. See [ADR-0002](./adr/0002-stripe-connect-payouts.md).
 - **Auth bootstrap (frontend)**: `authStore.checkSession()` validates persisted session via `profileApi.getMyProfile()` on cold start
 - **Prod fail-fast**: `OPENAI_API_KEY` + LiveKit credentials required in production (`main.ts` / `AIService` / `LiveService`)
 - **Logging**: payments webhooks use Nest `Logger`; unhandled Stripe events → warn + Sentry
@@ -99,7 +99,7 @@ Product/ops gap-closure is **not** “100% of every corporate vision item.” Ex
 
 Also deferred:
 
-- Creator payouts: Stripe Connect Express only — see [ADR-0002](./adr/0002-stripe-connect-payouts.md). Read-only balance UI is shipped; initiating payouts stays in Stripe Express dashboard.
+- Creator payouts: Stripe Connect Express only (`accounts.create` `type: 'express'`) — see [ADR-0002](./adr/0002-stripe-connect-payouts.md). CircleSfera never calls `payouts.create` and does not set a payout schedule. Stripe pays out the Express balance on its **automatic rolling schedule** by default ([Payouts to connected accounts](https://docs.stripe.com/connect/payouts-connected-accounts)). The creator can view upcoming payouts, bank details, and — if Stripe has those Express features enabled — change schedule / pay out manually in the Express Dashboard via `GET /monetization/dashboard` (login link). There is no in-app withdraw.
 
 ## Doc / source of truth
 

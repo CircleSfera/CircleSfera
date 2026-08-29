@@ -10,7 +10,8 @@ Creator monetization (tips, story/post unlocks, creator subscriptions) settles t
 
 Today, `MonetizationService`:
 - `getConnectStatus` returns cached/live `transfersEnabled` / `chargesEnabled` flags for the creator's Connect account.
-- `getDashboardLink` creates a Stripe **Express login link** so the creator lands directly on Stripe's own hosted dashboard.
+- `getDashboardLink` creates a Stripe **Express login link** so the creator lands on Stripe's Express Dashboard.
+- `getConnectPayoutsSummary` live-reads Stripe `balance.retrieve` and `payouts.list` (never `payouts.create`).
 
 There is no CircleSfera-side balance computation, no payout initiation endpoint, and no `Transaction` row of type `PAYOUT`.
 
@@ -19,11 +20,12 @@ There is no CircleSfera-side balance computation, no payout initiation endpoint,
 CircleSfera does not build or maintain an internal payout ledger or payout-initiation flow. Creator payouts are handled entirely by Stripe Connect Express:
 
 - Stripe computes and pays out the creator's balance directly (per the Connect account's payout schedule/settings).
-- CircleSfera's own UI is **read-only**: it may show Connect onboarding/capability status (`transfersEnabled`, `chargesEnabled`, `detailsSubmitted`) and link out to the Stripe Express dashboard for the creator to see their actual balance and payout history.
+- CircleSfera's own UI is **read-only**: Connect capability flags, live available/pending balances, and an Express Dashboard login link. It does not withdraw, schedule, or create payouts.
 - CircleSfera does not reimplement balance math, payout scheduling, or a `PAYOUT` transaction type. `Transaction` continues to model money CircleSfera actually intermediates (unlocks, tips, subscriptions, promotions) — not money movement that happens entirely inside Stripe between the platform and the creator's bank account.
 
 ## Consequences
 
 - Lower engineering/compliance surface: no reconciliation between an internal ledger and Stripe's real payout state, no risk of the two drifting.
-- Creators depend on Stripe's own dashboard/emails for payout visibility; CircleSfera cannot yet show "next payout date" or historical payout amounts natively — only Connect capability flags and a dashboard link.
-- If a native in-app balance/payout history view is wanted later, it should read from Stripe (`balance.retrieve`, `payouts.list` on the connected account) live or via webhook-synced read models — not reintroduce an independently-computed internal ledger.
+- Creators still depend on Stripe for **initiating** a payout (automatic schedule by default; optional manual/instant from the Express Dashboard if Stripe enables those features). CircleSfera does not call `payouts.create`.
+- In-app visibility is partial: `GET /monetization/payouts` live-reads `balance.retrieve` + `payouts.list`; the Creator MonetizationDashboard shows available/pending balances only, not the payout list or next arrival date. Admin `StripePayoutLog` is read-only in `admin-stats.service.ts` and has **no writer** (payments webhooks do not handle `payout.*`).
+- A fuller native payout history should keep reading Stripe live (or webhook-sync `StripePayoutLog` from `payout.created` / `payout.paid` / `payout.failed`) — not reintroduce an independently-computed internal ledger.

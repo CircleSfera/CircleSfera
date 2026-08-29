@@ -175,6 +175,7 @@ See [02-database-er-diagram.md](./02-database-er-diagram.md) §2–12 for table-
 ## 8. Verification and product tiers
 
 - **`User.verificationLevel`** and **`User.accountType`** gate monetization and plan features (`IdentityVerifiedGuard`, `SubscriptionGuard`).
+- **`AccountType` is not a second identity.** The same `User` is `PERSONAL` (default), `CREATOR`, or `BUSINESS`. A personal account can become a creator and later return to personal — Creator Studio is gated by `CREATOR | BUSINESS` (`CreatorStudioGuard`; server still decides). The user can set `accountType` on profile update (`UpdateProfileDto`); `UsersService.syncUserTier` also writes it on payment/admin events (`CREATOR` if an Elite plan is active, `BUSINESS` if a Business plan is active, otherwise `PERSONAL`).
 - **Verified badge** and public creator signals are derived from account/plan state and mapped onto profile responses in services — not a separate username table.
 - **Privacy:** `UserSettings.privacyLevel` on the account; exposed to clients as profile visibility where mapped (`isPrivate`).
 
