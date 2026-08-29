@@ -22,6 +22,14 @@ describe('ReviewReportUseCase assignee', () => {
     adminIdentity: {
       findUnique: ReturnType<typeof vi.fn>;
     };
+    profile: {
+      findFirst: ReturnType<typeof vi.fn>;
+      findUnique: ReturnType<typeof vi.fn>;
+    };
+    user: {
+      update: ReturnType<typeof vi.fn>;
+      findUnique: ReturnType<typeof vi.fn>;
+    };
   };
   let logAdminAction: { execute: ReturnType<typeof vi.fn> };
   let notificationsService: { create: ReturnType<typeof vi.fn> };
@@ -35,7 +43,15 @@ describe('ReviewReportUseCase assignee', () => {
         updateMany: vi.fn(),
       },
       adminIdentity: {
-        findUnique: vi.fn().mockResolvedValue({ linkedUserId: null }),
+        findUnique: vi.fn().mockResolvedValue({ linkedUser: null }),
+      },
+      profile: {
+        findFirst: vi.fn(),
+        findUnique: vi.fn(),
+      },
+      user: {
+        update: vi.fn(),
+        findUnique: vi.fn(),
       },
     };
     logAdminAction = { execute: vi.fn().mockResolvedValue(undefined) };
@@ -165,6 +181,30 @@ describe('ReviewReportUseCase assignee', () => {
           assignedAdminId: adminId,
         }),
       }),
+    );
+  });
+
+  it('resolveWithPenalty STRIKE writes the strike on User and notifies Profile', async () => {
+    prisma.report.findUnique.mockResolvedValue({
+      id: reportId,
+      targetType: 'USER',
+      targetId: 'user-uuid',
+    });
+    prisma.profile.findFirst.mockResolvedValue({ id: 'profile-uuid' });
+    prisma.user.update.mockResolvedValue({ id: 'user-uuid', strikeCount: 1 });
+    prisma.report.update.mockResolvedValue({
+      id: reportId,
+      status: ReportStatus.RESOLVED,
+    });
+
+    await useCase.resolveWithPenalty(adminId, reportId, 'STRIKE');
+
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-uuid' },
+      data: { strikeCount: { increment: 1 } },
+    });
+    expect(notificationsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ recipientId: 'profile-uuid' }),
     );
   });
 });

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ### Fixed
 
+- Admin report strike/ban notices now go to the target’s Profile; the strike/ban still writes on User
 - Tip and message-unlock payment notices now resolve User ids to primary Profile ids before writing `Notification` rows
 - Automated moderation reports and author notices now use a panel operator’s Profile id (`Report.reporterId` / `Notification.senderId`). Strikes increment on the author’s User, and a 3-strike escalation targets that User — the previous User.id-as-reporter path failed the Profile FKs after the identity split
 - Admin Users tab no longer labels a linked panel operator as “platform ADMIN (≠ panel)”. Rows and the filter say Operator / Operadores, and that filter matches a linked AdminIdentity instead of the deprecated `User.role`

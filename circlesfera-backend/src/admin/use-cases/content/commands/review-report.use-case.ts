@@ -13,6 +13,7 @@ import {
   Prisma,
   ReportStatus,
 } from '@prisma/client';
+import { primaryProfileIdForUser } from '../../../../common/utils/user-profile-shape.util.js';
 import { NotificationsService } from '../../../../notifications/notifications.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { resolveAdminNotificationSenderId } from '../../../utils/resolve-admin-notification-sender.js';
@@ -215,33 +216,46 @@ export class ReviewReportUseCase {
     if (!report) throw new NotFoundException('Report not found');
 
     let targetUserId: string | null = null;
+    let targetProfileId: string | null = null;
 
     if (report.targetType === 'USER') {
       targetUserId = report.targetId;
+      targetProfileId =
+        (await primaryProfileIdForUser(this.prisma, report.targetId)) ?? null;
     } else if (report.targetType === 'POST') {
       const post = await this.prisma.post.findUnique({
         where: { id: report.targetId },
-        select: { profile: { select: { userId: true } } },
+        select: { profile: { select: { id: true, userId: true } } },
       });
-      if (post) targetUserId = post.profile.userId;
+      if (post) {
+        targetUserId = post.profile.userId;
+        targetProfileId = post.profile.id;
+      }
     } else if (report.targetType === 'STORY') {
       const story = await this.prisma.story.findUnique({
         where: { id: report.targetId },
-        select: { profile: { select: { userId: true } } },
+        select: { profile: { select: { id: true, userId: true } } },
       });
-      if (story) targetUserId = story.profile.userId;
+      if (story) {
+        targetUserId = story.profile.userId;
+        targetProfileId = story.profile.id;
+      }
     } else if (report.targetType === 'COMMENT') {
       const comment = await this.prisma.comment.findUnique({
         where: { id: report.targetId },
-        select: { profile: { select: { userId: true } } },
+        select: { profile: { select: { id: true, userId: true } } },
       });
-      if (comment) targetUserId = comment.profile.userId;
+      if (comment) {
+        targetUserId = comment.profile.userId;
+        targetProfileId = comment.profile.id;
+      }
     } else if (report.targetType === 'MESSAGE') {
       const message = await this.prisma.message.findUnique({
         where: { id: report.targetId },
         select: { senderId: true },
       });
       if (message) {
+        targetProfileId = message.senderId;
         const senderProfile = await this.prisma.profile.findUnique({
           where: { id: message.senderId },
           select: { userId: true },
@@ -255,23 +269,27 @@ export class ReviewReportUseCase {
         where: { id: targetUserId },
         data: { strikeCount: { increment: 1 } },
       });
-      await this.notifyModeration({
-        adminId,
-        recipientId: targetUserId,
-        content:
-          'A moderation strike was applied to your account after a report review.',
-      });
+      if (targetProfileId) {
+        await this.notifyModeration({
+          adminId,
+          recipientId: targetProfileId,
+          content:
+            'A moderation strike was applied to your account after a report review.',
+        });
+      }
     } else if (penaltyAction === 'BAN' && targetUserId) {
       await this.prisma.user.update({
         where: { id: targetUserId },
         data: { isActive: false },
       });
-      await this.notifyModeration({
-        adminId,
-        recipientId: targetUserId,
-        content:
-          'Your account was deactivated after a report review. You may appeal from the login screen.',
-      });
+      if (targetProfileId) {
+        await this.notifyModeration({
+          adminId,
+          recipientId: targetProfileId,
+          content:
+            'Your account was deactivated after a report review. You may appeal from the login screen.',
+        });
+      }
     } else if (
       penaltyAction === 'IGNORE' &&
       targetUserId &&
