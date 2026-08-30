@@ -258,7 +258,7 @@ jobs:
             echo "Taking pre-deploy Postgres backup..."
             set +e
             BACKUP_ROOT="/srv/circlesfera/backups/postgres"
-            mkdir -p "${BACKUP_ROOT}"
+            mkdir -p "${BACKUP_ROOT}" /srv/circlesfera/backups/etl
             MKDIR_RC=$?
             set -a
             # shellcheck disable=SC1091

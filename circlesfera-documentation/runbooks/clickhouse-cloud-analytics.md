@@ -106,27 +106,28 @@ Restart backend so the process loads the new variables.
 
 ---
 
-## 5. Persist CSV on the VPS (recommended)
+## 5. Persist CSV on the VPS
 
-By default the backend container has no bind mount for `ETL_DIR`. Without a host
-path, CSV snapshots are lost when the container is recreated.
-
-On the VPS:
-
-```bash
-sudo mkdir -p /srv/circlesfera/backups/etl
-sudo chown -R DEPLOY_USER:DEPLOY_USER /srv/circlesfera/backups/etl
-```
-
-Add a bind mount to `docker-compose.prod.yml` under `backend.volumes`:
+`docker-compose.prod.yml` bind-mounts analytics CSV to the host:
 
 ```yaml
-- /srv/circlesfera/backups/etl:/app/circlesfera-backend/backups/etl
+${ETL_HOST_DIR:-./backups/etl}:/app/circlesfera-backend/backups/etl
 ```
 
-Set `ETL_DIR=/app/circlesfera-backend/backups/etl` in `.env.production` to match.
+On the OVH VPS, set in `.env.production`:
 
-Redeploy compose after editing.
+```env
+ETL_HOST_DIR=/srv/circlesfera/backups/etl
+ETL_DIR=/app/circlesfera-backend/backups/etl
+```
+
+Deploy creates `/srv/circlesfera/backups/etl` automatically. Ensure the deploy user owns it:
+
+```bash
+sudo chown -R "$USER:$USER" /srv/circlesfera/backups/etl
+```
+
+Redeploy compose after the first time you add `ETL_HOST_DIR`.
 
 ---
 

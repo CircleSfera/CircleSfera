@@ -86,6 +86,8 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
     volumes:
       - uploads_data:/app/circlesfera-backend/uploads
+      # Analytics ETL CSV (BullMQ nightly job). Host path: ETL_HOST_DIR in .env.production.
+      - ${ETL_HOST_DIR:-./backups/etl}:/app/circlesfera-backend/backups/etl
     depends_on:
       postgres:
         condition: service_healthy

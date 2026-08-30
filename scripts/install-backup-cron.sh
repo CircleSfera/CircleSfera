@@ -8,7 +8,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BACKUP_DIR="${BACKUP_DIR:-/srv/circlesfera/backups}"
 CRON_MARKER="# circlesfera-backups"
 
-mkdir -p "${BACKUP_DIR}/postgres/full" "${BACKUP_DIR}/uploads"
+mkdir -p "${BACKUP_DIR}/postgres/full" "${BACKUP_DIR}/uploads" "${BACKUP_DIR}/etl"
 
 # Wrapper: dump Postgres via compose (host has no published 5432), then uploads tarball.
 WRAPPER="${ROOT}/scripts/.run-daily-backups.sh"

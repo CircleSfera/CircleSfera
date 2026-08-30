@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ### Changed
 
+- `docker-compose.prod.yml` bind-mounts `ETL_HOST_DIR` so nightly analytics CSV survives container recreates
 - Monetization doc (`10-roadmap-monetization.md`) now describes shipped Connect Express, 20% fee, Admin Retiros, and promotions. Removed future-tense payout schedule, Custom accounts, and subscriber badges presented as current (gap D3)
 
 ### Added
@@ -17,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 - Appeal and support ticket `resolvedAt` with 30-day MTTR on Trust tab (`appealMttr`, `ticketMttr` on `GET admin/trust/queue`)
 - Default-off `feed_home_following_first` FeatureFlag seed + [runbook](circlesfera-documentation/runbooks/feed-following-first-experiment.md)
 - [ADR-0016](circlesfera-documentation/adr/0016-analytical-warehouse-clickhouse.md): ClickHouse warehouse + nightly ETL (proposed)
+- [Runbook: ClickHouse Cloud analytics](circlesfera-documentation/runbooks/clickhouse-cloud-analytics.md)
 - Admin Trust tab shows 30-day median report resolution time (MTTR) from `Report.resolvedAt`, exposed on `GET admin/trust/queue` as `reportMttr`
 - Webhook signature accepts a second secret (`STRIPE_CONNECT_WEBHOOK_SECRET`) so a Connected-accounts destination can share `POST /api/v1/payments/webhook`
 - Admin Payouts tab can fill from Stripe Connect: webhooks `payout.created` / `updated` / `paid` / `failed` / `canceled` upsert `StripePayoutLog`. CircleSfera does not call `payouts.create` (ADR-0002)
