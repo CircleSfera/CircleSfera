@@ -12,6 +12,8 @@ Operational stubs for CircleSfera. Prefer the real scripts under [`scripts/`](..
 | [stripe-connect-webhook](./stripe-connect-webhook.md) | Second destination for Connected-account `payout.*` | `STRIPE_CONNECT_WEBHOOK_SECRET`, same `/payments/webhook` URL |
 | [feed-following-first-experiment](./feed-following-first-experiment.md) | Roll out Home For You following-first A/B | FeatureFlag `feed_home_following_first` |
 
+Analytics ETL v0: [`scripts/etl/README.md`](../../scripts/etl/README.md) — Postgres CSV export before ClickHouse load.
+
 Also see:
 
 - `npm run smoke:profile-drift` — API smoke for User/Profile admin response shapes (`scripts/validate-profile-drift-smoke.mjs`); see [15-identity-profile-model.md](../15-identity-profile-model.md)
