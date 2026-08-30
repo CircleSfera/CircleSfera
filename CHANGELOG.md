@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ### Added
 
-- Nightly Postgres analytics CSV export for warehouse load (`scripts/etl/export-analytics-tables.sh`); ClickHouse ingest pending provisioning
+- BullMQ nightly analytics export (`warehouse-export` queue) with optional ClickHouse HTTP load; bash script remains plan B
 - Appeal and support ticket `resolvedAt` with 30-day MTTR on Trust tab (`appealMttr`, `ticketMttr` on `GET admin/trust/queue`)
 - Default-off `feed_home_following_first` FeatureFlag seed + [runbook](circlesfera-documentation/runbooks/feed-following-first-experiment.md)
 - [ADR-0016](circlesfera-documentation/adr/0016-analytical-warehouse-clickhouse.md): ClickHouse warehouse + nightly ETL (proposed)

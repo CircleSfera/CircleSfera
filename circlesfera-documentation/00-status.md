@@ -94,7 +94,7 @@ Product/ops gap-closure is **not** “100% of every corporate vision item.” Ex
 - Public OAuth / third-party developer platform
 - SSR indexable profiles
 - Subscriber badges as a first-class product surface
-- Data warehouse / BI (ClickHouse/BigQuery, executive LTV dashboards) — **ADR-0016 proposed**; ETL not shipped yet
+- Data warehouse / BI (ClickHouse/BigQuery, executive LTV dashboards) — **ADR-0016**: BullMQ nightly export shipped; ClickHouse Cloud + Grafana pending provisioning
 - SOC2 certification and public bug-bounty program
 
 Also deferred:

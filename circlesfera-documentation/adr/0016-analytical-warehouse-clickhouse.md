@@ -16,8 +16,9 @@ CircleSfera needs analytical KPIs (Trust MTTR aggregates, monetization MRR, rete
    - BigQuery remains a valid future path if the stack moves to GCP; do not dual-write on day one.
 
 2. **ETL pattern:** Nightly **incremental** jobs from Postgres → ClickHouse (no synchronous double-write on request path).
-   - Source: read replicas or off-peak `pg_dump`/logical export of bounded tables — **never** heavy analytics scans on the primary during peak.
-   - First tables: `reports`, `appeals`, `support_tickets`, `transactions`, `users` (account facts only), `feature_flags` / assignment snapshots.
+   - **Primary (shipped):** BullMQ `nightly-analytics-export` at 03:30 UTC (`WarehouseModule`) — CSV to `ETL_DIR`, optional HTTP load when `CLICKHOUSE_URL` is set.
+   - **Plan B:** `scripts/etl/export-analytics-tables.sh` for manual/backfill when backend is unavailable.
+   - Source reads stay bounded by `ETL_SINCE_DAYS`; avoid heavy analytics scans on primary during peak.
 
 3. **P0 dashboards (internal, Admin or Metabase/Grafana):**
    - **Trust & Safety:** 30-day median MTTR by queue (reports, appeals, tickets) — mirrors Trust tab but trended.
@@ -29,7 +30,7 @@ CircleSfera needs analytical KPIs (Trust MTTR aggregates, monetization MRR, rete
 ## Consequences
 
 - New infra: ClickHouse instance, ETL cron (BullMQ or host cron + script), secrets in `.env.production` (not in git).
-- New repo scripts under `scripts/etl/` — **v0 shipped:** `export-analytics-tables.sh` (CSV export). ClickHouse load script follows provisioning.
+- New repo scripts under `scripts/etl/` — **v0 shipped:** `export-analytics-tables.sh` (plan B), `clickhouse-schema.sql`. **Primary:** BullMQ `WarehouseModule`.
 - Trust tab MTTR stays on Postgres (real-time, last 30 days); warehouse powers trends and executive views.
 - Update `00-status.md` when first ETL job ships — until then this ADR is design-only.
 

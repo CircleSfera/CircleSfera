@@ -66,6 +66,7 @@ import { SupportModule } from './support/support.module.js';
 import { SystemSettingsModule } from './system-settings/system-settings.module.js';
 import { UploadsModule } from './uploads/uploads.module.js';
 import { UsersModule } from './users/users.module.js';
+import { WarehouseModule } from './warehouse/warehouse.module.js';
 import { WebrtcModule } from './webrtc/webrtc.module.js';
 import { WhitelistModule } from './whitelist/whitelist.module.js';
 
@@ -183,6 +184,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     ExperimentsModule,
     MaintenanceModule,
     LiveModule,
+    WarehouseModule,
   ],
   controllers: [AppController, CsrfController],
   providers: [
