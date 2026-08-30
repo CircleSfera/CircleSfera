@@ -29,7 +29,6 @@ shared/Actions/Docker, and `security.yml` runs CodeQL + informative npm audit as
 | --- | --- | --- |
 | D1 | Docs `01`–`07` are Abr 2026 snapshots patched in Jul 2026; `00-status.md` states they may lag. Prefer schema + controllers. | `00-status.md` |
 | D2 | `11-backups-strategy.md` still documents aspirational WAL/PITR and named S3 buckets alongside shipped scripts. Do not treat the aspirational parts as existing infrastructure. (Phantom `scripts/backup.sh` example removed Aug 2026.) | `11-backups-strategy.md` |
-| D3 | `10-roadmap-monetization.md` still mixes shipped Connect/fee with future tense (payout schedule “will be enabled”, Express/Custom, subscriber badges). Prefer ADR-0002 + controllers. | `10-roadmap-monetization.md` §2 vs `stripe.service.ts` `type: 'express'` |
 
 
 ## Maintenance

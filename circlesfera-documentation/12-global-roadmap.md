@@ -93,26 +93,44 @@ CircleSfera already has a solid social core (feed, profiles, posts, frames, stor
 *   Increase in time on screen (Dwell Time) and conversions in the `Explore` tab.
 
 ### Phase 3: Creator Economy and Platform
-*Horizon: **NEXT** (Medium Term)*
+*Horizon: **NEXT** (Medium Term) — commercial layer shipped; do not rebuild*
 
-**Key Features:**
-*   Stripe Connect integration, Subscriptions (Tiers), Pay-Per-View (PPV), and Creator Dashboard.
+**Shipped (do not rebuild):**
+*   Stripe Connect Express, 20% application fee, Identity KYC ([ADR-0002](./adr/0002-stripe-connect-payouts.md), [ADR-0010](./adr/0010-platform-fee-20-percent.md)).
+*   Platform plans (one active — [ADR-0003](./adr/0003-one-active-platform-plan.md)), creator VIP, PPV unlocks, tips, live gifts, promotions.
+*   Creator Studio Ingresos + Admin Monetización / Retiros (Connect `payout.*` copy; two webhook destinations).
+
+**Not in this phase:** subscriber badges, in-app withdraw, Custom Connect, warehouse/BI ([00-status.md](./00-status.md) OUT OF SCOPE).
+
 **Success Metrics (KPIs):**
 *   Global MRR, free-to-paid conversion %, and controlled chargeback rate (< 1%).
 
 ### Phase 4: Trust & Safety, Moderation, and Operations
-*Horizon: **LATER** (Long Term)*
+*Horizon: **LATER** (Long Term) — ops surface shipped; do not rebuild queues or appeals*
 
-**Key Features:**
-*   Moderation queues, persisted Appeals, Account Center, and automated Hard Deletes.
+**Shipped (do not rebuild):**
+*   Report queue: claim / `REVIEWING` / notes / unclaim / bulk assignee (`assignedAdminId` → `AdminIdentity`). Admin home = Trust.
+*   Persisted `Appeal` (`ACCOUNT_BAN` | `POST_REMOVAL`): Settings → Appeals, login banned flow, Admin Appeals, outcome notify.
+*   Account controls in Settings (not a Meta-style “Account Center” product): GDPR export, schedule/cancel deletion, privacy, mutes, feed preferences.
+*   Hard delete: `scheduledDeletionAt` grace, login restores, daily `purgeGdprDeletedUsers` (+ media). Warn / suspend / `suspendedUntil` + lift cron.
+*   Support tickets: Admin `support/tickets`. Cookie consent + age ≥16.
+
+**Leftover (measurement, not a new stack):**
+*   MTTR / SLA on appeals and reports can be computed from existing `createdAt` / `resolvedAt` — no warehouse. `Appeal` has no dedicated SLA column; do not add one without confirmation.
+
 **Success Metrics (KPIs):**
 *   Mean Time to Resolution (MTTR) of support tickets and spam reduction.
 
 ### Phase 5: Scale and Media Infrastructure
-*Horizon: **Continuous / Cross-cutting***
+*Horizon: **Continuous / Cross-cutting** — pipeline shipped; tune, do not rebuild*
 
-**Key Architecture:**
-*   Asynchronous HLS transcoding, Redis Pub/Sub for chat, and Feed Fan-out on write ("Thundering Herd" mitigation).
+**Shipped (do not rebuild):**
+*   HLS transcoding on upload (`uploads` video processor, 720p VOD playlist).
+*   Chat over Redis + sockets (ADR-0006).
+*   Feed fan-out on write (`feed-fanout` BullMQ + inbox) — ADR-0009.
+
+**Leftover:** multi-bitrate HLS and further fan-out tuning under load — not a new product surface.
+
 **Success Metrics (KPIs):**
 *   Optimal video processing times; efficient CPU consumption under high concurrency.
 

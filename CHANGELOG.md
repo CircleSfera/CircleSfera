@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ## [Unreleased]
 
+### Changed
+
+- Monetization doc (`10-roadmap-monetization.md`) now describes shipped Connect Express, 20% fee, Admin Retiros, and promotions. Removed future-tense payout schedule, Custom accounts, and subscriber badges presented as current (gap D3)
+
 ### Added
 
 - Webhook signature accepts a second secret (`STRIPE_CONNECT_WEBHOOK_SECRET`) so a Connected-accounts destination can share `POST /api/v1/payments/webhook`

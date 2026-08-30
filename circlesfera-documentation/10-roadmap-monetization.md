@@ -1,57 +1,62 @@
-# Monetization Strategy and Creator Economy
+# Monetization and creator economy
 
-This document details the operational and technical strategy exclusively for CircleSfera's commercial layer. Monetization is backed by a robust **Stripe Connect** integration, enabling a secure, hybrid environment free of compliance issues.
+Canonical behaviour is in the controllers, `schema.prisma`, and ADRs
+[0002](./adr/0002-stripe-connect-payouts.md),
+[0003](./adr/0003-one-active-platform-plan.md),
+[0010](./adr/0010-platform-fee-20-percent.md).
+This page is a map, not a second source of truth.
 
----
-
-## 1. Monetization: Tier Subscriptions and Pay-Per-View (PPV)
-
-Having resolved compliance challenges through Stripe Connect integration, CircleSfera's monetization strategy consolidates into a hybrid, predictable, and transparent model.
-
-### Model Characteristics
-- **Platform / Creator Subscriptions:** Different levels (Tiers) that grant specific benefits.
-- **Pay-Per-View (PPV):** Direct sale of individual content (e.g., private Stories or exclusive Posts) processed securely through Stripe Connect.
-- **Badges:** Subscribers receive visible badges on their profiles and comments according to their subscription Tier, incentivizing social status.
-
-### Access Rules and Compliance
-- **One active plan at a time:** As dictated by the main PRD, a user may only have one Tier active at a time to prevent fraud or billing confusion.
-- **PPV Availability (Lifetime Access vs Rental):** Define expiration policies for PPV. If a creator is banned or deletes the post, the platform must retain the locked content solely for existing buyers or issue automated refunds (*chargebacks*) to minimize Stripe disputes.
-- **Traceability (Ledger):** All attempts, failures, charges, and payouts must be recorded in an auditable log.
+**Out of scope** (do not treat as missing product): subscriber badges as a first-class surface;
+in-app withdraw; Stripe Custom accounts. See [00-status.md](./00-status.md).
 
 ---
 
-## 2. Creator Onboarding and Payouts (Stripe Connect)
+## 1. What CircleSfera charges
 
-To receive money from Tiers and PPV, the creator becomes a seller (Connected Account).
+| Flow | Who pays | Stripe | Local row |
+| --- | --- | --- | --- |
+| Platform plans (Premium / Elite / Business) | User → CircleSfera | Checkout / Billing Portal | `PlatformSubscription` |
+| Creator VIP | Fan → creator (Connect) | Destination charge, 20% application fee | `CreatorSubscription` |
+| Post / story / message unlock (PPV) | Fan → creator | Same | `PostUnlock` / `StoryUnlock` / `MessageUnlock` + `Transaction` |
+| Tip | Fan → creator | Same | `Transaction` |
+| Live gift | Viewer → creator | Same | `LiveGift` + `Transaction` `DIRECT_LIVE_GIFT` |
+| Promote | Creator → CircleSfera | Checkout `mode: payment` | `Promotion` (`stripePaymentIntentId` = session id) |
 
-- **KYC and Signup (Onboarding):** Mandatory flow via Stripe Express/Custom to verify the creator's identity before enabling Tiers or PPV.
-- **Take Rate (Platform Commission):** Strict definition of commissions in Stripe's Application Fee (**20%** for the platform, **80%** for the creator — verified in Connect Checkout code as of Jul 2026; older drafts said 15%).
-- **Payouts:** Funds are transferred to the creator's Stripe balance. An automatic payment schedule will be enabled (e.g., monthly / 7-day rolling) or manual withdrawals under minimum thresholds, mitigating fraud risk from premature charges.
+- One **active platform plan** per user ([ADR-0003](./adr/0003-one-active-platform-plan.md)).
+- Creator VIP price is `Profile.subscriptionPriceCents` (client `priceCents` is ignored).
+- Gift prices are server-side (`gift-catalog.ts`).
+- Unlock / tip / gift / Connect checkout require identity verification.
+- PPV unlocks have **no rental expiry**. Access is revoked on refund or dispute (`charge.refunded` / `charge.dispute.created`).
+- Currency for those Connect charges is **EUR**, amounts in integer cents.
 
 ---
 
-## 3. Creator Dashboard
+## 2. Stripe Connect (creators)
 
-The Dashboard is the primary operational tool for creators to convert audience into subscribers and buyers.
-
-### Main Modules
-- **Revenue Overview:** Monthly Recurring Revenue (MRR) from Tiers and cumulative total of one-time sales (PPV).
-- **Audience & Tiers:** Geographic distribution, reach, followers gained, and subscriber retention by acquired badge.
-- **Content Analytics:** Commercial conversion breakdown per piece: impressions, saves, conversion to follow, **and locked-post-to-purchase conversion (PPV)**.
+- Accounts are **Express only** (`accounts.create` `type: 'express'`). Not Custom.
+- KYC is Stripe Identity + Connect onboarding. CircleSfera does not collect bank details.
+- Platform take-rate is **20%** / creator **80%** on Connect-mediated charges ([ADR-0010](./adr/0010-platform-fee-20-percent.md)).
+- CircleSfera **does not** call `payouts.create` and does not set a payout schedule. Stripe pays the Express balance on its automatic rolling schedule. The creator can open the Express Dashboard via `GET /monetization/dashboard`.
+- `GET /monetization/payouts` live-reads Connect `balance.retrieve` + `payouts.list` (available / pending). The creator Ingresos tab shows those balances, not a CircleSfera withdraw button.
+- Admin → **Retiros (Stripe)** lists copies of Connect `payout.*` (`StripePayoutLog`). Those events come from a **Connected-accounts** destination. Platform Checkout uses a separate destination. Same URL, two signing secrets — [stripe-connect-webhook](./runbooks/stripe-connect-webhook.md).
 
 ---
 
-## 4. Sponsored Placements
+## 3. Creator Studio (Ingresos)
 
-To drive organic creator growth without conflicting with algorithm-manipulation regulations, **Sponsored Placements** will be implemented (strictly avoiding the term "Boost Content").
+Shipped: Connect status, Express login link, available/pending balances, PPV / tip / gift / VIP breakdown, promote (Ads). Planes is the creator paying CircleSfera (platform plan), a separate tab.
 
-### Native Advertising Flow (Creator to Platform)
-Unlike Tiers/PPV (Fan-to-Creator), here the creator pays CircleSfera. Managed via **Stripe Checkout Session** (`mode: payment`; session id stored in `Promotion.stripePaymentIntentId`):
-1. The creator selects an already published post or frame.
-2. Clicks **Promote** and defines a goal (Profile visits, Follows, Tier conversions).
-3. Sets a daily budget and basic targeting (interests, country).
-4. Payment is charged to the creator's card upfront (or held from their balance).
-5. Ad metrics are consolidated in the Creator Dashboard.
+Not shipped and not planned here: subscriber badges on comments, geographic MRR maps, or a CircleSfera-side withdraw.
 
-> [!WARNING]
-> To ensure commercial compliance, Sponsored Placements will be explicitly marked as "Sponsored" to users, ensuring full transparency.
+---
+
+## 4. Promotions (already shipped)
+
+Creator pays CircleSfera via Checkout. Feed injects only `ACTIVE` promotions. Views require a viewer JWT; the owner cannot burn their own budget. Cancel can refund unused budget (`PROPORTIONAL`). Admin reject of a charged promo refunds proportionally. Placements are marked sponsored in the feed.
+
+---
+
+## 5. Admin
+
+- **Monetización:** platform MRR, subscription counts, tier mix, `Transaction` list (charges CircleSfera intermediates).
+- **Retiros (Stripe):** automatic Express payouts after Stripe sends `payout.*` on the Connect destination. Empty until the first such payout after that destination went live.
