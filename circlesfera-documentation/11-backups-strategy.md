@@ -1,8 +1,22 @@
 # Backup Strategy - CircleSfera
 
-**Version:** 2.1 (OVH VPS + scripts in repo)  
-**Date:** July 2026  
+**Version:** 2.2 (shipped vs aspirational)  
+**Date:** August 2026  
 **Owner:** DevOps Lead @ CircleSfera
+
+## Shipped today vs not shipped
+
+| Capability | Status | Where |
+|------------|--------|--------|
+| Daily logical Postgres dump (`pg_dump -Fc`) | **Shipped** | `scripts/backup-postgres.sh` |
+| Uploads volume tarball | **Shipped** | `scripts/backup-uploads.sh` |
+| Restore with confirmation gate | **Shipped** | `scripts/restore-postgres.sh` |
+| Pre-migrate dump on deploy | **Shipped** | `.github/workflows/deploy.yml` |
+| Optional S3 upload when `S3_BACKUP_BUCKET` set | **Shipped** (optional) | backup scripts |
+| PostgreSQL WAL / PITR | **Not shipped** | §Future Roadmap below |
+| Cross-region replication | **Not shipped** | §Future Roadmap below |
+
+Do **not** assume point-in-time recovery during an incident unless WAL/PITR is explicitly provisioned outside this repo.
 
 ---
 

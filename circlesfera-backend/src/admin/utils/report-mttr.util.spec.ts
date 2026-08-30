@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  computeReportMttr,
+  computeMttr,
   medianMs,
-  reportResolutionDurationsMs,
+  resolutionDurationsMs,
 } from './report-mttr.util.js';
 
 describe('report-mttr.util', () => {
@@ -18,11 +18,11 @@ describe('report-mttr.util', () => {
     expect(medianMs([100, 400, 200, 300])).toBe(250);
   });
 
-  it('reportResolutionDurationsMs ignores unresolved and negative spans', () => {
+  it('resolutionDurationsMs ignores unresolved and negative spans', () => {
     const created = new Date('2026-08-01T10:00:00Z');
     const resolved = new Date('2026-08-01T12:00:00Z');
     expect(
-      reportResolutionDurationsMs([
+      resolutionDurationsMs([
         { createdAt: created, resolvedAt: resolved },
         { createdAt: created, resolvedAt: null },
         {
@@ -33,9 +33,9 @@ describe('report-mttr.util', () => {
     ).toEqual([2 * 60 * 60 * 1000]);
   });
 
-  it('computeReportMttr aggregates median and count', () => {
+  it('computeMttr aggregates median and count', () => {
     const base = new Date('2026-08-01T00:00:00Z');
-    const result = computeReportMttr([
+    const result = computeMttr([
       {
         createdAt: base,
         resolvedAt: new Date(base.getTime() + 60 * 60 * 1000),

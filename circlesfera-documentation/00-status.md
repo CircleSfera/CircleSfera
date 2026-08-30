@@ -94,7 +94,7 @@ Product/ops gap-closure is **not** “100% of every corporate vision item.” Ex
 - Public OAuth / third-party developer platform
 - SSR indexable profiles
 - Subscriber badges as a first-class product surface
-- Data warehouse / BI (ClickHouse/BigQuery, executive LTV dashboards)
+- Data warehouse / BI (ClickHouse/BigQuery, executive LTV dashboards) — **ADR-0016 proposed**; ETL not shipped yet
 - SOC2 certification and public bug-bounty program
 
 Also deferred:
@@ -106,4 +106,4 @@ Also deferred:
 - Schema: `circlesfera-backend/prisma/schema.prisma` (not `08-schema-prisma.md`)
 - ADRs: [adr/README.md](./adr/README.md)
 - Runbooks: [runbooks/README.md](./runbooks/README.md)
-- Documents **01–07** may still lag in places; prefer code + schema when they conflict.
+- Documents **01–07** carry schema-first banners (Aug 2026); prefer code + schema when they conflict.

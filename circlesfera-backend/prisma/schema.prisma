@@ -1379,6 +1379,7 @@ model SupportTicket {
   message   String
   status    TicketStatus @default(OPEN)
   reply     String?
+  resolvedAt DateTime?
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
@@ -1386,6 +1387,7 @@ model SupportTicket {
 
   @@index([userId])
   @@index([status])
+  @@index([resolvedAt])
   @@map("support_tickets")
 }
 
@@ -1433,6 +1435,7 @@ model Appeal {
   reason     String
   status     AppealStatus     @default(PENDING)
   adminNotes String?
+  resolvedAt DateTime?
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
 
@@ -1440,6 +1443,7 @@ model Appeal {
 
   @@index([userId])
   @@index([status])
+  @@index([resolvedAt])
   @@map("appeals")
 }
 

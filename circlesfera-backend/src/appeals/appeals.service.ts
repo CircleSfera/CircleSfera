@@ -1,6 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NotificationType, type Prisma } from '@prisma/client';
 import { resolveAdminNotificationSenderId } from '../admin/utils/resolve-admin-notification-sender.js';
+import { resolvedAtOnStatusChange } from '../admin/utils/resolved-at.util.js';
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
@@ -166,11 +167,18 @@ export class AppealsService {
     const appeal = await this.findOne(id);
 
     const updatedAppeal = await this.prisma.$transaction(async (tx) => {
+      const resolvedAt = resolvedAtOnStatusChange(
+        dto.status,
+        appeal.resolvedAt,
+        ['APPROVED', 'REJECTED'],
+        'PENDING',
+      );
       const res = await tx.appeal.update({
         where: { id },
         data: {
           status: dto.status,
           adminNotes: dto.adminNotes,
+          ...(resolvedAt !== undefined ? { resolvedAt } : {}),
         },
       });
 

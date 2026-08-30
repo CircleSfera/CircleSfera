@@ -443,11 +443,14 @@ export interface TrustQueueReport {
   } | null;
 }
 
-export interface TrustQueueReportMttr {
+export interface TrustQueueMttr {
   windowDays: number;
   resolvedCount: number;
   medianMs: number | null;
 }
+
+/** @deprecated Use TrustQueueMttr */
+export type TrustQueueReportMttr = TrustQueueMttr;
 
 export interface TrustQueueResponse {
   reports: TrustQueueReport[];
@@ -458,7 +461,9 @@ export interface TrustQueueResponse {
     appeals: number;
     tickets: number;
   };
-  reportMttr: TrustQueueReportMttr;
+  reportMttr: TrustQueueMttr;
+  appealMttr: TrustQueueMttr;
+  ticketMttr: TrustQueueMttr;
 }
 
 export interface AdminLiveStream {

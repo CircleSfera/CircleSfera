@@ -12,6 +12,7 @@ import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { EmailService } from '../email/email.service.js';
 import { PaymentsService } from '../payments/payments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { resolvedAtOnStatusChange } from './utils/resolved-at.util.js';
 
 /**
  * Admin operations that are orthogonal to core user/content moderation:
@@ -258,8 +259,26 @@ export class AdminOpsService {
     }
 
     const updateData: Prisma.SupportTicketUpdateInput = {};
-    if (data.status) updateData.status = data.status;
     if (data.reply !== undefined) updateData.reply = data.reply;
+
+    const effectiveStatus =
+      data.status ??
+      (data.reply?.trim() && existing.status === 'OPEN'
+        ? 'RESOLVED'
+        : undefined);
+
+    if (effectiveStatus) {
+      updateData.status = effectiveStatus;
+      const resolvedAt = resolvedAtOnStatusChange(
+        effectiveStatus,
+        existing.resolvedAt,
+        ['RESOLVED', 'CLOSED'],
+        'OPEN',
+      );
+      if (resolvedAt !== undefined) {
+        updateData.resolvedAt = resolvedAt;
+      }
+    }
 
     const ticket = await this.prisma.supportTicket.update({
       where: { id },
@@ -272,13 +291,6 @@ export class AdminOpsService {
         ticket.subject,
         data.reply.trim(),
       );
-      if (!data.status && ticket.status === 'OPEN') {
-        await this.prisma.supportTicket.update({
-          where: { id },
-          data: { status: 'RESOLVED' },
-        });
-        ticket.status = 'RESOLVED';
-      }
     }
 
     await this.logAction(
@@ -286,7 +298,7 @@ export class AdminOpsService {
       AdminAction.MANUAL_OVERRIDE,
       'support_ticket',
       id,
-      `Updated ticket ${id}${data.status ? ` → ${data.status}` : ''}${data.reply ? ' (replied)' : ''}`,
+      `Updated ticket ${id}${effectiveStatus ? ` → ${effectiveStatus}` : data.status ? ` → ${data.status}` : ''}${data.reply ? ' (replied)' : ''}`,
     );
 
     return ticket;

@@ -6,7 +6,7 @@ import {
 } from '../../../../common/utils/user-profile-shape.util.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import {
-  computeReportMttr,
+  computeMttr,
   REPORT_MTTR_SAMPLE_LIMIT,
   REPORT_MTTR_WINDOW_DAYS,
 } from '../../../utils/report-mttr.util.js';
@@ -158,7 +158,9 @@ export class GetContentQuery {
       reportCount,
       appealCount,
       ticketCount,
-      resolvedForMttr,
+      resolvedReportsForMttr,
+      resolvedAppealsForMttr,
+      resolvedTicketsForMttr,
     ] = await Promise.all([
       this.prisma.report.findMany({
         where: { status: { in: ['PENDING', 'REVIEWING'] } },
@@ -210,6 +212,22 @@ export class GetContentQuery {
         take: REPORT_MTTR_SAMPLE_LIMIT,
         select: { createdAt: true, resolvedAt: true },
       }),
+      this.prisma.appeal.findMany({
+        where: {
+          resolvedAt: { not: null, gte: mttrSince },
+        },
+        orderBy: { resolvedAt: 'desc' },
+        take: REPORT_MTTR_SAMPLE_LIMIT,
+        select: { createdAt: true, resolvedAt: true },
+      }),
+      this.prisma.supportTicket.findMany({
+        where: {
+          resolvedAt: { not: null, gte: mttrSince },
+        },
+        orderBy: { resolvedAt: 'desc' },
+        take: REPORT_MTTR_SAMPLE_LIMIT,
+        select: { createdAt: true, resolvedAt: true },
+      }),
     ]);
 
     return {
@@ -227,7 +245,9 @@ export class GetContentQuery {
         appeals: appealCount,
         tickets: ticketCount,
       },
-      reportMttr: computeReportMttr(resolvedForMttr),
+      reportMttr: computeMttr(resolvedReportsForMttr),
+      appealMttr: computeMttr(resolvedAppealsForMttr),
+      ticketMttr: computeMttr(resolvedTicketsForMttr),
     };
   }
 

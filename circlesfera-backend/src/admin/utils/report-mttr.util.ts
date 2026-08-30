@@ -1,6 +1,11 @@
 export const REPORT_MTTR_WINDOW_DAYS = 30;
 export const REPORT_MTTR_SAMPLE_LIMIT = 500;
 
+export type MttrRecord = {
+  createdAt: Date;
+  resolvedAt: Date | null;
+};
+
 export function medianMs(values: number[]): number | null {
   if (values.length === 0) return null;
   const sorted = [...values].sort((a, b) => a - b);
@@ -11,10 +16,10 @@ export function medianMs(values: number[]): number | null {
   return sorted[mid]!;
 }
 
-export function reportResolutionDurationsMs(
-  reports: ReadonlyArray<{ createdAt: Date; resolvedAt: Date | null }>,
+export function resolutionDurationsMs(
+  records: ReadonlyArray<MttrRecord>,
 ): number[] {
-  return reports
+  return records
     .filter(
       (r): r is { createdAt: Date; resolvedAt: Date } => r.resolvedAt != null,
     )
@@ -22,13 +27,17 @@ export function reportResolutionDurationsMs(
     .filter((ms) => ms >= 0);
 }
 
-export function computeReportMttr(
-  reports: ReadonlyArray<{ createdAt: Date; resolvedAt: Date | null }>,
-) {
-  const durations = reportResolutionDurationsMs(reports);
+export function computeMttr(records: ReadonlyArray<MttrRecord>) {
+  const durations = resolutionDurationsMs(records);
   return {
     windowDays: REPORT_MTTR_WINDOW_DAYS,
     resolvedCount: durations.length,
     medianMs: medianMs(durations),
   };
 }
+
+/** @deprecated Use resolutionDurationsMs */
+export const reportResolutionDurationsMs = resolutionDurationsMs;
+
+/** @deprecated Use computeMttr */
+export const computeReportMttr = computeMttr;

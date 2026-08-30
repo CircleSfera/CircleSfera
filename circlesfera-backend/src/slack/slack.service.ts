@@ -650,7 +650,11 @@ export class SlackService {
           // Update ticket status in DB
           await this.prisma.supportTicket.update({
             where: { id: ticketId },
-            data: { status: 'RESOLVED', reply: replyText },
+            data: {
+              status: 'RESOLVED',
+              reply: replyText,
+              resolvedAt: ticket.resolvedAt ?? new Date(),
+            },
           });
 
           this.logger.log(`Support ticket ${ticketId} resolved via Slack`);

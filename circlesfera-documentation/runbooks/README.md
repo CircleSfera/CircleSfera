@@ -10,6 +10,7 @@ Operational stubs for CircleSfera. Prefer the real scripts under [`scripts/`](..
 | [profile-migration-p3009](./profile-migration-p3009.md) | Unblock failed User→Profile ownership migration (P3009) | `scripts/prisma-migrate-deploy.sh`, migration `20260827160002` |
 | [incident-response](./incident-response.md) | First response checklist for production incidents | Logs, health endpoints, backups |
 | [stripe-connect-webhook](./stripe-connect-webhook.md) | Second destination for Connected-account `payout.*` | `STRIPE_CONNECT_WEBHOOK_SECRET`, same `/payments/webhook` URL |
+| [feed-following-first-experiment](./feed-following-first-experiment.md) | Roll out Home For You following-first A/B | FeatureFlag `feed_home_following_first` |
 
 Also see:
 

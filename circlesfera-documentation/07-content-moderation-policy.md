@@ -1,8 +1,10 @@
 # 07-Content-Moderation-Policy
 ## CircleSfera
-**Version:** 3.0 aligned with the real project  
-**Date:** April 2026  
+**Version:** 3.1 aligned with the real project  
+**Date:** August 2026  
 **Source of truth:** product positioning + real capabilities of the current system
+
+> Prefer `schema.prisma`, Admin Panel runbooks, and [00-status.md](./00-status.md) when this policy and older snapshots disagree.
 
 ---
 

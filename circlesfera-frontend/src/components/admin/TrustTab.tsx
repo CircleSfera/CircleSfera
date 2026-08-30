@@ -15,6 +15,7 @@ import {
   type AdminSupportTicket,
   adminApi,
   type TrustQueueAppeal,
+  type TrustQueueMttr,
   type TrustQueueReport,
 } from '../../services/admin.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
@@ -40,6 +41,35 @@ function formatMttrDuration(
   }
   const days = Math.round(hrs / 24);
   return t('admin.trust.mttr_duration_days', { count: days });
+}
+
+function MttrMetric({ mttr, title }: { mttr: TrustQueueMttr; title: string }) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="min-w-0 rounded-lg border border-white/5 bg-white/2 p-2.5 min-h-11">
+      <p className="text-xs font-semibold text-white truncate">{title}</p>
+      <p className="text-[11px] text-white/45 mt-0.5">
+        {t('admin.trust.mttr_subtitle', { days: mttr.windowDays })}
+      </p>
+      {mttr.resolvedCount === 0 || mttr.medianMs == null ? (
+        <p className="text-xs text-white/50 mt-1">
+          {t('admin.trust.mttr_empty', { days: mttr.windowDays })}
+        </p>
+      ) : (
+        <>
+          <p className="text-sm font-bold text-emerald-400 tabular-nums mt-1">
+            {t('admin.trust.mttr_median', {
+              duration: formatMttrDuration(mttr.medianMs, t),
+            })}
+          </p>
+          <p className="text-[11px] text-white/45 mt-0.5">
+            {t('admin.trust.mttr_sample', { count: mttr.resolvedCount })}
+          </p>
+        </>
+      )}
+    </div>
+  );
 }
 
 function timeAgo(date: string): string {
@@ -150,6 +180,8 @@ export default function TrustTab() {
 
   const counts = data?.counts ?? { reports: 0, appeals: 0, tickets: 0 };
   const reportMttr = data?.reportMttr;
+  const appealMttr = data?.appealMttr;
+  const ticketMttr = data?.ticketMttr;
   const reports = data?.reports ?? [];
   const appeals = data?.appeals ?? [];
   const tickets = data?.tickets ?? [];
@@ -222,38 +254,32 @@ export default function TrustTab() {
             </Link>
           )}
 
-          {reportMttr && (
-            <div className="border-t border-white/5 pt-2.5 flex items-start gap-2.5 min-h-11">
-              <Clock size={14} className="text-emerald-400 shrink-0 mt-0.5" />
-              <div className="min-w-0 flex-1">
+          {(reportMttr || appealMttr || ticketMttr) && (
+            <div className="border-t border-white/5 pt-2.5 space-y-2">
+              <div className="flex items-center gap-2">
+                <Clock size={14} className="text-emerald-400 shrink-0" />
                 <p className="text-xs font-semibold text-white">
-                  {t('admin.trust.mttr_title')}
+                  {t('admin.trust.mttr_section_title')}
                 </p>
-                <p className="text-[11px] text-white/45 mt-0.5">
-                  {t('admin.trust.mttr_subtitle', {
-                    days: reportMttr.windowDays,
-                  })}
-                </p>
-                {reportMttr.resolvedCount === 0 ||
-                reportMttr.medianMs == null ? (
-                  <p className="text-xs text-white/50 mt-1">
-                    {t('admin.trust.mttr_empty', {
-                      days: reportMttr.windowDays,
-                    })}
-                  </p>
-                ) : (
-                  <>
-                    <p className="text-sm font-bold text-emerald-400 tabular-nums mt-1">
-                      {t('admin.trust.mttr_median', {
-                        duration: formatMttrDuration(reportMttr.medianMs, t),
-                      })}
-                    </p>
-                    <p className="text-[11px] text-white/45 mt-0.5">
-                      {t('admin.trust.mttr_sample', {
-                        count: reportMttr.resolvedCount,
-                      })}
-                    </p>
-                  </>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {reportMttr && (
+                  <MttrMetric
+                    mttr={reportMttr}
+                    title={t('admin.trust.mttr_reports_title')}
+                  />
+                )}
+                {appealMttr && (
+                  <MttrMetric
+                    mttr={appealMttr}
+                    title={t('admin.trust.mttr_appeals_title')}
+                  />
+                )}
+                {ticketMttr && (
+                  <MttrMetric
+                    mttr={ticketMttr}
+                    title={t('admin.trust.mttr_tickets_title')}
+                  />
                 )}
               </div>
             </div>

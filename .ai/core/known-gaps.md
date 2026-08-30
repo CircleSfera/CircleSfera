@@ -25,10 +25,7 @@ shared/Actions/Docker, and `security.yml` runs CodeQL + informative npm audit as
 
 ## Documentation
 
-| # | Finding | Evidence |
-| --- | --- | --- |
-| D1 | Docs `01`–`07` are Abr 2026 snapshots patched in Jul 2026; `00-status.md` states they may lag. Prefer schema + controllers. | `00-status.md` |
-| D2 | `11-backups-strategy.md` still documents aspirational WAL/PITR and named S3 buckets alongside shipped scripts. Do not treat the aspirational parts as existing infrastructure. (Phantom `scripts/backup.sh` example removed Aug 2026.) | `11-backups-strategy.md` |
+*(No open known gaps — D1 docs 01–07 carry schema-first banners as of Aug 2026; D2 backups doc separates shipped scripts from aspirational PITR in §Future Roadmap.)*
 
 
 ## Maintenance

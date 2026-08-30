@@ -86,8 +86,9 @@ CircleSfera already has a solid social core (feed, profiles, posts, frames, stor
 *   Hybrid Home ranking (`post_embeddings` + social graph + `performanceScore`).
 *   Experiment infrastructure: `FeatureFlag`, `UserExperiment`, `GET /experiments/me`, Admin Experiments.
 
-**Leftover (designed, default-off):**
-*   Home For You (`GET /feed/foryou`) can assign `feed_home_following_first` via `ExperimentsService`. Treatment is the existing following feed — not a new ranking formula. No `FeatureFlag` row (or `isEnabled=false` / `percentage=0`) keeps current hybrid. Enable from Admin Experiments when ready to measure dwell vs control.
+**Leftover (measurement, not a new stack):**
+*   MTTR on reports, appeals, and support tickets: `resolvedAt` + Trust tab medians (`GET admin/trust/queue`). Warehouse trends: [ADR-0016](./adr/0016-analytical-warehouse-clickhouse.md) (proposed).
+*   Home For You experiment: seed + runbook for `feed_home_following_first` — enable from Admin Experiments ([runbook](./runbooks/feed-following-first-experiment.md)).
 
 **Success Metrics (KPIs):**
 *   Increase in time on screen (Dwell Time) and conversions in the `Explore` tab.
@@ -116,7 +117,7 @@ CircleSfera already has a solid social core (feed, profiles, posts, frames, stor
 *   Support tickets: Admin `support/tickets`. Cookie consent + age ≥16.
 
 **Leftover (measurement, not a new stack):**
-*   MTTR / SLA on appeals and reports can be computed from existing `createdAt` / `resolvedAt` — no warehouse. `Appeal` has no dedicated SLA column; do not add one without confirmation.
+*   ~~MTTR / SLA on appeals and reports~~ **Shipped (Aug 2026):** `resolvedAt` on reports, appeals, support tickets; Trust tab 30-day medians. Trend BI → ADR-0016.
 
 **Success Metrics (KPIs):**
 *   Mean Time to Resolution (MTTR) of support tickets and spam reduction.
