@@ -11,8 +11,9 @@ Operational stubs for CircleSfera. Prefer the real scripts under [`scripts/`](..
 | [incident-response](./incident-response.md) | First response checklist for production incidents | Logs, health endpoints, backups |
 | [stripe-connect-webhook](./stripe-connect-webhook.md) | Second destination for Connected-account `payout.*` | `STRIPE_CONNECT_WEBHOOK_SECRET`, same `/payments/webhook` URL |
 | [feed-following-first-experiment](./feed-following-first-experiment.md) | Roll out Home For You following-first A/B | FeatureFlag `feed_home_following_first` |
+| [clickhouse-cloud-analytics](./clickhouse-cloud-analytics.md) | ClickHouse Cloud + prod env + verify ETL | `CLICKHOUSE_URL`, `scripts/etl/clickhouse-schema.sql` |
 
-Analytics ETL v0: [`scripts/etl/README.md`](../../scripts/etl/README.md) — Postgres CSV export before ClickHouse load.
+Analytics ETL v0: [`scripts/etl/README.md`](../../scripts/etl/README.md) — Postgres CSV export; primary path is BullMQ `WarehouseModule`.
 
 Also see:
 

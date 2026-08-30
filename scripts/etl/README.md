@@ -24,6 +24,8 @@ On OVH Docker, mount e.g. `/srv/circlesfera/backups/etl` → `ETL_DIR` in backen
 
 ### ClickHouse setup
 
+Full step-by-step: **[runbook: ClickHouse Cloud analytics](../circlesfera-documentation/runbooks/clickhouse-cloud-analytics.md)**.
+
 1. Provision **ClickHouse Cloud** (recommended) or self-hosted.
 2. Apply schema: [`clickhouse-schema.sql`](./clickhouse-schema.sql)
 3. Set `CLICKHOUSE_URL` + `CLICKHOUSE_DATABASE` in production env (never commit secrets).

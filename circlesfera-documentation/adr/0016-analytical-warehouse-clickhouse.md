@@ -32,6 +32,7 @@ CircleSfera needs analytical KPIs (Trust MTTR aggregates, monetization MRR, rete
 - New infra: ClickHouse instance, ETL cron (BullMQ or host cron + script), secrets in `.env.production` (not in git).
 - New repo scripts under `scripts/etl/` — **v0 shipped:** `export-analytics-tables.sh` (plan B), `clickhouse-schema.sql`. **Primary:** BullMQ `WarehouseModule`.
 - Trust tab MTTR stays on Postgres (real-time, last 30 days); warehouse powers trends and executive views.
+- Ops runbook: [clickhouse-cloud-analytics.md](../runbooks/clickhouse-cloud-analytics.md)
 - Update `00-status.md` when first ETL job ships — until then this ADR is design-only.
 
 ## Alternatives considered
