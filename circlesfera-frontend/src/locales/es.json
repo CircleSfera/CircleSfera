@@ -1734,7 +1734,15 @@
       "reports_empty": "Sin reportes pendientes",
       "appeals_empty": "Sin apelaciones pendientes",
       "tickets_empty": "Sin tickets abiertos",
-      "section_empty_description": "No hay elementos pendientes en esta cola."
+      "section_empty_description": "No hay elementos pendientes en esta cola.",
+      "mttr_title": "Tiempo de resolución de reportes",
+      "mttr_subtitle": "Mediana de resolución (últimos {{days}} días)",
+      "mttr_median": "Mediana: {{duration}}",
+      "mttr_sample": "Basado en {{count}} reportes resueltos",
+      "mttr_empty": "Sin reportes resueltos en los últimos {{days}} días.",
+      "mttr_duration_minutes": "{{count}} min",
+      "mttr_duration_hours": "{{count}} h",
+      "mttr_duration_days": "{{count}} d"
     },
     "live": {
       "title": "Directos",

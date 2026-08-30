@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import {
+  Clock,
   ExternalLink,
   Flag,
   LifeBuoy,
@@ -22,6 +23,24 @@ import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { ADMIN_TAB_PERMISSIONS, adminTabPath } from './adminNav';
+
+function formatMttrDuration(
+  ms: number,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
+  const mins = Math.round(ms / 60_000);
+  if (mins < 60) {
+    return t('admin.trust.mttr_duration_minutes', {
+      count: Math.max(1, mins),
+    });
+  }
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) {
+    return t('admin.trust.mttr_duration_hours', { count: hrs });
+  }
+  const days = Math.round(hrs / 24);
+  return t('admin.trust.mttr_duration_days', { count: days });
+}
 
 function timeAgo(date: string): string {
   const diff = Date.now() - new Date(date).getTime();
@@ -130,6 +149,7 @@ export default function TrustTab() {
   });
 
   const counts = data?.counts ?? { reports: 0, appeals: 0, tickets: 0 };
+  const reportMttr = data?.reportMttr;
   const reports = data?.reports ?? [];
   const appeals = data?.appeals ?? [];
   const tickets = data?.tickets ?? [];
@@ -200,6 +220,43 @@ export default function TrustTab() {
               </span>
               <ExternalLink size={12} className="text-white/40 shrink-0" />
             </Link>
+          )}
+
+          {reportMttr && (
+            <div className="border-t border-white/5 pt-2.5 flex items-start gap-2.5 min-h-11">
+              <Clock size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-white">
+                  {t('admin.trust.mttr_title')}
+                </p>
+                <p className="text-[11px] text-white/45 mt-0.5">
+                  {t('admin.trust.mttr_subtitle', {
+                    days: reportMttr.windowDays,
+                  })}
+                </p>
+                {reportMttr.resolvedCount === 0 ||
+                reportMttr.medianMs == null ? (
+                  <p className="text-xs text-white/50 mt-1">
+                    {t('admin.trust.mttr_empty', {
+                      days: reportMttr.windowDays,
+                    })}
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-sm font-bold text-emerald-400 tabular-nums mt-1">
+                      {t('admin.trust.mttr_median', {
+                        duration: formatMttrDuration(reportMttr.medianMs, t),
+                      })}
+                    </p>
+                    <p className="text-[11px] text-white/45 mt-0.5">
+                      {t('admin.trust.mttr_sample', {
+                        count: reportMttr.resolvedCount,
+                      })}
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
           )}
         </div>
       )}

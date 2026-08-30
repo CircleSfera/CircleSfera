@@ -1734,7 +1734,15 @@
       "reports_empty": "No pending reports",
       "appeals_empty": "No pending appeals",
       "tickets_empty": "No open tickets",
-      "section_empty_description": "Nothing pending in this queue."
+      "section_empty_description": "Nothing pending in this queue.",
+      "mttr_title": "Report resolution time",
+      "mttr_subtitle": "Median time to resolve reports (last {{days}} days)",
+      "mttr_median": "Median: {{duration}}",
+      "mttr_sample": "Based on {{count}} resolved reports",
+      "mttr_empty": "No resolved reports in the last {{days}} days.",
+      "mttr_duration_minutes": "{{count}} min",
+      "mttr_duration_hours": "{{count}} h",
+      "mttr_duration_days": "{{count}} d"
     },
     "live": {
       "title": "Live Streams",

@@ -5,6 +5,11 @@ import {
   withPrimaryProfile,
 } from '../../../../common/utils/user-profile-shape.util.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
+import {
+  computeReportMttr,
+  REPORT_MTTR_SAMPLE_LIMIT,
+  REPORT_MTTR_WINDOW_DAYS,
+} from '../../../utils/report-mttr.util.js';
 
 @Injectable()
 export class GetContentQuery {
@@ -143,51 +148,69 @@ export class GetContentQuery {
 
   async getTrustQueue() {
     const take = 10;
-    const [reports, appeals, tickets, reportCount, appealCount, ticketCount] =
-      await Promise.all([
-        this.prisma.report.findMany({
-          where: { status: { in: ['PENDING', 'REVIEWING'] } },
-          orderBy: { createdAt: 'desc' },
-          take,
-          include: {
-            reporter: {
-              select: {
-                username: true,
-              },
-            },
-            assignedAdmin: {
-              select: {
-                id: true,
-                email: true,
-                displayName: true,
-              },
-            },
-          },
-        }),
-        this.prisma.appeal.findMany({
-          where: { status: 'PENDING' },
-          orderBy: { createdAt: 'desc' },
-          take,
-          include: {
-            user: {
-              select: {
-                email: true,
-                profiles: { select: { username: true } },
-              },
+    const mttrSince = new Date(
+      Date.now() - REPORT_MTTR_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+    );
+    const [
+      reports,
+      appeals,
+      tickets,
+      reportCount,
+      appealCount,
+      ticketCount,
+      resolvedForMttr,
+    ] = await Promise.all([
+      this.prisma.report.findMany({
+        where: { status: { in: ['PENDING', 'REVIEWING'] } },
+        orderBy: { createdAt: 'desc' },
+        take,
+        include: {
+          reporter: {
+            select: {
+              username: true,
             },
           },
-        }),
-        this.prisma.supportTicket.findMany({
-          where: { status: 'OPEN' },
-          orderBy: { createdAt: 'desc' },
-          take,
-        }),
-        this.prisma.report.count({
-          where: { status: { in: ['PENDING', 'REVIEWING'] } },
-        }),
-        this.prisma.appeal.count({ where: { status: 'PENDING' } }),
-        this.prisma.supportTicket.count({ where: { status: 'OPEN' } }),
-      ]);
+          assignedAdmin: {
+            select: {
+              id: true,
+              email: true,
+              displayName: true,
+            },
+          },
+        },
+      }),
+      this.prisma.appeal.findMany({
+        where: { status: 'PENDING' },
+        orderBy: { createdAt: 'desc' },
+        take,
+        include: {
+          user: {
+            select: {
+              email: true,
+              profiles: { select: { username: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.supportTicket.findMany({
+        where: { status: 'OPEN' },
+        orderBy: { createdAt: 'desc' },
+        take,
+      }),
+      this.prisma.report.count({
+        where: { status: { in: ['PENDING', 'REVIEWING'] } },
+      }),
+      this.prisma.appeal.count({ where: { status: 'PENDING' } }),
+      this.prisma.supportTicket.count({ where: { status: 'OPEN' } }),
+      this.prisma.report.findMany({
+        where: {
+          resolvedAt: { not: null, gte: mttrSince },
+        },
+        orderBy: { resolvedAt: 'desc' },
+        take: REPORT_MTTR_SAMPLE_LIMIT,
+        select: { createdAt: true, resolvedAt: true },
+      }),
+    ]);
 
     return {
       reports: reports.map((report) => ({
@@ -204,6 +227,7 @@ export class GetContentQuery {
         appeals: appealCount,
         tickets: ticketCount,
       },
+      reportMttr: computeReportMttr(resolvedForMttr),
     };
   }
 
