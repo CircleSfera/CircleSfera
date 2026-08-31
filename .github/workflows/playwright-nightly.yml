@@ -66,7 +66,7 @@ jobs:
       CI: true
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # secrets cannot appear in job/step `if:` — check in a shell step.
       # Stable CI suite (smoke + auth) is auth-free; secrets are only needed when
@@ -83,7 +83,7 @@ jobs:
           fi
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: 'npm'
