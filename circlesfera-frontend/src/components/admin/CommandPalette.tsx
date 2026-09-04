@@ -4,9 +4,9 @@ import { Search, User } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { adminApi } from '../../services';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
+import { Dialog } from '../ui/Dialog';
 import {
   ADMIN_NAV_ITEMS,
   ADMIN_TAB_PERMISSIONS,
@@ -40,11 +40,8 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const hasPermission = useAdminAuthStore((s) => s.hasPermission);
-
-  useFocusTrap(isOpen, panelRef, { onEscape: onClose });
 
   useEffect(() => {
     if (isOpen) {
@@ -163,49 +160,38 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
     }
   };
 
-  if (!isOpen) return null;
-
   const activeId = results[activeIndex]?.id;
 
   return (
-    <div className="fixed inset-0 z-100 flex items-start justify-center pt-[12vh] px-3">
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/70"
-        aria-label={t('common.close', 'Cerrar')}
-        onClick={onClose}
-      />
-
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('admin.search')}
-        tabIndex={-1}
-        className="relative w-full max-w-lg modal-glass border border-white/10 rounded-xl shadow-2xl overflow-hidden outline-none"
-      >
-        <div className="flex items-center px-4 py-3 border-b border-white/5">
-          <Search size={20} className="text-white/70 mr-3 shrink-0" />
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="lg"
+      placement="top"
+      overlayClassName="z-[100]"
+      ariaLabel={t('admin.search')}
+      className="overflow-hidden"
+    >
+      <div className="-mx-4 -mt-4 -mb-4">
+        <div className="flex items-center px-4 py-3 pr-14 border-b border-white/5">
+          <Search
+            size={20}
+            className="text-white/70 mr-3 shrink-0"
+            aria-hidden
+          />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onListKeyDown}
             placeholder={t('admin.cmd.placeholder')}
-            className="flex-1 min-w-0 bg-transparent border-none text-white focus:ring-0 outline-none placeholder:text-white/40 text-base"
+            className="flex-1 min-w-0 min-h-11 bg-transparent border-none text-white focus:ring-0 outline-none placeholder:text-white/40 text-base"
             aria-autocomplete="list"
             aria-controls="admin-cmd-listbox"
             aria-activedescendant={activeId}
             role="combobox"
             aria-expanded={true}
           />
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-2 py-1 text-xs font-bold text-white/40 bg-white/5 rounded hover:bg-white/10 transition-colors shrink-0"
-          >
-            ESC
-          </button>
         </div>
 
         <div
@@ -256,6 +242,6 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           )}
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 }

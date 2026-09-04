@@ -11,6 +11,8 @@ export interface DialogProps {
   className?: string;
   overlayClassName?: string;
   closeOnOverlayClick?: boolean;
+  placement?: 'center' | 'top';
+  ariaLabel?: string;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
 }
 
@@ -31,9 +33,13 @@ export function Dialog({
   className = '',
   overlayClassName = '',
   closeOnOverlayClick = true,
+  placement = 'center',
+  ariaLabel,
   maxWidth = 'md',
 }: DialogProps) {
-  const overlayRef = useFocusTrap<HTMLDivElement>(isOpen);
+  const overlayRef = useFocusTrap<HTMLDivElement>(isOpen, undefined, {
+    onEscape: onClose,
+  });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -72,13 +78,16 @@ export function Dialog({
     <div
       ref={overlayRef}
       onMouseDown={handleOverlayClick}
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200 ${overlayClassName}`}
+      className={`fixed inset-0 z-50 flex justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200 ${
+        placement === 'top' ? 'items-start pt-[12vh]' : 'items-center'
+      } ${overlayClassName}`}
       style={{ background: DIALOG_OVERLAY_BACKGROUND }}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'dialog-title' : undefined}
+        aria-label={!title ? ariaLabel : undefined}
         className={`w-full ${maxWidthClasses[maxWidth]} relative modal-glass rounded-xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 ${className}`}
       >
         {title && (
