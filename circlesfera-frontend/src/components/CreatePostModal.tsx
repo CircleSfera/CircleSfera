@@ -12,7 +12,7 @@ import StepAnimationWrapper from './create-post/StepAnimationWrapper.tsx';
 import StoryControlsBar from './create-post/StoryControlsBar';
 import SubScreenRouter from './create-post/SubScreenRouter';
 import UploadStep from './create-post/UploadStep';
-import MusicPicker from './MusicPicker';
+import AudioPickerModal from './modals/AudioPickerModal';
 import CloseFriendsModal from './modals/CloseFriendsModal';
 import ConfirmModal from './modals/ConfirmModal';
 
@@ -287,15 +287,14 @@ export default function CreatePostModal() {
         </div>
       </div>
 
-      {showMusicPicker && (
-        <MusicPicker
-          onSelect={(audio) => {
-            setSelectedAudio(audio);
-            setShowMusicPicker(false);
-          }}
-          onClose={() => setShowMusicPicker(false)}
-        />
-      )}
+      <AudioPickerModal
+        isOpen={showMusicPicker}
+        onClose={() => setShowMusicPicker(false)}
+        onSelectAudio={(audio) => {
+          setSelectedAudio(audio);
+        }}
+        selectedAudioId={selectedAudio?.id}
+      />
 
       <CloseFriendsModal
         isOpen={showCloseFriendsModal}
