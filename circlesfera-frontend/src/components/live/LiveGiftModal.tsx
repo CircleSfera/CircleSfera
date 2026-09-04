@@ -7,7 +7,8 @@ import { Dialog } from '../ui/Dialog';
 
 export interface VirtualGift {
   id: string;
-  name: string;
+  nameKey: string;
+  nameFallback: string;
   price: number;
   icon: React.ElementType;
   color: string;
@@ -16,35 +17,40 @@ export interface VirtualGift {
 const VIRTUAL_GIFTS: VirtualGift[] = [
   {
     id: 'star',
-    name: 'Estrella Sfera',
+    nameKey: 'live.gifts.star',
+    nameFallback: 'Estrella Sfera',
     price: 1,
     icon: Star,
     color: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
   },
   {
     id: 'flame',
-    name: 'Fuego 🔥',
+    nameKey: 'live.gifts.flame',
+    nameFallback: 'Fuego',
     price: 5,
     icon: Flame,
     color: 'text-orange-500 bg-orange-500/10 border-orange-500/30',
   },
   {
     id: 'crown',
-    name: 'Corona Real',
+    nameKey: 'live.gifts.crown',
+    nameFallback: 'Corona Real',
     price: 10,
     icon: Crown,
     color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
   },
   {
     id: 'gem',
-    name: 'Diamante',
+    nameKey: 'live.gifts.gem',
+    nameFallback: 'Diamante',
     price: 25,
     icon: Gem,
     color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
   },
   {
     id: 'rocket',
-    name: 'Cohete Sfera',
+    nameKey: 'live.gifts.rocket',
+    nameFallback: 'Cohete Sfera',
     price: 50,
     icon: Rocket,
     color: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
@@ -128,7 +134,7 @@ export default function LiveGiftModal({
                 <Icon size={24} />
               </div>
               <span className="text-xs font-bold truncate max-w-full">
-                {gift.name}
+                {t(gift.nameKey, gift.nameFallback)}
               </span>
               <span className="text-[11px] font-extrabold text-brand-primary mt-1">
                 €{gift.price}

@@ -2795,7 +2795,19 @@
     "title_label": "Título del directo",
     "title_placeholder": "Mi directo",
     "default_title": "Mi directo",
-    "start_button": "Empezar a emitir"
+    "start_button": "Empezar a emitir",
+    "send_gift_title": "Enviar un regalo virtual",
+    "send_gift_desc": "Apoya al creador en tiempo real",
+    "confirm_send_gift": "Enviar regalo",
+    "gift_checkout_missing": "No se pudo iniciar el pago",
+    "gift_error": "Error al enviar el regalo",
+    "gifts": {
+      "star": "Estrella Sfera",
+      "flame": "Fuego",
+      "crown": "Corona Real",
+      "gem": "Diamante",
+      "rocket": "Cohete Sfera"
+    }
   },
   "common": {
     "cancel": "Cancelar",

@@ -2795,7 +2795,19 @@
     "title_label": "Stream title",
     "title_placeholder": "My Live Stream",
     "default_title": "My Live Stream",
-    "start_button": "Start streaming"
+    "start_button": "Start streaming",
+    "send_gift_title": "Send a virtual gift",
+    "send_gift_desc": "Support the creator in real time",
+    "confirm_send_gift": "Send gift",
+    "gift_checkout_missing": "Could not start checkout",
+    "gift_error": "Could not send the gift",
+    "gifts": {
+      "star": "Sfera Star",
+      "flame": "Flame",
+      "crown": "Royal Crown",
+      "gem": "Diamond",
+      "rocket": "Sfera Rocket"
+    }
   },
   "common": {
     "cancel": "Cancel",
