@@ -3,6 +3,7 @@ import type React from 'react';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCallStore } from '../../stores/useCallStore';
+import { logger } from '../../utils/logger';
 import { Dialog } from '../ui/Dialog';
 
 export const IncomingCallModal: React.FC = () => {
@@ -16,7 +17,7 @@ export const IncomingCallModal: React.FC = () => {
     if (isIncoming && audioRef.current) {
       audioRef.current
         .play()
-        .catch((e) => console.error('Audio play blocked:', e));
+        .catch((e) => logger.error('Audio play blocked:', e));
     } else if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
