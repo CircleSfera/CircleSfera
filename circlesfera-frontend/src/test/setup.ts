@@ -171,6 +171,15 @@ vi.mock('react-i18next', () => ({
         'chat.incoming_audio_call': 'Incoming audio call...',
         'chat.decline': 'Decline',
         'chat.accept': 'Accept',
+        'post.modals.delete_title': 'Delete Post?',
+        'post.modals.delete_warning': 'This action cannot be undone.',
+        'post.modals.cancel': 'Cancel',
+        'post.modals.delete': 'Delete',
+        'post.modals.deleting': 'Deleting...',
+        'post.modals.edit_title': 'Edit Caption',
+        'post.modals.write_caption': 'Write a caption...',
+        'post.modals.save': 'Save',
+        'post.modals.saving': 'Saving...',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
