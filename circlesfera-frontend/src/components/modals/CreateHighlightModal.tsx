@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, ChevronLeft, Image as ImageIcon, X } from 'lucide-react';
+import { Check, ChevronLeft, Image as ImageIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { highlightsApi, storiesApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
 import type { Story } from '../../types';
 import { Button } from '../ui';
+import { Dialog } from '../ui/Dialog';
 
 interface CreateHighlightModalProps {
   isOpen: boolean;
@@ -83,39 +84,35 @@ export default function CreateHighlightModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-surface-high rounded-xl w-full max-w-md h-[80vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <div className="flex items-center gap-2">
+    <Dialog
+      isOpen={isOpen}
+      onClose={handleClose}
+      maxWidth="md"
+      className="max-h-[90vh]"
+    >
+      <div className="-mx-4 -mt-4 flex flex-col max-h-[80vh]">
+        <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
             {step === 2 && (
               <Button
                 onClick={() => setStep(1)}
                 variant="ghost"
                 size="icon"
-                className="text-white hover:text-gray-300"
+                className="text-white hover:text-gray-300 shrink-0"
+                aria-label={t('common.back', 'Back')}
               >
                 <ChevronLeft size={24} />
               </Button>
             )}
-            <h2 className="text-lg font-bold text-white">
+            <h2 className="text-lg font-bold text-white truncate">
               {step === 1
                 ? t('modals.highlight.new_highlight')
                 : t('modals.highlight.title_and_cover')}
             </h2>
           </div>
-          <Button
-            onClick={handleClose}
-            variant="ghost"
-            size="icon"
-            className="text-gray-300 hover:text-white"
-          >
-            <X size={24} />
-          </Button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 min-h-0">
           {step === 1 ? (
             <div className="space-y-4">
               <p className="text-gray-300 text-sm">
@@ -218,8 +215,7 @@ export default function CreateHighlightModal({
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-white/10 flex justify-end">
+        <div className="p-4 border-t border-white/10 flex justify-end shrink-0">
           {step === 1 ? (
             <Button
               onClick={() => setStep(2)}
@@ -242,6 +238,6 @@ export default function CreateHighlightModal({
           )}
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 }

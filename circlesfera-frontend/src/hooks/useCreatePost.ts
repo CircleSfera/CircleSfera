@@ -1,8 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { CropData, VideoData } from '../components/PhotoEditor';
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from '../constants/uploadLimits';
 import { api, interactiveApi, storiesApi } from '../services';
 import type {
   Audio as AudioTrack,
@@ -50,6 +52,7 @@ export interface MediaFile {
 
 export function useCreatePost() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const initialMode =
     searchParams.get('mode') === 'story'
@@ -144,6 +147,19 @@ export function useCreatePost() {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const selectedFiles = Array.from(e.target.files);
+      const oversized = selectedFiles.filter(
+        (file) => file.size > MAX_UPLOAD_BYTES,
+      );
+      if (oversized.length > 0) {
+        toast.error(
+          t('createPost.upload.file_too_large', {
+            name: oversized[0].name,
+            maxMb: MAX_UPLOAD_MB,
+          }),
+        );
+        e.target.value = '';
+        return;
+      }
 
       const processedFiles = await processFiles(selectedFiles);
 
@@ -255,6 +271,17 @@ export function useCreatePost() {
 
   const handleSubmit = async () => {
     if (mediaFiles.length === 0) return;
+
+    const oversized = mediaFiles.filter((m) => m.file.size > MAX_UPLOAD_BYTES);
+    if (oversized.length > 0) {
+      toast.error(
+        t('createPost.upload.file_too_large', {
+          name: oversized[0].file.name,
+          maxMb: MAX_UPLOAD_MB,
+        }),
+      );
+      return;
+    }
 
     try {
       setIsProcessingEdit(true);

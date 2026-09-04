@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Cropper from 'react-easy-crop';
+import { useTranslation } from 'react-i18next';
 import type { OverlayElement } from '../services/edits.service';
 import CanvasOverlay from './CanvasOverlay';
 
@@ -171,6 +172,7 @@ export default function PhotoEditor({
   initialState,
   onApplyToAll,
 }: PhotoEditorProps) {
+  const { t } = useTranslation();
   const isVideo = image.type.startsWith('video');
 
   const [activeTab, setActiveTab] = useState<
@@ -352,7 +354,7 @@ export default function PhotoEditor({
           <X size={20} />
         </button>
         <div className="text-sm font-bold tracking-tight text-white/80">
-          Edit
+          {t('create.edit.edit_media')}
         </div>
         <div className="flex items-center gap-2">
           {onApplyToAll && (
@@ -364,7 +366,7 @@ export default function PhotoEditor({
               }}
               className="px-3 py-1.5 text-xs font-bold bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
             >
-              Aplicar a Todos
+              {t('create.edit.apply_to_all')}
             </button>
           )}
           <button

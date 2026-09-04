@@ -1,7 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Ban, X } from 'lucide-react';
+import { Ban } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { followsApi } from '../../services';
 import { Button } from '../ui';
+import { Dialog } from '../ui/Dialog';
 
 interface BlockModalProps {
   isOpen: boolean;
@@ -14,6 +16,7 @@ export default function BlockModal({
   onClose,
   username,
 }: BlockModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const blockMutation = useMutation({
@@ -25,51 +28,40 @@ export default function BlockModal({
     },
   });
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-surface-high w-full max-w-md rounded-xl border border-white/10 shadow-2xl overflow-hidden scale-in-center animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <Ban className="text-red-500" size={20} />
-            Block {username}?
-          </h2>
-          <Button
-            onClick={onClose}
-            variant="ghost"
-            size="icon"
-            className="text-gray-300 hover:text-white"
-          >
-            <X size={20} />
-          </Button>
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="sm"
+      title={t('modals.block.title', { username })}
+    >
+      <div className="flex flex-col items-center text-center gap-4 -mt-2">
+        <div className="p-4 rounded-full bg-red-500/10 text-red-500 ring-1 ring-white/10">
+          <Ban size={28} strokeWidth={1.5} aria-hidden />
         </div>
-
-        <div className="p-6 text-center">
-          <p className="text-gray-300 mb-6">
-            They won't be able to find your profile, posts, or story on
-            CircleSfera. They won't be notified that you blocked them.
-          </p>
-
-          <div className="flex gap-3">
-            <Button
-              onClick={onClose}
-              variant="secondary"
-              className="flex-1 py-3"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => blockMutation.mutate()}
-              isLoading={blockMutation.isPending}
-              variant="danger"
-              className="flex-1 py-3"
-            >
-              Block
-            </Button>
-          </div>
-        </div>
+        <p className="text-gray-300 text-sm leading-relaxed">
+          {t('modals.block.message')}
+        </p>
       </div>
-    </div>
+
+      <div className="pt-4 flex gap-3">
+        <Button
+          onClick={onClose}
+          variant="secondary"
+          className="flex-1 min-h-11"
+          disabled={blockMutation.isPending}
+        >
+          {t('modals.block.cancel')}
+        </Button>
+        <Button
+          onClick={() => blockMutation.mutate()}
+          isLoading={blockMutation.isPending}
+          variant="danger"
+          className="flex-1 min-h-11"
+        >
+          {t('modals.block.confirm')}
+        </Button>
+      </div>
+    </Dialog>
   );
 }

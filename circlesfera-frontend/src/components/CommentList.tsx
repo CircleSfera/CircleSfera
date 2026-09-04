@@ -26,6 +26,8 @@ interface CommentListProps {
   postId: string;
   comments: Comment[];
   isDetailMode?: boolean;
+  compactComposer?: boolean;
+  frameContext?: boolean;
   captionComponent?: React.ReactNode;
   actionsComponent?: React.ReactNode;
 }
@@ -214,6 +216,8 @@ export default function CommentList({
   postId,
   comments,
   isDetailMode,
+  compactComposer = false,
+  frameContext = false,
   captionComponent,
   actionsComponent,
 }: CommentListProps) {
@@ -371,7 +375,9 @@ export default function CommentList({
         </div>
       )}
 
-      <div className="flex items-center gap-2">
+      <div
+        className={`flex items-center ${compactComposer ? 'gap-2' : 'gap-2'}`}
+      >
         <input
           type="file"
           ref={fileInputRef}
@@ -392,7 +398,7 @@ export default function CommentList({
           }}
           variant="ghost"
           size="icon"
-          className="w-10 h-10 bg-white/5 border border-white/10 rounded-full text-gray-300 hover:text-white hover:bg-white/10 shrink-0"
+          className="bg-white/5 border border-white/10 rounded-full text-gray-300 hover:text-white hover:bg-white/10"
           aria-label={t('comments.add_media', 'Add media')}
         >
           {!isUploading && <ImageIcon size={18} />}
@@ -420,22 +426,34 @@ export default function CommentList({
               ? t('comments.reply_to_user', {
                   username: replyingTo.profile.username,
                 })
-              : t('comments.add_comment')
+              : compactComposer
+                ? t('comments.add_comment_short', 'Comment…')
+                : t('comments.add_comment')
           }
-          className="flex-1 min-w-0 px-4 py-2.5 bg-white/5 border border-white/10 rounded-full focus:ring-2 focus:ring-purple-500/50 focus:border-transparent text-sm text-white placeholder-gray-500 outline-none transition-all"
+          className={`flex-1 min-w-0 ${compactComposer ? 'px-3 py-2.5' : 'px-4 py-2.5'} bg-white/5 border border-white/10 rounded-full focus:ring-2 focus:ring-purple-500/50 focus:border-transparent text-sm text-white placeholder-gray-500 outline-none transition-all`}
         />
         <Button
           type="submit"
           disabled={!newComment.trim() && !media}
           isLoading={commentMutation.isPending}
           variant="primary"
-          className="w-10 h-10 shrink-0 p-0! rounded-full bg-linear-to-r from-[#ff5757] to-[#8c52ff] border-transparent shadow-lg shadow-purple-500/20 sm:w-auto sm:px-5! sm:h-10"
+          size="icon"
+          className={
+            compactComposer
+              ? 'rounded-full border-transparent shadow-lg shadow-purple-500/20'
+              : 'rounded-full border-transparent shadow-lg shadow-purple-500/20 sm:w-auto sm:min-h-11 sm:h-11 sm:px-5 sm:gap-2'
+          }
           aria-label={t('comments.post')}
         >
-          <Send size={16} className="sm:hidden" />
-          <span className="hidden sm:inline text-sm font-semibold">
-            {t('comments.post')}
-          </span>
+          <Send
+            size={18}
+            className={compactComposer ? undefined : 'sm:hidden'}
+          />
+          {!compactComposer && (
+            <span className="hidden sm:inline text-sm font-semibold">
+              {t('comments.post')}
+            </span>
+          )}
         </Button>
       </div>
     </form>
@@ -450,28 +468,44 @@ export default function CommentList({
       <div
         className={
           isDetailMode
-            ? 'flex-1 overflow-y-auto px-3 md:px-4 py-2 md:py-3 pb-28 md:pb-3 custom-scrollbar space-y-3 md:space-y-5 border-t border-white/5 md:border-t-0'
+            ? `flex-1 min-h-0 overflow-y-auto custom-scrollbar ${
+                frameContext
+                  ? 'flex flex-col px-3 py-2'
+                  : compactComposer
+                    ? 'px-3 py-2'
+                    : 'px-3 md:px-4 py-2 md:py-3 pb-28 md:pb-3 space-y-3 md:space-y-5 border-t border-white/5 md:border-t-0'
+              } ${!frameContext && !compactComposer ? 'space-y-3 md:space-y-5' : ''}`
             : 'space-y-3 md:space-y-4'
         }
       >
         {isDetailMode && captionComponent}
 
-        {comments.map((comment) => (
-          <CommentItem
-            key={comment.id}
-            comment={comment}
-            postId={postId}
-            currentUserId={profile?.id}
-            onReply={handleReply}
-            onDelete={handleDelete}
-            deletingId={deletingId}
-            onLike={handleLike}
-          />
-        ))}
-
-        {comments.length === 0 && (
-          <div className="text-center py-10 text-gray-500 text-sm">
-            {t('comments.no_comments')}
+        {comments.length === 0 ? (
+          frameContext ? (
+            <div className="flex-1 flex items-center justify-center text-center px-4">
+              <p className="text-gray-500 text-sm">
+                {t('comments.no_comments')}
+              </p>
+            </div>
+          ) : (
+            <div className="text-center py-10 text-gray-500 text-sm">
+              {t('comments.no_comments')}
+            </div>
+          )
+        ) : (
+          <div className={frameContext ? 'space-y-3' : undefined}>
+            {comments.map((comment) => (
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                postId={postId}
+                currentUserId={profile?.id}
+                onReply={handleReply}
+                onDelete={handleDelete}
+                deletingId={deletingId}
+                onLike={handleLike}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -479,7 +513,19 @@ export default function CommentList({
       <div
         className={
           isDetailMode
-            ? 'shrink-0 border-t border-white/10 bg-black/90 backdrop-blur-xl md:bg-transparent md:backdrop-blur-none sticky bottom-14 md:static z-20 pb-[env(safe-area-inset-bottom)] md:pb-0'
+            ? `shrink-0 border-t border-white/10 bg-surface-elevated ${
+                frameContext
+                  ? 'px-3 py-2'
+                  : compactComposer
+                    ? 'px-3 py-3'
+                    : 'px-3 md:px-4 py-3'
+              } ${
+                frameContext
+                  ? ''
+                  : compactComposer
+                    ? ''
+                    : 'md:bg-transparent sticky bottom-14 md:static z-20 pb-[env(safe-area-inset-bottom)] md:pb-0 backdrop-blur-xl md:backdrop-blur-none'
+              }`
             : 'mt-4 md:mt-6 pt-3 md:pt-4 border-t border-white/10 sticky bottom-14 lg:bottom-0 bg-black/95 backdrop-blur-md p-3 md:p-4 lg:-mx-4 rounded-t-xl lg:rounded-b-2xl z-20 shadow-2xl'
         }
       >

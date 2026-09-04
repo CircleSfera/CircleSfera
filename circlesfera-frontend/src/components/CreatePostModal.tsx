@@ -1,6 +1,8 @@
 import { AnimatePresence } from 'framer-motion';
 import React from 'react';
+import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { useCloseFriendsList } from '../hooks/useCloseFriendsList';
 import { useCreatePost } from '../hooks/useCreatePost';
 import CaptionStep from './create-post/CaptionStep';
 import EditorOverlayManager from './create-post/EditorOverlayManager';
@@ -11,6 +13,7 @@ import StoryControlsBar from './create-post/StoryControlsBar';
 import SubScreenRouter from './create-post/SubScreenRouter';
 import UploadStep from './create-post/UploadStep';
 import MusicPicker from './MusicPicker';
+import CloseFriendsModal from './modals/CloseFriendsModal';
 import ConfirmModal from './modals/ConfirmModal';
 
 const STEP_ORDER = ['upload', 'edit', 'caption'] as const;
@@ -18,6 +21,8 @@ const STEP_ORDER = ['upload', 'edit', 'caption'] as const;
 export default function CreatePostModal() {
   const { t } = useTranslation();
   const [showMusicPicker, setShowMusicPicker] = React.useState(false);
+  const [showCloseFriendsModal, setShowCloseFriendsModal] =
+    React.useState(false);
   const [stepDirection, setStepDirection] = React.useState(1);
   const [showStoryComposer, setShowStoryComposer] = React.useState(false);
 
@@ -81,6 +86,15 @@ export default function CreatePostModal() {
   } = useCreatePost();
 
   const isStoryMode = mode === 'STORY';
+
+  const { closeFriendsCount } = useCloseFriendsList(isStoryMode);
+
+  const handleManageCloseFriends = () => {
+    setShowCloseFriendsModal(true);
+    if (closeFriendsCount === 0) {
+      toast(t('createPost.story.add_close_friends_first'), { icon: '⭐' });
+    }
+  };
 
   const prevStepRef = React.useRef(step);
   React.useEffect(() => {
@@ -206,6 +220,8 @@ export default function CreatePostModal() {
               selectedAudio={selectedAudio}
               isCloseFriendsOnly={isCloseFriendsOnly}
               setIsCloseFriendsOnly={setIsCloseFriendsOnly}
+              closeFriendsCount={closeFriendsCount}
+              onManageCloseFriends={handleManageCloseFriends}
             />
           )}
         </AnimatePresence>
@@ -280,6 +296,11 @@ export default function CreatePostModal() {
           onClose={() => setShowMusicPicker(false)}
         />
       )}
+
+      <CloseFriendsModal
+        isOpen={showCloseFriendsModal}
+        onClose={() => setShowCloseFriendsModal(false)}
+      />
 
       <ConfirmModal
         isOpen={showDiscardConfirm}

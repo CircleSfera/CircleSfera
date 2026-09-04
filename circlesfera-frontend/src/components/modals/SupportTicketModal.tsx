@@ -1,4 +1,3 @@
-import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertCircle,
   CheckCircle2,
@@ -6,19 +5,26 @@ import {
   Image as ImageIcon,
   Loader2,
   Send,
-  X,
 } from 'lucide-react';
 import type React from 'react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiClient, uploadApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
 import { pickNativeImage } from '../../utils/nativeFilePicker';
+import { Dialog } from '../ui/Dialog';
 
 interface SupportTicketModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+const SUPPORT_CATEGORIES = [
+  'TECHNICAL',
+  'BILLING',
+  'ACCOUNT',
+  'SUGGESTION',
+] as const;
 
 export default function SupportTicketModal({
   isOpen,
@@ -30,13 +36,21 @@ export default function SupportTicketModal({
 
   const [email, setEmail] = useState(profile?.user?.email || '');
   const [subject, setSubject] = useState('');
-  const [category, setCategory] = useState('TECHNICAL');
+  const [category, setCategory] =
+    useState<(typeof SUPPORT_CATEGORIES)[number]>('TECHNICAL');
   const [message, setMessage] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setEmail(profile?.user?.email || '');
+    setError(null);
+    setSuccess(false);
+  }, [isOpen, profile?.user?.email]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -50,12 +64,7 @@ export default function SupportTicketModal({
       const res = await uploadApi.upload(formData);
       setAttachmentUrl(res.data.url);
     } catch {
-      setError(
-        t(
-          'support.upload_error',
-          'Error al subir la captura de pantalla adjunta.',
-        ),
-      );
+      setError(t('modals.support.upload_error'));
     } finally {
       setIsUploading(false);
     }
@@ -71,7 +80,7 @@ export default function SupportTicketModal({
 
     try {
       const fullMessage = attachmentUrl
-        ? `${message.trim()}\n\n📎 Adjunto: ${attachmentUrl}`
+        ? `${message.trim()}\n\n📎 ${t('modals.support.attachment_label')}: ${attachmentUrl}`
         : message.trim();
 
       await apiClient.post('/support/tickets', {
@@ -91,70 +100,55 @@ export default function SupportTicketModal({
       }, 2000);
     } catch (err: unknown) {
       const msg =
-        err instanceof Error
-          ? err.message
-          : t('support.submit_error', 'Error al enviar la solicitud.');
+        err instanceof Error ? err.message : t('modals.support.submit_error');
       setError(msg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="w-full max-w-lg bg-zinc-950 border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden relative"
-        >
-          <div className="flex items-center justify-between pb-4 mb-4 border-b border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-2xl bg-brand-primary/20 text-brand-primary border border-brand-primary/30">
-                <HelpCircle size={22} />
-              </div>
-              <div>
-                <h3 className="text-lg font-black text-white tracking-tight">
-                  {t('support.modal_title', 'Centro de Ayuda y Soporte')}
-                </h3>
-                <p className="text-xs text-gray-400">
-                  {t(
-                    'support.modal_subtitle',
-                    'Envía una consulta o reporte a nuestro equipo técnico',
-                  )}
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-2 text-gray-400 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition-colors"
-            >
-              <X size={18} />
-            </button>
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="lg"
+      className="max-h-[90vh]"
+    >
+      <div className="-mx-4 -mt-4 flex flex-col max-h-[85vh]">
+        <div className="flex items-center gap-3 p-4 border-b border-white/10 shrink-0 pr-14">
+          <div className="p-2.5 rounded-2xl bg-brand-primary/20 text-brand-primary border border-brand-primary/30 shrink-0">
+            <HelpCircle size={22} aria-hidden />
           </div>
+          <div className="min-w-0">
+            <h3 className="text-lg font-black text-white tracking-tight">
+              {t('modals.support.title')}
+            </h3>
+            <p className="text-xs text-gray-400">
+              {t('modals.support.subtitle')}
+            </p>
+          </div>
+        </div>
 
+        <div className="flex-1 overflow-y-auto p-4 min-h-0">
           {error && (
             <div className="mb-4 flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs">
-              <AlertCircle size={16} className="shrink-0" />
+              <AlertCircle size={16} className="shrink-0" aria-hidden />
               <span>{error}</span>
             </div>
           )}
 
           {success ? (
             <div className="py-12 text-center space-y-3">
-              <CheckCircle2 size={48} className="mx-auto text-green-400" />
+              <CheckCircle2
+                size={48}
+                className="mx-auto text-green-400"
+                aria-hidden
+              />
               <h4 className="text-lg font-bold text-white">
-                {t('support.success_title', '¡Ticket Enviado!')}
+                {t('modals.support.success_title')}
               </h4>
               <p className="text-xs text-gray-400 max-w-xs mx-auto">
-                {t(
-                  'support.success_desc',
-                  'Hemos recibido tu mensaje. Te responderemos a la brevedad.',
-                )}
+                {t('modals.support.success_desc')}
               </p>
             </div>
           ) : (
@@ -164,7 +158,7 @@ export default function SupportTicketModal({
                   htmlFor="support-email"
                   className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1"
                 >
-                  {t('support.email_label', 'Correo Electrónico')}
+                  {t('modals.support.email_label')}
                 </label>
                 <input
                   id="support-email"
@@ -172,29 +166,34 @@ export default function SupportTicketModal({
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tu@email.com"
+                  placeholder={t('modals.support.email_placeholder')}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-12 text-white text-sm focus:outline-none focus:border-brand-primary/50"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label
                     htmlFor="support-category"
                     className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1"
                   >
-                    {t('support.category_label', 'Categoría')}
+                    {t('modals.support.category_label')}
                   </label>
                   <select
                     id="support-category"
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    onChange={(e) =>
+                      setCategory(
+                        e.target.value as (typeof SUPPORT_CATEGORIES)[number],
+                      )
+                    }
                     className="w-full bg-zinc-900 border border-white/10 rounded-xl px-3 h-12 text-white text-sm focus:outline-none focus:border-brand-primary/50"
                   >
-                    <option value="TECHNICAL">Error Técnico</option>
-                    <option value="BILLING">Facturación y Cobros</option>
-                    <option value="ACCOUNT">Cuenta y Acceso</option>
-                    <option value="SUGGESTION">Sugerencia</option>
+                    {SUPPORT_CATEGORIES.map((value) => (
+                      <option key={value} value={value}>
+                        {t(`modals.support.categories.${value}`)}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -203,7 +202,7 @@ export default function SupportTicketModal({
                     htmlFor="support-subject"
                     className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1"
                   >
-                    {t('support.subject_label', 'Asunto')}
+                    {t('modals.support.subject_label')}
                   </label>
                   <input
                     id="support-subject"
@@ -211,7 +210,7 @@ export default function SupportTicketModal({
                     required
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
-                    placeholder="Resumen del problema"
+                    placeholder={t('modals.support.subject_placeholder')}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 h-12 text-white text-sm focus:outline-none focus:border-brand-primary/50"
                   />
                 </div>
@@ -222,7 +221,7 @@ export default function SupportTicketModal({
                   htmlFor="support-message"
                   className="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-1"
                 >
-                  {t('support.message_label', 'Mensaje Detallado')}
+                  {t('modals.support.message_label')}
                 </label>
                 <textarea
                   id="support-message"
@@ -230,13 +229,12 @@ export default function SupportTicketModal({
                   rows={4}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Describe detalladamente tu consulta..."
+                  placeholder={t('modals.support.message_placeholder')}
                   className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-brand-primary/50 resize-none"
                 />
               </div>
 
-              {/* Attachment option */}
-              <div className="flex items-center justify-between pt-1">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -254,35 +252,35 @@ export default function SupportTicketModal({
                     }
                   }}
                   disabled={isUploading}
-                  className="flex items-center justify-center gap-2 px-3 h-10 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-gray-300 transition-colors"
+                  className="flex items-center justify-center gap-2 px-3 h-11 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-gray-300 transition-colors"
                 >
                   {isUploading ? (
-                    <Loader2 size={14} className="animate-spin" />
+                    <Loader2 size={14} className="animate-spin" aria-hidden />
                   ) : (
-                    <ImageIcon size={14} />
+                    <ImageIcon size={14} aria-hidden />
                   )}
                   {attachmentUrl
-                    ? 'Captura Adjuntada ✓'
-                    : 'Adjuntar Captura de Pantalla'}
+                    ? t('modals.support.attachment_attached')
+                    : t('modals.support.attach_screenshot')}
                 </button>
 
                 <button
                   type="submit"
                   disabled={isSubmitting || isUploading}
-                  className="px-5 h-11 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-brand-primary/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="px-5 h-11 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-brand-primary/20 disabled:opacity-50 flex items-center justify-center gap-2 sm:min-w-36"
                 >
                   {isSubmitting ? (
-                    <Loader2 size={16} className="animate-spin" />
+                    <Loader2 size={16} className="animate-spin" aria-hidden />
                   ) : (
-                    <Send size={14} />
+                    <Send size={14} aria-hidden />
                   )}
-                  {t('support.send_button', 'Enviar Ticket')}
+                  {t('modals.support.send_button')}
                 </button>
               </div>
             </form>
           )}
-        </motion.div>
+        </div>
       </div>
-    </AnimatePresence>
+    </Dialog>
   );
 }

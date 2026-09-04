@@ -138,7 +138,6 @@ export default function ChatWindow() {
   }, []);
 
   // Scroll to bottom on initial load and when new messages arrive
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on count or thread change
   useEffect(() => {
     void id;
     if (messages.length === 0) {

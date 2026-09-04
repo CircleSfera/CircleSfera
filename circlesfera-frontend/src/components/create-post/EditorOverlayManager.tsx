@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { toast } from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import type { MediaFile } from '../../hooks/useCreatePost';
 import type { StoryElement } from '../../types';
 
@@ -55,6 +56,8 @@ export default function EditorOverlayManager({
   handleFilterSave,
   isProcessingEdit,
 }: EditorOverlayManagerProps) {
+  const { t } = useTranslation();
+
   const handleComposerSave = async (blob: Blob) => {
     const file = new File([blob], 'story_composed.png', { type: 'image/png' });
     const url = URL.createObjectURL(file);
@@ -69,7 +72,7 @@ export default function EditorOverlayManager({
       <Suspense
         fallback={
           <div className="fixed inset-0 z-50 bg-black flex items-center justify-center text-white font-medium">
-            Cargando Editor de Historias...
+            {t('create.edit.loading_story_editor')}
           </div>
         }
       >
@@ -101,7 +104,7 @@ export default function EditorOverlayManager({
       <Suspense
         fallback={
           <div className="fixed inset-0 z-50 bg-black flex items-center justify-center text-white font-medium">
-            Cargando Editor de Medios...
+            {t('create.edit.loading_media_editor')}
           </div>
         }
       >
@@ -109,7 +112,7 @@ export default function EditorOverlayManager({
           {isProcessingEdit && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
               <div className="text-white font-bold animate-pulse">
-                Processing Media...
+                {t('create.edit.processing_media')}
               </div>
             </div>
           )}
@@ -124,7 +127,7 @@ export default function EditorOverlayManager({
                   return { ...m, filter: filterString };
                 }),
               );
-              toast.success('Filtros aplicados a todos los archivos');
+              toast.success(t('create.edit.filters_applied_all'));
             }}
           />
         </div>

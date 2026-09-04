@@ -1,24 +1,83 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { AnimatePresence, motion, useDragControls } from 'framer-motion';
-import { Check, Search, Send, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Check, Search, Send } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { chatApi } from '../../services';
 import type { Conversation, Participant, Post } from '../../types';
+import { sanitizeUrl } from '../../utils/apiUtils';
 import { logger } from '../../utils/logger';
+import FrameBottomSheet from '../frames/FrameBottomSheet';
 import { Button } from '../ui';
+import { Dialog } from '../ui/Dialog';
 
 interface SharePostModalProps {
   isOpen: boolean;
   onClose: () => void;
   post: Post;
+  presentation?: 'default' | 'frame';
 }
 
-export default function SharePostModal({
-  isOpen,
-  onClose,
-  post,
-}: SharePostModalProps) {
+function isVideoMediaUrl(url: string): boolean {
+  return /\.(mp4|mov|webm|m4v|mkv|m3u8)(\?|#|$)/i.test(url);
+}
+
+function getSharePreviewMedia(post: Post): {
+  kind: 'image' | 'video' | 'avatar';
+  url?: string;
+} {
+  const media = post.media?.[0];
+
+  if (media?.thumbnailUrl) {
+    return { kind: 'image', url: sanitizeUrl(media.thumbnailUrl) };
+  }
+
+  const candidate = media?.standardUrl || media?.url;
+  if (candidate) {
+    const sanitized = sanitizeUrl(candidate);
+    if (sanitized && isVideoMediaUrl(candidate)) {
+      return { kind: 'video', url: sanitized };
+    }
+    if (sanitized) {
+      return { kind: 'image', url: sanitized };
+    }
+  }
+
+  const avatar = post.profile?.avatar;
+  return avatar
+    ? { kind: 'avatar', url: sanitizeUrl(avatar) }
+    : { kind: 'avatar' };
+}
+
+function SharePostPreview({ post }: { post: Post }) {
+  const preview = getSharePreviewMedia(post);
+
+  return (
+    <div className="flex items-center gap-3 px-4 py-2 border-b border-white/10 bg-white/5 shrink-0">
+      <div className="w-10 h-10 rounded-lg overflow-hidden bg-black/40 border border-white/10 shrink-0">
+        {preview.kind === 'video' && preview.url ? (
+          <video
+            src={preview.url}
+            muted
+            playsInline
+            preload="metadata"
+            className="w-full h-full object-cover"
+          />
+        ) : preview.url ? (
+          <img
+            src={preview.url}
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        ) : null}
+      </div>
+      <p className="text-xs text-white/70 line-clamp-2 min-w-0 flex-1">
+        {post.caption || post.profile?.username}
+      </p>
+    </div>
+  );
+}
+
+function SharePostBody({ post, compact }: { post: Post; compact?: boolean }) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -29,42 +88,14 @@ export default function SharePostModal({
   });
 
   const shareMutation = useMutation({
-    mutationFn: async ({
-      conversationId,
-      recipientId,
-    }: {
-      conversationId?: string;
-      recipientId?: string;
-    }) => {
+    mutationFn: async ({ conversationId }: { conversationId: string }) => {
       return chatApi.sendMessage({
         conversationId,
-        recipientId,
-        content: t('modals.share.shared_post', {
-          preview: post.caption?.substring(0, 30) || 'Post',
-        }),
+        content: t('chat.shared_post', 'Shared a post'),
         postId: post.id,
       });
     },
-    onSuccess: () => {
-      // Handled per selection
-    },
   });
-
-  const dragControls = useDragControls();
-
-  // Lock body scroll when open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
 
   const conversations = conversationsData?.data || [];
   const filteredConversations = conversations.filter((c) => {
@@ -91,156 +122,148 @@ export default function SharePostModal({
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-100 bg-black/60 backdrop-blur-sm"
-            onClick={onClose}
+    <>
+      {compact && <SharePostPreview post={post} />}
+      <div className={`shrink-0 ${compact ? 'px-3 pt-2 pb-1' : 'pb-3'}`}>
+        <div className="relative">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
+            size={18}
+            aria-hidden
           />
-          <div className="fixed inset-0 z-101 pointer-events-none flex flex-col justify-end md:justify-center md:items-center">
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              drag="y"
-              dragControls={dragControls}
-              dragListener={false}
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={0.2}
-              onDragEnd={(_e, info) => {
-                if (info.offset.y > 100 || info.velocity.y > 500) {
-                  onClose();
-                }
-              }}
-              className="pointer-events-auto w-full bg-black/80 backdrop-blur-2xl border border-white/10 rounded-t-4xl md:max-w-md md:rounded-4xl shadow-[0_0_40px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col max-h-[85vh]"
-            >
-              {/* Drag Handle Area */}
+          <input
+            type="search"
+            placeholder={t('modals.share.search_conversations')}
+            className={`w-full bg-white/5 border border-white/10 rounded-xl outline-none focus:border-brand-primary/50 text-white text-sm ${
+              compact ? 'h-11 pl-10 pr-3' : 'min-h-11 py-2 pl-10 pr-4'
+            }`}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div
+        className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar ${
+          compact ? 'px-2 pb-2 space-y-0.5' : 'space-y-2 max-h-[55vh]'
+        }`}
+      >
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand-primary" />
+          </div>
+        ) : filteredConversations.length > 0 ? (
+          filteredConversations.map((c) => {
+            const otherParticipant = !c.isGroup
+              ? c.participants.find(
+                  (p: Participant) => p.profileId !== post.profileId,
+                )
+              : null;
+            const name = c.isGroup
+              ? c.name
+              : otherParticipant?.profile.username;
+            const avatar = !c.isGroup ? otherParticipant?.profile.avatar : null;
+            const isSent = selectedIds.includes(c.id);
+
+            return (
               <div
-                className="w-full flex md:hidden justify-center pt-4 pb-2 cursor-grab active:cursor-grabbing touch-none"
-                onPointerDown={(e) => dragControls.start(e)}
+                key={c.id}
+                className={`flex items-center justify-between gap-2 rounded-xl transition-colors ${
+                  compact
+                    ? 'px-2 py-1.5 hover:bg-white/5'
+                    : 'p-2 hover:bg-white/5'
+                }`}
               >
-                <div className="w-10 h-1.5 bg-white/20 rounded-full" />
-              </div>
-
-              {/* Header with brand-vibrant accent line */}
-              <div className="relative pt-4 md:pt-8 pb-4 px-6">
-                <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-[#ff5757] to-[#8c52ff] opacity-80" />
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-bold text-white tracking-tight">
-                    {t('modals.share.share_to')}
-                  </h3>
-                  <Button
-                    onClick={onClose}
-                    variant="ghost"
-                    size="icon"
-                    className="text-gray-500 hover:text-white rounded-full hover:bg-white/5"
-                  >
-                    <X size={20} />
-                  </Button>
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div className="w-10 h-10 rounded-full bg-zinc-800 border border-white/10 overflow-hidden shrink-0">
+                    {avatar ? (
+                      <img
+                        src={avatar}
+                        alt={name || 'User'}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-500">
+                        {name?.substring(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <span className="font-medium text-sm text-white truncate">
+                    {name}
+                  </span>
                 </div>
-              </div>
-
-              <div className="p-4">
-                <div className="relative mb-4">
-                  <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"
-                    size={18}
-                  />
-                  <input
-                    type="text"
-                    placeholder={t('modals.share.search_conversations')}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 outline-none focus:border-brand-primary/50"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
-
-                <div className="max-h-[60vh] overflow-y-auto space-y-2 custom-scrollbar">
-                  {isLoading ? (
-                    <div className="flex justify-center p-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-brand-primary"></div>
-                    </div>
-                  ) : filteredConversations.length > 0 ? (
-                    filteredConversations.map((c) => {
-                      const otherParticipant = !c.isGroup
-                        ? c.participants.find(
-                            (p: Participant) => p.profileId !== post.profileId,
-                          )
-                        : null;
-                      const name = c.isGroup
-                        ? c.name
-                        : otherParticipant?.profile.username;
-                      const avatar = !c.isGroup
-                        ? otherParticipant?.profile.avatar
-                        : null;
-                      const isSent = selectedIds.includes(c.id);
-
-                      return (
-                        <div
-                          key={c.id}
-                          className="flex items-center justify-between p-2 hover:bg-white/5 rounded-xl transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-zinc-800 border border-white/10 overflow-hidden">
-                              {avatar ? (
-                                <img
-                                  src={avatar}
-                                  alt={name || 'User'}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-500">
-                                  {name?.substring(0, 2).toUpperCase()}
-                                </div>
-                              )}
-                            </div>
-                            <span className="font-medium text-sm">{name}</span>
-                          </div>
-                          <Button
-                            onClick={() => handleShare(c)}
-                            disabled={isSent}
-                            variant={isSent ? 'secondary' : 'primary'}
-                            className={`px-4 py-1.5 text-xs font-semibold ${isSent ? 'opacity-50' : ''}`}
-                          >
-                            {isSent ? (
-                              <Check size={16} className="mr-1" />
-                            ) : (
-                              <Send size={16} className="mr-1" />
-                            )}
-                            {isSent
-                              ? t('modals.share.sent')
-                              : t('modals.share.send')}
-                          </Button>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="text-center py-8 text-gray-500 text-sm">
-                      {t('modals.share.no_conversations')}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="p-4 bg-zinc-800/50 flex justify-end">
                 <Button
-                  onClick={onClose}
-                  variant="secondary"
-                  className="px-6 py-2 font-semibold"
+                  onClick={() => handleShare(c)}
+                  disabled={isSent}
+                  variant={isSent ? 'secondary' : 'primary'}
+                  size="icon"
+                  className={`shrink-0 w-11 h-11 rounded-full ${
+                    isSent ? 'opacity-50' : ''
+                  }`}
+                  aria-label={
+                    isSent ? t('modals.share.sent') : t('modals.share.send')
+                  }
                 >
-                  {t('modals.share.done')}
+                  {isSent ? <Check size={16} /> : <Send size={16} />}
                 </Button>
               </div>
-            </motion.div>
+            );
+          })
+        ) : (
+          <div className="text-center py-8 text-gray-500 text-sm">
+            {t('modals.share.no_conversations')}
           </div>
-        </>
-      )}
-    </AnimatePresence>
+        )}
+      </div>
+    </>
+  );
+}
+
+export default function SharePostModal({
+  isOpen,
+  onClose,
+  post,
+  presentation = 'default',
+}: SharePostModalProps) {
+  const { t } = useTranslation();
+  const isFrame = presentation === 'frame';
+
+  if (isFrame) {
+    if (!isOpen) return null;
+    return (
+      <FrameBottomSheet
+        isOpen
+        onClose={onClose}
+        title={t('frames.share_frame', 'Share frame')}
+        maxHeightClass="max-h-[58%]"
+      >
+        <SharePostBody post={post} compact />
+      </FrameBottomSheet>
+    );
+  }
+
+  return (
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="md"
+      title={t('modals.share.share_to')}
+      className="max-h-[90vh]"
+    >
+      <div className="-mx-4 -mb-4 flex flex-col">
+        <div className="px-4 pb-4 flex flex-col min-h-0">
+          <SharePostBody post={post} />
+        </div>
+        <div className="px-4 py-3 border-t border-white/10 bg-black/20 flex justify-end shrink-0">
+          <Button
+            onClick={onClose}
+            variant="secondary"
+            className="min-h-11 px-6 font-semibold"
+          >
+            {t('modals.share.done')}
+          </Button>
+        </div>
+      </div>
+    </Dialog>
   );
 }

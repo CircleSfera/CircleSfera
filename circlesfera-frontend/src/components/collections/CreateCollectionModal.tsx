@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { collectionsApi } from '../../services';
 import { Button } from '../ui';
+import { Dialog } from '../ui/Dialog';
 
 interface CreateCollectionModalProps {
   isOpen: boolean;
@@ -18,8 +18,13 @@ export default function CreateCollectionModal({
   const [name, setName] = useState('');
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    if (!isOpen) setName('');
+  }, [isOpen]);
+
   const mutation = useMutation({
-    mutationFn: (name: string) => collectionsApi.create(name),
+    mutationFn: (collectionName: string) =>
+      collectionsApi.create(collectionName),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collections'] });
       setName('');
@@ -27,60 +32,47 @@ export default function CreateCollectionModal({
     },
   });
 
-  if (!isOpen) return null;
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    mutation.mutate(name);
+    mutation.mutate(name.trim());
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-surface-raised w-full max-w-sm rounded-lg border border-white/10 overflow-hidden animate-in fade-in zoom-in duration-200">
-        <div className="p-4 border-b border-white/10 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">
-            {t('collections.new_collection')}
-          </h2>
-          <Button
-            onClick={onClose}
-            variant="ghost"
-            size="icon"
-            className="text-white hover:bg-white/10 rounded-full"
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="sm"
+      title={t('collections.new_collection')}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label
+            htmlFor="collectionName"
+            className="block text-sm font-medium text-gray-300 mb-2"
           >
-            <X size={20} />
-          </Button>
+            {t('collections.collection_name')}
+          </label>
+          <input
+            id="collectionName"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t('collections.placeholder_name')}
+            className="w-full min-h-11 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-brand-primary transition-colors"
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label
-              htmlFor="collectionName"
-              className="block text-sm font-medium text-gray-300 mb-2"
-            >
-              {t('collections.collection_name')}
-            </label>
-            <input
-              id="collectionName"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t('collections.placeholder_name')}
-              className="w-full bg-black/40 border border-white/10 rounded-xl px-2 py-1 text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition-colors"
-            />
-          </div>
-
-          <Button
-            type="submit"
-            disabled={!name.trim()}
-            isLoading={mutation.isPending}
-            variant="primary"
-            className="w-full py-3 bg-white text-black font-bold hover:bg-gray-200 border-transparent"
-          >
-            {t('collections.create')}
-          </Button>
-        </form>
-      </div>
-    </div>
+        <Button
+          type="submit"
+          disabled={!name.trim()}
+          isLoading={mutation.isPending}
+          variant="primary"
+          className="w-full min-h-11 font-bold"
+        >
+          {t('collections.create')}
+        </Button>
+      </form>
+    </Dialog>
   );
 }

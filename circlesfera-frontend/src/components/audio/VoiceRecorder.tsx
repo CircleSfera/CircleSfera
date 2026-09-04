@@ -269,7 +269,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           onClick={startRecording}
           className={
             compact
-              ? 'w-10 h-10 flex items-center justify-center bg-red-500/20 hover:bg-red-500/30 active:scale-95 text-red-400 border border-red-500/30 rounded-full transition-all'
+              ? 'w-11 h-11 flex items-center justify-center bg-red-500/20 hover:bg-red-500/30 active:scale-95 text-red-400 border border-red-500/30 rounded-full transition-all shrink-0'
               : 'px-3 py-2 bg-red-500/20 hover:bg-red-500/30 active:scale-95 text-red-400 border border-red-500/30 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all'
           }
           aria-label={t('voice.record', 'Grabar Voz')}

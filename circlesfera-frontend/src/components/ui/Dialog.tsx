@@ -32,15 +32,17 @@ export function Dialog({
   const overlayRef = useFocusTrap<HTMLDivElement>(isOpen);
 
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      window.addEventListener('keydown', handleEscape);
-    }
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleEscape);
+
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.removeProperty('overflow');
       window.removeEventListener('keydown', handleEscape);
     };
   }, [isOpen, onClose]);

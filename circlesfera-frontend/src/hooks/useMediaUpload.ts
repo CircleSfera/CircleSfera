@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from '../constants/uploadLimits';
+import i18n from '../i18n';
 import { api } from '../services';
 import { logger } from '../utils/logger';
 
@@ -27,6 +29,15 @@ export function useMediaUpload() {
     try {
       const results = await Promise.all(
         mediaFiles.map(async (item, idx) => {
+          if (item.file.size > MAX_UPLOAD_BYTES) {
+            throw new Error(
+              i18n.t('createPost.upload.file_too_large', {
+                name: item.file.name,
+                maxMb: MAX_UPLOAD_MB,
+              }),
+            );
+          }
+
           if (item.remoteUrl) {
             return {
               url: item.remoteUrl,
@@ -53,24 +64,34 @@ export function useMediaUpload() {
             };
           } catch (error: unknown) {
             logger.error('Upload failed for file:', item.file.name, error);
-            const axiosErr = error as {
+            const err = error as {
               response?: {
                 data?: { message?: string | string[] };
                 status?: number;
               };
+              status?: number;
+              message?: string;
             };
-            const serverMessage = axiosErr.response?.data?.message;
+            const httpStatus = err.response?.status ?? err.status;
+            const serverMessage = err.response?.data?.message;
             const displayMessage = Array.isArray(serverMessage)
               ? serverMessage[0]
               : serverMessage;
 
-            if (axiosErr.response?.status === 413) {
+            if (httpStatus === 413 || item.file.size > MAX_UPLOAD_BYTES) {
               throw new Error(
-                `File ${item.file.name} is too large. Max size is 100MB.`,
+                i18n.t('createPost.upload.file_too_large', {
+                  name: item.file.name,
+                  maxMb: MAX_UPLOAD_MB,
+                }),
               );
             }
             throw new Error(
-              displayMessage || `Failed to upload ${item.file.name}`,
+              displayMessage ||
+                err.message ||
+                i18n.t('createPost.upload.upload_failed', {
+                  name: item.file.name,
+                }),
             );
           }
         }),

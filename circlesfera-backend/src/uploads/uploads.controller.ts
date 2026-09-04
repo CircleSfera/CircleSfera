@@ -16,27 +16,29 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { UploadedFile } from './interfaces/uploaded-file.interface.js';
 import { UploadsService } from './uploads.service.js';
 
-/** REST controller for file uploads. Accepts images and videos up to 10 MB. */
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+
+/** REST controller for file uploads. Accepts images and videos up to 100 MB. */
 @Controller('uploads')
 export class UploadsController {
   private readonly logger = new Logger(UploadsController.name);
 
   constructor(private readonly uploadsService: UploadsService) {}
 
-  /** Upload a file (image or video, max 50 MB). Returns the public URL and type. */
+  /** Upload a file (image or video, max 100 MB). Returns the public URL and type. */
   @Post()
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   @Throttle({ short: { limit: 5, ttl: 60000 } })
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit at Multer level
+      limits: { fileSize: MAX_UPLOAD_BYTES },
     }),
   )
   async uploadFile(
     @UploadedFileDecorator(
       new ParseFilePipe({
         validators: [
-          new MaxFileSizeValidator({ maxSize: 50 * 1024 * 1024 }), // 50MB
+          new MaxFileSizeValidator({ maxSize: MAX_UPLOAD_BYTES }),
           new FileTypeValidator({
             fileType:
               /(jpg|jpeg|png|gif|webp|heic|heif|mp4|mov|quicktime|webm|mp3|wav|m4a)$/,
