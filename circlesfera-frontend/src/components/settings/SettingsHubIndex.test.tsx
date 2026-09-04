@@ -76,6 +76,14 @@ describe('SettingsHubIndex', () => {
       await screen.findByRole('dialog', { name: /about this account/i }),
     ).toBeInTheDocument();
   });
+
+  it('shows log out at the bottom of the hub list', async () => {
+    renderHub();
+
+    expect(
+      await screen.findByRole('button', { name: /log out/i }),
+    ).toBeInTheDocument();
+  });
 });
 
 describe('SettingsShell', () => {

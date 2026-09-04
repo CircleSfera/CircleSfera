@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 interface PostMenuProps {
   showMenu: boolean;
   menuRef: React.RefObject<HTMLDivElement | null>;
-  menuPosition: { top: number; right: number };
+  menuPosition: { top: number; right: number; placement?: 'above' | 'below' };
   isOwner: boolean;
   onEdit: () => void;
   onDelete: () => void;
@@ -127,6 +127,10 @@ export default function PostMenu({
         position: 'fixed',
         top: menuPosition.top,
         right: menuPosition.right,
+        transform:
+          menuPosition.placement === 'above'
+            ? 'translateY(calc(-100% - 8px))'
+            : undefined,
         zIndex: 9999,
         minWidth: '180px',
         background:

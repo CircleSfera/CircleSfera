@@ -13,6 +13,7 @@ import {
   Plus,
   Settings,
   ShieldCheck,
+  Star,
   VolumeX,
   Wand2,
 } from 'lucide-react';
@@ -20,7 +21,7 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-
+import { useCloseFriendsList } from '../../hooks/useCloseFriendsList';
 import { followsApi } from '../../services';
 import type { ProfileWithUser } from '../../types';
 import FollowButton from '../FollowButton';
@@ -66,6 +67,114 @@ function AnimatedCounter({ value, label }: { value: number; label: string }) {
   );
 }
 
+interface ProfileOtherUserMenuProps {
+  username: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  onAbout: () => void;
+  onReport: () => void;
+  onBlock: () => void;
+  align?: 'left' | 'right';
+  buttonClassName?: string;
+}
+
+function ProfileOtherUserMenu({
+  username,
+  isOpen,
+  onToggle,
+  onClose,
+  onAbout,
+  onReport,
+  onBlock,
+  align = 'right',
+  buttonClassName = 'p-2 h-11 w-11 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center',
+}: ProfileOtherUserMenuProps) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label={t('profile.actions.more_options', {
+          defaultValue: 'More options',
+        })}
+        aria-expanded={isOpen}
+        className={buttonClassName}
+      >
+        <MoreHorizontal size={18} aria-hidden="true" />
+      </button>
+
+      {isOpen && (
+        <div
+          className={`absolute top-full mt-2 ${align === 'right' ? 'right-0' : 'left-0'} bg-surface-raised border border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-45 z-60 backdrop-blur-xl animate-in fade-in zoom-in-95`}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onAbout();
+            }}
+            className="w-full text-left px-2 py-1 text-gray-300 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider"
+          >
+            {t('profile.about.title', 'About this account')}
+            <Info size={14} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              followsApi
+                .mute(username)
+                .then(() => {
+                  toast.success(
+                    t('profile.actions.muted', {
+                      defaultValue: 'User muted',
+                    }),
+                  );
+                })
+                .catch(() => {
+                  toast.error(
+                    t('profile.actions.mute_error', {
+                      defaultValue: 'Failed to mute user',
+                    }),
+                  );
+                });
+            }}
+            className="w-full text-left px-2 py-1 text-gray-300 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider border-t border-white/5"
+          >
+            {t('profile.actions.mute', { defaultValue: 'Mute' })}
+            <VolumeX size={14} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              onReport();
+            }}
+            className="w-full text-left px-2 py-1 text-red-400 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider border-t border-white/5"
+          >
+            {t('profile.actions.report_profile')}
+            <Flag size={14} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="w-full text-left px-2 py-1 text-red-400 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider border-t border-white/5"
+            onClick={() => {
+              onClose();
+              onBlock();
+            }}
+          >
+            {t('profile.actions.block_user')}
+            <Ban size={14} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface ProfileHeaderProps {
   profile: { data: ProfileWithUser };
   isMe: boolean;
@@ -80,6 +189,7 @@ interface ProfileHeaderProps {
   setShowReportModal: (show: boolean) => void;
   setShowBlockModal: (show: boolean) => void;
   setShowTipModal: (show: boolean) => void;
+  onOpenCloseFriends?: () => void;
 
   setIsStoryViewerOpen: (show: boolean) => void;
   showMenu: boolean;
@@ -100,12 +210,14 @@ export default function ProfileHeader({
   setShowReportModal,
   setShowBlockModal,
   setShowTipModal,
+  onOpenCloseFriends,
   setIsStoryViewerOpen,
   showMenu,
   setShowMenu,
 }: ProfileHeaderProps) {
   const { t } = useTranslation();
   const [showAbout, setShowAbout] = useState(false);
+  const { closeFriendsCount } = useCloseFriendsList(isMe);
   const data = profile.data as ProfileWithUser & {
     identityVerified?: boolean;
     emailConfirmed?: boolean;
@@ -171,15 +283,6 @@ export default function ProfileHeader({
               }
               className="transition-all duration-300"
             />
-            {isMe && (
-              <Link
-                to="/accounts"
-                aria-label={t('profile.actions.edit_profile')}
-                className="absolute -bottom-0.5 -right-0.5 p-1 bg-zinc-900 border border-white/10 rounded-full text-white hover:bg-zinc-800 transition-colors shadow-xl opacity-0 hover:opacity-100 group-hover:opacity-100 duration-300 z-20"
-              >
-                <Plus size={12} aria-hidden="true" />
-              </Link>
-            )}
           </div>
 
           {/* Stats & Identity Group */}
@@ -263,19 +366,13 @@ export default function ProfileHeader({
             <div className="hidden md:flex items-center gap-2.5">
               {isMe ? (
                 <>
-                  <Link
-                    to="/accounts"
-                    className="px-6 h-11 bg-white text-black hover:bg-zinc-200 rounded-lg font-black transition-all duration-300 flex items-center justify-center text-xs uppercase tracking-wide shadow-lg hover:shadow-white/20 hover:scale-105 active:scale-95"
-                  >
-                    {t('profile.actions.edit_profile')}
-                  </Link>
                   <button
                     type="button"
                     onClick={openCreateMenu}
                     aria-label={t('profile.actions.create_post', {
                       defaultValue: 'Create new post',
                     })}
-                    className="p-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg border border-brand-primary/50 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg shadow-brand-primary/20"
+                    className="p-2 h-11 w-11 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg border border-brand-primary/50 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg shadow-brand-primary/20 flex items-center justify-center"
                   >
                     <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
                   </button>
@@ -290,22 +387,48 @@ export default function ProfileHeader({
                       }`}
                     title={
                       isCreatorModeActive
-                        ? 'Exit Creator Mode'
-                        : 'Enter Creator Mode'
+                        ? t('profile.creator_mode.exit')
+                        : t('profile.creator_mode.enter')
                     }
                   >
                     <Wand2 size={16} aria-hidden="true" />
-                    {isCreatorModeActive ? 'Creator' : 'Consumer'}
+                    {isCreatorModeActive
+                      ? t('profile.creator_mode.creator')
+                      : t('profile.creator_mode.consumer')}
                   </button>
-                  <button
-                    type="button"
+                  <Link
+                    to="/accounts"
                     aria-label={t('profile.actions.settings', {
                       defaultValue: 'Settings',
                     })}
-                    className="p-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+                    className="p-2 h-11 w-11 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] flex items-center justify-center"
                   >
                     <Settings size={18} aria-hidden="true" />
-                  </button>
+                  </Link>
+                  {onOpenCloseFriends && (
+                    <button
+                      type="button"
+                      onClick={onOpenCloseFriends}
+                      aria-label={t('profile.actions.close_friends')}
+                      title={t('profile.actions.close_friends')}
+                      className={`relative p-2 h-11 w-11 rounded-lg border transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center ${
+                        closeFriendsCount > 0
+                          ? 'bg-green-500/15 hover:bg-green-500/25 text-green-400 border-green-500/30'
+                          : 'bg-white/5 hover:bg-white/10 text-white border-white/5'
+                      }`}
+                    >
+                      <Star
+                        size={18}
+                        className={closeFriendsCount > 0 ? 'fill-current' : ''}
+                        aria-hidden="true"
+                      />
+                      {closeFriendsCount > 0 && (
+                        <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-green-500 text-[10px] font-black text-white flex items-center justify-center">
+                          {closeFriendsCount > 99 ? '99+' : closeFriendsCount}
+                        </span>
+                      )}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setShowAbout(true)}
@@ -339,82 +462,16 @@ export default function ProfileHeader({
                       ? t('profile.actions.opening')
                       : t('profile.actions.message')}
                   </button>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowMenu(!showMenu)}
-                      aria-label={t('profile.actions.more_options', {
-                        defaultValue: 'More options',
-                      })}
-                      aria-expanded={showMenu}
-                      className="p-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95"
-                    >
-                      <MoreHorizontal size={18} aria-hidden="true" />
-                    </button>
-
-                    {showMenu && (
-                      <div className="absolute top-full mt-2 right-0 bg-surface-raised border border-white/10 rounded-xl shadow-2xl overflow-hidden min-w-45 z-60 backdrop-blur-xl animate-in fade-in zoom-in-95">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowMenu(false);
-                            setShowAbout(true);
-                          }}
-                          className="w-full text-left px-2 py-1 text-gray-300 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider"
-                        >
-                          {t('profile.about.title', 'About this account')}
-                          <Info size={14} aria-hidden="true" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowMenu(false);
-                            followsApi
-                              .mute(profile.data.username)
-                              .then(() => {
-                                toast.success(
-                                  t('profile.actions.muted', {
-                                    defaultValue: 'User muted',
-                                  }),
-                                );
-                              })
-                              .catch(() => {
-                                toast.error(
-                                  t('profile.actions.mute_error', {
-                                    defaultValue: 'Failed to mute user',
-                                  }),
-                                );
-                              });
-                          }}
-                          className="w-full text-left px-2 py-1 text-gray-300 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider border-t border-white/5"
-                        >
-                          {t('profile.actions.mute', { defaultValue: 'Mute' })}
-                          <VolumeX size={14} aria-hidden="true" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowMenu(false);
-                            setShowReportModal(true);
-                          }}
-                          className="w-full text-left px-2 py-1 text-red-400 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider border-t border-white/5"
-                        >
-                          {t('profile.actions.report_profile')}
-                          <Flag size={14} aria-hidden="true" />
-                        </button>
-                        <button
-                          type="button"
-                          className="w-full text-left px-2 py-1 text-red-400 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider border-t border-white/5"
-                          onClick={() => {
-                            setShowMenu(false);
-                            setShowBlockModal(true);
-                          }}
-                        >
-                          {t('profile.actions.block_user')}
-                          <Ban size={14} aria-hidden="true" />
-                        </button>
-                      </div>
-                    )}
+                  <div className="relative hidden md:block">
+                    <ProfileOtherUserMenu
+                      username={profile.data.username}
+                      isOpen={showMenu}
+                      onToggle={() => setShowMenu(!showMenu)}
+                      onClose={() => setShowMenu(false)}
+                      onAbout={() => setShowAbout(true)}
+                      onReport={() => setShowReportModal(true)}
+                      onBlock={() => setShowBlockModal(true)}
+                    />
                   </div>
                 </>
               )}
@@ -529,12 +586,16 @@ export default function ProfileHeader({
           <div className="flex md:hidden items-center gap-2 pt-1">
             {isMe ? (
               <>
-                <Link
-                  to="/accounts"
-                  className="flex-1 px-2 h-11 bg-white text-black hover:bg-zinc-200 rounded-xl font-black transition-all flex items-center justify-center text-xs uppercase tracking-wide shadow-lg shadow-white/5"
+                <button
+                  type="button"
+                  onClick={openCreateMenu}
+                  aria-label={t('profile.actions.create_post', {
+                    defaultValue: 'Create new post',
+                  })}
+                  className="h-11 w-11 shrink-0 bg-brand-primary hover:bg-brand-secondary text-white rounded-xl border border-brand-primary/50 transition-all flex items-center justify-center shadow-lg shadow-brand-primary/20"
                 >
-                  {t('profile.actions.edit_profile')}
-                </Link>
+                  <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
+                </button>
                 <button
                   type="button"
                   onClick={() => setCreatorMode(!isCreatorModeActive)}
@@ -546,22 +607,86 @@ export default function ProfileHeader({
                     }`}
                 >
                   <Wand2 size={14} aria-hidden="true" />
-                  {isCreatorModeActive ? 'Creator' : 'Consumer'}
+                  {isCreatorModeActive
+                    ? t('profile.creator_mode.creator')
+                    : t('profile.creator_mode.consumer')}
+                </button>
+                <Link
+                  to="/accounts"
+                  aria-label={t('profile.actions.settings', {
+                    defaultValue: 'Settings',
+                  })}
+                  className="h-11 w-11 shrink-0 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 transition-all flex items-center justify-center"
+                >
+                  <Settings size={18} aria-hidden="true" />
+                </Link>
+                {onOpenCloseFriends && (
+                  <button
+                    type="button"
+                    onClick={onOpenCloseFriends}
+                    aria-label={t('profile.actions.close_friends')}
+                    title={t('profile.actions.close_friends')}
+                    className={`relative h-11 w-11 shrink-0 rounded-xl border transition-all flex items-center justify-center ${
+                      closeFriendsCount > 0
+                        ? 'bg-green-500/15 text-green-400 border-green-500/30'
+                        : 'bg-white/5 text-white border-white/5'
+                    }`}
+                  >
+                    <Star
+                      size={18}
+                      className={closeFriendsCount > 0 ? 'fill-current' : ''}
+                      aria-hidden="true"
+                    />
+                    {closeFriendsCount > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-green-500 text-[10px] font-black text-white flex items-center justify-center">
+                        {closeFriendsCount > 99 ? '99+' : closeFriendsCount}
+                      </span>
+                    )}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowAbout(true)}
+                  aria-label={t('profile.about.title', 'About this account')}
+                  className="h-11 w-11 shrink-0 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 transition-all flex items-center justify-center"
+                >
+                  <Info size={18} aria-hidden="true" />
                 </button>
               </>
             ) : (
-              <div className="flex-1 flex gap-2">
-                <FollowButton username={profile.data.username} />
+              <div className="flex-1 flex gap-2 min-w-0">
+                <div className="flex-1 min-w-0">
+                  <FollowButton username={profile.data.username} />
+                </div>
                 <button
                   type="button"
                   onClick={handleMessageClick}
                   disabled={isCreatingChat}
-                  className="flex-1 px-3 h-11 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 font-black text-xs uppercase tracking-wide transition-all flex items-center justify-center disabled:opacity-50"
+                  className="flex-1 min-w-0 px-3 h-11 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 font-black text-xs uppercase tracking-wide transition-all flex items-center justify-center disabled:opacity-50"
                 >
                   {isCreatingChat
                     ? t('profile.actions.opening')
                     : t('profile.actions.message')}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setShowTipModal(true)}
+                  className="h-11 w-11 shrink-0 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-xl border border-yellow-500/20 transition-all flex items-center justify-center"
+                  title={t('profile.actions.send_tip')}
+                  aria-label={t('profile.actions.send_tip')}
+                >
+                  <Gift size={18} aria-hidden="true" />
+                </button>
+                <ProfileOtherUserMenu
+                  username={profile.data.username}
+                  isOpen={showMenu}
+                  onToggle={() => setShowMenu(!showMenu)}
+                  onClose={() => setShowMenu(false)}
+                  onAbout={() => setShowAbout(true)}
+                  onReport={() => setShowReportModal(true)}
+                  onBlock={() => setShowBlockModal(true)}
+                  buttonClassName="h-11 w-11 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 transition-all flex items-center justify-center"
+                />
               </div>
             )}
           </div>

@@ -1,4 +1,8 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { Bookmark, Clapperboard, Plus, UserSquare2 } from 'lucide-react';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -13,8 +17,10 @@ import { ProfileSkeleton, Skeleton } from '../components/LoadingStates';
 import PostGrid from '../components/profile/PostGrid';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import ProfileTabs, { type TabType } from '../components/profile/ProfileTabs';
+import { profileTabFromParam } from '../components/profile/profileTabUtils';
 import StoryViewer from '../components/StoryViewer';
 import {
+  bookmarksApi,
   chatApi,
   followsApi,
   highlightsApi,
@@ -34,13 +40,17 @@ const BlockModal = lazy(() => import('../components/modals/BlockModal'));
 const CreateHighlightModal = lazy(
   () => import('../components/modals/CreateHighlightModal'),
 );
+const CloseFriendsModal = lazy(
+  () => import('../components/modals/CloseFriendsModal'),
+);
 const ReportModal = lazy(() => import('../components/modals/ReportModal'));
 const TipModal = lazy(() => import('../components/monetization/TipModal'));
+
+const PROFILE_PAGE_SIZE = 18;
 
 export default function Profile() {
   const { t } = useTranslation();
   const { username } = useParams<{ username: string }>();
-  const [activeTab, setActiveTab] = useState<TabType>('posts');
   const [showFollowsModal, setShowFollowsModal] = useState<
     'followers' | 'following' | null
   >(null);
@@ -51,7 +61,8 @@ export default function Profile() {
 
   const queryClient = useQueryClient();
 
-  const [showBlockModal, setShowBlockModal] = useState(false); // For future block confirmation if needed
+  const [showBlockModal, setShowBlockModal] = useState(false);
+  const [showCloseFriendsModal, setShowCloseFriendsModal] = useState(false);
   const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   const navigate = useNavigate();
@@ -78,6 +89,28 @@ export default function Profile() {
     retry: false,
   });
   const isMe = myProfile?.data.username === username;
+  const activeTab = profileTabFromParam(searchParams.get('tab'), isMe);
+
+  const [savedTab, setSavedTab] = useState<'all' | 'collections'>(
+    'collections',
+  );
+  const [selectedCollection, setSelectedCollection] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
+  const setActiveTab = (tab: TabType) => {
+    const next = new URLSearchParams(searchParams);
+    if (tab === 'posts') {
+      next.delete('tab');
+    } else {
+      next.set('tab', tab);
+    }
+    setSearchParams(next, { replace: true });
+    if (tab !== 'saved') {
+      setSelectedCollection(null);
+    }
+  };
 
   useEffect(() => {
     if (handledCheckoutReturn.current) return;
@@ -153,17 +186,79 @@ export default function Profile() {
   );
   const canView = isMe || !isPrivateAccount || isFollowing;
 
-  const { data: posts } = useQuery({
+  const {
+    data: postsPages,
+    fetchNextPage: fetchNextPosts,
+    hasNextPage: hasNextPosts,
+    isFetchingNextPage: isFetchingNextPosts,
+  } = useInfiniteQuery({
     queryKey: ['userPosts', username],
-    queryFn: () => postsApi.getByUser(username!, 1, 10, 'POST'),
+    queryFn: async ({ pageParam }) => {
+      const res = await postsApi.getByUser(
+        username!,
+        pageParam as number,
+        PROFILE_PAGE_SIZE,
+        'POST',
+      );
+      return res.data;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.meta.page < lastPage.meta.totalPages
+        ? lastPage.meta.page + 1
+        : undefined,
     enabled: !!username && !!canView && !isBlocked && activeTab === 'posts',
   });
+  const posts = postsPages?.pages.flatMap((page) => page.data) ?? [];
 
-  const { data: frames } = useQuery({
+  const {
+    data: framesPages,
+    fetchNextPage: fetchNextFrames,
+    hasNextPage: hasNextFrames,
+    isFetchingNextPage: isFetchingNextFrames,
+  } = useInfiniteQuery({
     queryKey: ['userFrames', username],
-    queryFn: () => postsApi.getByUser(username!, 1, 10, 'FRAME'),
+    queryFn: async ({ pageParam }) => {
+      const res = await postsApi.getByUser(
+        username!,
+        pageParam as number,
+        PROFILE_PAGE_SIZE,
+        'FRAME',
+      );
+      return res.data;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.meta.page < lastPage.meta.totalPages
+        ? lastPage.meta.page + 1
+        : undefined,
     enabled: !!username && !!canView && !isBlocked && activeTab === 'frames',
   });
+  const frames = framesPages?.pages.flatMap((page) => page.data) ?? [];
+
+  const {
+    data: taggedPages,
+    fetchNextPage: fetchNextTagged,
+    hasNextPage: hasNextTagged,
+    isFetchingNextPage: isFetchingNextTagged,
+  } = useInfiniteQuery({
+    queryKey: ['userTagged', username],
+    queryFn: async ({ pageParam }) => {
+      const res = await postsApi.getTagged(
+        username!,
+        pageParam as number,
+        PROFILE_PAGE_SIZE,
+      );
+      return res.data;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.meta.page < lastPage.meta.totalPages
+        ? lastPage.meta.page + 1
+        : undefined,
+    enabled: !!username && !!canView && !isBlocked && activeTab === 'tagged',
+  });
+  const taggedPosts = taggedPages?.pages.flatMap((page) => page.data) ?? [];
 
   const { data: activeStories } = useQuery({
     queryKey: ['userStories', username],
@@ -187,22 +282,37 @@ export default function Profile() {
     enabled: !!showFollowsModal && !!username,
   });
 
-  const { data: taggedPosts } = useQuery({
-    queryKey: ['userTagged', username],
-    queryFn: () => postsApi.getTagged(username!),
-    enabled: !!username && !!canView && !isBlocked && activeTab === 'tagged',
-  });
-
-  /* Collections Logic & Query - moved to top level to avoid redeclaration and scope issues */
-  const [savedTab, setSavedTab] = useState<'all' | 'collections'>(
-    'collections',
-  );
-  const [selectedCollection, setSelectedCollection] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
   const [isCreateCollectionModalOpen, setIsCreateCollectionModalOpen] =
     useState(false);
+
+  const savedPostsEnabled =
+    !!isMe &&
+    activeTab === 'saved' &&
+    (savedTab === 'all' || !!selectedCollection);
+
+  const {
+    data: savedPages,
+    fetchNextPage: fetchNextSaved,
+    hasNextPage: hasNextSaved,
+    isFetchingNextPage: isFetchingNextSaved,
+  } = useInfiniteQuery({
+    queryKey: ['savedPosts', selectedCollection?.id],
+    queryFn: async ({ pageParam }) => {
+      const res = await bookmarksApi.getAll(
+        pageParam as number,
+        PROFILE_PAGE_SIZE,
+        selectedCollection?.id,
+      );
+      return res.data;
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.meta.page < lastPage.meta.totalPages
+        ? lastPage.meta.page + 1
+        : undefined,
+    enabled: savedPostsEnabled,
+  });
+  const savedPosts = savedPages?.pages.flatMap((page) => page.data) ?? [];
 
   // Collections Query
   const { data: collections } = useQuery({
@@ -210,21 +320,6 @@ export default function Profile() {
     queryFn: () => import('../services').then((m) => m.collectionsApi.getAll()),
     enabled: !!isMe && activeTab === 'saved',
   });
-
-  // Saved Posts Query (All or Collection)
-  const { data: savedPosts } = useQuery({
-    queryKey: ['savedPosts', selectedCollection?.id],
-    queryFn: () =>
-      import('../services').then((m) =>
-        m.bookmarksApi.getAll(1, 10, selectedCollection?.id),
-      ),
-    enabled: !!isMe && activeTab === 'saved',
-  });
-
-  /* Unused queries/mutations due to missing Profile Header UI */
-  // const { data: followers } = useQuery({ ... });
-  // const { data: following } = useQuery({ ... });
-  // const blockMutation = useMutation({ ... });
 
   if (isLoadingProfile || !profile) {
     return (
@@ -243,11 +338,6 @@ export default function Profile() {
     );
   }
 
-  // Unused because profile header UI is placeholder
-  // const followersCount = Array.isArray(followers?.data) ? followers.data.length : 0;
-  // const followingCount = Array.isArray(following?.data) ? following.data.length : 0;
-  // const postsCount = posts?.data.meta.total || 0;
-
   if (isBlocked) {
     return (
       <div className="min-h-dvh pt-20 text-center">
@@ -261,20 +351,7 @@ export default function Profile() {
     );
   }
 
-  // Helper to render grid
-
-  // Removed local state and queries that were moved to top level
-  // However, doing this in render is risky. Let's use a side effect or just handle it in the tab change handler.
-  // Actually, we can just leave it for now or move to useEffect if needed, but let's stick to the change:
-
-  if (activeTab !== 'saved' && selectedCollection) {
-    // This is a side effect in render, strictly speaking bad practice but often works.
-    // Better to reset in the onChange of the tab.
-    // For now, I'll just keep the logic but maybe guard it better or accept it.
-    // But wait, "Too many re-renders" risk.
-    // I'll move this to the setActiveTab handlers or useEffect.
-  }
-
+  // Helper to render saved tab content
   const renderSavedContent = () => {
     if (selectedCollection) {
       return (
@@ -305,10 +382,13 @@ export default function Profile() {
             </h2>
           </div>
           <PostGrid
-            items={savedPosts?.data.data || []}
+            items={savedPosts}
             emptyMessage={t('profile.saved.no_posts_yet')}
             emptySubtext={t('profile.saved.save_to_see')}
             icon={<Bookmark size={32} className="text-white/40" />}
+            onLoadMore={() => fetchNextSaved()}
+            hasMore={!!hasNextSaved}
+            isLoadingMore={isFetchingNextSaved}
           />
         </div>
       );
@@ -316,18 +396,32 @@ export default function Profile() {
 
     return (
       <div>
-        <div className="flex justify-center gap-4 mb-8">
+        <div className="flex justify-center gap-1.5 mb-6 p-1 bg-black/40 backdrop-blur-xl rounded-lg border border-white/5 w-fit mx-auto">
           <button
             type="button"
-            onClick={() => setSavedTab('all')}
-            className={`px-6 py-2 rounded-full font-medium transition-colors ${savedTab === 'all' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'}`}
+            onClick={() => {
+              setSavedTab('all');
+              setSelectedCollection(null);
+            }}
+            className={`px-3 md:px-5 py-1.5 md:py-2 rounded-xl text-xs font-black tracking-wide transition-all ${
+              savedTab === 'all'
+                ? 'text-white bg-white/10 border border-white/10'
+                : 'text-zinc-400 hover:text-zinc-300'
+            }`}
           >
             {t('profile.saved.all_posts')}
           </button>
           <button
             type="button"
-            onClick={() => setSavedTab('collections')}
-            className={`px-6 py-2 rounded-full font-medium transition-colors ${savedTab === 'collections' ? 'bg-white text-black' : 'bg-white/10 text-white hover:bg-white/20'}`}
+            onClick={() => {
+              setSavedTab('collections');
+              setSelectedCollection(null);
+            }}
+            className={`px-3 md:px-5 py-1.5 md:py-2 rounded-xl text-xs font-black tracking-wide transition-all ${
+              savedTab === 'collections'
+                ? 'text-white bg-white/10 border border-white/10'
+                : 'text-zinc-400 hover:text-zinc-300'
+            }`}
           >
             {t('profile.saved.collections')}
           </button>
@@ -335,10 +429,13 @@ export default function Profile() {
 
         {savedTab === 'all' ? (
           <PostGrid
-            items={savedPosts?.data.data || []}
+            items={savedPosts}
             emptyMessage={t('profile.saved.save')}
             emptySubtext={t('profile.saved.save_desc')}
             icon={<Bookmark size={32} className="text-white/40" />}
+            onLoadMore={() => fetchNextSaved()}
+            hasMore={!!hasNextSaved}
+            isLoadingMore={isFetchingNextSaved}
           />
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-1">
@@ -409,6 +506,9 @@ export default function Profile() {
           setShowReportModal={setShowReportModal}
           setShowBlockModal={setShowBlockModal}
           setShowTipModal={setShowTipModal}
+          onOpenCloseFriends={
+            isMe ? () => setShowCloseFriendsModal(true) : undefined
+          }
           setIsStoryViewerOpen={setIsStoryViewerOpen}
           showMenu={showMenu}
           setShowMenu={setShowMenu}
@@ -421,7 +521,7 @@ export default function Profile() {
               {isMe && (
                 <HighlightBubble
                   id="new"
-                  title="New"
+                  title={t('profile.highlights.new', 'New')}
                   isAddButton
                   onClick={() => setIsHighlightModalOpen(true)}
                 />
@@ -483,7 +583,7 @@ export default function Profile() {
             <>
               {activeTab === 'posts' && (
                 <PostGrid
-                  items={posts?.data.data || []}
+                  items={posts}
                   emptyMessage={
                     isMe
                       ? t('profile.empty.share_photos')
@@ -512,15 +612,23 @@ export default function Profile() {
                       />
                     </svg>
                   }
+                  onLoadMore={() => fetchNextPosts()}
+                  hasMore={!!hasNextPosts}
+                  isLoadingMore={isFetchingNextPosts}
                 />
               )}
 
               {activeTab === 'frames' && (
                 <PostGrid
-                  items={frames?.data.data || []}
+                  items={frames}
                   emptyMessage={t('profile.empty.frames')}
                   emptySubtext={t('profile.empty.frames_desc')}
                   icon={<Clapperboard size={32} className="text-white/40" />}
+                  aspectRatio="3/4"
+                  variant="frames"
+                  onLoadMore={() => fetchNextFrames()}
+                  hasMore={!!hasNextFrames}
+                  isLoadingMore={isFetchingNextFrames}
                 />
               )}
 
@@ -528,7 +636,7 @@ export default function Profile() {
 
               {activeTab === 'tagged' && (
                 <PostGrid
-                  items={taggedPosts?.data.data || []}
+                  items={taggedPosts}
                   emptyMessage={
                     isMe
                       ? t('profile.empty.tagged_you')
@@ -542,6 +650,9 @@ export default function Profile() {
                       : t('profile.empty.tagged_desc_them')
                   }
                   icon={<UserSquare2 size={32} className="text-white/40" />}
+                  onLoadMore={() => fetchNextTagged()}
+                  hasMore={!!hasNextTagged}
+                  isLoadingMore={isFetchingNextTagged}
                 />
               )}
             </>
@@ -569,6 +680,13 @@ export default function Profile() {
           onClose={() => setShowBlockModal(false)}
           username={profile.data.username}
         />
+
+        {isMe && (
+          <CloseFriendsModal
+            isOpen={showCloseFriendsModal}
+            onClose={() => setShowCloseFriendsModal(false)}
+          />
+        )}
 
         {showTipModal && profile?.data && (
           <TipModal

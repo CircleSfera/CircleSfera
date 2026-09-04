@@ -32,7 +32,7 @@ export default function SettingsShell({
   }, [section]);
 
   return (
-    <div className="min-h-dvh pb-20 md:pb-12 pt-2 md:pt-6">
+    <div className="min-h-dvh pb-[calc(var(--nav-bottom-height)+env(safe-area-inset-bottom,0px)+1rem)] md:pb-12 pt-2 md:pt-6">
       <div
         data-testid="settings-column"
         className={`px-4 md:px-6 ${isHub ? 'max-w-xl mx-auto' : 'max-w-5xl'}`}

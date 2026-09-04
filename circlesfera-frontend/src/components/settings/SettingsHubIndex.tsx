@@ -1,10 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
-import { BadgeCheck, ChevronRight, Info, Search, Shield } from 'lucide-react';
+import {
+  BadgeCheck,
+  ChevronRight,
+  Info,
+  LogOut,
+  Search,
+  Shield,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { profileApi } from '../../services';
 import { paymentsApi } from '../../services/payments.service';
+import { useAuthStore } from '../../stores/authStore';
 import AboutAccountDialog, {
   aboutAccountFromProfile,
 } from '../profile/AboutAccountDialog';
@@ -13,8 +21,10 @@ import { SETTINGS_NAV_GROUPS, type SettingsNavItem } from './settingsNav';
 
 export default function SettingsHubIndex() {
   const { t } = useTranslation();
+  const logout = useAuthStore((state) => state.logout);
   const [filter, setFilter] = useState('');
   const [showAbout, setShowAbout] = useState(false);
+  const logoutLabel = t('settings.logout', 'Log out');
 
   const { data: profileData } = useQuery({
     queryKey: ['myProfile'],
@@ -57,6 +67,19 @@ export default function SettingsHubIndex() {
       }),
     })).filter((g) => g.items.length > 0);
   }, [filter, t]);
+
+  const showLogoutRow = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return true;
+    const label = logoutLabel.toLowerCase();
+    return (
+      label.includes(q) ||
+      q.includes('logout') ||
+      q.includes('cerrar') ||
+      q.includes('sesion') ||
+      q.includes('sesión')
+    );
+  }, [filter, logoutLabel]);
 
   return (
     <div className="max-w-xl space-y-5">
@@ -180,12 +203,33 @@ export default function SettingsHubIndex() {
             </ul>
           </section>
         ))}
-        {filteredGroups.length === 0 && !showAboutRow && (
+        {filteredGroups.length === 0 && !showAboutRow && !showLogoutRow && (
           <p className="text-sm text-white/50 text-center py-8">
             {t('settings.hub.no_results', 'No matching settings')}
           </p>
         )}
       </div>
+
+      {showLogoutRow ? (
+        <ul className="glass-panel rounded-xl border border-white/5 overflow-hidden">
+          <li>
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="flex items-center gap-3 px-4 py-3 min-h-11 w-full text-left hover:bg-white/5 active:bg-white/10 transition-colors"
+            >
+              <LogOut
+                size={18}
+                className="text-red-400/80 shrink-0"
+                aria-hidden
+              />
+              <span className="flex-1 text-sm font-medium text-red-400 truncate">
+                {logoutLabel}
+              </span>
+            </button>
+          </li>
+        </ul>
+      ) : null}
     </div>
   );
 }
