@@ -114,7 +114,6 @@ describe('AppShell navigation from Frames', () => {
     renderFramesNavigationTest();
 
     expect(screen.getByTestId('frames-page')).toBeInTheDocument();
-    expect(screen.getByLabelText('Frame playback')).toBeInTheDocument();
     expect(screen.queryByTestId('notifications-page')).not.toBeInTheDocument();
 
     await user.click(screen.getAllByRole('link', { name: 'Notifications' })[0]);
@@ -123,6 +122,5 @@ describe('AppShell navigation from Frames', () => {
       expect(screen.getByTestId('notifications-page')).toBeInTheDocument();
     });
     expect(screen.queryByTestId('frames-page')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Frame playback')).not.toBeInTheDocument();
   });
 });

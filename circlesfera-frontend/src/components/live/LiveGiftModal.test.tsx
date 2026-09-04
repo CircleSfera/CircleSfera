@@ -80,11 +80,7 @@ describe('LiveGiftModal', () => {
   it('calls onClose when the close button is clicked', () => {
     render(<LiveGiftModal isOpen onClose={onClose} streamId="stream-1" />);
 
-    const closeButton = screen
-      .getAllByRole('button')
-      .find((btn) => !btn.textContent?.includes('Enviar Regalo'));
-    expect(closeButton).toBeDefined();
-    fireEvent.click(closeButton as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
 
     expect(onClose).toHaveBeenCalled();
   });

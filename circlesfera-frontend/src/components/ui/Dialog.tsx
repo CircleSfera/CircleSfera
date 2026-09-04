@@ -9,6 +9,8 @@ export interface DialogProps {
   title?: string;
   children: React.ReactNode;
   className?: string;
+  overlayClassName?: string;
+  closeOnOverlayClick?: boolean;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
 }
 
@@ -27,6 +29,8 @@ export function Dialog({
   title,
   children,
   className = '',
+  overlayClassName = '',
+  closeOnOverlayClick = true,
   maxWidth = 'md',
 }: DialogProps) {
   const overlayRef = useFocusTrap<HTMLDivElement>(isOpen);
@@ -50,6 +54,7 @@ export function Dialog({
   if (!isOpen) return null;
 
   const handleOverlayClick = (e: React.MouseEvent) => {
+    if (!closeOnOverlayClick) return;
     if (e.target === overlayRef.current) onClose();
   };
 
@@ -67,7 +72,7 @@ export function Dialog({
     <div
       ref={overlayRef}
       onMouseDown={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200"
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200 ${overlayClassName}`}
       style={{ background: DIALOG_OVERLAY_BACKGROUND }}
     >
       <div
