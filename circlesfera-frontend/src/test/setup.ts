@@ -167,6 +167,10 @@ vi.mock('react-i18next', () => ({
         'settings.notifications_tab.pwa_support': 'PWA Support',
         'settings.notifications_tab.blocked':
           'Notifications are blocked in your browser settings.',
+        'chat.incoming_video_call': 'Incoming video call...',
+        'chat.incoming_audio_call': 'Incoming audio call...',
+        'chat.decline': 'Decline',
+        'chat.accept': 'Accept',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
