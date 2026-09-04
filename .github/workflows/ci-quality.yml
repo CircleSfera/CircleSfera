@@ -77,6 +77,9 @@ jobs:
           DATABASE_URL: postgresql://prisma:prisma@localhost:5432/schema_check
         run: ./scripts/check-prisma-schema-migrations.sh
 
+      - name: "Smoke: User/Profile identity drift (ADR-0015)"
+        run: npm run smoke:profile-drift
+
       # Reuses the schema_check Postgres DB, which is now fully migrated by the
       # step above. Redis is required by BullMQ / the cache module used across
       # AppModule. Secrets below are non-production dummies; NODE_ENV=test

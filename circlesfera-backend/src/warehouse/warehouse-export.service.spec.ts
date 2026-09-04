@@ -20,7 +20,7 @@ describe('WarehouseExportService', () => {
   };
 
   const config = {
-    get: vi.fn((key: string) => {
+    get: vi.fn((key: string): string | undefined => {
       if (key === 'ETL_SINCE_DAYS') return '1';
       if (key === 'ETL_DIR') return undefined;
       return undefined;
@@ -65,7 +65,7 @@ describe('WarehouseExportService', () => {
 
   it('writes CSV snapshots and delegates optional ClickHouse load', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'csf-etl-'));
-    config.get.mockImplementation((key: string) => {
+    config.get.mockImplementation((key: string): string | undefined => {
       if (key === 'ETL_DIR') return dir;
       if (key === 'ETL_SINCE_DAYS') return '1';
       return undefined;
