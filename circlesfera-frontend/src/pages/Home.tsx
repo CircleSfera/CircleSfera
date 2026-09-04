@@ -1,9 +1,9 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import logoSrc from '../assets/logo.png';
 import SEO from '../components/common/SEO';
 import { EmptyState, ErrorState } from '../components/ErrorEmptyStates';
@@ -31,6 +31,7 @@ import type { PaginatedResponse, Post } from '../types';
  */
 export default function Home() {
   const { t } = useTranslation();
+  const location = useLocation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [activeTab, setActiveTab] = useState<'foryou' | 'following'>('foryou');
 
@@ -67,6 +68,15 @@ export default function Home() {
     estimateSize: () => 560,
     overscan: 2,
   });
+
+  // Remeasure after route transitions (e.g. leaving /frames scroll lock).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname/length are the remeasure triggers
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      virtualizer.measure();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [location.pathname, posts.length, virtualizer]);
 
   const loadMoreRef = useInfiniteScroll(
     fetchNextPage,

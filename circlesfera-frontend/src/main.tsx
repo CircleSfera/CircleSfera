@@ -47,7 +47,7 @@ createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
       <HelmetProvider>
         <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
+          <BrowserRouter useTransitions={false}>
             <App />
             <Toaster
               position="bottom-center"

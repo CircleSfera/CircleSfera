@@ -313,12 +313,14 @@
     "close_friends_modal": {
       "title": "Close Friends",
       "search": "Search...",
+      "search_min": "Type at least 2 characters to search.",
       "loading": "Loading...",
       "searching": "Searching...",
       "no_users": "No users found",
       "list_title": "Close Friends List",
       "list_desc": "We don't send notifications when you edit your close friends list.",
-      "done": "Done"
+      "done": "Done",
+      "toggle_error": "Could not update close friends. Try again."
     },
     "passkey_settings": {
       "title": "Security Keys (Passkeys)",
@@ -804,6 +806,7 @@
     "no_comments": "No comments yet. Be the first to comment!",
     "replying_to": "Replying to",
     "add_comment": "Add a comment...",
+    "add_comment_short": "Comment…",
     "reply_to_user": "Reply to @{{username}}...",
     "post": "Post",
     "upload_error": "Failed to upload media",
@@ -824,14 +827,29 @@
     },
     "actions": {
       "edit_profile": "Edit Profile",
+      "settings": "Settings",
       "message": "Message",
       "opening": "Opening...",
       "subscribe": "Subscribe",
       "report_profile": "Report Profile",
       "block_user": "Block User",
+      "close_friends": "Close friends",
       "send_tip": "Send Tip",
       "copy_link": "Copy Link",
-      "new_collection": "New Collection"
+      "new_collection": "New Collection",
+      "more_options": "More options",
+      "mute": "Mute",
+      "muted": "User muted",
+      "mute_error": "Failed to mute user"
+    },
+    "creator_mode": {
+      "creator": "Creator",
+      "consumer": "Consumer",
+      "enter": "Enter Creator Mode",
+      "exit": "Exit Creator Mode"
+    },
+    "highlights": {
+      "new": "New"
     },
     "blocked": {
       "title": "You have blocked this user.",
@@ -986,6 +1004,11 @@
     },
     "edit": {
       "edit_media": "Edit Media",
+      "apply_to_all": "Apply to all",
+      "filters_applied_all": "Filters applied to all files",
+      "loading_story_editor": "Loading story editor…",
+      "loading_media_editor": "Loading media editor…",
+      "processing_media": "Processing media…",
       "filters_adjustments": "Filters & Adjustments",
       "n_files": "{{count}} files",
       "remove_media": "Remove media",
@@ -1038,7 +1061,9 @@
       "story_hint": "Photo or video · Up to 60s",
       "frame": "Frame",
       "frame_desc": "Short-form video",
-      "frame_hint": "MP4, MOV · 15-90 seconds",
+      "frame_hint": "MP4, MOV · 15-90 seconds · Max 100MB",
+      "file_too_large": "{{name}} exceeds the {{maxMb}} MB limit.",
+      "upload_failed": "Failed to upload {{name}}",
       "drop_files": "Drop files here",
       "drag_files": "Drag photos and videos here",
       "select_device": "Select from device",
@@ -1062,7 +1087,9 @@
     "story": {
       "add_music": "Add Music",
       "close_friends": "Close Friends",
-      "your_story": "Your Story"
+      "your_story": "Your Story",
+      "manage_close_friends": "Manage close friends",
+      "add_close_friends_first": "Add close friends to share stories with them only."
     }
   },
   "report": {
@@ -1115,6 +1142,7 @@
     "sent_image": "Sent an image",
     "file_too_large": "To ensure E2E encryption, files cannot exceed 50 MB.",
     "sent_attachment": "Sent an attachment",
+    "shared_post": "Shared a post",
     "chat": "Chat",
     "group_chat": "Group Chat",
     "user": "User",
@@ -1150,13 +1178,28 @@
     "name_group_optional": "Name your group (optional)",
     "no_account_found": "No account found.",
     "no_following": "No Following",
+    "no_search_results": "No conversations match your search.",
     "suggested": "Suggested",
     "incoming_video_call": "Incoming video call...",
     "incoming_audio_call": "Incoming audio call...",
     "decline": "Decline",
     "accept": "Accept",
     "in_call": "In Call...",
-    "remote_user": "Remote user"
+    "remote_user": "Remote user",
+    "group_details": {
+      "title": "Group details",
+      "default_name": "Group chat",
+      "name_label": "Group name",
+      "avatar_label": "Avatar image URL (optional)",
+      "save": "Save",
+      "edit_info": "Edit info",
+      "participants": "Participants",
+      "admin_badge": "Admin",
+      "remove_title": "Remove from group",
+      "remove_confirm": "Remove @{{username}} from this group?",
+      "leave_confirm": "Leave this group? You will stop receiving new messages.",
+      "leave_group": "Leave group"
+    }
   },
   "creator": {
     "title": "Creator Studio",
@@ -2813,11 +2856,78 @@
       "next": "Next",
       "creating": "Creating...",
       "done": "Done"
+    },
+    "block": {
+      "title": "Block @{{username}}?",
+      "message": "They won't be able to find your profile, posts, or story on CircleSfera. They won't be notified that you blocked them.",
+      "cancel": "Cancel",
+      "confirm": "Block"
+    },
+    "support": {
+      "title": "Help & Support",
+      "subtitle": "Send a question or report to our team",
+      "email_label": "Email",
+      "email_placeholder": "you@email.com",
+      "category_label": "Category",
+      "subject_label": "Subject",
+      "subject_placeholder": "Brief summary of the issue",
+      "message_label": "Detailed message",
+      "message_placeholder": "Describe your request in detail…",
+      "attach_screenshot": "Attach screenshot",
+      "attachment_attached": "Screenshot attached ✓",
+      "attachment_label": "Attachment",
+      "send_button": "Send ticket",
+      "upload_error": "Could not upload the screenshot.",
+      "submit_error": "Could not submit your request.",
+      "success_title": "Ticket sent!",
+      "success_desc": "We received your message and will reply soon.",
+      "categories": {
+        "TECHNICAL": "Technical issue",
+        "BILLING": "Billing & payments",
+        "ACCOUNT": "Account & access",
+        "SUGGESTION": "Suggestion"
+      }
+    },
+    "audio": {
+      "title": "Select music",
+      "search_placeholder": "Search by song or artist…",
+      "clear_selection": "Remove selected music",
+      "loading": "Loading audio tracks…",
+      "no_results": "No results found.",
+      "empty": "No audio tracks available.",
+      "unknown_artist": "Unknown artist",
+      "selected": "Selected",
+      "use": "Use",
+      "play_preview": "Play preview",
+      "pause_preview": "Pause preview"
     }
   },
   "frames": {
     "no_frames": "No Frames Yet",
-    "be_first": "Be the first to post a Frame!"
+    "be_first": "Be the first to post a Frame!",
+    "load_error_title": "Could not load Frames",
+    "load_error_message": "Something went wrong while loading Frames. Please try again.",
+    "checkout_success": "Payment successful. Content will unlock shortly.",
+    "checkout_canceled": "Checkout was canceled.",
+    "comments": "View comments",
+    "share": "Share frame",
+    "share_frame": "Share frame",
+    "save_to_collection": "Save to collection",
+    "options": "Options",
+    "caption_more": "more",
+    "caption_less": "less",
+    "original_audio": "{{username}} • Original audio",
+    "artist_fallback": "Artist",
+    "audio_disc": "Audio disc",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playback_area": "Video playback area",
+    "progress": "Video progress",
+    "close": "Close",
+    "delete_title": "Delete Frame",
+    "delete_message": "Are you sure you want to delete this frame? This action cannot be undone.",
+    "delete_confirm": "Delete",
+    "delete_pending": "Deleting..."
   },
   "landing": {
     "seo": {

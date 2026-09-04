@@ -33,6 +33,10 @@ Object.defineProperty(window, 'IntersectionObserver', {
   value: IntersectionObserverMock,
 });
 
+// jsdom does not implement scrollTo; stub for ScrollToTop and keyboard shortcuts
+window.scrollTo = vi.fn();
+Element.prototype.scrollTo = vi.fn();
+
 // Mock react-i18next
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({

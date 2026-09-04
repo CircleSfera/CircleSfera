@@ -86,12 +86,12 @@ export default function BottomNav() {
           '0 -4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
         /* Explicit height to fix WebKit padding clip bugs */
         height:
-          'calc(var(--nav-bottom-height, 60px) + env(safe-area-inset-bottom, 0px))',
+          'calc(var(--nav-bottom-height) + env(safe-area-inset-bottom, 0px))',
       }}
     >
       <div
         className="flex items-center justify-around w-full px-1"
-        style={{ height: 'var(--nav-bottom-height, 60px)' }}
+        style={{ height: 'var(--nav-bottom-height)' }}
       >
         {navItems.map((item) => {
           const isActive =

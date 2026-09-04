@@ -313,12 +313,14 @@
     "close_friends_modal": {
       "title": "Mejores Amigos",
       "search": "Buscar...",
+      "search_min": "Escribe al menos 2 caracteres para buscar.",
       "loading": "Cargando...",
       "searching": "Buscando...",
       "no_users": "No se encontraron usuarios",
       "list_title": "Lista de Mejores Amigos",
       "list_desc": "No enviamos notificaciones cuando editas tu lista de mejores amigos.",
-      "done": "Hecho"
+      "done": "Hecho",
+      "toggle_error": "No se pudo actualizar la lista. Inténtalo de nuevo."
     },
     "passkey_settings": {
       "title": "Llaves de Seguridad (Passkeys)",
@@ -804,6 +806,7 @@
     "no_comments": "Aún no hay comentarios. ¡Sé el primero en comentar!",
     "replying_to": "Respondiendo a",
     "add_comment": "Añadir un comentario...",
+    "add_comment_short": "Comentar…",
     "reply_to_user": "Responder a @{{username}}...",
     "post": "Publicar",
     "upload_error": "Error al subir el archivo",
@@ -824,14 +827,29 @@
     },
     "actions": {
       "edit_profile": "Editar Perfil",
+      "settings": "Ajustes",
       "message": "Mensaje",
       "opening": "Abriendo...",
       "subscribe": "Suscribirse",
       "report_profile": "Reportar Perfil",
       "block_user": "Bloquear Usuario",
+      "close_friends": "Mejores amigos",
       "send_tip": "Enviar Propina",
       "copy_link": "Copiar Enlace",
-      "new_collection": "Nueva Colección"
+      "new_collection": "Nueva Colección",
+      "more_options": "Más opciones",
+      "mute": "Silenciar",
+      "muted": "Usuario silenciado",
+      "mute_error": "No se pudo silenciar al usuario"
+    },
+    "creator_mode": {
+      "creator": "Creador",
+      "consumer": "Consumidor",
+      "enter": "Activar modo creador",
+      "exit": "Salir del modo creador"
+    },
+    "highlights": {
+      "new": "Nuevo"
     },
     "blocked": {
       "title": "Has bloqueado a este usuario.",
@@ -986,6 +1004,11 @@
     },
     "edit": {
       "edit_media": "Editar Medio",
+      "apply_to_all": "Aplicar a todos",
+      "filters_applied_all": "Filtros aplicados a todos los archivos",
+      "loading_story_editor": "Cargando editor de historias…",
+      "loading_media_editor": "Cargando editor de medios…",
+      "processing_media": "Procesando medios…",
       "filters_adjustments": "Filtros y Ajustes",
       "n_files": "{{count}} archivos",
       "remove_media": "Eliminar medio",
@@ -1038,7 +1061,9 @@
       "story_hint": "Foto o video · Hasta 60s",
       "frame": "Frame",
       "frame_desc": "Video corto",
-      "frame_hint": "MP4, MOV · 15-90 segundos",
+      "frame_hint": "MP4, MOV · 15-90 segundos · Máx 100MB",
+      "file_too_large": "{{name}} supera el límite de {{maxMb}} MB.",
+      "upload_failed": "No se pudo subir {{name}}",
       "drop_files": "Suelta los archivos aquí",
       "drag_files": "Arrastra fotos y videos aquí",
       "select_device": "Seleccionar del dispositivo",
@@ -1062,7 +1087,9 @@
     "story": {
       "add_music": "Añadir Música",
       "close_friends": "Mejores Amigos",
-      "your_story": "Tu Historia"
+      "your_story": "Tu Historia",
+      "manage_close_friends": "Gestionar mejores amigos",
+      "add_close_friends_first": "Añade mejores amigos para compartir historias solo con ellos."
     }
   },
   "report": {
@@ -1115,6 +1142,7 @@
     "sent_image": "Envió una imagen",
     "file_too_large": "Para garantizar el cifrado E2E, los archivos no pueden superar los 50 MB.",
     "sent_attachment": "Envió un archivo adjunto",
+    "shared_post": "Compartió una publicación",
     "chat": "Chat",
     "group_chat": "Chat de Grupo",
     "user": "Usuario",
@@ -1150,13 +1178,28 @@
     "name_group_optional": "Nombra tu grupo (opcional)",
     "no_account_found": "No se encontró la cuenta.",
     "no_following": "No sigues a nadie",
+    "no_search_results": "Ninguna conversación coincide con tu búsqueda.",
     "suggested": "Sugeridos",
     "incoming_video_call": "Llamada de video entrante...",
     "incoming_audio_call": "Llamada de audio entrante...",
     "decline": "Rechazar",
     "accept": "Aceptar",
     "in_call": "En Llamada...",
-    "remote_user": "Usuario remoto"
+    "remote_user": "Usuario remoto",
+    "group_details": {
+      "title": "Detalles del grupo",
+      "default_name": "Chat grupal",
+      "name_label": "Nombre del grupo",
+      "avatar_label": "URL de imagen (opcional)",
+      "save": "Guardar",
+      "edit_info": "Editar información",
+      "participants": "Participantes",
+      "admin_badge": "Admin",
+      "remove_title": "Expulsar del grupo",
+      "remove_confirm": "¿Expulsar a @{{username}} de este grupo?",
+      "leave_confirm": "¿Abandonar este grupo? Dejarás de recibir mensajes nuevos.",
+      "leave_group": "Abandonar grupo"
+    }
   },
   "creator": {
     "title": "Creator Studio",
@@ -2813,11 +2856,78 @@
       "next": "Siguiente",
       "creating": "Creando...",
       "done": "Hecho"
+    },
+    "block": {
+      "title": "¿Bloquear a @{{username}}?",
+      "message": "No podrá encontrar tu perfil, publicaciones ni historias en CircleSfera. No recibirá una notificación de que lo bloqueaste.",
+      "cancel": "Cancelar",
+      "confirm": "Bloquear"
+    },
+    "support": {
+      "title": "Centro de ayuda y soporte",
+      "subtitle": "Envía una consulta o reporte a nuestro equipo",
+      "email_label": "Correo electrónico",
+      "email_placeholder": "tu@email.com",
+      "category_label": "Categoría",
+      "subject_label": "Asunto",
+      "subject_placeholder": "Resumen del problema",
+      "message_label": "Mensaje detallado",
+      "message_placeholder": "Describe detalladamente tu consulta…",
+      "attach_screenshot": "Adjuntar captura de pantalla",
+      "attachment_attached": "Captura adjuntada ✓",
+      "attachment_label": "Adjunto",
+      "send_button": "Enviar ticket",
+      "upload_error": "Error al subir la captura de pantalla.",
+      "submit_error": "Error al enviar la solicitud.",
+      "success_title": "¡Ticket enviado!",
+      "success_desc": "Recibimos tu mensaje. Te responderemos a la brevedad.",
+      "categories": {
+        "TECHNICAL": "Error técnico",
+        "BILLING": "Facturación y cobros",
+        "ACCOUNT": "Cuenta y acceso",
+        "SUGGESTION": "Sugerencia"
+      }
+    },
+    "audio": {
+      "title": "Seleccionar música",
+      "search_placeholder": "Buscar por canción o artista…",
+      "clear_selection": "Quitar música seleccionada",
+      "loading": "Cargando pistas de audio…",
+      "no_results": "No se encontraron resultados.",
+      "empty": "No hay audios disponibles.",
+      "unknown_artist": "Artista desconocido",
+      "selected": "Seleccionado",
+      "use": "Usar",
+      "play_preview": "Reproducir vista previa",
+      "pause_preview": "Pausar vista previa"
     }
   },
   "frames": {
     "no_frames": "Aún no hay Frames",
-    "be_first": "¡Sé el primero en publicar un Frame!"
+    "be_first": "¡Sé el primero en publicar un Frame!",
+    "load_error_title": "No se pudieron cargar los Frames",
+    "load_error_message": "Algo salió mal al cargar los Frames. Inténtalo de nuevo.",
+    "checkout_success": "Pago correcto. El contenido se desbloqueará en breve.",
+    "checkout_canceled": "El pago fue cancelado.",
+    "comments": "Ver comentarios",
+    "share": "Compartir frame",
+    "share_frame": "Compartir frame",
+    "save_to_collection": "Guardar en colección",
+    "options": "Opciones",
+    "caption_more": "más",
+    "caption_less": "menos",
+    "original_audio": "{{username}} • Audio original",
+    "artist_fallback": "Artista",
+    "audio_disc": "Disco de audio",
+    "mute": "Silenciar",
+    "unmute": "Activar sonido",
+    "playback_area": "Área de reproducción de vídeo",
+    "progress": "Progreso del vídeo",
+    "close": "Cerrar",
+    "delete_title": "Eliminar Frame",
+    "delete_message": "¿Estás seguro de que quieres eliminar este frame? Esta acción no se puede deshacer.",
+    "delete_confirm": "Eliminar",
+    "delete_pending": "Eliminando..."
   },
   "landing": {
     "seo": {

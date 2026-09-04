@@ -20,7 +20,7 @@ type ProviderOptions = {
 export function renderWithProviders(
   ui: ReactElement,
   {
-    routerProps,
+    routerProps = { useTransitions: false },
     queryClient = createTestQueryClient(),
     ...options
   }: RenderOptions & ProviderOptions = {},

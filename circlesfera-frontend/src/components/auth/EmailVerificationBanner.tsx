@@ -6,8 +6,15 @@ import { authApi, profileApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
 import { Button } from '../ui';
 
+interface EmailVerificationBannerProps {
+  /** In-flow banner for immersive routes (/frames) where TopNav is hidden on mobile. */
+  immersive?: boolean;
+}
+
 /** Persistent banner until the signed-in user verifies email. */
-export default function EmailVerificationBanner() {
+export default function EmailVerificationBanner({
+  immersive = false,
+}: EmailVerificationBannerProps) {
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const queryClient = useQueryClient();
@@ -48,10 +55,13 @@ export default function EmailVerificationBanner() {
 
   return (
     <>
-      {/* Reserve space on mobile (TopNav is fixed above this bar). */}
-      <div className="md:hidden h-10 shrink-0" aria-hidden />
+      {!immersive && <div className="md:hidden h-10 shrink-0" aria-hidden />}
       <div
-        className="fixed inset-x-0 z-[45] top-[calc(var(--nav-top-height,52px)+env(safe-area-inset-top,0px))] border-b border-amber-500/20 bg-amber-500/10 px-4 py-2.5 backdrop-blur-md md:static md:sticky md:top-0 md:z-40"
+        className={
+          immersive
+            ? 'relative shrink-0 z-40 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2.5 backdrop-blur-md pt-[max(0.625rem,env(safe-area-inset-top))] md:static md:sticky md:top-0 md:pt-2.5'
+            : 'fixed inset-x-0 z-[45] top-[calc(var(--nav-top-height)+env(safe-area-inset-top,0px))] border-b border-amber-500/20 bg-amber-500/10 px-4 py-2.5 backdrop-blur-md md:static md:sticky md:top-0 md:z-40'
+        }
         role="status"
       >
         <div className="mx-auto flex max-w-3xl items-center gap-3 text-sm">

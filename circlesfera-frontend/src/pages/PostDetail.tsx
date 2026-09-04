@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { Navigate, useParams, useSearchParams } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 import PostDetailView from '../components/post/PostDetailView';
 import { commentsApi, postsApi } from '../services';
@@ -61,6 +61,10 @@ export default function PostDetail() {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500" />
       </div>
     );
+  }
+
+  if (post.data.type === 'FRAME') {
+    return <Navigate to={`/frames?post=${id}`} replace />;
   }
 
   return (
