@@ -1,5 +1,3 @@
-/* eslint-disable */
-// @ts-nocheck
 import {
   Body,
   Controller,
@@ -10,10 +8,12 @@ import {
   Post,
   Put,
   Query,
-  Request,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import type { Conversation, Message } from '@prisma/client';
+import type { Request } from 'express';
+import { type CurrentUserData } from '../auth/decorators/current-user.decorator.js';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { CreateGroupDto } from './dto/create-group.dto.js';
@@ -36,11 +36,8 @@ import { GetConversationsQuery } from './use-cases/queries/get-conversations.que
 import { GetMessagesQuery } from './use-cases/queries/get-messages.query.js';
 import { GetUnreadCountQuery } from './use-cases/queries/get-unread-count.query.js';
 
-interface AuthenticatedRequest extends Request {
-  profile: {
-    profileId: string;
-    email: string;
-  };
+interface AuthRequest extends Request {
+  user: CurrentUserData;
 }
 
 @Controller('chat')
@@ -74,23 +71,19 @@ export class ChatController {
   ) {}
 
   @Get('conversations')
-  async getConversations(
-    @Request() req: AuthenticatedRequest,
-  ): Promise<Conversation[]> {
+  async getConversations(@Req() req: AuthRequest): Promise<Conversation[]> {
     return this.getConversationsQuery.execute(req.user.profileId);
   }
 
   @Get('conversations/unread-count')
-  async getUnreadCount(
-    @Request() req: AuthenticatedRequest,
-  ): Promise<{ count: number }> {
+  async getUnreadCount(@Req() req: AuthRequest): Promise<{ count: number }> {
     const count = await this.getUnreadCountQuery.execute(req.user.profileId);
     return { count };
   }
 
   @Get('conversations/:id/messages')
   async getMessages(
-    @Request() req: AuthenticatedRequest,
+    @Req() req: AuthRequest,
     @Param('id') id: string,
   ): Promise<Message[]> {
     return this.getMessagesQuery.execute(id, 50, req.user.profileId);
@@ -98,10 +91,7 @@ export class ChatController {
 
   @Post('conversations')
   @UseGuards(EmailVerifiedGuard)
-  async createGroup(
-    @Request() req: AuthenticatedRequest,
-    @Body() dto: CreateGroupDto,
-  ) {
+  async createGroup(@Req() req: AuthRequest, @Body() dto: CreateGroupDto) {
     return this.createGroupUseCase.execute(
       req.user.profileId,
       dto.participantIds,
@@ -112,7 +102,7 @@ export class ChatController {
   @Post('messages')
   @UseGuards(EmailVerifiedGuard)
   async sendMessage(
-    @Request() req: AuthenticatedRequest,
+    @Req() req: AuthRequest,
     @Body() dto: SendMessageDto,
   ): Promise<Message> {
     return this.sendMessageUseCase.execute(
@@ -130,17 +120,14 @@ export class ChatController {
   }
 
   @Put('conversations/:id/read')
-  async markRead(
-    @Request() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
+  async markRead(@Req() req: AuthRequest, @Param('id') id: string) {
     await this.markAsReadUseCase.execute(id, req.user.profileId);
     return { success: true };
   }
 
   @Delete('conversations/:id')
   async deleteConversation(
-    @Request() req: AuthenticatedRequest,
+    @Req() req: AuthRequest,
     @Param('id') id: string,
     @Query('mode') _mode: 'me' | 'both' = 'me',
   ) {
@@ -150,7 +137,7 @@ export class ChatController {
 
   @Put('conversations/:id/group')
   async updateGroup(
-    @Request() req: AuthenticatedRequest,
+    @Req() req: AuthRequest,
     @Param('id') id: string,
     @Body() body: UpdateGroupDto,
   ) {
@@ -164,7 +151,7 @@ export class ChatController {
 
   @Delete('conversations/:id/participants/:profileId')
   async removeParticipant(
-    @Request() req: AuthenticatedRequest,
+    @Req() req: AuthRequest,
     @Param('id') id: string,
     @Param('profileId') targetProfileId: string,
   ) {
@@ -176,16 +163,13 @@ export class ChatController {
   }
 
   @Delete('conversations/:id/leave')
-  async leaveGroup(
-    @Request() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
+  async leaveGroup(@Req() req: AuthRequest, @Param('id') id: string) {
     return this.leaveGroupUseCase.execute(req.user.profileId, id);
   }
 
   @Put('messages/:id')
   async editMessage(
-    @Request() req: AuthenticatedRequest,
+    @Req() req: AuthRequest,
     @Param('id') id: string,
     @Body() body: EditMessageDto,
   ) {
@@ -197,10 +181,7 @@ export class ChatController {
   }
 
   @Delete('messages/:id')
-  async deleteMessage(
-    @Request() req: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
+  async deleteMessage(@Req() req: AuthRequest, @Param('id') id: string) {
     return this.deleteMessageUseCase.execute(req.user.profileId, id);
   }
 }

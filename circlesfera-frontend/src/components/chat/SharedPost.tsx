@@ -1,14 +1,25 @@
 import { Link } from 'react-router-dom';
 import type { Post } from '../../types';
+import { sanitizeUrl } from '../../utils/apiUtils';
 import UserAvatar from '../UserAvatar';
 
 interface SharedPostProps {
   post: Post;
 }
 
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|mov|webm|m4v|mkv|m3u8)(\?|#|$)/i.test(url);
+}
+
 export default function SharedPost({ post }: SharedPostProps) {
-  const isVideo = post.media?.[0]?.type === 'video';
-  const mediaUrl = post.media?.[0]?.url;
+  const media = post.media?.[0];
+  const isVideo =
+    media?.type === 'video' || (media?.url && isVideoUrl(media.url));
+  const thumb =
+    media?.thumbnailUrl ||
+    (media?.url && !isVideoUrl(media.url) ? media.url : undefined);
+  const videoUrl = media?.url ? sanitizeUrl(media.url) : undefined;
+  const imageUrl = thumb ? sanitizeUrl(thumb) : undefined;
 
   return (
     <Link
@@ -30,22 +41,23 @@ export default function SharedPost({ post }: SharedPostProps) {
       </div>
 
       <div className="aspect-4/5 relative overflow-hidden bg-black">
-        {isVideo ? (
+        {isVideo && videoUrl ? (
           <video
-            src={mediaUrl}
+            src={videoUrl}
             className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
             muted
             playsInline
+            preload="metadata"
           >
             <track kind="captions" />
           </video>
-        ) : (
+        ) : imageUrl ? (
           <img
-            src={mediaUrl}
+            src={imageUrl}
             alt="Post preview"
             className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
           />
-        )}
+        ) : null}
       </div>
 
       {post.caption && (

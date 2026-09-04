@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -68,6 +69,14 @@ export default function ChatWindow() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const lastMessageCountRef = useRef(0);
+
+  const messageVirtualizer = useVirtualizer({
+    count: messages.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: () => 80,
+    overscan: 10,
+  });
 
   const handleVoiceSend = async (voiceData: {
     voiceUrl: string;
@@ -128,14 +137,25 @@ export default function ChatWindow() {
     }
   }, []);
 
-  // Initial scroll on mount (instant)
+  // Scroll to bottom on initial load and when new messages arrive
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on count or thread change
   useEffect(() => {
-    if (messages.length > 0) {
-      // Use a short timeout to ensure the DOM has updated
-      const timer = setTimeout(() => scrollToBottom('auto'), 50);
-      return () => clearTimeout(timer);
+    void id;
+    if (messages.length === 0) {
+      lastMessageCountRef.current = 0;
+      return;
     }
-  }, [messages.length, scrollToBottom]); // Only on conversation change or first load of messages
+
+    const isNewMessage = messages.length > lastMessageCountRef.current;
+    lastMessageCountRef.current = messages.length;
+
+    requestAnimationFrame(() => {
+      messageVirtualizer.scrollToIndex(messages.length - 1, {
+        align: 'end',
+        behavior: isNewMessage ? 'smooth' : 'auto',
+      });
+    });
+  }, [messages.length, id, messageVirtualizer]);
 
   const handleEdit = useCallback((msg: Message, decryptedText: string) => {
     setEditingMessage({ id: msg.id!, text: decryptedText });
@@ -182,12 +202,12 @@ export default function ChatWindow() {
     [t],
   );
 
-  // Smooth scroll on new messages or typing
+  // Smooth scroll helper for uploads and typing (legacy callers)
   useEffect(() => {
-    if (messages.length > 0) {
+    if (isUploading && messages.length > 0) {
       scrollToBottom('smooth');
     }
-  }, [messages, scrollToBottom]);
+  }, [isUploading, messages.length, scrollToBottom]);
 
   const currentProfileId = profile?.id || '';
 
@@ -737,7 +757,7 @@ export default function ChatWindow() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-surface-elevated relative overflow-hidden">
+    <div className="flex flex-col h-full min-h-0 flex-1 bg-surface-elevated relative overflow-hidden">
       {/* Background Accent Mesh */}
       <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[50%] bg-brand-blue/15 blur-[120px] rounded-full mix-blend-screen" />
@@ -745,7 +765,7 @@ export default function ChatWindow() {
       </div>
 
       {/* Details Header */}
-      <div className="px-4 md:px-6 pt-[calc(1.2rem+env(safe-area-inset-top,0px))] pb-3 flex items-center justify-between bg-black/20 backdrop-blur-2xl border-b border-white/10 relative z-30 shrink-0 shadow-2xl w-full">
+      <div className="px-4 md:px-6 pt-[max(0.75rem,env(safe-area-inset-top,0px))] md:pt-[calc(1.2rem+env(safe-area-inset-top,0px))] pb-3 flex items-center justify-between bg-black/20 backdrop-blur-2xl border-b border-white/10 relative z-30 shrink-0 shadow-2xl w-full">
         <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1 mr-4">
           <Link
             to="/direct/inbox"
@@ -964,7 +984,7 @@ export default function ChatWindow() {
       {/* Messages Area */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4 space-y-4 custom-scrollbar relative z-0"
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6 py-4 space-y-4 custom-scrollbar relative z-0"
       >
         {isLoading && (
           <div className="flex flex-col items-center justify-center h-full gap-3">
@@ -983,15 +1003,20 @@ export default function ChatWindow() {
           />
         )}
 
-        <div className="flex flex-col justify-end min-h-full">
-          <AnimatePresence initial={false}>
-            {messages.map((msg, idx) => {
+        {messages.length > 0 && (
+          <div
+            className="relative w-full"
+            style={{ height: `${messageVirtualizer.getTotalSize()}px` }}
+          >
+            {messageVirtualizer.getVirtualItems().map((virtualRow) => {
+              const msg = messages[virtualRow.index];
+              if (!msg) return null;
+              const idx = virtualRow.index;
               const isMe = msg.senderId === currentProfileId;
               const isSeq =
                 idx > 0 && messages[idx - 1].senderId === msg.senderId;
               const showAvatar = !isMe && !isSeq;
 
-              // Calculate isRead: find the latest read horizon from other participants
               const othersReadAt =
                 conversation?.participants
                   .filter((p: Participant) => p.profileId !== currentProfileId)
@@ -1003,37 +1028,40 @@ export default function ChatWindow() {
               const isRead = new Date(msg.createdAt).getTime() <= maxReadAt;
 
               return (
-                <MessageBubble
+                <div
                   key={msg.id || msg.tempId}
-                  msg={msg}
-                  isMe={isMe}
-                  isSeq={isSeq}
-                  showAvatar={showAvatar}
-                  onReply={handleReply}
-                  onReact={sendReaction}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onUnlock={handleUnlockMessage}
-                  isRead={isRead}
-                  currentUserId={currentProfileId}
-                />
+                  ref={messageVirtualizer.measureElement}
+                  data-index={virtualRow.index}
+                  className="absolute left-0 top-0 w-full px-0"
+                  style={{ transform: `translateY(${virtualRow.start}px)` }}
+                >
+                  <MessageBubble
+                    msg={msg}
+                    isMe={isMe}
+                    isSeq={isSeq}
+                    showAvatar={showAvatar}
+                    onReply={handleReply}
+                    onReact={sendReaction}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onUnlock={handleUnlockMessage}
+                    isRead={isRead}
+                    currentUserId={currentProfileId}
+                  />
+                </div>
               );
             })}
-          </AnimatePresence>
-          {getTypingText() && (
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="flex justify-start my-2 ml-2"
-            >
-              <div className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 rounded-bl-sm">
-                {getTypingText()}
-              </div>
-            </motion.div>
-          )}
-          <div className="h-2 shrink-0" />
-        </div>
+          </div>
+        )}
+
+        {getTypingText() && (
+          <div className="flex justify-start my-2 ml-2">
+            <div className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 rounded-bl-sm">
+              {getTypingText()}
+            </div>
+          </div>
+        )}
+        <div className="h-2 shrink-0" />
 
         {isUploading && (
           <motion.div
@@ -1049,7 +1077,7 @@ export default function ChatWindow() {
       </div>
 
       {/* Input Area */}
-      <div className="px-4 md:px-6 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3 bg-transparent relative z-30 shrink-0 w-full mt-auto">
+      <div className="px-4 md:px-6 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] pt-3 bg-transparent relative z-30 shrink-0 w-full">
         <AnimatePresence>
           {replyTo && !editingMessage && (
             <motion.div
@@ -1204,6 +1232,7 @@ export default function ChatWindow() {
       {/* Modal deleted, options moved directly to dropdown menu */}
       {showGroupDetails && conversation && (
         <GroupDetailsModal
+          isOpen={showGroupDetails}
           conversation={conversation}
           onClose={() => setShowGroupDetails(false)}
           onUpdate={handleUpdateGroup}

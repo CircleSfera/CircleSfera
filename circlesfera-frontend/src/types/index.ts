@@ -182,6 +182,7 @@ export type Message = Omit<
         sender?: ProfileWithUser;
       })
     | null;
+  postId?: string | null;
   post?: Post;
   storyId?: string;
   story?: Story;

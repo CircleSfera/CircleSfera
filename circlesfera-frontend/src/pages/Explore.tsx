@@ -5,6 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { motion } from 'framer-motion';
 import { Clock, X as CloseIcon, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -105,6 +106,27 @@ export default function Explore() {
 
   const explorePostList =
     explorePosts?.pages.flatMap((page) => page.data) ?? [];
+
+  const exploreVirtualizer = useWindowVirtualizer({
+    count: explorePostList.length,
+    estimateSize: () => 560,
+    overscan: 2,
+  });
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: remeasure when tab or list size changes
+  useEffect(() => {
+    if (debouncedQuery.length >= 2) return;
+    const frame = requestAnimationFrame(() => {
+      exploreVirtualizer.measure();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [
+    activeTab,
+    explorePostList.length,
+    debouncedQuery.length,
+    exploreVirtualizer,
+  ]);
+
   const loadMoreRef = useInfiniteScroll(
     fetchNextPage,
     hasNextPage,
@@ -495,17 +517,31 @@ export default function Explore() {
                 onRetry={() => refetchExplore()}
               />
             ) : explorePostList.length > 0 ? (
-              /* Masonry Grid using CSS columns */
               <>
-                <div className="columns-1 md:columns-2 lg:columns-3 2xl:columns-4 gap-1 space-y-1">
-                  {explorePostList.map((post: Post) => (
-                    <div
-                      key={post.id}
-                      className="break-inside-avoid mb-2.5 md:mb-6"
-                    >
-                      <PostCard post={post} />
-                    </div>
-                  ))}
+                <div
+                  className="relative w-full max-w-2xl mx-auto"
+                  style={{ height: `${exploreVirtualizer.getTotalSize()}px` }}
+                >
+                  {exploreVirtualizer.getVirtualItems().map((virtualItem) => {
+                    const post = explorePostList[virtualItem.index];
+                    if (!post) return null;
+
+                    return (
+                      <div
+                        key={post.id}
+                        ref={exploreVirtualizer.measureElement}
+                        data-index={virtualItem.index}
+                        className="absolute left-0 w-full px-0"
+                        style={{
+                          transform: `translateY(${virtualItem.start}px)`,
+                        }}
+                      >
+                        <div className="pb-3">
+                          <PostCard post={post} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
                 <div ref={loadMoreRef} className="h-1" aria-hidden="true" />
                 {isFetchingNextPage && (

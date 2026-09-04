@@ -4,6 +4,7 @@ import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStoryStore } from '../../stores/storyStore';
 import type { Message } from '../../types';
+import { getMessageDisplayText } from '../../utils/chatMessageDisplay';
 import { VoicePlayer } from '../audio/VoicePlayer';
 import UserAvatar from '../UserAvatar';
 import AudioPlayer from './AudioPlayer';
@@ -62,6 +63,7 @@ export default memo(function MessageBubble({
   }
 
   const decryptedText = parsedText;
+  const displayText = getMessageDisplayText(msg, decryptedText, t);
 
   const isDecrypting = false;
 
@@ -90,7 +92,7 @@ export default memo(function MessageBubble({
       )}
 
       <div
-        className={`flex flex-col max-w-[75%] md:max-w-[65%] ${isMe ? 'items-end' : 'items-start'}`}
+        className={`flex flex-col max-w-[82%] md:max-w-[72%] lg:max-w-[68%] ${isMe ? 'items-end' : 'items-start'}`}
       >
         {/* Reply Context */}
         {msg.replyTo && (
@@ -207,7 +209,7 @@ export default memo(function MessageBubble({
             )}
 
             {/* Text Content */}
-            {(msg.content || msg.isDeleted) && (
+            {(displayText || msg.isDeleted) && (
               <div className="relative">
                 {msg.content === 'This message is locked. Pay to unlock.' ? (
                   <div className="flex flex-col items-center justify-center p-4 min-w-50 gap-3 bg-black/20 rounded-xl backdrop-blur-md border border-amber-500/30">
@@ -248,7 +250,7 @@ export default memo(function MessageBubble({
                     ) : isDecrypting ? (
                       <span className="opacity-50 italic">Descifrando...</span>
                     ) : (
-                      decryptedText
+                      displayText
                     )}
                   </span>
                 )}

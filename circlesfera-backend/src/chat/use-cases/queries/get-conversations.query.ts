@@ -37,6 +37,22 @@ export class GetConversationsQuery {
             createdAt: 'desc',
           },
           take: 1,
+          include: {
+            post: {
+              include: {
+                media: true,
+                profile: {
+                  select: {
+                    id: true,
+                    username: true,
+                    avatar: true,
+                    thumbnailUrl: true,
+                    standardUrl: true,
+                  },
+                },
+              },
+            },
+          },
         },
       },
       orderBy: {

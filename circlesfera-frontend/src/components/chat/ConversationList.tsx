@@ -1,13 +1,15 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'framer-motion';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import type { TFunction } from 'i18next';
 import { ChevronLeft, Edit, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { apiClient } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
 import type { Conversation, Message, Participant } from '../../types';
+import { getMessagePreviewText } from '../../utils/chatMessageDisplay';
 import { EmptyState } from '../ErrorEmptyStates';
 import { LoadingSpinner } from '../LoadingStates';
 import UserAvatar from '../UserAvatar';
@@ -16,6 +18,7 @@ import NewChatModal from './NewChatModal';
 export default function ConversationList() {
   const { id: activeId } = useParams();
   const queryClient = useQueryClient();
+  const listRef = useRef<HTMLDivElement>(null);
 
   const { data: conversations = [], isLoading: loading } = useQuery({
     queryKey: ['conversations'],
@@ -96,6 +99,13 @@ export default function ConversationList() {
     return name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
+  const virtualizer = useVirtualizer({
+    count: filteredConversations.length,
+    getScrollElement: () => listRef.current,
+    estimateSize: () => 72,
+    overscan: 8,
+  });
+
   if (loading) {
     return (
       <div className="flex flex-col h-full bg-black/95 border-r border-white/10 items-center justify-center gap-3">
@@ -147,23 +157,39 @@ export default function ConversationList() {
       </div>
 
       {isNewChatOpen && (
-        <NewChatModal onClose={() => setIsNewChatOpen(false)} />
+        <NewChatModal
+          isOpen={isNewChatOpen}
+          onClose={() => setIsNewChatOpen(false)}
+        />
       )}
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
-        <AnimatePresence initial={false}>
-          {conversations.length === 0 ? (
-            <EmptyState
-              icon="comments"
-              title={t('chat.no_messages')}
-              message={t('chat.start_connecting')}
-              action={{
-                label: t('chat.send_message'),
-                onClick: () => setIsNewChatOpen(true),
-              }}
-            />
-          ) : (
-            filteredConversations.map((conv) => {
+      <div
+        ref={listRef}
+        className="flex-1 overflow-y-auto custom-scrollbar p-2 min-h-0"
+      >
+        {conversations.length === 0 ? (
+          <EmptyState
+            icon="comments"
+            title={t('chat.no_messages')}
+            message={t('chat.start_connecting')}
+            action={{
+              label: t('chat.send_message'),
+              onClick: () => setIsNewChatOpen(true),
+            }}
+          />
+        ) : filteredConversations.length === 0 ? (
+          <p className="text-center text-sm text-white/45 py-8">
+            {t('chat.no_search_results')}
+          </p>
+        ) : (
+          <div
+            className="relative w-full"
+            style={{ height: `${virtualizer.getTotalSize()}px` }}
+          >
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              const conv = filteredConversations[virtualRow.index];
+              if (!conv) return null;
+
               const participants = conv.participants || [];
               const otherParticipant =
                 participants.find((p: Participant) => p.profileId !== me?.id) ||
@@ -178,8 +204,6 @@ export default function ConversationList() {
               const isOnline = status?.isOnline ?? false;
               const lastMsg = conv.messages?.[0];
               const isActive = activeId === conv.id;
-
-              // Check if last message is unread using lastReadAt timestamp
               const isUnread = Boolean(
                 lastMsg &&
                   lastMsg.senderId !== me?.id &&
@@ -189,94 +213,90 @@ export default function ConversationList() {
               );
 
               return (
-                <Link to={`/direct/inbox/t/${conv.id}`} key={conv.id}>
-                  <motion.div
-                    layout
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className={`group relative flex items-center min-h-[72px] py-3 px-3 rounded-lg transition-all duration-300 ${
-                      isActive
-                        ? 'bg-white/10 shadow-lg shadow-black/20'
-                        : 'hover:bg-white/5'
-                    }`}
-                  >
-                    {/* Active Indicator Bar */}
-                    {isActive && (
-                      <motion.div
-                        layoutId="active-bar"
-                        className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-linear-to-b from-brand-secondary to-brand-primary rounded-r-full shadow-[0_0_15px_rgba(var(--brand-primary-rgb),0.5)]"
-                      />
-                    )}
+                <div
+                  key={conv.id}
+                  ref={virtualizer.measureElement}
+                  data-index={virtualRow.index}
+                  className="absolute left-0 top-0 w-full px-0"
+                  style={{ transform: `translateY(${virtualRow.start}px)` }}
+                >
+                  <Link to={`/direct/inbox/t/${conv.id}`}>
+                    <div
+                      className={`group relative flex items-center min-h-[72px] py-3 px-3 rounded-lg transition-all duration-300 ${
+                        isActive
+                          ? 'bg-white/10 shadow-lg shadow-black/20'
+                          : 'hover:bg-white/5'
+                      }`}
+                    >
+                      {isActive && (
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-linear-to-b from-brand-secondary to-brand-primary rounded-r-full shadow-[0_0_15px_rgba(var(--brand-primary-rgb),0.5)]" />
+                      )}
 
-                    <div className="relative shrink-0">
-                      <UserAvatar
-                        src={otherProfile?.avatar || undefined}
-                        thumbnailUrl={otherProfile?.thumbnailUrl}
-                        standardUrl={otherProfile?.standardUrl}
-                        alt={otherProfile?.username || 'User'}
-                        size="md"
-                        isOnline={isOnline}
-                      />
-                    </div>
-
-                    <div className="flex-1 min-w-0 ml-3">
-                      <div className="flex justify-between items-center mb-0.5">
-                        <span
-                          className={`truncate text-sm ${isActive || isUnread ? 'font-semibold text-white' : 'font-medium text-white/90'}`}
-                        >
-                          {conv.name ||
-                            otherProfile?.fullName ||
-                            otherProfile?.username}
-                        </span>
-                        {lastMsg && (
-                          <span
-                            className={`text-[11px] font-bold shrink-0 ml-2 ${isActive ? 'text-brand-primary drop-shadow-[0_0_5px_rgba(var(--brand-primary-rgb),0.5)]' : 'text-white/40'}`}
-                          >
-                            {getTimeString(lastMsg.createdAt)}
-                          </span>
-                        )}
+                      <div className="relative shrink-0">
+                        <UserAvatar
+                          src={otherProfile?.avatar || undefined}
+                          thumbnailUrl={otherProfile?.thumbnailUrl}
+                          standardUrl={otherProfile?.standardUrl}
+                          alt={otherProfile?.username || 'User'}
+                          size="md"
+                          isOnline={isOnline}
+                        />
                       </div>
-                      <div className="flex items-center text-xs">
-                        <p
-                          className={`truncate max-w-[85%] ${isActive ? 'text-white/70' : isUnread ? 'text-white font-bold' : 'text-white/45'}`}
-                        >
-                          {lastMsg ? (
-                            <>
-                              {lastMsg.senderId === me?.id && (
-                                <span className="mr-1 opacity-70">
-                                  {t('chat.you')}
-                                </span>
-                              )}
-                              {renderMessageContent(lastMsg, t)}
-                            </>
-                          ) : (
-                            <span className="italic opacity-50">
-                              {t('chat.draft')}
+
+                      <div className="flex-1 min-w-0 ml-3">
+                        <div className="flex justify-between items-center mb-0.5">
+                          <span
+                            className={`truncate text-sm ${isActive || isUnread ? 'font-semibold text-white' : 'font-medium text-white/90'}`}
+                          >
+                            {conv.name ||
+                              otherProfile?.fullName ||
+                              otherProfile?.username}
+                          </span>
+                          {lastMsg && (
+                            <span
+                              className={`text-[11px] font-bold shrink-0 ml-2 ${isActive ? 'text-brand-primary drop-shadow-[0_0_5px_rgba(var(--brand-primary-rgb),0.5)]' : 'text-white/40'}`}
+                            >
+                              {getTimeString(lastMsg.createdAt)}
                             </span>
                           )}
-                          {!lastMsg?.content &&
-                            lastMsg?.url &&
-                            t('chat.media_attachment')}
-                          {!lastMsg?.content &&
-                            !lastMsg?.url &&
-                            t('chat.started_chat')}
-                        </p>
-                        {isUnread && !isActive && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="ml-auto w-2.5 h-2.5 bg-brand-primary rounded-full shadow-[0_0_10px_rgba(var(--brand-primary),0.8)]"
-                          />
-                        )}
+                        </div>
+                        <div className="flex items-center text-xs">
+                          <p
+                            className={`truncate max-w-[85%] ${isActive ? 'text-white/70' : isUnread ? 'text-white font-bold' : 'text-white/45'}`}
+                          >
+                            {lastMsg ? (
+                              <>
+                                {lastMsg.senderId === me?.id && (
+                                  <span className="mr-1 opacity-70">
+                                    {t('chat.you')}
+                                  </span>
+                                )}
+                                {renderMessageContent(lastMsg, t)}
+                              </>
+                            ) : (
+                              <span className="italic opacity-50">
+                                {t('chat.draft')}
+                              </span>
+                            )}
+                            {!lastMsg?.content &&
+                              lastMsg?.url &&
+                              t('chat.media_attachment')}
+                            {!lastMsg?.content &&
+                              !lastMsg?.url &&
+                              t('chat.started_chat')}
+                          </p>
+                          {isUnread && !isActive && (
+                            <div className="ml-auto w-2.5 h-2.5 bg-brand-primary rounded-full shadow-[0_0_10px_rgba(var(--brand-primary),0.8)]" />
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </motion.div>
-                </Link>
+                  </Link>
+                </div>
               );
-            })
-          )}
-        </AnimatePresence>
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -296,18 +316,7 @@ function getTimeString(dateStr: string | Date) {
   return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-function renderMessageContent(msg: Message, t: any) {
-  if (msg.mediaType === 'audio') return t('chat.sent_voice');
-  if (msg.mediaType === 'image') return t('chat.sent_image');
-  if (msg.url) return t('chat.sent_attachment');
-
-  if (
-    msg.content &&
-    typeof msg.content === 'string' &&
-    msg.content.includes('"ciphertext"')
-  ) {
-    return `🔒 ${t('chat.secure_message', 'Mensaje seguro')}`;
-  }
-
-  return msg.content;
+function renderMessageContent(msg: Message, t: TFunction) {
+  const preview = getMessagePreviewText(msg, t);
+  return preview;
 }
