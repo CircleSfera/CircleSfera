@@ -4,7 +4,7 @@ Index of the **15** product/technical documents (01–15) under `circlesfera-doc
 
 **Source of truth:** `circlesfera-backend/prisma/schema.prisma` and implemented NestJS/React code supersede snapshots for domains such as **Appeal**, **Mute**, **CreatorSubscription**, **Live**, and **Polls** (interactive). Prefer schema + controllers when docs disagree.
 
-Freshness notes: [00-status.md](./00-status.md). ADRs: [adr/](./adr/). Ops runbooks: [runbooks/](./runbooks/).
+Freshness notes: [00-status.md](./00-status.md). ADRs: [adr/](./adr/). Ops runbooks: [runbooks/](./runbooks/). Fundraising materials (English): [circlesfera-docs/investors/](../circlesfera-docs/investors/).
 
 AI-assisted engineering context lives outside this folder, in [`.ai/`](../.ai/README.md) (governed by [AGENTS.md](../AGENTS.md)). It summarises and links to these documents; it does not replace them.
 

@@ -1,0 +1,25 @@
+month,revenue_eur,headcount,monthly_burn_eur,cash_balance_eur,notes
+1,0,1,12000,2488000,Close; founder only; pre-hire
+2,0,2,45000,2443000,Full stack developer starts M2
+3,0,3,55000,2388000,Mobile engineer starts M3
+4,0,4,65000,2323000,Trust lead starts M4
+5,0,5,75000,2248000,Designer starts M5
+6,0,5,75000,2173000,Full stack owns API + web; no separate frontend hire
+7,5000,6,85000,2088000,Platform engineer; first beta revenue illustrative only
+8,8000,7,88000,2000000,Product manager starts M8
+9,12000,8,90000,1910000,Junior trust moderator M9
+10,15000,8,92000,1818000,
+11,18000,8,95000,1723000,
+12,22000,8,97000,1626000,Year 1 checkpoint
+13,28000,8,100000,1526000,
+14,35000,9,102000,1424000,
+15,42000,9,105000,1319000,
+16,50000,9,107000,1212000,
+17,60000,9,110000,1102000,
+18,72000,10,112000,990000,Controlled open target window
+19,85000,10,115000,875000,
+20,100000,10,117000,758000,
+21,115000,11,120000,638000,
+22,130000,11,122000,516000,
+23,145000,11,125000,391000,
+24,160000,11,127000,264000,Plan extension or Series A prep

@@ -57,11 +57,12 @@ From PRD §1.6. If a design cannot answer these, it is not ready to ship:
 
 ## Out of scope right now
 
-`00-status.md` maintains the authoritative list. As of Jul 2026 it explicitly excludes: native
-mobile apps, communities/forums, B2B Business Manager, public OAuth / third-party developer
-platform, SSR indexable profiles, subscriber badges as a product surface, data warehouse / BI, and
-SOC2 certification plus public bug bounty. Creator-initiated payouts stay in the Stripe Express
-dashboard ([ADR-0002](../../circlesfera-documentation/adr/0002-stripe-connect-payouts.md)).
+`00-status.md` maintains the authoritative list. As of Aug 2026 it explicitly excludes:
+communities/forums, B2B Business Manager, public OAuth / third-party developer platform, SSR
+indexable profiles, subscriber badges as a product surface, and SOC2 certification plus public bug
+bounty. Native apps (Capacitor), paid-ads scale-up, and ClickHouse are **in development** — not
+shipped. Creator-initiated payouts stay in the Stripe Express dashboard
+([ADR-0002](../../circlesfera-documentation/adr/0002-stripe-connect-payouts.md)).
 
 Do not design or scaffold these without explicit confirmation that product reopened them. Check
 `00-status.md` first — the list moves.

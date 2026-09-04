@@ -1,6 +1,6 @@
 # Documentation status
 
-**Last status note:** Aug 2026 — User/Profile identity documentation sync
+**Last status note:** Aug 2026 — Product reopened native apps, ads scale-up, ClickHouse; investor pack updated
 
 ## Aug 2026 User / Profile identity
 
@@ -84,22 +84,39 @@ After merging feed hydration for `poll` / `qnaBox`, prod returned feed/stories *
 
 Follow-up: CI runs `scripts/check-prisma-schema-migrations.sh`; catch-up `20260723020000_appeals_profile_embeddings_drop_payouts`; post-deploy API smoke on 5xx.
 
+## In development (product reopened, Aug 2026)
+
+These were on the Jul 2026 OUT OF SCOPE list. Product has reopened them. They are **not shipped**. Do not write them in present tense.
+
+- **Native apps:** Capacitor wrap of the SPA (`com.circlesfera.app`). `circlesfera-frontend/ios/` and `android/` exist; `cap:sync` / `cap:open:*` scripts are in the frontend package. Store binaries are not published.
+- **Paid ads at scale:** first-party `Promotion` is already in production (creator Checkout, feed inject of `ACTIVE` only, JWT views, proportional refund). Scaling inventory, measurement, and spend is the open work — not a second ads product.
+- **ClickHouse warehouse:** ADR-0016. BullMQ nightly export and `scripts/etl/` shipped; ClickHouse Cloud + Grafana pending provisioning ([runbook](./runbooks/clickhouse-cloud-analytics.md)).
+
 ## Still deferred / OUT OF SCOPE
 
-Product/ops gap-closure is **not** “100% of every corporate vision item.” Explicitly **OUT OF SCOPE** for this closure track (remain Later / non-goals unless product reopens them):
+Remain Later / non-goals unless product reopens them:
 
-- Native mobile apps (React Native / store binaries)
 - Communities / forums
 - B2B Business Manager
 - Public OAuth / third-party developer platform
 - SSR indexable profiles
 - Subscriber badges as a first-class product surface
-- Data warehouse / BI (ClickHouse/BigQuery, executive LTV dashboards) — **ADR-0016**: BullMQ nightly export shipped; ClickHouse Cloud + Grafana pending provisioning
 - SOC2 certification and public bug-bounty program
 
 Also deferred:
 
 - Creator payouts: Stripe Connect Express only (`accounts.create` `type: 'express'`) — see [ADR-0002](./adr/0002-stripe-connect-payouts.md). CircleSfera never calls `payouts.create` and does not set a payout schedule. Stripe pays out the Express balance on its **automatic rolling schedule** by default ([Payouts to connected accounts](https://docs.stripe.com/connect/payouts-connected-accounts)). The creator can view upcoming payouts, bank details, and — if Stripe has those Express features enabled — change schedule / pay out manually in the Express Dashboard via `GET /monetization/dashboard` (login link). There is no in-app withdraw.
+
+## Aug 2026 investor pack (tier-1)
+
+- English fundraising materials: [`circlesfera-docs/investors/`](../circlesfera-docs/investors/) — suite **00–26** + `_internal/` + `assets/screenshots/`
+- First touch: `22-one-pager.md`, `01-executive-summary.md`, optionally `20-investment-thesis.md`
+- Tier-1 additions: team (23), competitive landscape (24), security summary (25), investor FAQ (26), deck-slides, use-of-funds, hiring plan, 24m CSV model
+- Ask (planning): **€2.5M seed**, range €2.5–5M — founder confirms instrument and cap table in `18-governance.md`
+- Demo URL: https://circlesfera.com
+- Pack grounded in schema, code, ADRs, and this status file
+- Native apps, paid-ads scale-up, ClickHouse, and further creation tools are **in development**
+- Raise finishes commercial product, new creation tools, hires engineering / product / trust — **not** paying creators to post
 
 ## Doc / source of truth
 
