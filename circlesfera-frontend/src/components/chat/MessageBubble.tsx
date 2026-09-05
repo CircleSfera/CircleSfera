@@ -39,7 +39,7 @@ export default memo(function MessageBubble({
   isRead,
   currentUserId,
 }: MessageBubbleProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const openStories = useStoryStore((state) => state.openStories);
   const timeString = msg.createdAt
     ? new Date(msg.createdAt).toLocaleTimeString([], {
@@ -59,7 +59,7 @@ export default memo(function MessageBubble({
       }
     }
   } catch (_e) {
-    // normal text message, not JSON
+    // Normal text message, not JSON
   }
 
   const decryptedText = parsedText;
@@ -211,17 +211,21 @@ export default memo(function MessageBubble({
             {/* Text Content */}
             {(displayText || msg.isDeleted) && (
               <div className="relative">
-                {msg.content === 'This message is locked. Pay to unlock.' ? (
+                {msg.isLocked ||
+                msg.content === 'This message is locked. Pay to unlock.' ? (
                   <div className="flex flex-col items-center justify-center p-4 min-w-50 gap-3 bg-black/20 rounded-xl backdrop-blur-md border border-amber-500/30">
                     <div className="w-12 h-12 rounded-full bg-linear-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
                       <Lock className="w-6 h-6 text-white" />
                     </div>
                     <div className="text-center">
                       <p className="font-semibold text-white">
-                        Mensaje Exclusivo
+                        {t('chat.locked_title', 'Exclusive message')}
                       </p>
                       <p className="text-xs text-white/70 mt-1">
-                        Desbloquear para ver el contenido
+                        {t(
+                          'chat.locked_subtitle',
+                          'Unlock to view this content',
+                        )}
                       </p>
                     </div>
                     <button
@@ -229,10 +233,11 @@ export default memo(function MessageBubble({
                       onClick={() => onUnlock && msg.id && onUnlock(msg.id)}
                       className="mt-2 w-full py-2 px-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-full transition-colors text-sm shadow-md"
                     >
-                      Desbloquear por{' '}
-                      {((msg.priceCents || 0) / 100).toLocaleString('en-US', {
-                        style: 'currency',
-                        currency: 'USD',
+                      {t('chat.unlock_for', 'Unlock for {{price}}', {
+                        price: ((msg.priceCents || 0) / 100).toLocaleString(
+                          i18n.language,
+                          { style: 'currency', currency: 'EUR' },
+                        ),
                       })}
                     </button>
                   </div>
@@ -248,7 +253,9 @@ export default memo(function MessageBubble({
                         })}
                       </>
                     ) : isDecrypting ? (
-                      <span className="opacity-50 italic">Descifrando...</span>
+                      <span className="opacity-50 italic">
+                        {t('chat.decrypting', 'Decrypting…')}
+                      </span>
                     ) : (
                       displayText
                     )}
@@ -264,7 +271,9 @@ export default memo(function MessageBubble({
             >
               <span className="tabular-nums font-mono leading-none tracking-wide opacity-80 flex items-center gap-1">
                 {msg.isEdited && !msg.isDeleted && (
-                  <span className="text-xs lowercase">(editado)</span>
+                  <span className="text-xs lowercase">
+                    ({t('chat.edited', 'edited')})
+                  </span>
                 )}
                 {timeString}
               </span>

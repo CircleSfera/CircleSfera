@@ -295,7 +295,7 @@ export default function LiveBroadcaster() {
 
   if (!hasStarted || token === '') {
     return (
-      <div className="flex h-screen flex-col items-center justify-center px-4 gap-6">
+      <div className="flex h-dvh flex-col items-center justify-center px-4 gap-6">
         <button
           type="button"
           onClick={() => navigate(-1)}
@@ -339,7 +339,7 @@ export default function LiveBroadcaster() {
 
   if (isEnded) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-neutral-950 px-4 text-white">
+      <div className="flex h-dvh flex-col items-center justify-center bg-neutral-950 px-4 text-white">
         <div className="w-full max-w-sm bg-black/50 p-8 rounded-3xl border border-white/10 flex flex-col items-center gap-6 shadow-2xl backdrop-blur-xl">
           <div className="p-4 bg-brand-primary/20 rounded-full">
             <Heart className="w-12 h-12 text-brand-primary" />
@@ -383,7 +383,7 @@ export default function LiveBroadcaster() {
     'wss://circlesfera-6sxa79qt.livekit.cloud';
 
   return (
-    <div className="w-full h-screen bg-neutral-950 flex items-center justify-center overflow-hidden">
+    <div className="w-full h-dvh bg-neutral-950 flex items-center justify-center overflow-hidden">
       {/* biome-ignore lint/a11y/useSemanticElements: Double-tap on screen area */}
       <div
         role="button"

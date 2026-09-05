@@ -19,7 +19,7 @@ export default function Saved() {
   return (
     <div className="min-h-dvh pt-2 md:pt-6 pb-20">
       <div className="max-w-117.5 mx-auto px-4">
-        {/* Header — Design System section 6.4 */}
+        {/* Header */}
         <div className="flex items-center gap-3 mb-4 py-1">
           <Link
             to="/"
@@ -56,7 +56,7 @@ export default function Saved() {
             message={t('collections.no_saved_desc')}
           />
         ) : (
-          /* 12px spacing between posts */
+          // 12px spacing between posts
           <div className="space-y-3">
             {posts.map((post) => (
               <PostCard key={post.id} post={post} />

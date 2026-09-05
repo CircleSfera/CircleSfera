@@ -254,12 +254,15 @@ export default function Frames() {
   const blurredBgImage =
     activeFrame?.media?.[0]?.thumbnailUrl || activeFrame?.media?.[0]?.url;
 
-  /** Desktop player height cap: 9:16 at 390px width, bounded by viewport. */
+  // Desktop player height cap: 9:16 at 390px width, bounded by viewport
   const desktopStageClass =
     'md:max-h-[min(calc(100dvh-6rem),693px)] md:h-[min(calc(100dvh-6rem),693px)]';
 
   return (
-    <div className="h-full min-h-0 w-full flex flex-col max-md:px-4 max-md:py-2 md:items-center md:justify-center relative overflow-hidden">
+    <div
+      className="h-full min-h-0 w-full flex flex-col max-md:px-3 max-md:pt-1 max-md:pb-0 md:items-center md:justify-center relative overflow-hidden"
+      data-content-shell="vertical"
+    >
       <div className="hidden md:block absolute inset-0 z-0">
         {blurredBgImage && (
           <>

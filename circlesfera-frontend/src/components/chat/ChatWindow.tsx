@@ -17,7 +17,12 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 import { apiClient, chatApi, uploadApi } from '../../services/index';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
@@ -40,6 +45,7 @@ export default function ChatWindow() {
   const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const {
     socket,
@@ -84,11 +90,12 @@ export default function ChatWindow() {
     voiceWaveform: number[];
   }) => {
     setIsRecording(false);
+    const voiceLabel = t('chat.voice_note', '🎤 Voice note');
     const tempId =
       Date.now().toString() + Math.random().toString(36).substring(2, 9);
     const tempMsg: Message = {
       id: tempId,
-      content: '🎤 Nota de Voz',
+      content: voiceLabel,
       conversationId: id || '',
       senderId: profile?.id || '',
       createdAt: new Date().toISOString(),
@@ -104,7 +111,7 @@ export default function ChatWindow() {
     try {
       const res = await chatApi.sendMessage({
         conversationId: id,
-        content: '🎤 Nota de Voz',
+        content: voiceLabel,
         voiceUrl: voiceData.voiceUrl,
         voiceDuration: voiceData.voiceDuration,
         voiceWaveform: voiceData.voiceWaveform,
@@ -114,7 +121,7 @@ export default function ChatWindow() {
         upsertSentMessage(prev, {
           ...res.data,
           tempId,
-          content: '🎤 Nota de Voz',
+          content: voiceLabel,
           voiceUrl: voiceData.voiceUrl,
           voiceDuration: voiceData.voiceDuration,
           voiceWaveform: voiceData.voiceWaveform,
@@ -260,6 +267,35 @@ export default function ChatWindow() {
       cancelled = true;
     };
   }, [id, currentProfileId, markRead, queryClient]);
+
+  useEffect(() => {
+    if (!id) return;
+    const success = searchParams.get('success') === 'true';
+    const canceled = searchParams.get('canceled') === 'true';
+    if (!success && !canceled) return;
+
+    if (success) {
+      toast.success(
+        t('chat.unlock_success', 'Message unlocked. Thanks for your support!'),
+      );
+      chatApi
+        .getMessages(id)
+        .then((res) => {
+          setMessages((prev) =>
+            mergeServerMessagesWithOptimistic(res.data, prev),
+          );
+        })
+        .catch((err) => logger.error('Failed to refresh messages', err));
+    } else {
+      toast.error(t('chat.unlock_canceled', 'Unlock checkout was canceled.'));
+    }
+
+    const next = new URLSearchParams(searchParams);
+    next.delete('success');
+    next.delete('canceled');
+    next.delete('session_id');
+    setSearchParams(next, { replace: true });
+  }, [id, searchParams, setSearchParams, t]);
 
   useEffect(() => {
     if (!socket || !id) return;
@@ -497,7 +533,7 @@ export default function ChatWindow() {
           const newReactions = [...baseReactions];
 
           if (myExisting && myExisting.reaction === emoji) {
-            // toggle off
+            // Toggle off
           } else {
             newReactions.push({
               id: Date.now().toString(),
@@ -552,7 +588,7 @@ export default function ChatWindow() {
 
       const tempMsg: Message = {
         id: tempId,
-        content: JSON.stringify(mediaPayload), // plaintext locally
+        content: JSON.stringify(mediaPayload), // Plaintext locally
         conversationId: id,
         senderId: profile?.id || '',
         createdAt: new Date().toISOString(),

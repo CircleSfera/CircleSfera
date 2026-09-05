@@ -20,6 +20,7 @@ import LiveQnAPanel, {
   type LiveQuestion,
 } from '../../components/live/LiveQnAPanel';
 import { apiClient as api } from '../../services/api';
+import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
 
 const REACTION_EMOJIS = ['🔥', '❤️', '👏', '🚀', '⭐'];
@@ -34,6 +35,7 @@ export default function LiveViewer() {
   const { t } = useTranslation();
   const { streamId } = useParams<{ streamId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const profile = useAuthStore((state) => state.profile);
   const [token, setToken] = useState('');
   const [coHostToken, setCoHostToken] = useState<string | null>(null);
   const [coHostStreamId, setCoHostStreamId] = useState<string | null>(null);
@@ -228,19 +230,21 @@ export default function LiveViewer() {
 
   const handleAskQuestion = (question: string) => {
     const socket = useSocketStore.getState().socket;
-    // We can just pass a placeholder 'Espectador' for now.
     if (!socket || !activeStreamId) return;
+    const username =
+      profile?.username?.trim() || t('live.viewer.anonymous', 'Viewer');
     socket.emit('live:ask_question', {
       streamId: activeStreamId,
       question,
-      username: 'Espectador',
+      username,
+      avatar: profile?.avatar || undefined,
     });
     setIsQnAOpen(false);
   };
 
   if (activeToken === '') {
     return (
-      <div className="flex h-screen items-center justify-center bg-black text-white font-bold">
+      <div className="flex h-dvh items-center justify-center bg-black text-white font-bold">
         {t('live.connecting')}
       </div>
     );
@@ -251,7 +255,7 @@ export default function LiveViewer() {
     'wss://circlesfera-6sxa79qt.livekit.cloud';
 
   return (
-    <div className="w-full h-screen bg-neutral-950 flex items-center justify-center overflow-hidden">
+    <div className="w-full h-dvh bg-neutral-950 flex items-center justify-center overflow-hidden">
       {/* biome-ignore lint/a11y/useSemanticElements: Double-tap on screen area */}
       <div
         role="button"
@@ -388,12 +392,12 @@ export default function LiveViewer() {
             ))}
           </AnimatePresence>
         </div>
-        ;{/* Instagram Live Chat & Interactivity Overlay */}
+        {/* Live chat and interactivity overlay */}
         <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/95 via-black/60 to-transparent p-4 flex flex-col justify-end z-40">
           {/* Pinned Comment Banner */}
           <LivePinnedComment pinnedComment={pinnedComment} />
 
-          {/* Live Chat Messages (Instagram Style: Stream of semi-transparent text lines) */}
+          {/* Live chat messages — stream of semi-transparent text lines */}
           <div className="overflow-y-auto max-h-52 mb-4 space-y-1.5 no-scrollbar relative mask-[linear-gradient(to_bottom,transparent,black_20%)] pt-6">
             <AnimatePresence initial={false}>
               {chatMessages.map((msg) => (
@@ -417,7 +421,7 @@ export default function LiveViewer() {
             <div ref={chatEndRef} />
           </div>
 
-          {/* Instagram Bottom Action Bar */}
+          {/* Bottom action bar */}
           <div className="flex items-center gap-2 pointer-events-auto">
             <form
               onSubmit={handleSend}

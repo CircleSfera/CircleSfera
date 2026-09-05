@@ -21,14 +21,11 @@ import { feedApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { PaginatedResponse, Post } from '../types';
 
-/**
- * Home — Layout Guidelines section 11 (Feed Screen)
- * Mobile: single column, full-width
- * Desktop: feed column (max 470px) + right sidebar
- * Feed tabs: Para Ti / Siguiendo
- * Stories strip above feed
- * High information density: spacing between posts 12–16px
- */
+// Mobile: single column, full-width
+// Desktop: feed column (max 470px) + right sidebar
+// Feed tabs: Para Ti / Siguiendo
+// Stories strip above feed
+// High information density: spacing between posts 12–16px
 export default function Home() {
   const { t } = useTranslation();
   const location = useLocation();
@@ -90,13 +87,20 @@ export default function Home() {
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-      {/* Layout Guidelines section 11 — Feed: full-width mobile, with desktop right sidebar */}
-      <div className="min-h-dvh pt-[calc(var(--nav-top-height,52px)+4px)] md:pt-0 pb-24 md:pb-8">
+      {/* Feed: full-width mobile, desktop adds right sidebar */}
+      <div
+        className="min-h-dvh pt-[calc(var(--nav-top-height,52px)+4px)] md:pt-0 pb-24 md:pb-8"
+        data-content-shell="stream"
+      >
         <SEO title={t('feed.home_title')} />
 
         <div className="flex items-start justify-center gap-6 px-0 md:px-3 max-w-5xl mx-auto">
-          {/* ── Main Feed Column ── */}
-          <div className="flex-1 w-full min-w-0" style={{ maxWidth: 470 }}>
+          {/* Main Feed Column — story strip + feed as one composition */}
+          <div
+            className="flex-1 w-full min-w-0 space-y-1"
+            style={{ maxWidth: 470 }}
+          >
+            {' '}
             {/* Header Logo — Larger, centered, elegant vertical breathing room (desktop only to prevent duplication with mobile TopNav) */}
             <div className="pt-6 pb-3 hidden md:flex justify-center items-center">
               <Link
@@ -113,7 +117,6 @@ export default function Home() {
                 </span>
               </Link>
             </div>
-
             {/* Feed Header — Centered Floating Glass Pill Switcher */}
             <div className="sticky top-[calc(var(--nav-top-height,52px))] md:top-0 z-30 py-2.5 px-4 flex justify-center backdrop-blur-md">
               <div className="inline-flex items-center p-1.5 rounded-full bg-black/75 border border-white/12 shadow-2xl backdrop-blur-md gap-1.5">
@@ -148,25 +151,24 @@ export default function Home() {
                 ))}
               </div>
             </div>
-
-            {/* Stories strip — rounded card container */}
+            {/* Stories strip — part of feed composition, not a dashboard card */}
             {isLoading ? (
-              <div className="my-3 rounded-2xl p-3.5 border border-white/10 bg-white/3 flex gap-3 overflow-hidden">
+              <div className="py-2 px-3 flex gap-3 overflow-hidden">
                 {['s1', 's2', 's3', 's4', 's5'].map((id) => (
                   <StorySkeleton key={id} />
                 ))}
               </div>
             ) : (
-              <StoryList />
+              <div className="px-1">
+                <StoryList />
+              </div>
             )}
-
             {/* Horizontal suggestions on mobile */}
-            <div className="lg:hidden px-3 pt-3 pb-1">
+            <div className="lg:hidden px-3 pt-2 pb-1">
               <SuggestionsList layout="horizontal" />
             </div>
-
             {/* Post list */}
-            <div>
+            <div className="space-y-3 md:space-y-4">
               {!isAuthenticated && activeTab === 'following' ? (
                 <div className="px-3 pt-3">
                   <EmptyState
@@ -249,7 +251,7 @@ export default function Home() {
                             top: `${virtualItem.start}px`,
                             left: 0,
                             width: '100%',
-                            /* 12–16px gap between posts per 11 */
+                            // 12–16px gap between posts
                             paddingBottom: 'var(--space-md, 12px)',
                           }}
                         >
@@ -272,7 +274,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* ── Right Sidebar (Desktop ≥1024px) ── */}
+          {/* Right Sidebar (Desktop ≥1024px) */}
           <aside
             className="hidden lg:block shrink-0"
             style={{ width: 280, position: 'sticky', top: 80 }}
