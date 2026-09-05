@@ -278,6 +278,8 @@ vi.mock('react-i18next', () => ({
         'collections.collection_name': 'Collection Name',
         'collections.placeholder_name': 'e.g. Travel, Recipes',
         'collections.create': 'Create Collection',
+        'collections.posts_count': '{{count}} posts',
+        'frames.save_to_collection': 'Save to collection',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
