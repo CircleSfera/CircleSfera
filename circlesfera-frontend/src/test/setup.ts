@@ -291,6 +291,29 @@ vi.mock('react-i18next', () => ({
         'modals.audio.use': 'Use',
         'modals.audio.play_preview': 'Play preview',
         'modals.audio.pause_preview': 'Pause preview',
+        'modals.support.title': 'Help & Support',
+        'modals.support.subtitle': 'Send a question or report to our team',
+        'modals.support.email_label': 'Email',
+        'modals.support.email_placeholder': 'you@email.com',
+        'modals.support.category_label': 'Category',
+        'modals.support.subject_label': 'Subject',
+        'modals.support.subject_placeholder': 'Brief summary of the issue',
+        'modals.support.message_label': 'Detailed message',
+        'modals.support.message_placeholder':
+          'Describe your request in detail…',
+        'modals.support.attach_screenshot': 'Attach screenshot',
+        'modals.support.attachment_attached': 'Screenshot attached ✓',
+        'modals.support.attachment_label': 'Attachment',
+        'modals.support.send_button': 'Send ticket',
+        'modals.support.upload_error': 'Could not upload the screenshot.',
+        'modals.support.submit_error': 'Could not submit your request.',
+        'modals.support.success_title': 'Ticket sent!',
+        'modals.support.success_desc':
+          'We received your message and will reply soon.',
+        'modals.support.categories.TECHNICAL': 'Technical issue',
+        'modals.support.categories.BILLING': 'Billing & payments',
+        'modals.support.categories.ACCOUNT': 'Account & access',
+        'modals.support.categories.SUGGESTION': 'Suggestion',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
