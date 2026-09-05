@@ -367,6 +367,24 @@ vi.mock('react-i18next', () => ({
         'profile.stats.followers': 'Followers',
         'profile.stats.following': 'Following',
         'profile.empty.no_users_found': 'No users found.',
+        'profile.about.title': 'About this account',
+        'profile.about.joined': 'Joined',
+        'profile.about.email': 'Email confirmed',
+        'profile.about.identity': 'Identity verified',
+        'profile.about.account_type': 'Account type',
+        'profile.about.country': 'Country',
+        'profile.about.activity_label': 'Recent activity',
+        'profile.about.standing': 'Account status',
+        'profile.about.suspended': 'Suspended',
+        'profile.about.in_good_standing': 'In good standing',
+        'profile.about.strikes': 'Moderation strikes',
+        'profile.about.yes': 'Yes',
+        'profile.about.no': 'No',
+        'profile.about.bot_label': 'Possibly automated',
+        'profile.about.bot_label_hint':
+          'Staff applied this label after review. The account owner can appeal in Settings.',
+        'profile.about.identity_disclaimer':
+          'Identity verified means government ID checked via Stripe Identity. It is separate from a paid plan badge.',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
