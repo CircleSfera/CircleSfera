@@ -274,6 +274,10 @@ vi.mock('react-i18next', () => ({
         'modals.highlight.highlight_name': 'Highlight Name',
         'modals.highlight.next': 'Next',
         'modals.highlight.done': 'Done',
+        'collections.new_collection': 'New Collection',
+        'collections.collection_name': 'Collection Name',
+        'collections.placeholder_name': 'e.g. Travel, Recipes',
+        'collections.create': 'Create Collection',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
