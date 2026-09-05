@@ -200,6 +200,10 @@ vi.mock('react-i18next', () => ({
         'settings.close_friends_modal.list_desc':
           "We don't send notifications when you edit your close friends list.",
         'settings.close_friends_modal.done': 'Done',
+        'wallet.send_gift': 'Send Gift',
+        'wallet.support_with_money': 'Support {{name}} with a tip',
+        'wallet.send_tip': 'Send Tip',
+        'wallet.error_send_tip': 'Error sending tip',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
@@ -217,6 +221,9 @@ vi.mock('react-i18next', () => ({
         }
         if (options.type !== undefined) {
           val = val.replace('{{type}}', String(options.type));
+        }
+        if (options.name !== undefined) {
+          val = val.replace('{{name}}', String(options.name));
         }
         if (options.defaultValue) {
           val = options.defaultValue;
