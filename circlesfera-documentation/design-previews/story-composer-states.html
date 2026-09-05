@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CircleSfera — Story Composer (design system)</title>
+    <style>
+      :root {
+        --brand: #8c52ff;
+        --brand-rgb: 140, 82, 255;
+        --brand-blue: #5271ff;
+        --coral: #ff5757;
+        --stage: #09090b;
+        --elevated: #18181b;
+        --sheet: rgba(24, 24, 27, 0.97);
+        --line: rgba(255, 255, 255, 0.1);
+        --muted: rgba(255, 255, 255, 0.55);
+        --guide: rgba(0, 0, 0, 0.4);
+        --radius-canvas: 0; /* product: full-bleed mobile (ADR-0018) */
+        --radius-canvas-md: 32px;
+        --phone-w: 390px;
+        --phone-h: 844px;
+        --chrome-top: 60px;
+        --rail-h: 72px;
+        --sheet-h: 268px;
+        --text-chrome-h: 268px;
+        --font: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: var(--font);
+        background: #050505;
+        color: #fff;
+        min-height: 100vh;
+      }
+
+      /* —— Page chrome (preview tool, not product) —— */
+      .page-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 20px 24px 16px;
+        border-bottom: 1px solid var(--line);
+        background: #0a0a0a;
+      }
+      .page-bar h1 {
+        margin: 0 0 4px;
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .page-bar .sub {
+        margin: 0;
+        font-size: 12px;
+        color: var(--muted);
+        max-width: 560px;
+        line-height: 1.4;
+      }
+      .tabs {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .tabs button {
+        min-height: 36px;
+        padding: 0 12px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: transparent;
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .tabs button.active {
+        color: #fff;
+        background: rgba(var(--brand-rgb), 0.2);
+        border-color: rgba(var(--brand-rgb), 0.5);
+      }
+      .measure {
+        padding: 10px 24px;
+        font-size: 11px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        border-bottom: 1px solid var(--line);
+      }
+      .measure strong {
+        color: #fff;
+        font-weight: 600;
+      }
+      .ok {
+        color: #4ade80;
+      }
+      .bad {
+        color: #f87171;
+      }
+
+      .viewport {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 28px 16px 48px;
+        min-height: calc(100vh - 120px);
+      }
+
+      /* —— Shared product shells —— */
+      .phone {
+        width: var(--phone-w);
+        height: var(--phone-h);
+        background: var(--stage);
+        border-radius: 44px;
+        border: 1px solid var(--line);
+        position: relative;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+      .desktop {
+        width: min(1040px, calc(100vw - 32px));
+        height: 620px;
+        background: var(--stage);
+        border-radius: 20px;
+        border: 1px solid var(--line);
+        position: relative;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+      .hidden {
+        display: none !important;
+      }
+
+      /* Top guest chrome — identical every state that uses it */
+      .topbar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--chrome-top);
+        z-index: 40;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px 0;
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.55),
+          transparent
+        );
+      }
+      .btn-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        border: 0;
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        cursor: default;
+      }
+      .btn-icon svg {
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .btn-row {
+        display: flex;
+        gap: 8px;
+      }
+      .btn-pill {
+        min-height: 40px;
+        padding: 0 16px;
+        border: 0;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--brand), var(--brand-blue));
+        color: #fff;
+        font-weight: 700;
+        font-size: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        letter-spacing: 0.01em;
+      }
+      .btn-pill svg {
+        width: 14px;
+        height: 14px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2.25;
+      }
+      .btn-text {
+        border: 0;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.75);
+        font-weight: 600;
+        font-size: 15px;
+        min-height: 40px;
+        padding: 0 6px;
+      }
+
+      /* Stage: letterbox host — canvas ALWAYS centered here */
+      .stage {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: var(--chrome-top);
+        bottom: var(--rail-h);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 12px;
+      }
+      .phone[data-mode="edit"] .stage {
+        bottom: var(--sheet-h);
+      }
+      .phone[data-mode="text"] .stage {
+        bottom: var(--text-chrome-h);
+      }
+      .desktop .stage {
+        top: var(--chrome-top);
+        bottom: var(--rail-h);
+        padding: 16px;
+      }
+
+      /* Canonical 9:16 surface — size set by JS */
+      .story-canvas {
+        position: relative;
+        width: 200px; /* JS overwrites */
+        height: 356px;
+        border-radius: var(--radius-canvas);
+        border: none;
+        overflow: hidden;
+        background: #000;
+        flex-shrink: 0;
+        container-type: size;
+      }
+      .desktop .story-canvas {
+        border-radius: var(--radius-canvas-md);
+        border: 1px solid var(--line);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+      }
+
+      .story-canvas .bg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center top;
+      }
+      .story-canvas.is-dim .bg {
+        filter: brightness(0.5);
+      }
+
+      /* Guides: hairlines at 14% / 80% (bottom safe = 20% from bottom) */
+      .guides {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 140ms ease;
+      }
+      .story-canvas.is-dragging .guides {
+        opacity: 1;
+      }
+      .g-top,
+      .g-bot {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #ff00ea;
+        box-shadow: 0 0 15px rgba(255, 0, 234, 0.8);
+      }
+      .g-top {
+        top: 14%;
+      }
+      .g-bot {
+        bottom: 20%;
+      }
+
+      .layer-text {
+        position: absolute;
+        left: 50%;
+        top: 32%;
+        transform: translate(-50%, -50%);
+        z-index: 6;
+        font-weight: 800;
+        font-size: 7.2cqw;
+        white-space: nowrap;
+        text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
+        cursor: grab;
+        user-select: none;
+      }
+      .layer-text .caret {
+        display: inline-block;
+        width: 2px;
+        height: 1em;
+        margin-left: 1px;
+        background: #fff;
+        vertical-align: -0.1em;
+        animation: blink 1s step-end infinite;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      .layer-qna {
+        position: absolute;
+        left: 50%;
+        top: 58%;
+        transform: translate(-50%, -50%);
+        width: 82%;
+        z-index: 6;
+        background: var(--brand);
+        border-radius: 16px;
+        padding: 3.2cqw 3.6cqw 3.6cqw;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+        cursor: grab;
+        user-select: none;
+      }
+      .layer-qna.is-selected {
+        outline: 2px solid rgba(255, 255, 255, 0.9);
+        outline-offset: 3px;
+      }
+      .layer-qna.is-dim {
+        opacity: 0.4;
+        cursor: default;
+      }
+      .layer-qna .tag {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 2.8cqw;
+        font-weight: 700;
+        margin-bottom: 2cqw;
+        opacity: 0.95;
+      }
+      .layer-qna .tag i {
+        width: 4.2cqw;
+        height: 4.2cqw;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.25);
+        display: grid;
+        place-items: center;
+        font-style: normal;
+        font-size: 2.4cqw;
+      }
+      .layer-qna .prompt {
+        font-size: 4.1cqw;
+        font-weight: 800;
+        line-height: 1.25;
+        margin-bottom: 2.4cqw;
+      }
+      .layer-qna .fake-input {
+        background: rgba(0, 0, 0, 0.28);
+        border-radius: 999px;
+        padding: 2.4cqw 3.2cqw;
+        font-size: 3cqw;
+        color: rgba(255, 255, 255, 0.78);
+      }
+
+      /* Bottom product chrome */
+      .rail {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: var(--rail-h);
+        z-index: 40;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.78);
+        backdrop-filter: blur(18px);
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        padding: 6px 4px 10px;
+      }
+      .desktop .rail {
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(420px, 100%);
+        border-radius: 14px 14px 0 0;
+      }
+      .rail button {
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+      }
+      .rail button svg {
+        width: 20px;
+        height: 20px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.85;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .sheet {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: var(--sheet-h);
+        z-index: 40;
+        background: var(--sheet);
+        backdrop-filter: blur(20px);
+        border-top: 1px solid var(--line);
+        border-radius: 16px 16px 0 0;
+        padding: 10px 16px 14px;
+      }
+      .grab {
+        width: 36px;
+        height: 4px;
+        border-radius: 99px;
+        background: rgba(255, 255, 255, 0.22);
+        margin: 0 auto 12px;
+      }
+      .sheet-hd {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .sheet-hd h2 {
+        margin: 0;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        font-weight: 800;
+      }
+      .sheet-hd .acts {
+        display: flex;
+        gap: 6px;
+      }
+      .sheet-hd .acts .btn-icon {
+        width: 36px;
+        height: 36px;
+        background: rgba(255, 255, 255, 0.06);
+      }
+      .sheet-tabs {
+        display: flex;
+        gap: 18px;
+        margin-bottom: 14px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+      }
+      .sheet-tabs .on {
+        color: #fff;
+        box-shadow: inset 0 -2px 0 var(--brand);
+        padding-bottom: 6px;
+      }
+      .field label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .field textarea {
+        width: 100%;
+        height: 78px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: rgba(0, 0, 0, 0.35);
+        color: #fff;
+        padding: 10px 12px;
+        font: inherit;
+        font-size: 14px;
+        resize: none;
+      }
+      .hint {
+        margin: 8px 0 0;
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.35;
+      }
+
+      .text-dock {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: var(--text-chrome-h);
+        z-index: 40;
+        display: flex;
+        flex-direction: column;
+      }
+      .style-strip {
+        height: 54px;
+        background: rgba(24, 24, 27, 0.95);
+        border-top: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 12px;
+        overflow-x: auto;
+      }
+      .swatch {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        flex-shrink: 0;
+      }
+      .swatch.on {
+        border-color: #fff;
+      }
+      .chip {
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+        color: var(--muted);
+      }
+      .chip.on {
+        background: rgba(255, 255, 255, 0.16);
+        color: #fff;
+      }
+      .kb {
+        flex: 1;
+        background: #1c1c1e;
+        border-top: 1px solid var(--line);
+        display: grid;
+        place-items: center;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .legend {
+        position: absolute;
+        left: 12px;
+        bottom: 12px;
+        z-index: 50;
+        font-size: 10px;
+        color: var(--muted);
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 6px 8px;
+        pointer-events: none;
+      }
+      .desktop .legend {
+        left: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-bar">
+      <div>
+        <h1>Story Composer — design system</h1>
+        <p class="sub">
+          Un solo shell · canvas 9:16 full-bleed en móvil (sin bezel de producto;
+          el marco del preview es el device) · radius md+ 32 · guides solo al
+          arrastrar (14% / 20%) · CTA Listo → Share. Recarga tras cambios.
+        </p>
+      </div>
+      <div class="tabs" role="tablist">
+        <button type="button" class="active" data-view="idle">01 Idle</button>
+        <button type="button" data-view="drag">01b Drag</button>
+        <button type="button" data-view="edit">02 Edit Q&A</button>
+        <button type="button" data-view="text">03 Text</button>
+        <button type="button" data-view="desktop">04 Desktop</button>
+      </div>
+    </div>
+    <div class="measure" id="measure">Medición…</div>
+
+    <div class="viewport">
+      <!-- MOBILE SHELL (shared DOM for idle/drag/edit/text) -->
+      <div class="phone" id="phone" data-mode="idle">
+        <div class="topbar" id="topbar-default">
+          <button type="button" class="btn-icon" aria-label="Cerrar">
+            <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          </button>
+          <div class="btn-row">
+            <button type="button" class="btn-icon" aria-label="Deshacer">
+              <svg viewBox="0 0 24 24">
+                <path d="M3 7v6h6" />
+                <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6.36 2.64L3 13" />
+              </svg>
+            </button>
+            <button type="button" class="btn-icon" aria-label="Rehacer">
+              <svg viewBox="0 0 24 24">
+                <path d="M21 7v6h-6" />
+                <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6.36 2.64L21 13" />
+              </svg>
+            </button>
+          </div>
+          <button type="button" class="btn-pill">
+            Listo
+            <svg viewBox="0 0 24 24">
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          </button>
+        </div>
+        <div class="topbar hidden" id="topbar-text">
+          <button type="button" class="btn-text">Cancelar</button>
+          <span></span>
+          <button type="button" class="btn-pill">Listo</button>
+        </div>
+
+        <div class="stage" id="stage">
+          <div class="story-canvas" id="canvas">
+            <img
+              class="bg"
+              alt=""
+              draggable="false"
+              src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=1080&h=1920&q=80"
+            />
+            <div class="guides" aria-hidden="true">
+              <div class="g-top"></div>
+              <div class="g-bot"></div>
+            </div>
+            <div class="layer-text" id="layer-text">Buenas noches</div>
+            <div class="layer-qna is-selected" id="layer-qna">
+              <div class="tag"><i>?</i> Q&A</div>
+              <div class="prompt">¿Qué quieres saber de mí?</div>
+              <div class="fake-input">Escribe tu respuesta...</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rail" id="rail">
+          <button type="button">
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="m21 15-5-5L5 21" />
+            </svg>
+            Fondo
+          </button>
+          <button type="button">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 7V4h16v3" />
+              <path d="M9 20h6" />
+              <path d="M12 4v16" />
+            </svg>
+            Texto
+          </button>
+          <button type="button">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+              <line x1="9" x2="9.01" y1="9" y2="9" />
+              <line x1="15" x2="15.01" y1="9" y2="9" />
+            </svg>
+            Stickers
+          </button>
+          <button type="button">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
+              />
+            </svg>
+            Plantillas
+          </button>
+          <button type="button">
+            <svg viewBox="0 0 24 24">
+              <path d="m12 19 7-7 3 3-7 7-3-3z" />
+              <path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+              <path d="m2 2 7.586 7.586" />
+            </svg>
+            Dibujar
+          </button>
+          <button type="button">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="1" />
+              <circle cx="19" cy="12" r="1" />
+              <circle cx="5" cy="12" r="1" />
+            </svg>
+            Más
+          </button>
+        </div>
+
+        <div class="sheet hidden" id="sheet">
+          <div class="grab"></div>
+          <div class="sheet-hd">
+            <h2>EDITAR Q&A</h2>
+            <div class="acts">
+              <button type="button" class="btn-icon" aria-label="Duplicar">
+                <svg viewBox="0 0 24 24">
+                  <rect x="8" y="8" width="12" height="12" rx="2" />
+                  <path d="M4 16V6a2 2 0 0 1 2-2h10" />
+                </svg>
+              </button>
+              <button type="button" class="btn-icon" aria-label="Eliminar">
+                <svg viewBox="0 0 24 24">
+                  <path d="M3 6h18" />
+                  <path d="M8 6V4h8v2" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                </svg>
+              </button>
+              <button type="button" class="btn-icon" aria-label="Cerrar">
+                <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12" /></svg>
+              </button>
+            </div>
+          </div>
+          <div class="sheet-tabs">
+            <span class="on">STYLE</span>
+            <span>TRANSFORM</span>
+            <span>LAYERS</span>
+          </div>
+          <div class="field">
+            <label><span>PROMPT</span><span>25/120</span></label>
+            <textarea readonly>¿Qué quieres saber de mí?</textarea>
+          </div>
+          <p class="hint">
+            Sheet ≠ guides. Arrastra el sticker para ver top 14% / bottom 20%.
+          </p>
+        </div>
+
+        <div class="text-dock hidden" id="text-dock">
+          <div class="style-strip">
+            <span class="swatch on" style="background: #fff"></span>
+            <span class="swatch" style="background: #111; border-color: #444"></span>
+            <span class="swatch" style="background: var(--brand)"></span>
+            <span class="swatch" style="background: var(--coral)"></span>
+            <span class="swatch" style="background: var(--brand-blue)"></span>
+            <span class="chip on">Clásico</span>
+            <span class="chip">Moderno</span>
+            <span class="chip">Neón</span>
+            <span class="chip">Aa</span>
+          </div>
+          <div class="kb">Teclado · tipar on-canvas · strip única (fuentes bajo Aa)</div>
+        </div>
+
+        <div class="legend" id="phone-legend">Idle · guides OFF</div>
+      </div>
+
+      <!-- DESKTOP SHELL -->
+      <div class="desktop hidden" id="desktop">
+        <div class="topbar">
+          <button type="button" class="btn-icon" aria-label="Cerrar">
+            <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          </button>
+          <div class="btn-row">
+            <button type="button" class="btn-icon" aria-label="Deshacer">
+              <svg viewBox="0 0 24 24">
+                <path d="M3 7v6h6" />
+                <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6.36 2.64L3 13" />
+              </svg>
+            </button>
+            <button type="button" class="btn-icon" aria-label="Rehacer">
+              <svg viewBox="0 0 24 24">
+                <path d="M21 7v6h-6" />
+                <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6.36 2.64L21 13" />
+              </svg>
+            </button>
+          </div>
+          <button type="button" class="btn-pill">
+            Listo
+            <svg viewBox="0 0 24 24">
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          </button>
+        </div>
+        <div class="stage" id="desktop-stage">
+          <div class="story-canvas" id="desktop-canvas">
+            <img
+              class="bg"
+              alt=""
+              draggable="false"
+              src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=1080&h=1920&q=80"
+            />
+            <div class="guides" aria-hidden="true">
+              <div class="g-top"></div>
+              <div class="g-bot"></div>
+            </div>
+            <div class="layer-text" data-drag>Buenas noches</div>
+            <div class="layer-qna" data-drag>
+              <div class="tag"><i>?</i> Q&A</div>
+              <div class="prompt">¿Qué quieres saber de mí?</div>
+              <div class="fake-input">Escribe tu respuesta...</div>
+            </div>
+          </div>
+        </div>
+        <div class="rail">
+          <button type="button">
+            <svg viewBox="0 0 24 24">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="m21 15-5-5L5 21" />
+            </svg>
+            Fondo
+          </button>
+          <button type="button">
+            <svg viewBox="0 0 24 24">
+              <path d="M4 7V4h16v3" />
+              <path d="M9 20h6" />
+              <path d="M12 4v16" />
+            </svg>
+            Texto
+          </button>
+          <button type="button">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+              <line x1="9" x2="9.01" y1="9" y2="9" />
+              <line x1="15" x2="15.01" y1="9" y2="9" />
+            </svg>
+            Stickers
+          </button>
+          <button type="button">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
+              />
+            </svg>
+            Plantillas
+          </button>
+          <button type="button">
+            <svg viewBox="0 0 24 24">
+              <path d="m12 19 7-7 3 3-7 7-3-3z" />
+              <path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+              <path d="m2 2 7.586 7.586" />
+            </svg>
+            Dibujar
+          </button>
+          <button type="button">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="1" />
+              <circle cx="19" cy="12" r="1" />
+              <circle cx="5" cy="12" r="1" />
+            </svg>
+            Más
+          </button>
+        </div>
+        <div class="legend">Desktop · mismo canvas 9:16 · hold para guides</div>
+      </div>
+    </div>
+
+    <script>
+      const TARGET = 9 / 16;
+      const phone = document.getElementById("phone");
+      const desktop = document.getElementById("desktop");
+      const canvas = document.getElementById("canvas");
+      const desktopCanvas = document.getElementById("desktop-canvas");
+      const stage = document.getElementById("stage");
+      const desktopStage = document.getElementById("desktop-stage");
+      const measureEl = document.getElementById("measure");
+      const legend = document.getElementById("phone-legend");
+      const layerText = document.getElementById("layer-text");
+      const layerQna = document.getElementById("layer-qna");
+
+      const ui = {
+        topDefault: document.getElementById("topbar-default"),
+        topText: document.getElementById("topbar-text"),
+        rail: document.getElementById("rail"),
+        sheet: document.getElementById("sheet"),
+        textDock: document.getElementById("text-dock"),
+      };
+
+      function fitCanvas(stageEl, canvasEl) {
+        const padX = 24;
+        const padY = 16;
+        const sw = stageEl.clientWidth - padX;
+        const sh = stageEl.clientHeight - padY;
+        if (sw <= 0 || sh <= 0) return null;
+        // Max 9:16 rect inside stage
+        let w = sw;
+        let h = w / TARGET;
+        if (h > sh) {
+          h = sh;
+          w = h * TARGET;
+        }
+        canvasEl.style.width = `${Math.round(w)}px`;
+        canvasEl.style.height = `${Math.round(h)}px`;
+        return { w, h, ratio: w / h };
+      }
+
+      function sizeAll() {
+        const mobile = !phone.classList.contains("hidden");
+        const r = mobile
+          ? fitCanvas(stage, canvas)
+          : fitCanvas(desktopStage, desktopCanvas);
+        if (!r) return;
+        const err = Math.abs(r.ratio - TARGET);
+        const ok = err < 0.002;
+        const mode = phone.dataset.mode || "desktop";
+        const dragging = (mobile ? canvas : desktopCanvas).classList.contains(
+          "is-dragging",
+        );
+        measureEl.innerHTML = `Canvas <strong>${Math.round(r.w)}×${Math.round(r.h)}</strong> · ratio <strong class="${ok ? "ok" : "bad"}">${r.ratio.toFixed(4)}</strong> (target 0.5625) · guides <strong>${dragging || mode === "drag" ? "ON" : "OFF"}</strong> · mode <strong>${mode}</strong>`;
+      }
+
+      function setMode(mode) {
+        const isDesktop = mode === "desktop";
+        phone.classList.toggle("hidden", isDesktop);
+        desktop.classList.toggle("hidden", !isDesktop);
+        if (isDesktop) {
+          phone.dataset.mode = "desktop";
+          sizeAll();
+          return;
+        }
+
+        phone.dataset.mode = mode;
+        const isText = mode === "text";
+        const isEdit = mode === "edit";
+        const isDrag = mode === "drag";
+
+        ui.topDefault.classList.toggle("hidden", isText);
+        ui.topText.classList.toggle("hidden", !isText);
+        ui.rail.classList.toggle("hidden", isEdit || isText);
+        ui.sheet.classList.toggle("hidden", !isEdit);
+        ui.textDock.classList.toggle("hidden", !isText);
+
+        canvas.classList.toggle("is-dim", isText);
+        canvas.classList.toggle("is-dragging", isDrag);
+        layerQna.classList.toggle("is-selected", isEdit || isDrag || mode === "idle");
+        layerQna.classList.toggle("is-dim", isText);
+        layerText.innerHTML = isText
+          ? 'Buenas noches<span class="caret"></span>'
+          : "Buenas noches";
+
+        const labels = {
+          idle: "Idle · guides OFF · hold capa para ver",
+          drag: "Arrastrando · guides ON (14% / 20%)",
+          edit: "Edit Q&A · guides OFF (hold sticker)",
+          text: "Text takeover · guides OFF",
+        };
+        legend.textContent = labels[mode] || mode;
+
+        requestAnimationFrame(sizeAll);
+      }
+
+      document.querySelectorAll(".tabs button").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document
+            .querySelectorAll(".tabs button")
+            .forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          setMode(btn.dataset.view);
+        });
+      });
+
+      function bindDrag(canvasEl) {
+        canvasEl.querySelectorAll(".layer-text, .layer-qna").forEach((el) => {
+          el.addEventListener("pointerdown", (e) => {
+            if (phone.dataset.mode === "text") return;
+            e.preventDefault();
+            canvasEl.classList.add("is-dragging");
+            sizeAll();
+          });
+        });
+        window.addEventListener("pointerup", () => {
+          if (phone.dataset.mode === "drag") return; // sticky demo
+          canvasEl.classList.remove("is-dragging");
+          sizeAll();
+        });
+      }
+      bindDrag(canvas);
+      bindDrag(desktopCanvas);
+
+      window.addEventListener("resize", sizeAll);
+      setMode("idle");
+      sizeAll();
+    </script>
+  </body>
+</html>

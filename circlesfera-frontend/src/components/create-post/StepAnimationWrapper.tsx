@@ -7,11 +7,9 @@ interface StepAnimationWrapperProps extends HTMLMotionProps<'div'> {
   children: React.ReactNode;
 }
 
-/**
- * Variants for the step transition animation.
- * Slides in from the right when going forward (direction > 0)
- * and from the left when going backward (direction < 0).
- */
+// Variants for the step transition animation.
+// Slides in from the right when going forward (direction > 0)
+// And from the left when going backward (direction < 0).
 const variants = {
   enter: (direction: number) => ({
     x: direction > 0 ? 50 : -50,

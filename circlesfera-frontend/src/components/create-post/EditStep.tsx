@@ -12,8 +12,11 @@ interface EditStepProps {
   mode: CreateMode;
   setMode: (mode: CreateMode) => void;
   setCurrentEditIndex: (index: number | null) => void;
+  /** When set (composed story), pencil reopens StoryComposer instead of PhotoEditor. */
+  onEditMedia?: () => void;
   handleRemoveFile: (index: number) => void;
   fileInputRef: MutableRefObject<HTMLInputElement | null>;
+  allowModeSwitch?: boolean;
 }
 
 const MODE_CONFIG = {
@@ -43,7 +46,7 @@ const MODE_CONFIG = {
   },
 } as const;
 
-/** Largest box of ratioW:ratioH that fits inside availW×availH. */
+// Largest box of ratioW:ratioH that fits inside availW×availH.
 export function fitAspectBox(
   availW: number,
   availH: number,
@@ -71,8 +74,10 @@ export default function EditStep({
   mode,
   setMode,
   setCurrentEditIndex,
+  onEditMedia,
   handleRemoveFile,
   fileInputRef,
+  allowModeSwitch = true,
 }: EditStepProps) {
   const { t } = useTranslation();
   const config = MODE_CONFIG[mode];
@@ -88,7 +93,16 @@ export default function EditStep({
 
     const measure = () => {
       const { clientWidth, clientHeight } = host;
-      setFrameSize(fitAspectBox(clientWidth, clientHeight, ratioW, ratioH));
+      let box = fitAspectBox(clientWidth, clientHeight, ratioW, ratioH);
+      // Soft cap so story/frame read as a phone card (matches StoryComposer scale)
+      const maxW = ratioW === 9 && ratioH === 16 ? 300 : 400;
+      if (box.width > maxW) {
+        box = {
+          width: maxW,
+          height: Math.floor((maxW * ratioH) / ratioW),
+        };
+      }
+      setFrameSize(box);
     };
 
     measure();
@@ -102,110 +116,141 @@ export default function EditStep({
   }, [ratioW, ratioH]);
 
   return (
-    <div className="flex-1 bg-surface-base flex flex-col h-full w-full overflow-hidden min-h-0">
+    <div className="flex-1 bg-surface-elevated flex flex-col h-full w-full overflow-hidden min-h-0">
+      {/* Outer padding: STORY full-bleed on mobile; framed card for Post/Frame + md+ */}
       <div
-        ref={hostRef}
-        className="flex-1 relative bg-surface-base flex items-center justify-center overflow-hidden min-h-0 w-full"
+        className={`flex-1 relative bg-zinc-950/40 flex items-center justify-center overflow-hidden min-h-0 w-full ${
+          mode === 'STORY'
+            ? 'px-0 py-0 md:px-8 md:py-4'
+            : 'px-4 py-3 md:px-8 md:py-4'
+        }`}
       >
         <div
-          data-testid="edit-preview-frame"
-          data-aspect={`${ratioW}:${ratioH}`}
-          className="relative overflow-hidden bg-black shrink-0 rounded-xl md:rounded-2xl border border-white/6"
-          style={{
-            width: frameSize.width || undefined,
-            height: frameSize.height || undefined,
-            aspectRatio:
-              frameSize.width === 0 ? `${ratioW} / ${ratioH}` : undefined,
-            maxWidth: '100%',
-            maxHeight: '100%',
-          }}
+          ref={hostRef}
+          className="relative h-full w-full max-w-full flex items-center justify-center min-h-0"
         >
-          <Carousel
-            media={mediaFiles.map((m) => ({
-              id: m.url,
-              url: m.url,
-              type: m.type,
-              filter: m.filter,
-            }))}
-            aspectRatio="none"
-            objectFit="cover"
-            className="absolute inset-0 h-full! w-full!"
-          />
+          <div
+            data-testid="edit-preview-frame"
+            data-aspect={`${ratioW}:${ratioH}`}
+            className={`relative overflow-hidden bg-black shrink-0 ${
+              mode === 'STORY'
+                ? 'rounded-none border-0 md:rounded-[32px] md:border md:border-white/10 md:shadow-[0_12px_48px_rgba(0,0,0,0.55)]'
+                : 'rounded-[28px] md:rounded-[32px] border border-white/10 shadow-[0_12px_48px_rgba(0,0,0,0.55)]'
+            }`}
+            style={{
+              width: frameSize.width || undefined,
+              height: frameSize.height || undefined,
+              aspectRatio:
+                frameSize.width === 0 ? `${ratioW} / ${ratioH}` : undefined,
+              maxWidth: '100%',
+              maxHeight: '100%',
+            }}
+          >
+            <Carousel
+              media={mediaFiles.map((m) => ({
+                id: m.url,
+                url: m.url,
+                type: m.type,
+                filter: m.filter,
+              }))}
+              aspectRatio="none"
+              objectFit="cover"
+              className="absolute inset-0 h-full! w-full!"
+            />
 
-          <button
-            type="button"
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-4 h-11
+            <button
+              type="button"
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-4 h-11
                        bg-black/60 border border-white/15 rounded-full
                        text-white shadow-lg active:scale-95 transition-transform
                        outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-            onClick={() => setCurrentEditIndex(0)}
-            aria-label={t('createPost.edit.edit_media')}
-          >
-            <Pencil size={16} strokeWidth={2} />
-            <span className="text-sm font-bold">
-              {t('createPost.edit.edit_media')}
-            </span>
-          </button>
+              onClick={() => {
+                if (onEditMedia) onEditMedia();
+                else setCurrentEditIndex(0);
+              }}
+              aria-label={
+                onEditMedia
+                  ? t('createPost.edit.edit_story')
+                  : t('createPost.edit.edit_media')
+              }
+            >
+              <Pencil size={16} strokeWidth={2} />
+              <span className="text-sm font-bold">
+                {onEditMedia
+                  ? t('createPost.edit.edit_story')
+                  : t('createPost.edit.edit_media')}
+              </span>
+            </button>
 
-          <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-black/50 border border-white/10 text-xs font-bold text-white/60 uppercase tracking-wider pointer-events-none">
-            {config.badge}
-          </div>
-
-          {mediaFiles.length > 1 && (
-            <div className="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-black/50 border border-white/10 text-xs font-bold text-white/60 pointer-events-none">
-              {t('createPost.edit.n_files', { count: mediaFiles.length })}
+            <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-black/50 border border-white/10 text-xs font-bold text-white/60 uppercase tracking-wider pointer-events-none">
+              {config.badge}
             </div>
-          )}
+
+            {mediaFiles.length > 1 && (
+              <div className="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-black/50 border border-white/10 text-xs font-bold text-white/60 pointer-events-none">
+                {t('createPost.edit.n_files', { count: mediaFiles.length })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="py-2 px-3 bg-surface-elevated border-t border-white/6 flex justify-center z-10 shrink-0">
-        <div
-          className="flex bg-white/3 rounded-xl p-0.5 border border-white/5"
-          role="tablist"
-          aria-label={t('createPost.upload.mode_switcher')}
-        >
-          {(['POST', 'STORY', 'FRAME'] as const).map((m) => {
-            const cfg = MODE_CONFIG[m];
-            const Icon = cfg.icon;
-            const isActive = mode === m;
-            return (
-              <button
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                key={m}
-                onClick={() => setMode(m)}
-                className="relative min-h-11 px-3 rounded-lg flex items-center gap-1.5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="edit-mode-pill"
-                    className="absolute inset-0 bg-white/7 border border-white/8 rounded-lg"
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
-                )}
-                <Icon
-                  size={13}
-                  className={`relative z-10 ${isActive ? cfg.accent : 'text-white/20'}`}
-                  strokeWidth={2}
-                />
-                <span
-                  className={`relative z-10 text-xs font-bold tracking-wide ${
-                    isActive ? 'text-white' : 'text-white/25'
-                  }`}
+      {allowModeSwitch ? (
+        <div className="py-2 px-3 bg-surface-elevated border-t border-white/6 flex justify-center z-10 shrink-0">
+          <div
+            className="flex w-full max-w-sm bg-white/3 rounded-xl p-0.5 border border-white/5"
+            role="tablist"
+            aria-label={t('createPost.upload.mode_switcher')}
+          >
+            {(['POST', 'STORY', 'FRAME'] as const).map((m) => {
+              const cfg = MODE_CONFIG[m];
+              const Icon = cfg.icon;
+              const isActive = mode === m;
+              return (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className="relative flex-1 min-h-11 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/20"
                 >
-                  {t(`createPost.edit.${cfg.label.toLowerCase()}`)}
-                </span>
-              </button>
-            );
-          })}
+                  {isActive && (
+                    <motion.div
+                      layoutId="edit-mode-pill"
+                      className="absolute inset-0 bg-white/7 border border-white/8 rounded-lg"
+                      transition={{
+                        type: 'spring',
+                        stiffness: 400,
+                        damping: 30,
+                      }}
+                    />
+                  )}
+                  <Icon
+                    size={13}
+                    className={`relative z-10 ${isActive ? cfg.accent : 'text-white/20'}`}
+                    strokeWidth={2}
+                  />
+                  <span
+                    className={`relative z-10 text-xs font-bold tracking-wide ${
+                      isActive ? 'text-white' : 'text-white/25'
+                    }`}
+                  >
+                    {t(`createPost.edit.${cfg.label.toLowerCase()}`)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div
         ref={thumbnailContainerRef}
         className="h-22 bg-surface-elevated border-t border-white/4 flex items-center px-3 gap-2.5 overflow-x-auto no-scrollbar shrink-0"
+        style={{
+          paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
+        }}
       >
         <AnimatePresence>
           {mediaFiles.map((item, idx) => {
@@ -224,8 +269,15 @@ export default function EditStep({
                 <button
                   type="button"
                   className="w-15 h-15 rounded-xl overflow-hidden border border-white/10 hover:border-white/25 transition-all cursor-pointer appearance-none bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-                  onClick={() => setCurrentEditIndex(idx)}
-                  aria-label={t('createPost.edit.edit_media')}
+                  onClick={() => {
+                    if (onEditMedia) onEditMedia();
+                    else setCurrentEditIndex(idx);
+                  }}
+                  aria-label={
+                    onEditMedia
+                      ? t('createPost.edit.edit_story')
+                      : t('createPost.edit.edit_media')
+                  }
                 >
                   {item.type === 'video' ? (
                     <div className="relative w-full h-full">

@@ -12,6 +12,9 @@ interface StoryControlsBarProps {
   onManageCloseFriends: () => void;
 }
 
+const pill =
+  'flex items-center gap-2 min-h-11 px-4 rounded-full text-xs font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/25';
+
 export default function StoryControlsBar({
   setShowMusicPicker,
   selectedAudio,
@@ -42,14 +45,14 @@ export default function StoryControlsBar({
         <button
           type="button"
           onClick={() => setShowMusicPicker(true)}
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition-all max-w-[45%] truncate ${
+          className={`${pill} max-w-[45%] truncate ${
             selectedAudio
               ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20'
               : 'bg-white/6 text-white/70 hover:bg-white/10'
           }`}
         >
           <MusicIcon
-            size={12}
+            size={14}
             className={selectedAudio ? 'fill-white shrink-0' : 'shrink-0'}
           />
           <span className="truncate">
@@ -62,13 +65,13 @@ export default function StoryControlsBar({
         <button
           type="button"
           onClick={handleCloseFriendsToggle}
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+          className={`${pill} ${
             isCloseFriendsOnly
               ? 'bg-green-500 text-white shadow-lg shadow-green-500/20'
               : 'bg-white/6 text-white/70 hover:bg-white/10'
           }`}
         >
-          <Star size={12} className={isCloseFriendsOnly ? 'fill-white' : ''} />
+          <Star size={14} className={isCloseFriendsOnly ? 'fill-white' : ''} />
           {isCloseFriendsOnly
             ? t('createPost.story.close_friends')
             : t('createPost.story.your_story')}
@@ -82,9 +85,9 @@ export default function StoryControlsBar({
           onClick={onManageCloseFriends}
           aria-label={t('createPost.story.manage_close_friends')}
           title={t('createPost.story.manage_close_friends')}
-          className="flex items-center justify-center w-9 h-9 rounded-full bg-white/6 text-white/70 hover:bg-white/10 hover:text-white transition-all shrink-0"
+          className="flex items-center justify-center min-w-11 min-h-11 rounded-full bg-white/6 text-white/70 hover:bg-white/10 hover:text-white transition-all shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/25"
         >
-          <UserPlus size={14} />
+          <UserPlus size={16} />
         </button>
       </div>
     </motion.div>

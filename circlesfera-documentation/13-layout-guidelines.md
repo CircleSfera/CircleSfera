@@ -218,6 +218,8 @@ If any answer is NO,
 the layout is incomplete.
 
 # 17. Feed Layout
+
+Feed routes use the **`stream`** shell (full app chrome). Story strip and post list form one vertical composition — not a dashboard of cards. Post actions use shared `InteractionRail` (horizontal). See ADR-0017.
 ## 17.1 Purpose
 The Feed is the primary experience of CircleSfera.
 Every design decision should maximize content discovery, readability and interaction efficiency.
@@ -495,6 +497,21 @@ Reply hierarchy should remain understandable using assistive technologies.
 ✓ Accessible interactions
 ---
 # 19. Create Post
+## 19.0 Content presentation shell
+
+Route `/create` (and Studio `/edits`) use the **`create`** shell: no TopNav/BottomNav, document scroll locked. Live broadcast uses **`broadcast`** (same chrome). Helper: `getContentShell(pathname)` — see ADR-0017.
+
+The create product surface is **ContentComposerPage** (`/create`), not a modal. Destacadas open via `uiStore.openCreateHighlight()` (legacy `?action=highlights` deep-link preserved). Mode entry is **CreateBottomSheet** → `/create?mode=*`.
+
+### Dual-path Content Composer IA (ADR-0018)
+
+| Path | Modes | Structure |
+| --- | --- | --- |
+| Immersive canvas | STORY (incl. Círculo) | Full-bleed mobile editor; minimal header; icon tool rail; panels as bottom sheets; Poll/Q&A under More |
+| Stepped | POST, FRAME | Upload → Edit → Caption via shared `ComposerChrome`; PhotoEditor overlay matches the same header pattern |
+
+**Mobile First:** design and accept at **390×844** first. Story on mobile is full-bleed (no phone bezel). Framed 9:16 preview and floating card are `md+` only. Explicit `?mode=story|frame|circle` locks the in-flow mode switcher so entry owns mode identity.
+
 ## 19.1 Purpose
 The Create Post experience should minimize friction between intent and publication.
 Users should be able to publish content quickly while retaining access to advanced capabilities.
@@ -594,6 +611,10 @@ Dynamic font sizes
 ✓ Reliable recovery
 
 # 20. Stories
+## 20.0 Content presentation shell
+
+Story playback uses the **`playback`** shell (immersive overlay). Ownership is exclusive to `useStoryStore` + a single `StoryViewer` in `LayoutWrapper`. Profile rings and highlight routes call `openStories()`; they must not mount a second viewer.
+
 ## 20.1 Purpose
 Stories provide lightweight, temporary content intended for rapid consumption.
 Stories should prioritize immediacy over permanence.
@@ -697,6 +718,10 @@ Alternative controls should always exist.
 ✓ Accessible controls
 ---
 # 21. Frames
+## 21.0 Content presentation shell
+
+Route `/frames` uses the **`vertical`** shell: TopNav + BottomNav remain; viewport height is locked for snap scrolling. Action rail uses shared `InteractionRail` (vertical variant) with safe-area padding so gestures do not fight BottomNav.
+
 ## 21.1 Purpose
 Frames are CircleSfera's short-form video experience.
 The objective is continuous content discovery with minimal interaction cost.

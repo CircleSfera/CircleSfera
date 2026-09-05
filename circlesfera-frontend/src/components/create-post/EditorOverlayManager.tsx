@@ -72,7 +72,7 @@ export default function EditorOverlayManager({
       <Suspense
         fallback={
           <div className="fixed inset-0 z-50 bg-black flex items-center justify-center text-white font-medium">
-            {t('create.edit.loading_story_editor')}
+            {t('createPost.edit.loading_story_editor')}
           </div>
         }
       >
@@ -104,7 +104,7 @@ export default function EditorOverlayManager({
       <Suspense
         fallback={
           <div className="fixed inset-0 z-50 bg-black flex items-center justify-center text-white font-medium">
-            {t('create.edit.loading_media_editor')}
+            {t('createPost.edit.loading_media_editor')}
           </div>
         }
       >
@@ -112,7 +112,7 @@ export default function EditorOverlayManager({
           {isProcessingEdit && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
               <div className="text-white font-bold animate-pulse">
-                {t('create.edit.processing_media')}
+                {t('createPost.edit.processing_media')}
               </div>
             </div>
           )}
@@ -127,7 +127,7 @@ export default function EditorOverlayManager({
                   return { ...m, filter: filterString };
                 }),
               );
-              toast.success(t('create.edit.filters_applied_all'));
+              toast.success(t('createPost.edit.filters_applied_all'));
             }}
           />
         </div>

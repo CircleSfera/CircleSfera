@@ -13,77 +13,17 @@ import Cropper from 'react-easy-crop';
 import { useTranslation } from 'react-i18next';
 import type { OverlayElement } from '../services/edits.service';
 import CanvasOverlay from './CanvasOverlay';
+import {
+  DEFAULT_PHOTO_ADJUSTMENTS,
+  PHOTO_ADJUSTMENT_CONFIG,
+  PHOTO_FILTERS,
+  type PhotoAdjustments,
+} from './photo-editor/photoEditor.constants';
 
-const FILTERS = [
-  { name: 'Normal', class: '' },
-  { name: 'Clarendon', class: 'brightness-110 contrast-125 saturate-125' },
-  { name: 'Gingham', class: 'brightness-105 hue-rotate-350 contrast-90' },
-  { name: 'Moon', class: 'grayscale brightness-110 contrast-110' },
-  {
-    name: 'Lark',
-    class: 'brightness-105 contrast-90 saturate-125 sepia-[.15]',
-  },
-  {
-    name: 'Reyes',
-    class: 'sepia-[.20] brightness-110 contrast-85 saturate-75',
-  },
-  {
-    name: 'Juno',
-    class: 'contrast-115 brightness-115 saturate-140 sepia-[.15]',
-  },
-  { name: 'Slumber', class: 'brightness-105 saturate-65 sepia-[.20]' },
-  { name: 'Crema', class: 'sepia-[.25] contrast-125 brightness-115' },
-  { name: 'Ludwig', class: 'sepia-[.10] saturate-200 brightness-105' },
-  {
-    name: 'Aden',
-    class: 'sepia-[.20] brightness-120 saturate-85 hue-rotate-340',
-  },
-  { name: 'Perpetua', class: 'contrast-110 brightness-125 saturate-110' },
-];
-
-interface Adjustments {
-  brightness: number;
-  contrast: number;
-  saturation: number;
-  sepia: number;
-  grayscale: number;
-  hue: number;
-  blur: number;
-  temperature: number;
-  vignette: number;
-  noise: number;
-}
-
-const DEFAULT_ADJUSTMENTS: Adjustments = {
-  brightness: 100,
-  contrast: 100,
-  saturation: 100,
-  sepia: 0,
-  grayscale: 0,
-  hue: 0,
-  blur: 0,
-  temperature: 100,
-  vignette: 0,
-  noise: 0,
-};
-
-const ADJUSTMENT_CONFIG: {
-  key: keyof Adjustments;
-  label: string;
-  min: number;
-  max: number;
-  unit: string;
-}[] = [
-  { key: 'brightness', label: 'Brightness', min: 0, max: 200, unit: '%' },
-  { key: 'contrast', label: 'Contrast', min: 0, max: 200, unit: '%' },
-  { key: 'saturation', label: 'Saturation', min: 0, max: 200, unit: '%' },
-  { key: 'temperature', label: 'Temperature', min: 0, max: 200, unit: '%' },
-  { key: 'vignette', label: 'Vignette', min: 0, max: 100, unit: '%' },
-  { key: 'noise', label: 'Noise / Grain', min: 0, max: 100, unit: '%' },
-  { key: 'blur', label: 'Blur', min: 0, max: 10, unit: 'px' },
-  { key: 'sepia', label: 'Sepia', min: 0, max: 100, unit: '%' },
-  { key: 'grayscale', label: 'Grayscale', min: 0, max: 100, unit: '%' },
-];
+type Adjustments = PhotoAdjustments;
+const DEFAULT_ADJUSTMENTS = DEFAULT_PHOTO_ADJUSTMENTS;
+const FILTERS = PHOTO_FILTERS;
+const ADJUSTMENT_CONFIG = PHOTO_ADJUSTMENT_CONFIG;
 
 export interface CropData {
   x: number;
@@ -241,7 +181,7 @@ export default function PhotoEditor({
     updateDims();
     window.addEventListener('resize', updateDims);
     return () => window.removeEventListener('resize', updateDims);
-  }, []); // re-calculate when tabs change
+  }, []); // Re-calculate when tabs change
 
   const onCropComplete = useCallback(
     (_croppedArea: any, croppedAreaPixels: any) => {
@@ -344,19 +284,20 @@ export default function PhotoEditor({
 
   return (
     <div className="flex flex-col h-full bg-black text-white">
-      {/* Header */}
-      <div className="flex justify-between items-center px-2 py-1 border-b border-white/6 bg-black z-10">
+      {/* Header — same glass icon language as StoryComposerChrome (ADR-0018) */}
+      <header className="flex justify-between items-center gap-2 shrink-0 z-10 px-3.5 pb-1.5 pt-[max(0.75rem,calc(env(safe-area-inset-top,0px)+0.35rem))] bg-linear-to-b from-black via-black/90 to-transparent">
         <button
           type="button"
           onClick={onCancel}
-          className="p-2 hover:bg-white/6 rounded-xl transition-colors text-white/60 hover:text-white"
+          className="min-w-11 min-h-11 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/16 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+          aria-label={t('createPost.edit.cancel')}
         >
-          <X size={20} />
+          <X size={18} strokeWidth={2} />
         </button>
-        <div className="text-sm font-bold tracking-tight text-white/80">
-          {t('create.edit.edit_media')}
-        </div>
-        <div className="flex items-center gap-2">
+        <h1 className="text-[15px] font-bold tracking-tight text-white truncate flex-1 text-center px-1">
+          {t('createPost.edit.edit_media')}
+        </h1>
+        <div className="flex items-center gap-1.5 shrink-0">
           {onApplyToAll && (
             <button
               type="button"
@@ -364,20 +305,21 @@ export default function PhotoEditor({
                 const filterString = `filter-class:${selectedFilter.class}__style:${computedStyle.filter}__temp:${adjustments.temperature}__vignette:${adjustments.vignette}__noise:${adjustments.noise}`;
                 onApplyToAll(filterString);
               }}
-              className="px-3 py-1.5 text-xs font-bold bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
+              className="min-h-11 px-3 text-xs font-bold bg-white/10 hover:bg-white/16 rounded-full text-white transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
             >
-              {t('create.edit.apply_to_all')}
+              {t('createPost.edit.apply_to_all')}
             </button>
           )}
           <button
             type="button"
             onClick={handleSave}
-            className="p-2 text-brand-primary hover:text-brand-primary/80 hover:bg-brand-primary/10 rounded-xl transition-all"
+            className="min-h-11 px-4 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-brand-primary/25 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
+            aria-label={t('createPost.edit.done')}
           >
-            <Check size={20} />
+            {t('createPost.edit.done')} <Check size={14} strokeWidth={2.5} />
           </button>
         </div>
-      </div>
+      </header>
 
       {/* Preview Area */}
       <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-zinc-950 min-h-0">
@@ -541,7 +483,7 @@ export default function PhotoEditor({
                   activeAdjustment === adj.key ? (
                     <AdjustmentSlider
                       key={adj.key}
-                      label={adj.label}
+                      label={t(`createPost.edit.adjust.${adj.labelKey}`)}
                       value={adjustments[adj.key]}
                       defaultValue={DEFAULT_ADJUSTMENTS[adj.key]}
                       min={adj.min}
@@ -824,7 +766,7 @@ export default function PhotoEditor({
                               : 'text-white/20 hover:text-white/40'
                         }`}
                       >
-                        {adj.label}
+                        {t(`createPost.edit.adjust.${adj.labelKey}`)}
                         {isModified && !isActive && (
                           <span className="ml-1 w-1 h-1 bg-brand-primary rounded-full inline-block" />
                         )}

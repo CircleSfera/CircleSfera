@@ -170,7 +170,8 @@
       "muted_title": "Muted users",
       "muted_empty": "No muted users",
       "expires_forever": "Forever",
-      "expires_on": "Until {{date}}"
+      "expires_on": "Until {{date}}",
+      "change_duration": "Duration"
     },
     "account": {
       "title": "Account",
@@ -265,7 +266,8 @@
       "status_pending": "Pending",
       "status_approved": "Approved",
       "status_rejected": "Rejected",
-      "type_bot_label": "Possible bot label"
+      "type_bot_label": "Possible bot label",
+      "target_id_from_notification": "Filled from your moderation notification."
     },
     "reports": {
       "title": "Reports",
@@ -552,7 +554,8 @@
     "show_again": "Show again",
     "author_shown": "Author visible again",
     "post_shown": "Post visible again",
-    "error": "Could not update preference"
+    "error": "Could not update preference",
+    "hidden_post_fallback": "Hidden post"
   },
   "explore": {
     "page_title": "Explore the Universe",
@@ -796,7 +799,14 @@
     "cancel": "Cancel",
     "viewers": "Viewers",
     "no_views": "No views yet",
-    "viewer_list_empty": "Viewer list will appear here"
+    "viewer_list_empty": "Viewer list will appear here",
+    "insights_title": "Story activity",
+    "questions_tab": "Questions",
+    "views_tab": "Views",
+    "questions_short": "Q&A",
+    "qna_prompt_label": "Prompt",
+    "no_questions": "No questions yet",
+    "no_questions_desc": "When people answer your Q&A sticker, they show up here."
   },
   "comments": {
     "unlike": "Unlike",
@@ -989,9 +999,9 @@
       "monetization_active": "Paid content",
       "premium_content": "Premium Content (Pay-Per-View)",
       "premium_desc": "Require users to pay to unlock and view this post.",
-      "price_usd": "Price (EUR / USD)",
-      "min_price_warning": "Minimum price is $1.00",
-      "max_price_warning": "Maximum price is $500.00",
+      "price_usd": "Price (EUR)",
+      "min_price_warning": "Minimum price is €1.00",
+      "max_price_warning": "Maximum price is €500.00",
       "creator_earning": "Your earnings (80%):",
       "platform_fee": "Platform fee (20%):",
       "schedule": "Schedule publish",
@@ -1002,11 +1012,15 @@
       "turn_off_comments": "Turn off commenting",
       "turn_off_comments_desc": "You can change this later by going to the ... menu at the top of your post.",
       "mark_sensitive": "Mark as sensitive content",
-      "mark_sensitive_desc": "Graphic violence, strong language, or artistic context. Explicit sexual content is not allowed on CircleSfera and is removed, not filtered."
+      "mark_sensitive_desc": "Graphic violence, strong language, or artistic context. Explicit sexual content is not allowed on CircleSfera and is removed, not filtered.",
+      "price_eur": "Price (EUR)"
     },
     "edit": {
       "edit_media": "Edit Media",
+      "edit_story": "Edit Story",
       "apply_to_all": "Apply to all",
+      "cancel": "Cancel",
+      "done": "Done",
       "filters_applied_all": "Filters applied to all files",
       "loading_story_editor": "Loading story editor…",
       "loading_media_editor": "Loading media editor…",
@@ -1017,7 +1031,18 @@
       "add_more": "Add more media",
       "post": "Post",
       "story": "Story",
-      "frame": "Frame"
+      "frame": "Frame",
+      "adjust": {
+        "brightness": "Brightness",
+        "contrast": "Contrast",
+        "saturation": "Saturation",
+        "temperature": "Temperature",
+        "vignette": "Vignette",
+        "noise": "Noise / Grain",
+        "blur": "Blur",
+        "sepia": "Sepia",
+        "grayscale": "Grayscale"
+      }
     },
     "header": {
       "add_to_story": "Add to Story",
@@ -1074,6 +1099,94 @@
       "create_text_story_desc": "Backgrounds, text & stickers",
       "mode_switcher": "Content type"
     },
+    "storyComposer": {
+      "close": "Close",
+      "undo": "Undo",
+      "redo": "Redo",
+      "post": "Done",
+      "export_error": "Could not create the story image.",
+      "poll_yes": "Yes",
+      "poll_no": "No",
+      "tools": "Story tools",
+      "edit_tools": "Editing tools",
+      "pick_background": "Pick a background to start",
+      "open_backgrounds": "Backgrounds",
+      "hint_start": "Add text, stickers, or pick a template",
+      "hint_edit": "Tap an element to edit · {{count}} on canvas",
+      "tool_background": "Bg",
+      "tool_text": "Text",
+      "tool_stickers": "Stickers",
+      "tool_templates": "Templates",
+      "tool_draw": "Draw",
+      "tool_poll": "Poll",
+      "tool_qna": "Q&A",
+      "tool_more": "More",
+      "layers_empty": "No layers yet",
+      "more_section": "Interactive",
+      "backgrounds": "Backgrounds",
+      "upload": "Upload",
+      "draw_title": "Draw",
+      "clear_drawing": "Clear drawing",
+      "brush_size": "Brush size",
+      "brush_color": "Color",
+      "text_placeholder": "Write something…",
+      "add_text": "Add text",
+      "cancel": "Cancel",
+      "done": "Done",
+      "text_style_classic": "Classic",
+      "text_style_modern": "Modern",
+      "text_style_neon": "Neon",
+      "text_style_box_shadow": "Soft box",
+      "text_style_outline": "Outline",
+      "text_style_shadow": "Drop shadow",
+      "text_style_retro": "Retro",
+      "text_type": "Type options",
+      "text_gradient": "Gradient",
+      "text_solid": "Solid color",
+      "letter_spacing": "Spacing",
+      "width_auto": "Auto",
+      "fonts": "Font",
+      "text_style": "Style",
+      "color": "Color",
+      "font_size": "Size",
+      "blur": "Blur",
+      "darken": "Darken",
+      "templates": "Templates",
+      "poll_title": "Poll",
+      "poll_question_ph": "Ask a question…",
+      "poll_option_1": "Option 1",
+      "poll_option_2": "Option 2",
+      "add_poll": "Add poll",
+      "qna_title": "Q&A",
+      "qna_prompt_ph": "Ask me anything…",
+      "add_qna": "Add Q&A",
+      "poll_question": "Question",
+      "qna_prompt": "Prompt",
+      "poll_create_hint": "Live preview · 2 options",
+      "qna_create_hint": "Live preview · audience answers",
+      "qna_preview_hint": "Write your answer…",
+      "qna_edit_hint": "Drag and scale the sticker. Text wraps to the card width.",
+      "poll_suggestion_1": "Yes or no?",
+      "poll_suggestion_2": "This or that?",
+      "poll_suggestion_3": "Do you like it?",
+      "qna_suggestion_1": "Ask me anything",
+      "qna_suggestion_2": "What do you want to know?",
+      "qna_suggestion_3": "Send me a question",
+      "edit_text": "Edit text",
+      "edit_poll": "Edit poll",
+      "edit_qna": "Edit Q&A",
+      "edit_sticker": "Edit sticker",
+      "duplicate": "Duplicate",
+      "bring_forward": "Bring forward",
+      "send_backward": "Send backward",
+      "center": "Center",
+      "delete": "Delete",
+      "size": "Size",
+      "rotation": "Rotation",
+      "opacity": "Opacity",
+      "interactive_size_hint": "What you see here matches the story. Use the slider to enlarge or shrink.",
+      "canvas_width": "Width"
+    },
     "tags": {
       "title": "Tag People",
       "tap_photo": "Tap photo to tag people",
@@ -1091,7 +1204,9 @@
       "close_friends": "Close Friends",
       "your_story": "Your Story",
       "manage_close_friends": "Manage close friends",
-      "add_close_friends_first": "Add close friends to share stories with them only."
+      "add_close_friends_first": "Add close friends to share stories with them only.",
+      "qna_create_error": "Story published, but Q&A could not be created.",
+      "poll_create_error": "Story published, but the poll could not be created."
     }
   },
   "report": {
@@ -1127,7 +1242,8 @@
       "moderation": "Moderation update: {{content}}",
       "promotion_success": "Promotion Approved! {{content}}",
       "promotion_rejected": "Promotion Rejected. {{content}}"
-    }
+    },
+    "appeal_cta": "Appeal this decision"
   },
   "chat": {
     "loading": "Loading chats...",
@@ -1201,7 +1317,15 @@
       "remove_confirm": "Remove @{{username}} from this group?",
       "leave_confirm": "Leave this group? You will stop receiving new messages.",
       "leave_group": "Leave group"
-    }
+    },
+    "locked_title": "Exclusive message",
+    "locked_subtitle": "Unlock to view this content",
+    "unlock_for": "Unlock for {{price}}",
+    "voice_note": "🎤 Voice note",
+    "decrypting": "Decrypting…",
+    "edited": "edited",
+    "unlock_success": "Message unlocked. Thanks for your support!",
+    "unlock_canceled": "Unlock checkout was canceled."
   },
   "creator": {
     "title": "Creator Studio",
@@ -1416,7 +1540,9 @@
     "vip_community": "VIP Community",
     "vip_desc": "Exclusive access to circles of other certified creators and priority in global discovery.",
     "send_gift": "Send Gift",
-    "send_tip": "Send Tip"
+    "send_tip": "Send Tip",
+    "unlock_for_money": "Unlock for €{{price}}",
+    "failed_to_unlock": "Failed to unlock message"
   },
   "admin": {
     "panel": "Admin Panel",
@@ -2537,6 +2663,8 @@
     "new_collection": "New Collection",
     "collection_name": "Collection Name",
     "placeholder_name": "e.g. Travel, Recipes",
+    "description_label": "Description (optional)",
+    "placeholder_description": "What belongs in this collection?",
     "create": "Create Collection",
     "posts_count": "{{count}} posts",
     "saved_title": "Saved",
@@ -2809,6 +2937,15 @@
       "crown": "Royal Crown",
       "gem": "Diamond",
       "rocket": "Sfera Rocket"
+    },
+    "qna": {
+      "title": "Q&A",
+      "empty_host": "No questions yet.",
+      "empty_viewer": "Ask the first question.",
+      "project": "Project",
+      "clear_screen": "Clear question from screen",
+      "placeholder": "Write your question…",
+      "send": "Send question"
     }
   },
   "common": {
@@ -2882,7 +3019,9 @@
       "highlight_name": "Highlight Name",
       "next": "Next",
       "creating": "Creating...",
-      "done": "Done"
+      "done": "Done",
+      "edit_highlight": "Edit highlight",
+      "save_changes": "Save changes"
     },
     "block": {
       "title": "Block @{{username}}?",
@@ -3135,6 +3274,25 @@
       "email_placeholder": "admin@circlesfera.com",
       "mfa_hint": "Enter the 6-digit code from your authenticator app.",
       "back": "Back"
+    }
+  },
+  "interactive": {
+    "poll": {
+      "title": "Poll",
+      "loading": "Loading poll…",
+      "votes_one": "{{count}} vote",
+      "votes_other": "{{count}} votes",
+      "voted": "✓ Vote recorded"
+    },
+    "qna": {
+      "title": "Q&A",
+      "default_prompt": "Ask me anything…",
+      "placeholder": "Write your answer…",
+      "sent": "Answer sent to the creator!",
+      "answers_heading_one": "{{count}} answer",
+      "answers_heading_other": "{{count}} answers",
+      "loading_answers": "Loading answers…",
+      "no_answers": "No answers yet."
     }
   }
 }

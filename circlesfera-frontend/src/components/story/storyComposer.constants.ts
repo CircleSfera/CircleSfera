@@ -1,0 +1,335 @@
+import type { StoryElement } from '../../types';
+
+export const FONTS = [
+  { name: 'Outfit', label: 'Outfit', style: 'sans-serif' },
+  { name: 'Inter', label: 'Inter', style: 'sans-serif' },
+  { name: 'Playfair Display', label: 'Playfair', style: 'serif' },
+  { name: 'Space Grotesk', label: 'Space', style: 'sans-serif' },
+  { name: 'DM Serif Display', label: 'DM Serif', style: 'serif' },
+  { name: 'Bebas Neue', label: 'Bebas', style: 'sans-serif' },
+  { name: 'Pacifico', label: 'Pacifico', style: 'cursive' },
+  { name: 'Permanent Marker', label: 'Marker', style: 'cursive' },
+  { name: 'Dancing Script', label: 'Dancing', style: 'cursive' },
+  { name: 'Caveat', label: 'Caveat', style: 'cursive' },
+] as const;
+
+export const TAKEOVER_TEXT_STYLES: {
+  id: NonNullable<StoryElement['textStyle']>;
+  labelKey: string;
+}[] = [
+  { id: 'classic', labelKey: 'text_style_classic' },
+  { id: 'box', labelKey: 'text_style_modern' },
+  { id: 'box-shadow', labelKey: 'text_style_box_shadow' },
+  { id: 'neon', labelKey: 'text_style_neon' },
+  { id: 'outline', labelKey: 'text_style_outline' },
+  { id: 'shadow', labelKey: 'text_style_shadow' },
+  { id: 'retro', labelKey: 'text_style_retro' },
+];
+
+export const GRADIENT_PRESETS: [string, string][] = [
+  ['#ff6b6b', '#feca57'],
+  ['#a29bfe', '#6c5ce7'],
+  ['#fd79a8', '#e84393'],
+  ['#00cec9', '#0984e3'],
+  ['#55efc4', '#00b894'],
+  ['#fdcb6e', '#e17055'],
+];
+
+export const POLL_QUESTION_MAX = 120;
+export const POLL_OPTION_MAX = 32;
+export const QNA_PROMPT_MAX = 120;
+
+export const POLL_SUGGESTION_KEYS = [
+  'createPost.storyComposer.poll_suggestion_1',
+  'createPost.storyComposer.poll_suggestion_2',
+  'createPost.storyComposer.poll_suggestion_3',
+] as const;
+
+export const QNA_SUGGESTION_KEYS = [
+  'createPost.storyComposer.qna_suggestion_1',
+  'createPost.storyComposer.qna_suggestion_2',
+  'createPost.storyComposer.qna_suggestion_3',
+] as const;
+
+export type StoryTemplate = {
+  name: string;
+  bg: string;
+  elements: Omit<StoryElement, 'id'>[];
+};
+
+export const TEMPLATES: StoryTemplate[] = [
+  {
+    name: 'Quote',
+    bg: 'linear-gradient(135deg, #0c0c1d 0%, #1a1a3e 50%, #2d1b69 100%)',
+    elements: [
+      {
+        type: 'text',
+        content: '"Your quote here"',
+        fontSize: 32,
+        fontFamily: 'Playfair Display',
+        textStyle: 'classic',
+        color: '#FFFFFF',
+        x: 0,
+        y: -20,
+        scale: 1,
+        rotation: 0,
+        width: 280,
+        align: 'center',
+        opacity: 1,
+      },
+      {
+        type: 'text',
+        content: '— Author',
+        fontSize: 16,
+        fontFamily: 'Inter',
+        textStyle: 'classic',
+        color: '#FFFFFF80',
+        x: 0,
+        y: 60,
+        scale: 1,
+        rotation: 0,
+        width: 280,
+        align: 'center',
+        opacity: 0.6,
+      },
+    ],
+  },
+  {
+    name: 'Announce',
+    bg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    elements: [
+      {
+        type: 'sticker',
+        content: '🎉',
+        x: 0,
+        y: -80,
+        scale: 2,
+        rotation: 0,
+        opacity: 1,
+      },
+      {
+        type: 'text',
+        content: 'ANNOUNCEMENT',
+        fontSize: 28,
+        fontFamily: 'Bebas Neue',
+        textStyle: 'box',
+        color: '#FFFFFF',
+        x: 0,
+        y: 20,
+        scale: 1,
+        rotation: 0,
+        width: 300,
+        align: 'center',
+        opacity: 1,
+      },
+      {
+        type: 'text',
+        content: 'Tap to add details...',
+        fontSize: 16,
+        fontFamily: 'Inter',
+        textStyle: 'classic',
+        color: '#FFFFFFAA',
+        x: 0,
+        y: 80,
+        scale: 1,
+        rotation: 0,
+        width: 260,
+        align: 'center',
+        opacity: 0.7,
+      },
+    ],
+  },
+  {
+    name: 'Minimal',
+    bg: '#000000',
+    elements: [
+      {
+        type: 'text',
+        content: 'Your text',
+        fontSize: 48,
+        fontFamily: 'Outfit',
+        textStyle: 'classic',
+        color: '#FFFFFF',
+        x: 0,
+        y: 0,
+        scale: 1,
+        rotation: 0,
+        width: 300,
+        align: 'center',
+        opacity: 1,
+      },
+    ],
+  },
+  {
+    name: 'Gradient',
+    bg: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    elements: [
+      {
+        type: 'text',
+        content: 'HELLO',
+        fontSize: 64,
+        fontFamily: 'Bebas Neue',
+        textStyle: 'classic',
+        color: '#FFFFFF',
+        x: 0,
+        y: 0,
+        scale: 1,
+        rotation: 0,
+        width: 300,
+        align: 'center',
+        opacity: 1,
+      },
+    ],
+  },
+  {
+    name: 'Neon',
+    bg: 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',
+    elements: [
+      {
+        type: 'text',
+        content: 'GLOW',
+        fontSize: 56,
+        fontFamily: 'Permanent Marker',
+        textStyle: 'neon',
+        color: '#00ff88',
+        x: 0,
+        y: 0,
+        scale: 1,
+        rotation: 0,
+        width: 300,
+        align: 'center',
+        opacity: 1,
+      },
+    ],
+  },
+];
+
+export const STICKER_CATEGORIES = [
+  {
+    label: 'Popular',
+    items: [
+      '🔥',
+      '❤️',
+      '😂',
+      '😍',
+      '🎉',
+      '👍',
+      '👏',
+      '💯',
+      '✨',
+      '🙌',
+      '💕',
+      '😎',
+      '🥳',
+      '💪',
+      '😊',
+    ],
+  },
+  {
+    label: 'Faces',
+    items: [
+      '😀',
+      '😃',
+      '😄',
+      '😁',
+      '🤣',
+      '😅',
+      '😆',
+      '🥹',
+      '🤪',
+      '😜',
+      '🤩',
+      '🥰',
+      '😇',
+      '🤗',
+      '🤭',
+    ],
+  },
+  {
+    label: 'Reactions',
+    items: [
+      '💀',
+      '😭',
+      '🫠',
+      '🤯',
+      '🫣',
+      '🤔',
+      '😤',
+      '😈',
+      '👀',
+      '🫡',
+      '👁️',
+      '🫶',
+      '🤌',
+      '💅',
+      '🙄',
+    ],
+  },
+  {
+    label: 'Objects',
+    items: [
+      '🎯',
+      '💎',
+      '🏆',
+      '🎨',
+      '📸',
+      '🎵',
+      '🌟',
+      '⚡',
+      '🦋',
+      '🌈',
+      '🍕',
+      '☕',
+      '🎭',
+      '🔮',
+      '👑',
+    ],
+  },
+  {
+    label: 'Nature',
+    items: [
+      '🌸',
+      '🌺',
+      '🌻',
+      '🍀',
+      '🌿',
+      '☀️',
+      '🌙',
+      '⭐',
+      '🌊',
+      '🔥',
+      '❄️',
+      '🌴',
+      '🌵',
+      '🍁',
+      '🌾',
+    ],
+  },
+];
+
+export const GRADIENTS = [
+  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+  'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+  'linear-gradient(135deg, #fad0c4 0%, #ffd1ff 100%)',
+  'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+  'linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)',
+  'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)',
+  'linear-gradient(135deg, #5ee7df 0%, #b490ca 100%)',
+  'linear-gradient(135deg, #f6d365 0%, #fda085 100%)',
+  'linear-gradient(135deg, #0c0c1d 0%, #1a1a3e 50%, #2d1b69 100%)',
+  'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',
+  'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+  'linear-gradient(135deg, #200122 0%, #6f0000 100%)',
+  '#000000',
+  '#1a1a1a',
+  '#FFFFFF',
+  '#4158D0',
+  '#C850C0',
+  '#0ea5e9',
+  '#10b981',
+  '#f43f5e',
+];

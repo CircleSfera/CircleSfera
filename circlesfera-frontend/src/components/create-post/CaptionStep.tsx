@@ -176,7 +176,7 @@ export default function CaptionStep({
 
       <div className="flex-1 flex flex-col min-h-0 overflow-y-auto no-scrollbar">
         {/* Caption block */}
-        <div className="flex items-start gap-3 p-4 border-b border-white/8 shrink-0">
+        <div className="flex items-start gap-3 px-4 py-3 border-b border-white/8 shrink-0">
           <div className="md:hidden shrink-0">
             <InteractiveMediaPreview mediaFiles={mediaFiles} mode={mode} />
           </div>
@@ -229,11 +229,11 @@ export default function CaptionStep({
         </div>
 
         {/* Single options list */}
-        <div className="p-3 space-y-2">
+        <div className="px-3 py-2 space-y-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
           <span className="text-[10px] font-bold uppercase tracking-wider text-white/40 px-1 block">
             {t('createPost.caption.options')}
           </span>
-          <div className="rounded-2xl border border-white/8 bg-white/2 overflow-hidden divide-y divide-white/6">
+          <div className="rounded-xl border border-white/8 bg-white/2 overflow-hidden divide-y divide-white/6">
             {optionRows.map((item) => {
               const Icon = item.icon;
               return (
@@ -241,7 +241,7 @@ export default function CaptionStep({
                   type="button"
                   key={item.key}
                   onClick={item.onClick}
-                  className="w-full flex items-center justify-between min-h-12 px-3.5 py-2.5 hover:bg-white/5 transition-all text-left group outline-none focus-visible:bg-white/8"
+                  className="w-full flex items-center justify-between min-h-12 px-3 py-2 hover:bg-white/5 transition-all text-left group outline-none focus-visible:bg-white/8"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div

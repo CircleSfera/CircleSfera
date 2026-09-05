@@ -14,6 +14,13 @@ import { useAuthStore } from '../stores/authStore';
 import { useNotificationsStore } from '../stores/notificationsStore';
 import { useSocketStore } from '../stores/socketStore';
 import { useStoryStore } from '../stores/storyStore';
+import {
+  getContentShell,
+  hidesBottomNav,
+  hidesTopNav,
+  isEditsPath,
+  isViewportLockedShell,
+} from './contentShell';
 
 export default function LayoutWrapper({
   children,
@@ -32,13 +39,16 @@ export default function LayoutWrapper({
     '/onboarding',
   ];
 
+  const shell = getContentShell(location.pathname);
   const isAdminRoute = location.pathname.startsWith('/admin');
-  const isFramesRoute = location.pathname.startsWith('/frames');
-  const isEditsRoute = location.pathname.startsWith('/edits');
-  const isCreateRoute = location.pathname.startsWith('/create');
-  /** /edits and /create hide TopNav on mobile; /frames keeps chrome like the rest of the app. */
-  const hideTopNavRoute = isEditsRoute || isCreateRoute;
-  const isImmersiveRoute = isFramesRoute || isEditsRoute || isCreateRoute;
+  const isFramesRoute = shell === 'vertical';
+  const isEditsRoute = isEditsPath(location.pathname);
+  const hideTopNavRoute = hidesTopNav(shell);
+  const hideBottomNavRoute = hidesBottomNav(shell);
+  const isViewportLocked = isViewportLockedShell(shell);
+  // Create shell keeps Sidebar on md+; edits studio does not
+  const isCreateComposer =
+    shell === 'create' && location.pathname.startsWith('/create');
 
   const marketingRoutes = [
     '/features',
@@ -55,10 +65,6 @@ export default function LayoutWrapper({
     (r) => location.pathname === r || location.pathname.startsWith(`${r}/`),
   );
 
-  // Admin is a separate product shell. Creator Studio sits in the app chrome
-  // like Settings: global Sidebar + section rail.
-  // /create is immersive: no TopNav/BottomNav on mobile (Sidebar stays on md+).
-  // /frames keeps TopNav + BottomNav on mobile with a rounded player card.
   const shouldShowNav =
     showNavigation &&
     isAuthenticated &&
@@ -74,7 +80,6 @@ export default function LayoutWrapper({
     return () => disconnect();
   }, [isAuthenticated, connect, disconnect]);
 
-  // Accessibility: Announce new notifications to screen readers
   const liveNotifications = useNotificationsStore(
     (state) => state.liveNotifications,
   );
@@ -82,16 +87,11 @@ export default function LayoutWrapper({
 
   const { isOpen, stories, initialIndex, closeStories } = useStoryStore();
 
-  // /edits is full-screen CapCut-like (no Sidebar). /create keeps Sidebar on md+.
-  const isEditorRoute = isEditsRoute || isCreateRoute;
   const showAppSidebar = shouldShowNav && !isEditsRoute;
   const mainHasSidebarPad = showAppSidebar;
 
-  // Immersive routes scroll inside their own container; lock document scroll.
   useLayoutEffect(() => {
-    const shouldLockScroll = isFramesRoute || isEditorRoute;
-
-    if (!shouldLockScroll) {
+    if (!isViewportLocked) {
       return;
     }
 
@@ -106,17 +106,16 @@ export default function LayoutWrapper({
       body.style.removeProperty('overflow');
       body.style.removeProperty('overscroll-behavior');
     };
-  }, [isFramesRoute, isEditorRoute]);
+  }, [isViewportLocked]);
 
   return (
     <div
       className={`relative text-white selection:bg-purple-500/30 ${
-        isFramesRoute || isEditorRoute
+        isViewportLocked
           ? 'h-dvh overflow-hidden flex flex-col'
           : 'min-h-dvh flex flex-col overflow-x-hidden'
       }`}
     >
-      {/* Skip to Content Link */}
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-100 focus:px-6 focus:py-3 focus:bg-primary focus:text-white focus:rounded-xl focus:shadow-2xl focus:outline-none transition-all"
@@ -126,7 +125,6 @@ export default function LayoutWrapper({
       <OfflineIndicator />
       <GlobalKeyboardShortcuts />
 
-      {/* ARIA Live Region for Real-time Announcements */}
       <div
         className="sr-only"
         role="status"
@@ -137,7 +135,6 @@ export default function LayoutWrapper({
           `New notification: ${latestNotification.content || 'You have a new update'}`}
       </div>
 
-      {/* ─── Global Brand Gradient Background (Refined & Balanced) ─── */}
       <BrandAmbientBackground />
 
       {shouldShowNav &&
@@ -146,29 +143,26 @@ export default function LayoutWrapper({
 
       {shouldShowNav && <EmailVerificationBanner immersive={hideTopNavRoute} />}
 
-      {/* Navigation — Each handles its own visibility via media queries */}
       {shouldShowNav && (
         <>
           {showAppSidebar && <Sidebar />}
-          {!isEditorRoute && <BottomNav />}
+          {!hideBottomNavRoute && <BottomNav />}
         </>
       )}
 
       <main
         id="main-content"
         className={`flex-1 min-h-0 w-full flex flex-col ${
-          mainHasSidebarPad
-            ? /* Sidebar: 68px collapsed (md), 260px expanded (xl) */
-              'md:pl-17 xl:pl-65'
-            : ''
+          mainHasSidebarPad ? 'md:pl-17 xl:pl-65' : ''
         } ${
           shouldShowNav &&
           (isFramesRoute || location.pathname.startsWith('/direct'))
             ? 'max-md:pb-[calc(var(--nav-bottom-height)+env(safe-area-inset-bottom,0px))]'
             : ''
         }`}
+        data-content-shell={shell}
+        data-create-composer={isCreateComposer ? 'true' : undefined}
       >
-        {/* Top spacing for mobile to account for TopNav height (52px + safe area) */}
         {shouldShowNav &&
           !location.pathname.includes('/direct/inbox/t/') &&
           !hideTopNavRoute && (
@@ -185,13 +179,13 @@ export default function LayoutWrapper({
           className={`w-full flex flex-col flex-1 min-h-0 ${
             location.pathname.startsWith('/direct')
               ? 'h-full min-h-0'
-              : isFramesRoute || isEditorRoute
+              : isViewportLocked
                 ? 'h-full min-h-0'
                 : `min-h-0 flex-1 ${isMarketingRoute ? '' : 'md:pb-8'}`
           } overflow-x-hidden`}
           style={
             shouldShowNav &&
-            !isImmersiveRoute &&
+            !hideBottomNavRoute &&
             !isMarketingRoute &&
             !location.pathname.startsWith('/direct')
               ? {
@@ -206,14 +200,14 @@ export default function LayoutWrapper({
               shouldShowNav &&
               !location.pathname.startsWith('/direct') &&
               !location.pathname.startsWith('/admin') &&
-              !isImmersiveRoute &&
+              !isViewportLocked &&
               !isMarketingRoute
                 ? 'mx-auto max-w-5xl 2xl:max-w-7xl px-4 md:px-5 lg:px-6 w-full flex-1 flex flex-col'
                 : `w-full h-full min-h-0 flex-1 flex flex-col ${
                     location.pathname.startsWith('/direct')
                       ? 'md:items-center md:justify-center'
                       : ''
-                  } ${shouldShowNav && !isImmersiveRoute && !isMarketingRoute ? 'md:pb-10' : ''}`
+                  } ${shouldShowNav && !isViewportLocked && !isMarketingRoute ? 'md:pb-10' : ''}`
             }
           >
             {children}

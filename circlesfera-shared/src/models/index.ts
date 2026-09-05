@@ -146,6 +146,7 @@ export interface Collection {
   id: string;
   profileId: string;
   name: string;
+  description?: string | null;
   coverUrl?: string;
   standardUrl?: string;
   thumbnailUrl?: string;
@@ -269,7 +270,8 @@ export interface WebhookEvent {
 
 export interface StoryElement {
   id: string;
-  type: 'text' | 'sticker';
+  /** Composer canvas layer. poll/qna persist via interactive API after story create. */
+  type: 'text' | 'sticker' | 'poll' | 'qna';
   content: string;
   x: number;
   y: number;

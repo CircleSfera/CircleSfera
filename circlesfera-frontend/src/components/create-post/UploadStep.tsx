@@ -24,6 +24,7 @@ interface UploadStepProps {
   mode: CreateMode;
   setMode: (mode: CreateMode) => void;
   onTextStory?: () => void;
+  allowModeSwitch?: boolean;
 }
 
 const MODE_CONFIG = {
@@ -56,6 +57,7 @@ export default function UploadStep({
   mode,
   setMode,
   onTextStory,
+  allowModeSwitch = true,
 }: UploadStepProps) {
   const { t } = useTranslation();
   const [isDragging, setIsDragging] = useState(false);
@@ -170,32 +172,48 @@ export default function UploadStep({
   };
 
   return (
-    <div className="flex-1 flex flex-col w-full h-full relative overflow-hidden bg-surface-base">
+    <div className="flex-1 flex flex-col w-full h-full relative overflow-hidden bg-surface-elevated">
       {/* biome-ignore lint/a11y/noStaticElementInteractions: Main drop zone container */}
       <div
         ref={dropRef}
-        className="flex-1 flex flex-col items-center justify-center px-4 pb-28 pt-4 gap-4 relative z-10 min-h-0"
+        className={`
+          flex-1 flex flex-col min-h-0 relative z-10
+          max-md:px-4 max-md:pt-5 max-md:gap-3
+          md:px-3 md:pt-3 md:gap-2
+          ${allowModeSwitch ? 'max-md:pb-[5.25rem] md:pb-[4.5rem]' : 'pb-4'}
+          transition-colors duration-300
+          ${isDragging ? 'bg-white/[0.03]' : ''}
+        `}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         role="presentation"
       >
+        {/* Mobile: flat full-bleed surface. Desktop: nested drop panel inside the card. */}
         <motion.div
           className={`
-            relative w-full max-w-sm flex-1 max-h-[min(70vh,520px)] min-h-60 rounded-xl
-            flex flex-col items-center justify-center gap-4
-            border-2 border-dashed transition-colors duration-300
+            relative w-full min-h-0
+            flex flex-col items-center gap-3
+            max-md:flex-none max-md:justify-start max-md:pt-2
+            md:flex-1 md:justify-center md:rounded-2xl md:border md:p-4
+            transition-colors duration-300
             ${
               isDragging
-                ? `${translatedConfig.borderAccent} bg-white/4`
-                : 'border-white/8 bg-white/2'
+                ? `${translatedConfig.borderAccent} md:bg-white/5`
+                : 'md:border-white/12 md:bg-white/[0.03]'
             }
           `}
-          animate={{ scale: isDragging ? 1.01 : 1 }}
+          animate={{ scale: isDragging ? 1.005 : 1 }}
           transition={{ duration: 0.2 }}
         >
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-white/6 border border-white/8">
+          <div
+            className={`w-14 h-14 rounded-2xl flex items-center justify-center border shrink-0 ${
+              isDragging
+                ? 'bg-white/10 border-white/15'
+                : 'bg-white/6 border-white/8'
+            }`}
+          >
             <AnimatePresence mode="wait">
               <motion.div
                 key={isDragging ? 'drag' : mode}
@@ -206,14 +224,14 @@ export default function UploadStep({
               >
                 {isDragging ? (
                   <ArrowUpFromLine
-                    size={28}
+                    size={26}
                     className={translatedConfig.accent}
                     strokeWidth={1.5}
                   />
                 ) : (
                   <translatedConfig.icon
-                    size={28}
-                    className="text-white/40"
+                    size={26}
+                    className={translatedConfig.accent}
                     strokeWidth={1.5}
                   />
                 )}
@@ -221,21 +239,24 @@ export default function UploadStep({
             </AnimatePresence>
           </div>
 
-          <div className="text-center space-y-1 px-4">
-            <p className="text-sm font-semibold text-white/80">
+          <div className="text-center space-y-1 w-full px-1">
+            <p className="text-sm font-semibold text-white/90">
               {isDragging
                 ? t('createPost.upload.drop_files')
                 : translatedConfig.description}
             </p>
-            <p className="text-xs text-white/30 font-medium hidden md:block">
-              {isDragging ? null : t('createPost.upload.drag_files')}
-            </p>
-            <p className="text-xs text-white/25 font-medium">
-              {translatedConfig.hint}
-            </p>
+            {!isDragging ? (
+              <p className="text-xs text-white/35 font-medium">
+                <span className="hidden md:inline">
+                  {t('createPost.upload.drag_files')}
+                  {' · '}
+                </span>
+                {translatedConfig.hint}
+              </p>
+            ) : null}
           </div>
 
-          <div className="flex flex-col w-full max-w-xs gap-2 px-4">
+          <div className="flex flex-col w-full gap-2 mt-1 max-md:mt-2 md:max-w-sm">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -258,37 +279,37 @@ export default function UploadStep({
               {t('createPost.upload.take_photo')}
             </button>
           </div>
-        </motion.div>
 
-        <AnimatePresence>
-          {mode === 'STORY' && onTextStory && (
-            <motion.button
-              type="button"
-              onClick={onTextStory}
-              className="flex items-center gap-3 w-full max-w-sm px-4 h-14 rounded-xl
-                         bg-white/4 border border-white/8
-                         hover:bg-white/7 hover:border-white/15
-                         transition-all duration-200 group shrink-0
-                         outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="w-10 h-10 rounded-xl bg-brand-accent/15 border border-brand-accent/20 flex items-center justify-center shrink-0">
-                <Sparkles size={18} className="text-brand-accent" />
-              </div>
-              <div className="text-left min-w-0">
-                <p className="text-sm font-bold text-white/90 truncate">
-                  {t('createPost.upload.create_text_story')}
-                </p>
-                <p className="text-xs text-white/30 font-medium truncate">
-                  {t('createPost.upload.create_text_story_desc')}
-                </p>
-              </div>
-            </motion.button>
-          )}
-        </AnimatePresence>
+          <AnimatePresence>
+            {mode === 'STORY' && onTextStory && (
+              <motion.button
+                type="button"
+                onClick={onTextStory}
+                className="flex items-center gap-3 w-full px-3 h-12 rounded-xl shrink-0 mt-1 md:max-w-sm
+                           bg-white/[0.04] border border-white/8
+                           hover:bg-white/[0.07] hover:border-white/15
+                           transition-colors duration-200 group
+                           outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="w-9 h-9 rounded-lg bg-brand-accent/15 border border-brand-accent/20 flex items-center justify-center shrink-0">
+                  <Sparkles size={16} className="text-brand-accent" />
+                </div>
+                <div className="text-left min-w-0">
+                  <p className="text-sm font-bold text-white/90 truncate">
+                    {t('createPost.upload.create_text_story')}
+                  </p>
+                  <p className="text-[11px] text-white/30 font-medium truncate">
+                    {t('createPost.upload.create_text_story_desc')}
+                  </p>
+                </div>
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </motion.div>
       </div>
 
       <input
@@ -300,10 +321,15 @@ export default function UploadStep({
         onChange={handleFileSelect}
       />
 
-      <div className="absolute bottom-0 left-0 right-0 p-3 pb-safe bg-linear-to-t from-surface-base via-surface-base/95 to-transparent z-20">
-        <div className="flex justify-center">
+      {allowModeSwitch ? (
+        <div
+          className="absolute bottom-0 left-0 right-0 z-20 max-md:px-4 max-md:pt-2 md:px-3 md:pt-3 bg-linear-to-t from-surface-elevated from-50% via-surface-elevated/90 to-transparent"
+          style={{
+            paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))',
+          }}
+        >
           <div
-            className="flex bg-white/4 rounded-xl p-1 border border-white/6"
+            className="flex w-full md:max-w-sm md:mx-auto bg-white/[0.04] rounded-xl p-1 border border-white/8"
             role="tablist"
             aria-label={t('createPost.upload.mode_switcher')}
           >
@@ -318,7 +344,7 @@ export default function UploadStep({
                   aria-selected={isActive}
                   key={m}
                   onClick={() => setMode(m)}
-                  className="relative min-h-11 px-4 rounded-lg flex items-center gap-2 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                  className="relative flex-1 min-h-11 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white/20"
                 >
                   {isActive && (
                     <motion.div
@@ -350,7 +376,7 @@ export default function UploadStep({
             })}
           </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

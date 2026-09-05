@@ -19,19 +19,20 @@ export default function Header({
   canNext,
 }: HeaderProps) {
   const { t } = useTranslation();
+
   return (
-    <header className="px-4 h-(--nav-top-height,52px) border-b border-white/8 bg-surface-elevated z-30 shrink-0 flex justify-between items-center">
+    <header className="px-2 sm:px-3 min-h-12 py-1 border-b border-white/8 bg-surface-elevated z-30 shrink-0 flex justify-between items-center gap-2">
       <button
         type="button"
         onClick={onBack}
-        className="w-11 h-11 -ml-2 hover:bg-white/8 rounded-xl text-white/80 hover:text-white transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/20 flex items-center justify-center"
+        className="w-11 h-11 -ml-0.5 hover:bg-white/8 rounded-xl text-white/80 hover:text-white transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/20 flex items-center justify-center shrink-0"
         aria-label={t('createPost.header.back')}
       >
         <ChevronLeft size={22} strokeWidth={2} />
       </button>
 
       <h1
-        className="font-bold text-base tracking-tight text-white"
+        className="font-bold text-[15px] tracking-tight text-white truncate max-w-full flex-1 text-center px-1"
         id="create-composer-title"
       >
         {title}
@@ -42,7 +43,7 @@ export default function Header({
         onClick={onNext}
         disabled={isPending || !canNext || !nextLabel}
         className={`
-          min-w-16 px-4 h-11 flex items-center justify-center rounded-full font-bold text-sm transition-all duration-200
+          min-w-16 px-4 h-11 flex items-center justify-center rounded-full font-bold text-sm transition-all duration-200 shrink-0
           disabled:opacity-30 disabled:cursor-not-allowed active:scale-95
           outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50
           ${

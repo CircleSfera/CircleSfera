@@ -170,7 +170,8 @@
       "muted_title": "Usuarios silenciados",
       "muted_empty": "No hay usuarios silenciados",
       "expires_forever": "Para siempre",
-      "expires_on": "Hasta {{date}}"
+      "expires_on": "Hasta {{date}}",
+      "change_duration": "Duración"
     },
     "account": {
       "title": "Cuenta",
@@ -265,7 +266,8 @@
       "status_pending": "Pendiente",
       "status_approved": "Aprobada",
       "status_rejected": "Rechazada",
-      "type_bot_label": "Etiqueta de bot"
+      "type_bot_label": "Etiqueta de bot",
+      "target_id_from_notification": "Rellenado desde tu notificación de moderación."
     },
     "reports": {
       "title": "Reportes",
@@ -552,7 +554,8 @@
     "show_again": "Mostrar de nuevo",
     "author_shown": "Autor visible de nuevo",
     "post_shown": "Publicación visible de nuevo",
-    "error": "No se pudo actualizar la preferencia"
+    "error": "No se pudo actualizar la preferencia",
+    "hidden_post_fallback": "Publicación oculta"
   },
   "explore": {
     "page_title": "Explora el Universo",
@@ -796,7 +799,14 @@
     "cancel": "Cancelar",
     "viewers": "Espectadores",
     "no_views": "Sin vistas aún",
-    "viewer_list_empty": "La lista de espectadores aparecerá aquí"
+    "viewer_list_empty": "La lista de espectadores aparecerá aquí",
+    "insights_title": "Actividad de la historia",
+    "questions_tab": "Preguntas",
+    "views_tab": "Vistas",
+    "questions_short": "Q&A",
+    "qna_prompt_label": "Pregunta",
+    "no_questions": "Aún no hay preguntas",
+    "no_questions_desc": "Cuando respondan a tu sticker de Q&A, aparecerán aquí."
   },
   "comments": {
     "unlike": "Ya no me gusta",
@@ -989,9 +999,9 @@
       "monetization_active": "Contenido de pago",
       "premium_content": "Contenido premium (pago por ver)",
       "premium_desc": "Requiere que los usuarios paguen para desbloquear y ver esta publicación.",
-      "price_usd": "Precio (EUR / USD)",
-      "min_price_warning": "El precio mínimo es $1.00",
-      "max_price_warning": "El precio máximo es $500.00",
+      "price_usd": "Precio (EUR)",
+      "min_price_warning": "El precio mínimo es €1,00",
+      "max_price_warning": "El precio máximo es €500,00",
       "creator_earning": "Tus ganancias (80%):",
       "platform_fee": "Comisión de la plataforma (20%):",
       "schedule": "Programar publicación",
@@ -1002,11 +1012,15 @@
       "turn_off_comments": "Desactivar comentarios",
       "turn_off_comments_desc": "Puedes cambiar esto más tarde en el menú ... en la parte superior de tu publicación.",
       "mark_sensitive": "Marcar como contenido sensible",
-      "mark_sensitive_desc": "Violencia gráfica, lenguaje fuerte o contexto artístico. El contenido sexual explícito no está permitido en CircleSfera y se retira, no se filtra."
+      "mark_sensitive_desc": "Violencia gráfica, lenguaje fuerte o contexto artístico. El contenido sexual explícito no está permitido en CircleSfera y se retira, no se filtra.",
+      "price_eur": "Precio (EUR)"
     },
     "edit": {
       "edit_media": "Editar Medio",
+      "edit_story": "Editar Historia",
       "apply_to_all": "Aplicar a todos",
+      "cancel": "Cancelar",
+      "done": "Listo",
       "filters_applied_all": "Filtros aplicados a todos los archivos",
       "loading_story_editor": "Cargando editor de historias…",
       "loading_media_editor": "Cargando editor de medios…",
@@ -1017,7 +1031,18 @@
       "add_more": "Añadir más medios",
       "post": "Post",
       "story": "Historia",
-      "frame": "Frame"
+      "frame": "Frame",
+      "adjust": {
+        "brightness": "Brillo",
+        "contrast": "Contraste",
+        "saturation": "Saturación",
+        "temperature": "Temperatura",
+        "vignette": "Viñeta",
+        "noise": "Ruido / Grano",
+        "blur": "Desenfoque",
+        "sepia": "Sepia",
+        "grayscale": "Escala de grises"
+      }
     },
     "header": {
       "add_to_story": "Añadir a Historia",
@@ -1074,6 +1099,94 @@
       "create_text_story_desc": "Fondos, texto y stickers",
       "mode_switcher": "Tipo de contenido"
     },
+    "storyComposer": {
+      "close": "Cerrar",
+      "undo": "Deshacer",
+      "redo": "Rehacer",
+      "post": "Listo",
+      "export_error": "No se pudo crear la imagen de la historia.",
+      "poll_yes": "Sí",
+      "poll_no": "No",
+      "tools": "Herramientas de historia",
+      "edit_tools": "Herramientas de edición",
+      "pick_background": "Elige un fondo para empezar",
+      "open_backgrounds": "Fondos",
+      "hint_start": "Añade texto, stickers o una plantilla",
+      "hint_edit": "Toca un elemento para editar · {{count}} en el lienzo",
+      "tool_background": "Fondo",
+      "tool_text": "Texto",
+      "tool_stickers": "Stickers",
+      "tool_templates": "Plantillas",
+      "tool_draw": "Dibujar",
+      "tool_poll": "Encuesta",
+      "tool_qna": "Q&A",
+      "tool_more": "Más",
+      "layers_empty": "Sin capas aún",
+      "more_section": "Interactivo",
+      "backgrounds": "Fondos",
+      "upload": "Subir",
+      "draw_title": "Dibujo",
+      "clear_drawing": "Borrar dibujo",
+      "brush_size": "Grosor",
+      "brush_color": "Color",
+      "text_placeholder": "Escribe algo…",
+      "add_text": "Añadir texto",
+      "cancel": "Cancelar",
+      "done": "Listo",
+      "text_style_classic": "Clásico",
+      "text_style_modern": "Moderno",
+      "text_style_neon": "Neón",
+      "text_style_box_shadow": "Caja suave",
+      "text_style_outline": "Contorno",
+      "text_style_shadow": "Sombra",
+      "text_style_retro": "Retro",
+      "text_type": "Opciones de tipo",
+      "text_gradient": "Degradado",
+      "text_solid": "Color sólido",
+      "letter_spacing": "Espaciado",
+      "width_auto": "Auto",
+      "fonts": "Fuente",
+      "text_style": "Estilo",
+      "color": "Color",
+      "font_size": "Tamaño",
+      "blur": "Desenfoque",
+      "darken": "Oscurecer",
+      "templates": "Plantillas",
+      "poll_title": "Encuesta",
+      "poll_question_ph": "Escribe tu pregunta…",
+      "poll_option_1": "Opción 1",
+      "poll_option_2": "Opción 2",
+      "add_poll": "Añadir encuesta",
+      "qna_title": "Preguntas y respuestas",
+      "qna_prompt_ph": "Pregúntame lo que quieras…",
+      "add_qna": "Añadir Q&A",
+      "poll_question": "Pregunta",
+      "qna_prompt": "Prompt",
+      "poll_create_hint": "Vista previa en vivo · 2 opciones",
+      "qna_create_hint": "Vista previa en vivo · respuestas de la audiencia",
+      "qna_preview_hint": "Escribe tu respuesta…",
+      "qna_edit_hint": "Puedes mover y escalar el sticker. El texto se ajusta al ancho de la card.",
+      "poll_suggestion_1": "¿Sí o no?",
+      "poll_suggestion_2": "¿Esto o aquello?",
+      "poll_suggestion_3": "¿Te gusta?",
+      "qna_suggestion_1": "Pregúntame lo que quieras",
+      "qna_suggestion_2": "¿Qué quieres saber de mí?",
+      "qna_suggestion_3": "Dime tu pregunta",
+      "edit_text": "Editar texto",
+      "edit_poll": "Editar encuesta",
+      "edit_qna": "Editar Q&A",
+      "edit_sticker": "Editar sticker",
+      "duplicate": "Duplicar",
+      "bring_forward": "Traer adelante",
+      "send_backward": "Enviar atrás",
+      "center": "Centrar",
+      "delete": "Eliminar",
+      "size": "Tamaño",
+      "rotation": "Rotación",
+      "opacity": "Opacidad",
+      "interactive_size_hint": "El tamaño que ves aquí es el de la historia. Usa el slider para agrandar o reducir.",
+      "canvas_width": "Ancho"
+    },
     "tags": {
       "title": "Etiquetar Personas",
       "tap_photo": "Toca la foto para etiquetar",
@@ -1091,7 +1204,9 @@
       "close_friends": "Mejores Amigos",
       "your_story": "Tu Historia",
       "manage_close_friends": "Gestionar mejores amigos",
-      "add_close_friends_first": "Añade mejores amigos para compartir historias solo con ellos."
+      "add_close_friends_first": "Añade mejores amigos para compartir historias solo con ellos.",
+      "qna_create_error": "Historia publicada, pero no se pudo crear el Q&A.",
+      "poll_create_error": "Historia publicada, pero no se pudo crear la encuesta."
     }
   },
   "report": {
@@ -1127,7 +1242,8 @@
       "moderation": "Actualización de moderación: {{content}}",
       "promotion_success": "¡Promoción Aprobada! {{content}}",
       "promotion_rejected": "Promoción Rechazada. {{content}}"
-    }
+    },
+    "appeal_cta": "Apelar esta decisión"
   },
   "chat": {
     "loading": "Cargando chats...",
@@ -1201,7 +1317,15 @@
       "remove_confirm": "¿Expulsar a @{{username}} de este grupo?",
       "leave_confirm": "¿Abandonar este grupo? Dejarás de recibir mensajes nuevos.",
       "leave_group": "Abandonar grupo"
-    }
+    },
+    "locked_title": "Mensaje exclusivo",
+    "locked_subtitle": "Desbloquea para ver el contenido",
+    "unlock_for": "Desbloquear por {{price}}",
+    "voice_note": "🎤 Nota de voz",
+    "decrypting": "Descifrando…",
+    "edited": "editado",
+    "unlock_success": "Mensaje desbloqueado. ¡Gracias por tu apoyo!",
+    "unlock_canceled": "Se canceló el pago del desbloqueo."
   },
   "creator": {
     "title": "Creator Studio",
@@ -1416,7 +1540,9 @@
     "growth_analytics": "Analíticas de Crecimiento",
     "growth_desc": "Descubre patrones de interacción y optimiza tu alcance con nuestras herramientas de IA propietarias.",
     "vip_community": "Comunidad VIP",
-    "vip_desc": "Acceso exclusivo a círculos de otros creadores certificados y prioridad en el descubrimiento global."
+    "vip_desc": "Acceso exclusivo a círculos de otros creadores certificados y prioridad en el descubrimiento global.",
+    "unlock_for_money": "Desbloquear por €{{price}}",
+    "failed_to_unlock": "No se pudo desbloquear el mensaje"
   },
   "admin": {
     "panel": "Admin Panel",
@@ -2537,6 +2663,8 @@
     "new_collection": "Nueva Colección",
     "collection_name": "Nombre de Colección",
     "placeholder_name": "ej. Viajes, Recetas",
+    "description_label": "Descripción (opcional)",
+    "placeholder_description": "¿Qué va en esta colección?",
     "create": "Crear Colección",
     "posts_count": "{{count}} posts",
     "saved_title": "Guardados",
@@ -2809,6 +2937,15 @@
       "crown": "Corona Real",
       "gem": "Diamante",
       "rocket": "Cohete Sfera"
+    },
+    "qna": {
+      "title": "Q&A",
+      "empty_host": "No hay preguntas todavía.",
+      "empty_viewer": "Haz la primera pregunta.",
+      "project": "Proyectar",
+      "clear_screen": "Quitar pregunta de pantalla",
+      "placeholder": "Escribe tu pregunta…",
+      "send": "Enviar pregunta"
     }
   },
   "common": {
@@ -2882,7 +3019,9 @@
       "highlight_name": "Nombre del Destacado",
       "next": "Siguiente",
       "creating": "Creando...",
-      "done": "Hecho"
+      "done": "Hecho",
+      "edit_highlight": "Editar destacada",
+      "save_changes": "Guardar cambios"
     },
     "block": {
       "title": "¿Bloquear a @{{username}}?",
@@ -3135,6 +3274,25 @@
       "email_placeholder": "admin@circlesfera.com",
       "mfa_hint": "Introduce el código de 6 dígitos de tu app de autenticación.",
       "back": "Volver"
+    }
+  },
+  "interactive": {
+    "poll": {
+      "title": "Encuesta",
+      "loading": "Cargando encuesta…",
+      "votes_one": "{{count}} voto",
+      "votes_other": "{{count}} votos",
+      "voted": "✓ Voto registrado"
+    },
+    "qna": {
+      "title": "Preguntas y respuestas",
+      "default_prompt": "Pregúntame lo que quieras…",
+      "placeholder": "Escribe tu respuesta…",
+      "sent": "¡Respuesta enviada al creador!",
+      "answers_heading_one": "{{count}} respuesta",
+      "answers_heading_other": "{{count}} respuestas",
+      "loading_answers": "Cargando respuestas…",
+      "no_answers": "Aún no hay respuestas."
     }
   }
 }

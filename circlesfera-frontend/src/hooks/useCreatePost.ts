@@ -54,14 +54,21 @@ export function useCreatePost() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
+  const modeParam = searchParams.get('mode');
+  // `circle` = story composer with Close Friends (Círculo) pre-selected
   const initialMode =
-    searchParams.get('mode') === 'story'
+    modeParam === 'story' || modeParam === 'circle'
       ? 'STORY'
-      : searchParams.get('mode') === 'frame'
+      : modeParam === 'frame'
         ? 'FRAME'
         : 'POST';
 
   const [mode, setMode] = useState<CreateMode>(initialMode);
+
+  // Keep mode in sync when deep-link ?mode= changes (ADR-0018)
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
   const [step, setStep] = useState<Step>('upload');
   const [subScreen, setSubScreen] = useState<SubScreen>('none');
 
@@ -74,7 +81,16 @@ export function useCreatePost() {
   const [turnOffComments, setTurnOffComments] = useState(false);
   const [isSensitive, setIsSensitive] = useState(false);
   const [selectedAudio, setSelectedAudio] = useState<AudioTrack | null>(null);
-  const [isCloseFriendsOnly, setIsCloseFriendsOnly] = useState(false);
+  const [isCloseFriendsOnly, setIsCloseFriendsOnly] = useState(
+    modeParam === 'circle' || searchParams.get('circle') === '1',
+  );
+
+  // Círculo entry: force Close Friends when URL says so (Post→Círculo same mount)
+  useEffect(() => {
+    if (modeParam === 'circle' || searchParams.get('circle') === '1') {
+      setIsCloseFriendsOnly(true);
+    }
+  }, [modeParam, searchParams]);
   const [altTextMap, setAltTextMap] = useState<Record<number, string>>({});
   const [tagsMap, setTagsMap] = useState<Record<number, PostTagData[]>>({});
   const [isPremium, setIsPremium] = useState(false);
@@ -372,8 +388,37 @@ export function useCreatePost() {
             }
           } catch (pollError) {
             logger.error('Failed to create story poll:', pollError);
+            toast.error(t('createPost.story.poll_create_error'));
+          }
+        }
+
+        const qnaElement = storyElements.find((el) => {
+          const type = el.type as string;
+          return (
+            type === 'qna' ||
+            (typeof el.content === 'string' &&
+              el.content.startsWith('{"prompt"'))
+          );
+        });
+        if (qnaElement && createdStories[0]?.data?.id) {
+          try {
+            const qnaPayload =
+              typeof qnaElement.content === 'string'
+                ? JSON.parse(qnaElement.content)
+                : qnaElement.content;
+            if (qnaPayload?.prompt) {
+              await interactiveApi.createQna({
+                prompt: qnaPayload.prompt,
+                storyId: createdStories[0].data.id,
+              });
+            }
+          } catch (qnaError) {
+            logger.error('Failed to create story QnA:', qnaError);
             toast.error(
-              'Se publicó la historia, pero falló la creación de la encuesta.',
+              t(
+                'createPost.story.qna_create_error',
+                'Story published, but Q&A could not be created.',
+              ),
             );
           }
         }

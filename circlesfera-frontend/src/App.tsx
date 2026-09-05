@@ -11,7 +11,7 @@ import AdminGuard from './components/auth/AdminGuard';
 import AuthGuard from './components/auth/AuthGuard';
 import CreatorStudioGuard from './components/auth/CreatorStudioGuard';
 import GuestGuard from './components/auth/GuestGuard';
-import CreatePostModal from './components/CreatePostModal';
+import ContentComposerPage from './components/ContentComposerPage';
 import BrandAmbientBackground from './components/common/BrandAmbientBackground';
 import ScrollToTop from './components/common/ScrollToTop';
 import { useGlobalSocket } from './hooks/useGlobalSocket';
@@ -68,12 +68,18 @@ const Onboarding = lazy(() => import('./pages/Onboarding'));
 // Component to redirect /profile to current user's profile
 function ProfileRedirect() {
   const profile = useAuthStore((state) => state.profile);
+  const location = useLocation();
 
   if (!profile?.username) {
     return <Navigate to="/" replace />;
   }
 
-  return <Navigate to={`/${profile.username}`} replace />;
+  return (
+    <Navigate
+      to={`/${profile.username}${location.search}${location.hash}`}
+      replace
+    />
+  );
 }
 
 // Helper to redirect /profile/:username to /:username
@@ -82,7 +88,7 @@ function RedirectToProfile() {
   return <Navigate to={`/${username}`} replace />;
 }
 
-/** Keep Stripe return query params when bouncing /creator → /creator/overview. */
+// Keep Stripe return query params when bouncing /creator → /creator/overview.
 function CreatorRootRedirect() {
   const location = useLocation();
   return (
@@ -93,7 +99,7 @@ function CreatorRootRedirect() {
   );
 }
 
-/** Legacy register URL — canonical path is /accounts/signup. */
+// Legacy register URL — canonical path is /accounts/signup.
 function SignupLegacyRedirect() {
   const location = useLocation();
   return (
@@ -104,7 +110,7 @@ function SignupLegacyRedirect() {
   );
 }
 
-/** Apex /admin → Admin Panel host (root tabs: /trust, not /admin/trust). */
+// Apex /admin → Admin Panel host (root tabs: /trust, not /admin/trust).
 function AdminApexRedirect() {
   const { tab } = useParams<{ tab?: string }>();
   const target = `${adminPanelOrigin()}/${tab || 'trust'}`;
@@ -118,13 +124,13 @@ function AdminApexRedirect() {
   );
 }
 
-/** Bookmarks: admin host /admin/:tab → /:tab */
+// Bookmarks: admin host /admin/:tab → /:tab
 function LegacyAdminHostRedirect() {
   const { tab } = useParams<{ tab?: string }>();
   return <Navigate to={`/${tab || 'trust'}`} replace />;
 }
 
-/** Index `/` → permission-aware home (Trust when allowed). */
+// Index `/` → permission-aware home (Trust when allowed).
 function AdminHomeRedirect() {
   const hasPermission = useAdminAuthStore((s) => s.hasPermission);
   return <Navigate to={adminTabPath(getAdminHomeTab(hasPermission))} replace />;
@@ -204,8 +210,8 @@ function App() {
   }
 
   // Hold route rendering until we know whether a persisted "logged in" state
-  // is still valid, to avoid a flash of protected/guest content followed by
-  // an immediate redirect.
+  // Is still valid, to avoid a flash of protected/guest content followed by
+  // An immediate redirect.
   if (isAuthenticated && !isSessionChecked) {
     return (
       <div className="h-screen w-full flex items-center justify-center">
@@ -287,7 +293,7 @@ function App() {
           path="/create"
           element={
             <AuthGuard>
-              <CreatePostModal />
+              <ContentComposerPage />
             </AuthGuard>
           }
         />

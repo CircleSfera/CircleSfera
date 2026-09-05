@@ -58,11 +58,11 @@ export default function MonetizationSubScreen({
               htmlFor="premium-price"
               className="block text-sm font-medium text-white"
             >
-              {t('createPost.caption.price_usd')}
+              {t('createPost.caption.price_eur', 'Price (EUR)')}
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <span className="text-white/40 font-medium">$</span>
+                <span className="text-white/40 font-medium">€</span>
               </div>
               <input
                 id="premium-price"
@@ -94,11 +94,11 @@ export default function MonetizationSubScreen({
               <div className="p-3 rounded-xl bg-brand-primary/10 border border-brand-primary/20 text-xs text-white/80 space-y-1">
                 <div className="flex justify-between font-semibold">
                   <span>{t('createPost.caption.creator_earning')}</span>
-                  <span>${(price * 0.8).toFixed(2)}</span>
+                  <span>€{(price * 0.8).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-white/40">
                   <span>{t('createPost.caption.platform_fee')}</span>
-                  <span>${(price * 0.2).toFixed(2)}</span>
+                  <span>€{(price * 0.2).toFixed(2)}</span>
                 </div>
               </div>
             )}
