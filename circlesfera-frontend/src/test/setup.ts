@@ -254,6 +254,16 @@ vi.mock('react-i18next', () => ({
         'createPost.caption.schedule': 'Schedule publish',
         'createPost.caption.clear_schedule': 'Clear schedule',
         'common.cancel': 'Cancel',
+        'common.loading': 'Loading...',
+        'studio.default_project_name': 'New Project',
+        'studio.drafts.title': 'My drafts',
+        'studio.drafts.empty': 'No saved drafts yet',
+        'studio.drafts.error': 'Could not load drafts',
+        'studio.drafts.updated': 'Updated: {{date}}',
+        'studio.drafts.delete': 'Delete draft',
+        'studio.drafts.delete_confirm': 'Delete this draft permanently?',
+        'studio.drafts.deleted': 'Draft deleted',
+        'studio.drafts.delete_error': 'Could not delete draft',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
@@ -277,6 +287,9 @@ vi.mock('react-i18next', () => ({
         }
         if (options.percent !== undefined) {
           val = val.replace('{{percent}}', String(options.percent));
+        }
+        if (options.date !== undefined) {
+          val = val.replace('{{date}}', String(options.date));
         }
         if (options.defaultValue) {
           val = options.defaultValue;
