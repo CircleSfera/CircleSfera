@@ -191,6 +191,15 @@ vi.mock('react-i18next', () => ({
         'modals.share.send': 'Send',
         'modals.share.no_conversations': 'No conversations found',
         'modals.share.done': 'Done',
+        'settings.close_friends_modal.title': 'Close Friends',
+        'settings.close_friends_modal.search': 'Search...',
+        'settings.close_friends_modal.search_min':
+          'Type at least 2 characters to search.',
+        'settings.close_friends_modal.loading': 'Loading...',
+        'settings.close_friends_modal.list_title': 'Close Friends List',
+        'settings.close_friends_modal.list_desc':
+          "We don't send notifications when you edit your close friends list.",
+        'settings.close_friends_modal.done': 'Done',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
