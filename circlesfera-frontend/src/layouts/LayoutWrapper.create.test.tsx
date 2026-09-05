@@ -113,3 +113,29 @@ describe('LayoutWrapper /edits immersive shell', () => {
     expect(screen.queryByText('Sidebar')).not.toBeInTheDocument();
   });
 });
+
+function renderFramesRoute() {
+  return renderWithProviders(
+    <Routes>
+      <Route
+        path="/frames"
+        element={
+          <LayoutWrapper>
+            <div data-testid="frames-page">Frames</div>
+          </LayoutWrapper>
+        }
+      />
+    </Routes>,
+    { routerProps: { initialEntries: ['/frames'] } },
+  );
+}
+
+describe('LayoutWrapper /frames chrome', () => {
+  it('keeps TopNav and BottomNav on /frames', () => {
+    renderFramesRoute();
+
+    expect(screen.getByTestId('frames-page')).toBeInTheDocument();
+    expect(screen.getByLabelText('Top navigation')).toBeInTheDocument();
+    expect(screen.getByLabelText('Mobile navigation')).toBeInTheDocument();
+  });
+});
