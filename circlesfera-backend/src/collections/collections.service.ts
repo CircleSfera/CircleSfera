@@ -3,32 +3,31 @@ import { Inject, Injectable } from '@nestjs/common';
 import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-/**
- * Service for bookmark collections (CRUD). Each collection groups bookmarked posts
- * and auto-derives a cover image from the first bookmark.
- */
+// Service for bookmark collections (CRUD). Each collection groups bookmarked posts
+// And auto-derives a cover image from the first bookmark.
 @Injectable()
 export class CollectionsService {
   constructor(@Inject(PrismaService) private prisma: PrismaService) {}
 
-  /**
-   * Create a new bookmark collection.
-   * @param profileId - The owner's profile ID
-   * @param name - The collection name
-   */
-  async create(profileId: string, name: string): Promise<any> {
+  // Create a new bookmark collection.
+  // Param profileId: The owner's profile ID
+  // Param data: Name and optional description
+  async create(
+    profileId: string,
+    data: { name: string; description?: string },
+  ): Promise<any> {
+    const description = data.description?.trim() || null;
     return await this.prisma.collection.create({
       data: {
         profileId,
-        name,
+        name: data.name.trim(),
+        description,
       },
     });
   }
 
-  /**
-   * List all collections for a profile with bookmark counts and auto-derived cover URLs.
-   * @param profileId - The owner's profile ID
-   */
+  // List all collections for a profile with bookmark counts and auto-derived cover URLs.
+  // Param profileId: The owner's profile ID
   async findAll(profileId: string) {
     const collections = await this.prisma.collection.findMany({
       where: { profileId },
@@ -69,11 +68,9 @@ export class CollectionsService {
     });
   }
 
-  /**
-   * Get a single collection with all its bookmarked posts.
-   * @param profileId - The requesting profile ID (for ownership check)
-   * @param id - The collection ID
-   */
+  // Get a single collection with all its bookmarked posts.
+  // Param profileId: The requesting profile ID (for ownership check)
+  // Param id: The collection ID
   async findOne(profileId: string, id: string): Promise<any> {
     const collection = await this.prisma.collection.findUnique({
       where: { id },
@@ -97,13 +94,15 @@ export class CollectionsService {
     return collection;
   }
 
-  /**
-   * Rename a collection.
-   * @param profileId - The requesting profile ID (for ownership check)
-   * @param id - The collection ID
-   * @param name - The new collection name
-   */
-  async update(profileId: string, id: string, name: string): Promise<any> {
+  // Update a collection name and optional description.
+  // Param profileId: The requesting profile ID (for ownership check)
+  // Param id: The collection ID
+  // Param data: New name and optional description
+  async update(
+    profileId: string,
+    id: string,
+    data: { name: string; description?: string },
+  ): Promise<any> {
     const collection = await this.prisma.collection.findUnique({
       where: { id },
     });
@@ -116,17 +115,22 @@ export class CollectionsService {
     if (collection.profileId !== profileId)
       throw AppException.Forbidden(ErrorCode.FORBIDDEN_ACCESS, 'Access denied');
 
+    const patch: { name: string; description?: string | null } = {
+      name: data.name.trim(),
+    };
+    if (data.description !== undefined) {
+      patch.description = data.description.trim() || null;
+    }
+
     return await this.prisma.collection.update({
       where: { id },
-      data: { name },
+      data: patch,
     });
   }
 
-  /**
-   * Delete a collection (bookmarks are unaffected).
-   * @param profileId - The requesting profile ID (for ownership check)
-   * @param id - The collection ID
-   */
+  // Delete a collection (bookmarks are unaffected).
+  // Param profileId: The requesting profile ID (for ownership check)
+  // Param id: The collection ID
   async delete(profileId: string, id: string): Promise<any> {
     const collection = await this.prisma.collection.findUnique({
       where: { id },

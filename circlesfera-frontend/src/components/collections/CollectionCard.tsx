@@ -4,10 +4,18 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import type { Collection } from '../../types';
 
+export type CollectionRenamePayload = {
+  name: string;
+  description?: string | null;
+};
+
 interface CollectionCardProps {
   collection: Collection;
   onClick: () => void;
-  onRename?: (id: string, name: string) => Promise<void> | void;
+  onRename?: (
+    id: string,
+    payload: CollectionRenamePayload,
+  ) => Promise<void> | void;
   onDelete?: (id: string) => Promise<void> | void;
   canManage?: boolean;
 }
@@ -22,17 +30,33 @@ export default function CollectionCard({
   const { t } = useTranslation();
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(collection.name);
+  const [description, setDescription] = useState(collection.description || '');
   const [busy, setBusy] = useState(false);
 
+  const resetRenameFields = () => {
+    setName(collection.name);
+    setDescription(collection.description || '');
+    setRenaming(false);
+  };
+
   const handleRename = async () => {
-    if (!onRename || !name.trim() || name.trim() === collection.name) {
+    if (!onRename || !name.trim()) {
+      resetRenameFields();
+      return;
+    }
+    const nextName = name.trim();
+    const nextDescription = description.trim();
+    const prevDescription = (collection.description || '').trim();
+    if (nextName === collection.name && nextDescription === prevDescription) {
       setRenaming(false);
-      setName(collection.name);
       return;
     }
     try {
       setBusy(true);
-      await onRename(collection.id, name.trim());
+      await onRename(collection.id, {
+        name: nextName,
+        description: nextDescription || null,
+      });
       toast.success(t('collections.renamed', 'Collection renamed'));
       setRenaming(false);
     } catch {
@@ -89,25 +113,55 @@ export default function CollectionCard({
 
           <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent p-4 flex flex-col justify-end">
             {renaming ? (
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+              // biome-ignore lint/a11y/noStaticElementInteractions: stop card navigation while renaming
+              <div
+                className="space-y-2"
                 onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => {
-                  e.stopPropagation();
-                  if (e.key === 'Enter') void handleRename();
-                  if (e.key === 'Escape') {
-                    setRenaming(false);
-                    setName(collection.name);
-                  }
-                }}
-                className="bg-black/60 border border-white/20 rounded px-2 py-1 text-sm text-white font-bold"
-                disabled={busy}
-              />
+                onKeyDown={(e) => e.stopPropagation()}
+              >
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void handleRename();
+                    if (e.key === 'Escape') resetRenameFields();
+                  }}
+                  maxLength={100}
+                  className="w-full bg-black/60 border border-white/20 rounded px-2 py-1 text-sm text-white font-bold"
+                  disabled={busy}
+                  aria-label={t('collections.collection_name')}
+                />
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') resetRenameFields();
+                  }}
+                  maxLength={300}
+                  rows={2}
+                  placeholder={t(
+                    'collections.placeholder_description',
+                    'Optional description',
+                  )}
+                  className="w-full bg-black/60 border border-white/20 rounded px-2 py-1 text-xs text-white/90 resize-none"
+                  disabled={busy}
+                  aria-label={t(
+                    'collections.description_label',
+                    'Description (optional)',
+                  )}
+                />
+              </div>
             ) : (
-              <h3 className="text-white font-bold truncate">
-                {collection.name}
-              </h3>
+              <>
+                <h3 className="text-white font-bold truncate">
+                  {collection.name}
+                </h3>
+                {collection.description ? (
+                  <p className="text-white/50 text-xs line-clamp-2 mt-0.5">
+                    {collection.description}
+                  </p>
+                ) : null}
+              </>
             )}
             {collection._count && (
               <p className="text-white/60 text-xs font-medium">
@@ -128,7 +182,11 @@ export default function CollectionCard({
             onClick={(e) => {
               e.stopPropagation();
               if (renaming) void handleRename();
-              else setRenaming(true);
+              else {
+                setName(collection.name);
+                setDescription(collection.description || '');
+                setRenaming(true);
+              }
             }}
             className="p-1.5 rounded-lg bg-black/60 border border-white/10 text-white hover:bg-white/10"
             aria-label={t('collections.rename', 'Rename')}

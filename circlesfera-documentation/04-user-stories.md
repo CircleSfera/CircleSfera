@@ -171,6 +171,7 @@ Includes live streaming with co-hosts and gifting, and interactive polls/Q&A att
 - Comments support nested replies.
 - Saving is recorded as a bookmark.
 - The bookmark can be associated with a collection.
+- A collection may include an optional `description` (create/update via `/collections`).
 
 ---
 

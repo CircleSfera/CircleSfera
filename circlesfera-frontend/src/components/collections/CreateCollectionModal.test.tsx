@@ -56,23 +56,29 @@ describe('CreateCollectionModal', () => {
     expect(collectionsApi.create).not.toHaveBeenCalled();
   });
 
-  it('creates with a trimmed name and closes', async () => {
+  it('creates with a trimmed name, optional description, and closes', async () => {
     renderWithProviders(<CreateCollectionModal isOpen onClose={onClose} />);
 
     fireEvent.change(screen.getByLabelText('Collection Name'), {
       target: { value: '  Travel  ' },
     });
+    fireEvent.change(screen.getByLabelText('Description (optional)'), {
+      target: { value: '  Summer trips  ' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Create Collection' }));
 
     await waitFor(() => {
-      expect(collectionsApi.create).toHaveBeenCalledWith('Travel');
+      expect(collectionsApi.create).toHaveBeenCalledWith({
+        name: 'Travel',
+        description: 'Summer trips',
+      });
     });
     await waitFor(() => {
       expect(onClose).toHaveBeenCalledTimes(1);
     });
   });
 
-  it('clears the name when the dialog reopens', () => {
+  it('clears the name and description when the dialog reopens', () => {
     const view = renderWithProviders(
       <CreateCollectionModal isOpen onClose={onClose} />,
     );
@@ -80,10 +86,14 @@ describe('CreateCollectionModal', () => {
     fireEvent.change(screen.getByLabelText('Collection Name'), {
       target: { value: 'Travel' },
     });
+    fireEvent.change(screen.getByLabelText('Description (optional)'), {
+      target: { value: 'Notes' },
+    });
     view.rerender(<CreateCollectionModal isOpen={false} onClose={onClose} />);
     view.rerender(<CreateCollectionModal isOpen onClose={onClose} />);
 
     expect(screen.getByLabelText('Collection Name')).toHaveValue('');
+    expect(screen.getByLabelText('Description (optional)')).toHaveValue('');
     expect(
       screen.getByRole('button', { name: 'Create Collection' }),
     ).toBeDisabled();

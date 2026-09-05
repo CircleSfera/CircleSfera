@@ -92,7 +92,7 @@ describe('AddToCollectionModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create Collection' }));
 
     await waitFor(() => {
-      expect(collectionsApi.create).toHaveBeenCalledWith('Weekend');
+      expect(collectionsApi.create).toHaveBeenCalledWith({ name: 'Weekend' });
     });
     await waitFor(() => {
       expect(bookmarksApi.updateCollection).toHaveBeenCalledWith(

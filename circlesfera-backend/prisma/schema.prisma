@@ -686,6 +686,7 @@ model Collection {
   id           String   @id @default(uuid())
   profileId    String
   name         String
+  description  String?
   coverUrl     String?
   standardUrl  String? // New: Optimized variant
   thumbnailUrl String? // New: Optimized variant

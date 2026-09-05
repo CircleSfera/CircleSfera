@@ -57,7 +57,9 @@ export type Story = IStory & {
   isLocked?: boolean;
   priceCents?: number | null;
 };
-export type Collection = ICollection;
+export type Collection = ICollection & {
+  description?: string | null;
+};
 export type Audio = IAudio;
 export type Purchase = IPurchase;
 export type WebhookEvent = IWebhookEvent;

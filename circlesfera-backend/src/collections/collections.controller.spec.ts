@@ -44,9 +44,15 @@ describe('CollectionsController', () => {
     it('creates a collection for the caller profile', async () => {
       mockService.create.mockResolvedValue({ id: 'col-1', name: 'Saved' });
 
-      const result = await controller.create(mockUser, 'Saved');
+      const result = await controller.create(mockUser, {
+        name: 'Saved',
+        description: 'Inbox',
+      });
 
-      expect(mockService.create).toHaveBeenCalledWith('profile-1', 'Saved');
+      expect(mockService.create).toHaveBeenCalledWith('profile-1', {
+        name: 'Saved',
+        description: 'Inbox',
+      });
       expect(result).toEqual({ id: 'col-1', name: 'Saved' });
     });
   });
@@ -75,13 +81,11 @@ describe('CollectionsController', () => {
     it('renames a collection scoped to the caller', async () => {
       mockService.update.mockResolvedValue({ id: 'col-1', name: 'Later' });
 
-      await controller.update(mockUser, 'col-1', 'Later');
+      await controller.update(mockUser, 'col-1', { name: 'Later' });
 
-      expect(mockService.update).toHaveBeenCalledWith(
-        'profile-1',
-        'col-1',
-        'Later',
-      );
+      expect(mockService.update).toHaveBeenCalledWith('profile-1', 'col-1', {
+        name: 'Later',
+      });
     });
   });
 

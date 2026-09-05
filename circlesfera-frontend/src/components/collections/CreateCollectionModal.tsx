@@ -16,18 +16,23 @@ export default function CreateCollectionModal({
 }: CreateCollectionModalProps) {
   const { t } = useTranslation();
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!isOpen) setName('');
+    if (!isOpen) {
+      setName('');
+      setDescription('');
+    }
   }, [isOpen]);
 
   const mutation = useMutation({
-    mutationFn: (collectionName: string) =>
-      collectionsApi.create(collectionName),
+    mutationFn: (payload: { name: string; description?: string }) =>
+      collectionsApi.create(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collections'] });
       setName('');
+      setDescription('');
       onClose();
     },
   });
@@ -35,7 +40,11 @@ export default function CreateCollectionModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    mutation.mutate(name.trim());
+    const trimmedDescription = description.trim();
+    mutation.mutate({
+      name: name.trim(),
+      ...(trimmedDescription ? { description: trimmedDescription } : {}),
+    });
   };
 
   return (
@@ -59,7 +68,29 @@ export default function CreateCollectionModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={t('collections.placeholder_name')}
+            maxLength={100}
             className="w-full min-h-11 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-brand-primary transition-colors"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="collectionDescription"
+            className="block text-sm font-medium text-gray-300 mb-2"
+          >
+            {t('collections.description_label', 'Description (optional)')}
+          </label>
+          <textarea
+            id="collectionDescription"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t(
+              'collections.placeholder_description',
+              'What belongs in this collection?',
+            )}
+            maxLength={300}
+            rows={3}
+            className="w-full min-h-20 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-brand-primary transition-colors resize-y"
           />
         </div>
 

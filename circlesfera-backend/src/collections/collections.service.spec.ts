@@ -39,13 +39,63 @@ describe('CollectionsService', () => {
         id: 'col-1',
         profileId: 'profile-1',
         name: 'Design Inspiration',
+        description: null,
       });
 
-      const result = await service.create('profile-1', 'Design Inspiration');
+      const result = await service.create('profile-1', {
+        name: 'Design Inspiration',
+      });
       expect(mockPrismaService.collection.create).toHaveBeenCalledWith({
-        data: { profileId: 'profile-1', name: 'Design Inspiration' },
+        data: {
+          profileId: 'profile-1',
+          name: 'Design Inspiration',
+          description: null,
+        },
       });
       expect(result).toHaveProperty('id', 'col-1');
+    });
+
+    it('should persist an optional description', async () => {
+      mockPrismaService.collection.create.mockResolvedValue({
+        id: 'col-2',
+        name: 'Travel',
+        description: 'Summer trips',
+      });
+
+      await service.create('profile-1', {
+        name: 'Travel',
+        description: '  Summer trips  ',
+      });
+      expect(mockPrismaService.collection.create).toHaveBeenCalledWith({
+        data: {
+          profileId: 'profile-1',
+          name: 'Travel',
+          description: 'Summer trips',
+        },
+      });
+    });
+  });
+
+  describe('update', () => {
+    it('should update name and description when owned', async () => {
+      mockPrismaService.collection.findUnique.mockResolvedValue({
+        id: 'col-1',
+        profileId: 'profile-1',
+      });
+      mockPrismaService.collection.update.mockResolvedValue({
+        id: 'col-1',
+        name: 'Later',
+        description: 'Notes',
+      });
+
+      await service.update('profile-1', 'col-1', {
+        name: 'Later',
+        description: 'Notes',
+      });
+      expect(mockPrismaService.collection.update).toHaveBeenCalledWith({
+        where: { id: 'col-1' },
+        data: { name: 'Later', description: 'Notes' },
+      });
     });
   });
 

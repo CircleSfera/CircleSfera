@@ -4,7 +4,7 @@ export interface RegisterDto {
   username: string;
   fullName?: string;
   inviteCode?: string;
-  /** ISO date string (YYYY-MM-DD). Required; must be 16+. */
+  // ISO date string (YYYY-MM-DD). Required; must be 16+.
   dateOfBirth: string;
   captchaToken?: string;
   visitorId?: string;
@@ -66,7 +66,7 @@ export interface PlatformPlanDto {
   id: string;
   name: string;
   description: string | null;
-  /** Integer cents — source of truth. */
+  // Integer cents — source of truth.
   priceCents: number;
   yearlyPriceCents?: number | null;
   currency: string;

@@ -262,6 +262,7 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `id` (PK)
 - `profileId` (FK → profiles.id)
 - `name`
+- `description` (nullable) — optional short note shown on collection cards
 - `coverUrl`
 - `standardUrl`
 - `thumbnailUrl`

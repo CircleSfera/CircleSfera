@@ -50,7 +50,7 @@ function CollectionPickerBody({
 
   const createAndAddMutation = useMutation({
     mutationFn: async (name: string) => {
-      const res = await collectionsApi.create(name);
+      const res = await collectionsApi.create({ name });
       return bookmarksApi.updateCollection(postId, res.data.id);
     },
     onSuccess: () => {
