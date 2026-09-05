@@ -264,6 +264,16 @@ vi.mock('react-i18next', () => ({
         'studio.drafts.delete_confirm': 'Delete this draft permanently?',
         'studio.drafts.deleted': 'Draft deleted',
         'studio.drafts.delete_error': 'Could not delete draft',
+        'modals.highlight.new_highlight': 'New Highlight',
+        'modals.highlight.title_and_cover': 'Title & Cover',
+        'modals.highlight.select_stories_desc':
+          'Select stories to add to this highlight.',
+        'modals.highlight.no_stories': 'No stories found.',
+        'modals.highlight.post_some_stories':
+          'Post some stories to create a highlight!',
+        'modals.highlight.highlight_name': 'Highlight Name',
+        'modals.highlight.next': 'Next',
+        'modals.highlight.done': 'Done',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
