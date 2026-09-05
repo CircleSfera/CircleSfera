@@ -180,6 +180,11 @@ vi.mock('react-i18next', () => ({
         'post.modals.write_caption': 'Write a caption...',
         'post.modals.save': 'Save',
         'post.modals.saving': 'Saving...',
+        'modals.block.title': 'Block @{{username}}?',
+        'modals.block.message':
+          "They won't be able to find your profile, posts, or story on CircleSfera.",
+        'modals.block.cancel': 'Cancel',
+        'modals.block.confirm': 'Block',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
@@ -191,6 +196,9 @@ vi.mock('react-i18next', () => ({
         }
         if (options.visibility !== undefined) {
           val = val.replace('{{visibility}}', String(options.visibility));
+        }
+        if (options.username !== undefined) {
+          val = val.replace('{{username}}', String(options.username));
         }
         if (options.defaultValue) {
           val = options.defaultValue;
