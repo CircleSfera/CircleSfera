@@ -280,6 +280,17 @@ vi.mock('react-i18next', () => ({
         'collections.create': 'Create Collection',
         'collections.posts_count': '{{count}} posts',
         'frames.save_to_collection': 'Save to collection',
+        'modals.audio.title': 'Select music',
+        'modals.audio.search_placeholder': 'Search by song or artist…',
+        'modals.audio.clear_selection': 'Remove selected music',
+        'modals.audio.loading': 'Loading audio tracks…',
+        'modals.audio.no_results': 'No results found.',
+        'modals.audio.empty': 'No audio tracks available.',
+        'modals.audio.unknown_artist': 'Unknown artist',
+        'modals.audio.selected': 'Selected',
+        'modals.audio.use': 'Use',
+        'modals.audio.play_preview': 'Play preview',
+        'modals.audio.pause_preview': 'Pause preview',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
