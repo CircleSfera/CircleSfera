@@ -204,6 +204,15 @@ vi.mock('react-i18next', () => ({
         'wallet.support_with_money': 'Support {{name}} with a tip',
         'wallet.send_tip': 'Send Tip',
         'wallet.error_send_tip': 'Error sending tip',
+        'chat.new_message': 'New Message',
+        'chat.creating': 'Creating...',
+        'chat.chat': 'Chat',
+        'chat.to': 'To:',
+        'chat.search_dots': 'Search...',
+        'chat.name_group_optional': 'Name your group (optional)',
+        'chat.no_account_found': 'No account found.',
+        'chat.no_following': 'No Following',
+        'chat.suggested': 'Suggested',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
