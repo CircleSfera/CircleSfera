@@ -356,6 +356,14 @@ vi.mock('react-i18next', () => ({
           'Countries (comma-separated, optional)',
         'creator.promotions.interests_placeholder':
           'Interests (comma-separated, optional)',
+        'creator.promotions.investment': 'Investment',
+        'creator.promotions.per_day': 'day',
+        'creator.promotions.campaign_objective': 'Campaign Objective',
+        'creator.promotions.countries_hint': 'Countries (e.g. ES, MX, US)',
+        'creator.promotions.all_countries': 'All countries',
+        'creator.promotions.interests_hint': 'Interests (e.g. Music, Fashion)',
+        'creator.promotions.all_interests': 'All interests',
+        'post.menu.promote': 'Boost Post',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
