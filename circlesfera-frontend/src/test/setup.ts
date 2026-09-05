@@ -364,6 +364,9 @@ vi.mock('react-i18next', () => ({
         'creator.promotions.interests_hint': 'Interests (e.g. Music, Fashion)',
         'creator.promotions.all_interests': 'All interests',
         'post.menu.promote': 'Boost Post',
+        'profile.stats.followers': 'Followers',
+        'profile.stats.following': 'Following',
+        'profile.empty.no_users_found': 'No users found.',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
