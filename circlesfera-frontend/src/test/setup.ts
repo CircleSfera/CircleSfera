@@ -213,6 +213,23 @@ vi.mock('react-i18next', () => ({
         'chat.no_account_found': 'No account found.',
         'chat.no_following': 'No Following',
         'chat.suggested': 'Suggested',
+        'chat.cancel': 'Cancel',
+        'chat.members': '{{count}} members',
+        'chat.group_chat': 'Group Chat',
+        'chat.group_details.title': 'Group details',
+        'chat.group_details.default_name': 'Group chat',
+        'chat.group_details.name_label': 'Group name',
+        'chat.group_details.avatar_label': 'Avatar image URL (optional)',
+        'chat.group_details.save': 'Save',
+        'chat.group_details.edit_info': 'Edit info',
+        'chat.group_details.participants': 'Participants',
+        'chat.group_details.admin_badge': 'Admin',
+        'chat.group_details.remove_title': 'Remove from group',
+        'chat.group_details.remove_confirm':
+          'Remove @{{username}} from this group?',
+        'chat.group_details.leave_confirm':
+          'Leave this group? You will stop receiving new messages.',
+        'chat.group_details.leave_group': 'Leave group',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
