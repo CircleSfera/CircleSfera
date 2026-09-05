@@ -333,6 +333,29 @@ vi.mock('react-i18next', () => ({
         'modals.insights.above_average':
           ' You are beating your category average.',
         'modals.insights.keep_promoting': ' Keep promoting to gain more reach.',
+        'creator.promotions.error_create': 'Error creating promotion',
+        'creator.promotions.redirecting': 'Redirecting to secure checkout...',
+        'creator.promotions.select_content': 'Select Content',
+        'creator.promotions.configure_reach': 'Configure Reach',
+        'creator.promotions.boost_best': 'Boost your best content',
+        'creator.promotions.untitled': 'Untitled',
+        'creator.promotions.no_posts': 'No posts available',
+        'creator.promotions.selected_post': 'Selected post',
+        'creator.promotions.change_post': 'Change post',
+        'creator.promotions.daily_budget': 'Daily Budget ({{currency}})',
+        'creator.promotions.campaign_duration': 'Campaign Duration',
+        'creator.promotions.days': '{{count}} Days',
+        'creator.promotions.boost_total':
+          'Boost for {{currency}}{{total}} total',
+        'creator.promotions.estimated_reach': 'Estimated reach',
+        'creator.promotions.objective': 'Objective',
+        'creator.promotions.objective_profile': 'Profile Visits',
+        'creator.promotions.objective_follows': 'Get Followers',
+        'creator.promotions.objective_conversions': 'Subscription Conversions',
+        'creator.promotions.countries_placeholder':
+          'Countries (comma-separated, optional)',
+        'creator.promotions.interests_placeholder':
+          'Interests (comma-separated, optional)',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
@@ -359,6 +382,12 @@ vi.mock('react-i18next', () => ({
         }
         if (options.date !== undefined) {
           val = val.replace('{{date}}', String(options.date));
+        }
+        if (options.currency !== undefined) {
+          val = val.replace('{{currency}}', String(options.currency));
+        }
+        if (options.total !== undefined) {
+          val = val.replace('{{total}}', String(options.total));
         }
         if (options.defaultValue) {
           val = options.defaultValue;
