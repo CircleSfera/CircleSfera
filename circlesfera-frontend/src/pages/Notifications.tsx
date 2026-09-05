@@ -202,6 +202,21 @@ export default function Notifications() {
     });
   };
 
+  const moderationAppealPath = (notif: Notification) => {
+    const content = (notif.content || '').toLowerCase();
+    if (notif.postId) {
+      return `/accounts/appeals?targetType=POST_REMOVAL&targetId=${encodeURIComponent(notif.postId)}`;
+    }
+    if (
+      content.includes('bot') ||
+      content.includes('automated') ||
+      content.includes('automatiz')
+    ) {
+      return '/accounts/appeals?targetType=BOT_LABEL';
+    }
+    return '/accounts/appeals?targetType=ACCOUNT_BAN';
+  };
+
   return (
     <div className="pb-24 min-h-dvh md:max-w-2xl md:mx-auto">
       <SEO title={t('notifications.seo_title')} />
@@ -310,6 +325,14 @@ export default function Notifications() {
                       })}
                   </span>
                 </p>
+                {notif.type === 'MODERATION' && (
+                  <Link
+                    to={moderationAppealPath(notif)}
+                    className="inline-flex mt-2 min-h-11 items-center rounded-full border border-orange-400/30 bg-orange-500/10 px-3 text-xs font-semibold text-orange-200 hover:bg-orange-500/20 transition-colors"
+                  >
+                    {t('notifications.appeal_cta', 'Appeal this decision')}
+                  </Link>
+                )}
                 <p
                   className="text-[11px] font-semibold mt-1"
                   style={{ color: 'rgba(255,255,255,0.28)' }}
@@ -319,7 +342,7 @@ export default function Notifications() {
               </div>
 
               {/* Post thumbnail */}
-              {notif.postId && (
+              {notif.postId && notif.type !== 'MODERATION' && (
                 <Link
                   to={`/p/${notif.postId}`}
                   className="shrink-0 opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-200"
@@ -335,6 +358,30 @@ export default function Notifications() {
                     <Star
                       size={16}
                       style={{ color: 'rgba(255,255,255,0.25)' }}
+                    />
+                  </div>
+                </Link>
+              )}
+              {notif.type === 'MODERATION' && notif.postId && (
+                <Link
+                  to={moderationAppealPath(notif)}
+                  className="shrink-0 opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-200"
+                  aria-label={t(
+                    'notifications.appeal_cta',
+                    'Appeal this decision',
+                  )}
+                >
+                  <div
+                    className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center"
+                    style={{
+                      background:
+                        'linear-gradient(135deg, rgba(249,115,22,0.2), rgba(234,88,12,0.15))',
+                      border: '1px solid rgba(249,115,22,0.25)',
+                    }}
+                  >
+                    <Shield
+                      size={16}
+                      style={{ color: 'rgba(253,186,116,0.9)' }}
                     />
                   </div>
                 </Link>

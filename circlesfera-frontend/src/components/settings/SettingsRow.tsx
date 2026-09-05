@@ -11,10 +11,8 @@ interface SettingsRowProps {
   as?: 'div' | 'button';
 }
 
-/**
- * Dense settings row: label (+ optional description) left, control right.
- * Minimum touch target 44px.
- */
+// Dense settings row: label (+ optional description) left, control right.
+// Minimum touch target 44px.
 export default function SettingsRow({
   label,
   description,

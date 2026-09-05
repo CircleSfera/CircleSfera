@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronLeft, Image as ImageIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { highlightsApi, storiesApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
@@ -11,20 +11,42 @@ import { Dialog } from '../ui/Dialog';
 interface CreateHighlightModalProps {
   isOpen: boolean;
   onClose: () => void;
+  // When set, modal edits an existing highlight (stories + cover + title).
+  highlightId?: string;
+  initialTitle?: string;
+  initialCoverUrl?: string | null;
+  initialStoryIds?: string[];
 }
 
 export default function CreateHighlightModal({
   isOpen,
   onClose,
+  highlightId,
+  initialTitle = '',
+  initialCoverUrl = null,
+  initialStoryIds = [],
 }: CreateHighlightModalProps) {
   const { t } = useTranslation();
   const profile = useAuthStore((state) => state.profile);
   const queryClient = useQueryClient();
+  const isEditing = !!highlightId;
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedStoryIds, setSelectedStoryIds] = useState<string[]>([]);
   const [title, setTitle] = useState('');
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [coverStoryId, setCoverStoryId] = useState<string | null>(null);
+  const initialStoryKey = initialStoryIds.join(',');
+
+  // Reset draft when the modal opens or the highlight/story set identity changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: initialStoryKey stands in for initialStoryIds identity
+  useEffect(() => {
+    if (!isOpen) return;
+    setStep(1);
+    setTitle(initialTitle);
+    setCoverUrl(initialCoverUrl);
+    setSelectedStoryIds(initialStoryIds);
+    setCoverStoryId(initialStoryIds[0] || null);
+  }, [isOpen, highlightId, initialTitle, initialCoverUrl, initialStoryKey]);
 
   const { data: storiesResponse, isLoading } = useQuery({
     queryKey: ['my-archive'],
@@ -34,59 +56,91 @@ export default function CreateHighlightModal({
 
   const stories = storiesResponse || [];
 
-  const createHighlightMutation = useMutation({
-    mutationFn: highlightsApi.create,
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['userHighlights', profile?.username],
-      });
-      handleClose();
-    },
-  });
-
-  const handleClose = () => {
+  const resetAndClose = () => {
     setStep(1);
     setSelectedStoryIds([]);
     setTitle('');
     setCoverUrl(null);
+    setCoverStoryId(null);
     onClose();
   };
 
-  const toggleStorySelection = (storyId: string) => {
-    setSelectedStoryIds((prev) =>
-      prev.includes(storyId)
-        ? prev.filter((id) => id !== storyId)
-        : [...prev, storyId],
-    );
+  const invalidateHighlightQueries = () => {
+    queryClient.invalidateQueries({
+      queryKey: ['userHighlights', profile?.username],
+    });
+    if (highlightId) {
+      queryClient.invalidateQueries({ queryKey: ['highlight', highlightId] });
+    }
+    queryClient.invalidateQueries({ queryKey: ['highlights'] });
   };
 
-  const handleCreate = () => {
-    if (!title.trim()) return;
+  const createHighlightMutation = useMutation({
+    mutationFn: highlightsApi.create,
+    onSuccess: () => {
+      invalidateHighlightQueries();
+      resetAndClose();
+    },
+  });
 
-    // Default cover to the first selected story's media if not set
-    let finalCoverUrl = coverUrl;
-    if (!finalCoverUrl && selectedStoryIds.length > 0) {
-      const firstStory = stories.find(
-        (s: Story) => s.id === selectedStoryIds[0],
-      );
-      if (firstStory) {
-        finalCoverUrl = firstStory.url;
-      }
+  const updateHighlightMutation = useMutation({
+    mutationFn: (data: {
+      title: string;
+      coverUrl?: string;
+      storyIds: string[];
+    }) => highlightsApi.update(highlightId!, data),
+    onSuccess: () => {
+      invalidateHighlightQueries();
+      resetAndClose();
+    },
+  });
+
+  const resolveCoverUrl = () => {
+    const coverId = coverStoryId || selectedStoryIds[0];
+    if (coverId) {
+      const coverStory = stories.find((s: Story) => s.id === coverId);
+      if (coverStory) return coverStory.url;
     }
+    return coverUrl || undefined;
+  };
 
-    createHighlightMutation.mutate({
-      title,
-      storyIds: selectedStoryIds,
-      coverUrl: finalCoverUrl || undefined,
+  const toggleStorySelection = (storyId: string) => {
+    setSelectedStoryIds((prev) => {
+      const next = prev.includes(storyId)
+        ? prev.filter((id) => id !== storyId)
+        : [...prev, storyId];
+      if (coverStoryId === storyId && !next.includes(storyId)) {
+        setCoverStoryId(next[0] || null);
+      } else if (!coverStoryId && next.length > 0) {
+        setCoverStoryId(next[0]);
+      }
+      return next;
     });
+  };
+
+  const handleSave = () => {
+    if (!title.trim() || selectedStoryIds.length === 0) return;
+    const payload = {
+      title: title.trim(),
+      storyIds: selectedStoryIds,
+      coverUrl: resolveCoverUrl(),
+    };
+    if (isEditing) {
+      updateHighlightMutation.mutate(payload);
+    } else {
+      createHighlightMutation.mutate(payload);
+    }
   };
 
   if (!isOpen) return null;
 
+  const isPending =
+    createHighlightMutation.isPending || updateHighlightMutation.isPending;
+
   return (
     <Dialog
       isOpen={isOpen}
-      onClose={handleClose}
+      onClose={resetAndClose}
       maxWidth="md"
       className="max-h-[90vh]"
     >
@@ -106,7 +160,9 @@ export default function CreateHighlightModal({
             )}
             <h2 className="text-lg font-bold text-white truncate">
               {step === 1
-                ? t('modals.highlight.new_highlight')
+                ? isEditing
+                  ? t('modals.highlight.edit_highlight', 'Edit highlight')
+                  : t('modals.highlight.new_highlight')
                 : t('modals.highlight.title_and_cover')}
             </h2>
           </div>
@@ -162,22 +218,25 @@ export default function CreateHighlightModal({
             </div>
           ) : (
             <div className="flex flex-col items-center gap-4 py-8">
-              {/* Cover Preview */}
               <button
                 type="button"
                 className="relative group cursor-pointer appearance-none bg-transparent p-0 border-none"
                 onClick={() => {
+                  if (selectedStoryIds.length === 0) return;
+                  const currentIndex = selectedStoryIds.indexOf(
+                    coverStoryId || selectedStoryIds[0],
+                  );
                   const nextId =
                     selectedStoryIds[
-                      (selectedStoryIds.indexOf(coverStoryId || '') + 1) %
-                        selectedStoryIds.length
+                      (currentIndex + 1) % selectedStoryIds.length
                     ];
                   setCoverStoryId(nextId);
+                  const nextStory = stories.find((s: Story) => s.id === nextId);
+                  if (nextStory) setCoverUrl(nextStory.url);
                 }}
               >
                 <div className="w-24 h-24 rounded-full border-2 border-gray-600 overflow-hidden relative">
                   {(() => {
-                    // Determine cover to show
                     let previewUrl = coverUrl;
                     if (!previewUrl && selectedStoryIds.length > 0) {
                       const s = stories.find(
@@ -227,13 +286,15 @@ export default function CreateHighlightModal({
             </Button>
           ) : (
             <Button
-              onClick={handleCreate}
-              disabled={!title.trim()}
-              isLoading={createHighlightMutation.isPending}
+              onClick={handleSave}
+              disabled={!title.trim() || selectedStoryIds.length === 0}
+              isLoading={isPending}
               variant="primary"
               className="px-6 py-2 font-semibold"
             >
-              {t('modals.highlight.done')}
+              {isEditing
+                ? t('modals.highlight.save_changes', 'Save changes')
+                : t('modals.highlight.done')}
             </Button>
           )}
         </div>

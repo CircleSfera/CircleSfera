@@ -1,6 +1,7 @@
 import { Check, Loader2, Vote } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../services/api';
 import { logger } from '../../utils/logger';
 
@@ -20,6 +21,7 @@ interface PollData {
 }
 
 export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
+  const { t } = useTranslation();
   const [poll, setPoll] = useState<PollData | null>(null);
   const [loading, setLoading] = useState(true);
   const [votingIndex, setVotingIndex] = useState<number | null>(null);
@@ -59,7 +61,9 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
     return (
       <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-center py-6 text-gray-400">
         <Loader2 className="w-5 h-5 animate-spin mr-2 text-accent-blue" />
-        <span className="text-xs font-medium">Cargando encuesta...</span>
+        <span className="text-xs font-medium">
+          {t('interactive.poll.loading', 'Loading poll…')}
+        </span>
       </div>
     );
   }
@@ -72,7 +76,9 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
     <div className="p-4 bg-black/40 border border-white/10 rounded-2xl space-y-3 shadow-lg">
       <div className="flex items-center space-x-2 text-accent-blue">
         <Vote className="w-4 h-4" />
-        <h4 className="text-xs font-bold uppercase tracking-wider">Encuesta</h4>
+        <h4 className="text-xs font-bold uppercase tracking-wider">
+          {t('interactive.poll.title', 'Poll')}
+        </h4>
       </div>
 
       <p className="text-sm font-bold text-white tracking-tight">
@@ -94,7 +100,6 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
                   : 'border-white/10 bg-white/5 hover:bg-white/10 text-gray-200'
               }`}
             >
-              {/* Progress bar background */}
               {hasVoted && (
                 <div
                   className="absolute inset-y-0 left-0 bg-accent-blue/20 transition-all duration-500"
@@ -122,10 +127,15 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
       </div>
 
       <div className="flex justify-between items-center text-[11px] text-gray-400 pt-1">
-        <span>{poll.totalVotes} votos</span>
+        <span>
+          {t('interactive.poll.votes', {
+            count: poll.totalVotes,
+            defaultValue: '{{count}} votes',
+          })}
+        </span>
         {hasVoted && (
           <span className="text-emerald-400 font-medium">
-            ✓ Voto registrado
+            {t('interactive.poll.voted', '✓ Vote recorded')}
           </span>
         )}
       </div>

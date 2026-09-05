@@ -7,10 +7,13 @@ export type EditedMediaHandoff = {
 
 interface UIState {
   isCreateMenuOpen: boolean;
+  isCreateHighlightOpen: boolean;
   editedMediaForPost: EditedMediaHandoff | null;
   openCreateMenu: () => void;
   closeCreateMenu: () => void;
   toggleCreateMenu: () => void;
+  openCreateHighlight: () => void;
+  closeCreateHighlight: () => void;
   setEditedMediaForPost: (payload: EditedMediaHandoff | File | null) => void;
 }
 
@@ -24,11 +27,15 @@ function normalizeHandoff(
 
 export const useUIStore = create<UIState>((set) => ({
   isCreateMenuOpen: false,
+  isCreateHighlightOpen: false,
   editedMediaForPost: null,
   openCreateMenu: () => set({ isCreateMenuOpen: true }),
   closeCreateMenu: () => set({ isCreateMenuOpen: false }),
   toggleCreateMenu: () =>
     set((state) => ({ isCreateMenuOpen: !state.isCreateMenuOpen })),
+  openCreateHighlight: () =>
+    set({ isCreateMenuOpen: false, isCreateHighlightOpen: true }),
+  closeCreateHighlight: () => set({ isCreateHighlightOpen: false }),
   setEditedMediaForPost: (payload) =>
     set({ editedMediaForPost: normalizeHandoff(payload) }),
 }));

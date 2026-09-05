@@ -2,10 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Clock, Eye, Heart, PlayCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { storiesApi } from '../../services';
 import type { CreatorStory } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
-import type { PaginatedResponse } from '../../types';
+import { useAuthStore } from '../../stores/authStore';
+import { useStoryStore } from '../../stores/storyStore';
+import type { PaginatedResponse, Story } from '../../types';
 import { Button } from '../ui';
 import CreatorEmpty from './CreatorEmpty';
 
@@ -13,6 +17,9 @@ export default function CreatorStoriesTab() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [now, setNow] = useState(() => Date.now());
+  const [openingId, setOpeningId] = useState<string | null>(null);
+  const profile = useAuthStore((state) => state.profile);
+  const openStories = useStoryStore((state) => state.openStories);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 60000);
@@ -25,6 +32,45 @@ export default function CreatorStoriesTab() {
   });
 
   const isExpired = (expiresAt: string) => new Date(expiresAt) < new Date();
+
+  const handleOpenStory = async (story: CreatorStory) => {
+    if (openingId) return;
+    setOpeningId(story.id);
+    try {
+      // Creator studio always views own stories — archive includes active + expired
+      const archive = await storiesApi.getArchive();
+      let stories = (archive.data ?? []) as Story[];
+      let index = stories.findIndex((s) => s.id === story.id);
+
+      if (index < 0 && profile) {
+        stories = [
+          {
+            id: story.id,
+            url: story.url,
+            mediaType: story.mediaType,
+            expiresAt: story.expiresAt,
+            createdAt: story.createdAt,
+            profileId: profile.id,
+            profile,
+          } as Story,
+        ];
+        index = 0;
+      }
+
+      if (index < 0 || stories.length === 0) {
+        toast.error(
+          t('creator.stories.open_error', 'Could not open this story'),
+        );
+        return;
+      }
+
+      openStories(stories, index);
+    } catch {
+      toast.error(t('creator.stories.open_error', 'Could not open this story'));
+    } finally {
+      setOpeningId(null);
+    }
+  };
 
   return (
     <div className="space-y-4 pb-10">
@@ -42,10 +88,14 @@ export default function CreatorStoriesTab() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
           {data?.data?.map((story) => (
-            <motion.div
+            <motion.button
+              type="button"
               layout
               key={story.id}
-              className="relative aspect-9/16 rounded-xl overflow-hidden border border-white/5 hover:border-brand-primary/30 transition-all group cursor-pointer"
+              onClick={() => void handleOpenStory(story)}
+              disabled={openingId === story.id}
+              aria-label={t('creator.stories.open', 'Open story')}
+              className="relative aspect-9/16 rounded-xl overflow-hidden border border-white/5 hover:border-brand-primary/30 transition-all group cursor-pointer text-left disabled:opacity-70"
             >
               {/* Media */}
               {story.mediaType === 'video' ? (
@@ -131,7 +181,7 @@ export default function CreatorStoriesTab() {
                   />
                 </div>
               </div>
-            </motion.div>
+            </motion.button>
           ))}
         </div>
       )}

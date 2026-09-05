@@ -18,7 +18,6 @@ import PostGrid from '../components/profile/PostGrid';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import ProfileTabs, { type TabType } from '../components/profile/ProfileTabs';
 import { profileTabFromParam } from '../components/profile/profileTabUtils';
-import StoryViewer from '../components/StoryViewer';
 import {
   bookmarksApi,
   chatApi,
@@ -29,6 +28,7 @@ import {
   storiesApi,
 } from '../services';
 import { useAuthStore } from '../stores/authStore';
+import { useStoryStore } from '../stores/storyStore';
 import { useUIStore } from '../stores/uiStore';
 import type { Collection, ProfileWithUser } from '../types';
 
@@ -63,8 +63,8 @@ export default function Profile() {
 
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [showCloseFriendsModal, setShowCloseFriendsModal] = useState(false);
-  const [isStoryViewerOpen, setIsStoryViewerOpen] = useState(false);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
+  const openStories = useStoryStore((state) => state.openStories);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const handledCheckoutReturn = useRef(false);
@@ -111,6 +111,16 @@ export default function Profile() {
       setSelectedCollection(null);
     }
   };
+
+  // Create menu Destacadas deep-link (legacy query)
+  useEffect(() => {
+    if (!isMe) return;
+    if (searchParams.get('action') !== 'highlights') return;
+    setIsHighlightModalOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete('action');
+    setSearchParams(next, { replace: true });
+  }, [isMe, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (handledCheckoutReturn.current) return;
@@ -463,9 +473,12 @@ export default function Profile() {
                     name: collection.name,
                   })
                 }
-                onRename={async (id, name) => {
+                onRename={async (id, payload) => {
                   const { collectionsApi } = await import('../services');
-                  await collectionsApi.update(id, name);
+                  await collectionsApi.update(id, {
+                    name: payload.name,
+                    description: payload.description ?? '',
+                  });
                   queryClient.invalidateQueries({ queryKey: ['collections'] });
                 }}
                 onDelete={async (id) => {
@@ -509,7 +522,11 @@ export default function Profile() {
           onOpenCloseFriends={
             isMe ? () => setShowCloseFriendsModal(true) : undefined
           }
-          setIsStoryViewerOpen={setIsStoryViewerOpen}
+          onOpenStories={() => {
+            if (hasActiveStories && activeStories?.length) {
+              openStories(activeStories, 0);
+            }
+          }}
           showMenu={showMenu}
           setShowMenu={setShowMenu}
         />
@@ -559,14 +576,6 @@ export default function Profile() {
               />
             )}
           </Suspense>
-
-          {isStoryViewerOpen && hasActiveStories && (
-            <StoryViewer
-              stories={activeStories}
-              initialIndex={0}
-              onClose={() => setIsStoryViewerOpen(false)}
-            />
-          )}
 
           {/* Tabs */}
           <ProfileTabs
@@ -657,7 +666,7 @@ export default function Profile() {
               )}
             </>
           ) : (
-            /* Private Account View */
+            // Private Account View
             <EmptyState
               icon="followers"
               title={t('profile.private.title')}

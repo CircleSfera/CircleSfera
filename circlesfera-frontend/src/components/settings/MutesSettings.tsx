@@ -1,8 +1,10 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { followsApi, type MutedUserEntry } from '../../services';
 import type { ProfileWithUser } from '../../types';
 import { EmptyState } from '../ErrorEmptyStates';
+import MuteDurationModal from '../modals/MuteDurationModal';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
 import SettingsSection from './SettingsSection';
@@ -26,6 +28,7 @@ function formatMuteExpiry(
 
 export default function MutesSettings() {
   const { t, i18n } = useTranslation();
+  const [durationUsername, setDurationUsername] = useState<string | null>(null);
 
   const { data: blockedUsersData, refetch: refetchBlocked } = useQuery({
     queryKey: ['blockedUsers'],
@@ -114,14 +117,25 @@ export default function MutesSettings() {
             </p>
           </div>
         </div>
-        <Button
-          onClick={() => user.username && unmuteMutation.mutate(user.username)}
-          variant="outline"
-          isLoading={unmuteMutation.isPending}
-          className="min-h-11 text-sm font-semibold px-4 shrink-0"
-        >
-          {t('settings.mutes.unmute', 'Unmute')}
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+          <Button
+            onClick={() => user.username && setDurationUsername(user.username)}
+            variant="outline"
+            className="min-h-11 text-sm font-semibold px-4"
+          >
+            {t('settings.mutes.change_duration', 'Duration')}
+          </Button>
+          <Button
+            onClick={() =>
+              user.username && unmuteMutation.mutate(user.username)
+            }
+            variant="outline"
+            isLoading={unmuteMutation.isPending}
+            className="min-h-11 text-sm font-semibold px-4"
+          >
+            {t('settings.mutes.unmute', 'Unmute')}
+          </Button>
+        </div>
       </li>
     );
   };
@@ -159,6 +173,18 @@ export default function MutesSettings() {
           <ul className="space-y-2">{mutedEntries.map(renderMutedRow)}</ul>
         )}
       </SettingsSection>
+
+      {durationUsername && (
+        <MuteDurationModal
+          isOpen={!!durationUsername}
+          username={durationUsername}
+          onClose={() => setDurationUsername(null)}
+          onMuted={() => {
+            void refetchMuted();
+            setDurationUsername(null);
+          }}
+        />
+      )}
     </div>
   );
 }

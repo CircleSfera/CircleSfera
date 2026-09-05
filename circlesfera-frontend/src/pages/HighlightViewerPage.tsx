@@ -1,12 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Pencil, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { Images, Pencil, Trash2 } from 'lucide-react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import StoryViewer from '../components/StoryViewer';
 import { highlightsApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
+import { useStoryStore } from '../stores/storyStore';
+import type { Story } from '../types';
+
+const CreateHighlightModal = lazy(
+  () => import('../components/modals/CreateHighlightModal'),
+);
 
 export default function HighlightViewerPage() {
   const { t } = useTranslation();
@@ -14,8 +19,13 @@ export default function HighlightViewerPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const profile = useAuthStore((state) => state.profile);
+  const openStories = useStoryStore((state) => state.openStories);
+  const closeStories = useStoryStore((state) => state.closeStories);
+  const isStoryOpen = useStoryStore((state) => state.isOpen);
   const [editingTitle, setEditingTitle] = useState(false);
   const [title, setTitle] = useState('');
+  const [isManageOpen, setIsManageOpen] = useState(false);
+  const sawViewerOpen = useRef(false);
 
   const { data: highlight, isLoading } = useQuery({
     queryKey: ['highlight', id],
@@ -27,6 +37,40 @@ export default function HighlightViewerPage() {
     !!profile?.id &&
     !!highlight &&
     (highlight as { profileId?: string }).profileId === profile.id;
+
+  const storyIds = useMemo(
+    () =>
+      (highlight?.stories || [])
+        .map((hs: { story?: { id?: string } }) => hs.story?.id)
+        .filter((storyId: string | undefined): storyId is string => !!storyId),
+    [highlight?.stories],
+  );
+
+  const stories: Story[] = useMemo(
+    () => (highlight?.stories || []).map((hs) => hs.story),
+    [highlight?.stories],
+  );
+
+  useEffect(() => {
+    if (stories.length === 0) return;
+    openStories(stories, 0);
+  }, [stories, openStories]);
+
+  useEffect(() => {
+    if (isStoryOpen) {
+      sawViewerOpen.current = true;
+      return;
+    }
+    if (sawViewerOpen.current) {
+      navigate(-1);
+    }
+  }, [isStoryOpen, navigate]);
+
+  useEffect(() => {
+    return () => {
+      closeStories();
+    };
+  }, [closeStories]);
 
   const updateMutation = useMutation({
     mutationFn: (data: { title?: string }) => highlightsApi.update(id!, data),
@@ -78,8 +122,6 @@ export default function HighlightViewerPage() {
     );
   }
 
-  const stories = highlight.stories.map((hs: any) => hs.story);
-
   return (
     <>
       {isOwner && (
@@ -107,17 +149,30 @@ export default function HighlightViewerPage() {
               </button>
             </form>
           ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setTitle(highlight.title || '');
-                setEditingTitle(true);
-              }}
-              className="w-11 h-11 flex items-center justify-center rounded-full bg-black/60 border border-white/10 text-white hover:bg-white/10"
-              aria-label={t('story.edit_highlight', 'Edit highlight')}
-            >
-              <Pencil size={16} />
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setIsManageOpen(true)}
+                className="w-11 h-11 flex items-center justify-center rounded-full bg-black/60 border border-white/10 text-white hover:bg-white/10"
+                aria-label={t(
+                  'modals.highlight.edit_highlight',
+                  'Edit highlight',
+                )}
+              >
+                <Images size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTitle(highlight.title || '');
+                  setEditingTitle(true);
+                }}
+                className="w-11 h-11 flex items-center justify-center rounded-full bg-black/60 border border-white/10 text-white hover:bg-white/10"
+                aria-label={t('story.edit_highlight', 'Edit highlight')}
+              >
+                <Pencil size={16} />
+              </button>
+            </>
           )}
           <button
             type="button"
@@ -137,11 +192,16 @@ export default function HighlightViewerPage() {
           </button>
         </div>
       )}
-      <StoryViewer
-        stories={stories}
-        initialIndex={0}
-        onClose={() => navigate(-1)}
-      />
+      <Suspense fallback={null}>
+        <CreateHighlightModal
+          isOpen={isManageOpen}
+          onClose={() => setIsManageOpen(false)}
+          highlightId={id}
+          initialTitle={highlight.title || ''}
+          initialCoverUrl={highlight.coverUrl || null}
+          initialStoryIds={storyIds}
+        />
+      </Suspense>
     </>
   );
 }

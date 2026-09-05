@@ -178,7 +178,7 @@ interface ProfileHeaderProps {
   setShowTipModal: (show: boolean) => void;
   onOpenCloseFriends?: () => void;
 
-  setIsStoryViewerOpen: (show: boolean) => void;
+  onOpenStories: () => void;
   showMenu: boolean;
   setShowMenu: (show: boolean) => void;
 }
@@ -198,7 +198,7 @@ export default function ProfileHeader({
   setShowBlockModal,
   setShowTipModal,
   onOpenCloseFriends,
-  setIsStoryViewerOpen,
+  onOpenStories,
   showMenu,
   setShowMenu,
 }: ProfileHeaderProps) {
@@ -220,7 +220,7 @@ export default function ProfileHeader({
   const tierLevel = profile.data.verificationLevel as
     | VerificationLevel
     | undefined;
-  /** KYC identity badge — only when no premium tier badge is already shown. */
+  // KYC identity badge — only when no premium tier badge is already shown.
   const showIdentityVerifiedBadge =
     !!data.identityVerified && (!tierLevel || tierLevel === 'BASIC');
 
@@ -264,7 +264,7 @@ export default function ProfileHeader({
 
       <div className="flex flex-col gap-3 md:gap-4">
         <div className="flex flex-row md:flex-row items-center md:items-start gap-3 md:gap-4 w-full">
-          {/* Avatar — Design System section 9.5: profile=96px */}
+          {/* Profile avatar — 96px */}
           <div className="relative shrink-0">
             <UserAvatar
               src={profile.data.avatar}
@@ -273,9 +273,7 @@ export default function ProfileHeader({
               alt={profile.data.username}
               size="profile"
               hasStory={hasActiveStories}
-              onClick={
-                hasActiveStories ? () => setIsStoryViewerOpen(true) : undefined
-              }
+              onClick={hasActiveStories ? onOpenStories : undefined}
               className="transition-all duration-300"
             />
           </div>

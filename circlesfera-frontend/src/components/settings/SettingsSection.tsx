@@ -6,7 +6,7 @@ interface SettingsSectionProps {
   description?: string;
   children: ReactNode;
   className?: string;
-  /** When false, children render without a Card wrapper. */
+  // When false, children render without a Card wrapper.
   card?: boolean;
 }
 

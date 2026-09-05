@@ -272,24 +272,50 @@ export default function FeedPreferencesSettings() {
       >
         <ul className="space-y-2">
           {(data?.hiddenPosts || []).map(
-            (p: { postId: string; createdAt: string }) => (
+            (p: {
+              postId: string;
+              createdAt: string;
+              caption?: string | null;
+              thumbnailUrl?: string | null;
+              authorUsername?: string | null;
+            }) => (
               <li
                 key={p.postId}
-                className="flex items-center justify-between p-3 min-h-11 rounded-lg bg-white/5"
+                className="flex items-center justify-between gap-3 p-3 min-h-11 rounded-lg bg-white/5"
               >
-                <span className="text-white/60 text-xs font-mono flex items-center gap-2">
-                  <EyeOff
-                    size={14}
-                    className="text-brand-primary"
-                    aria-hidden
-                  />
-                  {p.postId.slice(0, 12)}…
-                </span>
+                <div className="flex items-center gap-3 min-w-0">
+                  {p.thumbnailUrl ? (
+                    <img
+                      src={p.thumbnailUrl}
+                      alt=""
+                      className="w-10 h-10 rounded-lg object-cover shrink-0 border border-white/10"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                      <EyeOff
+                        size={14}
+                        className="text-brand-primary"
+                        aria-hidden
+                      />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    {p.authorUsername ? (
+                      <p className="text-white text-sm font-medium truncate">
+                        @{p.authorUsername}
+                      </p>
+                    ) : null}
+                    <p className="text-white/50 text-xs line-clamp-2">
+                      {p.caption?.trim() ||
+                        t('feedPrefs.hidden_post_fallback', 'Hidden post')}
+                    </p>
+                  </div>
+                </div>
                 <Button
                   variant="ghost"
                   size="compact"
                   onClick={() => unhidePost.mutate(p.postId)}
-                  className="min-h-11"
+                  className="min-h-11 shrink-0"
                 >
                   {t('feedPrefs.show_again', 'Show again')}
                 </Button>

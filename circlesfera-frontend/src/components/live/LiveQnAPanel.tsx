@@ -1,5 +1,6 @@
 import { HelpCircle, Send, X } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface LiveQuestion {
   id: string;
@@ -28,6 +29,7 @@ export default function LiveQnAPanel({
   onHighlightQuestion,
   onClearHighlight,
 }: LiveQnAPanelProps) {
+  const { t } = useTranslation();
   const [input, setInput] = useState('');
 
   if (!isOpen) return null;
@@ -44,12 +46,13 @@ export default function LiveQnAPanel({
       <div className="flex items-center justify-between p-4 border-b border-white/10">
         <div className="flex items-center gap-2 text-white">
           <HelpCircle size={20} className="text-pink-400" />
-          <h3 className="font-bold">Q&A</h3>
+          <h3 className="font-bold">{t('live.qna.title', 'Q&A')}</h3>
         </div>
         <button
           type="button"
           onClick={onClose}
           className="p-1.5 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+          aria-label={t('common.close', 'Close')}
         >
           <X size={16} />
         </button>
@@ -61,8 +64,8 @@ export default function LiveQnAPanel({
             <HelpCircle size={40} className="mb-2 opacity-50" />
             <p>
               {isHost
-                ? 'No hay preguntas todavía.'
-                : 'Haz la primera pregunta.'}
+                ? t('live.qna.empty_host', 'No questions yet.')
+                : t('live.qna.empty_viewer', 'Ask the first question.')}
             </p>
           </div>
         ) : (
@@ -93,7 +96,7 @@ export default function LiveQnAPanel({
                     onClick={() => onHighlightQuestion(q)}
                     className="text-[11px] font-bold text-pink-400 bg-pink-400/10 px-3 py-1 rounded-full hover:bg-pink-400/20 transition-colors"
                   >
-                    Proyectar
+                    {t('live.qna.project', 'Project')}
                   </button>
                 </div>
               )}
@@ -109,7 +112,7 @@ export default function LiveQnAPanel({
             onClick={onClearHighlight}
             className="w-full py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-semibold text-sm transition-colors"
           >
-            Quitar pregunta de pantalla
+            {t('live.qna.clear_screen', 'Clear question from screen')}
           </button>
         </div>
       ) : (
@@ -121,13 +124,14 @@ export default function LiveQnAPanel({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Escribe tu pregunta..."
+            placeholder={t('live.qna.placeholder', 'Write your question…')}
             className="flex-1 bg-white/10 border border-white/10 rounded-full px-4 py-2 text-sm text-white outline-none focus:border-pink-500"
           />
           <button
             type="submit"
             disabled={!input.trim()}
             className="p-2 bg-pink-500 rounded-full text-white disabled:opacity-50 hover:bg-pink-600 transition-colors shrink-0"
+            aria-label={t('live.qna.send', 'Send question')}
           >
             <Send size={18} />
           </button>

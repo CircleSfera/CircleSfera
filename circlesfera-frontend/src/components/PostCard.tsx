@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useDwellTime } from '../hooks/useDwellTime';
 import { usePostInteractions } from '../hooks/usePostInteractions';
+import { useAuthStore } from '../stores/authStore';
 import type { Post } from '../types';
 import { PollWidget } from './interactive/PollWidget';
 import { QnaWidget } from './interactive/QnaWidget';
@@ -21,9 +22,11 @@ interface PostCardProps {
 export default memo(function PostCard({ post, priority }: PostCardProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const profile = useAuthStore((state) => state.profile);
   const [showWhy, setShowWhy] = useState(false);
   const interactions = usePostInteractions(post);
   useDwellTime(post.id, interactions.postRef);
+  const isOwner = !!profile?.id && post.profileId === profile.id;
 
   if (interactions.isDeleted) return null;
 
@@ -197,7 +200,9 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
         {(post.poll?.id || post.qnaBox?.id) && (
           <div className="px-3 pb-2 md:px-4 md:pb-3">
             {post.poll?.id && <PollWidget pollId={post.poll.id} />}
-            {post.qnaBox?.id && <QnaWidget qnaBoxId={post.qnaBox.id} />}
+            {post.qnaBox?.id && (
+              <QnaWidget qnaBoxId={post.qnaBox.id} isOwner={isOwner} />
+            )}
           </div>
         )}
 

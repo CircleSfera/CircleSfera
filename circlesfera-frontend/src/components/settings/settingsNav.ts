@@ -16,7 +16,7 @@ import {
   UserX,
 } from 'lucide-react';
 
-/** Canonical settings section ids (URL slug = id). */
+// Canonical settings section ids (URL slug = id).
 export type SettingsSectionId =
   | 'profile'
   | 'privacy'
@@ -47,7 +47,7 @@ export interface SettingsNavGroup {
   items: SettingsNavItem[];
 }
 
-/** Reserved path segments under /accounts that are not settings sections. */
+// Reserved path segments under /accounts that are not settings sections.
 export const ACCOUNTS_RESERVED_SEGMENTS = [
   'login',
   'signup',

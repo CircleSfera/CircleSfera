@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { usePostInteractions } from '../../hooks/usePostInteractions';
+import { useAuthStore } from '../../stores/authStore';
 import type { Comment, Post } from '../../types';
 import CommentList from '../CommentList';
 import { PollWidget } from '../interactive/PollWidget';
@@ -16,17 +17,17 @@ interface PostDetailViewProps {
   priority?: boolean;
 }
 
-/**
- * Single-tree responsive layout for post detail.
- * Mobile: header → media → body (actions, caption, comments, sticky composer)
- * Desktop (md+): media | sidebar (header / scrollable comments / actions + composer)
- */
+// Single-tree responsive layout for post detail.
+// Mobile: header → media → body (actions, caption, comments, sticky composer)
+// Desktop (md+): media | sidebar (header / scrollable comments / actions + composer)
 export default memo(function PostDetailView({
   post,
   comments,
   priority,
 }: PostDetailViewProps) {
   const interactions = usePostInteractions(post);
+  const profile = useAuthStore((state) => state.profile);
+  const isOwner = !!profile?.id && post.profileId === profile.id;
 
   if (interactions.isDeleted) return null;
 
@@ -70,7 +71,9 @@ export default memo(function PostDetailView({
     post.poll?.id || post.qnaBox?.id ? (
       <div className="px-3 pb-2">
         {post.poll?.id && <PollWidget pollId={post.poll.id} />}
-        {post.qnaBox?.id && <QnaWidget qnaBoxId={post.qnaBox.id} />}
+        {post.qnaBox?.id && (
+          <QnaWidget qnaBoxId={post.qnaBox.id} isOwner={isOwner} />
+        )}
       </div>
     ) : null;
 

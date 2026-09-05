@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, Clock, XCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import {
   type Appeal,
   type AppealTargetType,
@@ -15,14 +16,46 @@ import SettingsSection from './SettingsSection';
 
 const FIELD_LABEL = 'block text-sm font-medium text-white mb-1.5';
 
+const APPEAL_TYPES: AppealTargetType[] = [
+  'POST_REMOVAL',
+  'ACCOUNT_BAN',
+  'BOT_LABEL',
+];
+
+function parseAppealTargetType(value: string | null): AppealTargetType | null {
+  if (!value) return null;
+  return APPEAL_TYPES.includes(value as AppealTargetType)
+    ? (value as AppealTargetType)
+    : null;
+}
+
 export default function AppealsSettings() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [targetType, setTargetType] =
     useState<AppealTargetType>('POST_REMOVAL');
   const [targetId, setTargetId] = useState('');
   const [reason, setReason] = useState('');
+  const [targetIdLocked, setTargetIdLocked] = useState(false);
+
+  useEffect(() => {
+    const typeFromQuery = parseAppealTargetType(searchParams.get('targetType'));
+    const idFromQuery = searchParams.get('targetId')?.trim() || '';
+    if (!typeFromQuery && !idFromQuery) return;
+
+    if (typeFromQuery) setTargetType(typeFromQuery);
+    if (idFromQuery) {
+      setTargetId(idFromQuery);
+      setTargetIdLocked(true);
+    }
+
+    const next = new URLSearchParams(searchParams);
+    next.delete('targetType');
+    next.delete('targetId');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   const { data: appeals, isLoading } = useQuery({
     queryKey: ['myAppeals'],
@@ -34,6 +67,7 @@ export default function AppealsSettings() {
     onSuccess: () => {
       toast.success(t('settings.appeals.created'));
       setTargetId('');
+      setTargetIdLocked(false);
       setReason('');
       queryClient.invalidateQueries({ queryKey: ['myAppeals'] });
     },
@@ -102,9 +136,18 @@ export default function AppealsSettings() {
               type="text"
               value={targetId}
               onChange={(e) => setTargetId(e.target.value)}
+              readOnly={targetIdLocked}
               placeholder={t('settings.appeals.target_id_placeholder')}
-              className="w-full min-h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
+              className="w-full min-h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white placeholder:text-white/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 read-only:opacity-70"
             />
+            {targetIdLocked ? (
+              <p className="mt-1.5 text-xs text-white/40">
+                {t(
+                  'settings.appeals.target_id_from_notification',
+                  'Filled from your moderation notification.',
+                )}
+              </p>
+            ) : null}
           </div>
 
           <div>

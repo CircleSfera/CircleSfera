@@ -85,7 +85,30 @@ export class FeedPreferencesService {
     const [hiddenPosts, hiddenAuthors, mutedKeywords] = await Promise.all([
       this.prisma.feedHiddenPost.findMany({
         where: { profileId },
-        select: { postId: true, createdAt: true },
+        select: {
+          postId: true,
+          createdAt: true,
+          post: {
+            select: {
+              caption: true,
+              media: {
+                take: 1,
+                orderBy: { order: 'asc' },
+                select: {
+                  url: true,
+                  thumbnailUrl: true,
+                  standardUrl: true,
+                },
+              },
+              profile: {
+                select: {
+                  username: true,
+                  avatar: true,
+                },
+              },
+            },
+          },
+        },
         orderBy: { createdAt: 'desc' },
         take: 100,
       }),
@@ -111,7 +134,18 @@ export class FeedPreferencesService {
     ]);
 
     return {
-      hiddenPosts,
+      hiddenPosts: hiddenPosts.map((h) => ({
+        postId: h.postId,
+        createdAt: h.createdAt,
+        caption: h.post?.caption ?? null,
+        thumbnailUrl:
+          h.post?.media?.[0]?.thumbnailUrl ||
+          h.post?.media?.[0]?.standardUrl ||
+          h.post?.media?.[0]?.url ||
+          null,
+        authorUsername: h.post?.profile?.username ?? null,
+        authorAvatar: h.post?.profile?.avatar ?? null,
+      })),
       hiddenAuthors: hiddenAuthors.map((h) => ({
         authorId: h.authorId,
         username: h.author.username,
@@ -125,7 +159,7 @@ export class FeedPreferencesService {
     };
   }
 
-  /** IDs / keywords used by feed SQL filters. */
+  // IDs / keywords used by feed SQL filters.
   async getFilterSets(profileId: string) {
     const [hiddenPosts, hiddenAuthors, mutedKeywords] = await Promise.all([
       this.prisma.feedHiddenPost.findMany({

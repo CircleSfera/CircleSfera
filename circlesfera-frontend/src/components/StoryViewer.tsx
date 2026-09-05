@@ -16,6 +16,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useStoryPlayback } from '../hooks/useStoryPlayback';
 import { chatApi, storiesApi } from '../services';
+import { apiClient } from '../services/api';
 import { monetizationApi } from '../services/monetization.service';
 import { useAuthStore } from '../stores/authStore';
 import type { Story, UserWithProfile } from '../types';
@@ -23,9 +24,10 @@ import { logger } from '../utils/logger';
 import { parseFilter } from '../utils/styleUtils';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
 import { PollWidget } from './interactive/PollWidget';
+import { QnaWidget } from './interactive/QnaWidget';
 import PaywallOverlay from './monetization/PaywallOverlay';
 import { StoryDeleteConfirm } from './StoryDeleteConfirm';
-import { StoryViewersSheet } from './StoryViewersSheet';
+import { type StoryQnaAnswer, StoryViewersSheet } from './StoryViewersSheet';
 import UserAvatar from './UserAvatar';
 import VerificationBadge, { type VerificationLevel } from './VerificationBadge';
 
@@ -56,6 +58,9 @@ export default function StoryViewer({
   const [viewers, setViewers] = useState<UserWithProfile[]>([]);
   const [showViewers, setShowViewers] = useState(false);
   const [isLoadingViewers, setIsLoadingViewers] = useState(false);
+  const [qnaAnswers, setQnaAnswers] = useState<StoryQnaAnswer[]>([]);
+  const [isLoadingQna, setIsLoadingQna] = useState(false);
+  const [qnaPrompt, setQnaPrompt] = useState<string | null>(null);
   const [reactions, setReactions] = useState<
     { reaction: string; profileId: string; profile?: { username?: string } }[]
   >([]);
@@ -234,13 +239,32 @@ export default function StoryViewer({
     e.stopPropagation();
     setShowViewers(true);
     setIsLoadingViewers(true);
+    setQnaAnswers([]);
+    setQnaPrompt(null);
+
+    const hasQna = !!currentStory.qnaBox?.id;
+    if (hasQna) setIsLoadingQna(true);
+
     try {
-      const res = await storiesApi.getViews(currentStory.id);
-      setViewers(res.data);
+      const viewsPromise = storiesApi.getViews(currentStory.id);
+      const qnaPromise = hasQna
+        ? apiClient.get<{
+            prompt: string;
+            answers: StoryQnaAnswer[];
+          }>(`interactive/qna/${currentStory.qnaBox!.id}`)
+        : null;
+
+      const [viewsRes, qnaRes] = await Promise.all([viewsPromise, qnaPromise]);
+      setViewers(viewsRes.data);
+      if (qnaRes?.data) {
+        setQnaAnswers(qnaRes.data.answers || []);
+        setQnaPrompt(qnaRes.data.prompt || null);
+      }
     } catch (error) {
-      logger.error('Failed to load viewers', error);
+      logger.error('Failed to load story insights', error);
     } finally {
       setIsLoadingViewers(false);
+      setIsLoadingQna(false);
     }
   };
 
@@ -251,11 +275,14 @@ export default function StoryViewer({
   if (!currentStory) return null;
 
   const modalContent = (
-    <div className="fixed inset-0 z-50 bg-black flex items-center justify-center overflow-hidden">
+    <div
+      className="fixed inset-0 z-50 bg-black flex items-center justify-center overflow-hidden"
+      data-content-shell="playback"
+    >
+      {' '}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {`Story ${currentIndex + 1} of ${stories.length} from ${currentStory.profile?.username}`}
       </div>
-
       {/* Blurred Background Layer */}
       <div className="absolute inset-0 z-0">
         <AnimatePresence mode="wait">
@@ -295,7 +322,6 @@ export default function StoryViewer({
         <div className="absolute inset-0 bg-black/60 md:bg-black/40" />
         <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay bg-linear-to-tr from-brand-primary/20 via-transparent to-brand-secondary/20" />
       </div>
-
       {/* Center content */}
       <div className="absolute inset-0 flex items-center justify-center z-10 md:p-8">
         <AnimatePresence mode="popLayout" custom={currentIndex}>
@@ -358,6 +384,15 @@ export default function StoryViewer({
                 onPointerDown={() => setIsPaused(true)}
               >
                 <PollWidget pollId={currentStory.poll.id} />
+              </div>
+            )}
+
+            {currentStory.qnaBox?.id && !isLocked && !isOwner && (
+              <div
+                className="absolute inset-x-4 bottom-28 z-50 pointer-events-auto"
+                onPointerDown={() => setIsPaused(true)}
+              >
+                <QnaWidget qnaBoxId={currentStory.qnaBox.id} />
               </div>
             )}
 
@@ -515,6 +550,14 @@ export default function StoryViewer({
                       <span className="font-bold text-sm">
                         {viewers.length} {t('story.views')}
                       </span>
+                      {currentStory.qnaBox?.id ? (
+                        <span className="text-xs font-semibold text-purple-200/90 border-l border-white/20 pl-2">
+                          {t('story.questions_short', 'Q&A')}
+                          {qnaAnswers.length > 0
+                            ? ` · ${qnaAnswers.length}`
+                            : ''}
+                        </span>
+                      ) : null}
                     </button>
                     <button
                       type="button"
@@ -559,7 +602,6 @@ export default function StoryViewer({
           </motion.div>
         </AnimatePresence>
       </div>
-
       {isOwner && reactions.length > 0 && (
         <div className="absolute bottom-24 left-4 z-50 flex flex-wrap gap-2 pointer-events-none">
           {reactions.slice(0, 5).map((r) => (
@@ -575,7 +617,6 @@ export default function StoryViewer({
           ))}
         </div>
       )}
-
       {showDeleteConfirm && (
         <StoryDeleteConfirm
           onConfirm={confirmDelete}
@@ -585,11 +626,14 @@ export default function StoryViewer({
           }}
         />
       )}
-
       {showViewers && (
         <StoryViewersSheet
           viewers={viewers}
           isLoading={isLoadingViewers}
+          hasQna={!!currentStory.qnaBox?.id}
+          qnaAnswers={qnaAnswers}
+          isLoadingQna={isLoadingQna}
+          qnaPrompt={qnaPrompt}
           onClose={(e) => {
             e?.stopPropagation();
             setShowViewers(false);
