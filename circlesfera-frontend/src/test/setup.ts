@@ -314,6 +314,25 @@ vi.mock('react-i18next', () => ({
         'modals.support.categories.BILLING': 'Billing & payments',
         'modals.support.categories.ACCOUNT': 'Account & access',
         'modals.support.categories.SUGGESTION': 'Suggestion',
+        'modals.insights.post_stats': 'Post Statistics',
+        'modals.insights.realtime_metrics': 'Real-time performance metrics',
+        'modals.insights.views': 'Views',
+        'modals.insights.impressions': 'Impressions',
+        'modals.insights.likes': 'Likes',
+        'modals.insights.comments': 'Comments',
+        'modals.insights.saves': 'Saves',
+        'modals.insights.shares': 'Shares',
+        'modals.insights.dwell_time': 'Dwell Time',
+        'modals.insights.conversion_rate': 'Conv. Rate',
+        'modals.insights.views_evolution': 'Views Evolution',
+        'modals.insights.last_days': 'Last days',
+        'modals.insights.not_enough_data': 'Not enough historical data yet',
+        'modals.insights.impact_summary': 'Impact Summary',
+        'modals.insights.engagement_rate_prefix':
+          'This post has an engagement rate of ',
+        'modals.insights.above_average':
+          ' You are beating your category average.',
+        'modals.insights.keep_promoting': ' Keep promoting to gain more reach.',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
