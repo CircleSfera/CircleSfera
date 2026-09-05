@@ -40,7 +40,7 @@ Element.prototype.scrollTo = vi.fn();
 // Mock react-i18next
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, options?: any) => {
+    t: (key: string, options?: any, extra?: any) => {
       const translations: Record<string, string> = {
         'auth.login.identifier_label': 'Email or Username',
         'auth.login.password_label': 'Password',
@@ -200,6 +200,9 @@ vi.mock('react-i18next', () => ({
         if (options.username !== undefined) {
           val = val.replace('{{username}}', String(options.username));
         }
+        if (options.type !== undefined) {
+          val = val.replace('{{type}}', String(options.type));
+        }
         if (options.defaultValue) {
           val = options.defaultValue;
         }
@@ -207,6 +210,9 @@ vi.mock('react-i18next', () => ({
         // Prefer catalog entry when present; fallback string only if missing
         if (!translations[key]) {
           val = options;
+        }
+        if (extra && typeof extra === 'object' && extra.type !== undefined) {
+          val = val.replace('{{type}}', String(extra.type));
         }
       }
       return val;
