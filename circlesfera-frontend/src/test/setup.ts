@@ -185,6 +185,12 @@ vi.mock('react-i18next', () => ({
           "They won't be able to find your profile, posts, or story on CircleSfera.",
         'modals.block.cancel': 'Cancel',
         'modals.block.confirm': 'Block',
+        'modals.share.share_to': 'Share to...',
+        'modals.share.search_conversations': 'Search conversations...',
+        'modals.share.sent': 'Sent',
+        'modals.share.send': 'Send',
+        'modals.share.no_conversations': 'No conversations found',
+        'modals.share.done': 'Done',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
