@@ -47,4 +47,4 @@ CircleSfera needs analytical KPIs (Trust MTTR aggregates, monetization MRR, rete
 
 - Trust MTTR: `GET admin/trust/queue` (`reportMttr`, `appealMttr`, `ticketMttr`)
 - Feed experiment: `feed_home_following_first` ([runbook](../runbooks/feed-following-first-experiment.md))
-- Phase map: [12-global-roadmap.md](../12-global-roadmap.md) §5
+- Phase map: [12-global-roadmap.md](../12-global-roadmap.md) section 5

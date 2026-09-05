@@ -18,8 +18,8 @@ What this repository actually does. Follow the local pattern over your preferenc
 `noExplicitAny` being disabled is not permission to use `any`. `AGENTS.md` forbids unnecessary
 `any`; the linter simply will not catch it for you.
 
-Run Biome over your changed files before committing — scoped, not the unscoped root `npm run check`,
-which reformats 7 unrelated files today (gap T1 in `known-gaps.md`). The `pre-commit` hook runs
+Run Biome over your changed files before committing — scoped for fast local iteration. CI runs
+`npx biome ci .` at the root via `.github/workflows/ci-quality.yml`. The `pre-commit` hook runs
 `biome check --write` on staged JS/TS/JSON files and re-stages them, and also blocks committing
 `.env*` (except `.env.example`), `storageState.json`, `nginx/.htpasswd`, `scratch/`, deploy job
 files, and diffs matching its secret regexes. There is no `pre-push` hook and no `lint-staged`.
@@ -58,7 +58,7 @@ services/thing.service.ts       API wrapper, exported through services/index.ts
 - Money is handled in integer cents (`priceCents`, `amountCents`, `lifetimeEarningsCents`) —
   never floats.
 - Prisma models are `PascalCase` singular with explicit `@@map` to snake_case plural tables
-  (`Post` → `posts`, `CreatorSubscription` → `creator_subscriptions`).
+  (`Post` → `posts`, `LiveGift` → `live_gifts`).
 
 ## API conventions
 

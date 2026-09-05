@@ -1,7 +1,7 @@
 # Payments Engineer
 
-**Scope.** Stripe integration: platform subscriptions, creator subscriptions, tips, PPV unlocks, live
-gifts, promotions, webhooks, the platform fee, the local ledger.
+**Scope.** Stripe integration: platform subscriptions, tips, PPV unlocks, live gifts, promotions,
+webhooks, the platform fee, the local ledger.
 
 Money is the highest-risk surface in the codebase. Nothing here is "probably fine".
 
@@ -10,27 +10,30 @@ Money is the highest-risk surface in the codebase. Nothing here is "probably fin
 - `src/common/stripe/stripe.service.ts` — the single Stripe client
 - `src/payments/` — platform plans, checkout, portal, **webhook handling**
 - `src/monetization/` — Connect onboarding, tips, post and story unlocks, payouts read
-- `src/creator/creator-subscriptions.service.ts` — creator VIP subscriptions
 - `src/live/live.service.ts` and `src/live/gift-catalog.ts` — gifts and server-side prices
+- `src/common/constants/monetization.constants.ts` — `PLATFORM_FEE_DECIMAL` / `PLATFORM_FEE_PERCENT`
 - `schema.prisma`: `PlatformPlan`, `PlatformSubscription`, `Monetization`, `Transaction`,
-  `PostUnlock`, `StoryUnlock`, `CreatorSubscription`, `Promotion`, `LiveGift`, `WebhookEvent`
+  `PostUnlock`, `StoryUnlock`, `MessageUnlock`, `Promotion`, `LiveGift`, `WebhookEvent`,
+  `StripePayoutLog`
 - ADRs [0002](../../circlesfera-documentation/adr/0002-stripe-connect-payouts.md),
   [0003](../../circlesfera-documentation/adr/0003-one-active-platform-plan.md),
   [0010](../../circlesfera-documentation/adr/0010-platform-fee-20-percent.md)
 - `circlesfera-documentation/10-roadmap-monetization.md`
+- [`../core/known-gaps.md`](../core/known-gaps.md) D4 — `CreatorSubscription` table removed
 
 ## The facts
 
 - **Platform plans** are `PlatformPlan` rows, not an enum: `Premium`, `Elite Creator`, `Business`,
   with prices in the table and in Stripe. One active plan per user
   ([ADR-0003](../../circlesfera-documentation/adr/0003-one-active-platform-plan.md)).
-- **Creator VIP price** is canonical on `Profile.subscriptionPriceCents`; a client-supplied
-  `priceCents` is ignored. Changed via `PATCH /creator/subscription-price`.
-- **Platform fee is 20%** on Connect charges: `application_fee_amount = floor(amount * 0.2)` for
-  tips, unlocks and gifts, and `application_fee_percent: 20.0` for creator subscriptions. The local
-  ledger credits `floor(amount * 0.8)` to `Monetization.lifetimeEarningsCents`. These two must always
-  agree. The constant is **duplicated across four services** — see
-  [`../core/known-gaps.md`](../core/known-gaps.md) B2.
+- **No `CreatorSubscription` Prisma model.** The table was removed
+  (`20260729154648_sync_schema_again`). Do not invent routes or fields for it. Verify controllers
+  before documenting creator VIP as shipped.
+- **Platform fee is 20%** on Connect charges: `application_fee_amount = floor(amount * PLATFORM_FEE_DECIMAL)` for
+  tips, unlocks and gifts. Constants live in `src/common/constants/monetization.constants.ts`
+  (`PLATFORM_FEE_DECIMAL = 0.2`). The local ledger credits
+  `floor(amount * CREATOR_SHARE_DECIMAL)` to `Monetization.lifetimeEarningsCents`. These must always
+  agree.
 - **Currency** is EUR for tips, unlocks and gifts. Amounts are integer cents everywhere.
 - **Gift prices are server-side** in `gift-catalog.ts` (`star` 100, `flame` 500, `crown` 1000,
   `gem` 2500, `rocket` 5000 cents). Never trust a client amount.
@@ -65,9 +68,9 @@ Money is the highest-risk surface in the codebase. Nothing here is "probably fin
    `COMPLETED` is only written after Stripe confirms.
 5. **Failure and reversal.** Cover expired sessions, failed invoices, refunds and disputes. A dispute
    already revokes unlocks — keep entitlement revocation consistent for anything new.
-6. **Entitlement check.** Access to premium content is verified against `PostUnlock`/`StoryUnlock`,
-   an active `CreatorSubscription`, or ownership. Never against a client claim, and never only in the
-   UI. Feed and media paths must redact locked media.
+6. **Entitlement check.** Access to premium content is verified against `PostUnlock`/`StoryUnlock`/
+   `MessageUnlock`, or ownership. Never against a client claim, and never only in the UI. Feed and
+   media paths must redact locked media.
 7. **Authorization.** Money endpoints keep `JwtAuthGuard` plus `IdentityVerifiedGuard`. Creator data
    endpoints keep `SubscriptionGuard` + `@ElitePlan()`.
 8. **Ledger completeness.** Every money movement writes a `Transaction` with the right

@@ -1,14 +1,31 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { followsApi } from '../../services';
+import { followsApi, type MutedUserEntry } from '../../services';
 import type { ProfileWithUser } from '../../types';
 import { EmptyState } from '../ErrorEmptyStates';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
 import SettingsSection from './SettingsSection';
 
+function formatMuteExpiry(
+  expiresAt: string | null,
+  locale: string,
+  foreverLabel: string,
+  untilTemplate: (date: string) => string,
+): string {
+  if (!expiresAt) return foreverLabel;
+  const date = new Date(expiresAt);
+  if (Number.isNaN(date.getTime())) return foreverLabel;
+  return untilTemplate(
+    date.toLocaleString(locale, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }),
+  );
+}
+
 export default function MutesSettings() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const { data: blockedUsersData, refetch: refetchBlocked } = useQuery({
     queryKey: ['blockedUsers'],
@@ -20,7 +37,7 @@ export default function MutesSettings() {
     queryKey: ['mutedUsers'],
     queryFn: () => followsApi.getMuted(),
   });
-  const mutedUsers = mutedUsersData?.data || [];
+  const mutedEntries = mutedUsersData?.data || [];
 
   const unblockMutation = useMutation({
     mutationFn: (targetUsername: string) => followsApi.unblock(targetUsername),
@@ -32,12 +49,7 @@ export default function MutesSettings() {
     onSuccess: () => refetchMuted(),
   });
 
-  const renderUserRow = (
-    user: ProfileWithUser,
-    actionLabel: string,
-    onAction: () => void,
-    isLoading: boolean,
-  ) => (
+  const renderBlockedRow = (user: ProfileWithUser) => (
     <li
       key={user.id}
       className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/2 p-3"
@@ -61,15 +73,58 @@ export default function MutesSettings() {
         </div>
       </div>
       <Button
-        onClick={onAction}
+        onClick={() => user.username && unblockMutation.mutate(user.username)}
         variant="outline"
-        isLoading={isLoading}
+        isLoading={unblockMutation.isPending}
         className="min-h-11 text-sm font-semibold px-4 shrink-0"
       >
-        {actionLabel}
+        {t('settings.mutes.unblock')}
       </Button>
     </li>
   );
+
+  const renderMutedRow = (entry: MutedUserEntry) => {
+    const user = entry.profile;
+    return (
+      <li
+        key={user.id}
+        className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/2 p-3"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <UserAvatar
+            src={user.avatar || undefined}
+            thumbnailUrl={user.thumbnailUrl}
+            standardUrl={user.standardUrl}
+            alt={user.username || ''}
+            size="md"
+            className="w-10 h-10 rounded-full object-cover shrink-0"
+          />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-white truncate">
+              {user.username || t('settings.mutes.unknown')}
+            </p>
+            <p className="text-xs text-white/50 truncate">
+              {formatMuteExpiry(
+                entry.expiresAt,
+                i18n.language,
+                t('settings.mutes.expires_forever', 'Forever'),
+                (date) =>
+                  t('settings.mutes.expires_on', 'Until {{date}}', { date }),
+              )}
+            </p>
+          </div>
+        </div>
+        <Button
+          onClick={() => user.username && unmuteMutation.mutate(user.username)}
+          variant="outline"
+          isLoading={unmuteMutation.isPending}
+          className="min-h-11 text-sm font-semibold px-4 shrink-0"
+        >
+          {t('settings.mutes.unmute', 'Unmute')}
+        </Button>
+      </li>
+    );
+  };
 
   return (
     <div className="max-w-xl space-y-8">
@@ -85,12 +140,7 @@ export default function MutesSettings() {
         ) : (
           <ul className="space-y-2">
             {blockedUsers.map((user: ProfileWithUser) =>
-              renderUserRow(
-                user,
-                t('settings.mutes.unblock'),
-                () => user.username && unblockMutation.mutate(user.username),
-                unblockMutation.isPending,
-              ),
+              renderBlockedRow(user),
             )}
           </ul>
         )}
@@ -100,22 +150,13 @@ export default function MutesSettings() {
         title={t('settings.mutes.muted_title', 'Muted users')}
         card={false}
       >
-        {mutedUsers.length === 0 ? (
+        {mutedEntries.length === 0 ? (
           <EmptyState
             icon="followers"
             title={t('settings.mutes.muted_empty', 'No muted users')}
           />
         ) : (
-          <ul className="space-y-2">
-            {mutedUsers.map((user: ProfileWithUser) =>
-              renderUserRow(
-                user,
-                t('settings.mutes.unmute', 'Unmute'),
-                () => user.username && unmuteMutation.mutate(user.username),
-                unmuteMutation.isPending,
-              ),
-            )}
-          </ul>
+          <ul className="space-y-2">{mutedEntries.map(renderMutedRow)}</ul>
         )}
       </SettingsSection>
     </div>

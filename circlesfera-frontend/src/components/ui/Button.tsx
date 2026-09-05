@@ -15,7 +15,7 @@ export interface ButtonProps
     | 'warning'
     | 'gradient';
   /**
-   * Design System §9.2:
+   * Design System section 9.2:
    *   lg=48px (primary), md=44px (secondary), compact=36px, icon=40px
    */
   size?: 'compact' | 'sm' | 'md' | 'lg' | 'icon';
@@ -23,9 +23,9 @@ export interface ButtonProps
 }
 
 /**
- * Button — Design System §13.1 & §9.2
+ * Button — Design System section 13.1 & 9.2
  * Heights: lg=48px, md=44px, compact=36px (sm), icon=44×44px
- * Touch target minimum 44×44px (§17.7) satisfied by md, lg, icon.
+ * Touch target minimum 44×44px (17.7) satisfied by md, lg, icon.
  * compact is only for dense toolbars/lists where context makes it clear.
  */
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -103,7 +103,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       },
     };
 
-    /* Design System §9.2 sizing — all with gap for icon+label */
+    /* Design System section 9.2 sizing — all with gap for icon+label */
     const sizes = {
       compact:
         'h-9 px-3.5 text-xs font-semibold gap-1.5' /* 36px — dense contexts only */,
@@ -124,7 +124,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         style={combinedStyle}
         disabled={disabled || isLoading}
         aria-busy={isLoading}
-        /* Design System §15.3 — subtle active state, no dramatic movement */
+        /* Design System section 15.3 — subtle active state, no dramatic movement */
         whileTap={disabled || isLoading ? undefined : { scale: 0.97 }}
         whileHover={
           disabled || isLoading

@@ -632,16 +632,19 @@ model Block {
 }
 
 model Mute {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   muterId   String
   mutedId   String
-  createdAt DateTime @default(now())
+  /// null = forever; otherwise mute is ignored (and cleaned up) after this instant
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
 
   muter Profile @relation("Muting", fields: [muterId], references: [id], onDelete: Cascade)
   muted Profile @relation("MutedBy", fields: [mutedId], references: [id], onDelete: Cascade)
 
   @@unique([muterId, mutedId])
   @@index([mutedId])
+  @@index([muterId, expiresAt])
   @@map("mutes")
 }
 

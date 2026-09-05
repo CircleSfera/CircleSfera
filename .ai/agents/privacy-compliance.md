@@ -8,7 +8,7 @@ and deleted, and what consent gates it.
 ## Read first
 
 - `circlesfera-documentation/06-security-privacy-compliance.md`
-- [`../core/identity.md`](../core/identity.md) §responsible data handling
+- [`../core/identity.md`](../core/identity.md) — responsible data handling
 - `src/users/gdpr.processor.ts` and the `users-processing` queue registration
 - `src/maintenance/maintenance.service.ts` — retention crons
 - `schema.prisma`: `User` (`deletedAt`, `scheduledDeletionAt`, `dateOfBirth`), `UserSettings`,

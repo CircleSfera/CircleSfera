@@ -16,14 +16,13 @@ in-app withdraw; Stripe Custom accounts. See [00-status.md](./00-status.md).
 | Flow | Who pays | Stripe | Local row |
 | --- | --- | --- | --- |
 | Platform plans (Premium / Elite / Business) | User → CircleSfera | Checkout / Billing Portal | `PlatformSubscription` |
-| Creator VIP | Fan → creator (Connect) | Destination charge, 20% application fee | `CreatorSubscription` |
+| Creator VIP | Fan → creator (Connect) | **Not a live Prisma model** — `CreatorSubscription` removed. Do not invent. Verify controllers before treating as shipped. | — |
 | Post / story / message unlock (PPV) | Fan → creator | Same | `PostUnlock` / `StoryUnlock` / `MessageUnlock` + `Transaction` |
 | Tip | Fan → creator | Same | `Transaction` |
 | Live gift | Viewer → creator | Same | `LiveGift` + `Transaction` `DIRECT_LIVE_GIFT` |
 | Promote | Creator → CircleSfera | Checkout `mode: payment` | `Promotion` (`stripePaymentIntentId` = session id) |
 
 - One **active platform plan** per user ([ADR-0003](./adr/0003-one-active-platform-plan.md)).
-- Creator VIP price is `Profile.subscriptionPriceCents` (client `priceCents` is ignored).
 - Gift prices are server-side (`gift-catalog.ts`).
 - Unlock / tip / gift / Connect checkout require identity verification.
 - PPV unlocks have **no rental expiry**. Access is revoked on refund or dispute (`charge.refunded` / `charge.dispute.created`).

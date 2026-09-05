@@ -19,7 +19,7 @@ export default function Saved() {
   return (
     <div className="min-h-dvh pt-2 md:pt-6 pb-20">
       <div className="max-w-117.5 mx-auto px-4">
-        {/* Header — Design System §6.4 */}
+        {/* Header — Design System section 6.4 */}
         <div className="flex items-center gap-3 mb-4 py-1">
           <Link
             to="/"

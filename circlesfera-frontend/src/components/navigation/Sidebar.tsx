@@ -25,12 +25,12 @@ import { useNotificationsStore } from '../../stores/notificationsStore';
 import { useUIStore } from '../../stores/uiStore';
 
 /**
- * Sidebar — Design System §9.4 & §18.1
+ * Sidebar — Design System section 9.4 & section 18.1
  * Collapsed (md):  68px  (--nav-sidebar-collapsed)
  * Expanded (xl):   260px (--nav-sidebar-width)
  * Icon size nav:   24px  (--icon-nav)
  * Label:           text-sm (14px, --text-body-sm)
- * Glassmorphism per §16.2
+ * Glassmorphism per section 16.2
  */
 export default function Sidebar() {
   const location = useLocation();
@@ -196,7 +196,7 @@ export default function Sidebar() {
                 )}
               </div>
 
-              {/* Label — Design System §6.3: 500 weight for labels */}
+              {/* Label — Design System section 6.3: 500 weight for labels */}
               <span
                 className="hidden xl:block text-sm font-medium transition-all duration-200 truncate"
                 style={{ fontWeight: isActive ? 700 : 500 }}

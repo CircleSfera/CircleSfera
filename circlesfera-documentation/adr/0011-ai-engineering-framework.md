@@ -9,7 +9,7 @@
 
 Most CircleSfera development happens with AI coding tools (Cursor, Antigravity, cloud agents). The repo already had `AGENTS.md` defining operating rules, but nothing operational underneath it: no shared project context, no routing from a request to the right lens, no workflow, no closing gates. In practice each session re-derived the same facts from the codebase, sometimes wrongly, and produced inconsistent decisions across sessions.
 
-The codebase is large enough that this matters: 65 Prisma models, 46 Nest modules, a React 19 SPA, Stripe Connect money flows, encrypted chat, moderation and GDPR obligations. Ad-hoc prompting on a surface that size reliably invents endpoints, models and enums that do not exist.
+The codebase is large enough that this matters: 76 Prisma models, 51 Nest modules, a React 19 SPA, Stripe Connect money flows, encrypted chat, moderation and GDPR obligations. Ad-hoc prompting on a surface that size reliably invents endpoints, models and enums that do not exist.
 
 ## Decision
 
@@ -17,9 +17,9 @@ Keep a versioned AI engineering framework in the repository at `.ai/`, with thin
 
 - `.ai/core/` — permanent project context: identity, principles, stack, architecture, conventions, quality bar, glossary, source-of-truth precedence, and known drift.
 - `.ai/orchestrator.md` — classifies a request and selects the playbook and specialist roles.
-- `.ai/agents/` — 24 specialist roles, each with a narrow scope and hard rules.
-- `.ai/playbooks/` — 11 end-to-end workflows (feature, bug, incident, schema change, refactor, performance, security audit, UI redesign, dependency change, release, docs sync).
-- `.ai/checklists/` — 9 gates that must hold before work is called done.
+- `.ai/agents/` — 25 specialist roles, each with a narrow scope and hard rules.
+- `.ai/playbooks/` — 13 end-to-end workflows (feature, architecture, bug, incident, schema change, refactor, performance, security audit, UI redesign, dependency change, release, docs sync, audit). Confirmation gates pause for approval; they do not forbid schema or architectural work.
+- `.ai/checklists/` — gates that must hold before work is called done.
 - `.ai/templates/` — skeletons for ADRs, PRDs, API contracts, migrations, postmortems, and for new agents and playbooks.
 - `.cursor/rules/*.mdc` — Cursor rules that auto-attach the relevant `.ai/` files per file path.
 - `.agents/workflows/` — Antigravity slash-command routers into `.ai/playbooks/` (routing only, never facts). Antigravity also loads root `AGENTS.md`; there is no `.agents/rules/` folder.
@@ -46,6 +46,7 @@ Precedence is explicit and unchanged: `AGENTS.md` outranks everything in `.ai/`,
 - Verified drift that is not being fixed goes in `.ai/core/known-gaps.md` with evidence and a risk note, and is removed by the PR that fixes it.
 - Durable decisions are recorded as ADRs here, not as prose inside `.ai/`.
 - Numeric claims in `.ai/` (model counts, versions, file counts) must be re-derivable from the repo.
+- Agents must be able to develop, design, architect, and implement — including schema changes after confirmation. The confirmation list is a gate, not a refusal; OUT OF SCOPE in `00-status.md` is the hard stop.
 
 **What this does not decide.** Whether other tools get their own adapter directories, whether any part of `.ai/` should later be generated from the schema, and whether framework staleness gets a CI check.
 

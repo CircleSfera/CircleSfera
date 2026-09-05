@@ -325,7 +325,7 @@ function MobileMockNav({ surface }: { surface: GuestSurface }) {
     <div
       className="flex items-center justify-around px-2 shrink-0 z-20 border-t border-white/10"
       style={{
-        height: 'var(--nav-bottom-height, 60px)',
+        height: 'var(--nav-bottom-height, 48px)',
         background: 'color-mix(in srgb, var(--surface-base) 88%, transparent)',
       }}
     >

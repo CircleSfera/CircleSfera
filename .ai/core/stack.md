@@ -1,6 +1,6 @@
 # Stack and commands
 
-Verified against the repository on 2026-07-27. Versions come from the `package.json` files; when
+Verified against the repository on **2026-09-05**. Versions come from the `package.json` files; when
 this file and a `package.json` disagree, the `package.json` wins and this file is stale.
 
 ## Monorepo layout
@@ -10,7 +10,7 @@ this file and a `package.json` disagree, the `package.json` wins and this file i
 circlesfera-backend/     NestJS 11 API + Prisma + BullMQ workers + Socket.IO gateway
 circlesfera-frontend/    React 19 SPA (Vite), PWA, TanStack Query + Zustand
 circlesfera-shared/      Small shared package: some enums, interfaces, DTOs
-circlesfera-documentation/  12 numbered docs + adr/ + runbooks/
+circlesfera-documentation/  Numbered docs 00–15 + adr/ + runbooks/
 e2e/                     Playwright specs (root-level under e2e/, including e2e/tests/)
 ```
 
@@ -86,7 +86,7 @@ Commands:
 ```bash
 npm run dev        # vite (port 5173)
 npm run build      # tsc -b && vite build  <- this is the frontend typecheck gate
-npm test           # vitest run (11 test files today)
+npm test           # vitest run (~47 `*.test.ts(x)` under `src/` as of 2026-09-05)
 npm run lint       # biome lint .
 npm run check      # biome check --write .
 ```
@@ -94,14 +94,13 @@ npm run check      # biome check --write .
 ## Root
 
 ```bash
-npm run check      # biome check --write . across the monorepo — see the caveat below
+npm run check      # biome check --write . across the monorepo
 npm run test:e2e   # npx playwright test (testDir ./e2e, baseURL http://localhost:5173)
 ```
 
-Biome versions are not aligned: root and frontend **2.4.12**, backend **2.5.0**, `circlesfera-shared`
-**1.9.4** (a different major with a different config format). Running the unscoped root `npm run
-check` today reformats 7 files that no CI job covers — scope Biome to your changed paths instead
-(gap T1 in `known-gaps.md`).
+Biome versions: root, frontend and `circlesfera-shared` use **2.4.12**; backend uses **2.5.0**.
+Prefer scoped Biome on changed files for local iteration; CI runs `npx biome ci .` at the root via
+`ci-quality.yml`.
 
 Playwright's `globalSetup` (`e2e/global-setup.ts`) needs a reachable backend at `BACKEND_URL`
 (default `http://localhost:3005/api/v1`) and E2E credentials; skip with `SKIP_GLOBAL_SETUP=true`
@@ -119,26 +118,25 @@ entrypoint runs `npx prisma migrate deploy` before `node dist/main`.
 
 ## What CI actually enforces
 
-`.github/workflows/pr.yml` on PRs to `main`, Node 24, with Postgres + Redis services:
+`.github/workflows/pr.yml` on PRs to `main` calls the reusable workflow
+`.github/workflows/ci-quality.yml` (Node 24, Postgres + Redis services):
 
 1. root `npm install`
-2. `circlesfera-shared`: install + build
-3. backend: install, `prisma generate`, `npm run lint`, `npm test`
-4. `./scripts/check-prisma-schema-migrations.sh` (schema/migration drift)
-5. backend `npm run test:e2e`
-6. frontend: install, `npm run lint`, `npm test`, `npm run build`
-7. separate job: Playwright `e2e/smoke.spec.ts` against a locally started backend on `:3005`
+2. root `npx biome ci .`
+3. `circlesfera-shared`: install + build
+4. backend: install, `prisma generate`, `npm run build`, `npm run lint`, `npm test`
+5. `./scripts/check-prisma-schema-migrations.sh` (schema/migration drift)
+6. `npm run smoke:profile-drift` (ADR-0015 identity smoke)
+7. backend `npm run test:e2e`
+8. frontend: install, `npm run lint`, `npm test`, `npm run build`
+9. separate PR job: Playwright `e2e/smoke.spec.ts` against a locally started backend on `:3005`
 
-`deploy.yml` repeats the test job, builds and pushes GHCR images, then deploys over SSH to the OVH
-VPS with a health poll and automatic rollback to the previous SHA. `playwright-nightly.yml` runs
-the full Playwright suite on a cron. `ops-reencrypt.yml` is manual-only ops tooling.
+`deploy.yml` reuses the same quality gate, builds and pushes GHCR images, then deploys over SSH to
+the OVH VPS with a health poll and automatic rollback to the previous SHA.
+`playwright-nightly.yml` runs the full Playwright suite on a cron. `ops-reencrypt.yml` is
+manual-only ops tooling.
 
-There is no dedicated backend typecheck step in the PR `test` job — `nest build` only runs in the
-Playwright job. Do not assume type errors will be caught by `npm test`.
-
-There is also no root Biome step. Each `npm run lint` is `biome lint .` inside its own package, so
-formatting is never enforced in CI, and `prisma/`, `e2e/` and `scripts/` are outside every linted
-scope.
+Backend typecheck is `npm run build` (`nest build`) inside `ci-quality.yml` — not only in Playwright.
 
 ## Environment variables
 

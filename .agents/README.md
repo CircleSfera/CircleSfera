@@ -7,7 +7,7 @@ Adapter that points Google Antigravity at the same framework Cursor uses. The su
 
 ```text
 .agents/
-└── workflows/   Slash commands (/feature, /bug, /incident, ...) mapped to .ai/playbooks/
+└── workflows/   Slash commands (/feature, /architecture, /schema-change, /ui-redesign, /bug, /incident, /audit, /docs-sync, ...) mapped to .ai/playbooks/
 ```
 
 Antigravity automatically discovers and loads workflows from `.agents/workflows/`
@@ -18,9 +18,13 @@ Antigravity automatically discovers and loads workflows from `.agents/workflows/
 
 Unlike Cursor, which uses `.mdc` files and globs to inject context (`.cursor/rules/`), Antigravity requires **no UI configuration** when cloning this repository.
 
-1. **Root `AGENTS.md`**: Automatically loaded on every interaction. It directs Antigravity to always read `.ai/orchestrator.md` before proceeding with complex tasks.
-2. **Autonomous Routing**: By reading the orchestrator, Antigravity will proactively fetch the required specialist roles (`.ai/agents/`) and playbooks (`.ai/playbooks/`) using its file-reading capabilities under the hood.
-3. **Workflows**: Typing `/feature` or `/bug` triggers the predefined workflow in `.agents/workflows/` without any manual setup.
+1. **Autonomous routing**: By reading the orchestrator (including Step 0 intent inference), Antigravity
+   will select playbooks and specialists, auto-chain schema/architecture/feature when needed, and
+   default to **ship** unless the user clearly wants advice or review only.
+2. **Root `AGENTS.md`**: Automatically loaded on every interaction.
+3. **Workflows**: Optional shortcuts (`/feature`, `/architecture`, `/schema-change`, …). The agent
+   must not require a slash command to know what to do. Confirmation-list work still pauses for
+   approval, then continues end-to-end.
 
 **Note**: To keep both tools aligned, maintain the `.cursor/rules/*.mdc` files for Cursor users, and update `.ai/` whenever the core logic or rules of the project change.
 

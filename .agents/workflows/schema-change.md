@@ -1,6 +1,7 @@
 # Schema change
 
-Add, change or remove a Prisma model, field, index, enum or relation. Invoke with `/schema-change`.
+Add, change or remove a Prisma model, field, index, enum or relation. Invoke with `/schema-change`
+(optional — the orchestrator should select this when Assess impact detects a schema need).
 
 ## Steps
 
@@ -17,13 +18,16 @@ Add, change or remove a Prisma model, field, index, enum or relation. Invoke wit
 4. At the decide phase, flag anything on the `AGENTS.md` confirmation list — schema, public API
    contracts, auth, permissions, monetization, deletions, critical business logic, new dependencies,
    infrastructure, secrets, destructive data operations — and **wait** for confirmation.
-5. Verify with the commands in @/.ai/core/quality.md and report real output. Never assert a check
+5. After explicit approval, implement: edit `schema.prisma`, generate the migration, run
+   `prisma:check-migrations`, update services/DTOs/shared types, and keep schema + migration in the
+   same change set. Never edit an already-applied migration.
+6. Verify with the commands in @/.ai/core/quality.md and report real output. Never assert a check
    you did not run.
-6. Close with:
+7. Close with:
    - @/.ai/checklists/database.md
    - @/.ai/checklists/pull-request.md
-7. Report in this shape: objective, findings, changes made, verification performed, open risks, next
+8. Report in this shape: objective, findings, changes made, verification performed, open risks, next
    steps. Separate verified fact from inference from proposal.
 
-This is on the AGENTS.md confirmation list. Propose the change and its migration, then wait. Never
-edit an already-applied migration.
+Schema work is a first-class capability. Confirmation is a gate (propose → wait → execute), not a
+ban.

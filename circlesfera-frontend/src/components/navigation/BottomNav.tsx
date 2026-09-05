@@ -16,7 +16,7 @@ import { useUIStore } from '../../stores/uiStore';
 
 /**
  * BottomNav — Layout Guidelines density + tokens
- * Height: var(--nav-bottom-height) (60px) + safe-area-inset-bottom
+ * Height: var(--nav-bottom-height) (48px) + safe-area-inset-bottom
  * Strictly 5 core items max for clean spacing and touch target density
  */
 export default function BottomNav() {

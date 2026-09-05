@@ -13,7 +13,7 @@ This document replaces the previous security, privacy, and compliance version to
 1. It must reflect the real capabilities of the current model, including passkeys, refresh tokens, reports, admin audit logs, stories, chat, promotions, mutes, appeals, live streaming, feed preferences, and billing with Stripe.
 2. It must not promise persisted mechanisms that the current schema does not explicitly model, such as `moderation_actions` or detailed persisted analytics.
 
-> **Jul 2026 correction:** an earlier revision of this document listed `mutes`, `appeals`, and `feed_preferences` alongside unmodeled mechanisms. `Mute`, `Appeal`, and feed-preference tables (`feed_hidden_posts` / `feed_hidden_authors` / `feed_muted_keywords`) are real, persisted models with shipped endpoints — see §10.1 and [ADR-0004](./adr/0004-feed-preferences.md). What genuinely remains unmodeled is a dedicated `moderation_actions` table.
+> **Jul 2026 correction:** an earlier revision of this document listed `mutes`, `appeals`, and `feed_preferences` alongside unmodeled mechanisms. `Mute`, `Appeal`, and feed-preference tables (`feed_hidden_posts` / `feed_hidden_authors` / `feed_muted_keywords`) are real, persisted models with shipped endpoints — see section 10.1 and [ADR-0004](./adr/0004-feed-preferences.md). What genuinely remains unmodeled is a dedicated `moderation_actions` table.
 
 > **Aug 2026:** Account trust signals ([ADR-0014](./adr/0014-account-trust-signals.md)) — Turnstile on register/login, email-verification gate on writes, first-party device hashes, **plaintext signup/last IP retained for the life of the account** (admin + GDPR export only; never on public profile), staff bot labels with appeal. Trust score is admin-only and must not silently demote reach.
 
@@ -362,6 +362,6 @@ Stripe reduces scope, but does not eliminate security obligations around webhook
 - Passkeys are incorporated into the official security document.
 - Chat is incorporated as an explicit privacy and security surface.
 - Real billing with webhooks is incorporated as a critical flow.
-- `Mute`, `Appeal`, and feed preferences are recognized as real, persisted mechanisms (§10.1 / [ADR-0004](./adr/0004-feed-preferences.md)) and removed from the "does not exist" list.
+- `Mute`, `Appeal`, and feed preferences are recognized as real, persisted mechanisms (10.1 / [ADR-0004](./adr/0004-feed-preferences.md)) and removed from the "does not exist" list.
 - Any closed assertion about `moderation_actions` and unimplemented GDPR dashboards is removed from the official document as current technical reality.
 - Every public promise of transparency or compliance must be operationally sustainable.

@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -28.0 1376.0 1426.0" width="1376" height="1426">
 <rect x="-8.0" y="-28.0" width="1376.0" height="1426.0" fill="#F7F7F5" />
 <text x="40.0" y="43.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="start" opacity="1.00">CI/CD — PR a producción</text>
-<text x="40.0" y="71.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">Fuente: .ai/core/stack.md, 90-infra.mdc, 05-deployment-strategy.md §2</text>
+<text x="40.0" y="71.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="start" opacity="1.00">Fuente: .ai/core/stack.md, 90-infra.mdc, 05-deployment-strategy.md 2</text>
 <rect x="40.0" y="110.0" width="520.0" height="70.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2"  opacity="1.00" />
 <text x="300.0" y="139.4" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">PR  .github/workflows/pr.yml</text>
 <text x="300.0" y="156.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">PRs to main · Node 24 · Postgres + Redis services</text>

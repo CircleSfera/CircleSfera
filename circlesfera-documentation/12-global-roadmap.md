@@ -10,7 +10,7 @@ CircleSfera already has a solid social core (feed, profiles, posts, frames, stor
 
 ### 1.1 Multiplatform Support
 *   **Initial Phase (Web-First / PWA):** Launch as a responsive Progressive Web App (PWA), iterating quickly without App Store blockers.
-*   **Native Phase (App Stores):** Transition to native mobile apps (React Native / Swift / Kotlin) to capitalize on Native Push Notifications and biometric APIs (Passkeys integrated in the OS).
+*   **Native Phase (in development, Aug 2026):** Capacitor wrap of the SPA (`com.circlesfera.app`) under `circlesfera-frontend/ios/` and `android/`, with `cap:sync` / `cap:open:*` scripts. Store binaries are **not** published. This is not a React Native / Swift / Kotlin rewrite — see [00-status.md](./00-status.md).
 
 ### 1.2 Internationalization (i18n)
 *   **Multi-Language and Currency Support:** Dynamic frontend architecture; localized payments (natively supported via Stripe).
@@ -26,8 +26,8 @@ CircleSfera already has a solid social core (feed, profiles, posts, frames, stor
 *   **General Availability (GA):** Full opening and mass marketing support.
 
 ### 2.2 SEO and Virality Strategy
-*   **Indexable Profiles (SSR):** Server-side rendering so Google indexes creator profiles and their public posts.
-*   **Dynamic Open Graph (OG):** Automatic generation of preview images (thumbnails with title and avatar) when a CircleSfera link is shared on Twitter, WhatsApp, or iMessage.
+*   **Indexable Profiles (SSR):** Server-side rendering so Google indexes creator profiles — **OUT OF SCOPE** unless product reopens it ([00-status.md](./00-status.md)). Do not treat as current GTM work.
+*   **Dynamic Open Graph (OG):** Automatic generation of preview images (thumbnails with title and avatar) when a CircleSfera link is shared on Twitter, WhatsApp, or iMessage — shipped via SEO routes.
 
 ---
 
@@ -149,19 +149,25 @@ CircleSfera already has a solid social core (feed, profiles, posts, frames, stor
 
 Product gap-closure (live gifts billing, feed preferences, auth bootstrap, ADRs, governance, frontend hardenings) advances the **shipped web product**. It does **not** mean every item in this master plan is done.
 
-### Explicitly OUT OF SCOPE for gap-closure (vs product)
+### Reopened Aug 2026 — in development (not shipped)
+
+| Item | Notes |
+| --- | --- |
+| Native apps | Capacitor wrap of the SPA; store binaries unpublished — see [00-status.md](./00-status.md) |
+| Paid ads at scale | First-party `Promotion` already ships; scaling inventory/measurement is open |
+| ClickHouse warehouse | ADR-0016: ETL shipped; ClickHouse Cloud + Grafana pending |
+
+### Still deferred / OUT OF SCOPE
 
 These remain Later / non-goals unless product reopens them — do not treat them as incomplete “ops 100%” checklist items:
 
 | Item | Notes |
 | --- | --- |
-| Native apps | Store binaries / React Native |
 | Communities | Forums / first-class groups |
 | B2B Business Manager | Brand tooling |
 | Public OAuth | Third-party developer platform |
 | SSR profiles | SEO indexable profile pages |
 | Subscriber badges | First-class badge product surface |
-| Data warehouse / BI | ClickHouse/BigQuery, executive LTV dashboards |
 | SOC2 / bug bounty | Formal certification and public bounty program |
 
 See also [00-status.md](./00-status.md) and [ADRs](./adr/README.md).

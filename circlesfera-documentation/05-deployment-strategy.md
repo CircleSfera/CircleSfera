@@ -1,8 +1,10 @@
 # 05-Deployment-Strategy
 ## CircleSfera
-**Version:** 3.1 — current production vs future target  
-**Date:** July 2026  
-**Source of truth:** live OVH stack + `docker-compose.prod.yml` + `.github/workflows/deploy.yml`
+**Version:** 3.2 — current production vs future target  
+**Date:** September 2026  
+**Source of truth:** live OVH stack + `docker-compose.prod.yml` + `.github/workflows/deploy.yml` + `.github/workflows/ci-quality.yml`
+
+> Prefer compose files and workflows when this document disagrees. Present tense means shipped. Future cloud topology is labelled **not in use**. See [00-status.md](./00-status.md).
 
 ---
 
@@ -103,7 +105,7 @@ If CircleSfera processes European user data and wants a strong compliance postur
 - Separate database and Stripe test keys.
 
 ### Production (current)
-- OVH VPS + Compose as in §2.
+- OVH VPS + Compose as in section 2.
 - Observability and backups as implemented on that host (see also backups doc; treat AWS-specific wording there as future-oriented where it conflicts).
 
 ---

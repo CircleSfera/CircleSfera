@@ -1,6 +1,6 @@
 # Specialists
 
-24 narrow roles. [`../orchestrator.md`](../orchestrator.md) selects them; you rarely name one
+25 narrow roles. [`../orchestrator.md`](../orchestrator.md) selects them; you rarely name one
 directly. Each file has the same shape: **Scope**, **Read first**, **Checks**, **Hard rules**,
 **Output**.
 
@@ -33,6 +33,7 @@ not announcing a persona. Produce one coherent answer, never a role-play transcr
 | [`code-reviewer.md`](./code-reviewer.md) | Correctness, duplication, debt, reviewability |
 | [`refactoring.md`](./refactoring.md) | Behaviour-preserving change, risk classification |
 | [`documentation.md`](./documentation.md) | Doc/schema/code alignment, ADRs, runbooks |
+| [`auditor.md`](./auditor.md) | Architecture audit, transversal drift, multi-domain review |
 | [`incident-commander.md`](./incident-commander.md) | Production incidents, mitigation before root cause |
 | [`release-manager.md`](./release-manager.md) | Release readiness, changelog, rollback plan |
 
@@ -48,7 +49,7 @@ content rather than add judgement:
 | React Performance Specialist | `performance.md` + `frontend.md` |
 | NestJS Specialist | `backend.md` |
 | Stripe Expert | `payments.md` |
-| Consistency Auditor | `design-system.md` (UI) + `code-reviewer.md` (code) |
+| Consistency Auditor | `auditor.md` (architecture/drift) + `design-system.md` (UI) + `code-reviewer.md` (code) |
 | Logs Analyzer | `observability.md` |
 | Product Designer, UI Designer | `ux-researcher.md` + `design-system.md` |
 | Principal Architect, Backend/Frontend Architect | `staff-architect.md` + the layer specialist |

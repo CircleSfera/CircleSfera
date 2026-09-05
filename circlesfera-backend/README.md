@@ -66,7 +66,7 @@ See `.env.example` for Stripe, LiveKit, storage, email, OpenAI, etc.
 
 ## Database
 
-- **Canonical schema:** `prisma/schema.prisma` (~65 models). Do not edit without a migration in the same change.
+- **Canonical schema:** `prisma/schema.prisma` (76 models as of Sep 2026 — re-count in the file). Do not edit without a migration in the same change.
 - Migrations: `prisma/migrations/`
 - Seed: `npm run prisma:seed`, `npm run prisma:seed:audio`
 - Admin bootstrap: `npm run bootstrap-admin`

@@ -150,7 +150,7 @@ before waiting for cron, use plan B on the VPS (same tables, same window):
 ETL_SINCE_DAYS=7 DATABASE_URL=... ./scripts/etl/export-analytics-tables.sh
 ```
 
-Then load one file manually via `clickhouse-client` (see §8) to confirm credentials.
+Then load one file manually via `clickhouse-client` (see 8) to confirm credentials.
 
 After `CLICKHOUSE_URL` is set, the next **03:30 UTC** BullMQ run should log
 `clickhouse=true`.

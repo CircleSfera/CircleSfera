@@ -53,13 +53,19 @@ moderated, suspended, scheduled for deletion, empty and single-item lists.
 **Kill switch.** `FeatureFlag` / `UserExperiment`, or an explicit statement that there is none.
 
 Present at least two options where a real trade-off exists, choose one, and justify it. Flag
-everything on the `AGENTS.md` confirmation list and **wait**.
+everything on the `AGENTS.md` confirmation list and **wait**. After approval, continue — confirmation
+is a gate, not a refusal. State the inferred chain (e.g. schema → API → UI); do not ask the user
+which playbook to run next.
+
+If Assess impact shows durable structural change, include [`architecture.md`](./architecture.md)
+automatically before or alongside this playbook.
 
 ## 4 — Implement
 
 Order matters:
 
-1. Schema + migration (if any), verified with `npm run prisma:check-migrations`.
+1. Schema + migration (if any) via [`schema-change.md`](./schema-change.md), verified with
+   `npm run prisma:check-migrations`.
 2. Backend: DTO → service → controller, with the ownership check.
 3. Backend tests, including the deny path.
 4. Shared types if the contract crosses the boundary.

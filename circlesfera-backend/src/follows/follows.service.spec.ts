@@ -30,6 +30,12 @@ describe('FollowsService', () => {
       delete: vi.fn(),
       findMany: vi.fn(),
     },
+    mute: {
+      upsert: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn(),
+      findMany: vi.fn(),
+    },
   };
 
   const mockEventEmitter = {
@@ -322,6 +328,46 @@ describe('FollowsService', () => {
       await expect(service.acceptFollowRequest('1', 'user2')).rejects.toThrow(
         AppException,
       );
+    });
+  });
+
+  describe('muteUser', () => {
+    it('creates a forever mute when duration is omitted', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'muted-1',
+        username: 'bob',
+      });
+      mockPrismaService.mute.upsert.mockResolvedValue({});
+
+      const result = await service.muteUser('muter-1', 'bob');
+
+      expect(result).toEqual({ success: true, expiresAt: null });
+      expect(mockPrismaService.mute.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            muterId: 'muter-1',
+            mutedId: 'muted-1',
+            expiresAt: null,
+          }),
+          update: { expiresAt: null },
+        }),
+      );
+    });
+
+    it('sets expiresAt for a 24h mute', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-09-05T12:00:00.000Z'));
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'muted-1',
+        username: 'bob',
+      });
+      mockPrismaService.mute.upsert.mockResolvedValue({});
+
+      const result = await service.muteUser('muter-1', 'bob', '24h');
+
+      expect(result.success).toBe(true);
+      expect(result.expiresAt).toBe('2026-09-06T12:00:00.000Z');
+      vi.useRealTimers();
     });
   });
 });

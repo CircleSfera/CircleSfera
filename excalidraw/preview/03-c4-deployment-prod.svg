@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-8.0 -24.0 1536.0 917.5" width="1536" height="918">
 <rect x="-8.0" y="-24.0" width="1536.0" height="917.5" fill="#F7F7F5" />
 <text x="40.0" y="47.8" font-size="28.0" font-family="Helvetica, Arial, sans-serif" fill="#212121" text-anchor="start" opacity="1.00">C4 Deployment — Producción (OVH VPS)</text>
-<text x="40.0" y="75.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">Fuente: docker-compose.prod.yml, deploy.yml, 05-deployment-strategy.md §2. Future Cloudflare/ECS is NOT shown.</text>
+<text x="40.0" y="75.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">Fuente: docker-compose.prod.yml, deploy.yml, 05-deployment-strategy.md 2. Future Cloudflare/ECS is NOT shown.</text>
 <rect x="40.0" y="220.0" width="160.0" height="80.0" rx="10" fill="#E3F2FD" stroke="#1565C0" stroke-width="2"  opacity="1.00" />
 <text x="120.0" y="243.6" font-size="16.0" font-family="Helvetica, Arial, sans-serif" fill="#1565C0" text-anchor="middle" opacity="1.00">Browser</text>
 <rect x="260.0" y="200.0" width="240.0" height="120.0" rx="10" fill="#E0F2F1" stroke="#00897B" stroke-width="2"  opacity="1.00" />
@@ -77,5 +77,5 @@
 <text x="610.0" y="388.7" font-size="12.0" font-family="Helvetica, Arial, sans-serif" fill="#546E7A" text-anchor="middle" opacity="1.00">image</text>
 <path d="M 366.0 564.0 L 894.0 345.0" fill="none" stroke="#F9A825" stroke-width="1"  opacity="1.00" stroke-linecap="round" stroke-linejoin="round" />
 <polygon points="894.0,345.0 886.0,354.0 882.0,344.3" fill="#F9A825" />
-<text x="40.0" y="839.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">Fuente: docker-compose.prod.yml, deploy.yml, 05-deployment-strategy.md §2. Future Cloudflare/ECS is NOT shown.</text>
+<text x="40.0" y="839.9" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#616161" text-anchor="start" opacity="1.00">Fuente: docker-compose.prod.yml, deploy.yml, 05-deployment-strategy.md 2. Future Cloudflare/ECS is NOT shown.</text>
 </svg>

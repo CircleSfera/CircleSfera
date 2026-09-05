@@ -385,6 +385,14 @@ vi.mock('react-i18next', () => ({
           'Staff applied this label after review. The account owner can appeal in Settings.',
         'profile.about.identity_disclaimer':
           'Identity verified means government ID checked via Stripe Identity. It is separate from a paid plan badge.',
+        'mute.title': 'Mute {{username}}',
+        'mute.subtitle':
+          'Their posts will be hidden from your feed. They will not be notified.',
+        'mute.confirm': 'Mute',
+        'mute.duration.24h': '24 hours',
+        'mute.duration.7d': '7 days',
+        'mute.duration.30d': '30 days',
+        'mute.duration.forever': 'Forever',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
@@ -426,8 +434,13 @@ vi.mock('react-i18next', () => ({
         if (!translations[key]) {
           val = options;
         }
-        if (extra && typeof extra === 'object' && extra.type !== undefined) {
-          val = val.replace('{{type}}', String(extra.type));
+        if (extra && typeof extra === 'object') {
+          if (extra.type !== undefined) {
+            val = val.replace('{{type}}', String(extra.type));
+          }
+          if (extra.username !== undefined) {
+            val = val.replace('{{username}}', String(extra.username));
+          }
         }
       }
       return val;

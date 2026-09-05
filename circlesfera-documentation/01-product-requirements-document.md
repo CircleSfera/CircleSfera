@@ -1,11 +1,12 @@
 # 01 — Product Requirements Document
 ## CircleSfera
 **Version:** 4.0 — philosophy + schema-aligned product scope  
-**Date:** July 2026  
+**Date:** September 2026 (content base July 2026; scope freshness from [00-status.md](./00-status.md))  
 **Functional and data source of truth:** current project `schema.prisma` and implemented Nest/React code  
 
 > Prefer `schema.prisma` and implemented controllers when this document and older Abr 2026 snapshots disagree. See [00-status.md](./00-status.md).
-
+>
+> **In development (not shipped):** native apps (Capacitor), paid-ads scale-up, ClickHouse Cloud provisioning — do not write these in present tense. **Removed from schema:** `CreatorSubscription` table — do not invent it.
 ---
 
 ## 1. Philosophy and fundamental principles
@@ -161,7 +162,7 @@ Do **not** present the following as current product reality unless/until they ex
 - Entitlements as a separate persisted entity (beyond what subscriptions/transactions already cover).
 - Fully separate “moderation_actions” case-management tables beyond reports, appeals, and admin audit logs.
 
-> **Schema correction vs older drafts:** `Mute`, `Appeal`, `CreatorSubscription`, `Transaction`, and feed-preference tables (`FeedHiddenPost`, `FeedHiddenAuthor`, `FeedMutedKeyword`) **are** present in the current schema and must be documented as modeled capabilities (see §4.1 and [ADR-0004](./adr/0004-feed-preferences.md)), even when UI/activation is gradual.
+> **Schema correction vs older drafts:** `Mute`, `Appeal`, `Transaction`, and feed-preference tables (`FeedHiddenPost`, `FeedHiddenAuthor`, `FeedMutedKeyword`) **are** present in the current schema. The former `CreatorSubscription` table was **removed** — do not document it as modeled. See [00-status.md](./00-status.md) and [ADR-0004](./adr/0004-feed-preferences.md).
 
 ---
 
@@ -352,7 +353,7 @@ Older documentation treated stories and frames as “phase 2.” That no longer 
 3. Trust features must be explained without claiming models that do not exist in the database.
 4. Monetization decisions must consider fraud, support, webhooks, and idempotency.
 5. Content decisions must consider growth, retention, creators, chat, and discovery.
-6. Every major feature must pass the three guiding questions in §1.6.
+6. Every major feature must pass the three guiding questions in section 1.6.
 
 ---
 
@@ -373,6 +374,6 @@ Older documentation treated stories and frames as “phase 2.” That no longer 
 - Stories, frames, chat, highlights, bookmarks, collections, passkeys, platform subscriptions, creator subscriptions, promotions, mutes, appeals, live, and interactive features belong in official documentation as modeled capabilities.
 - Official PRD content must not present absent entities as if they were already part of the live system.
 - Future capabilities are documented as roadmap, not as implemented reality.
-- Philosophy in §1 is binding for product and engineering decisions.
+- Philosophy in section 1 is binding for product and engineering decisions.
 
 ---

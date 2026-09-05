@@ -22,9 +22,9 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useCloseFriendsList } from '../../hooks/useCloseFriendsList';
-import { followsApi } from '../../services';
 import type { ProfileWithUser } from '../../types';
 import FollowButton from '../FollowButton';
+import MuteDurationModal from '../modals/MuteDurationModal';
 import UserAvatar from '../UserAvatar';
 import VerificationBadge, {
   type VerificationLevel,
@@ -75,18 +75,20 @@ interface ProfileOtherUserMenuProps {
   onAbout: () => void;
   onReport: () => void;
   onBlock: () => void;
+  onMute: () => void;
   align?: 'left' | 'right';
   buttonClassName?: string;
 }
 
 function ProfileOtherUserMenu({
-  username,
+  username: _username,
   isOpen,
   onToggle,
   onClose,
   onAbout,
   onReport,
   onBlock,
+  onMute,
   align = 'right',
   buttonClassName = 'p-2 h-11 w-11 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center',
 }: ProfileOtherUserMenuProps) {
@@ -125,22 +127,7 @@ function ProfileOtherUserMenu({
             type="button"
             onClick={() => {
               onClose();
-              followsApi
-                .mute(username)
-                .then(() => {
-                  toast.success(
-                    t('profile.actions.muted', {
-                      defaultValue: 'User muted',
-                    }),
-                  );
-                })
-                .catch(() => {
-                  toast.error(
-                    t('profile.actions.mute_error', {
-                      defaultValue: 'Failed to mute user',
-                    }),
-                  );
-                });
+              onMute();
             }}
             className="w-full text-left px-2 py-1 text-gray-300 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider border-t border-white/5"
           >
@@ -217,6 +204,7 @@ export default function ProfileHeader({
 }: ProfileHeaderProps) {
   const { t } = useTranslation();
   const [showAbout, setShowAbout] = useState(false);
+  const [showMuteModal, setShowMuteModal] = useState(false);
   const { closeFriendsCount } = useCloseFriendsList(isMe);
   const data = profile.data as ProfileWithUser & {
     identityVerified?: boolean;
@@ -257,6 +245,13 @@ export default function ProfileHeader({
           verificationLevel: data.verificationLevel,
         }}
       />
+      {showMuteModal && profile.data.username ? (
+        <MuteDurationModal
+          isOpen={showMuteModal}
+          username={profile.data.username}
+          onClose={() => setShowMuteModal(false)}
+        />
+      ) : null}
       {/* Background Accent Gradient (Parallax Effect) */}
       <div className="absolute inset-0 overflow-hidden rounded-xl md:rounded-2xl pointer-events-none -z-10">
         <motion.div
@@ -269,7 +264,7 @@ export default function ProfileHeader({
 
       <div className="flex flex-col gap-3 md:gap-4">
         <div className="flex flex-row md:flex-row items-center md:items-start gap-3 md:gap-4 w-full">
-          {/* Avatar — Design System §9.5: profile=96px */}
+          {/* Avatar — Design System section 9.5: profile=96px */}
           <div className="relative shrink-0">
             <UserAvatar
               src={profile.data.avatar}
@@ -471,6 +466,7 @@ export default function ProfileHeader({
                       onAbout={() => setShowAbout(true)}
                       onReport={() => setShowReportModal(true)}
                       onBlock={() => setShowBlockModal(true)}
+                      onMute={() => setShowMuteModal(true)}
                     />
                   </div>
                 </>
@@ -685,6 +681,7 @@ export default function ProfileHeader({
                   onAbout={() => setShowAbout(true)}
                   onReport={() => setShowReportModal(true)}
                   onBlock={() => setShowBlockModal(true)}
+                  onMute={() => setShowMuteModal(true)}
                   buttonClassName="h-11 w-11 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 transition-all flex items-center justify-center"
                 />
               </div>

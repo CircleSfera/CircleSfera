@@ -2,280 +2,115 @@
 
 ## Propósito
 
-Este archivo define las reglas operativas, técnicas, arquitectónicas y de calidad que deben seguir todos los agentes de IA que trabajen en CircleSfera.
+Reglas operativas para agentes de IA en CircleSfera: red social full-stack de producción (NestJS,
+React, PostgreSQL/Prisma, Redis, Stripe). Priorizar estabilidad, seguridad, coherencia
+arquitectónica y alineación con el estado real del proyecto — no con aspiraciones.
 
-CircleSfera es un proyecto serio, profesional y de largo recorrido. Toda acción sobre este repositorio debe priorizar estabilidad, coherencia arquitectónica, seguridad, mantenibilidad, trazabilidad y alineación con el estado real del proyecto.
+`circlesfera-landing/` fue eliminado (Jul 2026); no restaurarlo ni desplegarlo.
 
-## Contexto del Proyecto
+## Fuente de verdad
 
-- Proyecto: CircleSfera
-- Tipo de producto: red social full-stack de alcance global
-- Stack principal conocido: NestJS, Vite, PostgreSQL, Prisma
-- Desarrollo guiado por documentación real y schema.prisma vigente
-- Monetización basada en tiers y funcionalidades premium
-- Dominio sensible: identidad, contenido, relaciones sociales, chat, stories, suscripciones, promociones, auditoría y datos de usuario
-- Principio de producto: plataforma seria, escalable, transparente y controlada por reglas explícitas
-- `circlesfera-landing/` was removed from the tree (Jul 2026); do not restore or deploy it
+Cuando haya conflicto, este orden manda:
 
-## Fuente de Verdad
-
-Cuando exista conflicto entre documentos, se debe respetar este orden de prioridad:
-
-1. `schema.prisma`
-2. Código fuente realmente implementado
-3. Contratos API vigentes
-4. ADRs (Architecture Decision Records) — `circlesfera-documentation/adr/` (Currently 15 ADRs, through `0015`)
-5. Documentación técnica y funcional (`circlesfera-documentation/`)
+1. `circlesfera-backend/prisma/schema.prisma`
+2. Código fuente implementado
+3. Contratos API vigentes (controllers + DTOs)
+4. ADRs — ver índice en [`circlesfera-documentation/adr/README.md`](circlesfera-documentation/adr/README.md)
+5. Documentación técnica (`circlesfera-documentation/`, empezando por [`00-status.md`](circlesfera-documentation/00-status.md))
 6. Suposiciones
 
-Regla obligatoria:
+Nunca inventar modelos, endpoints, enums, relaciones, permisos o flujos no respaldados por schema o
+código. Si hay ambigüedad, detenerse, explicitar la inconsistencia y proponer alternativas.
 
-- Nunca inventar modelos, endpoints, enums, relaciones, permisos, eventos o flujos que no estén respaldados por el código, el schema o documentación canónica actualizada.
-- Si hay ambigüedad, el agente debe detenerse, explicitar la inconsistencia y proponer alternativas en vez de asumir.
+Detalle operativo (stack, glosario, gaps): [`.ai/core/`](.ai/core/). Mapa pregunta → artefacto:
+[`.ai/core/sources-of-truth.md`](.ai/core/sources-of-truth.md).
 
-## Principios Operativos Generales
+## Routing de tareas
 
-- Priorizar cambios pequeños, auditables y reversibles.
-- No romper comportamiento existente sin justificación explícita.
-- No introducir deuda técnica silenciosa.
-- No “simular” que algo está implementado si no lo está.
-- No crear mocks permanentes en código de producción.
-- No ocultar errores con parches cosméticos.
-- Toda modificación debe ser consistente con la arquitectura actual del repositorio.
-- Toda respuesta del agente debe distinguir claramente entre: hecho verificado, inferencia razonable y propuesta.
+Antes de trabajo no trivial, leer [`.ai/orchestrator.md`](.ai/orchestrator.md). El agente **infiere**
+el modo (ship / advise / review), el playbook de entrada y el encadenamiento (p. ej. schema →
+feature) sin que el usuario nombre el workflow. Los slash commands de [`.agents/workflows/`](.agents/workflows/)
+son atajos opcionales. Cursor carga [`.cursor/rules/`](.cursor/rules/) por glob.
 
-## Reglas de Ejecución para Agentes
+## Política de cambios
 
-Antes de modificar código, el agente debe:
+El framework **diseña, implementa y cambia schema** cuando el producto lo necesita. La lista de
+confirmación es un **gate** (proponer → esperar → ejecutar), no una prohibición.
 
-1. Leer el contexto local relevante.
-2. Identificar los archivos fuente implicados.
-3. Revisar contratos, tipos, DTOs, entidades, schema y servicios relacionados.
-4. Entender impacto lateral en validación, auth, permisos, eventos, cache, logs, tests y documentación.
-5. Proponer una estrategia breve antes de cambios grandes.
+**Sin confirmación extra:** refactors pequeños, tipado, lint/format sin cambiar lógica, legibilidad,
+tests acotados del comportamiento existente, docs alineadas con código real.
 
-Después de modificar código, el agente debe:
+**Requieren confirmación explícita, luego implementación completa:** schema/migraciones; contratos
+API públicos; auth, permisos, roles o monetización; eliminación de código/tablas/endpoints; lógica
+de negocio crítica; nuevas dependencias; infraestructura, despliegue o secretos; operaciones
+destructivas sobre datos.
 
-- Verificar consistencia de imports, tipos y nombres.
-- Ejecutar validaciones/lint/tests relevantes si existen.
-- Revisar efectos colaterales.
-- Resumir exactamente qué cambió, por qué y qué riesgos quedan abiertos.
+El freno real es OUT OF SCOPE en [`00-status.md`](circlesfera-documentation/00-status.md). Playbooks:
+[`feature`](.ai/playbooks/feature.md), [`architecture`](.ai/playbooks/architecture.md),
+[`schema-change`](.ai/playbooks/schema-change.md), [`ui-redesign`](.ai/playbooks/ui-redesign.md).
 
-## Política de Cambios
+## Antes / después de cambiar código
 
-### Cambios permitidos sin pedir confirmación adicional
+Antes: leer el módulo dueño (servicio, DTOs, tests, modelos Prisma), delimitar impacto (schema,
+auth, cache, colas, sockets, i18n, tests, docs, dinero) y comprobar
+[`00-status.md`](circlesfera-documentation/00-status.md) (OUT OF SCOPE e *in development*).
 
-- Refactors pequeños y seguros.
-- Correcciones de tipado.
-- Ajustes de lint/format sin alterar lógica.
-- Mejoras de legibilidad sin impacto funcional.
-- Tests acotados para cubrir comportamiento existente.
-- Documentación alineada con código real.
+Después: verificar tipos/imports, correr lint/tests relevantes, resumir qué cambió, por qué y qué
+riesgo queda abierto. No afirmar checks no ejecutados.
 
-### Cambios que requieren confirmación explícita
+Principios de ingeniería y calidad: [`.ai/core/principles.md`](.ai/core/principles.md),
+[`.ai/core/quality.md`](.ai/core/quality.md). Gaps conocidos: [`.ai/core/known-gaps.md`](.ai/core/known-gaps.md).
 
-- Modificación de esquema de base de datos.
-- Cambios en contratos API públicos.
-- Cambios en auth, permisos, roles o monetización.
-- Eliminación de código, tablas, endpoints o flujos existentes.
-- Cambios en lógica de negocio crítica.
-- Introducción de nuevas dependencias.
-- Cambios de infraestructura, despliegue o secretos.
-- Operaciones destructivas sobre datos.
+## Frontend y diseño (mobile-first)
 
-## Arquitectura y Diseño
+- Diseñar y comprobar primero en **390×844 px** (iPhone 15 Pro). Desktop añade columnas paralelas;
+  nunca escala proporcionalmente componentes o tipografía.
+- Densidad comparable o superior a Instagram / Threads / X / TikTok: más contenido real que
+  decoración.
+- Botones: `44–48px`. Inputs: `48–52px`. Avatares: `32` / `40` / `56`. Cards: altura por contenido.
+- Espaciado en escala `4, 8, 12, 16, 20, 24, 32, 40, 48, 64`. Márgenes de pantalla `16–24px`.
+- Aprovechar el **80–90%** del viewport útil en móvil.
 
-### Reglas de arquitectura
+Tokens canónicos: `circlesfera-frontend/src/index.css`. Narrative de diseño: docs 09/13 (Notion).
 
-- Respetar separación de responsabilidades.
-- Evitar mezclar lógica de negocio con transporte, persistencia o presentación.
-- Mantener controladores delgados, servicios claros y acceso a datos encapsulado.
-- Evitar funciones gigantes, acoplamiento circular y utilidades ambiguas.
-- Favorecer nombres explícitos sobre abstracciones prematuras.
-- No duplicar lógica si puede extraerse de forma limpia.
-- No sobrediseñar: resolver el problema real actual sin introducir complejidad especulativa.
+## Seguridad y dominio
 
-### Backend
-
-- En NestJS, usar módulos, servicios, controladores, DTOs, guards, interceptors y pipes de forma idiomática.
-- Validación de entrada obligatoria en todos los puntos externos.
-- No confiar en datos del cliente.
-- Toda regla de negocio crítica debe vivir en backend, no en frontend.
-- Los errores deben ser explícitos, semánticos y trazables.
-- Mantener consistencia entre DTOs, servicios, Prisma y respuestas API.
-
-### Base de datos
-
-- Prisma y PostgreSQL son parte del núcleo del sistema.
-- Toda propuesta de cambio de datos debe considerar migraciones, compatibilidad, índices, constraints y rendimiento.
-- Nunca asumir cardinalidades o relaciones sin validarlo en `schema.prisma`.
-- Evitar consultas ineficientes, N+1, writes redundantes y filtros no indexados en rutas sensibles.
-- Toda modificación de schema debe explicar impacto en producción.
-
-### Frontend y Diseño (Mobile-First & Densidad Visual)
-
-- **Filosofía Mobile-First**: Todo componente, vista o pantalla debe diseñarse y comprobarse primero para móvil (**390×844 px** - iPhone 15 Pro). Desktop es una adaptación que añade columnas de contenido paralelas, **nunca agigantando ni escalando proporcionalmente los componentes o textos**.
-- **Prohibición de Interfaces Sobredimensionadas**: Nunca crear componentes gigantes, tarjetas con padding desmedido ni botones sobredimensionados que malgasten espacio útil.
-- **Benchmark de Densidad de Información**: CircleSfera prioriza una alta densidad visual comparable o ligeramente superior a **Instagram, Threads, X y TikTok**. El usuario debe ver siempre más contenido real que interfaz o decoración.
-- **Límites Estrictos de Tamaño (Component Sizing)**:
-  - Botones principales/secundarios: altura de `44px` a `48px`.
-  - Campos de entrada (Inputs): altura de `48px` a `52px`.
-  - Avatares: `32px` (pequeño), `40px` (estándar), `56px` (grande/perfil).
-  - Contenedores / Cards: Altura dinámica basada estrictamente en el contenido, sin alturas fijas excesivas.
-- **Escala de Espaciado Estricta (4px / 8px base)**:
-  - Usar siempre la escala estándar (`4`, `8`, `12`, `16`, `20`, `24`, `32`, `40`, `48`, `64`).
-  - Márgenes exteriores de pantalla: `16px–24px`. Separación entre bloques: `8px–16px`.
-- **Aprovechamiento del Viewport**: Cada pantalla finalizada debe aprovechar entre el **80% y el 90%** del área útil del viewport en dispositivos móviles antes de dar el trabajo por completado.
-
-## Seguridad
-
-Estas reglas son obligatorias y prioritarias.
-
-- Nunca exponer secretos, tokens, claves ni credenciales.
-- Nunca hardcodear secretos.
-- No relajar validaciones, permisos o controles por comodidad.
-- Sanitizar y validar toda entrada externa.
-- Minimizar superficie de exposición de datos sensibles.
-- No registrar datos sensibles innecesarios en logs.
-- Aplicar principio de mínimo privilegio.
-- Revisar impacto en auth, sesiones, ownership y acceso por rol antes de tocar endpoints sensibles.
-- Si un cambio puede afectar privacidad, cumplimiento o integridad de datos, detenerse y advertir.
-
-## Reglas de Dominio CircleSfera
-
-- CircleSfera no es una demo; todo se trata como software de producto real.
-- El dominio social implica especial cuidado con identidad, publicaciones, relaciones, historias, mensajes, suscripciones, promociones y auditoría.
-- No introducir lógica que contradiga la transparencia del producto ni políticas explícitas del proyecto.
-- No introducir flujos ambiguos en moderación, visibilidad, ranking o privilegios sin validación explícita.
-- No asumir features de otras redes sociales si no están respaldadas por CircleSfera real.
-- Todo cambio funcional debe respetar los tiers, restricciones y reglas reales del proyecto.
-
-## Estándares de Código
-
-- Escribir código claro, sobrio y mantenible.
-- Preferir legibilidad sobre cleverness.
-- Nombres descriptivos y coherentes con el lenguaje del repositorio.
-- Evitar comentarios redundantes; comentar solo lo no evidente.
-- No dejar código muerto, console logs de depuración ni bloques comentados permanentes.
-- No mezclar estilos inconsistentes dentro del mismo archivo.
-- Mantener funciones pequeñas cuando sea razonable.
-- Evitar booleans ambiguos; usar nombres semánticos.
-
-## Estándares de Calidad
-
-Todo cambio debe aspirar a:
-
-- corrección funcional
-- consistencia arquitectónica
-- seguridad
-- mantenibilidad
-- observabilidad
-- rendimiento razonable
-- facilidad de revisión
-
-Checklist mínimo antes de dar un cambio por válido:
-
-- ¿Compila?
-- ¿Respeta tipos?
-- ¿Respeta contratos?
-- ¿Respeta schema y dominio?
-- ¿Evita regresiones obvias?
-- ¿Está suficientemente claro para otro desarrollador?
-
-## Testing
-
-- Añadir o ajustar tests cuando el cambio lo justifique.
-- No escribir tests irreales que solo validen mocks triviales.
-- Los tests deben cubrir comportamiento relevante, no solo implementación interna.
-- Si no se añaden tests, explicar por qué.
-- No marcar como “resuelto” algo que no fue validado de forma razonable.
+- Nunca exponer o hardcodear secretos; no loguear tokens, cookies, plaintext de chat ni payloads de pago.
+- No relajar guards, validación, throttle o exclusiones CSRF por comodidad.
+- No mover autorización al cliente ni confiar en montos/precios/entitlements del cliente.
+- Reglas de negocio críticas viven en el backend (servicios), no solo en la UI.
+- No introducir flujos opacos de moderación, ranking o privilegios; respetar transparencia del producto.
+- No asumir features de otras redes si no existen en CircleSfera real (schema + código).
+- Respetar tiers y monetización reales (`PlatformPlan`, fee 20% ADR-0010, catálogos server-side).
 
 ## Documentación
 
-- Toda documentación debe reflejar el estado real del proyecto, no aspiraciones futuras presentadas como presentes.
-- Si se detecta incoherencia documental, señalarla explícitamente.
-- Mantener alineación entre schema, código, API y documentos técnicos.
-- No versionar como definitivo un documento que esté basado en suposiciones.
-- Cuando se toque lógica importante, sugerir actualización documental correspondiente.
+Si el sistema contradice la documentación, **corregir la documentación**, no el sistema (salvo bug
+confirmado). Presente = shipped. Proceso: [`.ai/playbooks/docs-sync.md`](.ai/playbooks/docs-sync.md).
 
-## Dependencias
+## Estilo de respuesta
 
-- No añadir dependencias sin necesidad real.
-- Antes de introducir una librería, evaluar si el problema ya puede resolverse con el stack actual.
-- Preferir soluciones consistentes con la base tecnológica existente.
-- Toda nueva dependencia debe justificar: propósito, impacto, mantenimiento y riesgo.
+Directo, preciso, sin vender humo. Separar hecho verificado / inferencia / propuesta.
 
-## Rendimiento y Escalabilidad
+Formato útil: Objetivo → Hallazgos → Cambios → Verificación → Riesgos abiertos → Siguientes pasos.
 
-- Considerar rendimiento en endpoints calientes, feeds, chat, stories, búsquedas y relaciones sociales.
-- Evitar trabajo innecesario en cada request.
-- Pensar en índices, paginación, límites, batching y acceso eficiente a datos.
-- No optimizar prematuramente, pero tampoco ignorar cuellos de botella evidentes.
+## Prohibiciones
 
-## Observabilidad y Debugging
+No inventar requisitos, tablas, endpoints ni estados de implementación que no existan aún en
+schema/código (sí se pueden **añadir** con confirmación vía `schema-change` / `feature`). No
+reescribir áreas grandes sin necesidad. No cambios destructivos ni tocar secretos/despliegue sin
+permiso. No afirmar “todo alineado” sin haberlo revisado.
 
-- Los errores deben aportar contexto útil sin filtrar información sensible.
-- Si se toca lógica crítica, considerar logs estructurados, métricas o trazas si aplica.
-- No ocultar errores con catch silenciosos.
-- Todo fallback debe ser intencional y visible para mantenimiento.
+## Preferencias
 
-## Estilo de Interacción del Agente
+Profesionalidad sobre velocidad aparente. Consistencia del proyecto sobre improvisación. Precisión
+documental sobre storytelling. Seguridad y mantenibilidad sobre atajos. Alineación con producción y
+`schema.prisma`. Ante duda entre rapidez y solidez, elegir solidez.
 
-Cuando el agente responda o proponga cambios, debe:
+Referencias de sección en docs: `section 9.4` (nunca el símbolo de sección).
 
-- ser directo y preciso
-- indicar incertidumbres reales
-- no vender humo
-- no afirmar validaciones no ejecutadas
-- no exagerar calidad o completitud
-- separar claramente diagnóstico, propuesta y ejecución realizada
+## Instrucción final
 
-Formato recomendado de respuesta:
-
-- Objetivo
-- Hallazgos relevantes
-- Cambios propuestos o realizados
-- Riesgos / dudas abiertas
-- Siguientes pasos
-
-## Prohibiciones Explícitas
-
-El agente no debe:
-
-- inventar requisitos
-- inventar tablas o relaciones
-- inventar endpoints
-- inventar estados de implementación
-- reescribir grandes áreas del sistema sin necesidad
-- hacer cambios destructivos sin permiso
-- tocar secretos o despliegue sin confirmación
-- ocultar limitaciones
-- afirmar “todo está alineado” sin haberlo revisado
-
-## Convenciones de Trabajo Recomendadas
-
-Para tareas complejas, seguir este orden:
-
-1. Comprender contexto.
-2. Localizar fuente de verdad.
-3. Delimitar impacto.
-4. Proponer plan breve.
-5. Ejecutar cambio mínimo viable y correcto.
-6. Verificar.
-7. Resumir con transparencia.
-
-## Preferencias para CircleSfera
-
-- Se prioriza profesionalidad sobre velocidad aparente.
-- Se prioriza consistencia del proyecto sobre soluciones improvisadas.
-- Se prioriza precisión documental sobre storytelling técnico.
-- Se prioriza seguridad y mantenibilidad sobre atajos.
-- Se prioriza alineación con el estado real de producción y `schema.prisma`.
-
-## Instrucción Final
-
-Si falta contexto, no asumir.
-Si hay conflicto entre documentos y código, señalarlo.
-Si el cambio es sensible, pedir confirmación.
-Si el sistema real contradice la documentación, corregir la documentación, no la realidad.
-Si existe duda entre rapidez y solidez, elegir solidez.
+Si falta contexto, no asumir. Si hay conflicto entre documentos y código, señalarlo. Si el cambio es
+sensible, pedir confirmación y, al recibirla, implementar. Si el sistema real contradice la
+documentación, corregir la documentación, no la realidad.

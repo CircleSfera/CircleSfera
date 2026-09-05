@@ -1,13 +1,23 @@
 # Documentation status
 
-**Last status note:** Aug 2026 — Product reopened native apps, ads scale-up, ClickHouse; investor pack updated
+**Last status note:** Sep 2026 — Docs/AI framework re-sync; trust signals, system settings, ClickHouse ETL noted; CreatorSubscription table confirmed removed
+
+## Sep 2026 documentation / schema notes
+
+- **Schema scale (verified):** 76 models, 29 enums in `circlesfera-backend/prisma/schema.prisma`; ADRs **0001–0016** ([adr/README.md](./adr/README.md); 0016 Proposed)
+- **`CreatorSubscription`:** table removed (`20260729154648_sync_schema_again`). Do not document as a live Prisma model. Creator VIP routes/fields are not present on `Profile` — verify controllers before treating VIP as shipped
+- **Account trust signals (ADR-0014):** Turnstile, email gate, KYC vs plan, abuse hashes — migration `20260821050000_account_trust_signals`; detail in [06-security-privacy-compliance.md](./06-security-privacy-compliance.md)
+- **`SystemSetting`**, **`ModerationRule`**, **`StripePayoutLog`:** present in schema (Aug migrations)
+- **Profile ownership P3009:** [runbooks/profile-migration-p3009.md](./runbooks/profile-migration-p3009.md)
+- **ClickHouse:** ETL scripts + BullMQ nightly export shipped; Cloud + Grafana still pending ([ADR-0016](./adr/0016-analytical-warehouse-clickhouse.md), [runbook](./runbooks/clickhouse-cloud-analytics.md))
+- **Schema-first banners:** documents **01, 06, 07** (and this pass adds banners on 02, 04, 05). Prefer schema + controllers when narrative docs disagree
 
 ## Aug 2026 User / Profile identity
 
 - **`User`** = account (email, auth, Stripe, platform plans, trust); **`Profile`** = social identity (`username`, avatar, all content/social FKs)
 - JWT session exposes both `userId` (`sub`) and primary `profileId` — see [15-identity-profile-model.md](./15-identity-profile-model.md)
 - Admin APIs flatten profile fields to `user.profile.*` for React admin tabs; helpers in `common/utils/user-profile-shape.util.ts`
-- ERD §4–12 corrected: social tables use `profileId`, not `userId`; live hosts on `Profile`; reports reporter on `Profile`; assignee on `AdminIdentity`
+- ERD sections 4–12 corrected: social tables use `profileId`, not `userId`; live hosts on `Profile`; reports reporter on `Profile`; assignee on `AdminIdentity`
 - **ADR-0015** documents the split; regression smoke: `npm run smoke:profile-drift` (`scripts/validate-profile-drift-smoke.mjs`)
 
 ## Aug 2026 Admin Panel
@@ -61,22 +71,22 @@
 
 - Moderation transparency: author notify on AI/admin hide/restore; appeals UI (`Settings → Appeals`); appeal outcome notify
 - User control: mute entry on profile/post menus; `UserSettings` prefs applied to feed (content rating) + push
-- Monetization contracts: one active platform plan enforced; `GET /payments/status`; creator sub list/check/cancel; Elite guard scoped
+- Monetization contracts: one active platform plan enforced; `GET /payments/status`; Elite guard scoped
+  (note: `CreatorSubscription` table later removed — see Sep 2026 note)
 - Discovery: ProfileEmbedding writer on profile update + `npm run embeddings:backfill`; recommendation signals; poll/QnA create (posts) + display
 - Promotions: `PAUSED` / resume; cancel → `CANCELLED` with proportional unused-budget Stripe refund; Ads checkout redirect; feed injects only `ACTIVE`
 
 ## Payments / Stripe hardening (Jul 2026)
 
 - Webhooks: `PROCESSED` only after success; `FAILED` + HTTP 5xx on error so Stripe retries; PENDING/FAILED reprocessed (no skip-on-duplicate trap)
-- Creator VIP price: canonical `Profile.subscriptionPriceCents` (client `priceCents` ignored); `PATCH /creator/subscription-price`
+- Creator VIP: historical Jul note referenced `Profile.subscriptionPriceCents` / `PATCH /creator/subscription-price` — **those fields/routes are not in the live schema/controller**; see Sep 2026 note and ERD section 9
 - Promotion views: viewer JWT required; owner cannot burn own budget; row lock via `FOR UPDATE`
 - Admin reject of charged promo triggers proportional refund
 - Unlock requires IdentityVerifiedGuard; Checkout return query append safe when URL already has `?`
 - Ledger: `PROMOTION_PAYMENT` / `STRIPE_SUBSCRIPTION` / story unlocks / **live gifts**; tip/unlock/gift currency **EUR**
 - Ops handlers: `checkout.session.expired`, `invoice.payment_failed`, `charge.refunded`, `charge.dispute.created` (revoke unlocks), `account.updated` (Connect capability cache), Connect `payout.created` / `updated` / `paid` / `failed` / `canceled` (copy into `StripePayoutLog` for Admin Payouts, ADR-0002)
 - Story PPV: persist `isPremium`/`priceCents`; `StoryUnlock` + `POST /monetization/unlock-story`; feed redacts locked media
-- Creator VIP price UI in Creator finance tab (`PATCH /creator/subscription-price`)
-- Platform fee: **20%** application fee on Connect tips/unlocks/creator subs/**live gifts** — [ADR-0010](./adr/0010-platform-fee-20-percent.md)
+- Platform fee: **20%** application fee on Connect tips/unlocks/**live gifts** — [ADR-0010](./adr/0010-platform-fee-20-percent.md)
 
 ## Production incident (Jul 2026)
 
@@ -121,6 +131,6 @@ Also deferred:
 ## Doc / source of truth
 
 - Schema: `circlesfera-backend/prisma/schema.prisma` (not `08-schema-prisma.md`)
-- ADRs: [adr/README.md](./adr/README.md)
+- ADRs: [adr/README.md](./adr/README.md) (0001–0016)
 - Runbooks: [runbooks/README.md](./runbooks/README.md)
-- Documents **01–07** carry schema-first banners (Aug 2026); prefer code + schema when they conflict.
+- Prefer code + schema when narrative docs conflict. Freshness banners: see Sep 2026 note above.

@@ -19,7 +19,7 @@ interface PostHeaderProps {
 }
 
 /**
- * PostHeader — Layout Guidelines §17.6
+ * PostHeader — Layout Guidelines section 17.6
  * Contains: Avatar, Display Name, Username, Verification, Timestamp, More Menu
  * Compact height — never dominates the post
  * Avatar: 40px (md) standard, 44px detail

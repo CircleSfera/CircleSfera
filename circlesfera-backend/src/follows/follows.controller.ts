@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Profile, User } from '@prisma/client';
 import {
@@ -6,7 +6,8 @@ import {
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { FollowsService } from './follows.service.js';
+import { MuteUserDto } from './dto/mute-user.dto.js';
+import { FollowsService, type MutedUserEntry } from './follows.service.js';
 
 /** REST controller for follow management, blocking, and follow requests. All endpoints require authentication. */
 @ApiTags('Social Graph')
@@ -63,13 +64,18 @@ export class FollowsController {
     return this.followsService.unblockUser(user.profileId, username);
   }
 
-  /** Mute a user by username. */
+  /** Mute a user by username. Optional body: `{ duration: '24h'|'7d'|'30d'|'forever' }`. */
   @Post(':username/follow/mute')
   async mute(
     @Param('username') username: string,
+    @Body() dto: MuteUserDto,
     @CurrentUser() user: CurrentUserData,
   ) {
-    return this.followsService.muteUser(user.profileId, username);
+    return this.followsService.muteUser(
+      user.profileId,
+      username,
+      dto?.duration,
+    );
   }
 
   /** Unmute a previously muted user. */
@@ -81,11 +87,11 @@ export class FollowsController {
     return this.followsService.unmuteUser(user.profileId, username);
   }
 
-  /** List all muted users. */
+  /** List currently muted users (includes expiresAt). */
   @Get('me/follow/muted')
   async getMuted(
     @CurrentUser() user: CurrentUserData,
-  ): Promise<(Profile & { user: User })[]> {
+  ): Promise<MutedUserEntry[]> {
     return this.followsService.getMutedUsers(user.profileId);
   }
 

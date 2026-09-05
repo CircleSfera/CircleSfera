@@ -7,17 +7,19 @@ data growth.
 
 ## Read first
 
-- `circlesfera-backend/prisma/schema.prisma` — **canonical**, 1652 lines, 65 models, 27 enums
-- `circlesfera-backend/prisma/migrations/` — 62 migrations, first `20260206213507_init`
+- `circlesfera-backend/prisma/schema.prisma` — **canonical** (re-read; do not trust memorised counts)
+- `circlesfera-backend/prisma/migrations/` — first `20260206213507_init`; re-count folders if needed
 - `circlesfera-backend/src/prisma/prisma.service.ts` — `@prisma/adapter-pg` with a `pg` Pool
 - `scripts/check-prisma-schema-migrations.sh` — the drift gate CI runs
 - `circlesfera-documentation/02-database-er-diagram.md`
 - `circlesfera-documentation/00-status.md` — the Jul 2026 incident caused by schema without migration
+- [`../core/known-gaps.md`](../core/known-gaps.md) — accepted debt and open doc drift
 
 ## Non-negotiable process for any schema change
 
 1. Read the current model in `schema.prisma`. Never work from memory.
-2. Get explicit confirmation — schema changes are on the `AGENTS.md` confirmation list.
+2. Get explicit confirmation — schema changes are on the `AGENTS.md` confirmation list. After
+   approval, implement (do not treat confirmation as a ban).
 3. Edit `schema.prisma`.
 4. Generate a migration (`npm run prisma:migrate`) and read the SQL it produced.
 5. Run `npm run prisma:check-migrations` against an empty database.
@@ -41,8 +43,9 @@ stories returned 500 in production.
    `[userId, type, visibility, createdAt, moderationStatus]`, and add a composite in the actual query
    order rather than three single-column indexes.
 5. **Uniqueness.** Enforce real invariants with `@@unique` — the codebase already does for
-   `[postId, userId]` on `Like`, `[followerId, followingId]` on `Follow`, `[userId, postId]` on
-   `PostUnlock`, `[subscriberId, creatorId]` on `CreatorSubscription`.
+   `[postId, profileId]` on `Like`, `[followerId, followingId]` on `Follow`, `[profileId, postId]`
+   on `PostUnlock` (verify the live unique keys in `schema.prisma` — social FKs are profile-scoped
+   after ADR-0015).
 6. **Enums.** Adding a value is usually safe; removing or renaming one breaks existing rows and code.
    Enumerate every switch and comparison over that enum.
 7. **Money columns** are integer cents. Never a float, never a `Decimal` for cents.

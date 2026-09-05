@@ -639,7 +639,7 @@ Multi-line inputs should grow vertically according to content.
 Top Navigation
 52px (`--nav-top-height` in `circlesfera-frontend/src/index.css`)
 Bottom Navigation
-60px (`--nav-bottom-height`) plus `safe-area-inset-bottom`
+48px (`--nav-bottom-height`) plus `safe-area-inset-bottom`
 Sidebar Width
 260–280px (`--nav-sidebar-width`: 260px)
 These values MUST match the CSS tokens. Do not hardcode alternate heights in components.

@@ -149,7 +149,7 @@ export default function Explore() {
           description={t('explore.page_desc')}
         />
 
-        {/* Search Input — Design System §9.3: Search input 44–48px */}
+        {/* Search Input — Design System section 9.3: Search input 44–48px */}
         <div className="relative mb-3 md:mb-6 max-w-2xl mx-auto group">
           <div className="absolute -top-px left-8 right-8 h-px bg-linear-to-r from-transparent via-brand-primary to-transparent opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
 

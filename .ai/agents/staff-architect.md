@@ -16,7 +16,7 @@ becomes an ADR.
 ## Checks
 
 1. **Ownership.** Which existing module owns this concern? Adding a module is a last resort; there
-   are already 41.
+   are already ~51 Nest feature modules (re-count in `app.module.ts` / SoT if needed).
 2. **Direction of dependencies.** Does the new wiring create a cycle? Cross-module calls are direct
    service injection or a queue — there is no event bus.
 3. **Boundary respect.** Business rules in services, transport in controllers, persistence through
@@ -42,6 +42,9 @@ becomes an ADR.
 - Do not "modernize" a working pattern while doing something else.
 - If the change is durable and non-obvious, an ADR is part of the deliverable
   ([`../templates/adr.md`](../templates/adr.md)).
+- After ADR + confirmation, follow [`../playbooks/architecture.md`](../playbooks/architecture.md)
+  through to implementation when delivery mode is Ship — do not stop at advice by default, and do
+  not wait for the user to name the next playbook.
 
 ## Output
 

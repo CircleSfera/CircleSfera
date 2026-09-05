@@ -21,7 +21,7 @@ documentation, not the system**.
 | --- | --- |
 | Product requirements | `01-product-requirements-document.md` |
 | Data model narrative | `02-database-er-diagram.md` (schema is canonical) |
-| Endpoint inventory | `03-api-detailed-endpoints.md` (controllers are canonical) |
+| Endpoint inventory | `03-api-detailed-endpoints.md` (conventions) + `03-api-catalog.generated.md` (controllers are canonical; regenerate with `npm run docs:api-inventory`) |
 | User stories | `04-user-stories.md` |
 | Deployment | `05-deployment-strategy.md` |
 | Security/privacy/compliance | `06-security-privacy-compliance.md` |
@@ -45,13 +45,14 @@ documentation, not the system**.
 3. **Present tense means shipped.** Never document an intention as current behaviour. Mark planned
    work explicitly — `11-backups-strategy.md` already mixes shipped scripts with aspirational
    WAL/PITR, and that must stay labelled.
-4. **Report the drift you find**, even out of scope, rather than quietly overwriting it. Add it to
+4. **Cross-references** use plain section numbers (`section 9.4`), never the `§` symbol.
+5. **Report the drift you find**, even out of scope, rather than quietly overwriting it. Add it to
    `known-gaps.md` if you are not fixing it.
-5. **No duplication of canonical content.** Link to `schema.prisma`, do not paste it — that is
+6. **No duplication of canonical content.** Link to `schema.prisma`, do not paste it — that is
    exactly why `08-schema-prisma.md` is a pointer now.
-6. **Keep `.ai/` derived.** New context files must declare their source and verification date.
-7. **Update alongside the code change**, in the same PR. A docs-later promise is drift.
-8. **Changelog entries** describe user or operator impact, not internal mechanics.
+7. **Keep `.ai/` derived.** New context files must declare their source and verification date.
+8. **Update alongside the code change**, in the same PR. A docs-later promise is drift.
+9. **Changelog entries** describe user or operator impact, not internal mechanics.
 
 ## Hard rules
 
@@ -61,6 +62,7 @@ documentation, not the system**.
 - Never remove a "this may be stale" warning without verifying the content.
 - Never document an endpoint, model, enum or flow that does not exist in code.
 - Never let `.ai/` become the canonical description of anything.
+- Never use the section symbol in new prose — write `section 9.4` instead.
 
 ## Output
 

@@ -6,6 +6,7 @@ import type { UsePostInteractionsReturn } from '../../hooks/usePostInteractions'
 import { api } from '../../services';
 import type { Post } from '../../types';
 import AddToCollectionModal from '../modals/AddToCollectionModal';
+import MuteDurationModal from '../modals/MuteDurationModal';
 import ReportModal from '../modals/ReportModal';
 import SharePostModal from '../modals/SharePostModal';
 import TipModal from '../monetization/TipModal';
@@ -44,6 +45,8 @@ export default function PostOverlays({
     setShowShareModal,
     showTipModal,
     setShowTipModal,
+    showMuteModal,
+    setShowMuteModal,
     editCaption,
     setEditCaption,
     deleteMutation,
@@ -159,6 +162,14 @@ export default function PostOverlays({
         postId={post.id}
         receiverName={post.profile?.username || 'Usuario'}
       />
+
+      {showMuteModal && post.profile?.username ? (
+        <MuteDurationModal
+          isOpen={showMuteModal}
+          username={post.profile.username}
+          onClose={() => setShowMuteModal(false)}
+        />
+      ) : null}
 
       {showAddToCollectionModal && (
         <AddToCollectionModal

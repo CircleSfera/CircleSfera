@@ -22,7 +22,7 @@ import { useAuthStore } from '../stores/authStore';
 import type { PaginatedResponse, Post } from '../types';
 
 /**
- * Home — Layout Guidelines §11 (Feed Screen)
+ * Home — Layout Guidelines section 11 (Feed Screen)
  * Mobile: single column, full-width
  * Desktop: feed column (max 470px) + right sidebar
  * Feed tabs: Para Ti / Siguiendo
@@ -90,8 +90,8 @@ export default function Home() {
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-      {/* Layout Guidelines §11 — Feed: full-width mobile, with desktop right sidebar */}
-      <div className="min-h-dvh pt-[calc(var(--nav-top-height,60px)+4px)] md:pt-0 pb-24 md:pb-8">
+      {/* Layout Guidelines section 11 — Feed: full-width mobile, with desktop right sidebar */}
+      <div className="min-h-dvh pt-[calc(var(--nav-top-height,52px)+4px)] md:pt-0 pb-24 md:pb-8">
         <SEO title={t('feed.home_title')} />
 
         <div className="flex items-start justify-center gap-6 px-0 md:px-3 max-w-5xl mx-auto">
@@ -115,7 +115,7 @@ export default function Home() {
             </div>
 
             {/* Feed Header — Centered Floating Glass Pill Switcher */}
-            <div className="sticky top-[calc(var(--nav-top-height,60px))] md:top-0 z-30 py-2.5 px-4 flex justify-center backdrop-blur-md">
+            <div className="sticky top-[calc(var(--nav-top-height,52px))] md:top-0 z-30 py-2.5 px-4 flex justify-center backdrop-blur-md">
               <div className="inline-flex items-center p-1.5 rounded-full bg-black/75 border border-white/12 shadow-2xl backdrop-blur-md gap-1.5">
                 {(['foryou', 'following'] as const).map((tab) => (
                   <button
@@ -249,7 +249,7 @@ export default function Home() {
                             top: `${virtualItem.start}px`,
                             left: 0,
                             width: '100%',
-                            /* 12–16px gap between posts per §11 */
+                            /* 12–16px gap between posts per 11 */
                             paddingBottom: 'var(--space-md, 12px)',
                           }}
                         >

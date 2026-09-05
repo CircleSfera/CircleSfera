@@ -8,18 +8,18 @@ and go read the right file.
 
 | Question | Read this | Notes |
 | --- | --- | --- |
-| What data exists? Fields, relations, indexes, enums | `circlesfera-backend/prisma/schema.prisma` | Single file, 1652 lines, 65 models, 27 enums. Canonical. |
-| What migrations shipped? | `circlesfera-backend/prisma/migrations/` | 62 migrations, first `20260206213507_init`. Drift check: `scripts/check-prisma-schema-migrations.sh` |
-| What endpoints exist? | `circlesfera-backend/src/**/*.controller.ts` | Inventory snapshot: `circlesfera-documentation/03-api-detailed-endpoints.md` (generated Jul 2026, additive sync). Controllers win. |
+| What data exists? Fields, relations, indexes, enums | `circlesfera-backend/prisma/schema.prisma` | Canonical. Re-count models/enums there; do not trust memorised totals. Verified 2026-09-05: 1900 lines, 76 models, 29 enums. |
+| What migrations shipped? | `circlesfera-backend/prisma/migrations/` | Verified 2026-09-05: 81 folders, first `20260206213507_init`. Drift check: `scripts/check-prisma-schema-migrations.sh` |
+| What endpoints exist? | `circlesfera-backend/src/**/*.controller.ts` | Manual conventions: `03-api-detailed-endpoints.md`. Generated catalog: `03-api-catalog.generated.md` (`npm run docs:api-inventory`). Controllers win. |
 | What business rules apply? | The service that owns the domain, e.g. `src/posts/posts.service.ts` | Ownership and gating are enforced in services, not in a shared layer. |
-| Why was it built this way? | `circlesfera-documentation/adr/` | 10 accepted ADRs. Includes fee split, auth cookies, fan-out, storage, LiveKit. |
-| What is the product supposed to be? | `circlesfera-documentation/01-product-requirements-document.md` | PRD v4.0 (Jul 2026). |
-| What is in and out of scope right now? | `circlesfera-documentation/00-status.md` | Has an explicit OUT OF SCOPE list. Check it before proposing features. |
-| What are the design tokens? | `circlesfera-frontend/src/index.css` | `:root` + Tailwind v4 `@theme`. `09-design-system.md` is the narrative layer and already flags where it diverges. |
+| Why was it built this way? | `circlesfera-documentation/adr/` | Index: [`adr/README.md`](../../circlesfera-documentation/adr/README.md) (0001–0016; 0016 Proposed). |
+| What is the product supposed to be? | `circlesfera-documentation/01-product-requirements-document.md` | PRD v4.0. Prefer schema + controllers when it disagrees. |
+| What is in and out of scope right now? | `circlesfera-documentation/00-status.md` | Has an explicit OUT OF SCOPE list and an "in development" section. Check it before proposing features. |
+| What are the design tokens? | `circlesfera-frontend/src/index.css` | `:root` + Tailwind v4 `@theme`. `09-design-system.md` is the Notion narrative layer. |
 | How is it deployed? | `.github/workflows/deploy.yml`, `docker-compose.prod.yml`, `nginx/master.conf.template` | Narrative: `05-deployment-strategy.md`. |
 | How do we operate an incident? | `circlesfera-documentation/runbooks/` | `incident-response.md`, `rollback-deploy.md`, `restore-postgres.md`. |
-| What types cross the boundary? | `circlesfera-shared/src/` | Partial: 5 enums, 20 model interfaces, 7 DTO interfaces. Not generated from Prisma. |
-| What does CI enforce? | `.github/workflows/pr.yml` | The real definition of "green". |
+| What types cross the boundary? | `circlesfera-shared/src/` | Partial shared package. Not generated from Prisma. |
+| What does CI enforce? | `.github/workflows/pr.yml` → `.github/workflows/ci-quality.yml` | `pr.yml` calls the reusable quality gate. That workflow is the real definition of "green". |
 
 ## Rules for agents
 
@@ -36,7 +36,7 @@ and go read the right file.
 
 ## Freshness
 
-The `.ai/core/` files were verified against the repository on **2026-07-27**. Anything that
+The `.ai/core/` files were re-verified against the repository on **2026-09-05**. Anything that
 changes the following must be reflected here in the same PR:
 
 - `schema.prisma` models or enums

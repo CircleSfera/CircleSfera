@@ -6,7 +6,7 @@ every box here as load-bearing.
 ## Process
 
 - [ ] Read the current model in `schema.prisma` before editing — not from memory.
-- [ ] Explicit confirmation obtained (schema changes are on the `AGENTS.md` confirmation list).
+- [ ] Explicit confirmation obtained, then change implemented (confirmation is a gate, not a ban).
 - [ ] Migration generated and its SQL **read**, not just produced.
 - [ ] `npm run prisma:generate` run and every resulting type error fixed via `npm run build`.
 - [ ] `npm run prisma:check-migrations` run against an empty database.

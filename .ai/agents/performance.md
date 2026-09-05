@@ -13,7 +13,7 @@ rendering, perceived speed.
 - `circlesfera-frontend/src/hooks/useInfiniteScroll.ts`,
   `src/components/common/ProgressiveImage.tsx`
 - `schema.prisma` indexes for the tables in the query path
-- [`../core/known-gaps.md`](../core/known-gaps.md) — F6 (no virtualization), B2
+- [`../core/known-gaps.md`](../core/known-gaps.md) — accepted debt before "fixing" structure
 
 ## Method — measure, then change
 

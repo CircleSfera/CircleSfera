@@ -168,7 +168,7 @@ Use **`adminId`** (→ `admin_identities.id`) for:
 
 `admin_audit_logs`, `admin_refresh_tokens`, `admin_passkeys`, `reports.assignedAdminId`.
 
-See [02-database-er-diagram.md](./02-database-er-diagram.md) §2–12 for table-level detail.
+See [02-database-er-diagram.md](./02-database-er-diagram.md) sections 2–12 for table-level detail.
 
 ---
 

@@ -17,9 +17,9 @@ CircleSfera already has:
 - Shipped dark-only theme, glass surfaces, and CSS tokens in `circlesfera-frontend/src/index.css`
 - Shared primitives under `circlesfera-frontend/src/components/ui/`
 
-The problem is **implementation drift**: tokens ignored, primitives under-adopted, modal sprawl, uneven density, and incomplete loading/empty/error states across consumer, creator, and admin surfaces.
+The problem was **implementation drift**: tokens ignored, primitives under-adopted, modal sprawl, uneven density, and incomplete loading/empty/error states across consumer, creator, and admin surfaces.
 
-This roadmap is **planned work**. Present tense elsewhere in the docs means shipped; wave items below are not shipped until their implementation PRs land.
+**Phase 1 status:** Waves 0–4 **shipped** (August 2026). Wave items below are historical record of that consolidation; present tense elsewhere in the docs means shipped.
 
 ---
 
@@ -36,7 +36,7 @@ This roadmap is **planned work**. Present tense elsewhere in the docs means ship
 
 **Canonical tokens for implementation:** `circlesfera-frontend/src/index.css` (`:root` + Tailwind v4 `@theme`).  
 **Canonical narrative rules:** docs 09 and 13.  
-**When tokens and 09/13 disagree on sizes:** tokens ship; update 09/13 in the same implementation wave (see §4 and [known-gaps](../.ai/core/known-gaps.md) F1–F2).
+**When tokens and 09/13 disagree on sizes:** tokens ship; update 09/13 in the same implementation wave (see 4 and [known-gaps](../.ai/core/known-gaps.md) F1–F2).
 
 **Implementation playbook when coding starts:** [`.ai/playbooks/ui-redesign.md`](../.ai/playbooks/ui-redesign.md)  
 **Specialists:** ux-researcher → product → design-system → frontend → accessibility.
@@ -55,7 +55,7 @@ Findings from frontend inspection (August 2026). Evidence paths are under `circl
 | Density irregularity | Creator/marketing empty blocks with large vertical padding; oversized modal radii; magic viewport heights in Messages instead of `--nav-*-height` |
 | Incomplete states | Feed/Explore/Saved often use shared `ErrorEmptyStates`; chat and creator invent ad-hoc empties |
 | Admin divergence | Separate shell + empty state; filter labels hardcoded in Spanish in several tabs |
-| Nav / avatar doc↔code mismatch | Tokens: `--nav-bottom-height: 60px`, `--avatar-lg: 56px`; `UserAvatar` `lg` = 48px; docs 09 prescribe bottom nav 80–88px and L avatar 56px |
+| Nav / avatar doc↔code mismatch *(historical Wave 0)* | Then: bottom nav token 60px vs older 80–88px docs; avatar `lg` drift. **Current (Sep 2026):** `--nav-bottom-height: 48px`, `--avatar-lg: 56px`; 09 sections 9.4–9.5 aligned |
 
 ---
 
@@ -65,7 +65,7 @@ Findings from frontend inspection (August 2026). Evidence paths are under `circl
 
 | Dimension | Token / code today | Doc 09 / 13 | Resolution |
 | --- | --- | --- | --- |
-| Bottom nav height | `--nav-bottom-height: 60px` | 80–88px | Keep token; update docs in Wave 1 |
+| Bottom nav height | `--nav-bottom-height: 48px` *(was 60px mid-Wave 1; densified)* | was 80–88px | Keep token; 09 section 9.4 synced Sep 2026 |
 | Top nav height | `--nav-top-height: 52px` | 56–64px | Keep token; update docs in Wave 1 |
 | Avatar `lg` | Token 56px; `UserAvatar` `lg` = 48px | 56px | Align `UserAvatar` to token scale (S32 / M40 / L56) in Wave 1 |
 | Brand primary | `#8c52ff` | Some agent rules still cite `#833ab4` | Freeze on `#8c52ff`; purge legacy hex |
@@ -142,7 +142,7 @@ Ola 0 Audit  →  Ola 1 Fundación  →  Ola 2 Consumer  →  Ola 3 Herramientas
 | Raw hex / stock palette vs tokens | `rg` over `circlesfera-frontend/src` for `#833ab4`, `bg-zinc-`, `text-gray-`, `bg-purple-`, etc. |
 | Overlays not using `Dialog` | Inventory `fixed inset-0` / custom modal patterns vs `ui/Dialog` callers |
 | Screens missing Empty/Error | Route map from `App.tsx` vs `ErrorEmptyStates` / ad-hoc empties |
-| Size mismatches | Nav tokens, `UserAvatar` sizes, doc 09 §9 |
+| Size mismatches | Nav tokens, `UserAvatar` sizes, doc 09 section 9 |
 
 **Exit criteria:** inventory attached to the first Wave 1 PR; known-gaps F1/F2 still accurate or updated.
 
@@ -161,9 +161,9 @@ Ola 0 Audit  →  Ola 1 Fundación  →  Ola 2 Consumer  →  Ola 3 Herramientas
 | 1.4 | Dialog adoption path | Policy: new modals = `Dialog`; migrate top-N critical overlays (confirm, report, followers) | `ui/Dialog.tsx`, `components/modals/*`, `FollowersModal.tsx`, report/confirm modals |
 | 1.5 | Button / Input policy | Chrome CTAs and forms use `ui/Button` / `ui/Input`; ban stock palette on those primitives | `ui/Button.tsx`, hot callers |
 | 1.6 | State kit contract | Document and enforce Empty/Error/Loading usage; Admin empty as thin wrapper or merge | `ErrorEmptyStates.tsx`, `LoadingStates.tsx`, admin empty component |
-| 1.7 | Doc alignment | Update 09/13 nav/avatar numbers to match tokens (per §4) | `09-design-system.md`, `13-layout-guidelines.md` |
+| 1.7 | Doc alignment | Update 09/13 nav/avatar numbers to match tokens (per section 4) | `09-design-system.md`, `13-layout-guidelines.md` |
 
-**Wave 1 DoD:** criteria in §6 + zero remaining `#833ab4` in frontend chrome + F1/F2 removable from known-gaps.
+**Wave 1 DoD:** criteria in section 6 + zero remaining `#833ab4` in frontend chrome + F1/F2 removable from known-gaps.
 
 **Out of Wave 1:** Feed/Chat layout redesigns; Admin tab content; product copy changes; new animations.
 
@@ -211,7 +211,7 @@ Implement in this order (traffic / perception):
 | | |
 | --- | --- |
 | **Problem** | Control reach (thumb zone); media density vs chrome |
-| **Change** | Full-bleed viewers; primary controls in thumb zone; density per §13 Stories/Frames |
+| **Change** | Full-bleed viewers; primary controls in thumb zone; density per doc 13 Stories/Frames |
 | **Complexity** | Medium–High |
 | **Risk** | Medium (gesture/viewer habits) |
 | **Anchors** | `StoryViewer.tsx`, `pages/Frames.tsx`, `FrameItem.tsx` |
@@ -340,7 +340,7 @@ Qualitative: users should never feel they left CircleSfera when moving between F
 | Overlays without Dialog | ~35 `fixed inset-0` files; Dialog callers were Confirm + PromoteUser only. Wave 1 migrates **Followers** + **Report** (+ Confirm already) |
 | Stock palette (`bg-zinc` / `text-gray` / etc.) | Widespread — full purge deferred to Waves 2–4 per surface; Wave 1 hardened **Button/Input/Dialog/AdminEmptyState** |
 | Avatar | `ui/Avatar` orphan; `UserAvatar` `lg`=48 vs token 56 — **fixed**; `ui/Avatar` re-exports `UserAvatar` |
-| Nav | `--nav-bottom-height: 60px`; Messages used `100vh-80px` — **tokenized** |
+| Nav | `--nav-bottom-height: 48px` (Sep 2026; was 60px in early Wave 1 notes); Messages tokenized |
 
 ---
 

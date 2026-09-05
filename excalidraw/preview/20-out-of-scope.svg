@@ -50,7 +50,7 @@
 <text x="310.0" y="692.3" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">ADR-0002</text>
 <rect x="600.0" y="610.0" width="560.0" height="110.0" rx="10" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
 <text x="880.0" y="651.7" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">Cloudflare + ECS/AWS topology</text>
-<text x="880.0" y="667.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">05-deployment-strategy.md §3</text>
+<text x="880.0" y="667.9" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">05-deployment-strategy.md 3</text>
 <text x="880.0" y="684.2" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">Future target / Not in use yet</text>
 <rect x="40.0" y="740.0" width="540.0" height="120.0" rx="10" fill="#FAFAFA" stroke="#9E9E9E" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
 <text x="310.0" y="778.5" font-size="13.0" font-family="Helvetica, Arial, sans-serif" fill="#9E9E9E" text-anchor="middle" opacity="1.00">Aspirational WAL/PITR</text>

@@ -12,7 +12,7 @@
 
 This policy replaces the previous version to make it more realistic and aligned with the project. The main correction is that the policy must no longer depend on a data structure that does not formally exist in the schema today, such as `moderation_actions`, although it may still define principles, target timelines, and operational procedures.
 
-> **Jul 2026 correction:** an earlier revision of this document said the policy could not depend on persisted `appeals` because that model didn't exist. It now does — see §11. What remains unmodeled is a dedicated `moderation_actions` table (§14).
+> **Jul 2026 correction:** an earlier revision of this document said the policy could not depend on persisted `appeals` because that model didn't exist. It now does — see section 11. What remains unmodeled is a dedicated `moderation_actions` table (section 14).
 
 CircleSfera maintains a moderation stance that is transparent, traceable, and oriented toward safety, legality, and ecosystem trust.
 
@@ -219,6 +219,6 @@ Although the current schema does not model a formal `ModerationAction` entity, C
 
 - The official policy now covers posts, comments, stories, profiles, and chat.
 - Explicit sexual content is out of platform as a general rule.
-- Reconsiderations are backed by a persisted `Appeal` entity (§11) with an operational SLA on top; there is still no dedicated `ModerationAction` table (§14).
+- Reconsiderations are backed by a persisted `Appeal` entity (section 11) with an operational SLA on top; there is still no dedicated `ModerationAction` table (section 14).
 - Automated moderation is used as support, not as a blind replacement for human judgment.
 - The public policy must be compatible with the product’s operational reality and with specific legal advice when DSA, GDPR, or applicable criminal law is involved.

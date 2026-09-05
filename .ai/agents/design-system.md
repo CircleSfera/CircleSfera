@@ -9,7 +9,7 @@ component sprawl.
 
 - `circlesfera-frontend/src/index.css` — **the token source of truth** (`:root` + Tailwind v4
   `@theme`)
-- `circlesfera-frontend/tailwind.config.js` — thin; brand colours only (and see `known-gaps.md` F1)
+- `circlesfera-frontend/tailwind.config.js` — thin; brand colours only
 - `circlesfera-frontend/src/components/ui/` — the 10 shared primitives
 - `circlesfera-documentation/09-design-system.md` — narrative
 - [`../core/known-gaps.md`](../core/known-gaps.md)
@@ -25,7 +25,7 @@ Brand      --brand-primary   #8c52ff    --brand-secondary #ff5757
            --brand-primary-rgb 140, 82, 255
 Surfaces   --surface-base    #030303    --surface-elevated #0a0a0a
            --surface-raised  #1c1c1c    --surface-high     #262626
-Nav        --nav-top-height  52px       --nav-bottom-height 60px
+Nav        --nav-top-height  52px       --nav-bottom-height 48px
 Avatars    --avatar-sm 32 / md 40 / lg 56 / profile 96
 Glass      --glass-border rgba(255,255,255,.08)
            --glass-surface rgba(255,255,255,.03)

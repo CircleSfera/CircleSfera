@@ -42,8 +42,8 @@ processors mean an unrelated job can be the real cause of API latency.
 
 - Unstable props/callbacks in list rows; context values changing every render.
 - Duplicate queries for the same key; over-broad invalidation refetching the feed after a like.
-- Long lists with no virtualization (none is installed — see
-  [`../core/known-gaps.md`](../core/known-gaps.md) F6).
+- Long lists without virtualization where `@tanstack/react-virtual` patterns already exist
+  (Home, Explore, chat).
 - Full-resolution media where `thumbnailUrl` or `standardUrl` exists.
 - Heavy libraries in the initial chunk instead of a lazy route or `manualChunks`.
 - Media work on the main thread instead of `src/workers/mediaProcessor.worker.ts`.

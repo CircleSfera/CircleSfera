@@ -11,13 +11,12 @@ Facts, verified:
 
 - **Platform plans** are `PlatformPlan` rows, not an enum: `Premium`, `Elite Creator`, `Business`. One
   active plan per user (ADR-0003).
-- **Creator VIP price** is canonical on `Profile.subscriptionPriceCents`; a client-supplied
-  `priceCents` is ignored.
-- **Platform fee is 20%** on Connect charges: `application_fee_amount = floor(amount * 0.2)` for tips,
-  unlocks and gifts, `application_fee_percent: 20.0` for creator subscriptions, and the local ledger
-  credits `floor(amount * 0.8)` to `Monetization.lifetimeEarningsCents`. The Stripe fee and the local
-  credit must always agree. The constant is duplicated across four services — see
-  `.ai/core/known-gaps.md` B2. Changing the percentage requires confirmation and supersedes ADR-0010.
+- **No `CreatorSubscription` Prisma model** (table removed). Do not invent VIP subscription fields or
+  routes — verify controllers and schema first. See `.ai/core/known-gaps.md` D4.
+- **Platform fee is 20%** on Connect charges via `PLATFORM_FEE_DECIMAL` /
+  `PLATFORM_FEE_PERCENT` in `src/common/constants/monetization.constants.ts`. Local ledger credits
+  `CREATOR_SHARE_DECIMAL` to `Monetization.lifetimeEarningsCents`. Stripe fee and local credit must
+  always agree. Changing the percentage requires confirmation and supersedes ADR-0010.
 - **Gift prices are server-side** in `src/live/gift-catalog.ts`. Never trust a client amount.
 - **Currency** is EUR for tips, unlocks and gifts. Integer cents everywhere, never floats.
 - **Webhooks** are deduplicated via `WebhookEvent`, marked `PROCESSED` only after success, and return
@@ -26,9 +25,9 @@ Facts, verified:
   ledger and reintroducing one would supersede ADR-0002.
 - **KYC:** `IdentityVerifiedGuard` protects connect, tip, unlock, unlock-story, checkout and gift
   sending.
-- **Entitlement** is verified server-side against `PostUnlock`, `StoryUnlock`, an active
-  `CreatorSubscription`, or ownership — never from the client, never only in the UI. A dispute revokes
-  unlocks; keep revocation consistent for anything new.
+- **Entitlement** is verified server-side against `PostUnlock`, `StoryUnlock`, `MessageUnlock`, or
+  ownership — never from the client, never only in the UI. A dispute revokes unlocks; keep revocation
+  consistent for anything new.
 - Every money movement writes a `Transaction` with the right `TransactionType`.
 
 Never:

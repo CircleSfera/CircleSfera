@@ -13,10 +13,11 @@ it, never a workaround for it.
 
 1. Read the owning module: service, DTOs, tests, and the Prisma models involved. Business rules live
    in services here, so reading a controller tells you almost nothing.
-2. Never state a schema fact from memory. `circlesfera-backend/prisma/schema.prisma` is canonical
-   (65 models, 27 enums). Never infer an endpoint — grep the controller.
-3. Check `circlesfera-documentation/00-status.md` for the explicit OUT OF SCOPE list before proposing
-   anything new.
+2. Never state a schema fact from memory. `circlesfera-backend/prisma/schema.prisma` is canonical —
+   re-read it (see `.ai/core/sources-of-truth.md` for last verified counts). Never infer an endpoint
+   — grep the controller.
+3. Check `circlesfera-documentation/00-status.md` for the explicit OUT OF SCOPE list (and the
+   "in development" section) before proposing anything new.
 4. Name the blast radius: schema, migrations, API contract, auth, cache keys, queues, sockets, i18n
    keys, tests, docs, money flows.
 
@@ -44,14 +45,18 @@ what risk remains open. Say what you do not know.
 
 ## Where to look
 
-- `.ai/orchestrator.md` — routes a request to the right playbook and specialists
+- `.ai/orchestrator.md` — infers ship/advise/review, routes playbooks, auto-chains schema/architecture
 - `.ai/core/` — identity, principles, stack, architecture, conventions, quality, glossary,
   sources-of-truth, known-gaps
-- `.ai/agents/` — 24 specialists
-- `.ai/playbooks/` — feature, bug, incident, refactor, schema change, performance, security audit,
-  UI redesign, dependency change, release, docs sync
+- `.ai/agents/` — 25 specialists
+- `.ai/playbooks/` — feature, architecture, bug, incident, refactor, schema change, performance,
+  security audit, UI redesign, dependency change, release, docs sync, audit
 - `.ai/checklists/` — closing gates
 - `circlesfera-documentation/adr/` — decisions already made
+
+Confirmation list items (schema, auth, money, deps, infra) require a pause for approval, then full
+implementation — not a permanent refusal. OUT OF SCOPE in `00-status.md` is the real stop. Default
+to shipping; do not wait for the user to name the playbook.
 
 Read `.ai/core/known-gaps.md` before "fixing" something that looks wrong. Some of it is known,
 deliberate, or load-bearing.

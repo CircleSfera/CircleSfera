@@ -35,7 +35,7 @@ These are structural, not aspirational. They constrain implementation, not just 
 
 ## The three questions every change must answer
 
-From PRD §1.6. If a design cannot answer these, it is not ready to ship:
+From PRD section 1.6. If a design cannot answer these, it is not ready to ship:
 
 1. Is the user reasonably in control of this experience?
 2. Can we explain why the system made this decision?

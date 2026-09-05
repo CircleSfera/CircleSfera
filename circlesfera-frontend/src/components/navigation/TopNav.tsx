@@ -5,7 +5,7 @@ import logoSrc from '../../assets/logo.png';
 import { useNotificationsStore } from '../../stores/notificationsStore';
 
 /**
- * TopNav — Design System §9.4 & Layout Guidelines §10
+ * TopNav — Design System section 9.4 & Layout Guidelines section 10
  * Height: 52px (var(--nav-top-height), within 48–56px range)
  * Compact, focused: logo center, notifications + DMs right.
  * Mobile only (hidden on md+)

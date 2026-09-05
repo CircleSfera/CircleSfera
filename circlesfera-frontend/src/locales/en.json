@@ -168,7 +168,9 @@
       "blocked_title": "Blocked users",
       "blocked_empty": "No blocked users",
       "muted_title": "Muted users",
-      "muted_empty": "No muted users"
+      "muted_empty": "No muted users",
+      "expires_forever": "Forever",
+      "expires_on": "Until {{date}}"
     },
     "account": {
       "title": "Account",
@@ -2826,6 +2828,19 @@
       "guidelines": "Guidelines",
       "copyright": "© 2026 CircleSfera Social. All rights reserved.",
       "designed_for": "Designed for the next generation of creators."
+    }
+  },
+  "mute": {
+    "title": "Mute {{username}}",
+    "subtitle": "Their posts will be hidden from your feed. They will not be notified.",
+    "confirm": "Mute",
+    "success": "User muted",
+    "error": "Failed to mute user",
+    "duration": {
+      "24h": "24 hours",
+      "7d": "7 days",
+      "30d": "30 days",
+      "forever": "Forever"
     }
   },
   "modals": {

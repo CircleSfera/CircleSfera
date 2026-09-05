@@ -1,87 +1,69 @@
 # CircleSfera AI Engineering Framework (CAEF) — v1
 
-An in-repository operating system for AI-assisted engineering on CircleSfera.
+In-repo operating system for AI-assisted engineering. One context, one router, one protocol —
+versioned next to the code.
 
-Instead of pasting ad-hoc prompts, every AI session loads the same project context, is routed
-to the same specialists, and follows the same verifiable protocol. The framework is versioned
-next to the code so it evolves with the product.
+## Capabilities
 
-## Why this exists
+This framework is meant to **ship product work**, not only review it. Agents following it must be
+able to:
 
-CircleSfera is a production social platform: 65 Prisma models, 46 NestJS modules, a
-React 19 SPA, Stripe Connect money flows, chat encryption, moderation and GDPR obligations.
-At that size, isolated prompts produce inconsistent decisions. This framework makes the
-decision process itself consistent.
+| Capability | How |
+| --- | --- |
+| **Product & design** | `feature` / `ui-redesign` + `product`, `ux-researcher`, `design-system` |
+| **Architecture** | `architecture` playbook + `staff-architect` / `cto` → ADR when durable |
+| **Implement (full stack)** | Controllers, services, DTOs, React, i18n, tests — `feature` / `bug` |
+| **Schema / migrations** | `schema-change` — **allowed** after explicit confirmation; never invent models |
+| **Money / T&S / privacy** | Same playbooks with `payments`, `trust-and-safety`, `privacy-compliance` |
+| **Ops & release** | `release`, `incident`, `dependency-upgrade` |
+| **Docs & audits** | `docs-sync`, `audit`, `security-audit` |
+
+**Confirmation list ≠ forbidden.** Schema, auth, monetization, deps, and infra require a pause for
+approval, then full implementation. Do not refuse in-scope engineering by citing the list.
+
+**OUT OF SCOPE** in `00-status.md` is the real stop. Everything else is fair game under the
+protocol.
 
 ## Layout
 
 ```text
 .ai/
-├── core/          Permanent project context (what CircleSfera is, how it is built)
-├── orchestrator.md  Task classification -> which specialists and playbook to run
-├── agents/        Specialist roles with narrow scope and hard rules
-├── playbooks/     End-to-end workflows (feature, bug, refactor, release, incident, ...)
-├── checklists/    Gates that must be satisfied before calling work done
-└── templates/     Skeletons for ADRs, PRDs, API contracts, migrations, postmortems
-.cursor/rules/     Thin Cursor rules that load the right .ai/ files per file type
-.agents/           Antigravity adapter: workspace rules + /slash-command workflows
+├── core/            Project facts (identity, stack, architecture, SoT, gaps)
+├── orchestrator.md  Classify request → playbook + specialists
+├── agents/          25 specialists (narrow scope + hard rules)
+├── playbooks/       Workflows (feature, architecture, schema-change, ui-redesign, …)
+├── checklists/      Done gates
+└── templates/       ADR, PRD, migration, agent skeletons
+.cursor/rules/       Cursor adapters (globs → .ai)
+.agents/workflows/   Antigravity slash commands → .ai/playbooks
+AGENTS.md            Root policy (outranks .ai/)
 ```
 
-## How to use it
+## How to use
 
-**In Cursor.** `.cursor/rules/00-global.mdc` and `05-orchestrator.mdc` load on every request;
-the numbered rules auto-attach by file path. You normally do not need to name a role — describe
-the task and let [`orchestrator.md`](./orchestrator.md) route it.
+1. Read [`AGENTS.md`](../AGENTS.md).
+2. For non-trivial work, follow [`orchestrator.md`](./orchestrator.md) — it **infers** ship vs advise,
+   entry playbook, and whether schema/API/architecture must chain. The user does not need to name them.
+3. Load only the playbook + specialists the orchestrator names; continue the chain until the shipped
+   result (or stop after Decide if mode is Advise).
+4. Confirmation-list items: propose → wait → implement. Everything else: proceed.
 
-**Explicitly, when you want a specific lens.** Reference the file and state the task:
+**Cursor:** `00-global.mdc` + `05-orchestrator.mdc` always on; numbered rules attach by path.
 
-```text
-@.ai/playbooks/feature.md
-Add collaborative lists to collections.
-```
-
-```text
-@.ai/agents/security.md @.ai/checklists/security.md
-Review the appeal token flow in circlesfera-backend/src/appeals.
-```
-
-**In Antigravity.** [`.agents/workflows/`](../.agents/workflows/) exposes the playbooks as slash
-commands (`/feature`, `/bug`, `/incident`, …). Antigravity is zero-config via root `AGENTS.md`
-(there is no `.agents/rules/` folder). Activation modes are stored outside the repo — see
-`.agents/README.md`.
-
-**In other agent tools** (Claude Code, Codex, cloud agents): the same files work as plain markdown
-context. Point the tool at `.ai/core/` plus the relevant playbook.
+**Antigravity:** optional shortcuts `/feature`, `/architecture`, `/schema-change`, `/ui-redesign`,
+`/audit`, … under [`.agents/workflows/`](../.agents/workflows/). Autonomía vía orchestrator sin slash.
+**Other tools:** point at `.ai/core/` + the relevant playbook.
 
 ## Non-negotiables
 
-1. [`AGENTS.md`](../AGENTS.md) at the repo root outranks everything in `.ai/`. This framework is
-   the operational layer under those rules, never a workaround for them.
-2. `.ai/` is **not** a second source of truth. Every file declares what it derives from, and
-   [`core/sources-of-truth.md`](./core/sources-of-truth.md) defines precedence. When a file here
-   disagrees with the code, the code wins and the file gets fixed.
-3. Product and architecture documentation lives in
-   [`circlesfera-documentation/`](../circlesfera-documentation/README.md) and durable decisions in
-   [`adr/`](../circlesfera-documentation/adr/README.md). `.ai/` links to them instead of copying
-   them.
+1. [`AGENTS.md`](../AGENTS.md) outranks `.ai/`.
+2. `.ai/` is **derived**, never canonical — [`core/sources-of-truth.md`](./core/sources-of-truth.md).
+3. Product docs live in [`circlesfera-documentation/`](../circlesfera-documentation/README.md); decisions in [`adr/`](../circlesfera-documentation/adr/README.md).
 
-## Maintenance policy
+## Maintenance
 
-- Keep each file focused and short enough to read in one sitting; Cursor's own guidance caps a
-  rule at 500 lines, and the same discipline applies here.
-- Prefer file references (`circlesfera-backend/src/...`) over pasted snippets, so the framework
-  does not rot when the code changes.
-- When a claim here becomes false, fix it in the same PR as the code change. A stale context file
-  is worse than a missing one, because agents trust it.
-- Add a new agent only when routing keeps landing on a gap. Use
-  [`templates/agent.md`](./templates/agent.md).
-- Tool adapters (`.cursor/rules/`, `.agents/`) hold routing only. When you change one adapter's globs
-  or add a playbook, mirror it in the other; when you change a *fact*, change it in `.ai/`.
-- Record durable decisions as ADRs in `circlesfera-documentation/adr/`, not as prose in `.ai/`.
-
-## Verification status
-
-Content was derived from the repository on **2026-07-27** by reading `schema.prisma`,
-`package.json` files, module sources, configs, workflows and the existing documentation set.
-Known contradictions found during that pass are recorded in
-[`core/known-gaps.md`](./core/known-gaps.md) rather than smoothed over.
+- Keep files short; prefer paths over pasted snippets.
+- Fix stale facts in the same PR as the code change.
+- Adapters (`.cursor/`, `.agents/`) hold routing only — facts stay in `.ai/`.
+- Section references: plain `section 9.4`, never the section symbol.
+- Verified **2026-09-05**. Drift: [`core/known-gaps.md`](./core/known-gaps.md).

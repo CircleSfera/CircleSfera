@@ -83,10 +83,14 @@ describe('FollowsController', () => {
     mockService.muteUser.mockResolvedValue({ muted: true });
     mockService.unmuteUser.mockResolvedValue({ muted: false });
 
-    await controller.mute('alice', mockUser);
+    await controller.mute('alice', {}, mockUser);
     await controller.unmute('alice', mockUser);
 
-    expect(mockService.muteUser).toHaveBeenCalledWith('profile-1', 'alice');
+    expect(mockService.muteUser).toHaveBeenCalledWith(
+      'profile-1',
+      'alice',
+      undefined,
+    );
     expect(mockService.unmuteUser).toHaveBeenCalledWith('profile-1', 'alice');
   });
 

@@ -64,7 +64,7 @@ Run whenever a change touches auth, permissions, personal data or money.
 - [ ] The Stripe `application_fee` and the local 80% ledger credit agree, with the same rounding.
 - [ ] Webhook handling remains idempotent via `WebhookEvent`; failures still return 5xx so Stripe
       retries.
-- [ ] Entitlement verified server-side (`PostUnlock` / `StoryUnlock` / active `CreatorSubscription` /
+- [ ] Entitlement verified server-side (`PostUnlock` / `StoryUnlock` / `MessageUnlock` /
       ownership), never from the client.
 - [ ] A `Transaction` row is written with the correct `TransactionType`.
 

@@ -1,9 +1,11 @@
 # 02-Database-ER-Diagram
 ## CircleSfera
-**Version:** 3.1 aligned with the real schema (User/Profile split, Aug 2026)  
+**Version:** 3.2 aligned with the real schema (User/Profile split, Aug–Sep 2026)  
 **Database:** PostgreSQL  
 **ORM:** Prisma  
 **Source of truth:** current project `schema.prisma`
+
+> Prefer `schema.prisma` when this ERD and older snapshots disagree. Present tense means shipped. See [00-status.md](./00-status.md).
 
 ---
 
@@ -289,9 +291,11 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `id` (PK)
 - `muterId` (FK → profiles.id)
 - `mutedId` (FK → profiles.id)
+- `expiresAt` (nullable) — `null` = forever; timed mutes stop suppressing feed content after this instant
 - `createdAt`
 - UNIQUE (`muterId`, `mutedId`)
-- Excludes the muted user's posts from `FeedService` queries (`foryou` and `following`); exposed via `POST/DELETE /users/:username/follow/mute` and `GET /users/me/follow/muted`. Full-account mute is separate from feed preferences (hide post/author, mute keywords) — see [ADR-0004](./adr/0004-feed-preferences.md).
+- INDEX (`muterId`, `expiresAt`)
+- Excludes the muted user's posts from `FeedService` queries (`foryou` and `following`) while the mute is active; exposed via `POST /users/:username/follow/mute` (optional body `{ duration: '24h'|'7d'|'30d'|'forever' }`), unmute, and `GET /users/me/follow/muted` (returns `{ profile, expiresAt, createdAt }[]`). Full-account mute is separate from feed preferences (hide post/author, mute keywords) — see [ADR-0004](./adr/0004-feed-preferences.md).
 
 ---
 
@@ -568,6 +572,67 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `createdAt`
 - `updatedAt`
 
+### system_settings
+- `key` (PK)
+- `value`
+- `description` (nullable)
+- `updatedAt`
+- `updatedBy` (admin id string)
+
+### moderation_rules
+- `id` (PK)
+- `keyword` (UNIQUE)
+- `action` (`RuleAction`: `BLOCK | FLAG | MUTE`)
+- `isActive`
+- `createdBy` (admin id string)
+- `createdAt`
+- `updatedAt`
+
+### moderation_signatures
+- `id` (PK)
+- `vector` (pgvector)
+- `category`
+- `textPreview` (nullable)
+- `createdAt`
+
+### stripe_payout_logs
+- `id` (PK)
+- `stripePayoutId` (UNIQUE)
+- `userId` (FK → users.id — Connect account owner)
+- `amountCents`
+- `currency`
+- `status` (Stripe payout status string)
+- `arrivalDate`
+- `failureReason` (nullable)
+- `createdAt`
+- `updatedAt`
+- Synced from Connect `payout.*` webhooks for Admin Payouts ([ADR-0002](./adr/0002-stripe-connect-payouts.md)).
+
+### message_unlocks
+- `id` (PK)
+- `userId` (FK → users.id)
+- `messageId` (FK → messages.id)
+- `pricePaid` (integer cents)
+- `createdAt`
+- `@@unique([userId, messageId])`
+
+### device_signals
+- `id` (PK)
+- `userId` (FK → users.id)
+- `visitorHash` (HMAC of visitor id)
+- `userAgentHash` (nullable)
+- `firstSeenAt`, `lastSeenAt`
+- `@@unique([userId, visitorHash])`
+- Account trust path ([ADR-0014](./adr/0014-account-trust-signals.md)).
+
+### support_tickets
+- `id` (PK)
+- `userId` (nullable FK → users.id)
+- `email`, `subject`, `message`
+- `status` (`TicketStatus`)
+- `reply`, `resolvedAt` (nullable)
+- `createdAt`, `updatedAt`
+
 ---
 
 ## 12. Main relationships
@@ -641,7 +706,7 @@ This ERD describes the reality of the project's current model. It does not simpl
 ### Revision note (Aug 2026)
 **User/Profile split:** Social FKs documented as `profileId` / `profiles.id` (not `userId` on posts, likes, follows, chat, etc.). `username` lives on `Profile`. Admin audit/assignee references `AdminIdentity`. `creator_subscriptions` table removed from schema. See [15-identity-profile-model.md](./15-identity-profile-model.md).
 
-An earlier revision (Jul 2026) stated that `mutes`, `appeals`, and `moderation_actions` were "removed from the official ERD." That was inaccurate for `mutes` and `appeals`: both are real, persisted models in the live `schema.prisma` (`mutes` → §6, `appeals` → §11) and are wired to shipped API endpoints and UI (mute/unmute on profile and post menus; `Settings → Appeals`). There is still **no** separate `moderation_actions` table — `Report` + `AdminAuditLog` (+ `Appeal`) remain the persisted moderation surface. Feed-preference tables (`feed_hidden_posts`, `feed_hidden_authors`, `feed_muted_keywords`) **are implemented** — see [ADR-0004](./adr/0004-feed-preferences.md). Live gifts are billed (`LiveGift` + `DIRECT_LIVE_GIFT`).
+An earlier revision (Jul 2026) stated that `mutes`, `appeals`, and `moderation_actions` were "removed from the official ERD." That was inaccurate for `mutes` and `appeals`: both are real, persisted models in the live `schema.prisma` (`mutes` → section 6, `appeals` → section 11) and are wired to shipped API endpoints and UI (mute/unmute on profile and post menus; `Settings → Appeals`). There is still **no** separate `moderation_actions` table — `Report` + `AdminAuditLog` (+ `Appeal`) remain the persisted moderation surface. Feed-preference tables (`feed_hidden_posts`, `feed_hidden_authors`, `feed_muted_keywords`) **are implemented** — see [ADR-0004](./adr/0004-feed-preferences.md). Live gifts are billed (`LiveGift` + `DIRECT_LIVE_GIFT`).
 
 ### Kept as future application logic
 - A dedicated `ModerationAction` table (currently unmodeled; traceability lives in `AdminAuditLog`/`Report`).

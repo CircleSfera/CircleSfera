@@ -235,7 +235,7 @@ export class FeedService {
             AND p."moderationStatus" = 'VISIBLE'
             AND p."profileId" != ${profileId}
             AND p.id NOT IN (SELECT "postId" FROM "likes" WHERE "profileId" = ${profileId})
-            AND p."profileId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${profileId})
+            AND p."profileId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${profileId} AND ("expiresAt" IS NULL OR "expiresAt" > NOW()))
             AND p."profileId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
             AND p."profileId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
             AND p.id NOT IN (SELECT "postId" FROM "feed_hidden_posts" WHERE "profileId" = ${profileId})
@@ -287,7 +287,7 @@ export class FeedService {
           WHERE (p.visibility = 'PUBLIC' OR (p.visibility = 'FOLLOWERS' AND sg.weight IS NOT NULL))
             AND p."moderationStatus" = 'VISIBLE'
             AND p."profileId" != ${profileId}
-            AND p."profileId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${profileId})
+            AND p."profileId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${profileId} AND ("expiresAt" IS NULL OR "expiresAt" > NOW()))
             AND p."profileId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
             AND p."profileId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
             AND p.id NOT IN (SELECT "postId" FROM "feed_hidden_posts" WHERE "profileId" = ${profileId})
@@ -457,7 +457,10 @@ export class FeedService {
           select: { followingId: true },
         }),
         this.prisma.mute.findMany({
-          where: { muterId: profileId },
+          where: {
+            muterId: profileId,
+            OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+          },
           select: { mutedId: true },
         }),
         this.feedPreferences.getFilterSets(profileId),
@@ -607,7 +610,10 @@ export class FeedService {
     let mutedIds: string[] = [];
     if (currentProfileId) {
       const mutes = await this.prisma.mute.findMany({
-        where: { muterId: currentProfileId },
+        where: {
+          muterId: currentProfileId,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        },
         select: { mutedId: true },
       });
       mutedIds = mutes.map((m) => m.mutedId);

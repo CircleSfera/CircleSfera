@@ -12,14 +12,24 @@ import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
+import {
+  activeMuteWhere,
+  type MuteDuration,
+  muteExpiresAtFromDuration,
+} from './mute.util.js';
 
 type NotificationType = $Enums.NotificationType;
 const NotificationType = $Enums.NotificationType;
 
 // Type definitions for return values
 type FollowStatusResponse = { following: boolean; status: string };
-type SuccessResponse = { success: boolean };
+type SuccessResponse = { success: boolean; expiresAt?: string | null };
 type ProfileWithUser = Profile & { user: User };
+export type MutedUserEntry = {
+  createdAt: Date;
+  expiresAt: Date | null;
+  profile: ProfileWithUser;
+};
 
 /**
  * Service for follow/unfollow, blocking, and follow request management.
@@ -320,14 +330,16 @@ export class FollowsService {
   }
 
   /**
-   * Mute a user.
+   * Mute a user for an optional duration (`forever` when omitted).
    * @param muterId - The muting user's ID
    * @param mutedUsername - Username of the user to mute
+   * @param duration - 24h | 7d | 30d | forever
    * @throws NotFoundException if target user not found
    */
   async muteUser(
     muterId: string,
     mutedUsername: string,
+    duration?: MuteDuration,
   ): Promise<SuccessResponse> {
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: mutedUsername, mode: 'insensitive' } },
@@ -342,6 +354,8 @@ export class FollowsService {
         'Cannot mute yourself',
       );
 
+    const expiresAt = muteExpiresAtFromDuration(duration);
+
     await this.prisma.mute.upsert({
       where: {
         muterId_mutedId: {
@@ -349,11 +363,14 @@ export class FollowsService {
           mutedId,
         },
       },
-      create: { muterId, mutedId },
-      update: {},
+      create: { muterId, mutedId, expiresAt },
+      update: { expiresAt },
     });
 
-    return { success: true };
+    return {
+      success: true,
+      expiresAt: expiresAt ? expiresAt.toISOString() : null,
+    };
   }
 
   /**
@@ -389,17 +406,29 @@ export class FollowsService {
   }
 
   /**
-   * Get all users muted by the current user.
+   * Get all users currently muted by the current user (expired rows are cleaned up).
    * @param profileId - The authenticated user's ID
    */
-  async getMutedUsers(profileId: string): Promise<ProfileWithUser[]> {
+  async getMutedUsers(profileId: string): Promise<MutedUserEntry[]> {
+    await this.prisma.mute.deleteMany({
+      where: {
+        muterId: profileId,
+        expiresAt: { lte: new Date() },
+      },
+    });
+
     const mutes = await this.prisma.mute.findMany({
-      where: { muterId: profileId },
+      where: activeMuteWhere(profileId),
       include: {
         muted: { include: { user: true } },
       },
+      orderBy: { createdAt: 'desc' },
     });
-    return mutes.map((m) => m.muted);
+    return mutes.map((m) => ({
+      createdAt: m.createdAt,
+      expiresAt: m.expiresAt,
+      profile: m.muted,
+    }));
   }
 
   /**

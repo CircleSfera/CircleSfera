@@ -222,7 +222,7 @@
   --glass-surface: rgba(255, 255, 255, 0.03);
   --glass-highlight: rgba(255, 255, 255, 0.1);
 
-  /* Semantic Surfaces — Background Hierarchy (Design System §5.5) */
+  /* Semantic Surfaces — Background Hierarchy (Design System section 5.5) */
   --surface-base: #030303; /* Level 0 — pure app background */
   --surface-elevated: #0a0a0a; /* Level 1 — main containers */
   --surface-raised: #1c1c1c; /* Level 2 — cards */
@@ -256,7 +256,7 @@
     0 0 16px rgba(255, 87, 87, 0.25);
   --glow-blue-sm: 0 0 12px rgba(82, 113, 255, 0.4);
 
-  /* ── Spacing Scale (4px base, Design System §7.3) ── */
+  /* ── Spacing Scale (4px base, Design System section 7.3) ── */
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 12px;
@@ -271,7 +271,7 @@
   --screen-padding-tablet: 20px;
   --screen-padding-desktop: 24px;
 
-  /* ── Type Scale (Design System §6.4) ── */
+  /* ── Type Scale (Design System section 6.4) ── */
   --text-display-xl: 48px; /* Display XL */
   --text-display: 40px; /* Display */
   --text-h1: 32px; /* Heading 1 */
@@ -283,13 +283,13 @@
   --text-caption: 12px; /* Caption */
   --text-badge: 11px; /* Badge */
 
-  /* ── Line Heights (Design System §6.5) ── */
+  /* ── Line Heights (Design System section 6.5) ── */
   --lh-display: 1.1; /* 110% */
   --lh-heading: 1.2; /* 120% */
   --lh-body: 1.5; /* 150% */
   --lh-caption: 1.4; /* 140% */
 
-  /* ── Motion Tokens (Design System §14.2) ── */
+  /* ── Motion Tokens (Design System section 14.2) ── */
   --duration-instant: 0ms;
   --duration-fast: 150ms;
   --duration-standard: 250ms;
@@ -300,7 +300,7 @@
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* ── Component Sizing (Design System §9) ── */
+  /* ── Component Sizing (Design System section 9) ── */
   /* Buttons */
   --btn-height-primary: 48px;
   --btn-height-secondary: 44px;
@@ -332,7 +332,7 @@
   --icon-lg: 28px;
   --icon-hero: 32px;
 
-  /* ── Elevation Shadows (Design System §10) ── */
+  /* ── Elevation Shadows (Design System section 10) ── */
   --elevation-1: 0 2px 8px rgba(0, 0, 0, 0.15);
   --elevation-2: 0 4px 16px rgba(0, 0, 0, 0.2);
   --elevation-3: 0 10px 30px rgba(0, 0, 0, 0.25);

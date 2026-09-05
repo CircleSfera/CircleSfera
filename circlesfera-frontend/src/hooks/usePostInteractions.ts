@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import toast from 'react-hot-toast';
-import { bookmarksApi, creatorApi, followsApi, postsApi } from '../services';
+import { bookmarksApi, creatorApi, postsApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { Post } from '../types';
 import { telemetry } from '../utils/telemetry';
@@ -24,6 +23,7 @@ export function usePostInteractions(post: Post) {
   const [showPromoteModal, setShowPromoteModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showTipModal, setShowTipModal] = useState(false);
+  const [showMuteModal, setShowMuteModal] = useState(false);
   const [editCaption, setEditCaption] = useState(post.caption || '');
   const [likesCount, setLikesCount] = useState(post._count?.likes || 0);
   const [isDeleted, setIsDeleted] = useState(false);
@@ -216,14 +216,7 @@ export function usePostInteractions(post: Post) {
 
   const handleMute = () => {
     setShowMenu(false);
-    followsApi
-      .mute(post.profile?.username || '')
-      .then(() => {
-        toast.success('User muted');
-      })
-      .catch(() => {
-        toast.error('Failed to mute user');
-      });
+    setShowMuteModal(true);
   };
 
   return {
@@ -254,6 +247,8 @@ export function usePostInteractions(post: Post) {
     setShowShareModal,
     showTipModal,
     setShowTipModal,
+    showMuteModal,
+    setShowMuteModal,
     editCaption,
     setEditCaption,
     deleteMutation,

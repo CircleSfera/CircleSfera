@@ -1,8 +1,10 @@
 # 04-User-Stories
 ## CircleSfera
-**Version:** 3.0 aligned with the real project  
-**Date:** April 2026  
-**Source of truth:** updated documentation scope + current `schema.prisma`
+**Version:** 3.1 aligned with the real project  
+**Date:** September 2026 (base April 2026 + Jul/Aug corrections)  
+**Source of truth:** `schema.prisma` + implemented Nest/React code
+
+> Prefer `schema.prisma` and controllers when this document disagrees. Present tense means shipped. See [00-status.md](./00-status.md). Native apps / ClickHouse Cloud / ads scale-up are **in development**, not shipped.
 
 ---
 
@@ -10,7 +12,7 @@
 
 This document replaces the previous version of user stories to align them with the project's reality. The main correction is that CircleSfera is no longer documented as a reduced MVP of posts and follows, but as a platform whose current model already supports stories, frames as a post variant, bookmarks, collections, highlights, chat, passkeys, promotions, reporting, platform plans, mutes, appeals, live streaming, and polls/Q&A.
 
-**Jul 2026 correction:** an earlier revision of this document said stories for persisted `mutes` and persisted `appeals` were removed because those entities didn't exist. That is no longer accurate — `Mute` and `Appeal` are real, persisted models in `schema.prisma` with shipped endpoints and UI (see §3.5 and §3.11). Feed preferences (hide post/author, mute keywords) are also implemented — see [ADR-0004](./adr/0004-feed-preferences.md) and US notes below. What genuinely remains unmodeled: a dedicated `moderation_actions` table (traceability instead lives in `Report` + `AdminAuditLog` + `Appeal`) and detailed analytics backed by their own tables.
+**Jul 2026 correction:** an earlier revision of this document said stories for persisted `mutes` and persisted `appeals` were removed because those entities didn't exist. That is no longer accurate — `Mute` and `Appeal` are real, persisted models in `schema.prisma` with shipped endpoints and UI (see sections 3.5 and 3.11). Feed preferences (hide post/author, mute keywords) are also implemented — see [ADR-0004](./adr/0004-feed-preferences.md) and US notes below. What genuinely remains unmodeled: a dedicated `moderation_actions` table (traceability instead lives in `Report` + `AdminAuditLog` + `Appeal`) and detailed analytics backed by their own tables.
 
 ---
 
@@ -38,16 +40,16 @@ Includes conversations, messages, replies, reactions, and sharing of posts/stori
 Includes plans, subscriptions, webhooks, and promotion/boost initiatives.
 
 ### EPIC-8: Trust, safety, and operations
-Includes reports, administrative audit, verification, account security, and operational traceability.
+Includes reporting, appeals, admin panel (`AdminIdentity` RBAC + MFA), suspensions, account trust signals (ADR-0014), moderation rules, verification, and operational audit.
 
-### EPIC-9: Search and discovery
+### EPIC-9: Account lifecycle and compliance
+Includes scheduled account deletion grace (`scheduledDeletionAt`), GDPR export, cookie consent, and age gate ≥16.
+
+### EPIC-10: Search and discovery
 Includes user/hashtag search, search history, and evolution toward embedding-based recommendations.
 
-### EPIC-10: Live, polls, and Q&A
+### EPIC-11: Live, polls, and Q&A
 Includes live streaming with co-hosts and gifting, and interactive polls/Q&A attached to posts or stories.
-
-### EPIC-11: Appeals
-Includes user-submitted appeals of moderation decisions and admin review/resolution.
 
 ---
 
@@ -235,9 +237,10 @@ Includes user-submitted appeals of moderation decisions and admin review/resolut
 **So that** I can quietly reduce their content in my feed
 
 **Acceptance criteria**
-- The mute is persisted in `Mute` (`muterId`, `mutedId`).
-- Muted accounts' posts are excluded from `/feed/foryou` and `/feed/following` for the muter.
-- I can mute/unmute from profile and post menus (`/users/:username/follow/mute`, `/follow/unmute`) and view my muted list (`/users/me/follow/muted`).
+- The mute is persisted in `Mute` (`muterId`, `mutedId`, optional `expiresAt`).
+- `expiresAt` null means forever; otherwise the mute stops suppressing feed content after that time (expired rows are cleaned when listing mutes).
+- Muted accounts' posts are excluded from `/feed/foryou` and `/feed/following` for the muter while the mute is active.
+- I can mute/unmute from profile and post menus (`POST /users/:username/follow/mute` with optional `{ duration: '24h'|'7d'|'30d'|'forever' }`, `/follow/unmute`) and view my muted list (`GET /users/me/follow/muted`, including expiry).
 - Muting is unilateral and does not notify the muted account.
 
 ### US-016 Receive notifications
@@ -430,7 +433,7 @@ Includes user-submitted appeals of moderation decisions and admin review/resolut
 
 These stories are no longer official in their previous form:
 
-- Moderation actions as an already implemented table (still no dedicated `ModerationAction` model; see §1).
+- Moderation actions as an already implemented table (still no dedicated `ModerationAction` model; see section 1).
 - Detailed analytics backed by dedicated tables already available.
 - Frames as an independent data entity.
 

@@ -30,8 +30,8 @@ Run on every change.
 
 ## Quality
 
-- [ ] Biome is clean on the files you changed (scoped — see `../core/quality.md`; the unscoped root
-      `npm run check` reformats unrelated files, gap T1).
+- [ ] Biome is clean on the files you changed (scoped — see `../core/quality.md`). CI also runs
+      root `npx biome ci .` via `ci-quality.yml`.
 - [ ] Backend: `npm run lint`, `npm test`, `npm run build` pass (build is the real typecheck).
 - [ ] Frontend: `npm run lint`, `npm test`, `npm run build` pass.
 - [ ] Backend `npm run test:e2e` run if the API contract changed.

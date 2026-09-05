@@ -54,7 +54,7 @@ export function GuestAppChrome({ showLinks = true }: GuestAppChromeProps) {
     >
       <div
         className="flex items-center justify-between px-4 sm:px-6 max-w-7xl mx-auto"
-        style={{ height: 'var(--nav-top-height, 60px)' }}
+        style={{ height: 'var(--nav-top-height, 52px)' }}
       >
         <Link
           to="/"

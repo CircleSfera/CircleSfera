@@ -1,6 +1,14 @@
 import type { ProfileWithUser } from '../types';
 import { apiClient } from './api';
 
+export type MuteDuration = '24h' | '7d' | '30d' | 'forever';
+
+export type MutedUserEntry = {
+  createdAt: string;
+  expiresAt: string | null;
+  profile: ProfileWithUser;
+};
+
 export const followsApi = {
   toggle: (username: string) =>
     apiClient.post<{ following: boolean; status: string }>(
@@ -25,12 +33,16 @@ export const followsApi = {
 
   getBlocked: () => apiClient.get<ProfileWithUser[]>('users/me/follow/blocked'),
 
-  mute: (username: string) => apiClient.post(`users/${username}/follow/mute`),
+  mute: (username: string, duration: MuteDuration = 'forever') =>
+    apiClient.post<{ success: boolean; expiresAt: string | null }>(
+      `users/${username}/follow/mute`,
+      { duration },
+    ),
 
   unmute: (username: string) =>
     apiClient.post(`users/${username}/follow/unmute`),
 
-  getMuted: () => apiClient.get<ProfileWithUser[]>('users/me/follow/muted'),
+  getMuted: () => apiClient.get<MutedUserEntry[]>('users/me/follow/muted'),
 
   // Pending follow requests
   getPending: () => apiClient.get<ProfileWithUser[]>('users/me/follow/pending'),

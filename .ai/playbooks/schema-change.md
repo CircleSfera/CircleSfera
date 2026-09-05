@@ -1,8 +1,13 @@
 # Playbook — Schema change
 
-Touching `circlesfera-backend/prisma/schema.prisma`. This is the highest-consequence routine change
-in the repository: it is on the `AGENTS.md` confirmation list, and a schema edit without a matching
-migration has already caused a production outage here.
+Touching `circlesfera-backend/prisma/schema.prisma` is a **first-class capability** of this
+framework. Agents must design and implement schema changes when the product needs them — never invent
+models from memory, and never skip the confirmation gate. The orchestrator **auto-selects** this
+playbook when Assess impact detects a schema need; the user does not have to ask for it by name.
+
+This is the highest-consequence routine change in the repository: it is on the `AGENTS.md`
+confirmation list, and a schema edit without a matching migration has already caused a production
+outage here. Confirmation means: propose → wait → execute. It does **not** mean "refuse schema work".
 
 Specialists: `database` → `staff-architect` → `backend` → `security` → `privacy-compliance` (personal
 data) → `devops`.

@@ -39,9 +39,7 @@ What this codebase does, verified:
   layer**. Do not introduce one as a side effect of another change — that is an architectural
   decision requiring confirmation and an ADR.
 - **DTOs per module** under `src/<module>/dto/`, using `class-validator`.
-- **Ownership is checked inside services**, comparing the entity's `userId` against the caller
-  (e.g. `src/posts/posts.service.ts` → `ForbiddenException`). There is no generic ownership guard.
-  If you add an endpoint that mutates user-owned data, you must add that check yourself.
+- **Ownership is checked inside services.** After the User/Profile split ([ADR-0015](../../circlesfera-documentation/adr/0015-user-profile-identity-split.md)), social content ownership is typically the entity's `profileId` against the caller's `profileId` (JWT); account/billing surfaces still use `userId`. There is no generic ownership guard — add the check yourself on every mutating endpoint.
 - **Async work goes to BullMQ processors** in `src/<module>/processors/`.
 - **Unit tests sit next to the code** as `src/**/*.spec.ts`.
 
@@ -113,10 +111,10 @@ index.html -> src/main.tsx (BrowserRouter, QueryClient, SW registration)
 - **Server state:** TanStack Query used inline in pages/components. Query keys are ad-hoc strings
   (`['feed', activeTab]`, `['profile', username]`, `['post', id]`); there is no central key
   factory and no `src/queries/` directory. Follow the existing key shape of the domain you touch.
-- **Client state:** 9 Zustand stores (`authStore`, `uiStore`, `socketStore`,
-  `notificationsStore`, `storyStore`, `frameStore`, `studioStore`, `useCallStore`,
+- **Client state:** 11 Zustand stores (`authStore`, `adminAuthStore`, `securityStore`, `uiStore`,
+  `socketStore`, `notificationsStore`, `storyStore`, `frameStore`, `studioStore`, `useCallStore`,
   `useExperimentStore`). `authStore` persists profile flags only — **never tokens**, since auth is
-  cookie-based.
+  cookie-based. Admin panel auth is a separate store (`adminAuthStore`).
 - **HTTP:** one `ApiClient` in `src/services/api.ts` with `withCredentials: true`, a CSRF
   interceptor that attaches `x-csrf-token` to non-GET requests and retries once on 403, and a 401
   handler that attempts `POST /auth/refresh` then logs out and redirects to `/accounts/login`.
@@ -129,7 +127,8 @@ index.html -> src/main.tsx (BrowserRouter, QueryClient, SW registration)
   Creator are single routes with a `:tab` param driven by `adminNav.ts` / `creatorNav.ts`.
 - **Performance:** `React.lazy` + Vite `manualChunks`, `ProgressiveImage`, `content-visibility`
   on `PostCard`, `IntersectionObserver` infinite scroll (`useInfiniteScroll`), media work offloaded
-  to `src/workers/mediaProcessor.worker.ts`. **No list virtualization library is installed.**
+  to `src/workers/mediaProcessor.worker.ts`. List virtualization uses `@tanstack/react-virtual`
+  on Home, Explore, and chat list surfaces — reuse that pattern for other long lists.
 
 ## Allowed and forbidden patterns
 

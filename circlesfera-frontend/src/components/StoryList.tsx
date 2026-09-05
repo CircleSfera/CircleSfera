@@ -10,7 +10,7 @@ import UserAvatar from './UserAvatar';
 import type { VerificationLevel } from './VerificationBadge';
 
 /**
- * StoryList — Layout Guidelines §20 & Design System §9.5
+ * StoryList — Layout Guidelines section 20 & Design System section 9.5
  * Story avatars: md (40px) inside a ring, total visual ~52px
  * Container: compact horizontal scroll strip
  * Spacing: gap-3 (12px) between items

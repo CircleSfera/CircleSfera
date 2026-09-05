@@ -39,8 +39,8 @@ rendering behaviour.
 9. **Effects.** Correct dependencies, cleanup on unmount, and abort or ignore in-flight work. Socket
    listeners belong to `socketStore` / `useCallListeners` patterns, not ad-hoc `useEffect` blocks.
 10. **Re-render cost.** Stable callbacks and keys in list rows; do not create objects or functions
-    inline in a hot list. There is **no virtualization** in the app, so long lists are already
-    fragile (`known-gaps.md` F6).
+    inline in a hot list. Prefer `@tanstack/react-virtual` for long lists (Home, Explore, chat
+    already do — follow those patterns).
 11. **Component size.** Decompose past ~300 lines, following `src/components/post/*` and
     `src/components/create-post/*`.
 12. **Guards.** Authenticated surfaces use `AuthGuard`; admin uses `AdminGuard`; creator uses

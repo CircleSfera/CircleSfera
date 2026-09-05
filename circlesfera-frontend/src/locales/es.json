@@ -168,7 +168,9 @@
       "blocked_title": "Usuarios bloqueados",
       "blocked_empty": "No hay usuarios bloqueados",
       "muted_title": "Usuarios silenciados",
-      "muted_empty": "No hay usuarios silenciados"
+      "muted_empty": "No hay usuarios silenciados",
+      "expires_forever": "Para siempre",
+      "expires_on": "Hasta {{date}}"
     },
     "account": {
       "title": "Cuenta",
@@ -2826,6 +2828,19 @@
       "guidelines": "Directrices",
       "copyright": "© 2026 CircleSfera Social. Todos los derechos reservados.",
       "designed_for": "Diseñado para la próxima generación de creadores."
+    }
+  },
+  "mute": {
+    "title": "Silenciar a {{username}}",
+    "subtitle": "Sus posts desaparecerán de tu feed. No recibirá ninguna notificación.",
+    "confirm": "Silenciar",
+    "success": "Usuario silenciado",
+    "error": "No se pudo silenciar al usuario",
+    "duration": {
+      "24h": "24 horas",
+      "7d": "7 días",
+      "30d": "30 días",
+      "forever": "Para siempre"
     }
   },
   "modals": {

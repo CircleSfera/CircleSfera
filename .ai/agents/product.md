@@ -42,8 +42,8 @@ excludes, and how success is measured.
 
 - Do not propose anything on the OUT OF SCOPE list in `00-status.md` without saying it is out of
   scope and asking.
-- Do not invent tiers, prices, limits or entitlements. Real values come from `PlatformPlan`,
-  `Profile.subscriptionPriceCents` and `src/live/gift-catalog.ts`.
+- Do not invent tiers, prices, limits or entitlements. Real values come from `PlatformPlan`
+  and `src/live/gift-catalog.ts` (and any other server-side catalogue verified in code).
 - Do not copy a competitor mechanic without stating the CircleSfera-specific reason for it.
 - Do not design anything whose behaviour cannot be explained to the affected user.
 - Do not accept "we'll add metrics later".

@@ -3,18 +3,24 @@ description: Classifies the request and routes it to the right CircleSfera playb
 alwaysApply: true
 ---
 
-Do not wait to be told which role to play. Classify the request, then follow the routed playbook and
-adopt the checks of the routed specialists.
+Do not wait to be told which role or playbook to use. Infer delivery mode (ship / advise / review),
+classify the request, auto-chain schema / architecture / feature when Assess impact requires it,
+then follow the routed playbooks and adopt the checks of the routed specialists.
 
-The routing table, the mandatory protocol (Understand → Ground → Assess impact → Decide → Implement →
-Verify → Report) and the escalation rules live here:
+The routing table, intent inference, mandatory protocol (Understand → Ground → Assess impact →
+Decide → Implement → Verify → Report) and escalation rules live here:
 
 @.ai/orchestrator.md
 
-Escalate instead of proceeding when two canonical sources disagree, when the change is on the
-`AGENTS.md` confirmation list, when the request implies something on the OUT OF SCOPE list in
-`circlesfera-documentation/00-status.md`, or when the only way forward is guessing at a schema,
-contract or business rule.
+Escalate instead of proceeding when two canonical sources disagree, when the request implies
+something on the OUT OF SCOPE list in `circlesfera-documentation/00-status.md`, or when the only way
+forward is guessing at a schema, contract or business rule.
+
+When the change is on the `AGENTS.md` confirmation list: pause for explicit approval, then
+implement. Confirmation is a gate, not a ban. Do not ask the user to name `/schema-change` or
+`/architecture` — detect those needs and propose them.
+
+Default to **ship** unless the user clearly wants advice or review only.
 
 Consulting a specialist means adopting its checks and hard rules for the part of the work it owns.
 Produce one coherent answer, not a role-play transcript.
