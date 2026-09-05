@@ -230,6 +230,30 @@ vi.mock('react-i18next', () => ({
         'chat.group_details.leave_confirm':
           'Leave this group? You will stop receiving new messages.',
         'chat.group_details.leave_group': 'Leave group',
+        'studio.export_options_title': 'Export settings',
+        'studio.export_quality': 'Encode quality',
+        'studio.export_quality_hint':
+          'Faster presets finish sooner; slower ones look a bit sharper.',
+        'studio.export_mobile_hint':
+          'On this device export uses a lighter 720p encode for speed.',
+        'studio.export_long_duration_hint':
+          'Long projects take longer to encode on-device. Prefer shorter cuts on mobile.',
+        'studio.export_schedule_hint':
+          'Optional. The date is carried into Create when you publish.',
+        'studio.export_start': 'Start export',
+        'studio.export_cancel': 'Cancel export',
+        'studio.export_presets.ultrafast': 'Fastest (draft)',
+        'studio.export_presets.veryfast': 'Balanced',
+        'studio.export_presets.fast': 'Higher quality',
+        'studio.export_rendering': 'Rendering…',
+        'studio.export_ready': 'Video ready',
+        'studio.export_progress': 'Rendering… {{percent}}%',
+        'studio.export_success': 'Your project has been rendered successfully.',
+        'studio.export_publish': 'Publish to CircleSfera',
+        'studio.export_download': 'Download to device',
+        'createPost.caption.schedule': 'Schedule publish',
+        'createPost.caption.clear_schedule': 'Clear schedule',
+        'common.cancel': 'Cancel',
       };
       let val = translations[key] || key;
       if (options && typeof options === 'object') {
@@ -250,6 +274,9 @@ vi.mock('react-i18next', () => ({
         }
         if (options.name !== undefined) {
           val = val.replace('{{name}}', String(options.name));
+        }
+        if (options.percent !== undefined) {
+          val = val.replace('{{percent}}', String(options.percent));
         }
         if (options.defaultValue) {
           val = options.defaultValue;
