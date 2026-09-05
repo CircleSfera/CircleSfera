@@ -17,9 +17,7 @@ export const PRINCIPLES: { key: string; icon: LucideIcon }[] = [
   { key: 'data', icon: Fingerprint },
 ];
 
-/**
- * Product principles — Bento Grid implementation.
- */
+// Product principles — Bento Grid implementation.
 export function ProductPrinciplesList() {
   const { t } = useTranslation();
 

@@ -9,7 +9,7 @@ export type AbuseRequestMeta = {
   country?: string | null;
 };
 
-/** Normalize client IP for storage (IPv4 / IPv6). Rejects garbage; max 45 chars. */
+// Normalize client IP for storage (IPv4 / IPv6). Rejects garbage; max 45 chars.
 export function normalizeIp(raw?: string | null): string | null {
   if (!raw) return null;
   const ip = raw.trim().replace(/^\[|\]$/g, '');

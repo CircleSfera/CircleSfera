@@ -36,7 +36,7 @@ export const SuggestionsList: React.FC<{
 
   const handleFollow = () => {
     // Optionally remove user from list after follow
-    // setUsers((prev) => prev.filter((u) => u.id !== userId));
+    // SetUsers((prev) => prev.filter((u) => u.id !== userId));
   };
 
   if (!loading && users.length === 0) return null;

@@ -7,10 +7,8 @@ import {
   MarketingPage,
 } from '../components/marketing';
 
-/**
- * Guest landing `/` — product-led conversion page.
- * Authenticated users never see this (App.tsx routes them to Home).
- */
+// Guest landing `/` — product-led conversion page.
+// Authenticated users never see this (App.tsx routes them to Home).
 export default function LandingPage() {
   const { t } = useTranslation();
 

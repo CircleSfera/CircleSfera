@@ -36,7 +36,7 @@ import type {
 } from './dto/passkey.dto.js';
 import { PasskeyService } from './passkey.service.js';
 
-/** REST controller for FIDO2/WebAuthn passkey registration and authentication. */
+// REST controller for FIDO2/WebAuthn passkey registration and authentication.
 @Controller('auth/passkey')
 export class PasskeyController {
   constructor(
@@ -44,21 +44,21 @@ export class PasskeyController {
     private readonly authService: AuthService,
   ) {}
 
-  /** List all registered passkeys for the current user. */
+  // List all registered passkeys for the current user.
   @UseGuards(JwtAuthGuard)
   @Get()
   async listPasskeys(@CurrentUser() user: CurrentUserData) {
     return this.passkeyService.getUserPasskeys(user.userId);
   }
 
-  /** Generate WebAuthn registration options (requires auth). */
+  // Generate WebAuthn registration options (requires auth).
   @UseGuards(JwtAuthGuard)
   @Post('register-options')
   async generateRegistrationOptions(@CurrentUser() user: CurrentUserData) {
     return this.passkeyService.generateRegistrationOptions(user.userId);
   }
 
-  /** Verify WebAuthn registration and store the passkey (requires auth). */
+  // Verify WebAuthn registration and store the passkey (requires auth).
   @UseGuards(JwtAuthGuard)
   @Post('register-verify')
   async verifyRegistration(
@@ -71,13 +71,13 @@ export class PasskeyController {
     );
   }
 
-  /** Generate WebAuthn authentication options for passwordless login. */
+  // Generate WebAuthn authentication options for passwordless login.
   @Post('login-options')
   async generateAuthenticationOptions(@Body() dto: GetPasskeyOptionsDto) {
     return this.passkeyService.generateAuthenticationOptions(dto.email);
   }
 
-  /** Verify WebAuthn authentication response and issue JWT tokens as HTTP-only cookies. */
+  // Verify WebAuthn authentication response and issue JWT tokens as HTTP-only cookies.
   @Post('login-verify')
   @HttpCode(HttpStatus.OK)
   async verifyAuthentication(
@@ -111,7 +111,7 @@ export class PasskeyController {
     throw new UnauthorizedException('Passkey authentication failed');
   }
 
-  /** Delete a registered passkey (requires auth). */
+  // Delete a registered passkey (requires auth).
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async deletePasskey(

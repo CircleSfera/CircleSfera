@@ -1,4 +1,4 @@
-/** Trigger re-index */
+// Trigger re-index
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,
@@ -34,10 +34,8 @@ import { UpdatePostDto } from './dto/update-post.dto.js';
 
 const NotificationType = $Enums.NotificationType;
 
-/**
- * Core service for post CRUD, feed generation, pagination, and hashtag/mention extraction.
- * Integrates with BullMQ for async AI embedding and NotificationsService for mention alerts.
- */
+// Core service for post CRUD, feed generation, pagination, and hashtag/mention extraction.
+// Integrates with BullMQ for async AI embedding and NotificationsService for mention alerts.
 @Injectable()
 export class PostsService {
   constructor(
@@ -53,14 +51,12 @@ export class PostsService {
     private readonly systemSettings: SystemSettingsService,
   ) {}
 
-  /**
-   * Create a new post with media, caption, hashtags, and mentions.
-   * Extracts hashtags/mentions from the caption, creates notification for mentioned users,
-   * and enqueues AI embedding generation via BullMQ.
-   * @param profileId - The author's user ID
-   * @param dto - Post creation data (caption, mediaUrl, mediaType, etc.)
-   * @returns The created post with user profile and engagement counts
-   */
+  // Create a new post with media, caption, hashtags, and mentions.
+  // Extracts hashtags/mentions from the caption, creates notification for mentioned users,
+  // And enqueues AI embedding generation via BullMQ.
+  // Param profileId: The author's user ID
+  // Param dto: Post creation data (caption, mediaUrl, mediaType, etc.)
+  // Returns The created post with user profile and engagement counts
   async create(profileId: string, dto: CreatePostDto) {
     const postingEnabled = await this.systemSettings.isEnabled(
       SYSTEM_SETTING_KEYS.CONTENT_POSTING_ENABLED,
@@ -259,12 +255,10 @@ export class PostsService {
     return post;
   }
 
-  /**
-   * Retrieve posts filtered by hashtag with pagination.
-   * @param tag - The hashtag to filter by (without #)
-   * @param pagination - Page and limit parameters
-   * @returns Paginated list of posts containing the given hashtag
-   */
+  // Retrieve posts filtered by hashtag with pagination.
+  // Param tag: The hashtag to filter by (without #)
+  // Param pagination: Page and limit parameters
+  // Returns Paginated list of posts containing the given hashtag
   async getByTag(tag: string, pagination: PaginationDto) {
     const { page = 1, limit = 10, cursor } = pagination;
     const skip = cursor ? 1 : (page - 1) * limit;
@@ -321,13 +315,11 @@ export class PostsService {
     );
   }
 
-  /**
-   * List all posts with optional sorting (latest/trending) and pagination.
-   * Enriches each post with `isLiked` and `isBookmarked` flags for the current user.
-   * @param pagination - Page and limit parameters
-   * @param sort - Sort order: 'latest' (default) or 'trending' (by like count)
-   * @param currentProfileId - Optional current user for engagement flags
-   */
+  // List all posts with optional sorting (latest/trending) and pagination.
+  // Enriches each post with `isLiked` and `isBookmarked` flags for the current user.
+  // Param pagination: Page and limit parameters
+  // Param sort: Sort order: 'latest' (default) or 'trending' (by like count)
+  // Param currentProfileId: Optional current user for engagement flags
   async findAll(
     pagination: PaginationDto,
     sort: 'latest' | 'trending' = 'latest',
@@ -402,11 +394,9 @@ export class PostsService {
     );
   }
 
-  /**
-   * Retrieve a video-only feed (Frames/Reels) with pagination.
-   * @param pagination - Page and limit parameters
-   * @param currentProfileId - Optional current user for engagement flags
-   */
+  // Retrieve a video-only feed (Frames/Reels) with pagination.
+  // Param pagination: Page and limit parameters
+  // Param currentProfileId: Optional current user for engagement flags
   async getFramesFeed(pagination: PaginationDto, currentProfileId?: string) {
     const { page = 1, limit = 10, cursor } = pagination;
     const skip = cursor ? 1 : (page - 1) * limit;
@@ -466,12 +456,10 @@ export class PostsService {
     return createPaginatedResult(processedPosts, total, page, limit);
   }
 
-  /**
-   * Retrieve a single post by ID with full relations and engagement flags.
-   * @param id - The post's unique identifier
-   * @param currentProfileId - Optional current user for isLiked/isBookmarked
-   * @throws NotFoundException if the post does not exist
-   */
+  // Retrieve a single post by ID with full relations and engagement flags.
+  // Param id: The post's unique identifier
+  // Param currentProfileId: Optional current user for isLiked/isBookmarked
+  // Throws NotFoundException if the post does not exist
   async findOne(id: string, currentProfileId?: string) {
     const post = await this.prisma.post.findUnique({
       where: { id },
@@ -556,13 +544,11 @@ export class PostsService {
     >;
   }
 
-  /**
-   * Retrieve posts by a specific user's username with optional type filter.
-   * @param username - The profile username to look up
-   * @param pagination - Page and limit parameters
-   * @param type - Optional filter by PostType (post, reel, frame)
-   * @param currentProfileId - Optional current user for engagement flags
-   */
+  // Retrieve posts by a specific user's username with optional type filter.
+  // Param username: The profile username to look up
+  // Param pagination: Page and limit parameters
+  // Param type: Optional filter by PostType (post, reel, frame)
+  // Param currentProfileId: Optional current user for engagement flags
   async findByUser(
     username: string,
     pagination: PaginationDto,
@@ -657,11 +643,9 @@ export class PostsService {
     );
   }
 
-  /**
-   * Retrieve posts where a user has been tagged/mentioned.
-   * @param username - The tagged user's username
-   * @param pagination - Page and limit parameters
-   */
+  // Retrieve posts where a user has been tagged/mentioned.
+  // Param username: The tagged user's username
+  // Param pagination: Page and limit parameters
   async getTaggedPosts(username: string, pagination: PaginationDto) {
     const { page = 1, limit = 10, cursor } = pagination;
     const skip = cursor ? 1 : (page - 1) * limit;
@@ -722,20 +706,16 @@ export class PostsService {
     );
   }
 
-  /**
-   * getFeed and getDiscoveryFeed have been migrated to the FeedModule (feed.service.ts)
-   * as part of the new Hybrid AI Algorithm architecture.
-   * Please use FeedService for feed generation.
-   */
+  // GetFeed and getDiscoveryFeed have been migrated to the FeedModule (feed.service.ts)
+  // As part of the new Hybrid AI Algorithm architecture.
+  // Please use FeedService for feed generation.
 
-  /**
-   * Update a post's caption and media. Only the author can update.
-   * @param id - The post ID
-   * @param profileId - The requesting user's ID (must be the author)
-   * @param dto - Updated post data
-   * @throws NotFoundException if post not found
-   * @throws ForbiddenException if user is not the author
-   */
+  // Update a post's caption and media. Only the author can update.
+  // Param id: The post ID
+  // Param profileId: The requesting user's ID (must be the author)
+  // Param dto: Updated post data
+  // Throws NotFoundException if post not found
+  // Throws ForbiddenException if user is not the author
   async update(id: string, dto: UpdatePostDto) {
     // The OwnershipGuard ensures the post exists and belongs to the user
 
@@ -762,13 +742,11 @@ export class PostsService {
     });
   }
 
-  /**
-   * Delete a post. Only the author can delete their own posts.
-   * @param id - The post ID
-   * @param profileId - The requesting user's ID (must be the author)
-   * @throws NotFoundException if post not found
-   * @throws ForbiddenException if user is not the author
-   */
+  // Delete a post. Only the author can delete their own posts.
+  // Param id: The post ID
+  // Param profileId: The requesting user's ID (must be the author)
+  // Throws NotFoundException if post not found
+  // Throws ForbiddenException if user is not the author
   async remove(id: string) {
     const post = await this.prisma.post.findUnique({
       where: { id },
@@ -800,11 +778,9 @@ export class PostsService {
     }
   }
 
-  /**
-   * Admin-only post deletion (bypasses ownership check).
-   * @param id - The post ID to remove
-   * @throws NotFoundException if post not found
-   */
+  // Admin-only post deletion (bypasses ownership check).
+  // Param id: The post ID to remove
+  // Throws NotFoundException if post not found
   async adminRemove(id: string) {
     const post = await this.prisma.post.findUnique({
       where: { id },
@@ -833,10 +809,8 @@ export class PostsService {
     }
   }
 
-  /**
-   * Returns a Prisma filter for global/discovery feeds.
-   * Shows only PUBLIC posts from non-private profiles, plus user's own posts.
-   */
+  // Returns a Prisma filter for global/discovery feeds.
+  // Shows only PUBLIC posts from non-private profiles, plus user's own posts.
   private getGlobalVisibilityFilter(
     currentProfileId?: string,
   ): Prisma.PostWhereInput {
@@ -855,10 +829,8 @@ export class PostsService {
     };
   }
 
-  /**
-   * Returns a Prisma filter for a specific user's profile.
-   * Adjusts visibility based on whether the viewer is the author or a follower.
-   */
+  // Returns a Prisma filter for a specific user's profile.
+  // Adjusts visibility based on whether the viewer is the author or a follower.
   private getUserProfileVisibilityFilter(
     authorId: string,
     currentProfileId?: string,
@@ -917,9 +889,7 @@ export class PostsService {
     return follow?.status === 'ACCEPTED';
   }
 
-  /**
-   * Applies the paywall to a list of posts, blurring media if the user hasn't paid or subscribed.
-   */
+  // Applies the paywall to a list of posts, blurring media if the user hasn't paid or subscribed.
   private async applyPaywall(posts: any[], currentProfileId?: string) {
     if (!posts || posts.length === 0) return posts;
 

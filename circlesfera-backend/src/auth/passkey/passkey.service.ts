@@ -18,10 +18,8 @@ import {
 } from '@simplewebauthn/server';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
-/**
- * Service for FIDO2/WebAuthn passkey registration and authentication.
- * Uses @simplewebauthn/server for challenge generation and verification.
- */
+// Service for FIDO2/WebAuthn passkey registration and authentication.
+// Uses @simplewebauthn/server for challenge generation and verification.
 @Injectable()
 export class PasskeyService {
   private readonly rpName = 'CircleSfera';
@@ -38,12 +36,10 @@ export class PasskeyService {
       'http://localhost:5173';
   }
 
-  /**
-   * Generate WebAuthn registration options (challenge) for a user.
-   * Stores the challenge in the user record for later verification.
-   * @param userId - The authenticated user's ID
-   * @throws NotFoundException if user not found
-   */
+  // Generate WebAuthn registration options (challenge) for a user.
+  // Stores the challenge in the user record for later verification.
+  // Param userId: The authenticated user's ID
+  // Throws NotFoundException if user not found
   async generateRegistrationOptions(userId: string) {
     const user = (await this.prisma.user.findUnique({
       where: { id: userId },
@@ -99,13 +95,11 @@ export class PasskeyService {
     return registrationOptions;
   }
 
-  /**
-   * Verify a WebAuthn registration response, storing the new passkey credential.
-   * @param userId - The authenticated user's ID
-   * @param body - The registration response from the client
-   * @returns `{ verified: boolean }`
-   * @throws BadRequestException if challenge missing or verification fails
-   */
+  // Verify a WebAuthn registration response, storing the new passkey credential.
+  // Param userId: The authenticated user's ID
+  // Param body: The registration response from the client
+  // Returns `{ verified: boolean }`
+  // Throws BadRequestException if challenge missing or verification fails
   async verifyRegistration(userId: string, body: unknown) {
     const user = (await this.prisma.user.findUnique({
       where: { id: userId },
@@ -175,11 +169,9 @@ export class PasskeyService {
     }
   }
 
-  /**
-   * Generate WebAuthn authentication options (challenge) for login.
-   * @param email - The user's email address
-   * @throws NotFoundException if user not found
-   */
+  // Generate WebAuthn authentication options (challenge) for login.
+  // Param email: The user's email address
+  // Throws NotFoundException if user not found
   async generateAuthenticationOptions(identifier: string) {
     const user = (await this.prisma.user.findFirst({
       where: {
@@ -225,14 +217,12 @@ export class PasskeyService {
     return authenticationOptions;
   }
 
-  /**
-   * Verify a WebAuthn authentication response for passwordless login.
-   * Updates the passkey counter on success.
-   * @param email - The user's email address
-   * @param body - The authentication response from the client
-   * @returns `{ verified: boolean, userId?: string }`
-   * @throws BadRequestException if challenge missing, passkey not found, or verification fails
-   */
+  // Verify a WebAuthn authentication response for passwordless login.
+  // Updates the passkey counter on success.
+  // Param email: The user's email address
+  // Param body: The authentication response from the client
+  // Returns `{ verified: boolean, userId?: string }`
+  // Throws BadRequestException if challenge missing, passkey not found, or verification fails
   async verifyAuthentication(identifier: string, body: unknown) {
     const user = (await this.prisma.user.findFirst({
       where: {
@@ -325,7 +315,7 @@ export class PasskeyService {
     }
   }
 
-  /** List all registered passkeys for a user (returns safe fields only). */
+  // List all registered passkeys for a user (returns safe fields only).
   async getUserPasskeys(userId: string) {
     const passkeys = await (
       this.prisma as unknown as {
@@ -363,7 +353,7 @@ export class PasskeyService {
     return passkeys;
   }
 
-  /** Delete a passkey by its ID (only if it belongs to the user). */
+  // Delete a passkey by its ID (only if it belongs to the user).
   async deletePasskey(userId: string, passkeyId: string) {
     const passkey = await (
       this.prisma as unknown as {

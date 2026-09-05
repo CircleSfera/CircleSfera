@@ -13,8 +13,8 @@ Object.defineProperty(window, 'matchMedia', {
     matches: false,
     media: query,
     onchange: null,
-    addListener: vi.fn(), // deprecated
-    removeListener: vi.fn(), // deprecated
+    addListener: vi.fn(), // Deprecated
+    removeListener: vi.fn(), // Deprecated
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
@@ -33,7 +33,7 @@ Object.defineProperty(window, 'IntersectionObserver', {
   value: IntersectionObserverMock,
 });
 
-// jsdom does not implement scrollTo; stub for ScrollToTop and keyboard shortcuts
+// Jsdom does not implement scrollTo; stub for ScrollToTop and keyboard shortcuts
 window.scrollTo = vi.fn();
 Element.prototype.scrollTo = vi.fn();
 

@@ -8,11 +8,9 @@ interface CreatorStudioGuardProps {
   children: ReactNode;
 }
 
-/**
- * Guard for Creator Studio routes.
- * Requires authentication and accountType CREATOR or BUSINESS
- * (same filter as the main Sidebar link).
- */
+// Guard for Creator Studio routes.
+// Requires authentication and accountType CREATOR or BUSINESS
+// (same filter as the main Sidebar link).
 export default function CreatorStudioGuard({
   children,
 }: CreatorStudioGuardProps) {

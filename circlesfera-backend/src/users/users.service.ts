@@ -14,9 +14,7 @@ import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
 
-/**
- * Service for user management: follow suggestions, banning, and unbanning.
- */
+// Service for user management: follow suggestions, banning, and unbanning.
 @Injectable()
 export class UsersService {
   constructor(
@@ -25,12 +23,10 @@ export class UsersService {
     @InjectQueue('users-processing') private readonly usersQueue: Queue,
   ) {}
 
-  /**
-   * Get follow suggestions for a user. Excludes already-followed, pending,
-   * and blocked users, then ranks by follower count.
-   * @param userId - The current user's ID
-   * @param limit - Maximum suggestions to return (default 10)
-   */
+  // Get follow suggestions for a user. Excludes already-followed, pending,
+  // And blocked users, then ranks by follower count.
+  // Param userId: The current user's ID
+  // Param limit: Maximum suggestions to return (default 10)
   async getSuggestions(userId: string, limit = 10) {
     // 1. Fetch popular profiles using a single optimized query with relational filters (NOT EXISTS in SQL)
     // We get profiles, excluding the current user's profiles
@@ -84,10 +80,8 @@ export class UsersService {
     }));
   }
 
-  /**
-   * Ban (deactivate) a user account. Admin only.
-   * @param id - The user ID to ban
-   */
+  // Ban (deactivate) a user account. Admin only.
+  // Param id: The user ID to ban
   async banUser(id: string) {
     return this.prisma.user.update({
       where: { id },
@@ -95,10 +89,8 @@ export class UsersService {
     });
   }
 
-  /**
-   * Unban (reactivate) a user account. Admin only.
-   * @param id - The user ID to unban
-   */
+  // Unban (reactivate) a user account. Admin only.
+  // Param id: The user ID to unban
   async unbanUser(id: string) {
     await this.prisma.profile.updateMany({
       where: { userId: id },
@@ -110,10 +102,8 @@ export class UsersService {
     });
   }
 
-  /**
-   * GDPR: Gathers all user-related data for export.
-   * @param userId - The user ID to export
-   */
+  // GDPR: Gathers all user-related data for export.
+  // Param userId: The user ID to export
   async exportUserData(userId: string) {
     const [account, relations] = await Promise.all([
       this.prisma.user.findUnique({
@@ -305,10 +295,8 @@ export class UsersService {
     return safeData as Record<string, unknown>;
   }
 
-  /**
-   * GDPR: Fully deletes a user and all related data via cascading.
-   * @param userId - The user ID to delete
-   */
+  // GDPR: Fully deletes a user and all related data via cascading.
+  // Param userId: The user ID to delete
   async deleteUser(userId: string) {
     return this.prisma.$transaction(async (tx) => {
       // 1. Double check user exists
@@ -322,12 +310,10 @@ export class UsersService {
     });
   }
 
-  /**
-   * Schedule user account for deletion after 30 days (GDPR grace window).
-   * Sets deletedAt = now (soft leave) and scheduledDeletionAt = now + 30d (hard delete due).
-   * @param userId - The user ID
-   * @returns The scheduled hard-deletion date
-   */
+  // Schedule user account for deletion after 30 days (GDPR grace window).
+  // Sets deletedAt = now (soft leave) and scheduledDeletionAt = now + 30d (hard delete due).
+  // Param userId: The user ID
+  // Returns The scheduled hard-deletion date
   async scheduleDeletion(userId: string) {
     const now = new Date();
     const scheduledDeletionAt = new Date(now);
@@ -353,10 +339,8 @@ export class UsersService {
     return scheduledDeletionAt;
   }
 
-  /**
-   * Cancel a pending scheduled deletion within the grace window.
-   * @param userId - The user ID
-   */
+  // Cancel a pending scheduled deletion within the grace window.
+  // Param userId: The user ID
   async cancelScheduledDeletion(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new Error('User not found');
@@ -389,10 +373,8 @@ export class UsersService {
     };
   }
 
-  /**
-   * Get user settings, creating defaults if not exists.
-   * @param userId - The user ID
-   */
+  // Get user settings, creating defaults if not exists.
+  // Param userId: The user ID
   async getSettings(userId: string) {
     let settings = await this.prisma.userSettings.findUnique({
       where: { userId },
@@ -407,11 +389,9 @@ export class UsersService {
     return settings;
   }
 
-  /**
-   * Update user settings.
-   * @param userId - The user ID
-   * @param dto - Settings update data
-   */
+  // Update user settings.
+  // Param userId: The user ID
+  // Param dto: Settings update data
   async updateSettings(userId: string, dto: UpdateSettingsDto) {
     return this.prisma.userSettings.upsert({
       where: { userId },
@@ -436,7 +416,7 @@ export class UsersService {
     });
   }
 
-  // --- Identity Verification ---
+  // Identity Verification
 
   async createIdentitySession(
     userId: string,
@@ -456,7 +436,7 @@ export class UsersService {
     return { url: session.url || returnUrl };
   }
 
-  /** Resolve CircleSfera user from Stripe Identity session metadata or stored session id. */
+  // Resolve CircleSfera user from Stripe Identity session metadata or stored session id.
   private async resolveIdentityUserId(
     session: Pick<Stripe.Identity.VerificationSession, 'id' | 'metadata'>,
   ): Promise<string | null> {
@@ -474,7 +454,7 @@ export class UsersService {
     return user?.id ?? null;
   }
 
-  /** Persist KYC success from a verified Stripe Identity session. */
+  // Persist KYC success from a verified Stripe Identity session.
   private async applyVerifiedIdentity(
     userId: string,
     session: Stripe.Identity.VerificationSession,
@@ -576,12 +556,10 @@ export class UsersService {
     return { status: session.status };
   }
 
-  /**
-   * Evaluates the user's active subscriptions and KYC status to correctly set
-   * their VerificationLevel and AccountType.
-   * This decoupled logic replaces manual updates from the Payments service.
-   * @param userId - The user ID
-   */
+  // Evaluates the user's active subscriptions and KYC status to correctly set
+  // Their VerificationLevel and AccountType.
+  // This decoupled logic replaces manual updates from the Payments service.
+  // Param userId: The user ID
   async syncUserTier(userId: string): Promise<void> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -623,7 +601,7 @@ export class UsersService {
     } else if (hasPremium) {
       targetVerificationLevel = VerificationLevel.VERIFIED;
     }
-    // identityVerifiedAt is independent of verificationLevel (plan badge).
+    // IdentityVerifiedAt is independent of verificationLevel (plan badge).
 
     if (
       user.accountType !== targetAccountType ||

@@ -28,7 +28,7 @@ export const liveApi = {
     return response.data;
   },
 
-  /** Starts Stripe Checkout for a catalog gift; returns { url, liveGiftId, amountCents }. */
+  // Starts Stripe Checkout for a catalog gift; returns { url, liveGiftId, amountCents }.
   sendGift: async (streamId: string, giftId: string, returnUrl?: string) => {
     const response = await api.post(`/live/${streamId}/gift`, {
       giftId,

@@ -11,7 +11,7 @@ interface Props {
   };
 }
 
-/** Dense KPI strip — icon + value in one short row for ops dashboards. */
+// Dense KPI strip — icon + value in one short row for ops dashboards.
 export function AdminKpiWidget({
   title,
   value,

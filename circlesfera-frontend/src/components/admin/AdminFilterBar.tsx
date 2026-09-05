@@ -5,10 +5,8 @@ interface AdminFilterBarProps {
   className?: string;
 }
 
-/**
- * Sticky filter / search row under the admin header.
- * Layout: column → row from sm. Dense padding (ops density).
- */
+// Sticky filter / search row under the admin header.
+// Layout: column → row from sm. Dense padding (ops density).
 export function AdminFilterBar({ children, className }: AdminFilterBarProps) {
   return (
     <div

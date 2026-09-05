@@ -42,7 +42,7 @@ export class VideoProcessor extends WorkerHost {
       await new Promise<void>((resolve, reject) => {
         ffmpeg(inputPath)
           .screenshots({
-            timestamps: ['10%'], // take screenshot at 10% of video
+            timestamps: ['10%'], // Take screenshot at 10% of video
             filename: 'thumb.jpg',
             folder: outputDir,
             size: '300x?',

@@ -64,7 +64,7 @@ export class UserEntity implements User {
   @Exclude()
   lastIpHash!: string | null;
 
-  /** Admin / GDPR only — never serialize to public profile APIs. */
+  // Admin / GDPR only — never serialize to public profile APIs.
   @Exclude()
   signupIp!: string | null;
 

@@ -80,8 +80,26 @@ English copy in components.
 
 ## Comments
 
-Comment the non-obvious constraint, never the obvious mechanic. No commented-out blocks left
-behind, no debug `console.log`, no "changed by AI" notes. `AGENTS.md` is explicit about this.
+Use single-line `//` comments in sentence case:
+
+```ts
+// Prevent pinch-zoom on mobile devices except for images and videos
+```
+
+Rules:
+
+- Prefer `//` over `/** */` / `/* */` in TS/TSX/JS.
+- Sentence case (capital first letter). No ALL-CAPS labels, no ADR numbers in comments.
+- Never name competitor products in comments (e.g. Instagram, TikTok, Threads) — describe the
+  CircleSfera behavior or layout instead, even when a benchmark inspired the design.
+- Never cite documentation section numbers (`Design System section 9.2`, `Layout Guidelines
+  section 11`, etc.). State the constraint itself (sizes, density, behavior).
+- JSX may use `{/* … */}` with the same sentence-case prose when a line comment is not possible.
+- CSS keeps `/* … */` (no `//`); still sentence case.
+- Keep lint/type directives unchanged (`// biome-ignore …`, `// @ts-expect-error …`,
+  `/* eslint-disable … */`).
+- Comment the non-obvious constraint, never the obvious mechanic. No commented-out blocks,
+  no debug `console.log`, no "changed by AI" notes.
 
 ## Tests
 

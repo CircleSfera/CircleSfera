@@ -27,7 +27,7 @@ export class AnalyticsController {
     private readonly analyticsService: AnalyticsService,
   ) {}
 
-  /** Log a single telemetry interaction event */
+  // Log a single telemetry interaction event
   @Post('events')
   @UseGuards(JwtOptionalGuard)
   async logEvent(
@@ -38,7 +38,7 @@ export class AnalyticsController {
     return { success: true };
   }
 
-  /** Log a batch of telemetry interaction events */
+  // Log a batch of telemetry interaction events
   @Post(['events/batch', 'batch'])
   @UseGuards(JwtOptionalGuard)
   async logEventsBatch(
@@ -49,7 +49,7 @@ export class AnalyticsController {
     return { success: true };
   }
 
-  /** Get dashboard statistics for the current user (creator) */
+  // Get dashboard statistics for the current user (creator)
   @Get('dashboard')
   @UseGuards(JwtAuthGuard)
   async getDashboard(
@@ -62,7 +62,7 @@ export class AnalyticsController {
     );
   }
 
-  /** Track a view for a specific post */
+  // Track a view for a specific post
   @Post('post/:id/view')
   @UseGuards(JwtAuthGuard)
   async trackView(
@@ -72,14 +72,14 @@ export class AnalyticsController {
     return this.analyticsService.trackPostView(postId, viewerId);
   }
 
-  /** Track a loop for a specific frame */
+  // Track a loop for a specific frame
   @Post('post/:id/loop')
   @UseGuards(JwtAuthGuard)
   async trackLoop(@Param('id') postId: string) {
     return this.analyticsService.trackFrameLoop(postId);
   }
 
-  /** Track watch time for a specific frame */
+  // Track watch time for a specific frame
   @Post('post/:id/watch')
   @UseGuards(JwtAuthGuard)
   async trackWatch(
@@ -92,14 +92,14 @@ export class AnalyticsController {
     );
   }
 
-  /** Get detailed insights for a specific post */
+  // Get detailed insights for a specific post
   @Get('post/:id/insights')
   @UseGuards(JwtAuthGuard)
   async getPostInsights(@Param('id') postId: string) {
     return this.analyticsService.getPostInsights(postId);
   }
 
-  /** Manual trigger for testing aggregation (ADMIN only) */
+  // Manual trigger for testing aggregation (ADMIN only)
   @Post('debug/aggregate')
   @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('system')

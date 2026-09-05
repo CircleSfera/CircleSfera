@@ -124,10 +124,8 @@ export class FeedService {
     };
   }
 
-  /**
-   * Generates a hybrid "For You" feed using an advanced mathematical algorithm.
-   * Score = (AI_Similarity * 0.4) + (Social_Graph * 0.3) + (Popularity * 0.3) * Time_Decay
-   */
+  // Generates a hybrid "For You" feed using an advanced mathematical algorithm.
+  // Score = (AI_Similarity * 0.4) + (Social_Graph * 0.3) + (Popularity * 0.3) * Time_Decay
   async getHybridFeed(
     profileId: string | null,
     pagination: PaginationDto,
@@ -386,7 +384,7 @@ export class FeedService {
         profileId,
       );
 
-      // hasMore-style total: avoid a fake fixed total for algorithmic feeds
+      // HasMore-style total: avoid a fake fixed total for algorithmic feeds
       const total =
         feedWithPromotions.length < limit
           ? (page - 1) * limit + feedWithPromotions.length
@@ -409,11 +407,9 @@ export class FeedService {
     }
   }
 
-  /**
-   * Chronological feed from Followed users.
-   * Sensitive (`MATURE`) posts are not hidden here: Following is who the
-   * viewer chose. Blur still applies. Discovery feeds filter separately.
-   */
+  // Chronological feed from Followed users.
+  // Sensitive (`MATURE`) posts are not hidden here: Following is who the
+  // Viewer chose. Blur still applies. Discovery feeds filter separately.
   async getFollowingFeed(profileId: string, pagination: PaginationDto) {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
@@ -521,7 +517,7 @@ export class FeedService {
       total = fallbackTotal;
 
       // Optional: We could trigger a background job to rebuild their inbox here,
-      // but for now, they'll just get new posts seamlessly as they are created.
+      // But for now, they'll just get new posts seamlessly as they are created.
     }
 
     // 3. Hydrate Subscriptions and Unlocks (Common Path)
@@ -589,9 +585,7 @@ export class FeedService {
     return createPaginatedResult(feedWithPromotions, total, page, limit);
   }
 
-  /**
-   * Fallback / Trending feed logic
-   */
+  // Fallback / Trending feed logic
   private async getTrendingFeed(
     page: number,
     limit: number,
@@ -716,9 +710,7 @@ export class FeedService {
     return result;
   }
 
-  /**
-   * Helper to inject active promotions into a feed
-   */
+  // Helper to inject active promotions into a feed
   private async injectPromotions(posts: any[], profileId?: string | null) {
     if (posts.length === 0) return posts;
 

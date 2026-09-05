@@ -12,7 +12,7 @@ import { FeedService } from './feed.service.js';
 export class FeedController {
   constructor(@Inject(FeedService) private readonly feedService: FeedService) {}
 
-  /** Get personalized hybrid "For You" feed */
+  // Get personalized hybrid "For You" feed
   @Get('foryou')
   @UseGuards(JwtOptionalGuard)
   async getForYou(
@@ -26,7 +26,7 @@ export class FeedController {
     );
   }
 
-  /** Get personalized feed from followed users */
+  // Get personalized feed from followed users
   @Get('following')
   @UseGuards(JwtAuthGuard)
   async getFollowing(

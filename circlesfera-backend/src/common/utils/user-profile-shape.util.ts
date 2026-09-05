@@ -6,7 +6,7 @@ type ProfileSnippet = {
   fullName?: string | null;
 };
 
-/** Maps a Profile row to the legacy UI shape: `{ profile: { username } }`. */
+// Maps a Profile row to the legacy UI shape: `{ profile: { username } }`.
 export function toAdminUser(profile: ProfileSnippet | null | undefined) {
   return profile
     ? {
@@ -21,7 +21,7 @@ export function toAdminUser(profile: ProfileSnippet | null | undefined) {
     : null;
 }
 
-/** Primary Profile.id for a User — Notification and Report FKs need this, not User.id. */
+// Primary Profile.id for a User — Notification and Report FKs need this, not User.id.
 export async function primaryProfileIdForUser(
   prisma: PrismaService,
   userId: string,
@@ -34,7 +34,7 @@ export async function primaryProfileIdForUser(
   return profile?.id;
 }
 
-/** Maps User.profiles[0] onto user.profile for list/detail UIs. */
+// Maps User.profiles[0] onto user.profile for list/detail UIs.
 export function withPrimaryProfile<
   T extends { profiles?: ProfileSnippet[] | null },
 >(user: T) {

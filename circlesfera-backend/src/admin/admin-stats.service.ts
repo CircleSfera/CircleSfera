@@ -12,7 +12,7 @@ export class AdminStatsService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
-  /** Log every admin action for accountability. */
+  // Log every admin action for accountability.
   async logAction(
     adminId: string,
     action: AdminAction,
@@ -25,7 +25,7 @@ export class AdminStatsService {
     });
   }
 
-  // ─── Dashboard Stats ──────────────────────────────────────────────
+  // Dashboard Stats
 
   async getDashboardStats() {
     // Quick cache for dashboard
@@ -55,9 +55,7 @@ export class AdminStatsService {
     return result;
   }
 
-  /**
-   * Optimized Enhanced Stats: caches heavily to avoid running parallel counts on millions of rows.
-   */
+  // Optimized Enhanced Stats: caches heavily to avoid running parallel counts on millions of rows.
   async getEnhancedStats() {
     const cacheKey = 'admin:enhanced_stats';
     const cached = await this.cacheManager.get(cacheKey);
@@ -224,7 +222,7 @@ export class AdminStatsService {
     return days;
   }
 
-  // ─── Analytics ───────────────────────────────────────────────────
+  // Analytics
 
   async getMonetizationAnalytics(): Promise<Record<string, unknown>> {
     interface SubscriptionWithPlan {
@@ -305,7 +303,7 @@ export class AdminStatsService {
     };
   }
 
-  // ─── Payouts ──────────────────────────────────────────────────────
+  // Payouts
 
   async getPayoutStats() {
     const stats = await this.prisma.stripePayoutLog.groupBy({
@@ -367,7 +365,7 @@ export class AdminStatsService {
     };
   }
 
-  // ─── Top Users by Engagement ──────────────────────────────────
+  // Top Users by Engagement
 
   async getTopUsers() {
     const cacheKey = 'admin:top_users';
@@ -417,7 +415,7 @@ export class AdminStatsService {
     return ranked;
   }
 
-  // ─── Transactions (JSON ledger) ───────────────────────────────────
+  // Transactions (JSON ledger)
 
   async getTransactions(
     page = 1,
@@ -497,7 +495,7 @@ export class AdminStatsService {
     };
   }
 
-  // ─── Audit Logs ───────────────────────────────────────────────────
+  // Audit Logs
 
   async getAuditLogs(
     page = 1,

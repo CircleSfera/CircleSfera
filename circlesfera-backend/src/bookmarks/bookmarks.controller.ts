@@ -16,13 +16,13 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { BookmarksService } from './bookmarks.service.js';
 
-/** REST controller for bookmark management. All endpoints require authentication. */
+// REST controller for bookmark management. All endpoints require authentication.
 @Controller('bookmarks')
 @UseGuards(JwtAuthGuard)
 export class BookmarksController {
   constructor(private readonly bookmarksService: BookmarksService) {}
 
-  /** Toggle bookmark on/off for a post, optionally assigning to a collection. */
+  // Toggle bookmark on/off for a post, optionally assigning to a collection.
   @Post(':postId')
   toggle(
     @CurrentUser() user: CurrentUserData,
@@ -32,7 +32,7 @@ export class BookmarksController {
     return this.bookmarksService.toggle(user.profileId, postId, collectionId);
   }
 
-  /** Move a bookmarked post to a different collection. */
+  // Move a bookmarked post to a different collection.
   @Patch(':postId/collection')
   updateCollection(
     @CurrentUser() user: CurrentUserData,
@@ -46,7 +46,7 @@ export class BookmarksController {
     );
   }
 
-  /** List all bookmarked posts (paginated, optionally filtered by collection). */
+  // List all bookmarked posts (paginated, optionally filtered by collection).
   @Get()
   getBookmarks(
     @CurrentUser() user: CurrentUserData,
@@ -62,7 +62,7 @@ export class BookmarksController {
     );
   }
 
-  /** Check whether a user has bookmarked a specific post. */
+  // Check whether a user has bookmarked a specific post.
   @SkipThrottle()
   @Get(':postId/check')
   check(@CurrentUser() user: CurrentUserData, @Param('postId') postId: string) {

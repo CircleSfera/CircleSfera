@@ -6,15 +6,13 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-/** Service for managing a profile's close friends list (add/remove toggle). */
+// Service for managing a profile's close friends list (add/remove toggle).
 @Injectable()
 export class CloseFriendsService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  /**
-   * Get all close friends for a profile.
-   * @param profileId - The current profile's ID
-   */
+  // Get all close friends for a profile.
+  // Param profileId: The current profile's ID
   async getCloseFriends(profileId: string) {
     const closeFriends = await this.prisma.closeFriend.findMany({
       where: { profileId },
@@ -39,14 +37,12 @@ export class CloseFriendsService {
     }));
   }
 
-  /**
-   * Toggle a profile's close-friend status on or off.
-   * @param profileId - The current profile's ID
-   * @param friendId - The friend profile to toggle
-   * @returns `{ isCloseFriend: boolean }`
-   * @throws BadRequestException if profileId equals friendId
-   * @throws NotFoundException if friend profile does not exist
-   */
+  // Toggle a profile's close-friend status on or off.
+  // Param profileId: The current profile's ID
+  // Param friendId: The friend profile to toggle
+  // Returns `{ isCloseFriend: boolean }`
+  // Throws BadRequestException if profileId equals friendId
+  // Throws NotFoundException if friend profile does not exist
   async toggleCloseFriend(profileId: string, friendId: string) {
     if (profileId === friendId) {
       throw new BadRequestException('Cannot add yourself to close friends');

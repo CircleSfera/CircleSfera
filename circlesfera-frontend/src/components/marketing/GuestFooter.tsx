@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import logoSrc from '../../assets/logo.png';
 import { MarketingCTA } from './MarketingCTA';
 
-/** Guest footer — brand + sitemap. Four columns on desktop, stacked on mobile. */
+// Guest footer — brand + sitemap. Four columns on desktop, stacked on mobile.
 export function GuestFooter() {
   const { t } = useTranslation();
 

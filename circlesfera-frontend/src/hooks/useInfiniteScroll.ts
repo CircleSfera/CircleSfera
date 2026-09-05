@@ -1,8 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-/**
- * Observes a sentinel element and calls fetchNextPage when it enters the viewport.
- */
+// Observes a sentinel element and calls fetchNextPage when it enters the viewport.
 export function useInfiniteScroll(
   fetchNextPage: () => void,
   hasNextPage: boolean | undefined,

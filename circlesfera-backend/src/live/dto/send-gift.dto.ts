@@ -5,7 +5,7 @@ export class SendGiftDto {
   @IsNotEmpty()
   giftId!: string;
 
-  /** Return URL after Stripe Checkout (defaults to current origin live page). */
+  // Return URL after Stripe Checkout (defaults to current origin live page).
   @IsOptional()
   @IsString()
   @IsUrl({ require_tld: false })

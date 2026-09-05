@@ -1,7 +1,5 @@
-/**
- * Utility to instantiate the media processor Web Worker.
- * Safely guards against non-browser and test environments (like jsdom).
- */
+// Utility to instantiate the media processor Web Worker.
+// Safely guards against non-browser and test environments (like jsdom).
 export function createMediaProcessorWorker(): Worker | null {
   if (
     typeof window !== 'undefined' &&

@@ -20,7 +20,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { ProfilesService } from './profiles.service.js';
 
-/** REST controller for user profiles, username validation, and account management. */
+// REST controller for user profiles, username validation, and account management.
 @ApiTags('Profiles')
 @Controller('profiles')
 export class ProfilesController {
@@ -28,39 +28,39 @@ export class ProfilesController {
     @Inject(ProfilesService) private readonly profilesService: ProfilesService,
   ) {}
 
-  /** Search for profiles by username or full name. */
+  // Search for profiles by username or full name.
   @Get('search')
   async searchProfiles(@Query('q') query: string) {
     return this.profilesService.searchProfiles(query);
   }
 
-  /** Get the authenticated user's referrals. */
+  // Get the authenticated user's referrals.
   @Get('me/referrals')
   @UseGuards(JwtAuthGuard)
   async getMyReferrals(@CurrentUser() user: CurrentUserData) {
     return this.profilesService.getMyReferrals(user.profileId);
   }
 
-  /** Get the authenticated user's own profile. */
+  // Get the authenticated user's own profile.
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async getMyProfile(@CurrentUser() user: CurrentUserData) {
     return this.profilesService.getMyProfile(user.profileId);
   }
 
-  /** Check if a username is available and valid. */
+  // Check if a username is available and valid.
   @Get('check-username/:username')
   checkUsername(@Param('username') username: string) {
     return this.profilesService.checkUsernameAvailability(username);
   }
 
-  /** Get a public profile by username. */
+  // Get a public profile by username.
   @Get(':username')
   async getProfile(@Param('username') username: string) {
     return this.profilesService.getProfile(username);
   }
 
-  /** Update the authenticated user's profile. */
+  // Update the authenticated user's profile.
   @Put('me')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async updateProfile(
@@ -70,14 +70,14 @@ export class ProfilesController {
     return this.profilesService.updateProfile(user.profileId, dto);
   }
 
-  /** Deactivate the authenticated user's account. */
+  // Deactivate the authenticated user's account.
   @Post('me/deactivate')
   @UseGuards(JwtAuthGuard)
   async deactivateAccount(@CurrentUser() user: CurrentUserData) {
     return this.profilesService.deactivateAccount(user.profileId);
   }
 
-  /** Permanently delete the authenticated user's account. */
+  // Permanently delete the authenticated user's account.
   @Delete('me')
   @UseGuards(JwtAuthGuard)
   async deleteAccount(@CurrentUser() user: CurrentUserData) {

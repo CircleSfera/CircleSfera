@@ -10,7 +10,7 @@ interface CreatorEmptyProps {
   children?: ReactNode;
 }
 
-/** Quiet empty state matching Settings cards (glass, sentence case, no glow). */
+// Quiet empty state matching Settings cards (glass, sentence case, no glow).
 export default function CreatorEmpty({
   icon: Icon,
   title,

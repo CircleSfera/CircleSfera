@@ -93,7 +93,7 @@ export class MonetizationService {
     };
   }
 
-  // --- NEW DIRECT MONETIZATION METHODS ---
+  // NEW DIRECT MONETIZATION METHODS
 
   async createPostUnlockSession(
     userId: string,
@@ -548,9 +548,7 @@ export class MonetizationService {
     return { url: link.url };
   }
 
-  /**
-   * Read-only Stripe Connect balance + recent payouts (no internal payout ledger).
-   */
+  // Read-only Stripe Connect balance + recent payouts (no internal payout ledger).
   async getConnectPayoutsSummary(userId: string): Promise<{
     available: { amountCents: number; currency: string }[];
     pending: { amountCents: number; currency: string }[];

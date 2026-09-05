@@ -9,14 +9,14 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { MuteUserDto } from './dto/mute-user.dto.js';
 import { FollowsService, type MutedUserEntry } from './follows.service.js';
 
-/** REST controller for follow management, blocking, and follow requests. All endpoints require authentication. */
+// REST controller for follow management, blocking, and follow requests. All endpoints require authentication.
 @ApiTags('Social Graph')
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class FollowsController {
   constructor(private readonly followsService: FollowsService) {}
 
-  /** Toggle follow/unfollow for a user. */
+  // Toggle follow/unfollow for a user.
   @Post(':username/follow/toggle')
   async toggle(
     @Param('username') username: string,
@@ -25,7 +25,7 @@ export class FollowsController {
     return this.followsService.toggle(username, user.profileId, user.userId);
   }
 
-  /** Check follow status with a specific user. */
+  // Check follow status with a specific user.
   @Get(':username/follow/check')
   async check(
     @Param('username') username: string,
@@ -34,19 +34,19 @@ export class FollowsController {
     return this.followsService.checkFollow(username, user.profileId);
   }
 
-  /** Get followers for a user. */
+  // Get followers for a user.
   @Get(':username/follow/followers')
   async getFollowers(@Param('username') username: string) {
     return this.followsService.getFollowers(username);
   }
 
-  /** Get users that a user follows. */
+  // Get users that a user follows.
   @Get(':username/follow/following')
   async getFollowing(@Param('username') username: string) {
     return this.followsService.getFollowing(username);
   }
 
-  /** Block a user by username. */
+  // Block a user by username.
   @Post(':username/follow/block')
   async block(
     @Param('username') username: string,
@@ -55,7 +55,7 @@ export class FollowsController {
     return this.followsService.blockUser(user.profileId, username);
   }
 
-  /** Unblock a previously blocked user. */
+  // Unblock a previously blocked user.
   @Post(':username/follow/unblock')
   async unblock(
     @Param('username') username: string,
@@ -64,7 +64,7 @@ export class FollowsController {
     return this.followsService.unblockUser(user.profileId, username);
   }
 
-  /** Mute a user by username. Optional body: `{ duration: '24h'|'7d'|'30d'|'forever' }`. */
+  // Mute a user by username. Optional body: `{ duration: '24h'|'7d'|'30d'|'forever' }`.
   @Post(':username/follow/mute')
   async mute(
     @Param('username') username: string,
@@ -78,7 +78,7 @@ export class FollowsController {
     );
   }
 
-  /** Unmute a previously muted user. */
+  // Unmute a previously muted user.
   @Post(':username/follow/unmute')
   async unmute(
     @Param('username') username: string,
@@ -87,7 +87,7 @@ export class FollowsController {
     return this.followsService.unmuteUser(user.profileId, username);
   }
 
-  /** List currently muted users (includes expiresAt). */
+  // List currently muted users (includes expiresAt).
   @Get('me/follow/muted')
   async getMuted(
     @CurrentUser() user: CurrentUserData,
@@ -95,7 +95,7 @@ export class FollowsController {
     return this.followsService.getMutedUsers(user.profileId);
   }
 
-  /** List all blocked users. */
+  // List all blocked users.
   @Get('me/follow/blocked')
   async getBlocked(
     @CurrentUser() user: CurrentUserData,
@@ -103,7 +103,7 @@ export class FollowsController {
     return this.followsService.getBlockedUsers(user.profileId);
   }
 
-  /** List pending follow requests (private account). */
+  // List pending follow requests (private account).
   @Get('me/follow/pending')
   async getPendingRequests(
     @CurrentUser() user: CurrentUserData,
@@ -111,7 +111,7 @@ export class FollowsController {
     return this.followsService.getPendingRequests(user.profileId);
   }
 
-  /** Accept a pending follow request. */
+  // Accept a pending follow request.
   @Post(':username/follow/accept')
   async acceptRequest(
     @Param('username') username: string,
@@ -120,7 +120,7 @@ export class FollowsController {
     return this.followsService.acceptFollowRequest(user.profileId, username);
   }
 
-  /** Reject a pending follow request. */
+  // Reject a pending follow request.
   @Post(':username/follow/reject')
   async rejectRequest(
     @Param('username') username: string,

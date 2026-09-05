@@ -15,7 +15,7 @@ import {
   visualClipsOnVideoTracks,
 } from './studioExportHelpers';
 
-/** Same-origin core copied by vite plugin into public/ffmpeg */
+// Same-origin core copied by vite plugin into public/ffmpeg
 const FFMPEG_BASE = '/ffmpeg';
 
 type PreparedVisual = {
@@ -28,7 +28,7 @@ export type ExportStudioOptions = {
   onProgress?: (progress: number) => void;
   signal?: AbortSignal;
   preset?: FfmpegEncodePreset;
-  /** Force long-edge cap (default: 720 on constrained devices). */
+  // Force long-edge cap (default: 720 on constrained devices).
   maxLongEdge?: number;
 };
 
@@ -38,10 +38,8 @@ function throwIfAborted(signal?: AbortSignal) {
   }
 }
 
-/**
- * Export a Studio project to MP4 honouring timeline placement, images,
- * mute/volume, basic transforms/filters, and text overlays.
- */
+// Export a Studio project to MP4 honouring timeline placement, images,
+// Mute/volume, basic transforms/filters, and text overlays.
 export async function exportStudioProject(
   project: StudioProject,
   onProgressOrOptions?: ((progress: number) => void) | ExportStudioOptions,
@@ -64,7 +62,7 @@ export async function exportStudioProject(
     try {
       ffmpeg.terminate();
     } catch {
-      // ignore
+      // Ignore
     }
   };
   if (signal) {
@@ -111,7 +109,7 @@ export async function exportStudioProject(
           await fetchFile(face.publicPath),
         );
       } catch {
-        // drawtext may still work without custom font on some builds
+        // Drawtext may still work without custom font on some builds
       }
     }
 

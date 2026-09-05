@@ -9,10 +9,8 @@ import { AppGateway } from '../socket/app.gateway.js';
 
 type NotificationType = $Enums.NotificationType;
 
-/**
- * Service for in-app notifications (CRUD, read status, unread count).
- * Sends real-time notifications via AppGateway WebSocket.
- */
+// Service for in-app notifications (CRUD, read status, unread count).
+// Sends real-time notifications via AppGateway WebSocket.
 @Injectable()
 export class NotificationsService {
   constructor(
@@ -23,11 +21,9 @@ export class NotificationsService {
 
   private readonly logger = new Logger(NotificationsService.name);
 
-  /**
-   * List all notifications for a user, paginated, newest first.
-   * @param profileId - The recipient user's ID
-   * @param pagination - Page and limit
-   */
+  // List all notifications for a user, paginated, newest first.
+  // Param profileId: The recipient user's ID
+  // Param pagination: Page and limit
   async findAll(profileId: string, pagination: PaginationDto) {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
@@ -48,11 +44,9 @@ export class NotificationsService {
     return createPaginatedResult(notifications, total, page, limit);
   }
 
-  /**
-   * Mark a single notification as read.
-   * @param id - Notification ID
-   * @param profileId - The recipient user's ID (for ownership check)
-   */
+  // Mark a single notification as read.
+  // Param id: Notification ID
+  // Param profileId: The recipient user's ID (for ownership check)
   async markAsRead(id: string, profileId: string) {
     const notification = await this.prisma.notification.findFirst({
       where: { id, recipientId: profileId },
@@ -68,10 +62,8 @@ export class NotificationsService {
     });
   }
 
-  /**
-   * Mark all unread notifications as read for a user.
-   * @param profileId - The recipient user's ID
-   */
+  // Mark all unread notifications as read for a user.
+  // Param profileId: The recipient user's ID
   async markAllAsRead(profileId: string) {
     await this.prisma.notification.updateMany({
       where: { recipientId: profileId, read: false },
@@ -79,11 +71,9 @@ export class NotificationsService {
     });
   }
 
-  /**
-   * Get the count of unread notifications.
-   * @param profileId - The recipient user's ID
-   * @returns `{ count: number }`
-   */
+  // Get the count of unread notifications.
+  // Param profileId: The recipient user's ID
+  // Returns `{ count: number }`
   async getUnreadCount(profileId: string) {
     const count = await this.prisma.notification.count({
       where: { recipientId: profileId, read: false },
@@ -92,16 +82,14 @@ export class NotificationsService {
     return { count };
   }
 
-  /**
-   * Create a notification and broadcast it in real-time via WebSocket.
-   * Uses In-Line Aggregation for batchable events (LIKE) to prevent DB spam,
-   * and skips immediate push notifications to prevent push fatigue.
-   * @param data - Notification payload
-   */
+  // Create a notification and broadcast it in real-time via WebSocket.
+  // Uses In-Line Aggregation for batchable events (LIKE) to prevent DB spam,
+  // And skips immediate push notifications to prevent push fatigue.
+  // Param data: Notification payload
   @OnEvent('notification.create', { async: true })
   async create(data: {
     recipientId: string;
-    /** Optional: omit for system / AdminIdentity-without-linked-user notices. */
+    // Optional: omit for system / AdminIdentity-without-linked-user notices.
     senderId?: string;
     type: NotificationType;
     content: string;
@@ -141,7 +129,7 @@ export class NotificationsService {
             data: {
               senderId: data.senderId, // Update to the latest sender
               content: newContent,
-              createdAt: new Date(), // bump to top
+              createdAt: new Date(), // Bump to top
             },
             include: {
               sender: { include: { user: true } },

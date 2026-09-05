@@ -12,9 +12,7 @@ export class ExperimentsService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
-  /**
-   * Deterministic hash function to map a string (like userId) to an integer between 0 and 99.
-   */
+  // Deterministic hash function to map a string (like userId) to an integer between 0 and 99.
   private getHashForUser(userId: string, salt: string): number {
     const hash = crypto
       .createHash('md5')

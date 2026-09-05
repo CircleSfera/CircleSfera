@@ -55,9 +55,7 @@ function SectionPanel({ section }: { section: SettingsSectionId }) {
   }
 }
 
-/**
- * Account hub — index at /accounts, sections at /accounts/:section.
- */
+// Account hub — index at /accounts, sections at /accounts/:section.
 export default function Settings() {
   const { section } = useParams<{ section?: string }>();
 

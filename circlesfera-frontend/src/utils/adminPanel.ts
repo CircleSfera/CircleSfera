@@ -1,9 +1,7 @@
-/**
- * Detect Admin Panel host.
- * Production: admin.circlesfera.com
- * Local override: VITE_ADMIN_PANEL_HOST —
- * also treat hostname starting with "admin."
- */
+// Detect Admin Panel host.
+// Production: admin.circlesfera.com
+// Local override: VITE_ADMIN_PANEL_HOST
+// Also treat hostname starting with "admin."
 export function isAdminPanelHost(
   hostname: string = typeof window !== 'undefined'
     ? window.location.hostname

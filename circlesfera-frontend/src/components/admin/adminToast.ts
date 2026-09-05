@@ -1,6 +1,6 @@
 import toast from 'react-hot-toast';
 
-/** Unified admin toast helper — replaces dual ToastContainer / hot-toast usage. */
+// Unified admin toast helper — replaces dual ToastContainer / hot-toast usage.
 export function adminToast(
   message: string,
   type: 'success' | 'error' | 'info' = 'success',

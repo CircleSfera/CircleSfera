@@ -9,7 +9,7 @@ import { eurosToCents } from '../../../../common/constants/monetization.constant
 import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 
-/** Prisma row + money fields (guards IDE lag after cents migration). */
+// Prisma row + money fields (guards IDE lag after cents migration).
 type PromotionRow = Awaited<
   ReturnType<PrismaService['promotion']['findFirstOrThrow']>
 > & {
@@ -128,7 +128,7 @@ export class ManagePromotionUseCase {
           promo.stripePaymentIntentId,
         );
       } catch (_err) {
-        // ignore
+        // Ignore
       }
     }
 

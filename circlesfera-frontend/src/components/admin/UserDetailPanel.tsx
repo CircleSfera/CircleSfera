@@ -95,7 +95,7 @@ function ActivityChip({
   );
 }
 
-/** Compact user dossier for AdminSplitView detail pane (no overlay). */
+// Compact user dossier for AdminSplitView detail pane (no overlay).
 export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();

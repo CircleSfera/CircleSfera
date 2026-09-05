@@ -36,8 +36,8 @@ export function computeMttr(records: ReadonlyArray<MttrRecord>) {
   };
 }
 
-/** @deprecated Use resolutionDurationsMs */
+// Deprecated: Use resolutionDurationsMs
 export const reportResolutionDurationsMs = resolutionDurationsMs;
 
-/** @deprecated Use computeMttr */
+// Deprecated: Use computeMttr
 export const computeReportMttr = computeMttr;

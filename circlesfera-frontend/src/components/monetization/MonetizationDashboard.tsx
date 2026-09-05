@@ -20,7 +20,7 @@ interface MonetizationData {
   lifetimeEarningsCents: number;
 }
 
-/** Ledger + Stripe balances for the merged Ingresos surface. No in-app wallet. */
+// Ledger + Stripe balances for the merged Ingresos surface. No in-app wallet.
 export default function MonetizationDashboard() {
   const { t } = useTranslation();
   const profile = useAuthStore((state) => state.profile);

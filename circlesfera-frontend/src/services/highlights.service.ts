@@ -8,7 +8,7 @@ export const highlightsApi = {
   getProfileHighlights: (profileId: string) =>
     apiClient.get<Highlight[]>(`highlights/profile/${profileId}`),
 
-  /** @deprecated Use getProfileHighlights */
+  // Deprecated: Use getProfileHighlights
   getUserHighlights: (profileId: string) =>
     apiClient.get<Highlight[]>(`highlights/profile/${profileId}`),
 

@@ -51,7 +51,7 @@ const hoverGlow: Record<string, string> = {
   yellow: 'hover:shadow-amber-500/10 hover:border-amber-500/20',
 };
 
-/** Animate a number from 0 → target over `duration` ms. */
+// Animate a number from 0 → target over `duration` ms.
 function useCountUp(target: number, duration = 800) {
   const [count, setCount] = useState(0);
   const prevTarget = useRef(target);
@@ -64,7 +64,7 @@ function useCountUp(target: number, duration = 800) {
 
     const step = (now: number) => {
       const progress = Math.min((now - start) / duration, 1);
-      // ease-out cubic
+      // Ease-out cubic
       const eased = 1 - (1 - progress) ** 3;
       setCount(Math.round(eased * target));
 
@@ -100,7 +100,7 @@ export default function StatCard({
   if (sparklineData && sparklineData.length > 1) {
     const min = Math.min(...sparklineData);
     const max = Math.max(...sparklineData);
-    const range = max - min || 1; // avoid division by zero
+    const range = max - min || 1; // Avoid division by zero
     const points = sparklineData.map((val, i) => {
       const x = (i / (sparklineData.length - 1)) * 100;
       const y = 100 - ((val - min) / range) * 100;

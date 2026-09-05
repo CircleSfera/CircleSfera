@@ -19,9 +19,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
       : 'text-white/60 hover:text-white hover:bg-white/5',
   ].join(' ');
 
-/**
- * Guest top chrome — Full width, solid/blur background, refined typography.
- */
+// Guest top chrome — Full width, solid/blur background, refined typography.
 export function GuestAppChrome({ showLinks = true }: GuestAppChromeProps) {
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);

@@ -1,8 +1,6 @@
-/**
- * Email Template System for CircleSfera.
- * Implements a "Zero-UI" premium aesthetic: Pure black backgrounds,
- * subtle borders, and high-contrast typography.
- */
+// Email Template System for CircleSfera.
+// Implements a "Zero-UI" premium aesthetic: Pure black backgrounds,
+// Subtle borders, and high-contrast typography.
 
 interface EmailLayoutOptions {
   title: string;
@@ -59,7 +57,7 @@ function getBaseLayout({
       font-weight: 900;
       letter-spacing: -1px;
       margin-bottom: 40px;
-      /* Silver metallic gradient with solid fallback */
+      // Silver metallic gradient with solid fallback
       color: #E5E5E5;
       background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.72) 55%, rgba(255, 255, 255, 0.42) 100%);
       -webkit-background-clip: text;

@@ -9,7 +9,7 @@ interface FrameCommentsModalProps {
   isOpen: boolean;
   onClose: () => void;
   postId: string;
-  /** Mobile: bottom drawer overlay. Desktop sidebar: embedded panel beside player. */
+  // Mobile: bottom drawer overlay. Desktop sidebar: embedded panel beside player.
   variant?: 'drawer' | 'sidebar';
 }
 

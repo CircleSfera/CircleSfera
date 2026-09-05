@@ -7,7 +7,7 @@ interface AdminPageHeaderProps {
   className?: string;
 }
 
-/** Page title row: stacks on mobile, actions on the right from sm+. */
+// Page title row: stacks on mobile, actions on the right from sm+.
 export function AdminPageHeader({
   title,
   subtitle,

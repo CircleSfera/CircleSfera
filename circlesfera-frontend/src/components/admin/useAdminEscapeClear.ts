@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-/** Clears selection when Escape is pressed and `active` is true. */
+// Clears selection when Escape is pressed and `active` is true.
 export function useAdminEscapeClear(active: boolean, onClear: () => void) {
   useEffect(() => {
     if (!active) return;

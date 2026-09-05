@@ -23,11 +23,9 @@ export class MediaProcessorService {
   private readonly MAX_WIDTH_THUMBNAIL = 300;
   private readonly DEFAULT_QUALITY = 82;
 
-  /**
-   * Processes an image file: resizes, converts to format (AVIF/WebP), and strips metadata.
-   * Generates multiple variants (original, standard, thumbnail).
-   * For non-images, returns the same buffer for all variants.
-   */
+  // Processes an image file: resizes, converts to format (AVIF/WebP), and strips metadata.
+  // Generates multiple variants (original, standard, thumbnail).
+  // For non-images, returns the same buffer for all variants.
   async process(file: UploadedFile): Promise<ProcessedMedia> {
     this.logger.log(
       `Processing media variants: ${file.originalname} (${file.mimetype}) - ${Math.round(file.buffer.length / 1024)}KB`,
@@ -75,9 +73,7 @@ export class MediaProcessorService {
     }
   }
 
-  /**
-   * Internal helper to process a single image variant
-   */
+  // Internal helper to process a single image variant
   private async processImage(
     buffer: Buffer,
     width: number,
@@ -106,9 +102,7 @@ export class MediaProcessorService {
     }
   }
 
-  /**
-   * Specifically convert to AVIF if requested (for future-proofing).
-   */
+  // Specifically convert to AVIF if requested (for future-proofing).
   async toAvif(buffer: Buffer): Promise<Buffer> {
     const result = await sharp(buffer, { limitInputPixels: 8192 ** 2 })
       .avif({ quality: 65 })
@@ -116,10 +110,8 @@ export class MediaProcessorService {
     return result;
   }
 
-  /**
-   * Evaluates media safety scores for automated content moderation.
-   * Returns a safety classification and score (0.0 to 1.0).
-   */
+  // Evaluates media safety scores for automated content moderation.
+  // Returns a safety classification and score (0.0 to 1.0).
   async evaluateContentSafety(
     buffer: Buffer,
     mimetype: string,
@@ -147,9 +139,7 @@ export class MediaProcessorService {
     }
   }
 
-  /**
-   * Generates adaptive HLS manifests (.m3u8) and multi-resolution variants (720p, 1080p) for video uploads.
-   */
+  // Generates adaptive HLS manifests (.m3u8) and multi-resolution variants (720p, 1080p) for video uploads.
   async processVideoHls(file: UploadedFile): Promise<HlsStreamManifest> {
     this.logger.log(
       `Generating adaptive HLS manifest for video: ${file.originalname}`,

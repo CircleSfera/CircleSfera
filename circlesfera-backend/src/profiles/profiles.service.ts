@@ -18,10 +18,8 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 
-/**
- * Service for profile CRUD, username validation, and account lifecycle (deactivate/delete).
- * Uses cache-manager for profile read caching.
- */
+// Service for profile CRUD, username validation, and account lifecycle (deactivate/delete).
+// Uses cache-manager for profile read caching.
 @Injectable()
 export class ProfilesService {
   constructor(
@@ -53,11 +51,9 @@ export class ProfilesService {
     });
   }
 
-  /**
-   * Get a public profile by username. Cached for 10 minutes.
-   * @param username - The profile username
-   * @throws NotFoundException if profile does not exist
-   */
+  // Get a public profile by username. Cached for 10 minutes.
+  // Param username: The profile username
+  // Throws NotFoundException if profile does not exist
   async getProfile(username: string) {
     const cacheKey = `profile:${username}`;
     const cachedProfile = await this.cacheManager.get(cacheKey);
@@ -153,11 +149,9 @@ export class ProfilesService {
     return profileWithFields;
   }
 
-  /**
-   * Search profiles by username or full name (case-insensitive).
-   * @param query - Search term
-   * @returns Up to 10 matching profiles
-   */
+  // Search profiles by username or full name (case-insensitive).
+  // Param query: Search term
+  // Returns Up to 10 matching profiles
   async searchProfiles(query: string) {
     if (!query) return [];
 
@@ -188,11 +182,9 @@ export class ProfilesService {
     });
   }
 
-  /**
-   * Check whether a username is available and valid.
-   * Validates format (3-30 chars, alphanumeric + dots/underscores).
-   * @param username - The username to validate
-   */
+  // Check whether a username is available and valid.
+  // Validates format (3-30 chars, alphanumeric + dots/underscores).
+  // Param username: The username to validate
   async checkUsernameAvailability(
     username: string,
   ): Promise<{ available: boolean; message: string }> {
@@ -225,12 +217,10 @@ export class ProfilesService {
     };
   }
 
-  /**
-   * Update the authenticated user's profile. Invalidates the profile cache.
-   * @param profileId - The user's ID
-   * @param dto - Fields to update
-   * @throws NotFoundException if profile not found
-   */
+  // Update the authenticated user's profile. Invalidates the profile cache.
+  // Param profileId: The user's ID
+  // Param dto: Fields to update
+  // Throws NotFoundException if profile not found
   async updateProfile(profileId: string, dto: UpdateProfileDto) {
     const profile = await this.prisma.profile.findUnique({
       where: { id: profileId },
@@ -330,11 +320,9 @@ export class ProfilesService {
     return flattened;
   }
 
-  /**
-   * Get the authenticated user's own profile (not cached).
-   * @param profileId - The user's ID
-   * @throws NotFoundException if profile not found
-   */
+  // Get the authenticated user's own profile (not cached).
+  // Param profileId: The user's ID
+  // Throws NotFoundException if profile not found
   async getMyReferrals(profileId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: profileId },
@@ -452,10 +440,8 @@ export class ProfilesService {
     };
   }
 
-  /**
-   * Deactivate the authenticated user's account (soft, reversible).
-   * @param profileId - The user's ID
-   */
+  // Deactivate the authenticated user's account (soft, reversible).
+  // Param profileId: The user's ID
   async deactivateAccount(profileId: string) {
     const profile = await this.prisma.profile.findUnique({
       where: { id: profileId },
@@ -470,11 +456,9 @@ export class ProfilesService {
     return result;
   }
 
-  /**
-   * Schedule account deletion with 30-day grace window (canonical GDPR flow).
-   * Delegates to UsersService so BullMQ hard-delete job is always enqueued.
-   * Prefer DELETE /users/me from new clients; this keeps DELETE /profiles/me compatible.
-   */
+  // Schedule account deletion with 30-day grace window (canonical GDPR flow).
+  // Delegates to UsersService so BullMQ hard-delete job is always enqueued.
+  // Prefer DELETE /users/me from new clients; this keeps DELETE /profiles/me compatible.
   async deleteAccount(profileId: string) {
     const profile = await this.prisma.profile.findUnique({
       where: { id: profileId },

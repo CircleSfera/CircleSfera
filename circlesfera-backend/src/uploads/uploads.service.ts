@@ -9,9 +9,7 @@ import {
 import type { UploadedFile } from './interfaces/uploaded-file.interface.js';
 import { MediaProcessorService } from './media-processor.service.js';
 
-/**
- * Service for file upload and deletion. Delegates to a pluggable StorageProvider.
- */
+// Service for file upload and deletion. Delegates to a pluggable StorageProvider.
 @Injectable()
 export class UploadsService {
   private readonly logger = new Logger(UploadsService.name);
@@ -24,12 +22,10 @@ export class UploadsService {
     @InjectQueue('video-transcoding') private readonly videoQueue: Queue,
   ) {}
 
-  /**
-   * Upload a file to the configured storage provider.
-   * Processes images into multiple optimized variants (original, standard, thumbnail).
-   * @param file - The uploaded file data
-   * @returns The public URLs and MIME type of the stored file
-   */
+  // Upload a file to the configured storage provider.
+  // Processes images into multiple optimized variants (original, standard, thumbnail).
+  // Param file: The uploaded file data
+  // Returns The public URLs and MIME type of the stored file
   async uploadFile(file: UploadedFile): Promise<{
     url: string;
     standardUrl?: string;
@@ -97,10 +93,8 @@ export class UploadsService {
     }
   }
 
-  /**
-   * Delete a file from the storage provider by its URL.
-   * @param url - The file URL to delete
-   */
+  // Delete a file from the storage provider by its URL.
+  // Param url: The file URL to delete
   async deleteFile(fileUrl: string): Promise<void> {
     await this.storageProvider.delete(fileUrl);
   }
@@ -112,7 +106,7 @@ export class UploadsService {
     );
 
     // We intentionally don't await this so it runs completely in the background,
-    // though the 'async: true' flag in @OnEvent already helps with this.
+    // Though the 'async: true' flag in @OnEvent already helps with this.
     Promise.allSettled(
       payload.mediaUrls.map((url) => this.deleteFile(url)),
     ).then((results) => {

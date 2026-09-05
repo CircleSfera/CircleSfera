@@ -27,7 +27,7 @@ export class SubscribePushDto {
   @Type(() => PushSubscriptionKeysDto)
   keys!: PushSubscriptionKeysDto;
 
-  /** Present on `PushSubscription.toJSON()`; ignored by persistence. */
+  // Present on `PushSubscription.toJSON()`; ignored by persistence.
   @IsOptional()
   @Allow()
   expirationTime?: number | null;

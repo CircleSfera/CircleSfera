@@ -4,12 +4,9 @@ import { Link } from 'react-router-dom';
 import logoSrc from '../../assets/logo.png';
 import { useNotificationsStore } from '../../stores/notificationsStore';
 
-/**
- * TopNav — Design System section 9.4 & Layout Guidelines section 10
- * Height: 52px (var(--nav-top-height), within 48–56px range)
- * Compact, focused: logo center, notifications + DMs right.
- * Mobile only (hidden on md+)
- */
+// Height: 52px (var(--nav-top-height), within 48–56px range)
+// Compact: logo center, notifications + DMs right
+// Mobile only (hidden on md+)
 export default function TopNav() {
   const unreadMessagesCount = useNotificationsStore(
     (state) => state.unreadMessagesCount,

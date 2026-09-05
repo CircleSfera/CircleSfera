@@ -8,7 +8,7 @@ interface UserAvatarProps {
   thumbnailUrl?: string | null;
   standardUrl?: string | null;
   alt: string;
-  /** xs=24 sm=32 md=40 lg=56 xl=80 profile=96 full=100% — tokens --avatar-* */
+  // Xs=24 sm=32 md=40 lg=56 xl=80 profile=96 full=100% — tokens --avatar-*
   size?: 'xs' | 'sm' | 'compact' | 'md' | 'lg' | 'xl' | 'full' | 'profile';
   className?: string;
   style?: React.CSSProperties;
@@ -19,13 +19,13 @@ interface UserAvatarProps {
 }
 
 const sizeClasses: Record<NonNullable<UserAvatarProps['size']>, string> = {
-  xs: 'w-6 h-6' /* 24px */,
-  sm: 'w-8 h-8' /* 32px */,
-  compact: 'w-8 h-8' /* 32px — alias for sm */,
-  md: 'w-10 h-10' /* 40px */,
-  lg: 'w-14 h-14' /* 56px — --avatar-lg */,
-  xl: 'w-20 h-20' /* 80px */,
-  profile: 'w-24 h-24' /* 96px — --avatar-profile */,
+  xs: 'w-6 h-6', // 24px
+  sm: 'w-8 h-8', // 32px
+  compact: 'w-8 h-8', // 32px — alias for sm
+  md: 'w-10 h-10', // 40px
+  lg: 'w-14 h-14', // 56px — --avatar-lg
+  xl: 'w-20 h-20', // 80px
+  profile: 'w-24 h-24', // 96px — --avatar-profile
   full: 'w-full h-full',
 };
 

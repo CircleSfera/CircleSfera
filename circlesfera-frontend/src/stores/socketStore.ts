@@ -14,7 +14,7 @@ interface SocketWithRetry extends Socket {
 interface SocketState {
   socket: SocketWithRetry | null;
   isConnected: boolean;
-  typingUsers: Record<string, string[]>; // conversationId -> userIds
+  typingUsers: Record<string, string[]>; // ConversationId -> userIds
   userStatuses: Record<string, { isOnline: boolean; lastSeenAt?: string }>;
   connect: () => void;
   disconnect: () => void;
@@ -29,12 +29,9 @@ const SOCKET_BASE_URL = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace(/\/api\/v1\/?$/, '')
   : '';
 
-/**
- * Socket store with cookie-based authentication.
- *
- * Tokens are stored as HTTP-only cookies and sent automatically
- * via `withCredentials: true`. No manual token injection needed.
- */
+// Socket store with cookie-based authentication.
+// Tokens are stored as HTTP-only cookies and sent automatically
+// Via `withCredentials: true`. No manual token injection needed.
 export const useSocketStore = create<SocketState>((set, get) => ({
   socket: null,
   isConnected: false,
@@ -75,7 +72,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       set({ isConnected: false });
     });
 
-    // --- Chat Events ---
+    // Chat Events
     newSocket.on('receiveMessage', async () => {
       // Fetch latest unread count when a new message arrives
       try {
@@ -172,7 +169,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
       },
     );
 
-    // --- Notification Events ---
+    // Notification Events
     newSocket.on('notification', (notification) => {
       logger.log('Received notification:', notification);
       useNotificationsStore.getState().addNotification(notification);

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Request } from 'express';
 
-/** Extract audit metadata from an Express request. */
+// Extract audit metadata from an Express request.
 export function adminAuditMetaFromRequest(req: Request): {
   ipAddress?: string;
   userAgent?: string;

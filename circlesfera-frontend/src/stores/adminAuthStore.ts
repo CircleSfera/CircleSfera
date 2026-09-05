@@ -49,7 +49,7 @@ export const useAdminAuthStore = create<AdminAuthState>()(
         try {
           await adminAuthApi.logout();
         } catch {
-          // ignore
+          // Ignore
         }
         set({
           admin: null,

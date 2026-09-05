@@ -5,14 +5,12 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreatePollDto } from './dto/create-poll.dto.js';
 import type { CreateQnaBoxDto } from './dto/create-qna.dto.js';
 
-/** Service for interactive polls and Q&A features. */
+// Service for interactive polls and Q&A features.
 @Injectable()
 export class InteractiveService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  /**
-   * Create a poll attached to a post or story owned by the user.
-   */
+  // Create a poll attached to a post or story owned by the user.
   async createPoll(profileId: string, dto: CreatePollDto) {
     if (!dto.postId && !dto.storyId) {
       throw AppException.BadRequest(
@@ -90,9 +88,7 @@ export class InteractiveService {
     });
   }
 
-  /**
-   * Create a Q&A box attached to a post or story owned by the user.
-   */
+  // Create a Q&A box attached to a post or story owned by the user.
   async createQnaBox(profileId: string, dto: CreateQnaBoxDto) {
     if (!dto.postId && !dto.storyId) {
       throw AppException.BadRequest(
@@ -161,9 +157,7 @@ export class InteractiveService {
     });
   }
 
-  /**
-   * Cast or change a user vote in a poll.
-   */
+  // Cast or change a user vote in a poll.
   async votePoll(profileId: string, pollId: string, optionIndex: number) {
     const poll = await this.prisma.poll.findUnique({
       where: { id: pollId },
@@ -201,9 +195,7 @@ export class InteractiveService {
     return this.getPoll(pollId, profileId);
   }
 
-  /**
-   * Get poll details with vote count and breakdown.
-   */
+  // Get poll details with vote count and breakdown.
   async getPoll(pollId: string, profileId?: string) {
     const poll = await this.prisma.poll.findUnique({
       where: { id: pollId },
@@ -256,9 +248,7 @@ export class InteractiveService {
     };
   }
 
-  /**
-   * Submit an answer to a Q&A box ("Hazme una pregunta").
-   */
+  // Submit an answer to a Q&A box ("Hazme una pregunta").
   async answerQna(profileId: string, qnaBoxId: string, answerText: string) {
     if (!answerText || answerText.trim().length === 0) {
       throw AppException.BadRequest(
@@ -294,9 +284,7 @@ export class InteractiveService {
     };
   }
 
-  /**
-   * Get Q&A Box prompt and received answers.
-   */
+  // Get Q&A Box prompt and received answers.
   async getQnaBox(qnaBoxId: string) {
     const qnaBox = await this.prisma.qnaBox.findUnique({
       where: { id: qnaBoxId },

@@ -1,7 +1,5 @@
-/**
- * Canonical live gift catalog. Client-supplied prices are ignored;
- * amountCents is always resolved server-side from giftId.
- */
+// Canonical live gift catalog. Client-supplied prices are ignored;
+// AmountCents is always resolved server-side from giftId.
 export const LIVE_GIFT_CATALOG: Record<
   string,
   { name: string; amountCents: number }

@@ -21,12 +21,12 @@ import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { CommentsService } from './comments.service.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 
-/** REST controller for comments on posts. Supports creating, listing, and deleting comments. */
+// REST controller for comments on posts. Supports creating, listing, and deleting comments.
 @Controller('posts/:postId/comments')
 export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
-  /** Create a comment or reply on a post (requires auth). */
+  // Create a comment or reply on a post (requires auth).
   @Post()
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async create(
@@ -37,7 +37,7 @@ export class CommentsController {
     return this.commentsService.create(postId, user.profileId, dto);
   }
 
-  /** List top-level comments with nested replies for a post. */
+  // List top-level comments with nested replies for a post.
   @Get()
   @UseGuards(JwtOptionalGuard)
   async findByPost(
@@ -48,7 +48,7 @@ export class CommentsController {
     return this.commentsService.findByPost(postId, pagination, user?.profileId);
   }
 
-  /** Delete a comment (author only). */
+  // Delete a comment (author only).
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -56,7 +56,7 @@ export class CommentsController {
     await this.commentsService.remove(id, user.profileId);
   }
 
-  /** Like a comment. */
+  // Like a comment.
   @Post(':id/like')
   @UseGuards(JwtAuthGuard)
   async likeComment(
@@ -67,7 +67,7 @@ export class CommentsController {
     return { success: true };
   }
 
-  /** Unlike a comment. */
+  // Unlike a comment.
   @Delete(':id/like')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)

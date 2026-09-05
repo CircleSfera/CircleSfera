@@ -164,7 +164,7 @@ class WebRTCService {
       const stream = event.streams?.[0];
       if (stream) {
         // Clone the stream to force a new object reference in Zustand/React
-        // so that adding a second track (e.g. video) triggers a UI update.
+        // So that adding a second track (e.g. video) triggers a UI update.
         const updatedStream = new MediaStream(stream.getTracks());
         useCallStore.getState().setRemoteStream(updatedStream);
       } else {

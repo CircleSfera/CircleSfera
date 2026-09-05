@@ -7,21 +7,17 @@ import {
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-/**
- * Service for bookmarking posts. Supports toggle, collection assignment, and paginated retrieval.
- */
+// Service for bookmarking posts. Supports toggle, collection assignment, and paginated retrieval.
 @Injectable()
 export class BookmarksService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  /**
-   * Toggle a bookmark on/off for a post. Optionally assign to a collection.
-   * @param profileId - The user's ID
-   * @param postId - The post to bookmark
-   * @param collectionId - Optional collection to add the bookmark to
-   * @returns `{ bookmarked: boolean }`
-   * @throws NotFoundException if post not found
-   */
+  // Toggle a bookmark on/off for a post. Optionally assign to a collection.
+  // Param profileId: The user's ID
+  // Param postId: The post to bookmark
+  // Param collectionId: Optional collection to add the bookmark to
+  // Returns `{ bookmarked: boolean }`
+  // Throws NotFoundException if post not found
   async toggle(profileId: string, postId: string, collectionId?: string) {
     // Verify post exists
     const post = await this.prisma.post.findUnique({
@@ -81,13 +77,11 @@ export class BookmarksService {
     return { bookmarked: true };
   }
 
-  /**
-   * Move or assign a bookmarked post to a different collection.
-   * Creates the bookmark if it doesn't exist.
-   * @param profileId - The user's ID
-   * @param postId - The post ID
-   * @param collectionId - Target collection ID (or null to remove from collection)
-   */
+  // Move or assign a bookmarked post to a different collection.
+  // Creates the bookmark if it doesn't exist.
+  // Param profileId: The user's ID
+  // Param postId: The post ID
+  // Param collectionId: Target collection ID (or null to remove from collection)
   async updateCollection(
     profileId: string,
     postId: string,
@@ -115,12 +109,10 @@ export class BookmarksService {
     });
   }
 
-  /**
-   * Check whether a user has bookmarked a specific post.
-   * @param profileId - The user's ID
-   * @param postId - The post ID
-   * @returns `{ bookmarked: boolean }`
-   */
+  // Check whether a user has bookmarked a specific post.
+  // Param profileId: The user's ID
+  // Param postId: The post ID
+  // Returns `{ bookmarked: boolean }`
   async check(profileId: string, postId: string) {
     const bookmark = await this.prisma.bookmark.findUnique({
       where: {
@@ -131,13 +123,11 @@ export class BookmarksService {
     return { bookmarked: !!bookmark };
   }
 
-  /**
-   * Get the user's bookmarked posts with pagination. Optionally filtered by collection.
-   * @param profileId - The user's ID
-   * @param page - Page number (default 1)
-   * @param limit - Items per page (default 10)
-   * @param collectionId - Optional collection filter
-   */
+  // Get the user's bookmarked posts with pagination. Optionally filtered by collection.
+  // Param profileId: The user's ID
+  // Param page: Page number (default 1)
+  // Param limit: Items per page (default 10)
+  // Param collectionId: Optional collection filter
   async getBookmarks(
     profileId: string,
     page = 1,
@@ -211,15 +201,13 @@ export class BookmarksService {
     };
   }
 
-  /**
-   * Get bookmarked posts within a specific collection, with ownership validation.
-   * @param profileId - The user's ID
-   * @param collectionId - The collection to retrieve from
-   * @param page - Page number (default 1)
-   * @param limit - Items per page (default 10)
-   * @throws NotFoundException if collection not found
-   * @throws ForbiddenException if user does not own the collection
-   */
+  // Get bookmarked posts within a specific collection, with ownership validation.
+  // Param profileId: The user's ID
+  // Param collectionId: The collection to retrieve from
+  // Param page: Page number (default 1)
+  // Param limit: Items per page (default 10)
+  // Throws NotFoundException if collection not found
+  // Throws ForbiddenException if user does not own the collection
   async getByCollection(
     profileId: string,
     collectionId: string,

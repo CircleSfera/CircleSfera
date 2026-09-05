@@ -35,8 +35,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const path = httpAdapter.getRequestUrl(request) as string;
     const method = httpAdapter.getRequestMethod(request) as string;
 
-    // csrf-csrf throws ForbiddenError (not HttpException). Treat as client 403 —
-    // never escalate to Sentry/Slack (telemetry retries make this noisy).
+    // Csrf-csrf throws ForbiddenError (not HttpException). Treat as client 403
+    // Never escalate to Sentry/Slack (telemetry retries make this noisy).
     if (this.isCsrfError(exception)) {
       this.logger.warn(`Invalid CSRF token [${method}] ${path}`);
       httpAdapter.reply(

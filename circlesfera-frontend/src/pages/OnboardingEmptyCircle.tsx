@@ -6,10 +6,8 @@ interface OnboardingEmptyCircleProps {
   onRetry: () => void;
 }
 
-/**
- * Empty suggestions on onboarding step 2 — same row density as Home
- * suggestions, without a nested empty-state card.
- */
+// Empty suggestions on onboarding step 2 — same row density as Home
+// Suggestions, without a nested empty-state card.
 export function OnboardingEmptyCircle({ onRetry }: OnboardingEmptyCircleProps) {
   const { t } = useTranslation();
 

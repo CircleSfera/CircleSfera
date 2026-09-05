@@ -32,10 +32,8 @@ export type StoryReactionWithUser = StoryReaction & {
   };
 };
 
-/**
- * Service for ephemeral stories (24h expiry), story views, and reactions.
- * Supports close-friends-only visibility and tracks unique view counts.
- */
+// Service for ephemeral stories (24h expiry), story views, and reactions.
+// Supports close-friends-only visibility and tracks unique view counts.
 @Injectable()
 export class StoriesService {
   private readonly logger = new Logger(StoriesService.name);
@@ -49,11 +47,9 @@ export class StoriesService {
     private readonly systemSettings: SystemSettingsService,
   ) {}
 
-  /**
-   * Create a new ephemeral story with a 24-hour expiry.
-   * @param profileId - The author's user ID
-   * @param dto - Story data (url, mediaType, isCloseFriendsOnly, audioId)
-   */
+  // Create a new ephemeral story with a 24-hour expiry.
+  // Param profileId: The author's user ID
+  // Param dto: Story data (url, mediaType, isCloseFriendsOnly, audioId)
   async create(profileId: string, dto: CreateStoryDto) {
     const postingEnabled = await this.systemSettings.isEnabled(
       SYSTEM_SETTING_KEYS.CONTENT_POSTING_ENABLED,
@@ -114,11 +110,9 @@ export class StoriesService {
     return story;
   }
 
-  /**
-   * Retrieve all active (non-expired) stories, optionally filtered to followed users.
-   * Respects close-friends visibility permissions.
-   * @param profileId - Optional current user ID for personalized filtering
-   */
+  // Retrieve all active (non-expired) stories, optionally filtered to followed users.
+  // Respects close-friends visibility permissions.
+  // Param profileId: Optional current user ID for personalized filtering
   async findAll(profileId?: string) {
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
@@ -212,7 +206,7 @@ export class StoriesService {
     );
   }
 
-  /** Redact media URLs for premium stories the viewer has not unlocked. */
+  // Redact media URLs for premium stories the viewer has not unlocked.
   private async applyStoryPremiumLocks<
     T extends {
       id: string;
@@ -260,12 +254,10 @@ export class StoriesService {
     });
   }
 
-  /**
-   * Retrieve active stories by a specific user's username.
-   * @param username - The profile username to look up
-   * @param currentProfileId - Optional current user for authorization check
-   * @returns Array of active stories or empty array if user not found
-   */
+  // Retrieve active stories by a specific user's username.
+  // Param username: The profile username to look up
+  // Param currentProfileId: Optional current user for authorization check
+  // Returns Array of active stories or empty array if user not found
   async findByUser(username: string, currentProfileId?: string) {
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
@@ -332,11 +324,9 @@ export class StoriesService {
     return this.applyStoryPremiumLocks(mapped, currentProfileId);
   }
 
-  /**
-   * Retrieve ALL stories (active and expired) for the current user's archive.
-   * Only accessible by the owner.
-   * @param profileId - The current user's ID
-   */
+  // Retrieve ALL stories (active and expired) for the current user's archive.
+  // Only accessible by the owner.
+  // Param profileId: The current user's ID
   async getArchive(profileId: string) {
     return this.prisma.story.findMany({
       where: {
@@ -354,11 +344,9 @@ export class StoriesService {
     });
   }
 
-  /**
-   * Delete a story (author only, enforced by compound where clause).
-   * @param id - The story ID
-   * @param profileId - The requesting user's ID
-   */
+  // Delete a story (author only, enforced by compound where clause).
+  // Param id: The story ID
+  // Param profileId: The requesting user's ID
   async delete(id: string, profileId: string): Promise<void> {
     const story = await this.prisma.story.findFirst({
       where: { id, profileId },
@@ -384,12 +372,10 @@ export class StoriesService {
     }
   }
 
-  /**
-   * Record a story view. Idempotent — returns existing view if already viewed.
-   * @param id - The story ID
-   * @param profileId - The viewer's user ID
-   * @returns The story view record
-   */
+  // Record a story view. Idempotent — returns existing view if already viewed.
+  // Param id: The story ID
+  // Param profileId: The viewer's user ID
+  // Returns The story view record
   async view(id: string, profileId: string): Promise<StoryView> {
     const existingView = await this.prisma.storyView.findUnique({
       where: {
@@ -412,11 +398,9 @@ export class StoriesService {
     return newView;
   }
 
-  /**
-   * Get all viewers of a story with their profiles.
-   * @param id - The story ID
-   * @returns Array of users who viewed the story
-   */
+  // Get all viewers of a story with their profiles.
+  // Param id: The story ID
+  // Returns Array of users who viewed the story
   async getViews(id: string): Promise<(User & { profile: Profile | null })[]> {
     const views = await this.prisma.storyView.findMany({
       where: { storyId: id },
@@ -431,12 +415,10 @@ export class StoriesService {
     return views.map((v) => ({ ...v.viewer.user, profile: v.viewer })) as any;
   }
 
-  /**
-   * Add or update a reaction on a story. Upserts by storyId+profileId.
-   * @param storyId - The story ID
-   * @param profileId - The reacting user's ID
-   * @param reaction - The emoji/reaction string
-   */
+  // Add or update a reaction on a story. Upserts by storyId+profileId.
+  // Param storyId: The story ID
+  // Param profileId: The reacting user's ID
+  // Param reaction: The emoji/reaction string
   async addReaction(
     storyId: string,
     profileId: string,
@@ -467,10 +449,8 @@ export class StoriesService {
     });
   }
 
-  /**
-   * Get all reactions for a story with reactor profiles.
-   * @param storyId - The story ID
-   */
+  // Get all reactions for a story with reactor profiles.
+  // Param storyId: The story ID
   async getReactions(storyId: string): Promise<StoryReactionWithUser[]> {
     const reactions = await this.prisma.storyReaction.findMany({
       where: { storyId },
@@ -482,10 +462,8 @@ export class StoriesService {
     return reactions as unknown as StoryReactionWithUser[];
   }
 
-  /**
-   * Job to physically delete expired stories every hour to free up database space.
-   * Executed via BullMQ.
-   */
+  // Job to physically delete expired stories every hour to free up database space.
+  // Executed via BullMQ.
   async cleanupExpiredStories() {
     try {
       const expiredStories = await this.prisma.story.findMany({

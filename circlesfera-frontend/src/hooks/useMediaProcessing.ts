@@ -1,16 +1,12 @@
 import { logger } from '../utils/logger';
 
-/**
- * Hook/Utility for processing media files before upload.
- * Currently handles image normalization to standard JPEG using canvas.
- */
+// Hook/Utility for processing media files before upload.
+// Currently handles image normalization to standard JPEG using canvas.
 export function useMediaProcessing() {
-  /**
-   * Universal Image Normalizer
-   * Forces any selected image (including HEIC/PNG/etc) into a standard JPEG
-   * using a browser-native canvas capture. This ensures it can be rendered
-   * during the StoryComposer export phase (html-to-image).
-   */
+  // Universal Image Normalizer
+  // Forces any selected image (including HEIC/PNG/etc) into a standard JPEG
+  // Using a browser-native canvas capture. This ensures it can be rendered
+  // During the StoryComposer export phase (html-to-image).
   const normalizeImage = (file: File): Promise<File> => {
     return new Promise((resolve) => {
       // If it's a video, don't normalize

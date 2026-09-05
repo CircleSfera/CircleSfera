@@ -28,7 +28,7 @@ export type AboutAccountData = {
   verificationLevel?: string | null;
 };
 
-/** Map `getMyProfile` / public profile payload → dialog props. */
+// Map `getMyProfile` / public profile payload → dialog props.
 export function aboutAccountFromProfile(
   profile:
     | {

@@ -20,9 +20,7 @@ const BLOCKS: {
   { key: 'feeds', icon: Sparkles },
 ];
 
-/**
- * Guest /explore — discovery hub (not the authenticated Explore app).
- */
+// Guest /explore — discovery hub (not the authenticated Explore app).
 export default function ExploreLanding() {
   const { t } = useTranslation();
 

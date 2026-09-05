@@ -1,6 +1,6 @@
 import toast from 'react-hot-toast';
 
-/** Unified creator toast helper. */
+// Unified creator toast helper.
 export function creatorToast(
   message: string,
   type: 'success' | 'error' | 'info' = 'success',

@@ -17,7 +17,7 @@ import {
   ReportTargetType,
 } from './dto/create-report.dto.js';
 
-/** Service for content/user reports: creation, listing, and status updates. */
+// Service for content/user reports: creation, listing, and status updates.
 @Injectable()
 export class ReportsService {
   constructor(
@@ -26,11 +26,9 @@ export class ReportsService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  /**
-   * File a new report against a user or content.
-   * @param reporterId - The reporting user's ID
-   * @param dto - Report details (targetType, targetId, reason, details)
-   */
+  // File a new report against a user or content.
+  // Param reporterId: The reporting user's ID
+  // Param dto: Report details (targetType, targetId, reason, details)
   async create(reporterId: string, dto: CreateReportDto): Promise<Report> {
     switch (dto.targetType) {
       case ReportTargetType.USER: {
@@ -116,7 +114,7 @@ export class ReportsService {
     return report;
   }
 
-  /** List reports filed by the authenticated user. */
+  // List reports filed by the authenticated user.
   async findMyReports(reporterId: string, pagination: PaginationDto) {
     const { page = 1, limit = 20 } = pagination;
     const skip = (page - 1) * limit;
@@ -144,7 +142,7 @@ export class ReportsService {
     return createPaginatedResult(reports, total, page, limit);
   }
 
-  /** List all reports with reporter profiles (admin only). */
+  // List all reports with reporter profiles (admin only).
   async findAll(pagination: PaginationDto) {
     const { page = 1, limit = 20 } = pagination;
     const skip = (page - 1) * limit;
@@ -166,9 +164,7 @@ export class ReportsService {
     return createPaginatedResult(reports, total, page, limit);
   }
 
-  /**
-   * Update a report's status (e.g. PENDING → RESOLVED).
-   */
+  // Update a report's status (e.g. PENDING → RESOLVED).
   async update(
     id: string,
     status: ReportStatus,

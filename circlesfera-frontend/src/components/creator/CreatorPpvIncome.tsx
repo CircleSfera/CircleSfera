@@ -8,7 +8,7 @@ interface Props {
   showConnect?: boolean;
 }
 
-/** How PPV earnings work. Connect CTA only when Stripe is not linked. */
+// How PPV earnings work. Connect CTA only when Stripe is not linked.
 export default function CreatorPpvIncome({
   isConnecting,
   onConnect,

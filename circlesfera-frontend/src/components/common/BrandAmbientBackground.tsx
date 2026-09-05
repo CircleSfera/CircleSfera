@@ -1,7 +1,5 @@
-/**
- * Global CircleSfera brand wash — same layers as the main app shell.
- * Keep Admin Panel / auth surfaces in sync with LayoutWrapper.
- */
+// Global CircleSfera brand wash — same layers as the main app shell.
+// Keep Admin Panel / auth surfaces in sync with LayoutWrapper.
 export default function BrandAmbientBackground() {
   return (
     <div className="fixed inset-0 z-[-1] overflow-hidden bg-[var(--surface-base)] pointer-events-none">

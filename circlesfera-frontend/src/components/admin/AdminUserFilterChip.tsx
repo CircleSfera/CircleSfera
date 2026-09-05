@@ -11,7 +11,7 @@ interface AdminUserFilterChipProps {
   onClear: () => void;
 }
 
-/** Shows when a content queue is scoped to one platform user. */
+// Shows when a content queue is scoped to one platform user.
 export function AdminUserFilterChip({
   username,
   onClear,
@@ -36,7 +36,7 @@ export function AdminUserFilterChip({
   );
 }
 
-/** Reads `?userId=` from the queue URL and resolves username for the filter chip. */
+// Reads `?userId=` from the queue URL and resolves username for the filter chip.
 export function useAdminQueueUserFilter() {
   const [searchParams, setSearchParams] = useSearchParams();
   const userId = searchParams.get('userId') || undefined;

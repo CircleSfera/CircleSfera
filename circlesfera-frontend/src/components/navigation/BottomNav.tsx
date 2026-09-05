@@ -14,11 +14,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 
-/**
- * BottomNav — Layout Guidelines density + tokens
- * Height: var(--nav-bottom-height) (48px) + safe-area-inset-bottom
- * Strictly 5 core items max for clean spacing and touch target density
- */
+// Height: var(--nav-bottom-height) (48px) + safe-area-inset-bottom
+// Strictly 5 core items max for clean spacing and touch target density
 export default function BottomNav() {
   const location = useLocation();
   const path = location.pathname;
@@ -84,7 +81,7 @@ export default function BottomNav() {
         borderTop: '1px solid rgba(255,255,255,0.1)',
         boxShadow:
           '0 -4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
-        /* Explicit height to fix WebKit padding clip bugs */
+        // Explicit height to fix WebKit padding clip bugs
         height:
           'calc(var(--nav-bottom-height) + env(safe-area-inset-bottom, 0px))',
       }}

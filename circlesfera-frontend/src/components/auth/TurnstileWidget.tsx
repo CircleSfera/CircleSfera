@@ -43,7 +43,7 @@ function loadScript(): Promise<void> {
   });
 }
 
-/** Cloudflare Turnstile widget. Renders nothing if site key is unset (local/dev). */
+// Cloudflare Turnstile widget. Renders nothing if site key is unset (local/dev).
 export default function TurnstileWidget({
   onToken,
 }: {
@@ -87,7 +87,7 @@ export default function TurnstileWidget({
         try {
           window.turnstile.remove(widgetIdRef.current);
         } catch {
-          /* ignore */
+          // Ignore
         }
       }
     };

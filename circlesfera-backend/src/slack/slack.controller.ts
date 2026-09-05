@@ -45,7 +45,7 @@ export class SlackController {
     }
 
     // Process interaction asynchronously and return 200 OK immediately
-    // to prevent Slack from showing a timeout error to the user
+    // To prevent Slack from showing a timeout error to the user
     this.slackService
       .handleModerationInteraction(payload)
       .catch((e) => console.error('Failed to handle interaction', e));

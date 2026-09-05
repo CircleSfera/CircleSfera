@@ -8,14 +8,14 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { NotificationsService } from './notifications.service.js';
 
-/** REST controller for notifications. All endpoints require authentication. */
+// REST controller for notifications. All endpoints require authentication.
 @ApiTags('Notifications')
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
-  /** List all notifications (paginated). */
+  // List all notifications (paginated).
   @Get()
   async findAll(
     @CurrentUser() user: CurrentUserData,
@@ -24,13 +24,13 @@ export class NotificationsController {
     return this.notificationsService.findAll(user.profileId, pagination);
   }
 
-  /** Get the count of unread notifications. */
+  // Get the count of unread notifications.
   @Get('unread-count')
   async getUnreadCount(@CurrentUser() user: CurrentUserData) {
     return this.notificationsService.getUnreadCount(user.profileId);
   }
 
-  /** Mark a single notification as read. */
+  // Mark a single notification as read.
   @Put(':id/read')
   async markAsRead(
     @Param('id') id: string,
@@ -39,7 +39,7 @@ export class NotificationsController {
     return this.notificationsService.markAsRead(id, user.profileId);
   }
 
-  /** Mark all notifications as read. */
+  // Mark all notifications as read.
   @Put('read-all')
   async markAllAsRead(@CurrentUser() user: CurrentUserData) {
     await this.notificationsService.markAllAsRead(user.profileId);

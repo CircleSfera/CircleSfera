@@ -1,8 +1,8 @@
 /// <reference lib="webworker" />
 
 // This Web Worker is prepared to handle heavy media processing tasks
-// such as WebGL rendering, FFmpeg.wasm video transcoding, and large canvas manipulations
-// off the main thread to ensure the UI remains fully responsive at 60fps.
+// Such as WebGL rendering, FFmpeg.wasm video transcoding, and large canvas manipulations
+// Off the main thread to ensure the UI remains fully responsive at 60fps.
 
 self.addEventListener('message', async (e: MessageEvent) => {
   const { type, jobId, payload } = e.data;

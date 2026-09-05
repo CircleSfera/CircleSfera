@@ -123,7 +123,7 @@ async function bootstrap(): Promise<void> {
     }
   });
 
-  // const { httpAdapter } = app.get(HttpAdapterHost);
+  // Const { httpAdapter } = app.get(HttpAdapterHost);
   // Exception filter is registered via APP_FILTER in AppModule (with SlackService DI).
   // Do not register a second instance here.
 

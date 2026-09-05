@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 
-/** Debounce a callback by `delay` ms. */
+// Debounce a callback by `delay` ms.
 export function useDebounce<T extends (...args: Parameters<T>) => void>(
   callback: T,
   delay: number,

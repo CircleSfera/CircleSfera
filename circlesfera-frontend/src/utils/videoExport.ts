@@ -65,9 +65,9 @@ export async function exportEditedVideo(
   const grayscale = getVal('grayscale', 0);
 
   // FFmpeg eq filter values:
-  // brightness: -1.0 to 1.0 (default 0)
-  // contrast: -2.0 to 2.0 (default 1)
-  // saturation: 0.0 to 3.0 (default 1)
+  // Brightness: -1.0 to 1.0 (default 0)
+  // Contrast: -2.0 to 2.0 (default 1)
+  // Saturation: 0.0 to 3.0 (default 1)
   const ffBrightness = (brightness - 100) / 100;
   const ffContrast = contrast / 100;
   let ffSaturation = saturation / 100;
@@ -82,7 +82,7 @@ export async function exportEditedVideo(
 
   // Temperature
   if (temperature !== 100) {
-    const tempOffset = (temperature - 100) / 100; // -1 to 1
+    const tempOffset = (temperature - 100) / 100; // 1 to 1
     // Warm: more red, less blue. Cool: less red, more blue.
     vfFilters.push(`colorbalance=rm=${tempOffset}:bm=${-tempOffset}`);
   }
@@ -120,7 +120,7 @@ export async function exportEditedVideo(
   if (videoData?.muted) {
     args.push('-an');
   } else {
-    args.push('-c:a', 'aac'); // re-encode audio to be safe
+    args.push('-c:a', 'aac'); // Re-encode audio to be safe
   }
 
   // Filter complex

@@ -1,4 +1,4 @@
-/** Allowed mute durations for POST /users/:username/follow/mute */
+// Allowed mute durations for POST /users/:username/follow/mute
 export const MUTE_DURATIONS = ['24h', '7d', '30d', 'forever'] as const;
 export type MuteDuration = (typeof MUTE_DURATIONS)[number];
 
@@ -7,7 +7,7 @@ const MS = {
   day: 24 * 60 * 60 * 1000,
 } as const;
 
-/** Map API duration to expiresAt. `forever` / omitted → null. */
+// Map API duration to expiresAt. `forever` / omitted → null.
 export function muteExpiresAtFromDuration(
   duration: MuteDuration | undefined,
   now = new Date(),
@@ -24,7 +24,7 @@ export function muteExpiresAtFromDuration(
   }
 }
 
-/** Prisma `where` for mutes that still suppress content. */
+// Prisma `where` for mutes that still suppress content.
 export function activeMuteWhere(muterId: string, now = new Date()) {
   return {
     muterId,

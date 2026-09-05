@@ -34,7 +34,7 @@ import { GetPostsDto } from './dto/get-posts.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
 import { PostsService } from './posts.service.js';
 
-/** REST controller for post CRUD, feed generation, discovery, and admin operations. */
+// REST controller for post CRUD, feed generation, discovery, and admin operations.
 @ApiTags('Posts')
 @Controller('posts')
 export class PostsController {
@@ -42,7 +42,7 @@ export class PostsController {
     @Inject(PostsService) private readonly postsService: PostsService,
   ) {}
 
-  /** Create a new post (requires authentication). */
+  // Create a new post (requires authentication).
   @Post()
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async create(
@@ -52,7 +52,7 @@ export class PostsController {
     return this.postsService.create(user.profileId, dto);
   }
 
-  /** List all posts with optional sort (latest/trending). Supports guest access. */
+  // List all posts with optional sort (latest/trending). Supports guest access.
   @Get()
   @UseGuards(JwtOptionalGuard)
   async findAll(
@@ -63,7 +63,7 @@ export class PostsController {
     return this.postsService.findAll(pagination, sort, user?.profileId);
   }
 
-  /** Get video-only feed (Frames/Reels). */
+  // Get video-only feed (Frames/Reels).
   @Get('frames')
   @UseGuards(JwtOptionalGuard)
   async getFrames(
@@ -73,7 +73,7 @@ export class PostsController {
     return this.postsService.getFramesFeed(pagination, user?.profileId);
   }
 
-  /** Get posts by a specific user's username. */
+  // Get posts by a specific user's username.
   @Get('user/:username')
   @UseGuards(JwtOptionalGuard)
   async findByUser(
@@ -90,7 +90,7 @@ export class PostsController {
     );
   }
 
-  /** Get posts where a user has been tagged/mentioned. */
+  // Get posts where a user has been tagged/mentioned.
   @Get('user/:username/tagged')
   async getTaggedPosts(
     @Param('username') username: string,
@@ -99,7 +99,7 @@ export class PostsController {
     return this.postsService.getTaggedPosts(username, pagination);
   }
 
-  /** Get posts filtered by hashtag. */
+  // Get posts filtered by hashtag.
   @Get('tags/:tag')
   async getByTag(
     @Param('tag') tag: string,
@@ -108,7 +108,7 @@ export class PostsController {
     return this.postsService.getByTag(tag, pagination);
   }
 
-  /** Get a single post by ID. Supports guest access. */
+  // Get a single post by ID. Supports guest access.
   @Get(':id')
   @UseGuards(JwtOptionalGuard)
   async findOne(
@@ -118,7 +118,7 @@ export class PostsController {
     return this.postsService.findOne(id, user?.profileId);
   }
 
-  /** Update a post (author only). */
+  // Update a post (author only).
   @Put(':id')
   @UseGuards(JwtAuthGuard, OwnershipGuard)
   @RequireOwnership({ model: 'Post' })
@@ -126,7 +126,7 @@ export class PostsController {
     return this.postsService.update(id, dto);
   }
 
-  /** Delete a post (author only). */
+  // Delete a post (author only).
   @Delete(':id')
   @UseGuards(JwtAuthGuard, OwnershipGuard)
   @RequireOwnership({ model: 'Post' })
@@ -134,7 +134,7 @@ export class PostsController {
   async remove(@Param('id') id: string) {
     await this.postsService.remove(id);
   }
-  /** Admin-only post deletion (bypasses ownership check). */
+  // Admin-only post deletion (bypasses ownership check).
   @Delete(':id/admin')
   @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('content')

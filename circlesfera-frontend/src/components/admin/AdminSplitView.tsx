@@ -8,22 +8,20 @@ import { useAdminEscapeClear } from './useAdminEscapeClear';
 interface AdminSplitViewProps {
   hasSelection: boolean;
   onBack?: () => void;
-  /** Called on Escape when hasSelection — prefer over per-tab listeners */
+  // Called on Escape when hasSelection — prefer over per-tab listeners
   onClearSelection?: () => void;
   list: ReactNode;
   detail: ReactNode;
   listTitle?: string;
   listAriaLabel?: string;
   detailAriaLabel?: string;
-  /** Shown on desktop when nothing is selected */
+  // Shown on desktop when nothing is selected
   emptyDetail?: ReactNode;
   className?: string;
 }
 
-/**
- * Master-detail layout: one pane at a time on mobile, two columns on lg+.
- * Flush panes — subtle dividers, no heavy nested cards.
- */
+// Master-detail layout: one pane at a time on mobile, two columns on lg+.
+// Flush panes — subtle dividers, no heavy nested cards.
 export function AdminSplitView({
   hasSelection,
   onBack,

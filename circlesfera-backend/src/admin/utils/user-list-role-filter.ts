@@ -1,9 +1,7 @@
 import { Prisma, Role } from '@prisma/client';
 
-/**
- * Users-list `role` query. `ADMIN` means a linked AdminIdentity (ADR-0013),
- * not the deprecated platform User.role staff values.
- */
+// Users-list `role` query. `ADMIN` means a linked AdminIdentity,
+// Not the deprecated platform User.role staff values.
 export function userListRoleWhere(
   role?: string,
 ): Prisma.UserWhereInput | undefined {

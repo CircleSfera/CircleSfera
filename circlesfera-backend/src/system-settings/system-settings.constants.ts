@@ -1,4 +1,4 @@
-/** Canonical ops toggles for `system_settings` (admin Configuración global). */
+// Canonical ops toggles for `system_settings` (admin Configuración global).
 export const SYSTEM_SETTING_KEYS = {
   MAINTENANCE_MODE: 'maintenance_mode',
   REGISTRATION_OPEN: 'registration_open',

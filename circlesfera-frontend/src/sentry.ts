@@ -10,10 +10,8 @@ import { getCookieConsent } from './utils/cookieConsent';
 
 let sentryInitialized = false;
 
-/**
- * Initialize Sentry only when analytics cookie consent is granted.
- * Call again after the user accepts analytics in CookieConsent.
- */
+// Initialize Sentry only when analytics cookie consent is granted.
+// Call again after the user accepts analytics in CookieConsent.
 export function initSentry() {
   if (sentryInitialized) return;
 

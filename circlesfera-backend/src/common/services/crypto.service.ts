@@ -2,10 +2,10 @@ import * as crypto from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-/** Fixed scrypt salt used by legacy ciphertext. Do not change without a re-encrypt migration. */
+// Fixed scrypt salt used by legacy ciphertext. Do not change without a re-encrypt migration.
 export const ENCRYPTION_SCRYPT_SALT = 'salt';
 
-/** Historical insecure fallback — only used when ENCRYPTION_KEY_LEGACY is set for migration. */
+// Historical insecure fallback — only used when ENCRYPTION_KEY_LEGACY is set for migration.
 export const LEGACY_DEFAULT_ENCRYPTION_KEY =
   'default-secret-key-32-chars-long!';
 
@@ -14,7 +14,7 @@ export class CryptoService {
   private readonly logger = new Logger(CryptoService.name);
   private readonly algorithm = 'aes-256-gcm';
   private readonly key: Buffer;
-  /** Optional legacy key for read-fallback during ENCRYPTION_KEY rotation. */
+  // Optional legacy key for read-fallback during ENCRYPTION_KEY rotation.
   private readonly legacyKey: Buffer | null;
 
   constructor(private readonly configService: ConfigService) {
@@ -48,7 +48,7 @@ export class CryptoService {
     }
   }
 
-  /** Derive an AES key from a raw secret (used by re-encrypt migrations). */
+  // Derive an AES key from a raw secret (used by re-encrypt migrations).
   static deriveKey(secret: string): Buffer {
     return crypto.scryptSync(secret, ENCRYPTION_SCRYPT_SALT, 32);
   }
@@ -114,7 +114,7 @@ export class CryptoService {
     return decrypted;
   }
 
-  /** Decrypt with an arbitrary derived key (migration helper). */
+  // Decrypt with an arbitrary derived key (migration helper).
   static decryptWithKey(encryptedText: string, key: Buffer): string {
     const parts = encryptedText.split(':');
     if (parts.length !== 3) {
@@ -133,7 +133,7 @@ export class CryptoService {
     return decrypted;
   }
 
-  /** Encrypt with an arbitrary derived key (migration helper). */
+  // Encrypt with an arbitrary derived key (migration helper).
   static encryptWithKey(text: string, key: Buffer): string {
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);

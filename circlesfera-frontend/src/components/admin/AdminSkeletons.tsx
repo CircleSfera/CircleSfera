@@ -1,4 +1,4 @@
-/** Shared loading skeleton for admin SplitView list panes. */
+// Shared loading skeleton for admin SplitView list panes.
 export function AdminListSkeleton({ rows = 4 }: { rows?: number }) {
   return (
     <div className="space-y-2 p-1">
@@ -12,7 +12,7 @@ export function AdminListSkeleton({ rows = 4 }: { rows?: number }) {
   );
 }
 
-/** Shared loading skeleton for admin SplitView detail panes. */
+// Shared loading skeleton for admin SplitView detail panes.
 export function AdminDetailSkeleton() {
   return (
     <div className="p-2 space-y-4 animate-pulse">

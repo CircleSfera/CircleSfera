@@ -8,7 +8,7 @@ import {
   Megaphone,
 } from 'lucide-react';
 
-/** Canonical creator studio tabs (finance redirects to monetization). */
+// Canonical creator studio tabs (finance redirects to monetization).
 export type CreatorTab =
   | 'overview'
   | 'analytics'
@@ -17,7 +17,7 @@ export type CreatorTab =
   | 'monetization'
   | 'ads';
 
-/** Legacy tab id kept only for redirects. */
+// Legacy tab id kept only for redirects.
 export type CreatorLegacyTab = CreatorTab | 'finance';
 
 export interface CreatorNavItem {

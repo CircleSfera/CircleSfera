@@ -45,7 +45,7 @@ export class AdminAuthService {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  /** Matches platform auth: argon2 primary, bcrypt legacy with optional upgrade. */
+  // Matches platform auth: argon2 primary, bcrypt legacy with optional upgrade.
   private async verifyAdminPassword(
     password: string,
     passwordHash: string,
@@ -65,7 +65,7 @@ export class AdminAuthService {
     return { valid: false };
   }
 
-  /** Safe TOTP check — otplib throws on malformed secrets. */
+  // Safe TOTP check — otplib throws on malformed secrets.
   private isTotpValid(token: string, secret: string): boolean {
     const code = token.replace(/\s+/g, '').trim();
     if (!/^\d{6}$/.test(code)) return false;

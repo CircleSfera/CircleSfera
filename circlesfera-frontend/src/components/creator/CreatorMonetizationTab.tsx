@@ -26,7 +26,7 @@ import CreatorPpvIncome from './CreatorPpvIncome';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error' | 'info') => void;
-  /** income = Connect/VIP; plans = platform tiers; all = both (default). */
+  // Income = Connect/VIP; plans = platform tiers; all = both (default).
   section?: 'income' | 'plans' | 'all';
 }
 

@@ -12,9 +12,7 @@ interface MarketingPageProps {
   navLinks?: boolean;
 }
 
-/**
- * Guest page shell — TopNav-parity chrome. Skips guest nav when authenticated.
- */
+// Guest page shell — TopNav-parity chrome. Skips guest nav when authenticated.
 export function MarketingPage({
   children,
   className,

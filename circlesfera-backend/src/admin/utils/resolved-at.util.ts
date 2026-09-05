@@ -1,4 +1,4 @@
-/** Set or clear resolvedAt when a queue item reaches a terminal or reopen status. */
+// Set or clear resolvedAt when a queue item reaches a terminal or reopen status.
 export function resolvedAtOnStatusChange(
   newStatus: string,
   existingResolvedAt: Date | null,

@@ -11,10 +11,8 @@ interface AdminEmptyStateProps {
   compact?: boolean;
 }
 
-/**
- * Flat empty state — no nested glass card (parent panes are already glass).
- * Supports left-aligned hint via className (e.g. split empty detail).
- */
+// Flat empty state — no nested glass card (parent panes are already glass).
+// Supports left-aligned hint via className (e.g. split empty detail).
 export function AdminEmptyState({
   icon: Icon = Inbox,
   title,

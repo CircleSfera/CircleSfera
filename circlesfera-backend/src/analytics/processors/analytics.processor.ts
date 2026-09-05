@@ -40,10 +40,8 @@ export class AnalyticsProcessor extends WorkerHost {
     }
   }
 
-  /**
-   * Updates the performance score of a post based on engagement and telemetry.
-   * Formula: Likes*10 + Comments*15 + Bookmarks*12 + Shares*8 + ViewCompletes*5 + DwellTime(sec)*0.5 + Views*0.2
-   */
+  // Updates the performance score of a post based on engagement and telemetry.
+  // Formula: Likes*10 + Comments*15 + Bookmarks*12 + Shares*8 + ViewCompletes*5 + DwellTime(sec)*0.5 + Views*0.2
   private async handleUpdatePerformanceScore(data: { postId: string }) {
     const { postId } = data;
     try {

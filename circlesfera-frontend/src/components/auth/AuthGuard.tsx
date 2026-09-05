@@ -14,13 +14,13 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   useEffect(() => {
     // Guards against a stale persisted `isAuthenticated: true` (e.g. the
-    // session cookie expired while the app was closed). Idempotent: the
-    // store dedupes concurrent/repeated calls once a check has run.
+    // Session cookie expired while the app was closed). Idempotent: the
+    // Store dedupes concurrent/repeated calls once a check has run.
     checkSession();
   }, [checkSession]);
 
   // While we haven't confirmed a persisted session is still valid, avoid
-  // flashing protected content that might get revoked a moment later.
+  // Flashing protected content that might get revoked a moment later.
   if (isAuthenticated && !isSessionChecked && isCheckingSession) {
     return (
       <div className="h-screen w-full flex items-center justify-center">

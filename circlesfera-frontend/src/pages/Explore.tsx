@@ -149,7 +149,7 @@ export default function Explore() {
           description={t('explore.page_desc')}
         />
 
-        {/* Search Input — Design System section 9.3: Search input 44–48px */}
+        {/* Search input height 44–48px */}
         <div className="relative mb-3 md:mb-6 max-w-2xl mx-auto group">
           <div className="absolute -top-px left-8 right-8 h-px bg-linear-to-r from-transparent via-brand-primary to-transparent opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
 
@@ -196,7 +196,7 @@ export default function Explore() {
 
         {/* Content Area */}
         {debouncedQuery.length >= 2 ? (
-          /* Search Results Mode */
+          // Search Results Mode
           <div>
             {isSearching && !searchResults ? (
               <div className="text-center text-gray-500 py-10">
@@ -420,7 +420,7 @@ export default function Explore() {
             )}
           </div>
         ) : query.length > 0 ? (
-          /* History Prompt or Idle Search state */
+          // History Prompt or Idle Search state
           <div className="max-w-2xl mx-auto mb-12 animate-in fade-in slide-in-from-top-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-gray-300 text-sm uppercase px-2">
@@ -463,7 +463,7 @@ export default function Explore() {
             </div>
           </div>
         ) : (
-          /* Explore Grid Mode (Personalized Discovery) */
+          // Explore Grid Mode (Personalized Discovery)
           <div>
             <div className="flex justify-center mb-4 md:mb-8">
               <div className="inline-flex items-center p-1 md:p-1.5 rounded-full bg-black/75 border border-white/12 shadow-2xl backdrop-blur-md gap-1">

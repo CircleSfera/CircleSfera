@@ -16,7 +16,7 @@ export interface DialogProps {
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
 }
 
-/** Same brand wash as BrandAmbientBackground + dim — keeps Dialog in sync with Home / Account Center. */
+// Same brand wash as BrandAmbientBackground + dim — keeps Dialog in sync with Home / Account Center.
 const DIALOG_OVERLAY_BACKGROUND = `
   linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)),
   radial-gradient(circle at 12% 12%, rgba(255, 87, 87, 0.10) 0%, transparent 50%),

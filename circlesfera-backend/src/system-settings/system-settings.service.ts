@@ -17,7 +17,7 @@ export class SystemSettingsService {
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
-  /** Insert missing catalog rows without overwriting existing values. */
+  // Insert missing catalog rows without overwriting existing values.
   async ensureDefaults(updatedBy = 'system'): Promise<void> {
     for (const setting of SYSTEM_SETTING_DEFAULTS) {
       await this.prisma.systemSetting.upsert({

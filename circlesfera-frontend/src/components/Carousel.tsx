@@ -16,7 +16,7 @@ interface MediaItem {
 
 interface CarouselProps {
   media: MediaItem[];
-  aspectRatio?: string; // e.g. "aspect-square"
+  aspectRatio?: string; // E.g. "aspect-square"
   objectFit?: 'cover' | 'contain';
   className?: string;
   isLocked?: boolean;

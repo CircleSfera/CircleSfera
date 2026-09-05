@@ -26,17 +26,15 @@ export class NotificationsProcessor extends WorkerHost {
     }
   }
 
-  /**
-   * Runs every 15 minutes via BullMQ to aggregate and send a single digest
-   * push notification to users with recent unread batchable notifications.
-   */
+  // Runs every 15 minutes via BullMQ to aggregate and send a single digest
+  // Push notification to users with recent unread batchable notifications.
   async sendDigestPushNotifications() {
     this.logger.log('Starting digest push notification job...');
 
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
 
     // Find unread notifications created or updated in the last 15 minutes
-    // specific to batchable types (LIKE, COMMENT)
+    // Specific to batchable types (LIKE, COMMENT)
     const recentUnreadNotifications = await this.prisma.notification.findMany({
       where: {
         read: false,
@@ -99,10 +97,8 @@ export class NotificationsProcessor extends WorkerHost {
     );
   }
 
-  /**
-   * Runs every day at midnight via BullMQ to clean up old notifications
-   * and free up database space.
-   */
+  // Runs every day at midnight via BullMQ to clean up old notifications
+  // And free up database space.
   async cleanupOldNotifications() {
     this.logger.log('Starting old notifications cleanup job...');
 

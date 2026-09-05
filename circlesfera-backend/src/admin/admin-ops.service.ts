@@ -14,11 +14,9 @@ import { PaymentsService } from '../payments/payments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { resolvedAtOnStatusChange } from './utils/resolved-at.util.js';
 
-/**
- * Admin operations that are orthogonal to core user/content moderation:
- * AI vector firewall signatures, per-user experiment overrides,
- * support tickets, feature flags, and webhook event ops.
- */
+// Admin operations that are orthogonal to core user/content moderation:
+// AI vector firewall signatures, per-user experiment overrides,
+// Support tickets, feature flags, and webhook event ops.
 @Injectable()
 export class AdminOpsService {
   constructor(
@@ -202,7 +200,7 @@ export class AdminOpsService {
     return { success: true };
   }
 
-  // ─── Support tickets ──────────────────────────────────────────────
+  // Support tickets
 
   async getSupportTickets(page = 1, limit = 20, status?: string) {
     const skip = (page - 1) * limit;
@@ -304,7 +302,7 @@ export class AdminOpsService {
     return ticket;
   }
 
-  // ─── Feature flags ────────────────────────────────────────────────
+  // Feature flags
 
   async listFeatureFlags() {
     return this.prisma.featureFlag.findMany({
@@ -390,7 +388,7 @@ export class AdminOpsService {
     return { success: true };
   }
 
-  // ─── Webhook events ───────────────────────────────────────────────
+  // Webhook events
 
   async getWebhookEvents(page = 1, limit = 20, status?: string) {
     const skip = (page - 1) * limit;
@@ -439,10 +437,8 @@ export class AdminOpsService {
     return event;
   }
 
-  /**
-   * Reprocess a FAILED or PENDING Stripe webhook from stored payload.
-   * PROCESSED events are rejected to avoid double-application.
-   */
+  // Reprocess a FAILED or PENDING Stripe webhook from stored payload.
+  // PROCESSED events are rejected to avoid double-application.
   async replayWebhookEvent(adminId: string, id: string) {
     const stored = await this.prisma.webhookEvent.findUnique({
       where: { id },

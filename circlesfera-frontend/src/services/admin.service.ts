@@ -119,11 +119,11 @@ export interface AdminPost {
   };
 }
 
-/** Unified moderation queue item (posts, stories, comments). */
+// Unified moderation queue item (posts, stories, comments).
 export interface AdminModerationItem {
   id: string;
   entityType: 'POST' | 'STORY' | 'COMMENT';
-  /** PostType for posts only (POST | FRAME); do not use for PATCH. */
+  // PostType for posts only (POST | FRAME); do not use for PATCH.
   type?: string;
   caption: string | null;
   content?: string | null;
@@ -449,7 +449,7 @@ export interface TrustQueueMttr {
   medianMs: number | null;
 }
 
-/** @deprecated Use TrustQueueMttr */
+// Deprecated: Use TrustQueueMttr
 export type TrustQueueReportMttr = TrustQueueMttr;
 
 export interface TrustQueueResponse {

@@ -12,9 +12,7 @@ import {
 const AUTOSAVE_MS = 2500;
 const LOCAL_SAVE_MS = 800;
 
-/**
- * Debounced cloud autosave + local IndexedDB buffer + beforeunload guard.
- */
+// Debounced cloud autosave + local IndexedDB buffer + beforeunload guard.
 export function useStudioAutosave() {
   const { t } = useTranslation();
   const project = useStudioStore((s) => s.project);

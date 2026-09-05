@@ -2,9 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { MarketingSection } from './MarketingSection';
 import { ProductChaptersList } from './ProductChaptersList';
 
-/**
- * Product chapters — Bento Grid showcase.
- */
+// Product chapters — Bento Grid showcase.
 export function LandingChapters() {
   const { t } = useTranslation();
 

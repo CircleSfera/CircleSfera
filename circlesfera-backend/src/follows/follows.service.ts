@@ -31,10 +31,8 @@ export type MutedUserEntry = {
   profile: ProfileWithUser;
 };
 
-/**
- * Service for follow/unfollow, blocking, and follow request management.
- * Supports private accounts (pending follow requests) and user blocking.
- */
+// Service for follow/unfollow, blocking, and follow request management.
+// Supports private accounts (pending follow requests) and user blocking.
 @Injectable()
 export class FollowsService {
   constructor(
@@ -45,14 +43,12 @@ export class FollowsService {
     @Inject(TurnstileService) private readonly turnstile: TurnstileService,
   ) {}
 
-  /**
-   * Toggle follow/unfollow for a user. Handles private accounts by creating pending requests.
-   * @param followingUsername - Username of the user to follow/unfollow
-   * @param followerId - The requesting user's ID
-   * @returns Follow status (following: true/false, status: string)
-   * @throws NotFoundException if target user not found
-   * @throws BadRequestException if attempting to follow self
-   */
+  // Toggle follow/unfollow for a user. Handles private accounts by creating pending requests.
+  // Param followingUsername: Username of the user to follow/unfollow
+  // Param followerId: The requesting user's ID
+  // Returns Follow status (following: true/false, status: string)
+  // Throws NotFoundException if target user not found
+  // Throws BadRequestException if attempting to follow self
   async toggle(
     followingUsername: string,
     followerId: string,
@@ -146,12 +142,10 @@ export class FollowsService {
     }
   }
 
-  /**
-   * Check the follow status between the current user and a target user.
-   * @param followingUsername - The target username
-   * @param followerId - The current user's ID
-   * @returns Follow status (following: boolean, status: string)
-   */
+  // Check the follow status between the current user and a target user.
+  // Param followingUsername: The target username
+  // Param followerId: The current user's ID
+  // Returns Follow status (following: boolean, status: string)
   async checkFollow(
     followingUsername: string,
     followerId: string,
@@ -191,11 +185,9 @@ export class FollowsService {
     };
   }
 
-  /**
-   * Get all followers of a user by username.
-   * @param username - The profile username
-   * @returns Array of follower users with profiles
-   */
+  // Get all followers of a user by username.
+  // Param username: The profile username
+  // Returns Array of follower users with profiles
   async getFollowers(username: string): Promise<ProfileWithUser[]> {
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
@@ -219,11 +211,9 @@ export class FollowsService {
     return followers.map((f) => f.follower);
   }
 
-  /**
-   * Get all users that a user is following.
-   * @param username - The profile username
-   * @returns Array of followed users with profiles
-   */
+  // Get all users that a user is following.
+  // Param username: The profile username
+  // Returns Array of followed users with profiles
   async getFollowing(username: string): Promise<ProfileWithUser[]> {
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
@@ -247,12 +237,10 @@ export class FollowsService {
     return following.map((f) => f.following);
   }
 
-  /**
-   * Block a user. Also removes any existing follow relationships.
-   * @param blockerId - The blocking user's ID
-   * @param blockedUsername - Username of the user to block
-   * @throws NotFoundException if target user not found
-   */
+  // Block a user. Also removes any existing follow relationships.
+  // Param blockerId: The blocking user's ID
+  // Param blockedUsername: Username of the user to block
+  // Throws NotFoundException if target user not found
   async blockUser(
     blockerId: string,
     blockedUsername: string,
@@ -287,12 +275,10 @@ export class FollowsService {
     return { success: true };
   }
 
-  /**
-   * Unblock a previously blocked user.
-   * @param blockerId - The blocking user's ID
-   * @param blockedUsername - Username to unblock
-   * @throws NotFoundException if target user not found
-   */
+  // Unblock a previously blocked user.
+  // Param blockerId: The blocking user's ID
+  // Param blockedUsername: Username to unblock
+  // Throws NotFoundException if target user not found
   async unblockUser(
     blockerId: string,
     blockedUsername: string,
@@ -315,10 +301,8 @@ export class FollowsService {
     return { success: true };
   }
 
-  /**
-   * Get all users blocked by the current user.
-   * @param profileId - The authenticated user's ID
-   */
+  // Get all users blocked by the current user.
+  // Param profileId: The authenticated user's ID
   async getBlockedUsers(profileId: string): Promise<ProfileWithUser[]> {
     const blocks = await this.prisma.block.findMany({
       where: { blockerId: profileId },
@@ -329,13 +313,11 @@ export class FollowsService {
     return blocks.map((b) => b.blocked);
   }
 
-  /**
-   * Mute a user for an optional duration (`forever` when omitted).
-   * @param muterId - The muting user's ID
-   * @param mutedUsername - Username of the user to mute
-   * @param duration - 24h | 7d | 30d | forever
-   * @throws NotFoundException if target user not found
-   */
+  // Mute a user for an optional duration (`forever` when omitted).
+  // Param muterId: The muting user's ID
+  // Param mutedUsername: Username of the user to mute
+  // Param duration: 24h | 7d | 30d | forever
+  // Throws NotFoundException if target user not found
   async muteUser(
     muterId: string,
     mutedUsername: string,
@@ -373,12 +355,10 @@ export class FollowsService {
     };
   }
 
-  /**
-   * Unmute a previously muted user.
-   * @param muterId - The muting user's ID
-   * @param mutedUsername - Username to unmute
-   * @throws NotFoundException if target user not found
-   */
+  // Unmute a previously muted user.
+  // Param muterId: The muting user's ID
+  // Param mutedUsername: Username to unmute
+  // Throws NotFoundException if target user not found
   async unmuteUser(
     muterId: string,
     mutedUsername: string,
@@ -405,10 +385,8 @@ export class FollowsService {
     return { success: true };
   }
 
-  /**
-   * Get all users currently muted by the current user (expired rows are cleaned up).
-   * @param profileId - The authenticated user's ID
-   */
+  // Get all users currently muted by the current user (expired rows are cleaned up).
+  // Param profileId: The authenticated user's ID
   async getMutedUsers(profileId: string): Promise<MutedUserEntry[]> {
     await this.prisma.mute.deleteMany({
       where: {
@@ -431,10 +409,8 @@ export class FollowsService {
     }));
   }
 
-  /**
-   * Get all pending follow requests for the current user (private account).
-   * @param profileId - The authenticated user's ID
-   */
+  // Get all pending follow requests for the current user (private account).
+  // Param profileId: The authenticated user's ID
   async getPendingRequests(profileId: string): Promise<ProfileWithUser[]> {
     const pendingFollows = await this.prisma.follow.findMany({
       where: {
@@ -449,12 +425,10 @@ export class FollowsService {
     return pendingFollows.map((f) => f.follower);
   }
 
-  /**
-   * Accept a pending follow request from a specific user.
-   * @param profileId - The authenticated user's ID (the one being followed)
-   * @param requesterUsername - Username of the requester
-   * @throws NotFoundException if no pending request found
-   */
+  // Accept a pending follow request from a specific user.
+  // Param profileId: The authenticated user's ID (the one being followed)
+  // Param requesterUsername: Username of the requester
+  // Throws NotFoundException if no pending request found
   async acceptFollowRequest(
     profileId: string,
     requesterUsername: string,
@@ -497,12 +471,10 @@ export class FollowsService {
     return { success: true };
   }
 
-  /**
-   * Reject and delete a pending follow request.
-   * @param profileId - The authenticated user's ID
-   * @param requesterUsername - Username of the requester to reject
-   * @throws NotFoundException if no pending request found
-   */
+  // Reject and delete a pending follow request.
+  // Param profileId: The authenticated user's ID
+  // Param requesterUsername: Username of the requester to reject
+  // Throws NotFoundException if no pending request found
   async rejectFollowRequest(
     profileId: string,
     requesterUsername: string,

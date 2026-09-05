@@ -9,7 +9,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import type { CurrentAdminData } from '../decorators/current-admin.decorator.js';
 
-/** Permission scopes for Admin Panel staff (loaded from AdminPermission.key). */
+// Permission scopes for Admin Panel staff (loaded from AdminPermission.key).
 export type StaffPermission =
   | 'reports'
   | 'appeals'
@@ -29,17 +29,15 @@ export type StaffPermission =
 export const STAFF_PERMISSIONS_KEY = 'staff_permissions';
 export const ADMIN_STEP_UP_KEY = 'admin_step_up';
 
-/** Require one of the listed permissions (SUPER_ADMIN / all permissions pass). */
+// Require one of the listed permissions (SUPER_ADMIN / all permissions pass).
 export const RequireStaffPermissions = (...permissions: StaffPermission[]) =>
   SetMetadata(STAFF_PERMISSIONS_KEY, permissions);
 
-/** Require recent step-up re-auth (password or MFA) for critical mutations. */
+// Require recent step-up re-auth (password or MFA) for critical mutations.
 export const RequireAdminStepUp = () => SetMetadata(ADMIN_STEP_UP_KEY, true);
 
-/**
- * Authorizes Admin Panel operators after AdminJwtAuthGuard.
- * Permissions come from AdminIdentity roles in the DB.
- */
+// Authorizes Admin Panel operators after AdminJwtAuthGuard.
+// Permissions come from AdminIdentity roles in the DB.
 @Injectable()
 export class AdminGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}

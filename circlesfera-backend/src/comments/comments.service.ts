@@ -18,10 +18,8 @@ import {
 } from '../common/dto/pagination.dto.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 
-/**
- * Service for creating, listing, and deleting comments on posts.
- * Supports threaded replies (parentId), media attachments, and @mention notifications.
- */
+// Service for creating, listing, and deleting comments on posts.
+// Supports threaded replies (parentId), media attachments, and @mention notifications.
 @Injectable()
 export class CommentsService {
   constructor(
@@ -31,14 +29,12 @@ export class CommentsService {
     @InjectQueue('analytics-processing') private readonly analyticsQueue: Queue,
   ) {}
 
-  /**
-   * Create a comment on a post. Sends notifications to the post owner, mentioned users,
-   * and (if a reply) the parent comment author.
-   * @param postId - The post to comment on
-   * @param profileId - The commenting user's ID
-   * @param dto - Comment data (content, optional parentId, url, mediaType)
-   * @throws NotFoundException if the post does not exist
-   */
+  // Create a comment on a post. Sends notifications to the post owner, mentioned users,
+  // And (if a reply) the parent comment author.
+  // Param postId: The post to comment on
+  // Param profileId: The commenting user's ID
+  // Param dto: Comment data (content, optional parentId, url, mediaType)
+  // Throws NotFoundException if the post does not exist
   async create(postId: string, profileId: string, dto: CreateCommentDto) {
     const post = await this.prisma.post.findUnique({ where: { id: postId } });
 
@@ -97,7 +93,7 @@ export class CommentsService {
     // Handle Mentions
     if (dto.content) {
       // We can't use the simple regex here because we need to import it,
-      // but since we are modifying the file, let's just duplicate logic or cleaner:
+      // But since we are modifying the file, let's just duplicate logic or cleaner:
       // Actually I should import the utils I just created.
       // But let's look at the file content I have.
       // I will add the import in a separate block if needed, or I can use dynamic import or just regex here for safety if imports are tricky with replace_file_content
@@ -155,12 +151,10 @@ export class CommentsService {
     return comment;
   }
 
-  /**
-   * Retrieve top-level comments for a post with nested replies, paginated.
-   * @param postId - The post ID
-   * @param pagination - Page and limit parameters
-   * @param currentProfileId - Optional viewer profile for isLiked hydration
-   */
+  // Retrieve top-level comments for a post with nested replies, paginated.
+  // Param postId: The post ID
+  // Param pagination: Page and limit parameters
+  // Param currentProfileId: Optional viewer profile for isLiked hydration
   async findByPost(
     postId: string,
     pagination: PaginationDto,
@@ -221,13 +215,11 @@ export class CommentsService {
     return createPaginatedResult(comments, total, page, limit);
   }
 
-  /**
-   * Delete a comment. Only the comment author can delete.
-   * @param id - The comment ID
-   * @param profileId - The requesting user's ID
-   * @throws NotFoundException if comment not found
-   * @throws ForbiddenException if user is not the author
-   */
+  // Delete a comment. Only the comment author can delete.
+  // Param id: The comment ID
+  // Param profileId: The requesting user's ID
+  // Throws NotFoundException if comment not found
+  // Throws ForbiddenException if user is not the author
   async remove(id: string, profileId: string) {
     const comment = await this.prisma.comment.findUnique({
       where: { id },
@@ -249,7 +241,7 @@ export class CommentsService {
     });
   }
 
-  /** Like a comment */
+  // Like a comment
   async likeComment(commentId: string, profileId: string) {
     const comment = await this.prisma.comment.findUnique({
       where: { id: commentId },
@@ -278,7 +270,7 @@ export class CommentsService {
     }
   }
 
-  /** Unlike a comment */
+  // Unlike a comment
   async unlikeComment(commentId: string, profileId: string) {
     const existingLike = await this.prisma.commentLike.findUnique({
       where: { commentId_profileId: { commentId, profileId } },

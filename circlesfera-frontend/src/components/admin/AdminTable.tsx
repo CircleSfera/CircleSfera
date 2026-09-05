@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Input, Select } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 
-// ─── Table ──────────────────────────────────────────────────────────
+// Table
 
 interface TableProps {
   headers: (string | React.ReactNode)[];
@@ -84,7 +84,7 @@ export function Table({
   );
 }
 
-// ─── Status Badge ───────────────────────────────────────────────────
+// Status Badge
 
 const STATUS_STYLES: Record<
   string,
@@ -137,7 +137,7 @@ export function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ─── Action Button ──────────────────────────────────────────────────
+// Action Button
 
 interface ActionButtonProps {
   onClick: (e: React.MouseEvent) => void;
@@ -193,7 +193,7 @@ export function ActionButton({
   );
 }
 
-// ─── Pagination ─────────────────────────────────────────────────────
+// Pagination
 
 interface PaginationProps {
   meta?: {
@@ -257,7 +257,7 @@ export function Pagination({ meta, onPageChange }: PaginationProps) {
   );
 }
 
-// ─── Filter Dropdown ──────────────────────────────────────────────
+// Filter Dropdown
 
 interface FilterDropdownProps {
   label: string;
@@ -289,7 +289,7 @@ export function FilterDropdown({
   );
 }
 
-// ─── Search Input ───────────────────────────────────────────────────
+// Search Input
 
 interface SearchInputProps {
   value: string;

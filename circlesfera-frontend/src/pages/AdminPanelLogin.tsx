@@ -12,10 +12,8 @@ import { useAdminAuthStore } from '../stores/adminAuthStore';
 
 type Step = 'credentials' | 'mfa' | 'mfa-setup';
 
-/**
- * Admin Panel login — same visual language as platform Login (modal-glass),
- * distinct copy/flow for staff auth.
- */
+// Admin Panel login — same visual language as platform Login (modal-glass),
+// Distinct copy/flow for staff auth.
 export default function AdminPanelLogin() {
   const { t } = useTranslation();
   const navigate = useNavigate();

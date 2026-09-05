@@ -35,10 +35,8 @@ export function isFeatureSlug(value: string): value is FeatureSlug {
   return (FEATURE_SLUGS as readonly string[]).includes(value);
 }
 
-/**
- * Guest deep-dive under /features/:slug — copy, then product mock.
- * Authenticated users are sent to the real product surface.
- */
+// Guest deep-dive under /features/:slug — copy, then product mock.
+// Authenticated users are sent to the real product surface.
 export default function FeatureDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const { t } = useTranslation();
@@ -144,7 +142,7 @@ export default function FeatureDetailPage() {
   );
 }
 
-/** Legacy /explore/:feature → /features/:slug */
+// Legacy /explore/:feature → /features/:slug
 export function ExploreFeatureRedirect() {
   const { feature } = useParams<{ feature: string }>();
   if (feature && isFeatureSlug(feature)) {

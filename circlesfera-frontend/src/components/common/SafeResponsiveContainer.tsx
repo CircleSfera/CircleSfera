@@ -5,15 +5,13 @@ import { ResponsiveContainer } from 'recharts';
 interface SafeResponsiveContainerProps
   extends React.ComponentProps<typeof ResponsiveContainer> {
   children: React.ReactElement;
-  /** Optional explicit height for the wrapper div. Defaults to '100%'. */
+  // Optional explicit height for the wrapper div. Defaults to '100%'.
   wrapperHeight?: string | number;
 }
 
-/**
- * A wrapper for Recharts ResponsiveContainer that ensures the component is only
- * rendered when its parent container has a valid, non-zero width and height.
- * This prevents "The width(-1) and height(-1) of chart should be greater than 0" warnings.
- */
+// A wrapper for Recharts ResponsiveContainer that ensures the component is only
+// Rendered when its parent container has a valid, non-zero width and height.
+// This prevents "The width(-1) and height(-1) of chart should be greater than 0" warnings.
 export const SafeResponsiveContainer: React.FC<
   SafeResponsiveContainerProps
 > = ({ children, wrapperHeight = '100%', ...props }) => {

@@ -37,7 +37,7 @@ export const usersApi = {
     isOnboarded?: boolean;
   }) => apiClient.put('/users/me/settings', data),
 
-  /** Schedule account deletion (30-day GDPR grace). Canonical endpoint. */
+  // Schedule account deletion (30-day GDPR grace). Canonical endpoint.
   scheduleDeletion: () =>
     apiClient.delete<{
       success: boolean;
@@ -45,7 +45,7 @@ export const usersApi = {
       scheduled_deletion_at: string;
     }>('/users/me'),
 
-  /** Cancel scheduled deletion within the grace window. */
+  // Cancel scheduled deletion within the grace window.
   cancelScheduledDeletion: () =>
     apiClient.post<{ success: boolean; message: string }>('/users/me/restore'),
 };

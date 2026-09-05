@@ -25,7 +25,7 @@ interface Props {
   onClose: () => void;
 }
 
-/** Bottom sheet navigation for mobile (< lg). Unmounts when closed so it cannot peek. */
+// Bottom sheet navigation for mobile (< lg). Unmounts when closed so it cannot peek.
 export function AdminMobileDrawer({
   activeTab,
   onTabChange,
@@ -35,7 +35,7 @@ export function AdminMobileDrawer({
   const { t } = useTranslation();
   const sheetRef = useRef<HTMLDivElement>(null);
   const hasPermission = useAdminAuthStore((s) => s.hasPermission);
-  /** Keep in DOM while open or exiting so translate can animate. */
+  // Keep in DOM while open or exiting so translate can animate.
   const [mounted, setMounted] = useState(isOpen);
   const [entered, setEntered] = useState(false);
 

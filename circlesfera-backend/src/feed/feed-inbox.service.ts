@@ -45,10 +45,8 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /**
-   * Pushes a new post ID to the inbox of multiple followers.
-   * Limits each inbox to a predefined capacity to save memory.
-   */
+  // Pushes a new post ID to the inbox of multiple followers.
+  // Limits each inbox to a predefined capacity to save memory.
   async fanoutToFollowers(
     followerIds: string[],
     postId: string,
@@ -74,9 +72,7 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /**
-   * Reads the inbox for a specific user with pagination.
-   */
+  // Reads the inbox for a specific user with pagination.
   async getInbox(
     profileId: string,
     skip: number,
@@ -94,9 +90,7 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /**
-   * Utility to check if a user's inbox is empty (cache miss or inactive user).
-   */
+  // Utility to check if a user's inbox is empty (cache miss or inactive user).
   async isInboxEmpty(profileId: string): Promise<boolean> {
     if (!this.redisClient) return true;
     const key = `user:${profileId}:inbox`;
@@ -104,11 +98,9 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
     return length === 0;
   }
 
-  /**
-   * Smart Fan-out strategy:
-   * Standard creators (< 5000 followers) get fan-out on write (push to all followers).
-   * Celebrity creators (>= 5000 followers) skip write fanout to avoid thundering herd.
-   */
+  // Smart Fan-out strategy:
+  // Standard creators (< 5000 followers) get fan-out on write (push to all followers).
+  // Celebrity creators (>= 5000 followers) skip write fanout to avoid thundering herd.
   async fanoutHybrid(
     authorId: string,
     followerIds: string[],
@@ -126,9 +118,7 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
     return { strategy: 'WRITE', fannedOutCount: followerIds.length };
   }
 
-  /**
-   * Invalidates Redis feed cache for a user.
-   */
+  // Invalidates Redis feed cache for a user.
   async invalidateUserFeedCache(profileId: string): Promise<void> {
     if (!this.redisClient) return;
     try {
@@ -142,9 +132,7 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /**
-   * Gets the total count of posts in the user's inbox
-   */
+  // Gets the total count of posts in the user's inbox
   async getInboxCount(profileId: string): Promise<number> {
     if (!this.redisClient) return 0;
     const key = `user:${profileId}:inbox`;

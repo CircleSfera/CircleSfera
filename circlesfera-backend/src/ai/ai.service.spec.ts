@@ -132,7 +132,7 @@ describe('AIService', () => {
         return null;
       });
 
-      // openai client exists, but throws error
+      // Openai client exists, but throws error
       openAiInstance.embeddings.create.mockRejectedValue(new Error('API Down'));
       const module = await Test.createTestingModule({
         providers: [

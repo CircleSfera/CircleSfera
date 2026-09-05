@@ -1,19 +1,14 @@
-/**
- * Re-encrypt Message.content from a legacy ENCRYPTION_KEY to a new one.
- *
- * Usage (local, from circlesfera-backend/):
- *   ENCRYPTION_KEY_LEGACY='default-secret-key-32-chars-long!' \
- *   ENCRYPTION_KEY='your-new-32+-char-secret................' \
- *   DATABASE_URL='postgresql://...' \
- *   npx tsx src/scripts/reencrypt-messages.ts [--dry-run]
- *
- * Usage (production container, after nest build):
- *   docker compose -f docker-compose.prod.yml exec backend \
- *     node dist/scripts/reencrypt-messages.js [--dry-run]
- *
- * If ENCRYPTION_KEY_LEGACY is omitted, the historical insecure default is used.
- * ALWAYS take a DB backup before running without --dry-run.
- */
+// Re-encrypt Message.content from a legacy ENCRYPTION_KEY to a new one.
+// Usage (local, from circlesfera-backend/):
+// ENCRYPTION_KEY_LEGACY='default-secret-key-32-chars-long!' \
+// ENCRYPTION_KEY='your-new-32+-char-secret................' \
+// DATABASE_URL='postgresql://...' \
+// Npx tsx src/scripts/reencrypt-messages.ts [--dry-run]
+// Usage (production container, after nest build):
+// Docker compose -f docker-compose.prod.yml exec backend \
+// Node dist/scripts/reencrypt-messages.js [--dry-run]
+// If ENCRYPTION_KEY_LEGACY is omitted, the historical insecure default is used.
+// ALWAYS take a DB backup before running without --dry-run.
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import pkg from 'pg';
@@ -92,7 +87,7 @@ async function main() {
           updated++;
           continue;
         } catch {
-          // try current key below
+          // Try current key below
         }
 
         try {

@@ -8,11 +8,9 @@ export interface ContentModerationResult {
   category_scores: Record<string, number>;
 }
 
-/**
- * Service for AI-powered features using the shared OPENAI_API_KEY:
- * embeddings, moderation, alt-text, and Studio Whisper transcription.
- * Falls back to mocks in development when OPENAI_API_KEY is absent.
- */
+// Service for AI-powered features using the shared OPENAI_API_KEY:
+// Embeddings, moderation, alt-text, and Studio Whisper transcription.
+// Falls back to mocks in development when OPENAI_API_KEY is absent.
 @Injectable()
 export class AIService {
   private readonly logger = new Logger(AIService.name);
@@ -35,18 +33,16 @@ export class AIService {
     }
   }
 
-  /** Whether a real OpenAI client is configured (not mock mode). */
+  // Whether a real OpenAI client is configured (not mock mode).
   isConfigured(): boolean {
     return this.openai !== null;
   }
 
-  /**
-   * Generate a 1536-dimension embedding vector for the given text.
-   * Uses OpenAI text-embedding-3-small in production; returns mock data otherwise.
-   * @param text - The input text to embed
-   * @returns A 1536-element float array
-   * @throws Error if API key is missing in production
-   */
+  // Generate a 1536-dimension embedding vector for the given text.
+  // Uses OpenAI text-embedding-3-small in production; returns mock data otherwise.
+  // Param text: The input text to embed
+  // Returns A 1536-element float array
+  // Throws Error if API key is missing in production
   async generateEmbedding(text: string): Promise<number[]> {
     if (!this.openai) {
       this.logger.warn(
@@ -73,17 +69,15 @@ export class AIService {
     }
   }
 
-  /** Generate a random 1536-dimension mock embedding for development use. */
+  // Generate a random 1536-dimension mock embedding for development use.
   private getMockEmbedding(): number[] {
     return Array.from({ length: 1536 }, () => (Math.random() * 2 - 1) * 0.1);
   }
 
-  /**
-   * Moderate content using OpenAI's Moderation API.
-   * Supports multi-modal moderation (text + images).
-   * @param text - The input text to moderate
-   * @param mediaUrls - Optional array of image URLs to moderate
-   */
+  // Moderate content using OpenAI's Moderation API.
+  // Supports multi-modal moderation (text + images).
+  // Param text: The input text to moderate
+  // Param mediaUrls: Optional array of image URLs to moderate
   async moderateContent(
     text: string,
     mediaUrls: string[] = [],
@@ -136,12 +130,10 @@ export class AIService {
     }
   }
 
-  /**
-   * Compute cosine similarity between two vectors (pure TypeScript fallback for pgvector).
-   * @param vecA - First embedding vector
-   * @param vecB - Second embedding vector
-   * @returns Similarity score between -1 and 1
-   */
+  // Compute cosine similarity between two vectors (pure TypeScript fallback for pgvector).
+  // Param vecA: First embedding vector
+  // Param vecB: Second embedding vector
+  // Returns Similarity score between -1 and 1
   calculateSimilarity(vecA: number[], vecB: number[]): number {
     let dotProduct = 0;
     let normA = 0;
@@ -154,10 +146,8 @@ export class AIService {
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
   }
 
-  /**
-   * Generate an accessibility description (alt-text) for an image.
-   * @param imageUrl - The public URL of the image
-   */
+  // Generate an accessibility description (alt-text) for an image.
+  // Param imageUrl: The public URL of the image
   async generateAltText(imageUrl: string): Promise<string> {
     if (!this.openai) {
       this.logger.warn(
@@ -195,10 +185,8 @@ export class AIService {
     }
   }
 
-  /**
-   * Generate a morning briefing summary for Slack based on daily metrics.
-   * @param metrics - Raw metrics from the database
-   */
+  // Generate a morning briefing summary for Slack based on daily metrics.
+  // Param metrics: Raw metrics from the database
   async generateMorningBriefing(metrics: any): Promise<string> {
     if (!this.openai) {
       return `👋 ¡Buenos días! Las métricas de ayer:\n- Nuevos usuarios: ${metrics.newUsers}\n- Posts creados: ${metrics.newPosts}\n- Reportes pendientes: ${metrics.pendingReports}\n- Nuevas suscripciones: ${metrics.newSubscriptions}\n\n(Modo Mock: OpenAI no configurado)`;
@@ -230,10 +218,8 @@ El mensaje debe tener menos de 100 palabras.`;
     }
   }
 
-  /**
-   * Transcribe audio/video via OpenAI Whisper. Returns timed segments.
-   * Throws Error('AI_SERVICE_UNAVAILABLE') when API key is missing.
-   */
+  // Transcribe audio/video via OpenAI Whisper. Returns timed segments.
+  // Throws Error('AI_SERVICE_UNAVAILABLE') when API key is missing.
   async transcribeAudio(
     mediaUrl: string,
   ): Promise<{ start: number; end: number; text: string }[]> {

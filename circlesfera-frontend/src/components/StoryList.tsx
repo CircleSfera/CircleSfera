@@ -9,13 +9,9 @@ import type { Story } from '../types';
 import UserAvatar from './UserAvatar';
 import type { VerificationLevel } from './VerificationBadge';
 
-/**
- * StoryList — Layout Guidelines section 20 & Design System section 9.5
- * Story avatars: md (40px) inside a ring, total visual ~52px
- * Container: compact horizontal scroll strip
- * Spacing: gap-3 (12px) between items
- * Label: 11px (--text-badge)
- */
+// Story avatars: md (40px) inside a ring, total visual ~52px
+// Compact horizontal scroll strip with gap-3 (12px) between items
+// Label uses 11px (--text-badge)
 export default function StoryList() {
   const profile = useAuthStore((state) => state.profile);
   const openStories = useStoryStore((state) => state.openStories);
@@ -203,7 +199,7 @@ export default function StoryList() {
                     <div
                       className="absolute bottom-0 right-0 w-4.5 h-4.5 rounded-full flex items-center justify-center z-10"
                       style={{
-                        background: '#0095f6', // Instagram blue
+                        background: '#0095f6', // Live badge accent
                         border: '2px solid #000000', // Cutout effect
                       }}
                     >

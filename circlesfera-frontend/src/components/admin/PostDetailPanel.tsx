@@ -7,7 +7,7 @@ interface Props {
   post: AdminPost;
 }
 
-/** Compact post preview for AdminSplitView detail pane (no overlay). */
+// Compact post preview for AdminSplitView detail pane (no overlay).
 export default function PostDetailPanel({ post }: Props) {
   const { t } = useTranslation();
   const username = post.user?.profile?.username || t('admin.shared.unknown');

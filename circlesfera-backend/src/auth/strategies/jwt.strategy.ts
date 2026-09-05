@@ -12,10 +12,8 @@ export interface JwtPayload {
   email: string;
 }
 
-/**
- * Custom extractor: tries HTTP-only cookie first, then Authorization header.
- * This provides backwards compatibility during the migration period.
- */
+// Custom extractor: tries HTTP-only cookie first, then Authorization header.
+// This provides backwards compatibility during the migration period.
 function cookieOrHeaderExtractor(req: Request): string | null {
   // 1. Try cookie first
   const cookies = req?.cookies as Record<string, string> | undefined;

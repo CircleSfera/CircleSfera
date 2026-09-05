@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-/** Debounce a changing value by `delay` ms. */
+// Debounce a changing value by `delay` ms.
 export function useDebouncedValue<T>(value: T, delay = 300): T {
   const [debounced, setDebounced] = useState(value);
 

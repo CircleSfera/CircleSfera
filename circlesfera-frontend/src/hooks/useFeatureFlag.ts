@@ -1,9 +1,7 @@
 import { useExperimentStore } from '../stores/useExperimentStore';
 
-/**
- * Hook to check if a feature flag is enabled.
- * Returns false if flags are not loaded yet or if the flag is off.
- */
+// Hook to check if a feature flag is enabled.
+// Returns false if flags are not loaded yet or if the flag is off.
 export const useFeatureFlag = (flagKey: string): boolean => {
   const flags = useExperimentStore((state) => state.flags);
 
@@ -11,9 +9,7 @@ export const useFeatureFlag = (flagKey: string): boolean => {
   return flags[flagKey] ?? false;
 };
 
-/**
- * Hook to get the loading status of experiments.
- */
+// Hook to get the loading status of experiments.
 export const useExperimentsLoaded = (): boolean => {
   return useExperimentStore((state) => state.isLoaded);
 };

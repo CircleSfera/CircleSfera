@@ -49,10 +49,8 @@ export class PushService {
     });
   }
 
-  /**
-   * Send a push notification to a specific user.
-   * Sends to all registered devices for that user.
-   */
+  // Send a push notification to a specific user.
+  // Sends to all registered devices for that user.
   async sendNotification(
     userId: string,
     payload: { title: string; body: string; data?: any },

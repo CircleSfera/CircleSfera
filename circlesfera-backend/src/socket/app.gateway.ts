@@ -172,7 +172,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  // --- Real-time Notifications ---
+  // Real-time Notifications
   sendNotification(
     profileId: string,
     notification: {
@@ -185,14 +185,11 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(`user:${profileId}`).emit('notification', notification);
   }
 
-  /**
-   * Connected sockets for this gateway.
-   *
-   * Nest injects the `/events` Namespace into `@WebSocketServer()`, so
-   * `server.sockets` is already a `Map<id, Socket>`. Treating it as the
-   * root `Server` (`server.sockets.sockets`) throws and 500s after a
-   * message has already been persisted.
-   */
+  // Connected sockets for this gateway.
+  // Nest injects the `/events` Namespace into `@WebSocketServer()`, so
+  // `server.sockets` is already a `Map<id, Socket>`. Treating it as the
+  // Root `Server` (`server.sockets.sockets`) throws and 500s after a
+  // Message has already been persisted.
   private connectedSockets(): Iterable<SocketWithAuth> {
     const sockets = this.server?.sockets as
       | Map<string, SocketWithAuth>
@@ -203,9 +200,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return sockets.sockets?.values() ?? [];
   }
 
-  /**
-   * Helper to dynamically grant a user in-memory access to a new conversation room.
-   */
+  // Helper to dynamically grant a user in-memory access to a new conversation room.
   addConversationToSocket(profileId: string, conversationId: string) {
     for (const client of this.connectedSockets()) {
       if (client.data?.user?.profileId === profileId) {
@@ -217,7 +212,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  // --- Chat Actions (Typing, Reactions, etc.) ---
+  // Chat Actions (Typing, Reactions, etc.)
   @SubscribeMessage('typing_start')
   async handleTypingStart(
     @MessageBody() payload: { conversationId: string; recipientId: string },
@@ -296,7 +291,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
-  // --- WebRTC VOIP Signaling ---
+  // WebRTC VOIP Signaling
 
   @SubscribeMessage('call:invite')
   @SubscribeMessage('call:initiate')
@@ -397,7 +392,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(`user:${payload.targetId}`).emit('call:ended');
   }
 
-  // --- Live Streams ---
+  // Live Streams
 
   @SubscribeMessage('live:join')
   async handleLiveJoin(
@@ -548,7 +543,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
-  // --- Phase 2: Q&A and Live Goals ---
+  // Phase 2: Q&A and Live Goals
 
   @SubscribeMessage('live:ask_question')
   async handleLiveAskQuestion(
@@ -604,10 +599,8 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
-  /**
-   * Extract JWT token from socket handshake.
-   * Priority: 1) HTTP-only cookie  2) Authorization Bearer header
-   */
+  // Extract JWT token from socket handshake.
+  // Priority: 1) HTTP-only cookie 2) Authorization Bearer header
   private extractToken(client: Socket): string | undefined {
     const cookieHeader = client.handshake.headers.cookie;
 

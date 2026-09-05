@@ -9,7 +9,7 @@ interface SEOProps {
   ogImage?: string;
   ogType?: string;
   twitterHandle?: string;
-  /** When true, emits robots noindex,nofollow (e.g. 404 pages). */
+  // When true, emits robots noindex,nofollow (e.g. 404 pages).
   noIndex?: boolean;
 }
 
@@ -37,7 +37,7 @@ export default function SEO({
       {noIndex && <meta name="robots" content="noindex, nofollow" />}
       {canonical && <link rel="canonical" href={canonical} />}
 
-      {/* Open Graph / Facebook */}
+      {/* Open Graph meta tags */}
       <meta property="og:type" content={ogType} />
       <meta property="og:title" content={ogTitle || siteTitle} />
       <meta
@@ -46,7 +46,7 @@ export default function SEO({
       />
       <meta property="og:image" content={ogImage} />
 
-      {/* Twitter */}
+      {/* Twitter Card meta tags */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={ogTitle || siteTitle} />
       <meta

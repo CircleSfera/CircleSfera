@@ -12,10 +12,8 @@ interface State {
   error: Error | null;
 }
 
-/**
- * React error boundary that catches rendering errors in child components
- * and displays a friendly fallback UI instead of a blank screen.
- */
+// React error boundary that catches rendering errors in child components
+// And displays a friendly fallback UI instead of a blank screen.
 export default class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);

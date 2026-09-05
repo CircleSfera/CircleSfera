@@ -3,7 +3,7 @@ import { apiClient } from './api';
 // In index.ts lines 117 and 121 use Report, but it wasn't in the import list I saw in the snippet.
 // I will check if I need to add it or if it is global.
 // Actually, I should import it if it's used.
-// Let's assume it's in ../types or treat as any for now if missing, but better be safe.
+// Let's assume it's in../types or treat as any for now if missing, but better be safe.
 // Looking at index.ts imports (lines 13-36), Report is NOT imported.
 // It might be a global type or I missed it.
 // Wait, looking at index.ts again... lines 117 `apiClient.get<Report[]>`...

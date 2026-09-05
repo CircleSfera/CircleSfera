@@ -6,7 +6,7 @@ import { Dialog } from '../ui/Dialog';
 export interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Optional input value when `showInput` is true. */
+  // Optional input value when `showInput` is true.
   onConfirm: (inputValue?: string) => void;
   title: string;
   message: string;
@@ -14,7 +14,7 @@ export interface ConfirmModalProps {
   cancelText?: string;
   isDestructive?: boolean;
   isLoading?: boolean;
-  /** Optional text field (e.g. rejection reason). */
+  // Optional text field (e.g. rejection reason).
   showInput?: boolean;
   inputLabel?: string;
   inputPlaceholder?: string;

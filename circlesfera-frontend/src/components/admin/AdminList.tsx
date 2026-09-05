@@ -13,7 +13,7 @@ interface AdminListRowAction {
   variant?: 'default' | 'danger';
   disabled?: boolean;
   icon?: LucideIcon;
-  /** Visual separator above this item (e.g. before destructive) */
+  // Visual separator above this item (e.g. before destructive)
   dividerBefore?: boolean;
 }
 
@@ -27,7 +27,7 @@ interface AdminListRowProps {
   secondaryActions?: AdminListRowAction[];
   onClick?: () => void;
   className?: string;
-  /** Marks row as selected for a11y (split views) */
+  // Marks row as selected for a11y (split views)
   selected?: boolean;
 }
 
@@ -37,7 +37,7 @@ interface MenuPosition {
   openUp: boolean;
 }
 
-/** Touch-friendly card row for mobile admin lists. */
+// Touch-friendly card row for mobile admin lists.
 export function AdminListRow({
   title,
   subtitle,
@@ -273,14 +273,14 @@ interface AdminListProps {
   emptyDescription?: string;
   emptyAction?: React.ReactNode;
   emptyIcon?: LucideIcon;
-  /** Mobile cards */
+  // Mobile cards
   mobile: React.ReactNode;
-  /** Desktop table (already wrapped in Table or raw) */
+  // Desktop table (already wrapped in Table or raw)
   desktop: React.ReactNode;
   className?: string;
 }
 
-/** Renders card stack on mobile and table on desktop. */
+// Renders card stack on mobile and table on desktop.
 export function AdminList({
   loading,
   isEmpty,

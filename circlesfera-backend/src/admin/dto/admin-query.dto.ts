@@ -6,12 +6,12 @@ export class AdminQueryDto extends PaginationDto {
   @IsString()
   search?: string;
 
-  /** Filter content lists by author / host user id. */
+  // Filter content lists by author / host user id.
   @IsOptional()
   @IsUUID()
   userId?: string;
 
-  /** Filter reports by AdminIdentity assignee. */
+  // Filter reports by AdminIdentity assignee.
   @IsOptional()
   @IsUUID()
   assignedAdminId?: string;
@@ -38,22 +38,22 @@ export class AdminQueryDto extends PaginationDto {
   @IsString()
   moderationStatus?: string;
 
-  /** AdminAuditLog.action filter (e.g. BAN_USER). */
+  // AdminAuditLog.action filter (e.g. BAN_USER).
   @IsOptional()
   @IsString()
   action?: string;
 
-  /** ISO date string — inclusive lower bound for createdAt. */
+  // ISO date string — inclusive lower bound for createdAt.
   @IsOptional()
   @IsString()
   from?: string;
 
-  /** ISO date string — inclusive upper bound for createdAt. */
+  // ISO date string — inclusive upper bound for createdAt.
   @IsOptional()
   @IsString()
   to?: string;
 
-  /** Stories: true = expired, false = still active. */
+  // Stories: true = expired, false = still active.
   @IsOptional()
   @IsString()
   @IsIn(['true', 'false'])

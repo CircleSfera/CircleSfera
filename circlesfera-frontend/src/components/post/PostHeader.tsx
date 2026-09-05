@@ -12,20 +12,17 @@ interface PostHeaderProps {
   post: Post;
   menuButtonRef: React.RefObject<HTMLButtonElement | null>;
   onMenuToggle: () => void;
-  /** Slightly larger avatar and padding for detail view */
+  // Slightly larger avatar and padding for detail view
   size?: 'default' | 'lg';
-  /** Show back arrow button directly in header */
+  // Show back arrow button directly in header
   showBack?: boolean;
 }
 
-/**
- * PostHeader — Layout Guidelines section 17.6
- * Contains: Avatar, Display Name, Username, Verification, Timestamp, More Menu
- * Compact height — never dominates the post
- * Avatar: 40px (md) standard, 44px detail
- */
+// Avatar, display name, username, verification, timestamp, and more menu
+// Compact height — never dominates the post
+// Avatar: 40px (md) standard, 44px detail
 
-/** Lightweight relative time — no date-fns dependency required */
+// Lightweight relative time — no date-fns dependency required
 function relativeTime(dateStr: string): string {
   try {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -47,9 +44,9 @@ function relativeTime(dateStr: string): string {
   }
 }
 
-/** Visibility indicator — uses Post['visibility'] if defined in shared types */
+// Visibility indicator — uses Post['visibility'] if defined in shared types
 const VisibilityIcon = ({ post }: { post: Post }) => {
-  // visibility may be on the base Post from shared; access safely
+  // Visibility may be on the base Post from shared; access safely
   const v = (post as any).visibility as string | undefined;
   if (!v || v === 'PUBLIC')
     return <Globe size={11} className="text-gray-400" aria-hidden="true" />;

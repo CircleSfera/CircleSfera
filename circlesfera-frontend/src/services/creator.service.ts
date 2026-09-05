@@ -1,7 +1,7 @@
 import type { PaginatedResponse } from '../types';
 import { apiClient } from './api';
 
-// ─── Types ───────────────────────────────────────────────────────
+// Types
 
 export interface CreatorStats {
   postCount: number;
@@ -66,7 +66,7 @@ export interface CreatorPromotion {
   id: string;
   targetType: string;
   targetId: string;
-  /** Remaining budget in integer cents. */
+  // Remaining budget in integer cents.
   budgetCents: number;
   dailyBudgetCents?: number | null;
   currency: string;
@@ -93,7 +93,7 @@ export interface CancelPromotionResult extends CreatorPromotion {
   };
 }
 
-// ─── API ─────────────────────────────────────────────────────────
+// API
 
 export const creatorApi = {
   getStats: () => apiClient.get<CreatorStats>('creator/stats'),

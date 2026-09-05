@@ -7,15 +7,13 @@ interface MarketingPageHeaderProps {
   description?: string;
   actions?: ReactNode;
   align?: 'left' | 'center';
-  /** Use h1 for page tops; h2 for in-page sections that already have a page h1. */
+  // Use h1 for page tops; h2 for in-page sections that already have a page h1.
   as?: 'h1' | 'h2';
   className?: string;
   children?: ReactNode;
 }
 
-/**
- * Shared guest page / section header.
- */
+// Shared guest page / section header.
 export function MarketingPageHeader({
   eyebrow,
   title,

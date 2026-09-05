@@ -6,9 +6,7 @@ import {
   ProductPrinciplesList,
 } from '../components/marketing';
 
-/**
- * Guest /principles — product principles (Principios).
- */
+// Guest /principles — product principles (Principios).
 export default function PrinciplesPage() {
   const { t } = useTranslation();
 

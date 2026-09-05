@@ -13,10 +13,8 @@ export class MaintenanceService {
     private readonly uploadsService: UploadsService,
   ) {}
 
-  /**
-   * Cleans up stories that have expired (expiresAt < now).
-   * Runs every hour.
-   */
+  // Cleans up stories that have expired (expiresAt < now).
+  // Runs every hour.
   @Cron(CronExpression.EVERY_HOUR)
   async cleanupExpiredStories() {
     this.logger.log('Starting cleanup of expired stories...');
@@ -84,10 +82,8 @@ export class MaintenanceService {
     }
   }
 
-  /**
-   * Checks for promotions that have ended and marks them COMPLETED.
-   * Runs every 30 minutes.
-   */
+  // Checks for promotions that have ended and marks them COMPLETED.
+  // Runs every 30 minutes.
   @Cron(CronExpression.EVERY_30_MINUTES)
   async checkExpiredPromotions() {
     this.logger.log('Checking for expired promotions...');
@@ -115,11 +111,9 @@ export class MaintenanceService {
     }
   }
 
-  /**
-   * Cleans up search history past expiresAt (GDPR 90-day retention),
-   * or older than 90 days when expiresAt was never set.
-   * Runs daily at midnight.
-   */
+  // Cleans up search history past expiresAt (GDPR 90-day retention),
+  // Or older than 90 days when expiresAt was never set.
+  // Runs daily at midnight.
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async cleanupOldSearchHistory() {
     this.logger.log('Cleaning up expired search history...');
@@ -146,10 +140,8 @@ export class MaintenanceService {
     }
   }
 
-  /**
-   * Purge resolved/rejected reports older than 2 years.
-   * Uses resolvedAt when set; otherwise updatedAt for RESOLVED/REJECTED.
-   */
+  // Purge resolved/rejected reports older than 2 years.
+  // Uses resolvedAt when set; otherwise updatedAt for RESOLVED/REJECTED.
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async purgeOldResolvedReports() {
     this.logger.log('Purging resolved reports older than 2 years...');
@@ -176,9 +168,7 @@ export class MaintenanceService {
     }
   }
 
-  /**
-   * Purge webhook_events older than 30 days.
-   */
+  // Purge webhook_events older than 30 days.
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async purgeOldWebhookEvents() {
     this.logger.log('Purging webhook events older than 30 days...');
@@ -201,9 +191,7 @@ export class MaintenanceService {
     }
   }
 
-  /**
-   * Lift temporary suspensions whose suspendedUntil has passed.
-   */
+  // Lift temporary suspensions whose suspendedUntil has passed.
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async liftExpiredSuspensions() {
     this.logger.log('Lifting expired temporary suspensions...');
@@ -248,11 +236,9 @@ export class MaintenanceService {
     }
   }
 
-  /**
-   * GDPR Hard Delete Worker: Permanently purges accounts whose scheduledDeletionAt has passed.
-   * Falls back to deletedAt + 30d for legacy rows without scheduledDeletionAt.
-   * Runs daily at midnight.
-   */
+  // GDPR Hard Delete Worker: Permanently purges accounts whose scheduledDeletionAt has passed.
+  // Falls back to deletedAt + 30d for legacy rows without scheduledDeletionAt.
+  // Runs daily at midnight.
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async purgeGdprDeletedUsers() {
     this.logger.log('Starting GDPR hard delete purge worker...');
@@ -324,10 +310,8 @@ export class MaintenanceService {
     }
   }
 
-  /**
-   * Worker to publish scheduled posts whose scheduledAt <= now.
-   * Runs every minute.
-   */
+  // Worker to publish scheduled posts whose scheduledAt <= now.
+  // Runs every minute.
   @Cron(CronExpression.EVERY_MINUTE)
   async publishScheduledPosts() {
     try {
@@ -382,7 +366,7 @@ export class MaintenanceService {
     }
   }
 
-  /** Drop stale first-party device signals (180 days without activity). */
+  // Drop stale first-party device signals (180 days without activity).
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async purgeStaleDeviceSignals() {
     const cutoff = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);

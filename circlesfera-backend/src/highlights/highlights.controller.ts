@@ -18,7 +18,7 @@ import { CreateHighlightDto } from './dto/create-highlight.dto.js';
 import { UpdateHighlightDto } from './dto/update-highlight.dto.js';
 import { HighlightsService } from './highlights.service.js';
 
-/** REST controller for story highlights. Create/delete require authentication. */
+// REST controller for story highlights. Create/delete require authentication.
 @Controller('highlights')
 export class HighlightsController {
   constructor(
@@ -26,7 +26,7 @@ export class HighlightsController {
     private readonly highlightsService: HighlightsService,
   ) {}
 
-  /** Create a new highlight from selected stories (requires auth). */
+  // Create a new highlight from selected stories (requires auth).
   @UseGuards(JwtAuthGuard)
   @Post()
   create(
@@ -36,7 +36,7 @@ export class HighlightsController {
     return this.highlightsService.create(user.profileId, createHighlightDto);
   }
 
-  /** Update a highlight (requires auth). */
+  // Update a highlight (requires auth).
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
   update(
@@ -51,25 +51,25 @@ export class HighlightsController {
     );
   }
 
-  /** List all highlights for a specific profile. */
+  // List all highlights for a specific profile.
   @Get('profile/:profileId')
   findAll(@Param('profileId') profileId: string) {
     return this.highlightsService.findAll(profileId);
   }
 
-  /** @deprecated Use GET highlights/profile/:profileId */
+  // Deprecated: Use GET highlights/profile/:profileId
   @Get('user/:profileId')
   findAllLegacy(@Param('profileId') profileId: string) {
     return this.highlightsService.findAll(profileId);
   }
 
-  /** Get a single highlight by ID. */
+  // Get a single highlight by ID.
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.highlightsService.findOne(id);
   }
 
-  /** Delete a highlight (requires auth). */
+  // Delete a highlight (requires auth).
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@CurrentUser() user: CurrentUserData, @Param('id') id: string) {

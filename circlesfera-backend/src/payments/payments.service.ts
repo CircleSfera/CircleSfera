@@ -48,7 +48,7 @@ export class PaymentsService {
     });
   }
 
-  /** Map Stripe status to our SubscriptionStatus enum. */
+  // Map Stripe status to our SubscriptionStatus enum.
   private mapStripeStatus(stripeStatus: string): SubscriptionStatus {
     const status = stripeStatus.toLowerCase();
     switch (status) {
@@ -238,7 +238,7 @@ export class PaymentsService {
     };
   }
 
-  /** Heal races: keep only the newly activated plan as ACTIVE. */
+  // Heal races: keep only the newly activated plan as ACTIVE.
   private async enforceSingleActivePlatformPlan(
     userId: string,
     keepPlanId: string,
@@ -310,18 +310,14 @@ export class PaymentsService {
     );
   }
 
-  /**
-   * Proxies signature verification to StripeService.
-   */
+  // Proxies signature verification to StripeService.
   constructEvent(payload: Buffer, sig: string) {
     return this.stripeService.constructEvent(payload, sig);
   }
 
-  /**
-   * Main processor for incoming Stripe webhook events.
-   * Idempotent: PROCESSED events are skipped; PENDING/FAILED are reprocessed.
-   * On handler failure marks FAILED and rethrows (controller returns 5xx).
-   */
+  // Main processor for incoming Stripe webhook events.
+  // Idempotent: PROCESSED events are skipped; PENDING/FAILED are reprocessed.
+  // On handler failure marks FAILED and rethrows (controller returns 5xx).
   async processWebhookEvent(event: any) {
     const existing = await this.prisma.webhookEvent.findUnique({
       where: { externalId: event.id },
@@ -1004,10 +1000,8 @@ export class PaymentsService {
     }
   }
 
-  /**
-   * Mirror a Connect Express payout into StripePayoutLog (ADR-0002).
-   * Does not create Transaction rows or call payouts.create.
-   */
+  // Mirror a Connect Express payout into StripePayoutLog.
+  // Does not create Transaction rows or call payouts.create.
   private mapConnectPayoutStatus(status: string): string {
     if (status === 'in_transit') return 'pending';
     return status;
@@ -1073,7 +1067,7 @@ export class PaymentsService {
     });
   }
 
-  /** Revoke unlock entitlements after refund or dispute. */
+  // Revoke unlock entitlements after refund or dispute.
   private async revokeAccessForPaymentIntent(paymentIntentId: string) {
     const tx = await this.prisma.transaction.findUnique({
       where: { stripePaymentIntentId: paymentIntentId },

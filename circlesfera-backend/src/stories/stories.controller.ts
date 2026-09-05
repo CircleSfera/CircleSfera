@@ -22,12 +22,12 @@ import {
   type StoryReactionWithUser,
 } from './stories.service.js';
 
-/** REST controller for ephemeral stories, views, and reactions. */
+// REST controller for ephemeral stories, views, and reactions.
 @Controller('stories')
 export class StoriesController {
   constructor(private readonly storiesService: StoriesService) {}
 
-  /** Create a new 24-hour ephemeral story. */
+  // Create a new 24-hour ephemeral story.
   @Post()
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   create(
@@ -37,14 +37,14 @@ export class StoriesController {
     return this.storiesService.create(user.profileId, createStoryDto);
   }
 
-  /** List all active stories (filtered by followed users). */
+  // List all active stories (filtered by followed users).
   @Get()
   @UseGuards(JwtOptionalGuard)
   findAll(@CurrentUser() user: CurrentUserData | null) {
     return this.storiesService.findAll(user?.profileId);
   }
 
-  /** Get active stories by a specific user. */
+  // Get active stories by a specific user.
   @Get('user/:username')
   @UseGuards(JwtOptionalGuard)
   findByUser(
@@ -54,14 +54,14 @@ export class StoriesController {
     return this.storiesService.findByUser(username, user?.profileId);
   }
 
-  /** Get all stories (archive) for the current user. */
+  // Get all stories (archive) for the current user.
   @Get('archive')
   @UseGuards(JwtAuthGuard)
   getArchive(@CurrentUser() user: CurrentUserData) {
     return this.storiesService.getArchive(user.profileId);
   }
 
-  /** Delete a story (author only). */
+  // Delete a story (author only).
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   async remove(
@@ -71,7 +71,7 @@ export class StoriesController {
     return this.storiesService.delete(id, user.profileId);
   }
 
-  /** Record a view on a story (idempotent). */
+  // Record a view on a story (idempotent).
   @Post(':id/view')
   @UseGuards(JwtAuthGuard)
   async view(
@@ -81,13 +81,13 @@ export class StoriesController {
     return this.storiesService.view(id, user.profileId);
   }
 
-  /** Get all viewers of a story. */
+  // Get all viewers of a story.
   @Get(':id/views')
   async getViews(@Param('id') id: string) {
     return this.storiesService.getViews(id);
   }
 
-  /** Add or update a reaction on a story. */
+  // Add or update a reaction on a story.
   @Post(':id/react')
   @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
   async react(
@@ -98,7 +98,7 @@ export class StoriesController {
     return this.storiesService.addReaction(id, user.profileId, dto.reaction);
   }
 
-  /** Get all reactions for a story. */
+  // Get all reactions for a story.
   @Get(':id/reactions')
   async getReactions(
     @Param('id') id: string,

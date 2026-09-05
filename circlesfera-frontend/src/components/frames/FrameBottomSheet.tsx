@@ -12,9 +12,9 @@ interface FrameBottomSheetProps {
   children: ReactNode;
   maxHeightClass?: string;
   showHandle?: boolean;
-  /** Bottom sheet (default) or centered card within the frame player */
+  // Bottom sheet (default) or centered card within the frame player
   align?: 'bottom' | 'center';
-  /** Optional id for aria-labelledby */
+  // Optional id for aria-labelledby
   titleId?: string;
 }
 

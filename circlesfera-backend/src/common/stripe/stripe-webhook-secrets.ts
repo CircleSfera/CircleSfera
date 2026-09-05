@@ -4,7 +4,7 @@ export function usableWebhookSecret(value: string | undefined): string | null {
   return value;
 }
 
-/** Platform secret first, then Connected-accounts destination. */
+// Platform secret first, then Connected-accounts destination.
 export function stripeWebhookSecrets(env: {
   platform?: string;
   connect?: string;

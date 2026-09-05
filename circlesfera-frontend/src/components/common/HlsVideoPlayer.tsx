@@ -6,7 +6,7 @@ import { logger } from '../../utils/logger';
 interface HlsVideoPlayerProps
   extends React.VideoHTMLAttributes<HTMLVideoElement> {
   src: string;
-  hlsUrl?: string; // Optional .m3u8 URL
+  hlsUrl?: string; // Optional.m3u8 URL
   isNext?: boolean; // If true, only prefetch metadata
 }
 

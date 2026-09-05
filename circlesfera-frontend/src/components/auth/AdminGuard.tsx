@@ -7,10 +7,8 @@ interface AdminGuardProps {
   children: ReactNode;
 }
 
-/**
- * UX guard for Admin Panel routes.
- * Security is enforced by AdminJwtAuthGuard on the API.
- */
+// UX guard for Admin Panel routes.
+// Security is enforced by AdminJwtAuthGuard on the API.
 export default function AdminGuard({ children }: AdminGuardProps) {
   const isAuthenticated = useAdminAuthStore((s) => s.isAuthenticated);
   const isSessionChecked = useAdminAuthStore((s) => s.isSessionChecked);

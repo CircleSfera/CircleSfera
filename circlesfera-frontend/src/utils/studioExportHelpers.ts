@@ -21,10 +21,8 @@ export function resolutionForAspect(aspect: AspectRatioType): {
   }
 }
 
-/**
- * Letterbox (contain) source into destination — matches FFmpeg
- * `scale=…:force_original_aspect_ratio=decrease` + centered overlay.
- */
+// Letterbox (contain) source into destination — matches FFmpeg
+// `scale=…:force_original_aspect_ratio=decrease` + centered overlay.
 export function containRect(
   srcW: number,
   srcH: number,
@@ -46,7 +44,7 @@ export function containRect(
   return { x: (dstW - w) / 2, y: 0, w, h };
 }
 
-/** Map CSS filter strings used in Studio to FFmpeg filter fragments. */
+// Map CSS filter strings used in Studio to FFmpeg filter fragments.
 export function cssFilterToFfmpeg(cssFilter: string): string {
   if (!cssFilter) return '';
   const parts: string[] = [];
@@ -101,7 +99,7 @@ export function cssFilterToFfmpeg(cssFilter: string): string {
   return parts.join(',');
 }
 
-/** Studio text fonts shipped under /fonts (Roboto Apache 2.0). */
+// Studio text fonts shipped under /fonts (Roboto Apache 2.0).
 export const STUDIO_DEFAULT_FONT_FAMILY = 'Roboto';
 
 export type StudioFontFace = {
@@ -138,7 +136,7 @@ export function resolveStudioFontFile(
       };
 }
 
-/** CSS font-family string aligned with export whitelist. */
+// CSS font-family string aligned with export whitelist.
 export function resolveStudioCssFontFamily(fontFamily?: string): string {
   const face = resolveStudioFontFile(fontFamily, true);
   if (face.ffmpegFileName.includes('Bold')) {
@@ -152,7 +150,7 @@ export function isConstrainedDevice(): boolean {
   try {
     if (window.matchMedia('(max-width: 767px)').matches) return true;
   } catch {
-    // ignore
+    // Ignore
   }
   const memory = (navigator as Navigator & { deviceMemory?: number })
     .deviceMemory;
@@ -160,7 +158,7 @@ export function isConstrainedDevice(): boolean {
   return false;
 }
 
-/** Cap long edge for weak devices while preserving aspect ratio. */
+// Cap long edge for weak devices while preserving aspect ratio.
 export function scaleResolutionForExport(
   width: number,
   height: number,
@@ -193,7 +191,7 @@ export function escapeDrawText(text: string): string {
     .replace(/%/g, '\\%');
 }
 
-/** Convert #rgb / #rrggbb / rgba() to FFmpeg drawtext color (`0xRRGGBB` or `0xRRGGBB@A`). */
+// Convert #rgb / #rrggbb / rgba() to FFmpeg drawtext color (`0xRRGGBB` or `0xRRGGBB@A`).
 export function cssColorToFfmpeg(color: string): string {
   if (!color || color === 'transparent') return '0x000000@0';
   const hex = color.trim();
@@ -225,10 +223,8 @@ export function cssColorToFfmpeg(color: string): string {
   return color.replace('#', '0x');
 }
 
-/**
- * Visual clips from all non-hidden video tracks, track order then startAt
- * (first track = bottom layer — matches preview stacking).
- */
+// Visual clips from all non-hidden video tracks, track order then startAt
+// (first track = bottom layer — matches preview stacking).
 export function visualClipsOnVideoTracks(project: StudioProject): MediaClip[] {
   const result: MediaClip[] = [];
   for (const track of project.tracks) {
@@ -242,7 +238,7 @@ export function visualClipsOnVideoTracks(project: StudioProject): MediaClip[] {
   return result;
 }
 
-/** @deprecated use visualClipsOnVideoTracks */
+// Deprecated: use visualClipsOnVideoTracks
 export function visualClipsOnVideoTrack(project: StudioProject): MediaClip[] {
   return visualClipsOnVideoTracks(project);
 }
@@ -263,7 +259,7 @@ export function textClipsOnTracks(project: StudioProject): TextClip[] {
     .filter((c): c is TextClip => c.type === 'text');
 }
 
-/** Collect remote media URLs from a v3 studio project state (for draft cleanup). */
+// Collect remote media URLs from a v3 studio project state (for draft cleanup).
 export function collectStudioMediaUrls(state: unknown): string[] {
   if (!state || typeof state !== 'object') return [];
   const version = (state as { version?: number }).version;
@@ -290,7 +286,7 @@ export function collectStudioMediaUrls(state: unknown): string[] {
   return [...urls];
 }
 
-/** Map Whisper absolute media times onto the timeline clip window. */
+// Map Whisper absolute media times onto the timeline clip window.
 export function mapCaptionSegmentsToTimeline(
   segments: { start: number; end: number; text: string }[],
   clip: MediaClip,

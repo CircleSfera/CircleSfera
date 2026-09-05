@@ -7,13 +7,13 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { LikesService } from './likes.service.js';
 
-/** REST controller for post likes. All endpoints require authentication. */
+// REST controller for post likes. All endpoints require authentication.
 @Controller('posts/:postId/likes')
 @UseGuards(JwtAuthGuard)
 export class LikesController {
   constructor(private readonly likesService: LikesService) {}
 
-  /** Toggle like/unlike on a post. */
+  // Toggle like/unlike on a post.
   @Post('toggle')
   async toggle(
     @Param('postId') postId: string,
@@ -22,7 +22,7 @@ export class LikesController {
     return this.likesService.toggle(postId, user.profileId, user.userId);
   }
 
-  /** Check if the current user has liked a post. */
+  // Check if the current user has liked a post.
   @SkipThrottle()
   @Get('check')
   async check(

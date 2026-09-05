@@ -8,7 +8,7 @@ interface PostContentProps {
   likesCount: number;
   hideCaption?: boolean;
   hideStats?: boolean;
-  /** When true, hide the "view all comments" link (already on detail page) */
+  // When true, hide the "view all comments" link (already on detail page)
   isDetailMode?: boolean;
 }
 

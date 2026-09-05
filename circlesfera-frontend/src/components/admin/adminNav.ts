@@ -66,7 +66,7 @@ export interface AdminNavGroup {
   items: AdminNavItem[];
 }
 
-/** Admin Panel permission required per tab. */
+// Admin Panel permission required per tab.
 export const ADMIN_TAB_PERMISSIONS: Record<AdminTab, string> = {
   analytics: 'users.read',
   monetization: 'payments',
@@ -291,15 +291,13 @@ export function isAdminTab(tab: string | undefined): tab is AdminTab {
   return !!tab && (ADMIN_TAB_IDS as string[]).includes(tab);
 }
 
-/** SPA path for a tab on the Admin Panel host (no /admin prefix). */
+// SPA path for a tab on the Admin Panel host (no /admin prefix).
 export function adminTabPath(tab: AdminTab, query = ''): string {
   return `/${tab}${query}`;
 }
 
-/**
- * Post-login / index home: Trust when permitted, else first nav tab the
- * operator can open, else analytics.
- */
+// Post-login / index home: Trust when permitted, else first nav tab the
+// Operator can open, else analytics.
 export function getAdminHomeTab(
   hasPermission: (key: string) => boolean,
 ): AdminTab {

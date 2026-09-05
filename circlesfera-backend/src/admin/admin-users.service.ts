@@ -53,7 +53,7 @@ export class AdminUsersService {
     @Inject(TurnstileService) private readonly turnstile: TurnstileService,
   ) {}
 
-  /** Log every admin action for accountability. */
+  // Log every admin action for accountability.
   async logAction(
     adminId: string,
     action: AdminAction,
@@ -76,7 +76,7 @@ export class AdminUsersService {
     });
   }
 
-  /** Helper to invalidate a profile cache by userId. */
+  // Helper to invalidate a profile cache by userId.
   private async invalidateProfileCache(userId: string) {
     try {
       const profiles = await this.prisma.profile.findMany({
@@ -93,7 +93,7 @@ export class AdminUsersService {
     }
   }
 
-  /** Notification.recipientId is a Profile.id; resolve from account User.id. */
+  // Notification.recipientId is a Profile.id; resolve from account User.id.
   private async resolvePrimaryProfileId(
     userId: string,
   ): Promise<string | null> {
@@ -104,7 +104,7 @@ export class AdminUsersService {
     return profile?.id ?? null;
   }
 
-  /** Paginated users with optional search and status filter. Includes role and post count. */
+  // Paginated users with optional search and status filter. Includes role and post count.
   async getUsers(
     page = 1,
     limit = 10,
@@ -276,10 +276,8 @@ export class AdminUsersService {
     return result;
   }
 
-  /**
-   * @deprecated Platform User.role no longer grants Admin Panel access.
-   * Creates/activates a linked AdminIdentity with SUPER_ADMIN.
-   */
+  // Deprecated: Platform User.role no longer grants Admin Panel access.
+  // Creates/activates a linked AdminIdentity with SUPER_ADMIN.
   async promoteUser(adminId: string, userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
@@ -338,7 +336,7 @@ export class AdminUsersService {
     return { adminIdentityId: identityId, email: user.email };
   }
 
-  /** Disables linked AdminIdentity for a platform user. */
+  // Disables linked AdminIdentity for a platform user.
   async demoteUser(adminId: string, userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
@@ -759,7 +757,7 @@ export class AdminUsersService {
     };
   }
 
-  /** Accounts sharing device or signup IP hash with this user (hashes never returned). */
+  // Accounts sharing device or signup IP hash with this user (hashes never returned).
   async getLinkedAccounts(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -1050,9 +1048,7 @@ export class AdminUsersService {
     return [header, ...rows].join('\n');
   }
 
-  /**
-   * Resolved OOM vulnerability by processing active users in chunks using keyset (cursor) pagination.
-   */
+  // Resolved OOM vulnerability by processing active users in chunks using keyset (cursor) pagination.
   async sendBroadcastEmail(adminId: string, dto: BroadcastEmailDto) {
     let cursor: string | undefined;
     const batchSize = 100;

@@ -12,7 +12,7 @@ interface VoiceRecorderProps {
     voiceWaveform: number[];
   }) => void;
   onCancel?: () => void;
-  /** Icon-only idle button for compact layouts (e.g. comment composer) */
+  // Icon-only idle button for compact layouts (e.g. comment composer)
   compact?: boolean;
 }
 

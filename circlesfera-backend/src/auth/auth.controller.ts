@@ -41,17 +41,15 @@ import {
 } from './dto/index.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 
-/** Handles authentication endpoints: register, login, token refresh, logout, email verification, and password reset. */
+// Handles authentication endpoints: register, login, token refresh, logout, email verification, and password reset.
 @ApiTags('Authentication')
 @Controller('auth')
 @UseGuards(ThrottlerGuard)
 export class AuthController {
   constructor(@Inject(AuthService) private readonly authService: AuthService) {}
 
-  /**
-   * Read the refresh token from the http-only cookie.
-   * Falls back to the request body for backwards compatibility.
-   */
+  // Read the refresh token from the http-only cookie.
+  // Falls back to the request body for backwards compatibility.
   private getRefreshToken(
     req: Request,
     body?: { refreshToken?: string },
@@ -60,7 +58,7 @@ export class AuthController {
     return cookies?.[REFRESH_TOKEN_COOKIE] || body?.refreshToken || '';
   }
 
-  /** Register a new user and return JWT tokens as HTTP-only cookies. */
+  // Register a new user and return JWT tokens as HTTP-only cookies.
   @Post('register')
   @Throttle({
     short: {
@@ -89,7 +87,7 @@ export class AuthController {
     return { message: 'Registration successful' };
   }
 
-  /** Authenticate with email/username and password. Sets tokens as HTTP-only cookies. */
+  // Authenticate with email/username and password. Sets tokens as HTTP-only cookies.
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @Throttle({
@@ -119,7 +117,7 @@ export class AuthController {
     return { message: 'Login successful' };
   }
 
-  /** Rotate tokens. Reads refresh token from cookie (or body for backward compat). */
+  // Rotate tokens. Reads refresh token from cookie (or body for backward compat).
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @Throttle({
@@ -153,7 +151,7 @@ export class AuthController {
     return { message: 'Tokens refreshed' };
   }
 
-  /** Revoke a refresh token and clear auth cookies (requires authentication). */
+  // Revoke a refresh token and clear auth cookies (requires authentication).
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -169,14 +167,14 @@ export class AuthController {
     res.clearCookie(REFRESH_TOKEN_COOKIE, clearCookieOptions);
   }
 
-  /** Verify user's email with a one-time token. */
+  // Verify user's email with a one-time token.
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   async verifyEmail(@Body() dto: VerifyEmailDto) {
     return this.authService.verifyEmail(dto);
   }
 
-  /** Resend the email verification link (authenticated). */
+  // Resend the email verification link (authenticated).
   @Post('resend-verification')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
@@ -190,35 +188,35 @@ export class AuthController {
     return this.authService.resendVerification(user.userId);
   }
 
-  /** Request a password reset email. */
+  // Request a password reset email.
   @Post('request-reset')
   @HttpCode(HttpStatus.OK)
   async requestReset(@Body() dto: RequestResetDto) {
     return this.authService.requestPasswordReset(dto);
   }
 
-  /** Reset password using a valid reset token. */
+  // Reset password using a valid reset token.
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
   }
 
-  /** Get all active sessions for the current user. */
+  // Get all active sessions for the current user.
   @Get('sessions')
   @UseGuards(JwtAuthGuard)
   async getSessions(@CurrentUser() user: CurrentUserData) {
     return this.authService.getUserSessions(user.userId);
   }
 
-  /** Revoke all other active sessions for the current user. */
+  // Revoke all other active sessions for the current user.
   @Delete('sessions/other')
   @UseGuards(JwtAuthGuard)
   async revokeOtherSessions(@CurrentUser() user: CurrentUserData) {
     return this.authService.revokeOtherSessions(user.userId);
   }
 
-  /** Revoke a specific active session by ID. */
+  // Revoke a specific active session by ID.
   @Delete('sessions/:id')
   @UseGuards(JwtAuthGuard)
   async revokeSession(

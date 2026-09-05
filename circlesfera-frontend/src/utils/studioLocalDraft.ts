@@ -1,7 +1,5 @@
-/**
- * Local IndexedDB buffer for Studio projects before/alongside cloud drafts.
- * Survives refresh when media is still blob: URLs (cloud autosave cannot run yet).
- */
+// Local IndexedDB buffer for Studio projects before/alongside cloud drafts.
+// Survives refresh when media is still blob: URLs (cloud autosave cannot run yet).
 
 import type { StudioProject } from '../types/studio';
 import { serializeStudioProject } from './studioProject';
@@ -90,6 +88,6 @@ export async function clearLocalStudioDraft(): Promise<void> {
     });
     db.close();
   } catch {
-    // ignore
+    // Ignore
   }
 }

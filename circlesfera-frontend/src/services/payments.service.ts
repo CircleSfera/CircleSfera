@@ -1,13 +1,13 @@
 import { apiClient as api } from './api';
 
 export const paymentsApi = {
-  /** Get all available platform subscription plans. */
+  // Get all available platform subscription plans.
   getPlans: async () => {
     const response = await api.get('/payments/plans');
     return response.data;
   },
 
-  /** Create a Stripe Checkout session for a platform plan. */
+  // Create a Stripe Checkout session for a platform plan.
   createSubscriptionCheckout: async (
     planId: string,
     billingCycle: 'MONTHLY' | 'YEARLY' = 'MONTHLY',
@@ -19,19 +19,19 @@ export const paymentsApi = {
     return response.data; // { url: string }
   },
 
-  /** Get Stripe Customer Portal URL to manage billing. */
+  // Get Stripe Customer Portal URL to manage billing.
   getBillingPortalUrl: async () => {
     const response = await api.get('/payments/portal');
     return response.data; // { url: string }
   },
 
-  /** Get billing status for the current user */
+  // Get billing status for the current user
   getBillingStatus: async () => {
     const response = await api.get('/payments/status');
     return response.data;
   },
 
-  /** Download Financial Ledger (CSV) for the current user */
+  // Download Financial Ledger (CSV) for the current user
   getLedger: async () => {
     const response = await api.get('/payments/ledger', {
       responseType: 'blob',
@@ -39,7 +39,7 @@ export const paymentsApi = {
     return response.data;
   },
 
-  /** Download Full Financial Ledger (CSV) for Admin */
+  // Download Full Financial Ledger (CSV) for Admin
   getAdminLedger: async () => {
     const response = await api.get('/payments/admin/ledger', {
       responseType: 'blob',

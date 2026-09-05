@@ -7,9 +7,7 @@ import {
   ProductChaptersList,
 } from '../components/marketing';
 
-/**
- * Guest /features — product surfaces with previews.
- */
+// Guest /features — product surfaces with previews.
 export default function FeaturesPage() {
   const { t } = useTranslation();
 

@@ -33,11 +33,9 @@ import type {
   VerifyEmailDto,
 } from './dto/index.js';
 
-/**
- * Service responsible for authentication, registration, and session management.
- * Handles password hashing (Argon2), JWT token generation/rotation, email verification,
- * and password reset flows. Supports legacy bcrypt migration on login.
- */
+// Service responsible for authentication, registration, and session management.
+// Handles password hashing (Argon2), JWT token generation/rotation, email verification,
+// And password reset flows. Supports legacy bcrypt migration on login.
 
 @Injectable()
 export class AuthService {
@@ -55,14 +53,12 @@ export class AuthService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
-  /**
-   * Register a new user with email, username, and password.
-   * Creates a user record with an Argon2-hashed password, sends a verification email,
-   * and returns JWT tokens for immediate session initialization.
-   * @param dto - Registration data (email, username, password, optional fullName)
-   * @returns Access and refresh token pair
-   * @throws ConflictException if email or username already exists
-   */
+  // Register a new user with email, username, and password.
+  // Creates a user record with an Argon2-hashed password, sends a verification email,
+  // And returns JWT tokens for immediate session initialization.
+  // Param dto: Registration data (email, username, password, optional fullName)
+  // Returns Access and refresh token pair
+  // Throws ConflictException if email or username already exists
   async register(
     dto: RegisterDto,
     meta: AbuseRequestMeta = {},
@@ -175,12 +171,10 @@ export class AuthService {
     );
   }
 
-  /**
-   * Verify a user's email address using a one-time token.
-   * @param dto - Contains the verification token from the email link
-   * @returns Success message
-   * @throws BadRequestException if token is invalid or expired
-   */
+  // Verify a user's email address using a one-time token.
+  // Param dto: Contains the verification token from the email link
+  // Returns Success message
+  // Throws BadRequestException if token is invalid or expired
   async verifyEmail(dto: VerifyEmailDto) {
     const user = await this.prisma.user.findUnique({
       where: { verificationToken: dto.token },
@@ -232,12 +226,10 @@ export class AuthService {
     return { message: 'Verification email sent' };
   }
 
-  /**
-   * Initiate a password reset by generating a token and emailing it.
-   * Returns a generic success message regardless of whether the user exists (security).
-   * @param dto - Contains the user's email
-   * @returns Generic success message
-   */
+  // Initiate a password reset by generating a token and emailing it.
+  // Returns a generic success message regardless of whether the user exists (security).
+  // Param dto: Contains the user's email
+  // Returns Generic success message
   async requestPasswordReset(dto: RequestResetDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -264,13 +256,11 @@ export class AuthService {
     return { message: 'If an account exists, a reset email has been sent' };
   }
 
-  /**
-   * Reset a user's password using a valid reset token.
-   * Hashes the new password with Argon2 and clears the reset token.
-   * @param dto - Contains the reset token and new password
-   * @returns Success message
-   * @throws BadRequestException if token is invalid or expired
-   */
+  // Reset a user's password using a valid reset token.
+  // Hashes the new password with Argon2 and clears the reset token.
+  // Param dto: Contains the reset token and new password
+  // Returns Success message
+  // Throws BadRequestException if token is invalid or expired
   async resetPassword(dto: ResetPasswordDto) {
     const user = await this.prisma.user.findUnique({
       where: { resetToken: dto.token },
@@ -302,14 +292,12 @@ export class AuthService {
     return { message: 'Password reset successfully' };
   }
 
-  /**
-   * Authenticate a user by email/username and password.
-   * Supports both Argon2 (modern) and bcrypt (legacy) password verification.
-   * Automatically migrates legacy bcrypt hashes to Argon2 on successful login.
-   * @param dto - Login credentials (email or username, password)
-   * @returns Access and refresh token pair
-   * @throws UnauthorizedException if credentials are invalid or account is deactivated
-   */
+  // Authenticate a user by email/username and password.
+  // Supports both Argon2 (modern) and bcrypt (legacy) password verification.
+  // Automatically migrates legacy bcrypt hashes to Argon2 on successful login.
+  // Param dto: Login credentials (email or username, password)
+  // Returns Access and refresh token pair
+  // Throws UnauthorizedException if credentials are invalid or account is deactivated
   async login(
     dto: LoginDto,
     meta: AbuseRequestMeta = {},
@@ -481,12 +469,10 @@ export class AuthService {
     );
   }
 
-  /**
-   * Login a user directly by ID (used for Passkey authentication).
-   * @param userId - The user's unique identifier
-   * @returns Access and refresh token pair
-   * @throws UnauthorizedException if user not found or inactive
-   */
+  // Login a user directly by ID (used for Passkey authentication).
+  // Param userId: The user's unique identifier
+  // Returns Access and refresh token pair
+  // Throws UnauthorizedException if user not found or inactive
   async loginById(
     userId: string,
     meta: AbuseRequestMeta = {},
@@ -547,12 +533,10 @@ export class AuthService {
     );
   }
 
-  /**
-   * Rotate a refresh token: validates the old one, deletes it, and issues a new pair.
-   * @param dto - Contains the current refresh token
-   * @returns New access and refresh token pair
-   * @throws UnauthorizedException if token is invalid, expired, or not found
-   */
+  // Rotate a refresh token: validates the old one, deletes it, and issues a new pair.
+  // Param dto: Contains the current refresh token
+  // Returns New access and refresh token pair
+  // Throws UnauthorizedException if token is invalid, expired, or not found
   async refreshToken(
     dto: RefreshTokenDto,
     meta: AbuseRequestMeta = {},
@@ -603,11 +587,9 @@ export class AuthService {
     }
   }
 
-  /**
-   * Invalidate a specific refresh token for the given user.
-   * @param userId - The authenticated user's ID
-   * @param refreshToken - The refresh token to revoke
-   */
+  // Invalidate a specific refresh token for the given user.
+  // Param userId: The authenticated user's ID
+  // Param refreshToken: The refresh token to revoke
   async logout(userId: string, refreshToken: string): Promise<void> {
     await this.prisma.refreshToken.deleteMany({
       where: {
@@ -617,9 +599,7 @@ export class AuthService {
     });
   }
 
-  /**
-   * Get all active sessions for a user.
-   */
+  // Get all active sessions for a user.
   async getUserSessions(userId: string) {
     const sessions = await this.prisma.refreshToken.findMany({
       where: {
@@ -639,9 +619,7 @@ export class AuthService {
     return sessions;
   }
 
-  /**
-   * Revoke a specific session by ID for a user.
-   */
+  // Revoke a specific session by ID for a user.
   async revokeSession(userId: string, sessionId: string) {
     await this.prisma.refreshToken.deleteMany({
       where: {
@@ -652,9 +630,7 @@ export class AuthService {
     return { success: true };
   }
 
-  /**
-   * Revoke all sessions for a user except an optional current session ID.
-   */
+  // Revoke all sessions for a user except an optional current session ID.
   async revokeOtherSessions(userId: string, currentSessionId?: string) {
     await this.prisma.refreshToken.deleteMany({
       where: {
@@ -665,15 +641,13 @@ export class AuthService {
     return { success: true };
   }
 
-  /**
-   * Generate a new access/refresh token pair and persist the refresh token in the database.
-   * Access tokens expire in 15 minutes; refresh tokens expire in 7 days.
-   * @param userId - User ID to encode in the JWT payload
-   * @param email - User email to encode in the JWT payload
-   * @param userAgent - Optional client browser/device User-Agent string
-   * @param ipAddress - Optional client IP address
-   * @returns Signed access and refresh token pair
-   */
+  // Generate a new access/refresh token pair and persist the refresh token in the database.
+  // Access tokens expire in 15 minutes; refresh tokens expire in 7 days.
+  // Param userId: User ID to encode in the JWT payload
+  // Param email: User email to encode in the JWT payload
+  // Param userAgent: Optional client browser/device User-Agent string
+  // Param ipAddress: Optional client IP address
+  // Returns Signed access and refresh token pair
   public async generateTokens(
     userId: string,
     email: string,

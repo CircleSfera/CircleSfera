@@ -1,6 +1,6 @@
 import type { Clip, MediaClip, StudioProject } from '../types/studio';
 
-/** Strip non-serializable File handles before persisting to the API. */
+// Strip non-serializable File handles before persisting to the API.
 export function serializeStudioProject(project: StudioProject): StudioProject {
   return {
     ...project,
@@ -16,7 +16,7 @@ export function serializeStudioProject(project: StudioProject): StudioProject {
   };
 }
 
-/** First remote media URL suitable for EditProject.mediaUrl (required column). */
+// First remote media URL suitable for EditProject.mediaUrl (required column).
 export function getPrimaryMediaUrl(project: StudioProject): string | null {
   for (const track of project.tracks) {
     for (const clip of track.clips) {

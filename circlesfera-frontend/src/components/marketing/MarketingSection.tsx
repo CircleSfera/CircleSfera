@@ -9,14 +9,14 @@ interface MarketingSectionProps {
   description?: string;
   children?: ReactNode;
   className?: string;
-  /** Narrower content column (FAQ / forms). */
+  // Narrower content column (FAQ / forms).
   narrow?: boolean;
-  /** Wider column for product-led chapter rows with previews. */
+  // Wider column for product-led chapter rows with previews.
   wide?: boolean;
   align?: 'left' | 'center';
 }
 
-/** Section wrapper — product landing scale. */
+// Section wrapper — product landing scale.
 export function MarketingSection({
   id,
   eyebrow,

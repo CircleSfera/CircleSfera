@@ -6,11 +6,9 @@ const primaryProfileSelect = {
   orderBy: { createdAt: 'asc' as const },
 };
 
-/**
- * Notification.senderId and Report.reporterId FK to Profile.
- * Resolve the operator's linked platform user → primary profile.
- * Omit sender when the AdminIdentity has no link or that user has no profile.
- */
+// Notification.senderId and Report.reporterId FK to Profile.
+// Resolve the operator's linked platform user → primary profile.
+// Omit sender when the AdminIdentity has no link or that user has no profile.
 export async function resolveAdminNotificationSenderId(
   prisma: PrismaService,
   adminId: string,
@@ -26,7 +24,7 @@ export async function resolveAdminNotificationSenderId(
   return admin?.linkedUser?.profiles[0]?.id;
 }
 
-/** First ACTIVE panel operator with a social profile — used by automated moderation. */
+// First ACTIVE panel operator with a social profile — used by automated moderation.
 export async function resolveSystemModeratorActor(
   prisma: PrismaService,
 ): Promise<{ userId: string; profileId: string } | undefined> {

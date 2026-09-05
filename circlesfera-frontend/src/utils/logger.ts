@@ -1,12 +1,9 @@
-/**
- * Development-only logger. All output is suppressed in production builds.
- *
- * Usage:
- *   import { logger } from '../utils/logger';
- *   logger.log('connected');
- *   logger.warn('token expired');
- *   logger.error('request failed', err);
- */
+// Development-only logger. All output is suppressed in production builds.
+// Usage:
+// Import { logger } from '../utils/logger';
+// Logger.log('connected');
+// Logger.warn('token expired');
+// Logger.error('request failed', err);
 
 const isDev = import.meta.env.DEV;
 

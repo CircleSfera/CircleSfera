@@ -8,7 +8,7 @@ interface Props {
   onClose: () => void;
 }
 
-/** Studio section list for mobile. App chrome (Home, Create, Profile) is BottomNav. */
+// Studio section list for mobile. App chrome (Home, Create, Profile) is BottomNav.
 export function CreatorMobileDrawer({ isOpen, onClose }: Props) {
   const { t } = useTranslation();
 

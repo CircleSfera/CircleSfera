@@ -332,10 +332,8 @@ export class LiveService {
     return { success: true };
   }
 
-  /**
-   * Create a Stripe Checkout session for a live gift.
-   * Price is resolved from the server-side catalog (client price ignored).
-   */
+  // Create a Stripe Checkout session for a live gift.
+  // Price is resolved from the server-side catalog (client price ignored).
   async sendGift(
     streamId: string,
     senderId: string,
@@ -469,10 +467,8 @@ export class LiveService {
     };
   }
 
-  /**
-   * Called from Stripe webhook after successful payment.
-   * Persists ledger rows, updates earnings, broadcasts to the live room.
-   */
+  // Called from Stripe webhook after successful payment.
+  // Persists ledger rows, updates earnings, broadcasts to the live room.
   @OnEvent('payment.live_gift_completed')
   async handleLiveGiftPayment(payload: {
     liveGiftId: string;
@@ -515,7 +511,7 @@ export class LiveService {
     }
 
     if (existing.status === 'COMPLETED') {
-      return; // idempotent
+      return; // Idempotent
     }
 
     const result = await this.prisma.$transaction(async (tx) => {

@@ -138,7 +138,7 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
         !path.startsWith('/accounts') &&
         !path.startsWith('/explore')
       ) {
-        const username = path.substring(1).split('?')[0]; // remove leading slash
+        const username = path.substring(1).split('?')[0]; // Remove leading slash
         const profile = await this.prisma.profile.findFirst({
           where: { username: { equals: username, mode: 'insensitive' } },
           include: {
@@ -169,14 +169,14 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
     <title>${title}</title>
     <meta name="description" content="${description}">
     
-    <!-- Open Graph / Facebook -->
+    <!-- Open Graph meta tags -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="${baseUrl}${path}">
     <meta property="og:title" content="${title}">
     <meta property="og:description" content="${description}">
     <meta property="og:image" content="${imageUrl}">
 
-    <!-- Twitter -->
+    <!-- Twitter Card meta tags -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="${baseUrl}${path}">
     <meta property="twitter:title" content="${title}">
@@ -190,9 +190,7 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
 </html>`;
   }
 
-  /**
-   * Dynamically renders a 1200x630 SVG OpenGraph Card for a Post.
-   */
+  // Dynamically renders a 1200x630 SVG OpenGraph Card for a Post.
   async generatePostOgImage(postId: string): Promise<string> {
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
@@ -240,9 +238,7 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
     </svg>`;
   }
 
-  /**
-   * Dynamically renders a 1200x630 SVG OpenGraph Card for a Profile.
-   */
+  // Dynamically renders a 1200x630 SVG OpenGraph Card for a Profile.
   async generateProfileOgImage(username: string): Promise<string> {
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },

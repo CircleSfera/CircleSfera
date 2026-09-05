@@ -3,11 +3,9 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
-/**
- * Builds the redis:// connection string used for the cache store.
- * Exported separately so the URL-building/escaping logic can be unit tested
- * without spinning up a real Redis connection.
- */
+// Builds the redis:// connection string used for the cache store.
+// Exported separately so the URL-building/escaping logic can be unit tested
+// Without spinning up a real Redis connection.
 export function buildRedisCacheUrl(
   host = 'localhost',
   port = 6379,

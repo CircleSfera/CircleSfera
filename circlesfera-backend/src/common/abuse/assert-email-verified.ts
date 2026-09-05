@@ -30,7 +30,7 @@ export async function assertEmailVerifiedForWrite(
   );
 }
 
-/** Kept so callers that catch Nest ForbiddenException still work. */
+// Kept so callers that catch Nest ForbiddenException still work.
 export function emailNotVerifiedForbidden(): ForbiddenException {
   return new ForbiddenException({ message: 'EMAIL_NOT_VERIFIED' });
 }

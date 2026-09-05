@@ -12,10 +12,8 @@ export interface SearchResponse {
   semanticProfiles: any[];
 }
 
-/**
- * Service for user search, hashtag search, AI-powered semantic search, and search history.
- * Uses cache-manager for embedding caching and AIService for vector similarity.
- */
+// Service for user search, hashtag search, AI-powered semantic search, and search history.
+// Uses cache-manager for embedding caching and AIService for vector similarity.
 @Injectable()
 export class SearchService {
   constructor(
@@ -24,11 +22,9 @@ export class SearchService {
     @Inject(AIService) private readonly aiService: AIService,
   ) {}
 
-  /**
-   * AI-powered semantic search for posts.
-   * Uses vector similarity to find content that matches the concept of the query,
-   * even if exact keywords aren't present.
-   */
+  // AI-powered semantic search for posts.
+  // Uses vector similarity to find content that matches the concept of the query,
+  // Even if exact keywords aren't present.
   async semanticSearchPosts(
     query: string,
     limit = 10,
@@ -102,9 +98,7 @@ export class SearchService {
     }
   }
 
-  /**
-   * AI-powered semantic search for profiles using pgvector distance.
-   */
+  // AI-powered semantic search for profiles using pgvector distance.
   async semanticSearchProfiles(
     query: string,
     limit = 10,
@@ -172,11 +166,9 @@ export class SearchService {
     }
   }
 
-  /**
-   * Perform a combined search for users and hashtags. Saves search history if authenticated.
-   * @param query - The search query (min 2 chars)
-   * @param profileId - Optional authenticated user ID for history tracking
-   */
+  // Perform a combined search for users and hashtags. Saves search history if authenticated.
+  // Param query: The search query (min 2 chars)
+  // Param profileId: Optional authenticated user ID for history tracking
   async search(query: string, profileId?: string): Promise<SearchResponse> {
     if (!query || query.length < 2) {
       return {
@@ -246,10 +238,8 @@ export class SearchService {
     return result;
   }
 
-  /**
-   * Get the user's 10 most recent unique search queries.
-   * @param profileId - The authenticated user's ID
-   */
+  // Get the user's 10 most recent unique search queries.
+  // Param profileId: The authenticated user's ID
   async getHistory(profileId: string) {
     return this.prisma.searchHistory.findMany({
       where: { profileId },
@@ -259,22 +249,18 @@ export class SearchService {
     });
   }
 
-  /**
-   * Clear all search history for a user.
-   * @param profileId - The authenticated user's ID
-   */
+  // Clear all search history for a user.
+  // Param profileId: The authenticated user's ID
   async clearHistory(profileId: string) {
     return this.prisma.searchHistory.deleteMany({
       where: { profileId },
     });
   }
 
-  /**
-   * Search for users with Social Discovery ranking.
-   * Priority: Mutual Connections (People you follow who follow them) > Verification Level > Followers Count.
-   * @param query - The search query
-   * @param viewerId - Optional ID of the user performing the search
-   */
+  // Search for users with Social Discovery ranking.
+  // Priority: Mutual Connections (People you follow who follow them) > Verification Level > Followers Count.
+  // Param query: The search query
+  // Param viewerId: Optional ID of the user performing the search
 
   async searchUsers(query: string, viewerId?: string): Promise<any[]> {
     if (!query || query.length < 2) return [];
@@ -349,11 +335,9 @@ export class SearchService {
     return rankedUsers.sort((a, b) => b.score - a.score).slice(0, 10);
   }
 
-  /**
-   * Get trending posts based on interaction Velocity (decays over time).
-   * Formula: (Likes_1h * 2 + Comments_1h * 5) / (Hours_Since_Post + 2)^1.8
-   * @param limit - Number of posts to return
-   */
+  // Get trending posts based on interaction Velocity (decays over time).
+  // Formula: (Likes_1h * 2 + Comments_1h * 5) / (Hours_Since_Post + 2)^1.8
+  // Param limit: Number of posts to return
   async getTrending(limit = 10): Promise<Post[]> {
     const cacheKey = `trending_v2:${limit}`;
     const cached = await this.cacheManager.get<Post[]>(cacheKey);
@@ -396,10 +380,8 @@ export class SearchService {
     return sortedPosts;
   }
 
-  /**
-   * Search posts with Authority Weighting and Velocity ranking.
-   * @param query - Keyword to search in captions
-   */
+  // Search posts with Authority Weighting and Velocity ranking.
+  // Param query: Keyword to search in captions
   async searchPosts(query: string): Promise<Post[]> {
     if (!query || query.length < 2) return [];
 

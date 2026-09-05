@@ -49,11 +49,9 @@ export function waitForServiceWorkerReady(
   });
 }
 
-/**
- * Returns an active service worker registration, registering one if needed.
- * Never waits on `navigator.serviceWorker.ready` without a timeout — that
- * promise does not reject when no worker is registered (Vite dev).
- */
+// Returns an active service worker registration, registering one if needed.
+// Never waits on `navigator.serviceWorker.ready` without a timeout — that
+// Promise does not reject when no worker is registered (Vite dev).
 export async function ensurePushServiceWorker(
   timeoutMs = PUSH_SW_READY_TIMEOUT_MS,
 ): Promise<ServiceWorkerRegistration> {
@@ -100,6 +98,6 @@ export function toPushSubscribePayload(
   }
 
   // Strip browser extras such as expirationTime — the API DTO forbids
-  // non-whitelisted fields.
+  // Non-whitelisted fields.
   return { endpoint, keys: { p256dh, auth } };
 }

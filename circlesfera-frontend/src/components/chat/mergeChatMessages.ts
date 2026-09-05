@@ -1,9 +1,7 @@
 import type { Message } from '../../types';
 
-/**
- * Keep optimistic/temp messages that the server list has not caught up with
- * yet, so an in-flight history fetch cannot wipe a just-sent bubble.
- */
+// Keep optimistic/temp messages that the server list has not caught up with
+// Yet, so an in-flight history fetch cannot wipe a just-sent bubble.
 export function mergeServerMessagesWithOptimistic(
   serverMessages: Message[],
   localMessages: Message[],

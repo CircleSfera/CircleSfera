@@ -26,14 +26,14 @@ import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { CreateReportDto } from './dto/create-report.dto.js';
 import { ReportsService } from './reports.service.js';
 
-/** REST controller for content/user reports. Auth required; admin-only for list/update. */
+// REST controller for content/user reports. Auth required; admin-only for list/update.
 @Controller('reports')
 export class ReportsController {
   constructor(
     @Inject(ReportsService) private readonly reportsService: ReportsService,
   ) {}
 
-  /** File a new report. */
+  // File a new report.
   @Post()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
@@ -44,7 +44,7 @@ export class ReportsController {
     return await this.reportsService.create(user.profileId, dto);
   }
 
-  /** List reports filed by the current user. */
+  // List reports filed by the current user.
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async findMyReports(
@@ -54,7 +54,7 @@ export class ReportsController {
     return this.reportsService.findMyReports(user.profileId, pagination);
   }
 
-  /** List all reports (admin only). */
+  // List all reports (admin only).
   @Get()
   @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('reports')
@@ -62,7 +62,7 @@ export class ReportsController {
     return this.reportsService.findAll(pagination);
   }
 
-  /** Update a report's status (admin only). */
+  // Update a report's status (admin only).
   @Patch(':id')
   @UseGuards(AdminJwtAuthGuard, AdminGuard)
   @RequireStaffPermissions('reports')

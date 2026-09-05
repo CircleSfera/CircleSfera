@@ -86,7 +86,7 @@ function FlagStatusBadge({
   );
 }
 
-/** Percentage slider + number input combo. */
+// Percentage slider + number input combo.
 function PercentageSlider({
   value,
   onChange,
@@ -125,7 +125,7 @@ function PercentageSlider({
   );
 }
 
-/** Sub-tab pill toggle. */
+// Sub-tab pill toggle.
 function SubTabToggle({
   activeTab,
   onTabChange,
@@ -165,7 +165,7 @@ function SubTabToggle({
   );
 }
 
-/** User autocomplete for experiment assignment. */
+// User autocomplete for experiment assignment.
 function UserAutocomplete({
   value,
   onChange,

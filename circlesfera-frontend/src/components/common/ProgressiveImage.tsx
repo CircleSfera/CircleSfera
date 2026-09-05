@@ -47,10 +47,7 @@ export default function ProgressiveImage({
 
   return (
     <div className={`relative overflow-hidden ${className}`}>
-      {/* 
-        To prevent blurred edges from bleeding out, we add a slight scale to the blurred image 
-        and wrap it in an overflow-hidden container.
-      */}
+      {/* To prevent blurred edges from bleeding out, we add a slight scale to the blurred image And wrap it in an overflow-hidden container. */}
       <img
         {...props}
         src={imgSrc}

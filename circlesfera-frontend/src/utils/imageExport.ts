@@ -47,7 +47,7 @@ export async function exportEditedImage(
         else if (cls.startsWith('hue-rotate-'))
           classFilters.push(`hue-rotate(${cls.split('rotate-')[1]}deg)`);
         else if (cls.startsWith('sepia-[')) {
-          // Extracts .15 -> 15
+          // Extracts.15 -> 15
           const match = cls.match(/sepia-\[\.?(\d+)\]/);
           if (match) {
             classFilters.push(`sepia(${match[1]}%)`);
@@ -192,7 +192,7 @@ export async function exportEditedImage(
           // Wait, overlay in PhotoEditor is drawn on top of the already rotated/cropped view?
           // No, CanvasOverlay in PhotoEditor is absolute and matches imageDims.
           // Wait, the original code had:
-          // ctx.drawImage(overlayImg, 0, 0, img.naturalWidth, img.naturalHeight);
+          // Ctx.drawImage(overlayImg, 0, 0, img.naturalWidth, img.naturalHeight);
           // Which was BEFORE reset transform! But now we did ctx.setTransform(1, 0, 0, 1, 0, 0);
           // Let's re-apply the rotation just for the overlay to match old behavior
           ctx.translate(bBoxWidth / 2, bBoxHeight / 2);
@@ -206,7 +206,7 @@ export async function exportEditedImage(
           drawNoise(processCropAndExport);
         };
         overlayImg.onerror = () => {
-          drawNoise(processCropAndExport); // fallback if overlay fails
+          drawNoise(processCropAndExport); // Fallback if overlay fails
         };
         overlayImg.src = overlayDataUrl;
       } else {

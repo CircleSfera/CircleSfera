@@ -4,35 +4,29 @@ import { authApi } from '../services/auth.service';
 import { profileApi } from '../services/profile.service';
 import type { ProfileWithUser } from '../types';
 
-/**
- * Auth state store.
- *
- * Tokens are NO LONGER stored in this store or localStorage.
- * They live exclusively in HTTP-only cookies managed by the backend.
- * This store only tracks the current user profile and authentication status.
- */
+// Auth state store.
+// Tokens are NO LONGER stored in this store or localStorage.
+// They live exclusively in HTTP-only cookies managed by the backend.
+// This store only tracks the current user profile and authentication status.
 interface AuthState {
   profile: ProfileWithUser | null;
   isAuthenticated: boolean;
   isCreatorModeActive: boolean;
-  /** Whether the persisted session has been validated against the backend this app load. */
+  // Whether the persisted session has been validated against the backend this app load.
   isSessionChecked: boolean;
-  /** Whether a session validation request is currently in flight (dedupe guard). */
+  // Whether a session validation request is currently in flight (dedupe guard).
   isCheckingSession: boolean;
   setCreatorMode: (active: boolean) => void;
   setAuthenticated: () => void;
   setProfile: (profile: ProfileWithUser) => void;
   logout: () => Promise<void>;
-  /**
-   * Validates the locally-persisted auth state against the backend by
-   * fetching the current profile. Persisted `isAuthenticated`/`profile`
-   * can be stale (e.g. the HTTP-only session cookie expired while the
-   * app was closed), so this must run once per app load before trusting
-   * them for protected routes.
-   *
-   * Safe to call multiple times: it no-ops while a check is already in
-   * flight or once it has already completed for this app load.
-   */
+  // Validates the locally-persisted auth state against the backend by
+  // Fetching the current profile. Persisted `isAuthenticated`/`profile`
+  // Can be stale (e.g. the HTTP-only session cookie expired while the
+  // App was closed), so this must run once per app load before trusting
+  // Them for protected routes.
+  // Safe to call multiple times: it no-ops while a check is already in
+  // Flight or once it has already completed for this app load.
   checkSession: () => Promise<void>;
 }
 
@@ -70,8 +64,8 @@ export const useAuthStore = create<AuthState>()(
           // Session cookie is missing/expired (401) or backend unreachable.
           // Clear local auth state so guards stop treating the user as logged in.
           // No backend logout call here: the session is already invalid, and
-          // the apiClient's own 401 interceptor already handles revocation
-          // for requests made elsewhere in the app.
+          // The apiClient's own 401 interceptor already handles revocation
+          // For requests made elsewhere in the app.
           set({
             profile: null,
             isAuthenticated: false,

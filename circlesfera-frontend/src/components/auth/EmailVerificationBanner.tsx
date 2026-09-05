@@ -7,11 +7,11 @@ import { useAuthStore } from '../../stores/authStore';
 import { Button } from '../ui';
 
 interface EmailVerificationBannerProps {
-  /** In-flow banner for immersive routes (/frames) where TopNav is hidden on mobile. */
+  // In-flow banner for immersive routes (/frames) where TopNav is hidden on mobile.
   immersive?: boolean;
 }
 
-/** Persistent banner until the signed-in user verifies email. */
+// Persistent banner until the signed-in user verifies email.
 export default function EmailVerificationBanner({
   immersive = false,
 }: EmailVerificationBannerProps) {

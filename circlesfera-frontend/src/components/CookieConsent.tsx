@@ -5,10 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { initSentry } from '../sentry';
 import { getCookieConsent, persistCookieConsent } from '../utils/cookieConsent';
 
-/**
- * Cookie consent banner. Persists choice to `cs_cookie_consent`.
- * Sentry is only initialized when analytics is accepted.
- */
+// Cookie consent banner. Persists choice to `cs_cookie_consent`.
+// Sentry is only initialized when analytics is accepted.
 export default function CookieConsent() {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);

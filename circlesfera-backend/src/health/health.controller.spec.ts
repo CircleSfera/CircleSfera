@@ -78,7 +78,7 @@ describe('HealthController', () => {
       // Verify that it passes an array of functions
       const callArgs = mockCheck.mock.calls[0][0] as unknown[];
       expect(Array.isArray(callArgs)).toBe(true);
-      expect(callArgs.length).toBe(5); // database, disk, heap, rss, redis
+      expect(callArgs.length).toBe(5); // Database, disk, heap, rss, redis
     });
   });
 });

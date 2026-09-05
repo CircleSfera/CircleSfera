@@ -11,7 +11,7 @@ interface PostGridProps {
   emptyMessage: string;
   emptySubtext: string;
   icon: React.ReactNode;
-  /** Posts: 4/5. Profile frame thumbnails: 3/4 (not full 9:16 — that is for the viewer). */
+  // Posts: 4/5. Profile frame thumbnails: 3/4 (not full 9:16 — that is for the viewer).
   aspectRatio?: '4/5' | '3/4';
   variant?: 'default' | 'frames';
   onLoadMore?: () => void;

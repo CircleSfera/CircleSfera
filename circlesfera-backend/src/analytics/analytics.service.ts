@@ -16,10 +16,8 @@ export class AnalyticsService {
     @InjectQueue('analytics-processing') private readonly analyticsQueue: Queue,
   ) {}
 
-  /**
-   * Automated task to aggregate stats for all active creators.
-   * Runs every day at midnight via BullMQ.
-   */
+  // Automated task to aggregate stats for all active creators.
+  // Runs every day at midnight via BullMQ.
   async handleDailyAggregation() {
     this.logger.log('Starting daily analytics aggregation... queueing jobs');
     try {
@@ -49,9 +47,7 @@ export class AnalyticsService {
     }
   }
 
-  /**
-   * Log a single telemetry event and update post performance score if applicable.
-   */
+  // Log a single telemetry event and update post performance score if applicable.
   async logEvent(userId: string | null, dto: CreateEventDto) {
     try {
       const event = await this.prisma.interactionEvent.create({
@@ -77,9 +73,7 @@ export class AnalyticsService {
     }
   }
 
-  /**
-   * Log a batch of telemetry events and update post performance scores.
-   */
+  // Log a batch of telemetry events and update post performance scores.
   async logEventsBatch(userId: string | null, dto: CreateEventBatchDto) {
     try {
       const data = dto.events.map((e) => ({
@@ -117,9 +111,7 @@ export class AnalyticsService {
     }
   }
 
-  /**
-   * Recalculates and updates the performance score for a given post.
-   */
+  // Recalculates and updates the performance score for a given post.
   async updatePostPerformanceScore(postId: string, additionalDwellTimeMs = 0) {
     try {
       const post = await this.prisma.post.findUnique({
@@ -175,9 +167,7 @@ export class AnalyticsService {
     }
   }
 
-  /**
-   * Clean up interaction events older than 90 days.
-   */
+  // Clean up interaction events older than 90 days.
   async cleanupOldEvents() {
     this.logger.log('Starting interaction events cleanup...');
     try {
@@ -195,10 +185,8 @@ export class AnalyticsService {
     }
   }
 
-  /**
-   * Records a view for a post.
-   * Increments the counter and creates a detailed view record if it's the first time for this user.
-   */
+  // Records a view for a post.
+  // Increments the counter and creates a detailed view record if it's the first time for this user.
   async trackPostView(postId: string, viewerId?: string) {
     try {
       // 1. Increment total views counter (simple & fast)
@@ -224,9 +212,7 @@ export class AnalyticsService {
     }
   }
 
-  /**
-   * Records a loop for a Frame (vertical video).
-   */
+  // Records a loop for a Frame (vertical video).
   async trackFrameLoop(postId: string) {
     try {
       await this.prisma.post.update({
@@ -238,9 +224,7 @@ export class AnalyticsService {
     }
   }
 
-  /**
-   * Records watch time for a Frame (vertical video).
-   */
+  // Records watch time for a Frame (vertical video).
   async trackFrameWatchTime(postId: string, seconds: number) {
     try {
       await this.prisma.post.update({
@@ -252,10 +236,8 @@ export class AnalyticsService {
     }
   }
 
-  /**
-   * Retrieves aggregated statistics for a creator's dashboard.
-   * @param profileId - Profile that owns the content / metrics
-   */
+  // Retrieves aggregated statistics for a creator's dashboard.
+  // Param profileId: Profile that owns the content / metrics
   async getCreatorDashboard(profileId: string, days = 30) {
     // 0. Force live sync of today's metrics before querying
     await this.performDailyAggregation(profileId);
@@ -332,10 +314,8 @@ export class AnalyticsService {
     };
   }
 
-  /**
-   * Task to take a daily snapshot of user metrics.
-   * This should be called by a cron job or at the end of the day.
-   */
+  // Task to take a daily snapshot of user metrics.
+  // This should be called by a cron job or at the end of the day.
   async performDailyAggregation(profileId: string) {
     const today = startOfDay(new Date());
 
@@ -382,9 +362,7 @@ export class AnalyticsService {
     });
   }
 
-  /**
-   * Detailed metrics for a specific post.
-   */
+  // Detailed metrics for a specific post.
   async getPostInsights(postId: string) {
     const post = await this.prisma.post.findUnique({
       where: { id: postId },

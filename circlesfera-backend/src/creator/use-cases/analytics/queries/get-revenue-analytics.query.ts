@@ -23,7 +23,7 @@ export class GetRevenueAnalyticsQuery {
             createdAt: { gte: startDate },
           },
         }),
-        Promise.resolve(0), // creatorSubscription.count
+        Promise.resolve(0), // CreatorSubscription.count
         this.prisma.follow.count({
           where: { followingId: profileId, status: 'ACCEPTED' },
         }),

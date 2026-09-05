@@ -447,7 +447,7 @@ export class SlackService {
     if (!action) return;
 
     const actionId = action.action_id;
-    const value = action.value; // e.g. ignore_123, delete_123, ban_123
+    const value = action.value; // E.g. ignore_123, delete_123, ban_123
     const reportId = value.split('_').slice(1).join('_');
 
     if (!reportId) {

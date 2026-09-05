@@ -6,9 +6,7 @@ import {
   ProductFaqList,
 } from '../components/marketing';
 
-/**
- * Guest /faq — product FAQ (dedicated page for footer Producto).
- */
+// Guest /faq — product FAQ (dedicated page for footer Producto).
 export default function FaqPage() {
   const { t } = useTranslation();
 

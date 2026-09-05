@@ -5,16 +5,14 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateHighlightDto } from './dto/create-highlight.dto.js';
 import type { UpdateHighlightDto } from './dto/update-highlight.dto.js';
 
-/** Service for story highlights: permanent curated groups of expired stories. */
+// Service for story highlights: permanent curated groups of expired stories.
 @Injectable()
 export class HighlightsService {
   constructor(@Inject(PrismaService) private prisma: PrismaService) {}
 
-  /**
-   * Create a new highlight from selected stories.
-   * @param profileId - The owner's profile ID
-   * @param createHighlightDto - Title, coverUrl, and story IDs
-   */
+  // Create a new highlight from selected stories.
+  // Param profileId: The owner's profile ID
+  // Param createHighlightDto: Title, coverUrl, and story IDs
   async create(profileId: string, createHighlightDto: CreateHighlightDto) {
     const { title, coverUrl, storyIds } = createHighlightDto;
 
@@ -41,10 +39,8 @@ export class HighlightsService {
     return highlight;
   }
 
-  /**
-   * List all highlights for a profile, ordered by creation date descending.
-   * @param profileId - The owner's profile ID
-   */
+  // List all highlights for a profile, ordered by creation date descending.
+  // Param profileId: The owner's profile ID
   async findAll(profileId: string) {
     return this.prisma.highlight.findMany({
       where: { profileId },
@@ -61,11 +57,9 @@ export class HighlightsService {
     });
   }
 
-  /**
-   * Get a single highlight by ID, with its stories.
-   * @param id - The highlight ID
-   * @throws NotFoundException if highlight not found
-   */
+  // Get a single highlight by ID, with its stories.
+  // Param id: The highlight ID
+  // Throws NotFoundException if highlight not found
   async findOne(id: string) {
     const highlight = await this.prisma.highlight.findUnique({
       where: { id },
@@ -92,12 +86,10 @@ export class HighlightsService {
     return highlight;
   }
 
-  /**
-   * Update a highlight (title, cover, or stories).
-   * @param id - Highlight ID
-   * @param profileId - Owner's profile ID
-   * @param updateHighlightDto - New data
-   */
+  // Update a highlight (title, cover, or stories).
+  // Param id: Highlight ID
+  // Param profileId: Owner's profile ID
+  // Param updateHighlightDto: New data
   async update(
     id: string,
     profileId: string,
@@ -140,12 +132,10 @@ export class HighlightsService {
     });
   }
 
-  /**
-   * Delete a highlight owned by the profile.
-   * @param id - The highlight ID
-   * @param profileId - The requesting profile ID (for ownership check)
-   * @throws NotFoundException if highlight not found or not owned
-   */
+  // Delete a highlight owned by the profile.
+  // Param id: The highlight ID
+  // Param profileId: The requesting profile ID (for ownership check)
+  // Throws NotFoundException if highlight not found or not owned
   async remove(id: string, profileId: string) {
     const highlight = await this.prisma.highlight.findFirst({
       where: { id, profileId },

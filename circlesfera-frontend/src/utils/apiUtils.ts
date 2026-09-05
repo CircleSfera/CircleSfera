@@ -31,10 +31,8 @@ export function handleApiError(error: unknown): never {
   logger.error('Unknown Error:', error);
   throw new Error('An unexpected error occurred');
 }
-/**
- * Sanitizes URLs by normalizing localhost:3000 and ensuring relative paths
- * are prepended with the backend base URL.
- */
+// Sanitizes URLs by normalizing localhost:3000 and ensuring relative paths
+// are prepended with the backend base URL.
 export function sanitizeUrl(
   url: string | null | undefined,
 ): string | undefined {
@@ -54,10 +52,8 @@ export function sanitizeUrl(
   return /^https?:\/\//i.test(processed) ? processed : `${baseUrl}${processed}`;
 }
 
-/**
- * Generates an ultra-low resolution blurred URL for Cloudinary images.
- * If the image is not from Cloudinary, returns undefined.
- */
+// Generates an ultra-low resolution blurred URL for Cloudinary images.
+// If the image is not from Cloudinary, returns undefined.
 export function getBlurFallbackUrl(
   url: string | null | undefined,
 ): string | undefined {

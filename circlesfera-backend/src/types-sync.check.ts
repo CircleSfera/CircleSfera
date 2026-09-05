@@ -12,15 +12,12 @@ export type PostSync = Omit<Post, 'profileId'>;
 export type StorySync = Omit<Story, 'profileId'>;
 export type CommentSync = Omit<Comment, 'profileId'>;
 
-/**
- * This file serves as a static type checker to ensure that the manually written
- * interfaces in `circlesfera-shared` remain compatible with the actual payloads
- * returned by Prisma.
- *
- * If a database migration alters a field (e.g. renaming `caption` to `text`),
- * this file will fail to compile (`npm run build`), alerting developers to update
- * the shared models.
- */
+// This file serves as a static type checker to ensure that the manually written
+// Interfaces in `circlesfera-shared` remain compatible with the actual payloads
+// Returned by Prisma.
+// If a database migration alters a field (e.g. renaming `caption` to `text`),
+// This file will fail to compile (`npm run build`), alerting developers to update
+// The shared models.
 
 // 1. Post Type Check
 type ExpectedPostPayload = Prisma.PostGetPayload<{

@@ -15,7 +15,7 @@ export class AdminService {
     private readonly systemSettings: SystemSettingsService,
   ) {}
 
-  /** Log every admin action for accountability. */
+  // Log every admin action for accountability.
   async logAction(
     adminId: string,
     action: AdminAction,
@@ -28,9 +28,9 @@ export class AdminService {
     });
   }
 
-  // ─── Statistics ───────────────────────────────────────────────────
+  // Statistics
 
-  /** Basic stats for backwards compatibility. */
+  // Basic stats for backwards compatibility.
   async getStats() {
     const [userCount, postCount, storyCount, activeReports] = await Promise.all(
       [
@@ -49,7 +49,7 @@ export class AdminService {
     };
   }
 
-  // ─── System Health ────────────────────────────────────────────────
+  // System Health
 
   async getSystemHealth() {
     // 1. Database Status
@@ -98,7 +98,7 @@ export class AdminService {
     };
   }
 
-  // ─── System Settings ─────────────────────────────────────────────
+  // System Settings
 
   async getSystemSettings() {
     return this.systemSettings.list();
@@ -134,7 +134,7 @@ export class AdminService {
     return { count };
   }
 
-  // ─── Firewall Rules ──────────────────────────────────────────────
+  // Firewall Rules
 
   async getFirewallRules(page = 1, limit = 20, search?: string) {
     const skip = (page - 1) * limit;

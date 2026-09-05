@@ -11,9 +11,7 @@ export const FAQ_KEYS = [
   'support',
 ] as const;
 
-/**
- * Accordion FAQ — used on /faq.
- */
+// Accordion FAQ — used on /faq.
 export function ProductFaqList() {
   const { t } = useTranslation();
 

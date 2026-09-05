@@ -14,14 +14,14 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { SearchService } from './search.service.js';
 
-/** REST controller for combined search, trending, user search, and search history. */
+// REST controller for combined search, trending, user search, and search history.
 @Controller('search')
 export class SearchController {
   constructor(
     @Inject(SearchService) private readonly searchService: SearchService,
   ) {}
 
-  /** Search for users and hashtags by text query. */
+  // Search for users and hashtags by text query.
   @Get()
   @UseGuards(JwtAuthGuard)
   async search(
@@ -32,28 +32,28 @@ export class SearchController {
     return results;
   }
 
-  /** Get trending posts based on interaction velocity. */
+  // Get trending posts based on interaction velocity.
   @Get('trending')
   @UseGuards(JwtAuthGuard)
   async getTrending(@Query('limit') limit?: number): Promise<any[]> {
     return this.searchService.getTrending(limit ? Number(limit) : 10);
   }
 
-  /** Search posts with velocity ranking. */
+  // Search posts with velocity ranking.
   @Get('posts')
   @UseGuards(JwtAuthGuard)
   async searchPosts(@Query('q') query: string): Promise<any[]> {
     return this.searchService.searchPosts(query);
   }
 
-  /** AI Semantic search for posts. */
+  // AI Semantic search for posts.
   @Get('ai')
   @UseGuards(JwtAuthGuard)
   async searchSemantic(@Query('q') query: string): Promise<any[]> {
     return this.searchService.semanticSearchPosts(query);
   }
 
-  /** AI Semantic search for profiles. */
+  // AI Semantic search for profiles.
   @Get('ai/profiles')
   @UseGuards(JwtAuthGuard)
   async searchSemanticProfiles(
@@ -63,7 +63,7 @@ export class SearchController {
     return this.searchService.semanticSearchProfiles(query, 10, user.profileId);
   }
 
-  /** Search for users by username or full name with Social Discovery ranking. */
+  // Search for users by username or full name with Social Discovery ranking.
   @Get('users')
   @UseGuards(JwtAuthGuard)
   async searchUsers(
@@ -73,7 +73,7 @@ export class SearchController {
     return this.searchService.searchUsers(query, user.profileId);
   }
 
-  /** Get the user's recent search history. */
+  // Get the user's recent search history.
   @Get('history')
   @UseGuards(JwtAuthGuard)
   async getHistory(
@@ -82,7 +82,7 @@ export class SearchController {
     return await this.searchService.getHistory(user.profileId);
   }
 
-  /** Clear the user's search history. */
+  // Clear the user's search history.
   @Delete('history')
   @UseGuards(JwtAuthGuard)
   async clearHistory(@CurrentUser() user: CurrentUserData): Promise<any> {

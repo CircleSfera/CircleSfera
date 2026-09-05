@@ -3,11 +3,9 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EmailTemplates } from './email-templates.js';
 
-/**
- * Service for sending transactional emails (verification, password reset, welcome).
- * Uses Brevo (formerly Sendinblue) API v3 via the official Node.js SDK (v5+).
- * Silently skips failures in non-production environments.
- */
+// Service for sending transactional emails (verification, password reset, welcome).
+// Uses Brevo (formerly Sendinblue) API v3 via the official Node.js SDK (v5+).
+// Silently skips failures in non-production environments.
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
@@ -24,11 +22,9 @@ export class EmailService {
     }
   }
 
-  /**
-   * Send a welcome email to a user who just joined the whitelist.
-   * @param email - The recipient's email address
-   * @param name - The recipient's name
-   */
+  // Send a welcome email to a user who just joined the whitelist.
+  // Param email: The recipient's email address
+  // Param name: The recipient's name
   async sendWelcomeEmail(email: string, name: string) {
     const frontendUrl =
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
@@ -40,11 +36,9 @@ export class EmailService {
     });
   }
 
-  /**
-   * Send an email verification link to a newly registered user.
-   * @param email - The recipient's email address
-   * @param token - The email verification token
-   */
+  // Send an email verification link to a newly registered user.
+  // Param email: The recipient's email address
+  // Param token: The email verification token
   async sendVerificationEmail(email: string, token: string) {
     const frontendUrl =
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
@@ -62,11 +56,9 @@ export class EmailService {
     });
   }
 
-  /**
-   * Send a password-reset link to the user.
-   * @param email - The recipient's email address
-   * @param token - The password-reset token (expires in 1 hour)
-   */
+  // Send a password-reset link to the user.
+  // Param email: The recipient's email address
+  // Param token: The password-reset token (expires in 1 hour)
   async sendPasswordResetEmail(email: string, token: string) {
     const frontendUrl =
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
@@ -80,15 +72,13 @@ export class EmailService {
     });
   }
 
-  /**
-   * Send a broadcast/newsletter email to a user.
-   * @param email - The recipient's email address
-   * @param subject - The email subject line
-   * @param title - The main heading inside the email
-   * @param content - The body text (can contain basic HTML)
-   * @param buttonText - Optional button label
-   * @param buttonUrl - Optional button link
-   */
+  // Send a broadcast/newsletter email to a user.
+  // Param email: The recipient's email address
+  // Param subject: The email subject line
+  // Param title: The main heading inside the email
+  // Param content: The body text (can contain basic HTML)
+  // Param buttonText: Optional button label
+  // Param buttonUrl: Optional button link
   async sendBroadcastEmail(
     email: string,
     subject: string,
@@ -104,9 +94,7 @@ export class EmailService {
     });
   }
 
-  /**
-   * Send a moderation notice to a user.
-   */
+  // Send a moderation notice to a user.
   async sendModerationEmail(
     email: string,
     userName: string,
@@ -126,9 +114,7 @@ export class EmailService {
     });
   }
 
-  /**
-   * Send a support ticket reply to a user.
-   */
+  // Send a support ticket reply to a user.
   async sendSupportReplyEmail(
     email: string,
     originalSubject: string,
@@ -144,9 +130,7 @@ export class EmailService {
     });
   }
 
-  /**
-   * Send a subscription receipt to a user.
-   */
+  // Send a subscription receipt to a user.
   async sendSubscriptionReceipt(
     email: string,
     planName: string,
@@ -162,10 +146,8 @@ export class EmailService {
     });
   }
 
-  /**
-   * Low-level method to send an email via Brevo API.
-   * @param options - Email options
-   */
+  // Low-level method to send an email via Brevo API.
+  // Param options: Email options
   private async sendMail(options: {
     to: string;
     subject: string;
@@ -193,7 +175,7 @@ export class EmailService {
       this.logger.log(`Email sent to ${options.to}: ${options.subject}`);
     } catch (error: unknown) {
       // Always log email failures with full detail for observability,
-      // but never propagate — a failed email must not block user-facing flows
+      // But never propagate — a failed email must not block user-facing flows
       // (registration, password reset, etc.). Users can request a resend.
       this.logger.error(
         `Failed to send email to ${options.to} (subject: "${options.subject}"). ` +
