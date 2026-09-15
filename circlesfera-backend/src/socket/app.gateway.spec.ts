@@ -559,4 +559,24 @@ describe('AppGateway payload bounds and authorization', () => {
       }),
     );
   });
+
+  it('dispatches real-time notification to user room on notification.dispatched event', () => {
+    const mockEmit = vi.fn();
+    const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
+    const gateway = gatewayWithServer({ to: mockTo });
+
+    const payload = {
+      recipientId: 'profile-10',
+      notification: {
+        id: 'notif-1',
+        type: 'LIKE',
+        content: 'liked your post',
+      },
+    };
+
+    gateway.handleNotificationDispatched(payload);
+
+    expect(mockTo).toHaveBeenCalledWith('user:profile-10');
+    expect(mockEmit).toHaveBeenCalledWith('notification', payload.notification);
+  });
 });

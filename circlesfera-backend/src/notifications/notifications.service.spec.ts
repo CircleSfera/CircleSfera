@@ -1,8 +1,8 @@
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PushService } from '../push/push.service.js';
-import { AppGateway } from '../socket/app.gateway.js';
 import { NotificationsService } from './notifications.service.js';
 
 describe('NotificationsService', () => {
@@ -17,16 +17,17 @@ describe('NotificationsService', () => {
       updateMany: vi.fn(),
       create: vi.fn(),
     },
-  };
-
-  const mockAppGateway = {
-    server: {
-      to: vi.fn().mockReturnThis(),
-      emit: vi.fn(),
+    userSettings: {
+      findFirst: vi.fn().mockResolvedValue({ pushNotifications: true }),
     },
   };
 
+  const mockEventEmitter = {
+    emit: vi.fn(),
+  };
+
   const mockPushService = {
+    sendNotification: vi.fn().mockResolvedValue(true),
     sendPushNotification: vi.fn().mockResolvedValue(true),
   };
 
@@ -35,7 +36,7 @@ describe('NotificationsService', () => {
       providers: [
         NotificationsService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: AppGateway, useValue: mockAppGateway },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
         { provide: PushService, useValue: mockPushService },
       ],
     }).compile();
@@ -69,10 +70,11 @@ describe('NotificationsService', () => {
       expect(result).toBeNull();
     });
 
-    it('should update notification status to read if owned by user', async () => {
+    it('should mark notification as read if it belongs to user', async () => {
       mockPrismaService.notification.findFirst.mockResolvedValue({
         id: 'notif-1',
         recipientId: 'user-1',
+        read: false,
       });
       mockPrismaService.notification.update.mockResolvedValue({
         id: 'notif-1',
@@ -97,6 +99,39 @@ describe('NotificationsService', () => {
         where: { recipientId: 'user-1', read: false },
         data: { read: true },
       });
+    });
+  });
+
+  describe('create and real-time event decoupling', () => {
+    it('should emit notification.dispatched domain event instead of calling AppGateway directly', async () => {
+      const createdNotification = {
+        id: 'notif-100',
+        recipientId: 'user-1',
+        senderId: 'user-2',
+        type: 'FOLLOW',
+        content: 'started following you',
+        postId: null,
+      };
+
+      mockPrismaService.notification.findFirst.mockResolvedValue(null);
+      mockPrismaService.notification.create.mockResolvedValue(
+        createdNotification,
+      );
+
+      await service.create({
+        recipientId: 'user-1',
+        senderId: 'user-2',
+        type: 'FOLLOW' as any,
+        content: 'started following you',
+      });
+
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'notification.dispatched',
+        {
+          recipientId: 'user-1',
+          notification: createdNotification,
+        },
+      );
     });
   });
 });

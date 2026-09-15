@@ -1023,6 +1023,21 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
+  @OnEvent('notification.dispatched')
+  handleNotificationDispatched(event: {
+    recipientId: string;
+    notification: {
+      id: string;
+      type: string;
+      content: string;
+      [key: string]: unknown;
+    };
+  }) {
+    if (event?.recipientId && event?.notification) {
+      this.sendNotification(event.recipientId, event.notification);
+    }
+  }
+
   // Extract JWT token from socket handshake.
   // Priority: 1) HTTP-only cookie 2) Authorization Bearer header
   private extractToken(client: Socket): string | undefined {

@@ -1,21 +1,20 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { $Enums, Prisma } from '@prisma/client';
 import type { PaginationDto } from '../common/dto/pagination.dto.js';
 import { createPaginatedResult } from '../common/dto/pagination.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PushService } from '../push/push.service.js';
-import { AppGateway } from '../socket/app.gateway.js';
 
 type NotificationType = $Enums.NotificationType;
 
 // Service for in-app notifications (CRUD, read status, unread count).
-// Sends real-time notifications via AppGateway WebSocket.
+// Dispatches domain events for real-time delivery via transport adapters.
 @Injectable()
 export class NotificationsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(AppGateway) private readonly appGateway: AppGateway,
+    @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
     @Inject(PushService) private readonly pushService: PushService,
   ) {}
 
@@ -136,8 +135,11 @@ export class NotificationsService {
             },
           });
 
-          // Emit real-time notification update via Socket.io
-          this.appGateway.sendNotification(data.recipientId, updated);
+          // Emit real-time notification update via domain event
+          this.eventEmitter.emit('notification.dispatched', {
+            recipientId: data.recipientId,
+            notification: updated,
+          });
 
           // We DO NOT send an immediate push here. The Cron job handles it.
           return updated;
@@ -174,8 +176,11 @@ export class NotificationsService {
         },
       });
 
-      // Emit real-time notification via Socket.io
-      this.appGateway.sendNotification(data.recipientId, notification);
+      // Emit real-time notification via domain event
+      this.eventEmitter.emit('notification.dispatched', {
+        recipientId: data.recipientId,
+        notification,
+      });
 
       // Skip immediate Push Notification for batchable events
       // They will be handled by NotificationsCronService (Option B)
