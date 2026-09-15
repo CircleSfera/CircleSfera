@@ -12,6 +12,7 @@ import * as bcrypt from 'bcrypt';
 import { generateSecret, generateURI, verifySync } from 'otplib';
 import * as qrcode from 'qrcode';
 import { ADMIN_JWT_AUDIENCE } from '../auth/strategies/admin-jwt.strategy.js';
+import { getAdminJwtSecret } from '../common/config/admin-jwt.config.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const LOCKOUT_THRESHOLD = 5;
@@ -35,10 +36,7 @@ export class AdminAuthService {
   ) {}
 
   private adminSecret(): string {
-    return (
-      this.config.get<string>('JWT_ADMIN_SECRET') ||
-      this.config.getOrThrow<string>('JWT_SECRET')
-    );
+    return getAdminJwtSecret(this.config);
   }
 
   private hashRefresh(token: string): string {

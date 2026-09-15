@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import type { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { getAdminJwtSecret } from '../../common/config/admin-jwt.config.js';
 import { ADMIN_ACCESS_TOKEN_COOKIE } from '../../common/config/cookie.config.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import type { CurrentAdminData } from '../decorators/current-admin.decorator.js';
@@ -37,9 +38,7 @@ export class AdminJwtStrategy extends PassportStrategy(
     @Inject(ConfigService) configService: ConfigService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {
-    const adminSecret =
-      configService.get<string>('JWT_ADMIN_SECRET') ||
-      configService.getOrThrow<string>('JWT_SECRET');
+    const adminSecret = getAdminJwtSecret(configService);
     super({
       jwtFromRequest: adminCookieOrHeaderExtractor,
       ignoreExpiration: false,
