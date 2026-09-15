@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (for scripts reference on VPS via git pull)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run reencrypt + optional cron install
         uses: appleboy/ssh-action@v1.2.5
