@@ -37,7 +37,13 @@ export class OutboxService {
       throw new Error('Outbox event requires queueName and eventName');
     }
 
-    const txDelegate = (tx as any).outboxEvent as OutboxDelegate;
+    const txDelegate = (tx as any)?.outboxEvent as OutboxDelegate | undefined;
+    if (!txDelegate || typeof txDelegate.create !== 'function') {
+      this.logger.warn(
+        `Outbox delegate not available on transaction client; skipping outbox write for "${data.eventName}".`,
+      );
+      return null;
+    }
 
     return txDelegate.create({
       data: {
@@ -90,12 +96,18 @@ export class OutboxService {
     let failed = 0;
     let skipped = 0;
 
+    const delegate = this.outboxDelegate;
+    if (!delegate || typeof delegate.findMany !== 'function') {
+      this.isSweeping = false;
+      return { published: 0, failed: 0, skipped: 0 };
+    }
+
     try {
       const now = new Date();
       const leaseCutoff = new Date(now.getTime() - OUTBOX_LEASE_DURATION_MS);
 
       // Find candidates: PENDING or stuck PROCESSING events whose lease has expired
-      const candidates = await this.outboxDelegate.findMany({
+      const candidates = await delegate.findMany({
         where: {
           OR: [
             { status: 'PENDING' },
@@ -146,7 +158,7 @@ export class OutboxService {
             jobId: deterministicJobId,
           });
 
-          await this.outboxDelegate.update({
+          await delegate.update({
             where: { id: event.id },
             data: {
               status: 'PUBLISHED',
