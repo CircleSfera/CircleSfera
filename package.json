@@ -11,6 +11,11 @@
     "e2e:cleanup": "cd circlesfera-backend && npx tsx scripts/cleanup-e2e-users.ts",
     "smoke:profile-drift": "node scripts/validate-profile-drift-smoke.mjs",
     "docs:api-inventory": "node scripts/generate-api-inventory.mjs",
+    "db:backup": "./scripts/backup-postgres.sh",
+    "db:restore": "./scripts/restore-postgres.sh",
+    "db:check-migrations": "./scripts/check-prisma-schema-migrations.sh",
+    "env:upload": "./scripts/upload-prod-env.sh",
+    "ops:diagnose-crypto": "node scripts/diagnose-message-crypto.mjs",
     "check": "biome check --write .",
     "check:deps": "npm run check:deps --prefix circlesfera-backend && npm run check:deps --prefix circlesfera-frontend",
     "prepare": "husky"
