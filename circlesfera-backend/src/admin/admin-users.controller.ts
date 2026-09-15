@@ -25,7 +25,7 @@ import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminUsersService } from './admin-users.service.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
 import { BroadcastEmailDto } from './dto/broadcast-email.dto.js';
-import { CreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
+import { AdminCreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto.js';
 import { UpdateWhitelistEntryDto } from './dto/update-whitelist-entry.dto.js';
 
@@ -161,7 +161,7 @@ export class AdminUsersController {
   @RequireStaffPermissions('users.write')
   @Post('whitelist')
   async createWhitelist(
-    @Body() data: CreateWhitelistEntryDto,
+    @Body() data: AdminCreateWhitelistEntryDto,
     @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.adminUsersService.createWhitelist(admin.adminId, data);

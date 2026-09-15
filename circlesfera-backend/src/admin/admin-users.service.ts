@@ -15,7 +15,7 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
 import type { BroadcastEmailDto } from './dto/broadcast-email.dto.js';
-import type { CreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
+import type { AdminCreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
 import type { UpdateWhitelistEntryDto } from './dto/update-whitelist-entry.dto.js';
 import { resolveAdminNotificationSenderId } from './utils/resolve-admin-notification-sender.js';
 import { userListRoleWhere } from './utils/user-list-role-filter.js';
@@ -978,7 +978,7 @@ export class AdminUsersService {
     };
   }
 
-  async createWhitelist(adminId: string, data: CreateWhitelistEntryDto) {
+  async createWhitelist(adminId: string, data: AdminCreateWhitelistEntryDto) {
     const existing = await this.prisma.whitelistEntry.findUnique({
       where: { email: data.email.toLowerCase() },
     });

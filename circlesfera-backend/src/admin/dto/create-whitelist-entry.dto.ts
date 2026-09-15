@@ -1,6 +1,6 @@
 import { IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
 
-export class CreateWhitelistEntryDto {
+export class AdminCreateWhitelistEntryDto {
   @IsEmail()
   email!: string;
 
@@ -9,3 +9,5 @@ export class CreateWhitelistEntryDto {
   @MaxLength(120)
   name?: string;
 }
+
+export { AdminCreateWhitelistEntryDto as CreateWhitelistEntryDto };
