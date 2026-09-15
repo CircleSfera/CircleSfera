@@ -73,6 +73,7 @@ model User {
   profiles              Profile[]
   refreshTokens         RefreshToken[]
   passkeys              Passkey[]
+  passkeyChallenges     PasskeyChallenge[]
   deviceSignals         DeviceSignal[]
   settings              UserSettings?
   linkedAdminIdentities AdminIdentity[] // Correlation only, never auth
@@ -136,6 +137,21 @@ model Passkey {
 
   @@index([userId])
   @@map("passkeys")
+}
+
+model PasskeyChallenge {
+  id        String   @id @default(uuid())
+  userId    String
+  scope     String   // "REGISTRATION" | "AUTHENTICATION"
+  challenge String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, scope])
+  @@index([expiresAt])
+  @@map("passkey_challenges")
 }
 
 /// First-party device hash for T&S clustering. visitorHash is HMAC(visitorId).

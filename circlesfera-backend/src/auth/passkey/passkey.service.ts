@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -20,10 +21,46 @@ import {
   verifyRegistrationResponse,
 } from './simplewebauthn.js';
 
+const PASSKEY_CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function extractChallengeFromClientResponse(
+  body: unknown,
+  fallbackChallenge?: string | null,
+): string | null {
+  if (!body || typeof body !== 'object') {
+    return fallbackChallenge || null;
+  }
+  const anyBody = body as {
+    response?: { clientDataJSON?: string };
+    clientDataJSON?: string;
+    challenge?: string;
+  };
+  if (anyBody.challenge && typeof anyBody.challenge === 'string') {
+    return anyBody.challenge;
+  }
+  const clientDataJSON =
+    anyBody.response?.clientDataJSON || anyBody.clientDataJSON;
+
+  if (clientDataJSON && typeof clientDataJSON === 'string') {
+    try {
+      const raw = Buffer.from(clientDataJSON, 'base64url').toString('utf8');
+      const parsed = JSON.parse(raw);
+      if (typeof parsed.challenge === 'string') {
+        return parsed.challenge;
+      }
+    } catch {
+      // ignore parsing error and fallback
+    }
+  }
+
+  return fallbackChallenge || null;
+}
+
 // Service for FIDO2/WebAuthn passkey registration and authentication.
 // Uses @simplewebauthn/server for challenge generation and verification.
 @Injectable()
 export class PasskeyService {
+  private readonly logger = new Logger(PasskeyService.name);
   private readonly rpName = 'CircleSfera';
   private readonly rpID: string;
   private readonly origin: string;
@@ -38,8 +75,82 @@ export class PasskeyService {
       'http://localhost:5173';
   }
 
+  private async consumeChallenge(
+    challenge: string,
+    expectedUserId: string,
+    expectedScope: 'REGISTRATION' | 'AUTHENTICATION',
+    existingUserCurrentChallenge?: string | null,
+  ): Promise<string> {
+    const prisma = this.prisma as any;
+
+    const executeConsumption = async (tx: any) => {
+      let record: any = null;
+      if (tx.passkeyChallenge) {
+        record = await tx.passkeyChallenge.findUnique({
+          where: { challenge },
+        });
+      }
+
+      if (!record) {
+        if (existingUserCurrentChallenge === challenge) {
+          await tx.user.update({
+            where: { id: expectedUserId },
+            data: { currentChallenge: null },
+          });
+          return challenge;
+        }
+        // Fallback for legacy single-slot User.currentChallenge during transition
+        const user = await tx.user.findUnique({
+          where: { id: expectedUserId },
+        });
+        if (user?.currentChallenge === challenge) {
+          await tx.user.update({
+            where: { id: expectedUserId },
+            data: { currentChallenge: null },
+          });
+          return challenge;
+        }
+        throw new BadRequestException(
+          'Challenge not found or already consumed',
+        );
+      }
+
+      if (record.userId !== expectedUserId) {
+        throw new BadRequestException('Challenge user mismatch');
+      }
+
+      if (record.scope !== expectedScope) {
+        throw new BadRequestException(
+          `Challenge scope mismatch: expected ${expectedScope}, got ${record.scope}`,
+        );
+      }
+
+      if (
+        record.expiresAt &&
+        new Date(record.expiresAt).getTime() < Date.now()
+      ) {
+        await tx.passkeyChallenge
+          .delete({ where: { id: record.id } })
+          .catch(() => undefined);
+        throw new BadRequestException('Challenge has expired');
+      }
+
+      // Atomically consume (delete single-use record)
+      await tx.passkeyChallenge.delete({
+        where: { id: record.id },
+      });
+
+      return record.challenge;
+    };
+
+    if (typeof prisma.$transaction === 'function') {
+      return prisma.$transaction(executeConsumption);
+    }
+    return executeConsumption(prisma);
+  }
+
   // Generate WebAuthn registration options (challenge) for a user.
-  // Stores the challenge in the user record for later verification.
+  // Stores a short-lived scoped challenge record for later verification.
   // Param userId: The authenticated user's ID
   // Throws NotFoundException if user not found
   async generateRegistrationOptions(userId: string) {
@@ -88,7 +199,19 @@ export class PasskeyService {
 
     const registrationOptions = await generateRegistrationOptions(options);
 
-    // Store challenge
+    const prisma = this.prisma as any;
+    if (prisma.passkeyChallenge) {
+      await prisma.passkeyChallenge.create({
+        data: {
+          userId,
+          scope: 'REGISTRATION',
+          challenge: registrationOptions.challenge,
+          expiresAt: new Date(Date.now() + PASSKEY_CHALLENGE_TTL_MS),
+        },
+      });
+    }
+
+    // Retain User.currentChallenge for backwards compatibility
     await this.prisma.user.update({
       where: { id: userId },
       data: { currentChallenge: registrationOptions.challenge },
@@ -107,11 +230,21 @@ export class PasskeyService {
       where: { id: userId },
     })) as unknown as { currentChallenge?: string | null } | null;
 
-    if (!user?.currentChallenge) {
+    const challenge = extractChallengeFromClientResponse(
+      body,
+      user?.currentChallenge,
+    );
+
+    if (!challenge) {
       throw new BadRequestException('Registration challenge not found');
     }
 
-    const expectedChallenge = user.currentChallenge;
+    const expectedChallenge = await this.consumeChallenge(
+      challenge,
+      userId,
+      'REGISTRATION',
+      user?.currentChallenge,
+    );
 
     const opts: VerifyRegistrationResponseOpts = {
       response: body as VerifyRegistrationResponseOpts['response'],
@@ -210,6 +343,18 @@ export class PasskeyService {
 
     const authenticationOptions = await generateAuthenticationOptions(opts);
 
+    const prisma = this.prisma as any;
+    if (prisma.passkeyChallenge) {
+      await prisma.passkeyChallenge.create({
+        data: {
+          userId: user.id,
+          scope: 'AUTHENTICATION',
+          challenge: authenticationOptions.challenge,
+          expiresAt: new Date(Date.now() + PASSKEY_CHALLENGE_TTL_MS),
+        },
+      });
+    }
+
     // Store challenge
     await this.prisma.user.update({
       where: { id: user.id },
@@ -247,9 +392,25 @@ export class PasskeyService {
       currentChallenge?: string | null;
     } | null;
 
-    if (!user?.currentChallenge) {
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const challenge = extractChallengeFromClientResponse(
+      body,
+      user.currentChallenge,
+    );
+
+    if (!challenge) {
       throw new BadRequestException('Authentication challenge not found');
     }
+
+    const expectedChallenge = await this.consumeChallenge(
+      challenge,
+      user.id,
+      'AUTHENTICATION',
+      user.currentChallenge,
+    );
 
     const passkey = user.passkeys.find(
       (pk) => pk.credentialID === (body as { id: string }).id,
@@ -260,7 +421,7 @@ export class PasskeyService {
 
     const opts: VerifyAuthenticationResponseOpts = {
       response: body as VerifyAuthenticationResponseOpts['response'],
-      expectedChallenge: user.currentChallenge,
+      expectedChallenge,
       expectedOrigin: this.origin,
       expectedRPID: this.rpID,
       credential: {
@@ -303,13 +464,10 @@ export class PasskeyService {
         return { verified: true, userId: user.id };
       }
 
-      console.error(
-        'Passkey verification failed (verified: false):',
-        verification,
-      );
+      this.logger.warn('Passkey verification failed: verified is false');
       return { verified: false };
     } catch (error: unknown) {
-      console.error('Passkey authentication exception:', error);
+      this.logger.error('Passkey authentication exception', error);
       const message = error instanceof Error ? error.message : 'Unknown error';
       throw new BadRequestException(
         `Passkey authentication failed: ${message}`,
